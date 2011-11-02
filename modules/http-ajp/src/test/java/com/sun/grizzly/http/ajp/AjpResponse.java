@@ -40,45 +40,62 @@
 
 package com.sun.grizzly.http.ajp;
 
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
-import java.io.IOException;
-import java.io.OutputStream;
+import com.sun.grizzly.util.http.MimeHeaders;
 
-/**
- * {@link Response} implementation, which also contains AJP
- * related meta data.
- *
- * @author Alexey Stashok
- */
-public final class AjpHttpResponse extends Response {
-    private final static byte[] JK_AJP13_CPONG_REPLY_CONTENT =
-            new byte[] {'A', 'B', 0, 1, AjpConstants.JK_AJP13_CPONG_REPLY};
+public class AjpResponse {
+    private byte type;
+    private byte[] body;
+    private int responseCode;
+    private String responseMessage;
+    private MimeHeaders headers;
+    private int packetLength;
     
-    private boolean secure;
-    
-    final ByteChunk tmpHeaderByteChunk =
-            new ByteChunk(AjpConstants.MAX_PACKET_SIZE);
-
-    public void setSecure(final boolean secure) {
-        this.secure = secure;
-    }
-    
-    static void writeCPongReply(final OutputStream outputStream) throws IOException {
-        outputStream.write(JK_AJP13_CPONG_REPLY_CONTENT);
+    public byte getType() {
+        return type;
     }
 
-    @Override
-    public void reset() throws IllegalStateException {
-        tmpHeaderByteChunk.recycle();
-        super.reset();
+    public void setType(byte type) {
+        this.type = type;
     }
-    
-    @Override
-    public void recycle() {
-        tmpHeaderByteChunk.recycle();
-        super.recycle();
+
+    public byte[] getBody() {
+        return body;
     }
-    
-    
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+
+    public void setResponseMessage(String responseMessage) {
+        this.responseMessage = responseMessage;
+    }
+
+
+    public void setHeaders(MimeHeaders headers) {
+        this.headers = headers;
+    }
+
+    public MimeHeaders getHeaders() {
+        return headers;
+    }
+
+    public int getPacketLength() {
+        return packetLength;
+    }
+
+    public void setPacketLength(int packetLength) {
+        this.packetLength = packetLength;
+    }
 }

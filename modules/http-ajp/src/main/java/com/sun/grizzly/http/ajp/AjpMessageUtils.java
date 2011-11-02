@@ -42,18 +42,14 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.HexUtils;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.HttpMessages;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.net.SSLSupport;
 
-import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.List;
 
 
 /**
@@ -66,120 +62,144 @@ final class AjpMessageUtils {
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE = AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE;
 
-    public static void decodeForwardRequest(ByteBuffer buffer, boolean tomcatAuthentication, AjpHttpRequest request)
-            throws IOException {
+    public static int decodeForwardRequest(byte[] buffer, int pos,
+            boolean tomcatAuthentication, AjpHttpRequest request) {
+        
         // Translate the HTTP method code to a String.
-        byte methodCode = buffer.get();
+        byte methodCode = buffer[pos++];
         if (methodCode != AjpConstants.SC_M_JK_STORED) {
             String mName = AjpConstants.methodTransArray[(int) methodCode - 1];
             request.method().setString(mName);
         }
 
-        getBytesToByteChunk(buffer, request.protocol());
-        getBytesToByteChunk(buffer, request.requestURI());
-        getBytesToByteChunk(buffer, request.remoteAddr());
-        getBytesToByteChunk(buffer, request.remoteHost());
-        getBytesToByteChunk(buffer, request.localName());
+        pos = getBytesToByteChunk(buffer, pos, request.protocol());
+        pos = getBytesToByteChunk(buffer, pos, request.requestURI());
+        pos = getBytesToByteChunk(buffer, pos, request.remoteAddr());
+        pos = getBytesToByteChunk(buffer, pos, request.remoteHost());
+        pos = getBytesToByteChunk(buffer, pos, request.localName());
 
-        request.setLocalPort(getShort(buffer));
+        request.setLocalPort(getShort(buffer, pos));
+        pos += 2;
 
-        final boolean isSSL = buffer.get() != 0;
+        final boolean isSSL = buffer[pos++] != 0;
         request.setSecure(isSSL);
         ((AjpHttpResponse) request.getResponse()).setSecure(isSSL);
 
-        decodeHeaders(request, buffer);
+        pos = decodeHeaders(request, buffer, pos);
 
-        decodeAttributes(buffer, request, tomcatAuthentication);
+        pos = decodeAttributes(buffer, pos, request, tomcatAuthentication);
         request.unparsedURI().setString(request.requestURI() +
                 (request.queryString().getLength() != 0 ? "?" + request.queryString() : ""));
+        
+        return pos;
     }
 
-    private static void decodeAttributes(final ByteBuffer requestContent,
+    private static int decodeAttributes(final byte[] requestContent, int pos,
             final AjpHttpRequest req, final boolean tomcatAuthentication) {
 
+        final MessageBytes tmpMessageBytes = req.tmpMessageBytes;
+        
         boolean moreAttr = true;
 
         while (moreAttr) {
-            final byte attributeCode = requestContent.get();
+            final byte attributeCode = requestContent[pos++];
             if (attributeCode == AjpConstants.SC_A_ARE_DONE) {
-                return;
+                return pos;
             }
 
             /* Special case ( XXX in future API make it separate type !)
              */
             if (attributeCode == AjpConstants.SC_A_SSL_KEY_SIZE) {
                 // Bug 1326: it's an Integer.
-                req.setAttribute(SSLSupport.KEY_SIZE_KEY, getShort(requestContent));
+                req.setAttribute(SSLSupport.KEY_SIZE_KEY,
+                        getShort(requestContent, pos));
+                pos += 2;
             }
 
             if (attributeCode == AjpConstants.SC_A_REQ_ATTRIBUTE) {
                 // 2 strings ???...
-                setStringAttribute(req, requestContent);
+                pos = setStringAttribute(req, requestContent, pos);
             }
 
 
             // 1 string attributes
             switch (attributeCode) {
                 case AjpConstants.SC_A_CONTEXT:
-                    skipBytes(requestContent);
+                    pos = skipBytes(requestContent, pos);
+                    // nothing
                     break;
+
                 case AjpConstants.SC_A_SERVLET_PATH:
-                    skipBytes(requestContent);
+                    pos = skipBytes(requestContent, pos);
+                    // nothing
                     break;
+
                 case AjpConstants.SC_A_REMOTE_USER:
                     if (tomcatAuthentication) {
                         // ignore server
-                        skipBytes(requestContent);
+                        pos = skipBytes(requestContent, pos);
                     } else {
-                        getBytesToByteChunk(requestContent, req.getRemoteUser());
+                        pos = getBytesToByteChunk(requestContent, pos,
+                                req.getRemoteUser());
                     }
                     break;
+
                 case AjpConstants.SC_A_AUTH_TYPE:
                     if (tomcatAuthentication) {
                         // ignore server
-                        skipBytes(requestContent);
+                        pos = skipBytes(requestContent, pos);
                     } else {
-                        getBytesToByteChunk(requestContent, req.getAuthType());
+                        pos = getBytesToByteChunk(requestContent, pos,
+                                req.getAuthType());
                     }
                     break;
 
                 case AjpConstants.SC_A_QUERY_STRING:
-                    getBytesToByteChunk(requestContent, req.queryString());
+                    pos = getBytesToByteChunk(requestContent, pos,
+                            req.queryString());
                     break;
 
                 case AjpConstants.SC_A_JVM_ROUTE:
-                    getBytesToByteChunk(requestContent, req.instanceId());
+                    pos = getBytesToByteChunk(requestContent, pos,
+                            req.instanceId());
                     break;
 
                 case AjpConstants.SC_A_SSL_CERT:
                     req.setSecure(true);
-                    // SSL certificate extraction is costly, initialize on demand
-                    getBytesToByteChunk(requestContent, req.sslCert());
+                    // SSL certificate extraction is costy, initialize on demand
+                    pos = getBytesToByteChunk(requestContent, pos, req.sslCert());
                     break;
 
                 case AjpConstants.SC_A_SSL_CIPHER:
                     req.setSecure(true);
-                    setStringAttributeValue(req, SSLSupport.CIPHER_SUITE_KEY, requestContent);
+                    pos = setStringAttributeValue(req,
+                            SSLSupport.CIPHER_SUITE_KEY, requestContent, pos);
                     break;
 
                 case AjpConstants.SC_A_SSL_SESSION:
                     req.setSecure(true);
-                    setStringAttributeValue(req, SSLSupport.SESSION_ID_KEY, requestContent);
+                    pos = setStringAttributeValue(req,
+                            SSLSupport.SESSION_ID_KEY, requestContent, pos);
                     break;
 
                 case AjpConstants.SC_A_SECRET:
-                    final int secretLen = getShort(requestContent);
-                    req.setSecret(getString(requestContent));
+                    pos = getBytesToByteChunk(requestContent, pos, tmpMessageBytes);
+
+                    req.setSecret(tmpMessageBytes.toString());
+                    tmpMessageBytes.recycle();
+
                     break;
 
                 case AjpConstants.SC_A_STORED_METHOD:
-                    getBytesToByteChunk(requestContent, req.method());
+                    pos = getBytesToByteChunk(requestContent, pos, req.method());
                     break;
 
                 default:
                     break; // ignore, we don't know about it - backward compat
             }
         }
+        
+        return pos;
     }
 
     public static String getString(ByteBuffer buffer) {
@@ -191,11 +211,12 @@ final class AjpMessageUtils {
         return s;
     }
 
-    private static void decodeHeaders(final Request req, final ByteBuffer buf) {
+    public static int decodeHeaders(final Request req, final byte[] buf, int pos) {
         // Decode headers
         final MimeHeaders headers = req.getMimeHeaders();
 
-        final int hCount = getShort(buf);
+        final int hCount = getShort(buf, pos);
+        pos += 2;
 
         for (int i = 0; i < hCount; i++) {
             String hName;
@@ -203,9 +224,11 @@ final class AjpMessageUtils {
             // Header names are encoded as either an integer code starting
             // with 0xA0, or as a normal string (in which case the first
             // two bytes are the length).
-            int isc = getShort(buf);
+            int isc = getShort(buf, pos);
             int hId = isc & 0xFF;
 
+            pos += 2;
+            
             MessageBytes valueDC;
             isc &= 0xFF00;
             if (0xA000 == isc) {
@@ -220,11 +243,17 @@ final class AjpMessageUtils {
                 // behaviour.  see bug 5861 for more information.
                 hId = -1;
 
-                advance(buf, -2);
-                valueDC = headers.addValue(getString(buf));
+                pos -= 2;
+                
+                final int length = getShort(buf, pos);
+                pos += 2;
+
+                valueDC = headers.addValue(buf, pos, length);
+                // Don't forget to skip the terminating \0 (that's why "+ 1")
+                pos += length + 1;
             }
 
-            getBytesToByteChunk(buf, valueDC);
+            pos = getBytesToByteChunk(buf, pos, valueDC);
 
             // Get the last added header name (the one we need)
             final MessageBytes headerNameDC = headers.getName(headers.size() - 1);
@@ -243,35 +272,68 @@ final class AjpMessageUtils {
                 req.setContentType(valueDC.toString());
             }
         }
+        
+        return pos;
     }
 
-    private static void getBytesToByteChunk(final ByteBuffer buffer, final MessageBytes bytes) {
-        final int length = getShort(buffer);
+    static int getBytesToByteChunk(final byte[] buffer, int pos,
+            final MessageBytes bytes) {
+        final int length = getShort(buffer, pos);
+        pos += 2;
+        
         if (length != 0xFFFF) {
-            bytes.setBytes(buffer.array(), buffer.position(), length);
+            bytes.setBytes(buffer, pos, length);
             // Don't forget to skip the terminating \0 (that's why "+ 1")
-            advance(buffer, length + 1);
+            pos += length + 1;
         }
-    }
-
-    private static void setStringAttribute(final AjpHttpRequest req, final ByteBuffer buffer) {
-        req.setAttribute(getString(buffer), getString(buffer));
+        
+        return pos;
     }
 
     private static void advance(ByteBuffer buffer, int length) {
         buffer.position(buffer.position() + length);
     }
 
-    private static void setStringAttributeValue(final AjpHttpRequest req, final String key, final ByteBuffer buffer) {
-        req.setAttribute(key, getString(buffer));
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
-        advance(buffer, 1);
+    private static int setStringAttribute(final AjpHttpRequest req,
+            final byte[] buffer, int offset) {
+        final MessageBytes tmpMessageBytes = req.tmpMessageBytes;
+
+        offset = getBytesToByteChunk(buffer, offset, tmpMessageBytes);
+        final String key = tmpMessageBytes.toString();
+
+        tmpMessageBytes.recycle();
+
+        offset = getBytesToByteChunk(buffer, offset, tmpMessageBytes);        
+        final String value = tmpMessageBytes.toString();
+        
+        tmpMessageBytes.recycle();
+
+        req.setAttribute(key, value);
+        
+        return offset;
+    }
+
+    private static int setStringAttributeValue(final AjpHttpRequest req,
+            final String key, final byte[] buffer, int pos) {
+
+        final MessageBytes tmpMessageBytes = req.tmpMessageBytes;
+        
+        pos = getBytesToByteChunk(buffer, pos, tmpMessageBytes);
+        final String value = tmpMessageBytes.toString();
+        
+        tmpMessageBytes.recycle();
+
+        req.setAttribute(key, value);
+        return pos;
     }
 
     public static ByteChunk encodeHeaders(AjpHttpResponse response) {
         try {
-            ByteChunk headerBuffer = new ByteChunk(4096);
+            final ByteChunk headerBuffer = response.tmpHeaderByteChunk;
+            final int start = headerBuffer.getStart();
 
+            headerBuffer.setEnd(start + 4); // reserve 4 bytes for AJP header
+            
             headerBuffer.append(AjpConstants.JK_AJP13_SEND_HEADERS);
             putShort(headerBuffer, (short) response.getStatus());
             String message = null;
@@ -283,7 +345,7 @@ final class AjpMessageUtils {
                 message = HttpMessages.getMessage(response.getStatus());
             }
 
-            putBytes(headerBuffer, message.getBytes());;
+            putBytes(headerBuffer, message.getBytes());
 
             if (false/*response.isAcknowledgement()*/) {
                 // If it's acknowledgment packet - don't encode the headers
@@ -320,209 +382,86 @@ final class AjpMessageUtils {
             }
 
             // Add Ajp message header
-            ByteChunk encodedBuffer = new ByteChunk(4096);
-            encodedBuffer.append((byte) 'A');
-            encodedBuffer.append((byte) 'B');
+//            ByteChunk encodedBuffer = new ByteChunk(4096);
+            final byte[] headerBytes = headerBuffer.getBuffer();
+            headerBytes[start] = ((byte) 'A');
+            headerBytes[start + 1] = ((byte) 'B');
 
-            putShort(encodedBuffer, (short) headerBuffer.getLength());
-            encodedBuffer.append(headerBuffer);
+            
+            putShort(headerBytes, start + 2, (short) (headerBuffer.getLength() - 4));
 
-            return encodedBuffer;
+            return headerBuffer;
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new IllegalStateException("Unexpected exception", e);
         }
     }
+    private static int skipBytes(final byte[] buffer, int pos) {
 
-    /**
-     * Parse host.
-     */
-    private static void parseHost(final MessageBytes bytes, final AjpHttpRequest request)
-            throws CharConversionException {
-
-        if (bytes == null) {
-            // HTTP/1.0
-            // Default is what the socket tells us. Overridden if a host is
-            // found/parsed
-            request.setServerPort(request.getLocalPort());
-            request.serverName().setString(request.localName().getString());
-            return;
+        final int length = getShort(buffer, pos);
+        pos += 2;
+        
+        if (!isNullLength(length)) {
+            pos += length;
         }
 
-        final ByteBuffer valueB = bytes.getByteChunk().toByteBuffer();
-        final int valueS = valueB.position();
-        final int valueL = bytes.getLength();
-        int colonPos = -1;
-
-        final boolean ipv6 = valueB.get(valueS) == '[';
-        boolean bracketClosed = false;
-        for (int i = 0; i < valueL; i++) {
-            final byte b = valueB.get(i + valueS);
-            if (b == ']') {
-                bracketClosed = true;
-            } else if (b == ':') {
-                if (!ipv6 || bracketClosed) {
-                    colonPos = i;
-                    break;
-                }
-            }
-        }
-
-        if (colonPos < 0) {
-            request.setServerPort(request.isSecure() ? 443 : 80);
-            request.serverName().setBytes(valueB.array(), valueS, valueL);
-        } else {
-            request.serverName().setBytes(valueB.array(), valueS, colonPos);
-
-            int port = 0;
-            int mult = 1;
-            for (int i = valueL - 1; i > colonPos; i--) {
-                int charValue = HexUtils.DEC[(int) valueB.get(i + valueS)];
-                if (charValue == -1) {
-                    // Invalid character
-                    throw new CharConversionException("Invalid char in port: " + valueB.get(i + valueS));
-                }
-                port = port + charValue * mult;
-                mult = 10 * mult;
-            }
-            request.setServerPort(port);
-        }
-    }
-
-    private static void skipBytes(final ByteBuffer buffer) {
-        if (getShort(buffer) != 0xFFFF) {
-            // Don't forget to skip the terminating \0 (that's why "+ 1")
-            advance(buffer, 1);
-        }
+        // Don't forget to skip the terminating \0 (that's why "+ 1")
+        pos++;
+        
+        return pos;
     }
 
     static int getShort(final ByteBuffer buffer) {
         return buffer.getShort() & 0xFFFF;
     }
 
-    public static void putShort(ByteChunk chunk, short value) throws IOException {
+    static int getShort(byte[] b, int off) {
+	return ((short) (((b[off + 1] & 0xFF)) + 
+			((b[off + 0]) << 8))) & 0xFFFF;
+    }
+    
+    static int getInt(byte[] b, int off) {
+	return ((b[off + 3] & 0xFF)) +
+	       ((b[off + 2] & 0xFF) << 8) +
+	       ((b[off + 1] & 0xFF) << 16) +
+	       ((b[off + 0]) << 24);
+    }
+    
+    public static void putShort(final ByteChunk chunk, final short value)
+            throws IOException {
         chunk.append((byte) (value >> 8));
         chunk.append((byte) (value & 0xFF));
     }
 
-    private static void putString(ByteChunk dstBuffer, String value) throws IOException {
-        byte[] bytes = value.getBytes();
-        putShort(dstBuffer, (short) bytes.length);
-        dstBuffer.append(bytes, 0, bytes.length);
-        dstBuffer.append((byte) 0);
+    public static void putShort(final byte[] b, final int off, final short value) {
+        b[off] = ((byte) (value >> 8));
+        b[off + 1] = ((byte) (value & 0xFF));
     }
-
-    private static void putBytes(ByteChunk dstBuffer, final ByteChunk chunk) throws IOException {
-        if (!chunk.isNull()) {
-            putBytes(dstBuffer, chunk.getBytes());
-        }
-    }
-
+    
     private static void putBytes(ByteChunk dstBuffer, byte[] bytes) throws IOException {
         putShort(dstBuffer, (short) bytes.length);
         dstBuffer.append(bytes, 0, bytes.length);
         dstBuffer.append((byte) 0);
     }
 
-    public static ByteBuffer createAjpPacket(final byte type, ByteBuffer src) {
-        final int length = src.remaining();
-        final ByteBuffer ajpHeader = ByteBuffer.allocate(5 + length);
-        ajpHeader.put((byte) 'A');
-        ajpHeader.put((byte) 'B');
-        ajpHeader.putShort((short) (length + 1));
-        ajpHeader.put(type);
-        ajpHeader.put(src);
-        ajpHeader.flip();
-        return ajpHeader;
+    private static boolean isNullLength(final int length) {
+        return length == 0xFFFF || length == -1;
     }
+    
+    public static byte[] createAjpPacket(final byte type, byte[] payload) {
+        final int length = payload.length;
+        final byte[] ajpMessage = new byte[5 + length];
 
-    public static List<AjpResponse> parseResponse(ByteBuffer buffer) {
-        List<AjpResponse> responses = new ArrayList<AjpResponse>();
-        while (buffer.hasRemaining()) {
-            final AjpResponse ajpResponse = new AjpResponse();
-            final int position = buffer.position();
-            final short magic = buffer.getShort();
-            if (magic != 0x4142) {
-                throw new RuntimeException("Invalid magic number: " + magic + " buffer: \n" + dumpByteTable(buffer));
-            }
-            final short packetSize = buffer.getShort();
-            if (packetSize > AjpConstants.MAX_PACKET_SIZE - 2) {
-                throw new RuntimeException("Packet size too large: " + packetSize);
-            }
-            int start = buffer.position();
-            final byte type = buffer.get();
-            ajpResponse.setType(type);
-            byte[] body;
-            switch (type) {
-                case AjpConstants.JK_AJP13_SEND_HEADERS:
-                    ajpResponse.setResponseCode(buffer.getShort());
-                    ajpResponse.setResponseMessage(getString(buffer));
-                    AjpHttpRequest request = new AjpHttpRequest();
-                    request.getMimeHeaders().addValue("content-type");
-                    decodeHeaders(request, buffer);
-                    ajpResponse.setHeaders(request.getMimeHeaders());
-                    break;
-                case AjpConstants.JK_AJP13_SEND_BODY_CHUNK:
-                    final short size = buffer.getShort();
-                    body = new byte[size];
-                    buffer.get(body);
-                    ajpResponse.setBody(body);
-                    buffer.get();  // consume terminating 0x00
-                    break;
-                case AjpConstants.JK_AJP13_END_RESPONSE:
-                    body = new byte[1];
-                    buffer.get(body);
-                    ajpResponse.setBody(body);
-                    break;
-            }
-            final int end = buffer.position();
-            if (end - start != packetSize) {
-                throw new RuntimeException(String.format("packet size mismatch: %s vs %s", end - start, packetSize));
-            }
-            responses.add(ajpResponse);
-        }
-        return responses;
+        ajpMessage[0] = 'A';
+        ajpMessage[1] = 'B';
+        putShort(ajpMessage, 2, (short) (length + 1));
+        ajpMessage[4] = type;
+
+        System.arraycopy(payload, 0, ajpMessage, 5, length);
+
+        return ajpMessage;
     }
 
     public static byte[] toBytes(short size) {
         return new byte[]{(byte) (size >> 8), (byte) (size & 0xFF)};
-    }
-
-    public static String dumpByteTable(ByteBuffer buffer) {
-        int pos = buffer.position();
-        StringBuilder bytes = new StringBuilder();
-        StringBuilder chars = new StringBuilder();
-        StringBuilder table = new StringBuilder();
-        int count = 0;
-        while (buffer.remaining() > 0) {
-            count++;
-            byte cur = buffer.get();
-            bytes.append(String.format("%02x ", cur));
-            chars.append(printable(cur));
-            if (count % 16 == 0) {
-                table.append(String.format("%s   %s", bytes, chars).trim());
-                table.append("\n");
-                chars = new StringBuilder();
-                bytes = new StringBuilder();
-            } else if (count % 8 == 0) {
-                table.append(String.format("%s   ", bytes));
-                bytes = new StringBuilder();
-            }
-        }
-        if (bytes.length() > 0) {
-            final int i = 50 - count % 8;
-            final String format = "%-" + i + "s   %s";
-            System.out.println("format = " + format);
-            table.append(String.format(format, bytes, chars).trim());
-        }
-        buffer.position(pos);
-
-        return table.toString();
-    }
-
-    private static char printable(byte cur) {
-        if ((cur & (byte) 0xa0) == 0xa0) {
-            return '?';
-        }
-        return cur < 127 && cur > 31 || Character.isLetterOrDigit(cur) ? (char) cur : '.';
     }
 }

@@ -37,20 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
+import com.sun.grizzly.util.buf.MessageBytes;
+import java.io.IOException;
+import java.nio.Buffer;
+import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AjpProcessorTask extends ProcessorTask {
+    private final static Logger logger = SelectorThread.logger();
+    
     public AjpProcessorTask(boolean initialize) {
         super(initialize, false);
     }
-
+    
     @Override
     protected Request createRequest() {
         return new AjpHttpRequest();
@@ -68,7 +76,7 @@ public class AjpProcessorTask extends ProcessorTask {
 
     @Override
     public void sendHeaders() {
-        ((AjpOutputBuffer)outputBuffer).sendHeaders();
+        ((AjpOutputBuffer) outputBuffer).sendHeaders();
     }
 
     @Override
@@ -77,4 +85,122 @@ public class AjpProcessorTask extends ProcessorTask {
         return new AjpOutputBuffer(response, sendBufferSize, bufferResponse);
     }
 
+    @Override
+    public boolean parseRequest() throws Exception {
+        ((AjpInputBuffer) inputBuffer).readAjpMessageHeader();
+        
+        super.parseRequest();
+        
+        return false;
+    }
+
+    @Override
+    public void invokeAdapter() {
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+
+        switch (ajpRequest.getType()) {
+            case AjpConstants.JK_AJP13_FORWARD_REQUEST:
+            {
+                ajpRequest.setForwardRequestProcessing(true);
+                if (ajpRequest.isExpectContent()) {
+                    try {
+                        // if expect content - parse following data chunk
+                        ((AjpInputBuffer) request.getInputBuffer()).parseDataChunk();
+                    } catch (IOException e) {
+                        logger.log(Level.FINE,
+                                "Exception during parsing data chunk", e);
+
+                        error = true;                        
+                    }
+                }
+                
+                super.invokeAdapter();
+                break;
+            }   
+            case AjpConstants.JK_AJP13_SHUTDOWN:
+            {
+                processShutdown();
+                break;
+            }
+            case AjpConstants.JK_AJP13_CPING_REQUEST:
+            {
+                try {
+                    processCPing();
+                } catch (IOException e) {
+                    logger.log(Level.FINE,
+                            "Exception during sending CPONG reply", e);
+                    
+                    error = true;
+                }
+                
+                break;
+            }
+            default:
+                throw new IllegalStateException("Invalid packet type: " +
+                        ajpRequest.getType());
+        }
+    }
+
+    private void processShutdown() {
+
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        String shutdownSecret = null;
+
+        if (ajpRequest.getLength() > 1) { // request contains not just type byte
+            // Secret is available
+            final MessageBytes tmpMessageBytes = ajpRequest.tmpMessageBytes;
+            ((AjpInputBuffer) inputBuffer).getBytesToMB(tmpMessageBytes);
+            
+            shutdownSecret = tmpMessageBytes.toString();
+            tmpMessageBytes.recycle();
+        }
+
+        final AjpSelectorThread ajpSelectorThread = (AjpSelectorThread) getSelectorThread();
+        final String secret = ajpSelectorThread.getSecret();
+        
+        if (secret != null &&
+                secret.equals(shutdownSecret)) {
+            throw new IllegalStateException("Secret doesn't match, no shutdown");
+        }
+
+        final Queue<ShutdownHandler> shutdownHandlers = ajpSelectorThread.getShutdownHandlers();
+        for (ShutdownHandler handler : shutdownHandlers) {
+            try {
+                handler.onShutdown(key.channel());
+            } catch (Exception e) {
+                logger.log(Level.WARNING,
+                        "Exception during ShutdownHandler execution", e);
+            }
+        }
+    }
+    
+    /**
+     * Process CPing request message.
+     * We send CPong response back as plain Grizzly {@link Buffer}.
+     *
+     * @param ctx
+     * @param message
+     * @return
+     * @throws IOException
+     */
+    private void processCPing() throws IOException {
+        AjpHttpResponse.writeCPongReply(outputStream);
+        outputStream.flush();
+    }
+
+    @Override
+    public void setBufferSize(int requestBufferSize) {
+        if (requestBufferSize < AjpConstants.MAX_PACKET_SIZE * 2) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "Buffer size is set to {0} instead of {1} for performance reasons",
+                        new Object[]{AjpConstants.MAX_PACKET_SIZE * 2, requestBufferSize});
+            }
+            
+            requestBufferSize = AjpConstants.MAX_PACKET_SIZE * 2;
+        }
+        
+        super.setBufferSize(requestBufferSize);
+    }
+    
+    
 }

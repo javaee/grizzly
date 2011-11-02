@@ -41,9 +41,92 @@
 package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.http.SelectorThread;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class AjpSelectorThread extends SelectorThread {
+    private final Queue<ShutdownHandler> shutdownHandlers =
+            new ConcurrentLinkedQueue<ShutdownHandler>();
+
+    private String secret;
+    private boolean isTomcatAuthentication = true;
+    
+
     public AjpSelectorThread() {
         processorTaskFactory = new AjpProcessorTaskFactory();
     }
+    
+    /**
+     * Add the {@link ShutdownHandler}, which will be called, when shutdown
+     * request received.
+     *
+     * @param handler {@link ShutdownHandler}
+     */
+    public void addShutdownHandler(final ShutdownHandler handler) {
+        shutdownHandlers.add(handler);
+    }
+
+    /**
+     * Remove the {@link ShutdownHandler}.
+     *
+     * @param handler {@link ShutdownHandler}
+     */
+    public void removeShutdownHandler(final ShutdownHandler handler) {
+        shutdownHandlers.remove(handler);
+    }
+
+    protected Queue<ShutdownHandler> getShutdownHandlers() {
+        return shutdownHandlers;
+    }
+    
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @return true, if the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public boolean isTomcatAuthentication() {
+        return isTomcatAuthentication;
+    }
+
+    /**
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @param isTomcatAuthentication if true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public void setTomcatAuthentication(boolean isTomcatAuthentication) {
+        this.isTomcatAuthentication = isTomcatAuthentication;
+    }
+
+    /**
+     * If not null, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @return not null, if only requests from workers with this secret keyword will
+     * be accepted, or null otherwise.
+     */
+    public String getSecret() {
+        return secret;
+    }
+
+    /**
+     * If not null, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @param requiredSecret if not null, only requests from workers with this
+     * secret keyword will be accepted.
+     */
+    public void setSecret(String requiredSecret) {
+        this.secret = requiredSecret;
+    }    
 }

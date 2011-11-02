@@ -40,76 +40,127 @@
 
 package com.sun.grizzly.http.ajp;
 
+import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 
+import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.MessageBytes;
 import java.io.EOFException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Properties;
 
 public class AjpInputBuffer extends InternalInputBuffer {
+    private static final byte[] GET_BODY_CHUNK_PACKET;
+    
+    static {
+         byte[] getBodyChunkPayload = new byte[2];
+         AjpMessageUtils.putShort(getBodyChunkPayload, 0,
+                 (short) AjpConstants.MAX_READ_SIZE);
+         
+         GET_BODY_CHUNK_PACKET =  AjpMessageUtils.createAjpPacket(
+                 AjpConstants.JK_AJP13_GET_BODY_CHUNK,
+                    getBodyChunkPayload);
+    }
+
     private String secret;
     private boolean isTomcatAuthentication = true;
-    private ByteBuffer buffer;
 
+    private int thisPacketEnd;
+    private int dataPacketRemaining;
+    
     public AjpInputBuffer(Request request, int requestBufferSize) {
         super(request, requestBufferSize);
+        
+        inputStreamInputBuffer = new AjpInputStreamInputBuffer();
+    }
+
+    protected void readAjpMessageHeader() throws IOException {
+        pos = thisPacketEnd; // Reset pos to the next message
+        
+        if (!ensureAvailable(4)) {
+            throw new EOFException(sm.getString("iib.eof.error"));
+        }
+        
+        final int magic = AjpMessageUtils.getShort(buf, pos);
+        if (magic != 0x1234) {
+            throw new IllegalStateException("Invalid packet magic number: " +
+                    Integer.toHexString(magic));
+        }
+        
+        final int size = AjpMessageUtils.getShort(buf, pos + 2);
+        
+        if (size + AjpConstants.H_SIZE > AjpConstants.MAX_PACKET_SIZE) {
+            throw new IllegalStateException("The message is too large. " +
+                    (size + AjpConstants.H_SIZE) + ">" +
+                    AjpConstants.MAX_PACKET_SIZE);
+        }
+        
+        pos += 4;
+        
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        ajpRequest.setLength(size);
+        
+        thisPacketEnd = pos + size;
     }
 
     @Override
     public void parseRequestLine() throws IOException {
-        readPacket();
+        readAjpPacketPayload();
+    }
+
+    @Override
+    public void parseHeaders() throws IOException {
+        super.parseHeaders();
+        
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
-        if(ajpRequest.isExpectContent()) {
-            readPacket();
-        }
+        if (ajpRequest.getType() == AjpConstants.JK_AJP13_FORWARD_REQUEST) {
+            parseAjpHttpHeaders();
+        }        
     }
 
-    private void readPacket() throws IOException {
-        if (pos >= lastValid) {
-            if (!fill()) {
-                throw new EOFException(sm.getString("iib.eof.error"));
-            }
-        }
-
-        try {
-            buffer = ByteBuffer.wrap(buf, pos, lastValid - pos);
-        } catch (IndexOutOfBoundsException e) {
-            System.out.println("pos = " + pos);
-            System.out.println("lastValid = " + lastValid);
-            throw e;
-        }
-        final short magic = buffer.getShort();
-        if (magic != 0x1234) {
-            throw new RuntimeException("Invalid packet magic number: " + Integer.toHexString(magic));
-        }
-        final short size = buffer.getShort();
-
-        final int type = buffer.get();
-
-        switch (type) {
-            case AjpConstants.JK_AJP13_FORWARD_REQUEST:
-                processForwardRequest();
-                break;
-//            case AjpConstants.JK_AJP13_SHUTDOWN:
-//                return processShutdown(chunk);
-//                break;
-//            case AjpConstants.JK_AJP13_CPING_REQUEST:
-//                return processCPing();
-//                break;
-            default:
-                processData(size);
-                break;
-        }
-        pos = buffer.position();
-    }
-
+    
     @Override
     public boolean parseHeader() throws IOException {
         return false;
     }
 
+    protected void readAjpPacketPayload() throws IOException {
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        final int length = ajpRequest.getLength();
+        
+        if (!ensureAvailable(length)) {
+            throw new EOFException(sm.getString("iib.eof.error"));
+        }
+
+        
+        ajpRequest.setType(ajpRequest.isForwardRequestProcessing() ?
+                AjpConstants.JK_AJP13_DATA : buf[pos++] & 0xFF);
+    }
+
+    protected void parseAjpHttpHeaders() {
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        pos = end = AjpMessageUtils.decodeForwardRequest(buf, pos,
+                isTomcatAuthentication, ajpRequest);
+
+        if (secret != null) {
+            final String epSecret = ajpRequest.getSecret();
+            if (epSecret == null || !secret.equals(epSecret)) {
+                throw new IllegalStateException("Secret doesn't match");
+            }
+        }
+
+        final long contentLength = request.getContentLength();
+        if (contentLength > 0) {
+            // if content-length > 0 - the first data chunk will come immediately,
+            ajpRequest.setContentBytesRemaining((int) contentLength);
+            ajpRequest.setExpectContent(true);
+        } else {
+            // content-length == 0 - no content is expected
+            ajpRequest.setExpectContent(false);
+        }
+    }
+    
     /**
      * Configure Ajp Filter using properties.
      * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
@@ -125,69 +176,130 @@ public class AjpInputBuffer extends InternalInputBuffer {
         isTomcatAuthentication = Boolean.parseBoolean(properties.getProperty("tomcatAuthentication", "true"));
     }
 
-    private void processForwardRequest() throws IOException {
-        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
-        AjpMessageUtils.decodeForwardRequest(buffer, isTomcatAuthentication, ajpRequest);
-        pos = buffer.position();
-
-        if (secret != null) {
-            final String epSecret = ajpRequest.getSecret();
-            if (epSecret == null || !secret.equals(epSecret)) {
-                throw new IllegalStateException("Secret doesn't match");
-            }
-        }
-
-        final long contentLength = request.getContentLength();
-        if (contentLength > 0) {
-            // if content-length > 0 - the first data chunk will come immediately,
-            // so let's wait for it
-            ajpRequest.setContentBytesRemaining((int) contentLength);
-            ajpRequest.setExpectContent(true);
-        } else {
-            // content-length == 0 - no content is expected
-            ajpRequest.setExpectContent(false);
-        }
+    
+    final void getBytesToMB(final MessageBytes messageBytes) {
+        pos = AjpMessageUtils.getBytesToByteChunk(buf, pos, messageBytes);
     }
 
-    private void processData(short size) {
+    @Override
+    protected final boolean fill() throws IOException {
+        throw new IllegalStateException("Should never be called for AJP");
+    }
 
-        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
-
-        final short bufferSize = buffer.get();// consume length byte
+    private boolean ensureAvailable(final int length) throws IOException {
+        if (lastValid - pos >= length) {
+            return true;
+        }
         
-        // Figure out if the content is last
-        if (ajpRequest.isExpectContent()) {
-            int contentBytesRemaining = ajpRequest.getContentBytesRemaining();
-            // if we know the content-length
-            if (contentBytesRemaining > 0) {
-                contentBytesRemaining -= (short) (size - 2);
-                ajpRequest.setContentBytesRemaining(contentBytesRemaining);
-                // do we have more content remaining?
-                if (contentBytesRemaining <= 0) {
-                    ajpRequest.setExpectContent(false);
-                }
-            } else if (!buffer.hasRemaining()) {
-                // if chunked and zero-length content came
-                ajpRequest.setExpectContent(false);
+        int nRead = 0;
+        
+        pos = end;
+        
+        if (pos + length > buf.length) {
+            final byte[] newBuf =
+                    new byte[Math.max(buf.length, AjpConstants.MAX_PACKET_SIZE * 2)];
+            final int remaining = lastValid - pos;
+            if (remaining > 0) {
+                System.arraycopy(buf, pos, newBuf, 0, remaining);
             }
+            
+            buf = newBuf;
+            pos = 0;
+            end = 0;
+            lastValid = remaining;
         }
-
-/*
-        final HttpContent content = HttpContent.builder(ajpRequest)
-                .content(buffer)
-                .last(!ajpRequest.isExpectContent())
-                .build();
-
-        ctx.setMessage(content);
-
-        // If we may expect more data - do the following trick:
-        // set NEED_MORE_DATA_MESSAGE as remainder, so when more data will be requested
-        // this filter will be invoked. This way we'll be able to send a request
-        // for more data to web server.
-        // See handleRead() and sendMoreDataRequestIfNeeded() methods
-        return ctx.getInvokeAction(ajpRequest.isExpectContent() ?
-            NEED_MORE_DATA_MESSAGE : null);
-*/
+        
+        lastValid = pos;
+        
+        while (lastValid - pos < length) {
+            nRead = inputStream.read(buf, lastValid, buf.length - lastValid);
+            if (nRead < 0) {
+                return false;
+            }
+            
+            lastValid += nRead;
+        }
+        
+        return true;
     }
 
+    @Override
+    public void endRequest() throws IOException {
+        pos = thisPacketEnd;
+    }
+    
+    @Override
+    public void recycle() {
+        thisPacketEnd = 0;
+        dataPacketRemaining = 0;
+        
+        super.recycle();
+    }
+
+    void parseDataChunk() throws IOException {
+        readAjpMessageHeader();
+        readAjpPacketPayload();
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        
+        if (ajpRequest.getLength() != available()) {
+            throw new IllegalStateException("Unexpected: read more data than JK_AJP13_DATA has");
+        }
+
+        if (ajpRequest.getType() != AjpConstants.JK_AJP13_DATA) {
+            throw new IllegalStateException("Expected message type is JK_AJP13_DATA");
+        }
+        
+        // Skip the content length field - we know the size from the packet header
+        pos += 2;
+        
+        dataPacketRemaining = available();
+    }
+    
+    private void requestDataChunk() throws IOException {
+        ((AjpOutputBuffer) request.getResponse().getOutputBuffer())
+                .writeEncodedAjpMessage(GET_BODY_CHUNK_PACKET, 0,
+                GET_BODY_CHUNK_PACKET.length);
+    }
+    
+    // ------------------------------------- InputStreamInputBuffer Inner Class
+
+
+    /**
+     * This class is an AJP input buffer which will read its data from an input
+     * stream.
+     */
+    protected class AjpInputStreamInputBuffer 
+        implements InputBuffer {
+
+
+        /**
+         * Read bytes into the specified chunk.
+         */
+        public int doRead(ByteChunk chunk, Request req ) 
+            throws IOException {
+    
+            final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+            if (!ajpRequest.isExpectContent()) {
+                return -1;
+            }
+
+            if (ajpRequest.getContentBytesRemaining() <= 0) {
+                return -1;
+            }
+
+            if (dataPacketRemaining <= 0) {
+                requestDataChunk();
+                parseDataChunk();
+            }
+
+            final int length = dataPacketRemaining;
+            chunk.setBytes(buf, pos, dataPacketRemaining);
+            pos = pos + dataPacketRemaining;
+            ajpRequest.setContentBytesRemaining(
+                    ajpRequest.getContentBytesRemaining() - dataPacketRemaining);
+            dataPacketRemaining = 0;
+            
+            return length;
+        }
+    }
 }

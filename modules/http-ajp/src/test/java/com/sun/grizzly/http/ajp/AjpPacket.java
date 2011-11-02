@@ -95,6 +95,15 @@ public abstract class AjpPacket {
         return packet;
     }
 
+    public byte[] toByteArray() {
+        final ByteBuffer byteBuffer = toBuffer();
+        byte[] body = new byte[byteBuffer.remaining()];
+        byteBuffer.get(body);
+        
+        
+        return body;
+    }
+    
     public String toString() {
         final ByteBuffer buffer = toBuffer();
         return new String(buffer.array(), buffer.position(), buffer.limit() - buffer.position());

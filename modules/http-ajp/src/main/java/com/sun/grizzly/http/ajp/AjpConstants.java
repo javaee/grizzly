@@ -81,6 +81,10 @@ public final class AjpConstants {
      * Message code for a CPing request
      */
     public static final byte JK_AJP13_CPING_REQUEST = 10;
+    /**
+     * Message code for a Data chunk (not in standard, just for convenience)
+     */
+    public static final byte JK_AJP13_DATA       = 99;
 
     // Prefix codes for message types from container to server
     /**

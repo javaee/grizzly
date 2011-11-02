@@ -40,14 +40,13 @@
 
 package com.sun.grizzly.http.ajp;
 
-import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.Utils;
-import com.sun.grizzly.util.buf.ByteChunk;
 import org.junit.After;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +56,7 @@ import java.nio.ByteBuffer;
 
 public class AjpTestBase {
     protected static final int PORT = 19012;
-    private SelectorThread selectorThread;
+    protected AjpSelectorThread selectorThread;
     private Socket socket;
 
     @After
@@ -108,27 +107,33 @@ public class AjpTestBase {
     }
 
     @SuppressWarnings({"unchecked"})
-    protected void send(ByteBuffer request) throws IOException {
-        ByteChunk response = new ByteChunk();
+    protected void send(byte[] request) throws IOException {
         if (socket == null || socket.isClosed()) {
             socket = new Socket("localhost", PORT);
+            socket.setSoTimeout(5000);
         }
-        byte[] data = new byte[request.limit() - request.position()];
-        request.get(data);
-        socket.getOutputStream().write(data);
+        socket.getOutputStream().write(request);
     }
 
     @SuppressWarnings({"unchecked"})
-    protected ByteBuffer readResponses() throws IOException {
-        ByteChunk response = new ByteChunk();
+    protected byte[] readAjpMessage() throws IOException {
+        final byte[] tmpHeaderBuffer = new byte[4];
+        
         final InputStream stream = socket.getInputStream();
-        byte[] bytes = new byte[8192];
-        int read;
-        while ((read = stream.read(bytes)) != -1) {
-            response.append(bytes, 0, read);
-        }
+        readFully(stream, tmpHeaderBuffer, 0, 4);
 
-        return response.getLength() == 0 ? ByteBuffer.allocate(0) : response.toByteBuffer();
+        if (tmpHeaderBuffer[0] != 'A' || tmpHeaderBuffer[1] != 'B') {
+            throw new IllegalStateException("Incorrect protocol magic");
+        }
+        
+        final int length = AjpMessageUtils.getShort(tmpHeaderBuffer, 2);
+        
+        final byte[] ajpMessage = new byte[4 + length];
+        System.arraycopy(tmpHeaderBuffer, 0, ajpMessage, 0, 4);
+        
+        readFully(stream, ajpMessage, 4, length);
+        
+        return ajpMessage;
     }
 
     protected void configureHttpServer(final Adapter adapter) throws IOException, InstantiationException {
@@ -144,5 +149,18 @@ public class AjpTestBase {
         selectorThread.setKeepAliveTimeoutInSeconds(1);
 
         selectorThread.listen();
+    }
+
+    private static void readFully(final InputStream stream,
+            final byte[] buffer, final int offset, final int length) throws IOException {
+        int read = 0;
+        while (read < length) {
+            final int justRead = stream.read(buffer, offset + read, length - read);
+            if (justRead == -1) {
+                throw new EOFException();
+            }
+            
+            read += justRead;
+        }
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,53 +40,19 @@
 
 package com.sun.grizzly.http.ajp;
 
-import com.sun.grizzly.util.http.MimeHeaders;
+import java.nio.channels.Channel;
 
-public class AjpResponse {
-    private byte type;
-    private byte[] body;
-    private int responseCode;
-    private String responseMessage;
-    private MimeHeaders headers;
-
-    public byte getType() {
-        return type;
-    }
-
-    public void setType(byte type) {
-        this.type = type;
-    }
-
-    public byte[] getBody() {
-        return body;
-    }
-
-    public void setBody(byte[] body) {
-        this.body = body;
-    }
-
-    public int getResponseCode() {
-        return responseCode;
-    }
-
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    public String getResponseMessage() {
-        return responseMessage;
-    }
-
-    public void setResponseMessage(String responseMessage) {
-        this.responseMessage = responseMessage;
-    }
-
-
-    public void setHeaders(MimeHeaders headers) {
-        this.headers = headers;
-    }
-
-    public MimeHeaders getHeaders() {
-        return headers;
-    }
+/**
+ * Handler, which will be called, once Ajp shutdown message received.
+ *
+ * @author Alexey Stashok
+ */
+public interface ShutdownHandler {
+    /**
+     * Method is called once AjpHandlerFilter received shutdown message.
+     *
+     * @param initiator peer {@link Channel} the shutdown request has been
+     * received from.
+     */
+    public void onShutdown(final Channel initiator);
 }

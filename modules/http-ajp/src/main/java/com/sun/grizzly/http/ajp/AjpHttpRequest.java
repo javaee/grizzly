@@ -64,6 +64,8 @@ public final class AjpHttpRequest extends Request {
     private boolean secure;
     private boolean expectContent;
 
+    final MessageBytes tmpMessageBytes = MessageBytes.newInstance();
+    
     public static AjpHttpRequest create() {
         return new AjpHttpRequest();
     }
@@ -72,11 +74,15 @@ public final class AjpHttpRequest extends Request {
     private final MessageBytes sslCert = MessageBytes.newInstance();
 
     private String secret;
+    
+    private int length = -1;
+    private int type = -1;    
 
     private final AjpHttpResponse response = new AjpHttpResponse();
 
 //    final ProcessingState processingState = new ProcessingState();
 
+    private boolean isForwardRequestProcessing;
     private int contentBytesRemaining = -1;
 
     public AjpHttpRequest() {
@@ -136,6 +142,22 @@ public final class AjpHttpRequest extends Request {
         this.secret = secret;
     }
 
+    public int getLength() {
+        return length;
+    }
+
+    protected void setLength(int length) {
+        this.length = length;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    protected void setType(int type) {
+        this.type = type;
+    }
+    
 //    @Override
 //    public ProcessingState getProcessingState() {
 //        return processingState;
@@ -160,19 +182,32 @@ public final class AjpHttpRequest extends Request {
     @Override
     public void recycle() {
         //        processingState.recycle();
+        isForwardRequestProcessing = false;
+        tmpMessageBytes.recycle();
         contentBytesRemaining = -1;
         response.recycle();
         instanceId.recycle();
         sslCert.recycle();
         secret = null;
+        length = -1;
+        type = -1;
+        
         super.recycle();
     }
-
+    
     public boolean isExpectContent() {
         return expectContent;
     }
 
     public void setExpectContent(boolean expectContent) {
         this.expectContent = expectContent;
+    }
+
+    public boolean isForwardRequestProcessing() {
+        return isForwardRequestProcessing;
+    }
+
+    public void setForwardRequestProcessing(boolean isForwardRequestProcessing) {
+        this.isForwardRequestProcessing = isForwardRequestProcessing;
     }
 }
