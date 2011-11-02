@@ -44,6 +44,7 @@ import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
@@ -60,8 +61,13 @@ import java.nio.charset.CoderResult;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class ProtocolHandler {
+
+    private static final Logger LOGGER = LoggerUtils.getLogger();
+
     protected NetworkHandler handler;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
@@ -145,7 +151,9 @@ public abstract class ProtocolHandler {
             try {
                 unframe().respond(getWebSocket());
             } catch (FramingException fe) {
-                fe.printStackTrace();
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, fe.getMessage(), fe);
+                }
                 getWebSocket().close(fe.getClosingCode());
             }
         }
