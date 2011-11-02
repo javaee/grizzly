@@ -462,6 +462,7 @@ public final class Parameters {
                         parameterComplete = true;
                         pos++;
                         break;
+                    case '+':
                     case '%':
                         // Decoding required
                         if (parsingName) {
@@ -517,7 +518,22 @@ public final class Parameters {
             }
 
             try {
-                addParameter(urlDecode(tmpName, enc), urlDecode(tmpValue, enc));
+                String name;
+                String value;
+
+                if (decodeName) {
+                    name = urlDecode(tmpName, enc);
+                } else {
+                    name = tmpName.toString();
+                }
+
+                if (decodeValue) {
+                    value = urlDecode(tmpValue, enc);
+                } else {
+                    value = tmpValue.toString();
+                }
+                
+                addParameter(name, value);
             } catch (IOException e) {
                 decodeFailCount++;
                 if (decodeFailCount == 1 || debug > 0) {
