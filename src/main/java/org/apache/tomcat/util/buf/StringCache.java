@@ -58,6 +58,7 @@
 
 package org.apache.tomcat.util.buf;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -331,7 +332,7 @@ public class StringCache {
                             entry.name = new byte[bc.getLength()];
                             System.arraycopy(bc.getBuffer(), start, entry.name, 0, end - start);
                             // Set encoding
-                            entry.enc = bc.getEncoding();
+                            entry.charset = bc.getCharset();
                             // Initialize occurrence count to one 
                             count = new int[1];
                             count[0] = 1;
@@ -513,7 +514,7 @@ public class StringCache {
     protected static final String find(ByteChunk name) {
         int pos = findClosest(name, bcCache, bcCache.length);
         if ((pos < 0) || (compare(name, bcCache[pos].name) != 0)
-                || !(name.getEncoding().equals(bcCache[pos].enc))) {
+                || !(name.getCharset().equals(bcCache[pos].charset))) {
             return null;
         } else {
             return bcCache[pos].value;
@@ -665,7 +666,7 @@ public class StringCache {
     protected static class ByteEntry {
 
         public byte[] name = null;
-        public String enc = null;
+        public Charset charset = null;
         public String value = null;
 
         public String toString() {

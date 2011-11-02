@@ -58,8 +58,13 @@
 
 package org.apache.tomcat.util.buf;
 
+import org.apache.tomcat.util.Charsets;
+
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 
 /*
  * In a server it is very important to be able to operate on
@@ -115,7 +120,17 @@ public final class ByteChunk implements Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets. 
     */
-    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
+    public static Charset DEFAULT_CHARSET = null;
+
+    static {
+        try {
+            DEFAULT_CHARSET = Charsets.lookupCharset("ISO-8859-1");
+        } catch(IllegalArgumentException e) {
+            // Should never happen since all JVMs must support ISO-8859-1
+        }
+    }
+
+
         
     // byte[]
     private byte[] buff;
@@ -123,7 +138,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     private int start=0;
     private int end;
 
-    private String enc;
+    private Charset charset;
 
     private boolean isSet=false; // XXX
 
@@ -164,7 +179,7 @@ public final class ByteChunk implements Cloneable, Serializable {
      */
     public void recycle() {
         //	buff = null;
-        enc=null;
+        charset=null;
         start=0;
         end=0;
         isSet=false;
@@ -205,13 +220,13 @@ public final class ByteChunk implements Cloneable, Serializable {
         this.optimizedWrite = optimizedWrite;
     }
 
-    public void setEncoding( String enc ) {
-        this.enc=enc;
+    public void setCharset(Charset charset) {
+        this.charset=charset;
     }
-    public String getEncoding() {
-        if (enc == null)
-            enc=DEFAULT_CHARACTER_ENCODING;
-        return enc;
+    public Charset getCharset() {
+        if (charset == null)
+            charset=DEFAULT_CHARSET;
+        return charset;
     }
 
     /**
@@ -509,30 +524,18 @@ public final class ByteChunk implements Cloneable, Serializable {
         }
         return StringCache.toString(this);
     }
-    
+
     public String toStringInternal() {
-        String strValue=null;
-        try {
-            if( enc==null ) enc=DEFAULT_CHARACTER_ENCODING;
-            strValue = new String( buff, start, end-start, enc );
-            /*
-             Does not improve the speed too much on most systems,
-             it's safer to use the "clasical" new String().
-             
-             Most overhead is in creating char[] and copying,
-             the internal implementation of new String() is very close to
-             what we do. The decoder is nice for large buffers and if
-             we don't go to String ( so we can take advantage of reduced GC)
-             
-             // Method is commented out, in:
-              return B2CConverter.decodeString( enc );
-              */
-        } catch (java.io.UnsupportedEncodingException e) {
-            // Use the platform encoding in that case; the usage of a bad
-            // encoding will have been logged elsewhere already
-            strValue = new String(buff, start, end-start);
+        if (charset == null) {
+            charset = DEFAULT_CHARSET;
         }
-        return strValue;
+        // new String(byte[], int, int, Charset) takes a defensive copy of the
+        // entire byte array. This is expensive if only a small subset of the
+        // bytes will be used. The code below is from Apache Harmony.
+        CharBuffer cb;
+        cb = charset.decode(ByteBuffer.wrap(buff, start, end - start));
+        return new String(cb.array());
+
     }
 
     public int getInt() {

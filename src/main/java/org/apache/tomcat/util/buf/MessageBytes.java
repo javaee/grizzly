@@ -61,6 +61,7 @@ package org.apache.tomcat.util.buf;
 
 import java.io.Serializable;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.Date;
 
@@ -182,13 +183,13 @@ public final class MessageBytes implements Cloneable, Serializable {
      *  previous conversion is reset.
      *  If no encoding is set, we'll use 8859-1.
      */
-    public void setEncoding( String enc ) {
+    public void setCharset( Charset charset ) {
         if( !byteC.isNull() ) {
             // if the encoding changes we need to reset the converion results
             charC.recycle();
             hasStrValue=false;
         }
-        byteC.setEncoding(enc);
+        byteC.setCharset(charset);
     }
     
     /**
