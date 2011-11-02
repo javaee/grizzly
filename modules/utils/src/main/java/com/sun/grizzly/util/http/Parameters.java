@@ -515,6 +515,7 @@ public final class Parameters {
                         parameterComplete = true;
                         pos++;
                         break;
+                    case '+':
                     case '%':
                         // Decoding required
                         if (parsingName) {
