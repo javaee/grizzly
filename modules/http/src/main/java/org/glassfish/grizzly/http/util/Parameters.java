@@ -530,7 +530,11 @@ public final class Parameters {
                 if (decodeValue) {
                     value = urlDecode(tmpValue, enc);
                 } else {
-                    value = tmpValue.toString();
+                    if (tmpValue.getStart() == -1) {
+                        value = "";
+                    } else {
+                        value = tmpValue.toString();
+                    }
                 }
                 
                 addParameter(name, value);
