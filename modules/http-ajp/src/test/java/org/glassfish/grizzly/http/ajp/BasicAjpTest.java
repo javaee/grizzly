@@ -258,7 +258,7 @@ public class BasicAjpTest {
 
         Buffer responseBuffer = send("localhost", PORT,
                 Buffers.appendBuffers(mm, requestPart1, requestPart2))
-                .get(1000, TimeUnit.SECONDS);
+                .get(10, TimeUnit.SECONDS);
 
         // Successful response length is 37 bytes.  This includes the status
         // line and a content-length
