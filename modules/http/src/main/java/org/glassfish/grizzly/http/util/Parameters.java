@@ -60,14 +60,17 @@ package org.glassfish.grizzly.http.util;
 import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 
 import org.glassfish.grizzly.Grizzly;
+
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * @author Costin Manolache
@@ -84,8 +87,8 @@ public final class Parameters {
     private Hashtable paramHashStringArray=new Hashtable();
     */
     // START PWC 6057385
-    private final LinkedHashMap<String, String[]> paramHashStringArray =
-        new LinkedHashMap<String, String[]>();
+    private final LinkedHashMap<String, ArrayList<String>> paramHashValues =
+        new LinkedHashMap<String, ArrayList<String>>();
     // END PWC 6057385
     private boolean didQueryParameters = false;
     private boolean didMerge = false;
@@ -104,6 +107,9 @@ public final class Parameters {
     private Parameters currentChild = null;
     Charset encoding = null;
     Charset queryStringEncoding = null;
+    
+    private int limit = -1;
+    private int parameterCount = 0;
 
     public void setQuery(final DataChunk queryBC) {
         this.queryDC = queryBC;
@@ -111,6 +117,10 @@ public final class Parameters {
 
     public void setHeaders(final MimeHeaders headers) {
         this.headers = headers;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
     }
 
     public void setEncoding(final Charset encoding) {
@@ -130,11 +140,13 @@ public final class Parameters {
 
     public void recycle() {
 
-        paramHashStringArray.clear();
+        paramHashValues.clear();
         didQueryParameters = false;
         currentChild = null;
         didMerge = false;
         encoding = null;
+        parameterCount = 0;
+
     }
     // -------------------- Sub-request support --------------------
 
@@ -198,27 +210,29 @@ public final class Parameters {
         if (key == null) {
             return;
         }
-        String values[];
-        if (paramHashStringArray.containsKey(key)) {
-            String oldValues[] = paramHashStringArray.get(key);
-            values = new String[oldValues.length + newValues.length];
-            System.arraycopy(oldValues, 0, values, 0, oldValues.length);
-            System.arraycopy(newValues, 0, values, oldValues.length, newValues.length);
+        ArrayList<String> values;
+        if (paramHashValues.containsKey(key)) {
+            values = paramHashValues.get(key);
         } else {
-            values = newValues;
+            values = new ArrayList<String>(1);
+            paramHashValues.put(key, values);
         }
-        paramHashStringArray.put(key, values);
+        values.ensureCapacity(values.size() + newValues.length);
+        Collections.addAll(values, newValues);
     }
 
     public String[] getParameterValues(String name) {
         handleQueryParameters();
+        ArrayList<String> values = null;
         // sub-request
         if (currentChild != null) {
             currentChild.merge();
-            return currentChild.paramHashStringArray.get(name);
+            values = currentChild.paramHashValues.get(name);
+        } else {
+            // no "facade"
+            values = paramHashValues.get(name);
         }
-        // no "facade"
-        return paramHashStringArray.get(name);
+        return ((values != null) ? values.toArray(new String[values.size()]) : null);
     }
 
     public Set<String> getParameterNames() {
@@ -230,7 +244,7 @@ public final class Parameters {
             return currentChild.paramHashStringArray.keys();
             */
             // START PWC 6057385
-            currentChild.paramHashStringArray.keySet();
+            currentChild.paramHashValues.keySet();
             // END PWC 6057385
         }
         // merge in child
@@ -238,7 +252,7 @@ public final class Parameters {
         return paramHashStringArray.keys();
         */
         // START PWC 6057385
-        return paramHashStringArray.keySet();
+        return paramHashValues.keySet();
         // END PWC 6057385
     }
 
@@ -267,9 +281,9 @@ public final class Parameters {
         Hashtable parentProps=parent.paramHashStringArray;
         */
         // START PWC 6057385
-        LinkedHashMap<String, String[]> parentProps = parent.paramHashStringArray;
+        LinkedHashMap<String, ArrayList<String>> parentProps = parent.paramHashValues;
         // END PWC 6057385
-        merge2(paramHashStringArray, parentProps);
+        merge2(paramHashValues, parentProps);
         didMerge = true;
         if (debug > 0) {
             log("After " + paramsAsString());
@@ -278,12 +292,12 @@ public final class Parameters {
 
     // Shortcut.
     public String getParameter(final String name) {
-        final String[] values = getParameterValues(name);
+        ArrayList<String> values = paramHashValues.get(name);
         if (values != null) {
-            if (values.length == 0) {
+            if (values.size() == 0) {
                 return "";
             }
-            return values[0];
+            return values.get(0);
         } else {
             return null;
         }
@@ -325,52 +339,56 @@ public final class Parameters {
             String name = (String) e.nextElement();
     */
     // START PWC 6057385
-    private static void merge2(LinkedHashMap<String, String[]> one,
-        LinkedHashMap<String, String[]> two) {
-        for (final Map.Entry<String,String[]> entry : two.entrySet()) {
-            final String name = entry.getKey();
-            String[] oneValue = one.get(name);
-            String[] twoValue = entry.getValue();
-            String[] combinedValue;
+    private static void merge2(LinkedHashMap<String, ArrayList<String>> one,
+        LinkedHashMap<String, ArrayList<String>> two) {
+
+        for (String name : two.keySet()) {
+            // END PWC 6057385
+            ArrayList<String> oneValue = one.get(name);
+            ArrayList<String> twoValue = two.get(name);
+            ArrayList<String> combinedValue;
+
             if (twoValue == null) {
+                continue;
             } else {
                 if (oneValue == null) {
-                    combinedValue = new String[twoValue.length];
-                    System.arraycopy(twoValue, 0, combinedValue,
-                        0, twoValue.length);
+                    combinedValue = new ArrayList<String>(twoValue);
                 } else {
-                    combinedValue = new String[oneValue.length +
-                        twoValue.length];
-                    System.arraycopy(oneValue, 0, combinedValue, 0,
-                        oneValue.length);
-                    System.arraycopy(twoValue, 0, combinedValue,
-                        oneValue.length, twoValue.length);
+                    combinedValue = new ArrayList<String>(oneValue.size() +
+                            twoValue.size());
+                    combinedValue.addAll(oneValue);
+                    combinedValue.addAll(twoValue);
                 }
                 one.put(name, combinedValue);
             }
         }
     }
 
-    // incredibly inefficient data representation for parameters,
-    // until we test the new one
-    private void addParam(final String key, final String value) {
+    public void addParameter(String key, String value)
+            throws IllegalStateException {
+
         if (key == null) {
             return;
         }
-        final String values[];
-        if (paramHashStringArray.containsKey(key)) {
-            String oldValues[] = paramHashStringArray.get(key);
-            values = new String[oldValues.length + 1];
-            System.arraycopy(oldValues, 0, values, 0, oldValues.length);
-            values[oldValues.length] = value;
-        } else {
-            values = new String[1];
-            values[0] = value;
+
+        parameterCount++;
+        if (limit > -1 && parameterCount > limit) {
+            // Processing this parameter will push us over the limit. ISE is
+            // what Request.parseParts() uses for requests that are too big
+            throw new IllegalStateException(//sm.getString(
+                    //"parameters.maxCountFail", Integer.valueOf(limit)));
+                    );
         }
-        paramHashStringArray.put(key, values);
+
+        ArrayList<String> values = paramHashValues.get(key);
+        if (values == null) {
+            values = new ArrayList<String>(1);
+            paramHashValues.put(key, values);
+        }
+        values.add(value);
     }
 
-//    public void setURLDecoder(UDecoder u) {
+    //    public void setURLDecoder(UDecoder u) {
 //        urlDec = u;
 //    }
     // -------------------- Parameter parsing --------------------
@@ -380,8 +398,14 @@ public final class Parameters {
     // if needed
     final BufferChunk tmpName = new BufferChunk();
     final BufferChunk tmpValue = new BufferChunk();
+    private BufferChunk origName = new BufferChunk();
+    private BufferChunk origValue = new BufferChunk();
     final CharChunk tmpNameC = new CharChunk(1024);
     final CharChunk tmpValueC = new CharChunk(1024);
+
+    public static final String DEFAULT_ENCODING = "ISO-8859-1";
+    public static final Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_ENCODING);
+
 
     public void processParameters(final Buffer buffer, final int start, final int len) {
         processParameters(buffer, start, len, encoding);
@@ -389,59 +413,133 @@ public final class Parameters {
 
     public void processParameters(final Buffer buffer, final int start, final int len,
         final Charset enc) {
+
+        if (debug > 0) {
+            log("Bytes: " + buffer.toStringContent(enc, start, start + len));
+        }
+
+        int decodeFailCount = 0;
+
         int end = start + len;
         int pos = start;
-        if (debug > 0) {
-            log("Bytes: " + buffer.toStringContent(null, start, start + len));
-        }
-        
-        do {
-            boolean noEq = false;
-            int valStart = -1;
-            int valEnd = -1;
-            final int nameStart = pos;
-            int nameEnd = BufferChunk.indexOf(buffer, nameStart, end, '=');
-            // Workaround for a&b&c encoding
-            int nameEnd2 = BufferChunk.indexOf(buffer, nameStart, end, '&');
-            if ((nameEnd2 != -1) &&
-                (nameEnd == -1 || nameEnd > nameEnd2)) {
-                nameEnd = nameEnd2;
-                noEq = true;
-                valStart = nameEnd;
-                valEnd = nameEnd;
-                if (debug > 0) {
-                    log("no equal " + nameStart + ' ' + nameEnd + ' ' +
-                            buffer.toStringContent(null, nameStart, nameEnd));
+        while (pos < end) {
+            parameterCount++;
+            if (limit > -1 && parameterCount >= limit) {
+                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SEVERE_GRIZZLY_HTTP_PARAMETERS_MAX_COUNT_FAIL(limit));
+                break;
+            }
+            int nameStart = pos;
+            int nameEnd = -1;
+            int valueStart = -1;
+            int valueEnd = -1;
+
+            boolean parsingName = true;
+            boolean decodeName = false;
+            boolean decodeValue = false;
+            boolean parameterComplete = false;
+
+            do {
+                switch (buffer.get(pos)) {
+                    case '=':
+                        if (parsingName) {
+                            // Name finished. Value starts from next character
+                            nameEnd = pos;
+                            parsingName = false;
+                            valueStart = ++pos;
+                        } else {
+                            // Equals character in value
+                            pos++;
+                        }
+                        break;
+                    case '&':
+                        if (parsingName) {
+                            // Name finished. No value.
+                            nameEnd = pos;
+                        } else {
+                            // Value finished
+                            valueEnd = pos;
+                        }
+                        parameterComplete = true;
+                        pos++;
+                        break;
+                    case '%':
+                        // Decoding required
+                        if (parsingName) {
+                            decodeName = true;
+                        } else {
+                            decodeValue = true;
+                        }
+                        pos++;
+                        break;
+                    default:
+                        pos++;
+                        break;
+                }
+            } while (!parameterComplete && pos < end);
+
+            if (pos == end) {
+                if (nameEnd == -1) {
+                    nameEnd = pos;
+                } else if (valueStart > -1 && valueEnd == -1) {
+                    valueEnd = pos;
                 }
             }
-            if (nameEnd == -1) {
-                nameEnd = end;
+
+            if (debug > 0 && valueStart == -1) {
+                log(LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_NOEQUAL(
+                        nameStart,
+                        nameEnd,
+                        buffer.toStringContent(DEFAULT_CHARSET, nameStart, nameEnd)));
             }
-            if (!noEq) {
-                valStart = (nameEnd < end) ? nameEnd + 1 : end;
-                valEnd = BufferChunk.indexOf(buffer, valStart, end, '&');
-                if (valEnd == -1) {
-                    valEnd = (valStart < end) ? end : valStart;
-                }
-            }
-            pos = valEnd + 1;
+
             if (nameEnd <= nameStart) {
+                if (logger.isLoggable(Level.INFO)) {
+                    String extract;
+                    if (valueEnd < nameStart) {
+                        logger.info(LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_INVALID_CHUNK(
+                                nameStart,
+                                nameEnd,
+                                null));
+                    }
+                }
                 continue;
                 // invalid chunk - it's better to ignore
-                // XXX log it ?
             }
             tmpName.setBufferChunk(buffer, nameStart, nameEnd);
-            tmpValue.setBufferChunk(buffer, valStart, valEnd);
+            tmpValue.setBufferChunk(buffer, valueStart, valueEnd);
+
+            // Take copies as if anything goes wrong originals will be
+            // corrupted. This means original values can be logged.
+            // For performance - only done for debug
+            if (debug > 0) {
+                origName.setBufferChunk(buffer, nameStart, nameEnd);
+                origValue.setBufferChunk(buffer, valueStart, valueEnd);
+            }
 
             try {
-                addParam(urlDecode(tmpName, enc), urlDecode(tmpValue, enc));
+                addParameter(urlDecode(tmpName, enc), urlDecode(tmpValue, enc));
             } catch (IOException e) {
-                // Exception during character decoding: skip parameter
+                decodeFailCount++;
+                if (decodeFailCount == 1 || debug > 0) {
+                    if (debug > 0) {
+                        log(LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_DEBUG(
+                                origName.toString(), origValue.toString()));
+                    } else if (logger.isLoggable(Level.INFO)) {
+                        logger.log(Level.INFO,
+                                   LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_INFO(
+                                           tmpName.toString(), tmpValue.toString()),
+                                   e);
+                    }
+                }
             }
             tmpName.recycle();
             tmpValue.recycle();
 
-        } while (pos < end);
+        }
+
+        if (decodeFailCount > 1 && debug <= 0) {
+            logger.info(LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_MULTIPLE_DECODING_FAIL(decodeFailCount));
+        }
     }
 
     private String urlDecode(final BufferChunk bc, final Charset enc)
@@ -452,6 +550,9 @@ public final class Parameters {
         URLDecoder.decode(bc, true);
         String result;
         if (enc != null) {
+            if (bc.getStart() == -1 && bc.getEnd() == -1) {
+                return "";
+            }
             result = bc.toString(enc);
         } else {
             final CharChunk cc = tmpNameC;
@@ -526,7 +627,7 @@ public final class Parameters {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
@@ -569,12 +670,12 @@ public final class Parameters {
      */
     public String paramsAsString() {
         StringBuilder sb = new StringBuilder();
-        for (final String s : paramHashStringArray.keySet()) {
+        for (final String s : paramHashValues.keySet()) {
             // END PWC 6057385
             sb.append(s).append('=');
-            String v[] = paramHashStringArray.get(s);
-            for (int i = 0; i < v.length; i++) {
-                sb.append(v[i]).append(',');
+            ArrayList<String> v = paramHashValues.get(s);
+            for (int i = 0, len = v.size(); i < len; i++) {
+                sb.append(v.get(i)).append(',');
             }
             sb.append('\n');
         }
@@ -652,7 +753,7 @@ public final class Parameters {
                     log(tmpNameC + "= " + tmpValueC);
                 }
                 if (str.compareTo(tmpNameC.toString()) == 0) {
-                    addParam(tmpNameC.toString(), tmpValueC.toString());
+                    addParameter(tmpNameC.toString(), tmpValueC.toString());
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -721,7 +822,7 @@ public final class Parameters {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }

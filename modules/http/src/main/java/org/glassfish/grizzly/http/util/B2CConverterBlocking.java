@@ -60,10 +60,13 @@ package org.glassfish.grizzly.http.util;
 
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.utils.Utils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -184,7 +187,7 @@ public class B2CConverterBlocking {
     {
 	// destroy the reader/iis
 	iis=new IntermediateInputStream();
-	conv=new ReadConverter( iis, encoding );
+	conv=new ReadConverter( iis, Charsets.lookupCharset(encoding) );
     }
 
     void log( String s ) {
@@ -259,10 +262,10 @@ final class ReadConverter extends InputStreamReader {
 
     /** Create a converter.
      */
-    public ReadConverter( IntermediateInputStream in, String enc )
+    public ReadConverter( IntermediateInputStream in, Charset charset )
 	throws UnsupportedEncodingException
     {
-	super( in, enc );
+	super( in, charset );
     }
 
     /** Overriden - will do nothing but reset internal state.
