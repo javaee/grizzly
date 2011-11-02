@@ -180,7 +180,6 @@ public class BasicAjpTest extends AjpTestBase {
         final FutureImpl<Boolean> shutdownFuture = new FutureImpl();
         final ShutdownHandler shutDownHandler = new ShutdownHandler() {
 
-            @Override
             public void onShutdown(Channel initiator) {
                 shutdownFuture.setResult(true);
             }
