@@ -510,6 +510,7 @@ public final class Parameters {
                         pos++;
                         break;
                     case '%':
+                    case '+':
                         // Decoding required
                         if (parsingName) {
                             decodeName = true;
@@ -568,6 +569,8 @@ public final class Parameters {
                 // invalid chunk - it's better to ignore
             }
 
+            tmpName.setCharset(charset);
+            tmpValue.setCharset(charset);
             tmpName.setBytes(bytes, nameStart, nameEnd - nameStart);
             tmpValue.setBytes(bytes, valueStart, valueEnd - valueStart);
 
@@ -589,13 +592,13 @@ public final class Parameters {
                 String value;
 
                 if (decodeName) {
-                    name = urlDecode(tmpName, charset);
+                    name = urlDecode(tmpName);
                 } else {
                     name = tmpName.toString();
                 }
 
                 if (decodeValue) {
-                    value = urlDecode(tmpValue, charset);
+                    value = urlDecode(tmpValue);
                 } else {
                     value = tmpValue.toString();
                 }
@@ -629,13 +632,12 @@ public final class Parameters {
         }
     }
 
-    private String urlDecode(ByteChunk bc, Charset charset)
+    private String urlDecode(ByteChunk bc)
             throws IOException {
         if (urlDec == null) {
             urlDec = new UDecoder();
         }
         urlDec.convert(bc);
-        bc.setCharset(charset);
         return bc.toString();
     }
 
