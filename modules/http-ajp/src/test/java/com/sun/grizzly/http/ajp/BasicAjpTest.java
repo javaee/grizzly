@@ -74,7 +74,9 @@ public class BasicAjpTest extends AjpTestBase {
 
     @Test
     public void testStaticRequests() throws IOException, InstantiationException {
-        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
+        StaticResourcesAdapter a = new StaticResourcesAdapter("src/test/resources");
+        a.setUseSendFile(false);   // TODO Re-enable once sendFile is implemented.
+        configureHttpServer(a);
 
         final String[] files = {/*"/ajpindex.html", */"/ajplarge.html"};
         for (String file : files) {
