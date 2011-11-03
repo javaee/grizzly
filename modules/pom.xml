@@ -45,13 +45,13 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.37-SNAPSHOT</version>
+        <version>1.9.37</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-modules</artifactId>
     <packaging>pom</packaging>
-    <version>1.9.37-SNAPSHOT</version>
+    <version>1.9.37</version>
     <name>grizzly-modules</name>
     <url>https://grizzly.dev.java.net</url>
     <profiles>
@@ -82,35 +82,21 @@
                                 <phase>process-test-classes</phase>
                                 <configuration>
                                     <tasks>
-                                        <taskdef
-                                                classpathref="maven.runtime.classpath"
-                                                resource="tasks.properties"/>
-                                        <mkdir dir="target/cobertura"/>
-                                        <cobertura-merge
-                                                datafile="target/cobertura/cobertura.ser">
+                                        <taskdef classpathref="maven.runtime.classpath" resource="tasks.properties" />
+                                        <mkdir dir="target/cobertura" />
+                                        <cobertura-merge datafile="target/cobertura/cobertura.ser">
                                             <fileset dir=".">
-                                                <include
-                                                        name="utils/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="grizzly/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="portunif/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="rcm/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="http/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="http-servlet/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="comet/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="cometd/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="http-servlet-deployer/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="config/target/cobertura/cobertura.ser"/>
-                                                <include
-                                                        name="websockets/target/cobertura/cobertura.ser"/>
+                                                <include name="utils/target/cobertura/cobertura.ser" />
+                                                <include name="grizzly/target/cobertura/cobertura.ser" />
+                                                <include name="portunif/target/cobertura/cobertura.ser" />
+                                                <include name="rcm/target/cobertura/cobertura.ser" />
+                                                <include name="http/target/cobertura/cobertura.ser" />
+                                                <include name="http-servlet/target/cobertura/cobertura.ser" />
+                                                <include name="comet/target/cobertura/cobertura.ser" />
+                                                <include name="cometd/target/cobertura/cobertura.ser" />
+                                                <include name="http-servlet-deployer/target/cobertura/cobertura.ser" />
+                                                <include name="config/target/cobertura/cobertura.ser" />
+                                                <include name="websockets/target/cobertura/cobertura.ser" />
                                             </fileset>
                                         </cobertura-merge>
                                     </tasks>

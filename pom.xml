@@ -40,9 +40,7 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>net.java</groupId>
         <artifactId>jvnet-parent</artifactId>
@@ -53,7 +51,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.37-SNAPSHOT</version>
+    <version>1.9.37</version>
     <url>https://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
@@ -517,7 +515,7 @@
         <cobertura.version>2.4</cobertura.version>
         <findbugs.skip>false</findbugs.skip>
         <findbugs.version>2.3.1</findbugs.version>
-        <findbugs.exclude></findbugs.exclude>
+        <findbugs.exclude />
         <findbugs.threshold>High</findbugs.threshold>
     </properties>
 </project>
