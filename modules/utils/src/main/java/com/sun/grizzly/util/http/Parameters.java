@@ -72,7 +72,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,6 +136,7 @@ public final class Parameters {
         this.queryMB = queryMB;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setLimit(int limit) {
         this.limit = limit;
     }
@@ -171,6 +171,7 @@ public final class Parameters {
 
     // -------------------- Sub-request support --------------------
 
+    @SuppressWarnings("UnusedDeclaration")
     public Parameters getCurrentSet() {
         if (currentChild == null) {
             return this;
@@ -238,7 +239,7 @@ public final class Parameters {
         if (key == null) {
             return;
         }
-        ArrayList<String> values = null;
+        ArrayList<String> values;
         if (paramHashValues.containsKey(key)) {
             values = paramHashValues.get(key);
         } else {
@@ -246,14 +247,12 @@ public final class Parameters {
             paramHashValues.put(key, values);
         }
         values.ensureCapacity(values.size() + newValues.length);
-        for (String newValue : newValues) {
-            values.add(newValue);
-        }
+        Collections.addAll(values, newValues);
     }
 
     public String[] getParameterValues(String name) {
         handleQueryParameters();
-        ArrayList<String> values = null;
+        ArrayList<String> values;
         // sub-request
         if (currentChild != null) {
             currentChild.merge();
@@ -387,18 +386,14 @@ public final class Parameters {
     // START PWC 6057385
     private static void merge2(LinkedHashMap<String, ArrayList<String>> one,
             LinkedHashMap<String, ArrayList<String>> two) {
-        Iterator<String> e = two.keySet().iterator();
 
-        while (e.hasNext()) {
-            String name = e.next();
+        for (String name : two.keySet()) {
             // END PWC 6057385
             ArrayList<String> oneValue = one.get(name);
             ArrayList<String> twoValue = two.get(name);
             ArrayList<String> combinedValue;
 
-            if (twoValue == null) {
-                continue;
-            } else {
+            if (twoValue != null) {
                 if (oneValue == null) {
                     combinedValue = new ArrayList<String>(twoValue);
                 } else {
@@ -419,7 +414,7 @@ public final class Parameters {
         if (key == null) {
             return;
         }
-        ArrayList<String> values = null;
+        ArrayList<String> values;
         if (paramHashValues.containsKey(key)) {
             values = paramHashValues.get(key);
         } else {
@@ -478,7 +473,7 @@ public final class Parameters {
 
             if (limit > -1 && parameterCount >= limit) {
                 logger.warning(sm.getString("parameters.maxCountFail",
-                        Integer.valueOf(limit)));
+                        limit));
                 break;
             }
             int nameStart = pos;
@@ -542,7 +537,7 @@ public final class Parameters {
             if (debug > 0 && valueStart == -1) {
                 try {
                     log(sm.getString("parameters.noequal",
-                            Integer.valueOf(nameStart), Integer.valueOf(nameEnd),
+                            nameStart, nameEnd,
                             // JDK 1.5 compliant
                             new String(bytes, nameStart, nameEnd-nameStart,
                                     DEFAULT_ENCODING)));
@@ -554,11 +549,10 @@ public final class Parameters {
 
             if (nameEnd <= nameStart) {
                 if (logger.isLoggable(Level.INFO)) {
-                    String extract;
                     if (valueEnd >= nameStart) {
                         try {
                             // JDK 1.5 compliant
-                            extract = new String(bytes, nameStart,
+                            new String(bytes, nameStart,
                                     valueEnd - nameStart, DEFAULT_ENCODING);
                         } catch(UnsupportedEncodingException e) {
                             // Should never happen...
@@ -566,8 +560,8 @@ public final class Parameters {
                         }
                     } else {
                         logger.info(sm.getString("parameters.invalidChunk",
-                                Integer.valueOf(nameStart),
-                                Integer.valueOf(nameEnd),
+                                nameStart,
+                                nameEnd,
                                null));
                     }
                 }
@@ -575,6 +569,8 @@ public final class Parameters {
                 // invalid chunk - it's better to ignore
             }
 
+            tmpName.setCharset(charset);
+            tmpValue.setCharset(charset);
             tmpName.setBytes(bytes, nameStart, nameEnd - nameStart);
             tmpValue.setBytes(bytes, valueStart, valueEnd - valueStart);
 
@@ -587,7 +583,7 @@ public final class Parameters {
                     origValue.append(bytes, valueStart, valueEnd - valueStart);
                 } catch (IOException ioe) {
                     // Should never happen...
-                    logger.log(Level.SEVERE, sm.getString("paramerers.copyFail"), ioe);
+                    logger.log(Level.SEVERE, sm.getString("parameters.copyFail"), ioe);
                 }
             }
 
@@ -596,13 +592,13 @@ public final class Parameters {
                 String value;
 
                 if (decodeName) {
-                    name = urlDecode(tmpName, charset);
+                    name = urlDecode(tmpName);
                 } else {
                     name = tmpName.toString();
                 }
 
                 if (decodeValue) {
-                    value = urlDecode(tmpValue, charset);
+                    value = urlDecode(tmpValue);
                 } else {
                     value = tmpValue.toString();
                 }
@@ -632,17 +628,16 @@ public final class Parameters {
 
         if (decodeFailCount > 1 && debug <= 0) {
             logger.info(sm.getString("parameters.multipleDecodingFail",
-                        Integer.valueOf(decodeFailCount)));
+                    decodeFailCount));
         }
     }
 
-    private String urlDecode(ByteChunk bc, Charset charset)
+    private String urlDecode(ByteChunk bc)
             throws IOException {
         if (urlDec == null) {
             urlDec = new UDecoder();
         }
         urlDec.convert(bc);
-        bc.setCharset(charset);
         return bc.toString();
     }
 
@@ -756,9 +751,7 @@ public final class Parameters {
             String k=(String)en.nextElement();
         */
         // START PWC 6057385
-        Iterator<String> en = paramHashValues.keySet().iterator();
-        while (en.hasNext()) {
-            String k = en.next();
+        for (String k : paramHashValues.keySet()) {
             // END PWC 6057385
             sb.append(k).append("=");
             ArrayList<String> values = paramHashValues.get(k);
@@ -791,6 +784,7 @@ public final class Parameters {
     /**
      * Used by RequestDispatcher
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void processSingleParameters(String str) {
         int end = str.length();
         int pos = 0;
@@ -875,6 +869,7 @@ public final class Parameters {
     }
 
 
+    @SuppressWarnings("UnusedDeclaration")
     public void processParameters(String str) {
         int end = str.length();
         int pos = 0;
