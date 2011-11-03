@@ -348,9 +348,7 @@ public final class Parameters {
             ArrayList<String> twoValue = two.get(name);
             ArrayList<String> combinedValue;
 
-            if (twoValue == null) {
-                continue;
-            } else {
+            if (twoValue != null) {
                 if (oneValue == null) {
                     combinedValue = new ArrayList<String>(twoValue);
                 } else {
@@ -524,14 +522,14 @@ public final class Parameters {
                 if (decodeName) {
                     name = urlDecode(tmpName, enc);
                 } else {
-                    name = tmpName.toString();
+                    name = tmpName.toString(enc);
                 }
 
                 if (valueStart != -1) {
                     if (decodeValue) {
                         value = urlDecode(tmpValue, enc);
                     } else {
-                        value = tmpValue.toString();
+                        value = tmpValue.toString(enc);
                     }
                 } else {
                     value = "";
