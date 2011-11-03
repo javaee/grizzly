@@ -59,6 +59,11 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
         super(response, sendBufferSize, bufferResponse);
     }
 
+    @Override
+    public final boolean isSupportFileSend() {
+        return false;
+    }
+    
     public void sendHeaders() {
         final ByteChunk encodeHeaders = AjpMessageUtils.encodeHeaders(
                 (AjpHttpResponse) response);
