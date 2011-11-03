@@ -527,14 +527,14 @@ public final class Parameters {
                     name = tmpName.toString();
                 }
 
-                if (decodeValue) {
-                    value = urlDecode(tmpValue, enc);
-                } else {
-                    if (tmpValue.getStart() == -1) {
-                        value = "";
+                if (valueStart != -1) {
+                    if (decodeValue) {
+                        value = urlDecode(tmpValue, enc);
                     } else {
                         value = tmpValue.toString();
                     }
+                } else {
+                    value = "";
                 }
                 
                 addParameter(name, value);
