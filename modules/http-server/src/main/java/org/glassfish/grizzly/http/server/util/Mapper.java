@@ -74,7 +74,7 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MessageBytes;
-import static org.glassfish.grizzly.http.util.Charsets.*;
+import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived

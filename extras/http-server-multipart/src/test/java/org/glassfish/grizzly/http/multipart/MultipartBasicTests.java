@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;

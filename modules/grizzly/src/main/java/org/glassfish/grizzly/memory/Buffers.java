@@ -44,6 +44,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -246,36 +247,14 @@ public class Buffers {
             charset = Charset.defaultCharset();
         }
 
-        if (byteBuffer.hasArray()) {
-            try {
-                return new String(byteBuffer.array(),
-                        position + byteBuffer.arrayOffset(),
-                        limit - position, charset.name());
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException("We took charset name from Charset, why it's not unsupported?", e);
-            }
-//            Uncomment, when StringDecoder will not create copy of byte[]
-//            return new String(byteBuffer.array(),
-//                    position + byteBuffer.arrayOffset(),
-//                    limit - position, charset);
-        } else {
-            final int oldPosition = byteBuffer.position();
-            final int oldLimit = byteBuffer.limit();
-            setPositionLimit(byteBuffer, position, limit);
-
-            final byte[] tmpBuffer = new byte[limit - position];
-            byteBuffer.get(tmpBuffer);
-
+        final int oldPosition = byteBuffer.position();
+        final int oldLimit = byteBuffer.limit();
+        setPositionLimit(byteBuffer, position, limit);
+        
+        try {
+            return charset.decode(byteBuffer).toString();
+        } finally {
             setPositionLimit(byteBuffer, oldPosition, oldLimit);
-
-            try {
-                return new String(tmpBuffer, charset.name());
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException(e);
-            }
-
-//            Uncomment, when StringDecoder will not create copy of byte[]
-//            return new String(tmpBuffer, charset);
         }
     }
 

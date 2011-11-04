@@ -45,9 +45,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Charset utility class.
+ * Class is deprecated, please use {@link org.glassfish.grizzly.utils.Charsets}.
  *
  * @author Alexey Stashok
  */
+@Deprecated
 public final class Charsets {
     public static final String DEFAULT_CHARACTER_ENCODING = "ISO-8859-1";
 

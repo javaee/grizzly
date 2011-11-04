@@ -88,7 +88,6 @@ import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.util.CharChunk;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
@@ -97,6 +96,7 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.UEncoder;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 

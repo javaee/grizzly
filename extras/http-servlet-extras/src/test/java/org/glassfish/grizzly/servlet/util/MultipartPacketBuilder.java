@@ -38,16 +38,19 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.multipart.utils;
+package org.glassfish.grizzly.servlet.util;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
-import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 import org.glassfish.grizzly.memory.MemoryManager;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.put;
+
 /**
  * HTTP Multi-part packet builder
  * 

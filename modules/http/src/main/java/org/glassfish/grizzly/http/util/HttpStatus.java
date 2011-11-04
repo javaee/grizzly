@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.utils.Charsets;
 import java.io.CharConversionException;
 import java.util.HashMap;
 import java.util.Map;

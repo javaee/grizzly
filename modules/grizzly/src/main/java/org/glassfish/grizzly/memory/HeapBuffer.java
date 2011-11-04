@@ -45,6 +45,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -828,11 +829,24 @@ public class HeapBuffer implements Buffer {
             charset = Charset.defaultCharset();
         }
 
+        final boolean isRestoreByteBuffer = byteBuffer != null;
+        int oldPosition = 0;
+        int oldLimit = 0;
+        
+        if (isRestoreByteBuffer) {
+            // ByteBuffer can be used by outter code - so save its state
+            oldPosition = byteBuffer.position();
+            oldLimit = byteBuffer.limit();
+        }
+        
+        final ByteBuffer bb = toByteBuffer(position, limit);
+        
         try {
-            return new String(heap, offset + position, limit - position, charset.name());
-        } catch (UnsupportedEncodingException e) {
-            // Should never get here
-            throw new IllegalStateException("We took charset name from Charset, why it's not unsupported?", e);
+            return charset.decode(bb).toString();
+        } finally {
+            if (isRestoreByteBuffer) {
+                Buffers.setPositionLimit(byteBuffer, oldPosition, oldLimit);
+            }
         }
     }
 

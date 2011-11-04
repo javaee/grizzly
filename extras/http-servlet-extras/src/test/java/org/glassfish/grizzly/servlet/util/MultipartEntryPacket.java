@@ -38,14 +38,15 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.multipart.utils;
+package org.glassfish.grizzly.servlet.util;
 
-import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
+
+import java.nio.charset.Charset;
 
 /**
  * MultipartEntry packet.

@@ -60,12 +60,12 @@ package org.glassfish.grizzly.servlet;
 import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Parameters;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
+import org.glassfish.grizzly.utils.Charsets;
 import java.nio.charset.Charset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;

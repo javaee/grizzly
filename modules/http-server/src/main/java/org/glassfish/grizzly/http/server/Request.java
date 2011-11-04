@@ -101,13 +101,13 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.RequestUtils;
 import org.glassfish.grizzly.http.server.util.StringParser;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Chunk;
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Wrapper object for the Coyote request.
