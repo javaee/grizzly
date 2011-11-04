@@ -204,7 +204,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setMaxPostSizeBytes(String max);
 
-    @Attribute(defaultValue = "" + MAX_SWALLOWING_INPUT_BYTES, dataType = Long.class)
+    @Attribute(defaultValue = "" + MAX_SWALLOWING_INPUT_BYTES, dataType = Integer.class)
     String getMaxSwallowingInputBytes();
 
     void setMaxSwallowingInputBytes(String max);
