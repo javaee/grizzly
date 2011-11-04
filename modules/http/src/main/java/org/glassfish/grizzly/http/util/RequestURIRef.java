@@ -44,7 +44,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import java.io.CharConversionException;
 import java.nio.charset.Charset;
-import static org.glassfish.grizzly.http.util.Charsets.*;
+import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
  * Request URI holder.

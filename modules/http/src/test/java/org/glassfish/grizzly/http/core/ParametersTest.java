@@ -61,7 +61,7 @@ package org.glassfish.grizzly.http.core;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.UEncoder;
 

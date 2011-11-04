@@ -47,7 +47,8 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import static org.glassfish.grizzly.http.util.Charsets.*;
+import org.glassfish.grizzly.utils.Charsets;
+import static org.glassfish.grizzly.utils.Charsets.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -60,7 +61,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;

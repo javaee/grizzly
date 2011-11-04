@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.server.Constants;
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 import org.glassfish.grizzly.memory.MemoryManager;

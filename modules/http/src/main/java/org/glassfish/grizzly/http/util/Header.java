@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.utils.Charsets;
 import java.util.Arrays;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;

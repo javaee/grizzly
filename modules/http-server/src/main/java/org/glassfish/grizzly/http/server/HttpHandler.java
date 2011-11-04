@@ -54,8 +54,8 @@ import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Base class to use when Request/Response/InputStream/OutputStream

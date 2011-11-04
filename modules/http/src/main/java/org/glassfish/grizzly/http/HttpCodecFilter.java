@@ -64,7 +64,7 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
-import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
+import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**

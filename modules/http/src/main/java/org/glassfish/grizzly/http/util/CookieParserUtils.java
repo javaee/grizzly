@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.LazyCookie;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.LazyCookieState;

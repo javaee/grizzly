@@ -42,7 +42,7 @@ package org.glassfish.grizzly.servlet.util;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.server.Constants;
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 

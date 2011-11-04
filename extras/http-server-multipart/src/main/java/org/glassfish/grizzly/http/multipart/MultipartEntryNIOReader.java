@@ -49,7 +49,7 @@ import java.nio.charset.CodingErrorAction;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Stream implementation to read {@link MultipartEntry} content in the character mode.

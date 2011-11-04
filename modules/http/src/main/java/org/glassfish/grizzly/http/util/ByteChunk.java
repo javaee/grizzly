@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.utils.Charsets;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;

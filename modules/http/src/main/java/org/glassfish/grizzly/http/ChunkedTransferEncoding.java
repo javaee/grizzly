@@ -52,7 +52,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
-import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
+import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**

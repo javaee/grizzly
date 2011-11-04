@@ -46,7 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import static org.glassfish.grizzly.http.util.Charsets.*;
+import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
  * Utility class that make sure an HTTP url defined inside a {@link MessageBytes}

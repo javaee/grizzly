@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http.multipart.utils;
 
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;

@@ -45,7 +45,7 @@ import java.net.URLEncoder;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.memory.Buffers;
