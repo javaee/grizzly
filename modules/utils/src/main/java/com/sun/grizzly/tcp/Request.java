@@ -138,8 +138,8 @@ public class Request {
     private String localHost;
     private InetAddress localAddress;
     
-    private int remotePort;
-    private int localPort;
+    private int remotePort = -1;
+    private int localPort = -1;
 
     private MessageBytes schemeMB = MessageBytes.newInstance();
 
