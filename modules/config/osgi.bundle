@@ -40,8 +40,8 @@
 
 -exportcontents: \
                         com.sun.grizzly.config; \
-                        com.sun.grizzly.config.dom; version=${grizzly-version}
+                        com.sun.grizzly.config.dom; version=${project.version}
 
 Import-Package: \
-                        com.sun.grizzly*; version=${grizzly-version}, \
+                        com.sun.grizzly*; version=${project.version}, \
                         *
