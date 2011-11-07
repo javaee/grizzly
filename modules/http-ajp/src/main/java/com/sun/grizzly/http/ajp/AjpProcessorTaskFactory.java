@@ -45,7 +45,14 @@ import com.sun.grizzly.http.ProcessorTaskFactory;
 import com.sun.grizzly.http.SelectorThread;
 
 public class AjpProcessorTaskFactory implements ProcessorTaskFactory {
-    public ProcessorTask createProcessorTask(SelectorThread selectorThread, boolean isInitialize) {
-        return new AjpProcessorTask(isInitialize);
+    private final AjpConfiguration configuration;
+
+    public AjpProcessorTaskFactory(AjpConfiguration configuration) {
+        this.configuration = configuration;
+    }
+        
+    public ProcessorTask createProcessorTask(SelectorThread selectorThread,
+            boolean isInitialize) {
+        return new AjpProcessorTask(configuration, isInitialize);
     }
 }

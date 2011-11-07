@@ -47,7 +47,6 @@ import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.util.buf.MessageBytes;
 import java.io.IOException;
-import java.nio.Buffer;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,8 +54,16 @@ import java.util.logging.Logger;
 public class AjpProcessorTask extends ProcessorTask {
     private final static Logger logger = SelectorThread.logger();
     
-    public AjpProcessorTask(boolean initialize) {
+    private final AjpConfiguration ajpConfiguration;
+    
+    public AjpProcessorTask(final AjpConfiguration ajpConfiguration,
+            final boolean initialize) {
         super(initialize, false);
+        this.ajpConfiguration = ajpConfiguration;
+    }
+
+    public AjpConfiguration getAjpConfiguration() {
+        return ajpConfiguration;
     }
     
     @Override
@@ -89,9 +96,7 @@ public class AjpProcessorTask extends ProcessorTask {
     public boolean parseRequest() throws Exception {
         ((AjpInputBuffer) inputBuffer).readAjpMessageHeader();
         
-        super.parseRequest();
-        
-        return false;
+        return super.parseRequest();
     }
 
     @Override
@@ -107,8 +112,11 @@ public class AjpProcessorTask extends ProcessorTask {
                         // if expect content - parse following data chunk
                         ((AjpInputBuffer) request.getInputBuffer()).parseDataChunk();
                     } catch (IOException e) {
-                        logger.log(Level.FINE,
-                                "Exception during parsing data chunk", e);
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.log(Level.FINE,
+                                    "Exception during parsing data chunk on connection: "
+                                    + key.channel(), e);
+                        }
 
                         error = true;                        
                     }
@@ -127,8 +135,11 @@ public class AjpProcessorTask extends ProcessorTask {
                 try {
                     processCPing();
                 } catch (IOException e) {
-                    logger.log(Level.FINE,
-                            "Exception during sending CPONG reply", e);
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE,
+                                "Exception during sending CPONG reply on connection: " + 
+                                key.channel(), e);
+                    }
                     
                     error = true;
                 }
@@ -155,15 +166,14 @@ public class AjpProcessorTask extends ProcessorTask {
             tmpMessageBytes.recycle();
         }
 
-        final AjpSelectorThread ajpSelectorThread = (AjpSelectorThread) getSelectorThread();
-        final String secret = ajpSelectorThread.getSecret();
+        final String secret = ajpConfiguration.getSecret();
         
         if (secret != null &&
                 secret.equals(shutdownSecret)) {
             throw new IllegalStateException("Secret doesn't match, no shutdown");
         }
 
-        final Queue<ShutdownHandler> shutdownHandlers = ajpSelectorThread.getShutdownHandlers();
+        final Queue<ShutdownHandler> shutdownHandlers = ajpConfiguration.getShutdownHandlers();
         for (ShutdownHandler handler : shutdownHandlers) {
             try {
                 handler.onShutdown(key.channel());

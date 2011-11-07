@@ -76,8 +76,6 @@ public class AjpInputBuffer extends InternalInputBuffer {
     }
 
     protected void readAjpMessageHeader() throws IOException {
-        pos = thisPacketEnd; // Reset pos to the next message
-        
         if (!ensureAvailable(4)) {
             throw new EOFException(sm.getString("iib.eof.error"));
         }
@@ -85,7 +83,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
         final int magic = AjpMessageUtils.getShort(buf, pos);
         if (magic != 0x1234) {
             throw new IllegalStateException("Invalid packet magic number: " +
-                    Integer.toHexString(magic));
+                    Integer.toHexString(magic) + " pos=" + pos + "lastValid=" + lastValid + " end=" + end);
         }
         
         final int size = AjpMessageUtils.getShort(buf, pos + 2);
@@ -187,37 +185,44 @@ public class AjpInputBuffer extends InternalInputBuffer {
     }
 
     private boolean ensureAvailable(final int length) throws IOException {
-        if (lastValid - pos >= length) {
+        final int available = available();
+        
+        if (available >= length) {
             return true;
         }
         
-        int nRead = 0;
-        
-        pos = end;
-        
+        // check if we can read the required amount of data to this buf
         if (pos + length > buf.length) {
-            final byte[] newBuf =
-                    new byte[Math.max(buf.length, AjpConstants.MAX_PACKET_SIZE * 2)];
-            final int remaining = lastValid - pos;
-            if (remaining > 0) {
-                System.arraycopy(buf, pos, newBuf, 0, remaining);
+            // we have to shift available data
+            
+            // check if we can reuse this array as target
+            final byte[] targetArray;
+            final int offs;
+            if (end + length <= buf.length) { // we can use this array
+                targetArray = buf;
+                offs = end;
+            } else { // this array is not big enough, we have to create a new one
+                targetArray =
+                        new byte[Math.max(buf.length, AjpConstants.MAX_PACKET_SIZE * 2)];
+                offs = 0;
             }
             
-            buf = newBuf;
-            pos = 0;
-            end = 0;
-            lastValid = remaining;
+            if (available > 0) {
+                System.arraycopy(buf, pos, targetArray, offs, available);
+            }
+            
+            buf = targetArray;
+            pos = offs;
+            lastValid = pos + available;
         }
         
-        lastValid = pos;
-        
         while (lastValid - pos < length) {
-            nRead = inputStream.read(buf, lastValid, buf.length - lastValid);
-            if (nRead < 0) {
+            final int readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
+            if (readNow < 0) {
                 return false;
             }
             
-            lastValid += nRead;
+            lastValid += readNow;
         }
         
         return true;
@@ -226,6 +231,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
     @Override
     public void endRequest() throws IOException {
         pos = thisPacketEnd;
+        end = 0;
     }
     
     @Override
@@ -237,6 +243,8 @@ public class AjpInputBuffer extends InternalInputBuffer {
     }
 
     void parseDataChunk() throws IOException {
+        pos = thisPacketEnd; // Reset pos to the next message
+        
         readAjpMessageHeader();
         readAjpPacketPayload();
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
@@ -263,7 +271,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
     
     // ------------------------------------- InputStreamInputBuffer Inner Class
 
-
+        
     /**
      * This class is an AJP input buffer which will read its data from an input
      * stream.

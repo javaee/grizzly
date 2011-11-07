@@ -40,15 +40,16 @@
 package com.sun.grizzly.http.ajp;
 
 /**
- *
- * @author oleksiys
+ * Utility class to parse AJP responses.
+ * 
+ * @author Justin Lee
+ * @author Alexey Stashok
  */
 public class Utils {
     public static AjpResponse parseResponse(byte[] buffer) {
         int pos = 0;
         
         final AjpResponse ajpResponse = new AjpResponse();
-//            final int position = buffer.position();
 
         final int magic = AjpMessageUtils.getShort(buffer, pos);
         if (magic != 0x4142) {
@@ -101,7 +102,6 @@ public class Utils {
                 pos += size;
 
                 ajpResponse.setBody(body);
-                pos++;  // consume terminating 0x00
                 break;
             }
             case AjpConstants.JK_AJP13_END_RESPONSE:

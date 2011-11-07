@@ -188,7 +188,7 @@ public class BasicAjpTest extends AjpTestBase {
         };
 
         configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
-        selectorThread.addShutdownHandler(shutDownHandler);
+        selectorThread.getAjpConfiguration().getShutdownHandlers().add(shutDownHandler);
         
         final byte[] request = new byte[] {0x12, 0x34, 0, 1, AjpConstants.JK_AJP13_SHUTDOWN};
         

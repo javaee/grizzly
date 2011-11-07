@@ -420,8 +420,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     private void enableAjpSupport(Habitat habitat, NetworkListener networkListener) {
         if(GrizzlyConfig.toBoolean(networkListener.getJkEnabled())) {
-            System.out.println("GrizzlyEmbeddedHttp.enableAjPSupport");
             processorTaskFactory = loadAjpFactory(habitat);
+            if (processorTaskFactory instanceof ConfigAwareElement) {
+                ((ConfigAwareElement) processorTaskFactory).configure(habitat,
+                        networkListener);
+            }
         }
     }
 
@@ -453,7 +456,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * Load and initializes Comet {@link AsyncFilter}.
      */
     public static ProcessorTaskFactory loadAjpFactory(final Habitat habitat) {
-        return Utils.newInstance(habitat, ProcessorTaskFactory.class, "ajp",
+        return Utils.newInstance(habitat, ProcessorTaskFactory.class, "grizzly-ajp",
                 "com.sun.grizzly.http.ajp.AjpProcessorTaskFactory");
     }
 

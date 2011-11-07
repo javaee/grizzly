@@ -39,66 +39,60 @@
  */
 package com.sun.grizzly.http.ajp;
 
-import com.sun.grizzly.http.SelectorThread;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class AjpSelectorThread extends SelectorThread {
-    private final AjpConfiguration ajpConfiguration;
+/**
+ * AJP Configuration acceptable by {@link AjpProcessorTaskFactory}.
+ * 
+ * @author Alexey Stashok
+ */
+public interface AjpConfiguration {
+    /**
+     * Get the {@link ShutdownHandler} queue, which will be called, when shutdown
+     * request received. The returned {@link Queue} elements can be modified.
+     */
+    public Queue<ShutdownHandler> getShutdownHandlers();
     
-    public AjpSelectorThread() {
-        this(new AjpConfigurationImpl());
-    }
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @return true, if the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public boolean isTomcatAuthentication();
 
-    public AjpSelectorThread(final AjpConfiguration ajpConfiguration) {
-        this.ajpConfiguration = ajpConfiguration;
-        processorTaskFactory = new AjpProcessorTaskFactory(ajpConfiguration);
-    }
+    /**
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @param isTomcatAuthentication if true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public void setTomcatAuthentication(boolean isTomcatAuthentication);
 
-    public AjpConfiguration getAjpConfiguration() {
-        return ajpConfiguration;
-    }
+    /**
+     * If not null, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @return not null, if only requests from workers with this secret keyword will
+     * be accepted, or null otherwise.
+     */
+    public String getSecret();
 
-    private final static class AjpConfigurationImpl implements AjpConfiguration {
-
-        private final Queue<ShutdownHandler> shutdownHandlers =
-                new ConcurrentLinkedQueue<ShutdownHandler>();
-        private String secret;
-        private boolean isTomcatAuthentication = true;
-
-        /**
-         * {@inheritDoc}
-         */
-        public Queue<ShutdownHandler> getShutdownHandlers() {
-            return shutdownHandlers;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public boolean isTomcatAuthentication() {
-            return isTomcatAuthentication;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public void setTomcatAuthentication(boolean isTomcatAuthentication) {
-            this.isTomcatAuthentication = isTomcatAuthentication;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public String getSecret() {
-            return secret;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        public void setSecret(String requiredSecret) {
-            this.secret = requiredSecret;
-        }
-    }
+    /**
+     * If not null, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @param requiredSecret if not null, only requests from workers with this
+     * secret keyword will be accepted.
+     */
+    public void setSecret(String requiredSecret);
 }

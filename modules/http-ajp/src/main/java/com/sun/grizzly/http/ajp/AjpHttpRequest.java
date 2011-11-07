@@ -70,7 +70,6 @@ public final class AjpHttpRequest extends Request {
         return new AjpHttpRequest();
     }
 
-    private final MessageBytes instanceId = MessageBytes.newInstance();
     private final MessageBytes sslCert = MessageBytes.newInstance();
 
     private String secret;
@@ -119,17 +118,6 @@ public final class AjpHttpRequest extends Request {
         return result;
     }
 
-    /**
-     * Get the instance id (or JVM route). Curently Ajp is sending it with each
-     * request. In future this should be fixed, and sent only once ( or
-     * 'negotiated' at config time so both tomcat and apache share the same name.
-     *
-     * @return the instance id
-     */
-    public MessageBytes instanceId() {
-        return instanceId;
-    }
-
     public MessageBytes sslCert() {
         return sslCert;
     }
@@ -158,11 +146,6 @@ public final class AjpHttpRequest extends Request {
         this.type = type;
     }
     
-//    @Override
-//    public ProcessingState getProcessingState() {
-//        return processingState;
-//    }
-
     public int getContentBytesRemaining() {
         return contentBytesRemaining;
     }
@@ -181,12 +164,10 @@ public final class AjpHttpRequest extends Request {
 
     @Override
     public void recycle() {
-        //        processingState.recycle();
         isForwardRequestProcessing = false;
         tmpMessageBytes.recycle();
         contentBytesRemaining = -1;
         response.recycle();
-        instanceId.recycle();
         sslCert.recycle();
         secret = null;
         length = -1;
