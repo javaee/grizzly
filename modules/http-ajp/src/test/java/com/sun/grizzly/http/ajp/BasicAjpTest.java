@@ -318,5 +318,5 @@ public class BasicAjpTest extends AjpTestBase {
 
         Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
         Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
-    }    
+    }
 }

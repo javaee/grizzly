@@ -129,8 +129,13 @@ public class Utils {
     
     public static byte[] loadResourceFile(final String filename) throws Exception {
         final ClassLoader cl = Utils.class.getClassLoader();
-        final URL cacertsUrl = cl.getResource(filename);
-        final File file = new File(cacertsUrl.toURI());
+        final URL url = cl.getResource(filename);
+        
+        if (url == null) {
+            throw new IllegalStateException("File not found: " + filename);
+        }
+        
+        final File file = new File(url.toURI());
         
         if (!file.exists()) {
             throw new IllegalStateException("File not found: " + filename);

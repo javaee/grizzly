@@ -40,7 +40,6 @@
 
 package com.sun.grizzly.http.ajp;
 
-import java.lang.String;
 import java.nio.ByteBuffer;
 
 public abstract class AjpPacket {
