@@ -55,15 +55,9 @@ public final class AjpHttpResponse extends Response {
     private final static byte[] JK_AJP13_CPONG_REPLY_CONTENT =
             new byte[] {'A', 'B', 0, 1, AjpConstants.JK_AJP13_CPONG_REPLY};
     
-    private boolean secure;
-    
     final ByteChunk tmpHeaderByteChunk =
             new ByteChunk(AjpConstants.MAX_PACKET_SIZE);
 
-    public void setSecure(final boolean secure) {
-        this.secure = secure;
-    }
-    
     static void writeCPongReply(final OutputStream outputStream) throws IOException {
         outputStream.write(JK_AJP13_CPONG_REPLY_CONTENT);
     }

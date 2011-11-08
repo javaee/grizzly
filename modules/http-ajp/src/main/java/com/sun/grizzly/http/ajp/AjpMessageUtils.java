@@ -82,9 +82,10 @@ final class AjpMessageUtils {
         pos += 2;
 
         final boolean isSSL = buffer[pos++] != 0;
-        request.setSecure(isSSL);
-        ((AjpHttpResponse) request.getResponse()).setSecure(isSSL);
-
+        if (isSSL) {
+            request.scheme().setString("https");
+        }
+        
         pos = decodeHeaders(request, buffer, pos);
 
         pos = decodeAttributes(buffer, pos, request, tomcatAuthentication);
@@ -165,19 +166,19 @@ final class AjpMessageUtils {
                     break;
 
                 case AjpConstants.SC_A_SSL_CERT:
-                    req.setSecure(true);
+                    req.scheme().setString("https");
                     // SSL certificate extraction is costy, initialize on demand
                     pos = getBytesToByteChunk(requestContent, pos, req.sslCert());
                     break;
 
                 case AjpConstants.SC_A_SSL_CIPHER:
-                    req.setSecure(true);
+                    req.scheme().setString("https");
                     pos = setStringAttributeValue(req,
                             SSLSupport.CIPHER_SUITE_KEY, requestContent, pos);
                     break;
 
                 case AjpConstants.SC_A_SSL_SESSION:
-                    req.setSecure(true);
+                    req.scheme().setString("https");
                     pos = setStringAttributeValue(req,
                             SSLSupport.SESSION_ID_KEY, requestContent, pos);
                     break;

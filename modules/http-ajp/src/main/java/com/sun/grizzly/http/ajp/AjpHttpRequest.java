@@ -61,7 +61,6 @@ import java.util.logging.Logger;
  */
 public final class AjpHttpRequest extends Request {
     private static final Logger LOGGER = Logger.getLogger(AjpHttpRequest.class.getName());
-    private boolean secure;
     private boolean expectContent;
 
     final MessageBytes tmpMessageBytes = MessageBytes.newInstance();
@@ -78,8 +77,6 @@ public final class AjpHttpRequest extends Request {
     private int type = -1;    
 
     private final AjpHttpResponse response = new AjpHttpResponse();
-
-//    final ProcessingState processingState = new ProcessingState();
 
     private boolean isForwardRequestProcessing;
     private int contentBytesRemaining = -1;
@@ -152,14 +149,6 @@ public final class AjpHttpRequest extends Request {
 
     public void setContentBytesRemaining(final int contentBytesRemaining) {
         this.contentBytesRemaining = contentBytesRemaining;
-    }
-
-    public boolean isSecure() {
-        return secure;
-    }
-
-    public void setSecure(final boolean secure) {
-        this.secure = secure;
     }
 
     @Override
