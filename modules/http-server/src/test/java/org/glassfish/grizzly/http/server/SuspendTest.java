@@ -684,7 +684,12 @@ public class SuspendTest {
 
         @Override
         public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-            final HttpRequestPacket request = HttpRequestPacket.builder().method("GET").uri("/non-static").protocol("HTTP/1.1").header("Host", "localhost:" + PORT).build();
+            final HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri("/non-static")
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost:" + PORT)
+                    .build();
 
             ctx.write(request);
             return ctx.getStopAction();

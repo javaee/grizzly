@@ -40,6 +40,9 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -100,6 +103,9 @@ public abstract class HttpCodecFilter extends BaseFilter
      */
     static final byte[] CRLF_BYTES = {(byte) '\r', (byte) '\n'};
 
+    protected static final CompletionHandler<WriteResult> FLUSH_AND_CLOSE_HANDLER =
+            new FlushAndCloseHandler();
+    
     private final ArraySet<TransferEncoding> transferEncodings =
             new ArraySet<TransferEncoding>(TransferEncoding.class);
     
@@ -521,7 +527,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     private NextAction decodeWithTransferEncoding(final FilterChainContext ctx,
             final HttpHeader httpHeader, final Buffer input,
-            final boolean wasHeaderParsed) {
+            final boolean wasHeaderParsed) throws IOException {
 
         final Connection connection = ctx.getConnection();
         final ParsingResult result = parseWithTransferEncoding(
@@ -546,6 +552,9 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (httpHeader.isSkipRemainder()) {
                 if (isLast) {
                     onHttpPacketParsed(httpHeader, ctx);
+                    if (!httpHeader.getProcessingState().isStayAlive()) {
+                        return flushAndClose(ctx);
+                    }
                 }
                 if (remainderBuffer != null) {
                     // if there is a remainder - rerun this filter
@@ -1417,6 +1426,40 @@ public abstract class HttpCodecFilter extends BaseFilter
         return SSLUtils.getSSLEngine(connection) != null;
     }
 
+    /**
+     * Flush the {@link FilterChainContext} and close the associated {@link Connection}.
+     */
+    protected static NextAction flushAndClose(final FilterChainContext ctx)
+            throws IOException {
+        // no matter it's keep-alive or not - we close the connection
+        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+
+        // we skip the processing and let connection to be closed
+        final NextAction suspendAction = ctx.getSuspendAction();
+        ctx.completeAndRecycle();
+        return suspendAction;
+    }
+        
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static class FlushAndCloseHandler
+            extends EmptyCompletionHandler<WriteResult> {
+
+        @Override
+        public void completed(final WriteResult wr) {
+
+            try {
+                wr.getConnection().close().markForRecycle(false);
+            } catch (IOException ignore) {
+            } finally {
+                wr.recycle();
+            }
+
+        }
+
+    } // END FlushAndCloseHandler
+    
     protected static final class HeaderParsingState {
         public int packetLimit;
 

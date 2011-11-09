@@ -44,9 +44,7 @@ import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -91,8 +89,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
     };
 
-    private static final FlushAndCloseHandler FLUSH_AND_CLOSE_HANDLER =
-            new FlushAndCloseHandler();
     /**
      * Close bytes.
      */
@@ -278,32 +274,48 @@ public class HttpServerFilter extends HttpCodecFilter {
                 
                 final HttpRequestPacket httpRequest = keepAliveContext.request;
                 final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
-                if (!isStayAlive) {
-                    ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-                } else {
-                    if (httpRequest.isExpectContent()) {
-                        // If transfer encoding is defined and we can determine the message body length
-                        if (httpRequest.getTransferEncoding() != null) {
-                            httpRequest.setSkipRemainder(true);
-                        } else {
-                            // if we can not determine the message body length - assume this packet as processed
-                            httpRequest.setExpectContent(false);
-                            onHttpPacketParsed(httpRequest, ctx);
-                        }
-                    }
-                }
                 keepAliveContext.request = null;
-            } else {
-                ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-            }
 
-            return ctx.getStopAction();
+                return processResponseComplete(ctx, httpRequest, isStayAlive);
+            } else {
+                return flushAndClose(ctx);
+            }
         }
 
         return ctx.getInvokeAction();
-        
     }
 
+    private NextAction processResponseComplete(final FilterChainContext ctx,
+            final HttpRequestPacket httpRequest, final boolean isStayAlive)
+            throws IOException {
+        
+        final boolean hasTransferEncoding = httpRequest.getTransferEncoding() != null;
+
+        if (httpRequest.isExpectContent()) {
+            if (hasTransferEncoding) {
+                // If transfer encoding is defined and we can determine the message body length
+                httpRequest.setSkipRemainder(true);
+                // we will check HTTP keep-alive settings once remainder is fully read
+                return ctx.getStopAction();
+            } else {
+                // if we can not determine the message body length - assume this packet as processed
+                httpRequest.setExpectContent(false);
+                // notify processed. If packet has transfer encoding - the notification should be called elsewhere
+                onHttpPacketParsed(httpRequest, ctx);
+                // no matter it's keep-alive or not - we close the connection
+                return flushAndClose(ctx);                
+            }
+        }
+
+        if (!isStayAlive) {
+            // if we don't expect more data on the request and it's not in keep-alive mode
+            // close it
+            return flushAndClose(ctx);
+        }
+        
+        // we don't expect more data on the request, but it's keep-alive
+        return ctx.getStopAction();
+    }
 
     @Override
     protected boolean onHttpHeaderParsed(final HttpHeader httpHeader,
@@ -893,12 +905,10 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     }
 
-
     private boolean isKeepAlive(final HttpRequestPacket request,
                                 final KeepAliveContext keepAliveContext) {
 
-        final ProcessingState ps = request.getProcessingState();
-        boolean isKeepAlive = !ps.isError() && ps.isKeepAlive();
+        final boolean isKeepAlive = request.getProcessingState().isStayAlive();
 
         if (isKeepAlive && keepAliveContext != null) {
             if (keepAliveContext.requestsProcessed == 1) {
@@ -910,7 +920,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                 }
             }
         }
-
+        
         return isKeepAlive;
     }
 
@@ -948,25 +958,6 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     // ---------------------------------------------------------- Nested Classes
-
-
-    private static class FlushAndCloseHandler extends EmptyCompletionHandler {
-
-        @Override
-        public void completed(Object result) {
-
-            final WriteResult wr = (WriteResult) result;
-            try {
-                wr.getConnection().close().markForRecycle(false);
-            } catch (IOException ignore) {
-            } finally {
-                wr.recycle();
-            }
-
-        }
-
-    } // END FlushAndCloseHandler
-
 
      private static class KeepAliveContext {
         private final Connection connection;
