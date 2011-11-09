@@ -85,6 +85,19 @@ public final class ProcessingState {
 
     /**
      * <p>
+     * Method returns <tt>true</tt> only if the connection is in keep-alive mode
+     * and there was no error occurred during the packet processing.
+     * </p>
+     *
+     * @return <tt>true</tt> only if the connection is in keep-alive mode
+     * and there was no error occurred during the packet processing.
+     */
+    public boolean isStayAlive() {
+        return keepAlive && !error;
+    }
+    
+    /**
+     * <p>
      * This flag controls the connection keep-alive feature.
      * </p>
      *

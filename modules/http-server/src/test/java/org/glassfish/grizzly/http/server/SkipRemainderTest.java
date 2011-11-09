@@ -40,9 +40,10 @@
 
 package org.glassfish.grizzly.http.server;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.BlockingQueue;
+import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.utils.DataStructures;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -63,10 +64,12 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.http.util.Header;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +102,6 @@ public class SkipRemainderTest {
         }
     }
 
-//    @Ignore
     @Test
     public void testKeepAliveConnection() throws Exception {
         final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
@@ -122,12 +124,17 @@ public class SkipRemainderTest {
                             futures[counter.get()].failure(
                                     new IllegalStateException("Assertion failed on request#"
                                     + counter + ": expected=" + i + " got=" + c));
+                            
+                            return;
                         }
                     }
 
                     OutputStream os = res.getOutputStream();
                     os.write("OK".getBytes());
                     os.flush();
+                    
+                    futures[counter.get()].result("OK");
+                    
                 } catch (Exception e) {
                     futures[counter.get()].failure(e);
                 }
@@ -143,29 +150,164 @@ public class SkipRemainderTest {
         Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
         Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
 
-        try {
-            sendContentByHalfs(connection, content, transferQueue);
-            sendContentByHalfs(connection, content, transferQueue);
-        } catch (Exception e) {
-            for (FutureImpl future : futures) {
-                future.get(0, TimeUnit.SECONDS);
-            }
-        }
+        sendContentByHalfs(connection, content, transferQueue);
+        counter.incrementAndGet();
+        sendContentByHalfs(connection, content, transferQueue);
+        
+        for (FutureImpl future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }        
     }
 
+    @Test
+    public void testNonKeepAliveConnection() throws Exception {
+        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
+        
+        final int contentSizeHalf = 256 * 1024;
+        final FutureImpl future = SafeFutureImpl.create();
+        
+        startWebServer(new HttpHandler() {
+            @Override
+            public void service(Request req, Response res)
+                    throws Exception {
+                InputStream is = req.getInputStream();
+                try {
+                    for (int i = 0; i < contentSizeHalf; i++) {
+                        int c = is.read();
+                        if (c != (i % 256)) {
+                            future.failure(
+                                    new IllegalStateException(
+                                            "Assertion failed: expected=" + i +
+                                    " got=" + c));
+                            return;
+                        }
+                    }
+
+                    res.setStatus(200, "FINE");
+                    OutputStream os = res.getOutputStream(true);
+                    os.write("OK".getBytes());
+                    os.flush();
+                    
+                    future.result("OK");
+                    
+                } catch (Exception e) {
+                    future.failure(e);
+                }
+            }
+        });
+
+
+        byte[] content = new byte[contentSizeHalf * 2];
+        for (int i = 0; i < content.length; i++) {
+            content[i] = (byte) i;
+        }
+
+        Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
+        Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+        sendContentByHalfs(connection, content, transferQueue, false);
+        
+        future.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    // http://java.net/jira/browse/GRIZZLY-1113
+    public void testSuspendResume() throws Exception {
+        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
+        
+        final int contentSizeHalf = 256 * 1024;
+        final FutureImpl future = SafeFutureImpl.create();
+        
+        final ExecutorService tp = Executors.newFixedThreadPool(1);
+        
+        final AtomicInteger calls = new AtomicInteger();
+        try {
+            startWebServer(new HttpHandler() {
+                @Override
+                public void service(final Request req, final Response res)
+                        throws Exception {
+                    calls.incrementAndGet();
+                    
+                    res.suspend();
+                    tp.submit(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            try {
+                                InputStream is = req.getInputStream(true);
+                                for (int i = 0; i < contentSizeHalf; i++) {
+                                    int c = is.read();
+                                    if (c != (i % 256)) {
+                                        future.failure(
+                                                new IllegalStateException(
+                                                        "Assertion failed: expected=" + i +
+                                                " got=" + c));
+                                        return;
+                                    }
+                                }
+
+                                res.setStatus(200, "FINE");
+                                OutputStream os = res.getOutputStream(true);
+                                os.write("OK".getBytes());
+                                os.flush();
+
+                                future.result("OK");
+
+                            } catch (Exception e) {
+                                future.failure(e);
+                            } finally {
+                                res.resume();
+                            }
+                        }
+                    });
+                }
+            });
+
+
+            byte[] content = new byte[contentSizeHalf * 2];
+            for (int i = 0; i < content.length; i++) {
+                content[i] = (byte) i;
+            }
+
+            Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
+            Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+            sendContentByHalfs(connection, content, transferQueue, false);
+
+            future.get(10, TimeUnit.SECONDS);
+            
+            Thread.sleep(500);
+            
+            assertEquals(1, calls.get());
+        } finally {
+            tp.shutdownNow();
+        }
+    }
+    
     private void sendContentByHalfs(Connection connection, byte[] content,
             final BlockingQueue<Integer> transferQueue)
-            throws Exception, InterruptedException {
+            throws Exception {
+        sendContentByHalfs(connection, content, transferQueue, true);
+    }
+    
+    private void sendContentByHalfs(Connection connection, byte[] content,
+            final BlockingQueue<Integer> transferQueue, final boolean isKeepAlive)
+            throws Exception {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         
         final int contentSizeHalf = content.length / 2;
+        final Builder packetBuilder = HttpRequestPacket.builder()
+           .method("POST").uri("/hello")
+           .protocol("HTTP/1.1")
+           .header("Host", "localhost")
+           .contentLength(contentSizeHalf * 2);
         
-        final HttpRequestPacket request1 = HttpRequestPacket.builder()
-                .method("POST").uri("/hello")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .contentLength(contentSizeHalf * 2).build();
+        if (!isKeepAlive) {
+            packetBuilder.header(Header.Connection, "close");
+        }
+        
+        final HttpRequestPacket request1 = packetBuilder.build();
 
         connection.write(request1);
 
@@ -176,18 +318,22 @@ public class SkipRemainderTest {
                 .content(chunk1)
                 .build();
         
-        connection.write(httpContent11);
+        connection.write(httpContent11).get(10, TimeUnit.SECONDS);
 
-        Integer responseSize = transferQueue.poll(10, TimeUnit.SECONDS);
-        if (responseSize == null) throw new TimeoutException("No response from server");
-        assertEquals("Unexpected response size", (Integer) 2, responseSize);
-
+        Thread.sleep(200);
+        
         final HttpContent httpContent12 = HttpContent.builder(request1)
                 .content(chunk2)
                 .last(true)
                 .build();
         
-        connection.write(httpContent12);
+        connection.write(httpContent12).get(10, TimeUnit.SECONDS);
+        
+        Thread.sleep(200);
+        
+        Integer responseSize = transferQueue.poll(10, TimeUnit.SECONDS);
+        if (responseSize == null) throw new TimeoutException("No response from server");
+        assertEquals("Unexpected response size", (Integer) 2, responseSize);
     }
 
     private Future<Connection> connect(String host, int port,

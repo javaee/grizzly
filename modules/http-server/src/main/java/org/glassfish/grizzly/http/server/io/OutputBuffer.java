@@ -310,7 +310,7 @@ public class OutputBuffer {
             close();
         }
         
-        if(ctx != null) {
+        if (ctx != null) {
             ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
         }
 
