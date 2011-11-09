@@ -118,6 +118,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 originalMessage.toByteBufferArray();
 
         for (int i = 0; i < originalByteBufferArray.size(); i++) {
+            final int pos = originalMessage.position();
             final ByteBuffer originalByteBuffer = originalByteBufferArray.getArray()[i];
             
             currentTargetBuffer = allowDispose(memoryManager.allocate(
@@ -136,8 +137,11 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                         sslEngine.wrap(originalByteBuffer,
                         currentTargetByteBuffer);
 
-                originalMessage.position(
-                        originalMessage.position() + sslEngineResult.bytesConsumed());
+                // If the position of the original message hasn't changed,
+                // update the position now.
+                if (pos == originalMessage.position()) {
+                    originalMessage.position(pos + sslEngineResult.bytesConsumed());
+                }
 
                 final SSLEngineResult.Status status = sslEngineResult.getStatus();
 
@@ -183,6 +187,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 i--;
             }
         }
+        assert !originalMessage.hasRemaining();
 
         originalByteBufferArray.restore();
         originalByteBufferArray.recycle();
@@ -192,8 +197,6 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
             
             return transformationResult;
         }
-        
-        assert !originalMessage.hasRemaining();
         
         return TransformationResult.createCompletedResult(
                 allowDispose(targetBuffer), originalMessage);      
