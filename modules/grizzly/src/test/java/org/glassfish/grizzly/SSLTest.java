@@ -42,6 +42,9 @@ package org.glassfish.grizzly;
 
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
@@ -114,6 +117,7 @@ public class SSLTest {
     public static final int PORT = 7779;
 
     private final boolean isLazySslInit;
+    private final MemoryManager manager;
 
     private final TrustManager trustManager = new X509TrustManager() {
 
@@ -137,15 +141,18 @@ public class SSLTest {
         }
     };
 
-    public SSLTest(boolean isLazySslInit) {
+    public SSLTest(boolean isLazySslInit, MemoryManager manager) {
         this.isLazySslInit = isLazySslInit;
+        this.manager = manager;
     }
 
     @Parameters
     public static Collection<Object[]> getLazySslInit() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE},
-                    {Boolean.TRUE}
+                    {Boolean.FALSE, new HeapMemoryManager()},
+                    {Boolean.FALSE, new ByteBufferManager()},
+                    {Boolean.TRUE, new HeapMemoryManager()},
+                    {Boolean.TRUE, new ByteBufferManager()}
                 });
     }
 
@@ -277,6 +284,7 @@ public class SSLTest {
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         TCPNIOTransport cTransport =
                 TCPNIOTransportBuilder.newInstance().build();
@@ -285,6 +293,7 @@ public class SSLTest {
         clientChain.add(new SSLFilter(null, clientSSLEngineConfigurator));
         clientChain.add(new StringFilter());
         cTransport.setProcessor(clientChain.build());
+        cTransport.setMemoryManager(manager);
 
         try {
             transport.bind(PORT);
@@ -419,6 +428,7 @@ public class SSLTest {
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         try {
             transport.bind(PORT);
@@ -490,6 +500,7 @@ public class SSLTest {
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         SSLStreamReader reader = null;
         SSLStreamWriter writer = null;
@@ -609,6 +620,7 @@ public class SSLTest {
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         final MemoryManager mm = transport.getMemoryManager();
 

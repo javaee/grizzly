@@ -47,6 +47,9 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -57,6 +60,8 @@ import org.glassfish.grizzly.utils.StringFilter;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -64,10 +69,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
 import static org.junit.Assert.*;
+@RunWith(Parameterized.class)
 
 public class LZMATest {
     private static final int PORT = 7786;
+    private MemoryManager manager;
+
+    public LZMATest(MemoryManager manager) {
+        this.manager = manager;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getLazySslInit() {
+        return Arrays.asList(new Object[][]{
+                {new HeapMemoryManager()},
+                {new ByteBufferManager()},
+        });
+    }
 
 
     @Test
@@ -137,6 +159,7 @@ public class LZMATest {
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         try {
             transport.bind(PORT);

@@ -47,6 +47,9 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -57,24 +60,46 @@ import org.glassfish.grizzly.utils.StringFilter;
 import org.glassfish.grizzly.compression.zip.GZipFilter;
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test set for {@link GZipFilter}.
  * 
  * @author Alexey Stashok
  */
-public class GZipTest extends TestCase {
+@RunWith(Parameterized.class)
+public class GZipTest {
     private static final int PORT = 7786;
-    
+    private final MemoryManager manager;
+
+    public GZipTest(MemoryManager manager) {
+        this.manager = manager;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getLazySslInit() {
+        return Arrays.asList(new Object[][]{
+                {new HeapMemoryManager()},
+                {new ByteBufferManager()},
+        });
+    }
+
+    @Test
     public void testSimpleEcho() throws Exception {
         doTest("Hello world");
     }
 
+    @Test
     public void test10Echoes() throws Exception {
         String[] array = new String[10];
         for (int i = 0; i < array.length; i++) {
@@ -84,6 +109,7 @@ public class GZipTest extends TestCase {
         doTest(array);
     }
 
+    @Test
     public void testLargeEcho() throws Exception {
         final int len = 1024 * 256;
         StringBuilder sb = new StringBuilder(len);
@@ -95,11 +121,13 @@ public class GZipTest extends TestCase {
         }
         doTest(sb.toString());
     }
-    
+
+    @Test
     public void testChunkedEcho() throws Exception {
         doTest(true, "Hello world");
     }
 
+    @Test
     public void testChunked10Echoes() throws Exception {
         String[] array = new String[10];
         for (int i = 0; i < array.length; i++) {
@@ -129,6 +157,7 @@ public class GZipTest extends TestCase {
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverChainBuilder.build());
+        transport.setMemoryManager(manager);
 
         try {
             transport.bind(PORT);
