@@ -421,7 +421,6 @@ public final class Parameters {
         int end = start + len;
         int pos = start;
         while (pos < end) {
-            parameterCount++;
             if (limit > -1 && parameterCount >= limit) {
                 logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SEVERE_GRIZZLY_HTTP_PARAMETERS_MAX_COUNT_FAIL(limit));
                 break;
