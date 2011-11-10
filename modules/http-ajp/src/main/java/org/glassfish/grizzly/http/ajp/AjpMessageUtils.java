@@ -411,8 +411,8 @@ final class AjpMessageUtils {
         return offset;
     }
 
-    public static Buffer encodeHeaders(MemoryManager mm,
-            HttpResponsePacket httpResponsePacket) {
+    public static Buffer encodeHeaders(final MemoryManager mm,
+            final HttpResponsePacket httpResponsePacket) {
         Buffer encodedBuffer = mm.allocate(4096);
         int startPos = encodedBuffer.position();
         // Skip 4 bytes for the Ajp header
@@ -420,8 +420,15 @@ final class AjpMessageUtils {
         
         encodedBuffer.put(AjpConstants.JK_AJP13_SEND_HEADERS);
         encodedBuffer.putShort((short) httpResponsePacket.getStatus());
-        encodedBuffer = putBytes(mm, encodedBuffer,
-                httpResponsePacket.getReasonPhraseDC());
+
+        if (httpResponsePacket.isCustomReasonPhraseSet()) {
+            encodedBuffer = putBytes(mm, encodedBuffer,
+                    httpResponsePacket.getReasonPhraseDC());
+        } else {
+            encodedBuffer = putBytes(mm, encodedBuffer,
+                    httpResponsePacket.getHttpStatus().getReasonPhraseBytes());
+        }
+        
 
         if (httpResponsePacket.isAcknowledgement()) {
             // If it's acknoledgment packet - don't encode the headers
@@ -548,6 +555,24 @@ final class AjpMessageUtils {
         dstBuffer.putShort((short) size);
 
         dstBuffer = put(memoryManager, dstBuffer, dataChunk);
+        // Don't forget the terminating \0
+        dstBuffer.put((byte) 0);
+
+        return dstBuffer;
+    }
+
+    private static Buffer putBytes(final MemoryManager memoryManager,
+            Buffer dstBuffer, final byte[] bytes) {
+        final int size = bytes.length;
+
+        // Don't forget the terminating \0 (that's why "+ 1")
+        if (dstBuffer.remaining() < size + 2 + 1) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, size + 2 + 1);
+        }
+
+        dstBuffer.putShort((short) size);
+
+        dstBuffer = put(memoryManager, dstBuffer, bytes);
         // Don't forget the terminating \0
         dstBuffer.put((byte) 0);
 

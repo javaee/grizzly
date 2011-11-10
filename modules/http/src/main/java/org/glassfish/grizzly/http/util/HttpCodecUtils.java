@@ -85,7 +85,20 @@ public class HttpCodecUtils {
             dstBuffer = resizeBuffer(memoryManager, dstBuffer, size);
         }
 
-        dstBuffer.put8BitString(s);
+        // Make sure custom Strings do not contain service symbols
+        final int len = s.length();
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if ((c <= 31 && c != 9) || c == 127) {
+                c = ' ';
+            }
+
+            final byte b = (byte) c;
+            
+            dstBuffer.put(b);
+        }
+        
+//        dstBuffer.put8BitString(s);
 
         return dstBuffer;
     }
