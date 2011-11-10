@@ -75,6 +75,7 @@ import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 
+import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
@@ -204,11 +205,11 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        SSLEngine sslEngine = getSSLEngine(connection);
-        if (sslEngine != null && !isHandshaking(sslEngine)) {
-            return accurateWrite(ctx, true);
-        } else {
-            synchronized(connection) {
+        synchronized (connection) {
+            SSLEngine sslEngine = getSSLEngine(connection);
+            if (sslEngine != null && !isHandshaking(sslEngine)) {
+                return accurateWrite(ctx, true);
+            } else {
                 sslEngine = getSSLEngine(connection);
                 if (sslEngine == null) {
                     initiatingContextAttr.set(ctx.getConnection(), ctx);
@@ -564,16 +565,16 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
 
         if (isHandshakeComplete && !isPendingHandler) {
-            return super.handleWrite(ctx);
+            return doWrite(ctx);
         } else if (isPendingHandler) {
             if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
-                return super.handleWrite(ctx);
+                return doWrite(ctx);
             }
         } else {
             // Check one more time whether handshake is completed
             final SSLEngine sslEngine = getSSLEngine(connection);
             if (sslEngine != null && !isHandshaking(sslEngine)) {
-                return super.handleWrite(ctx);
+                return doWrite(ctx);
             }
 
             throw new IllegalStateException("Handshake is not completed!");
@@ -582,6 +583,29 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         return ctx.getSuspendAction();
     }
 
+    @SuppressWarnings("unchecked")
+    private NextAction doWrite(final FilterChainContext ctx)
+            throws IOException {
+        final NextAction nextAction = super.handleWrite(ctx);
+        if (nextAction.type() != 0) { // Is it InvokeAction?
+            // if not
+            throw new IllegalStateException("Unexpected next action type: " +
+                    nextAction.type());
+        }
+        
+        final Buffer message = ctx.getMessage();
+        final Object address = ctx.getAddress();
+        final FilterChainContext.TransportContext transportContext =
+                ctx.getTransportContext();
+        
+        ctx.write(address, message,
+                new CompletionHandlerAdapter(transportContext.getFuture(),
+                        transportContext.getCompletionHandler()),
+                transportContext.getMessageCloner(), transportContext.isBlocking());
+        
+        return ctx.getStopAction();
+    }
+    
     private X509Certificate[] extractX509Certs(final Certificate[] certs) {
         final X509Certificate[] x509Certs = new X509Certificate[certs.length];
         for(int i = 0, len = certs.length; i < len; i++) {
