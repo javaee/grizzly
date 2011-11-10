@@ -85,7 +85,10 @@ public class CompletionHandlerAdapter<A, B>
 
     @Override
     public void cancelled() {
-        future.cancel(false);
+        if (future != null) {
+            future.cancel(false);            
+        }
+        
         if (completionHandler != null) {
             completionHandler.cancelled();
         }
@@ -93,7 +96,10 @@ public class CompletionHandlerAdapter<A, B>
 
     @Override
     public void failed(Throwable throwable) {
-        future.failure(throwable);
+        if (future != null) {
+            future.failure(throwable);
+        }
+        
         if (completionHandler != null) {
             completionHandler.failed(throwable);
         }
@@ -103,7 +109,10 @@ public class CompletionHandlerAdapter<A, B>
     public void completed(B result) {
         final A adaptedResult = adapt(result);
         
-        future.result(adaptedResult);
+        if (future != null) {
+            future.result(adaptedResult);
+        }
+        
         if (completionHandler != null) {
             completionHandler.completed(adaptedResult);
         }

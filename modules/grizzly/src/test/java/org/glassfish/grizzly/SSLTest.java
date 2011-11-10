@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import java.util.concurrent.ExecutorService;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 
@@ -65,7 +66,9 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -85,6 +88,7 @@ import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.KeyManager;
@@ -247,6 +251,11 @@ public class SSLTest {
     @Test
     public void test200On5PendingSSLClientWrites() throws Exception {
         doTestPendingSSLClientWrites(5, 200);
+    }
+
+    @Test
+    public void testParallelWrites100Packets100Size() throws Exception {
+        doTestParallelWrites(100, 100);
     }
 
     /**
@@ -679,6 +688,87 @@ public class SSLTest {
         }
     }
 
+    protected void doTestParallelWrites(int packetsNumber, int size) throws Exception {
+        Connection connection = null;
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
+
+        final ExecutorService executorService = Executors.newCachedThreadPool();
+        
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new RandomDelayOnWriteFilter());
+        filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator));
+        filterChainBuilder.add(new StringFilter());
+        filterChainBuilder.add(new ParallelWriteFilter(executorService, packetsNumber, size));
+
+        TCPNIOTransport transport =
+                TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+        transport.setMemoryManager(manager);
+
+        final MemoryManager mm = transport.getMemoryManager();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.<Boolean>create();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
+                    clientSSLEngineConfigurator));
+            clientFilterChainBuilder.add(new StringFilter());
+
+            final ClientCheckFilter clientTestFilter = new ClientCheckFilter(
+                    clientFuture, packetsNumber, size);
+
+            clientFilterChainBuilder.add(clientTestFilter);
+
+            connection.setProcessor(clientFilterChainBuilder.build());
+
+            try {
+                connection.write("start");
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error occurred when sending start command");
+                throw e;
+            }
+
+            Boolean isDone = clientFuture.get(10, TimeUnit.SECONDS);
+            assertEquals(Boolean.TRUE, isDone);
+        } finally {
+            try {
+                executorService.shutdownNow();
+            } catch (Exception e) {}
+            
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {}
+            }
+
+            try {
+                transport.stop();
+            } catch (Exception e) {}
+            
+        }
+    }
 
     // --------------------------------------------------------- Private Methods
 
@@ -885,4 +975,130 @@ public class SSLTest {
 
     } // END Client Test Filter
 
+    private static final class RandomDelayOnWriteFilter extends BaseFilter {
+        private static final Random random = new Random();
+        @Override
+        public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+            
+            try {
+                Thread.sleep(random.nextInt(50) + 10);
+            } catch (InterruptedException ignored) {
+            }
+            
+            return ctx.getInvokeAction();
+        }        
+    }
+    
+    private static final class ParallelWriteFilter extends BaseFilter {
+        private final int packetsNumber;
+        private final int size;
+
+        private final ExecutorService executorService;
+        
+        private ParallelWriteFilter(ExecutorService executorService,
+                int packetsNumber, int size) {
+            this.executorService = executorService;
+            this.packetsNumber = packetsNumber;
+            this.size = size;
+        }
+        
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            final Connection connection = ctx.getConnection();
+            
+            for (int i = 0; i < packetsNumber; i++) {
+                final int packetNumber = i;
+                
+                executorService.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        final char[] chars = new char[size];
+                        Arrays.fill(chars, (char) ('0' + (packetNumber % 10)));
+                        final String content = new String(chars);
+                        final FutureImpl<Boolean> completionHandlerFuture =
+                                SafeFutureImpl.<Boolean>create();
+                        try {
+                            Future<WriteResult> writeFuture = connection.write(content, new CompletionHandler<WriteResult>() {
+                                @Override
+                                public void cancelled() {
+                                    completionHandlerFuture.failure(new IOException("cancelled"));
+                                }
+
+                                @Override
+                                public void failed(Throwable throwable) {
+                                    completionHandlerFuture.failure(throwable);
+                                }
+
+                                @Override
+                                public void completed(WriteResult result) {
+                                    completionHandlerFuture.result(true);
+                                }
+
+                                @Override
+                                public void updated(WriteResult result) {
+                                }
+                            });
+                            
+                            completionHandlerFuture.get(10, TimeUnit.SECONDS);
+                            if (!writeFuture.isDone()) {
+                                throw new IllegalStateException("Write future should be done");
+                            }
+                        } catch (Exception e) {
+                            logger.log(Level.SEVERE, "sending packet #" + packetNumber, e);
+                        }
+                    }
+                });
+            }
+            
+            return ctx.getInvokeAction();
+        }        
+    }
+    
+    private static final class ClientCheckFilter extends BaseFilter {
+        private final FutureImpl<Boolean> future;
+        private final int packetsNumber;
+        private final int size;
+
+        private final int[] packetsCounter = new int[10];
+        
+        private final AtomicInteger counter = new AtomicInteger();
+        private ClientCheckFilter(FutureImpl<Boolean> future, int packetsNumber, int size) {
+            this.future = future;
+            this.packetsNumber = packetsNumber;
+            this.size = size;
+        }
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+
+            final String message = ctx.getMessage();
+            
+            try {
+                assertEquals(size, message.length());
+                
+                final char[] charsToCompare = new char[size];
+                Arrays.fill(charsToCompare, message.charAt(0));
+                final String stringToCompare = new String(charsToCompare);
+                
+                assertEquals(stringToCompare, message);
+                
+                final int index = message.charAt(0) - '0';
+                packetsCounter[index]++;
+                
+                if (counter.incrementAndGet() >= packetsNumber) {
+                    int receivedPackets = 0;
+                    for (int i = 0; i < 10; i++) {
+                        receivedPackets += packetsCounter[i];
+                    }
+                    
+                    assertEquals(packetsNumber, receivedPackets);
+                    future.result(true);
+                }
+            
+            } catch (Throwable t) {
+                future.failure(t);
+            }
+            return ctx.getStopAction();
+        }        
+    }       
 }

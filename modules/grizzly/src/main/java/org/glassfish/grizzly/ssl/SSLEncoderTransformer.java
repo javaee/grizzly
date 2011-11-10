@@ -139,7 +139,6 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
 
                 // If the position of the original message hasn't changed,
                 // update the position now.
-                boolean posUpdated;
                 if (pos == originalMessage.position()) {
                     restore = true;
                     originalMessage.position(pos + sslEngineResult.bytesConsumed());
