@@ -269,9 +269,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         ProbeNotifier.notifyBufferAllocated(monitoringConfig, maxBufferSize);
 
         final HeapBufferThreadLocalPool threadLocalCache =
-                (HeapBufferThreadLocalPool) getThreadLocalPool();
-
-        threadLocalCache.reset(heap, 0, maxBufferSize);
+                getHeapBufferThreadLocalPool();
+        if (threadLocalCache != null) {
+            threadLocalCache.reset(heap, 0, maxBufferSize);
+        }
     }
 
     TrimmableHeapBuffer createTrimAwareBuffer(final int length) {
@@ -307,8 +308,13 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
     @SuppressWarnings("unchecked")
     private static HeapBufferThreadLocalPool getHeapBufferThreadLocalPool() {
-        return (HeapBufferThreadLocalPool) getThreadLocalPool();
+        final ThreadLocalPool pool = getThreadLocalPool();
+        return ((pool instanceof HeapBufferThreadLocalPool)
+                    ? (HeapBufferThreadLocalPool) pool
+                    : null);
     }
+
+
     // ---------------------------------------------------------- Nested Classes
 
 
@@ -489,7 +495,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
             if (sizeToReturn > 0) {
                 final HeapBufferThreadLocalPool threadLocalCache =
-                        (HeapBufferThreadLocalPool) getThreadLocalPool();
+                        getHeapBufferThreadLocalPool();
                 if (threadLocalCache != null) {
 
                     if (threadLocalCache.isLastAllocated(this)) {

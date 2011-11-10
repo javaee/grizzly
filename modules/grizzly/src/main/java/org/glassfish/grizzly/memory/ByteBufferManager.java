@@ -237,7 +237,8 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             return allocateByteBuffer0(size);
         }
 
-        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        final ThreadLocalPool<ByteBuffer> threadLocalCache =
+                getByteBufferThreadLocalPool();
         if (threadLocalCache != null) {
             final int remaining = threadLocalCache.remaining();
 
@@ -266,7 +267,8 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             return allocateByteBuffer0(size);
         }
 
-        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        final ThreadLocalPool<ByteBuffer> threadLocalCache =
+                getByteBufferThreadLocalPool();
         if (threadLocalCache != null) {
             int remaining = threadLocalCache.remaining();
 
@@ -286,7 +288,8 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
         if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
 
-        final ThreadLocalPool<ByteBuffer> memoryPool = getThreadLocalPool();
+        final ThreadLocalPool<ByteBuffer> memoryPool =
+                getByteBufferThreadLocalPool();
         if (memoryPool != null) {
             final ByteBuffer newBuffer =
                     memoryPool.reallocate(oldByteBuffer, newSize);
@@ -306,7 +309,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     @Override
     @SuppressWarnings("unchecked")
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
-        ThreadLocalPool<ByteBuffer> memoryPool = getThreadLocalPool();
+        ThreadLocalPool<ByteBuffer> memoryPool = getByteBufferThreadLocalPool();
         if (memoryPool != null) {
 
             if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
@@ -374,8 +377,18 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
         final ByteBuffer byteBuffer =
                 allocateByteBuffer0(maxBufferSize);
 
-        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
-        threadLocalCache.reset(byteBuffer);
+        final ThreadLocalPool<ByteBuffer> threadLocalCache = getByteBufferThreadLocalPool();
+        if (threadLocalCache != null) {
+            threadLocalCache.reset(byteBuffer);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ByteBufferThreadLocalPool getByteBufferThreadLocalPool() {
+        final ThreadLocalPool pool = getThreadLocalPool();
+        return ((pool instanceof ByteBufferThreadLocalPool)
+                ? (ByteBufferThreadLocalPool) pool
+                : null);
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -520,7 +533,8 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
 
             if (sizeToReturn > 0) {
-                final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+                final ThreadLocalPool<ByteBuffer> threadLocalCache =
+                        getByteBufferThreadLocalPool();
                 if (threadLocalCache != null) {
 
                     if (threadLocalCache.isLastAllocated(visible)) {
