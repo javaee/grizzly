@@ -61,6 +61,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 final class AjpMessageUtils {
     
     private static final int[] DEC = HexUtils.getDecBytes();
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     static void decodeRequest(final Buffer requestContent,
             final AjpHttpRequest req, final boolean tomcatAuthentication)
@@ -540,8 +541,8 @@ final class AjpMessageUtils {
 
     private static Buffer putBytes(final MemoryManager memoryManager,
             Buffer dstBuffer, final DataChunk dataChunk) {
-        if (dataChunk.isNull()) {
-            return dstBuffer;
+        if (dataChunk == null || dataChunk.isNull()) {
+            return putBytes(memoryManager, dstBuffer, EMPTY_BYTE_ARRAY);
         }
 
         final int size = dataChunk.getLength();
