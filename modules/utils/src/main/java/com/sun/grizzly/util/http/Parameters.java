@@ -410,18 +410,26 @@ public final class Parameters {
     // incredibly inefficient data representation for parameters,
     // until we test the new one
 
-    private void addParam(String key, String value) {
+    public void addParameter(String key, String value)
+            throws IllegalStateException {
+
         if (key == null) {
             return;
         }
-        ArrayList<String> values;
-        if (paramHashValues.containsKey(key)) {
-            values = paramHashValues.get(key);
-        } else {
+
+        parameterCount++;
+        if (limit > -1 && parameterCount > limit) {
+            // Processing this parameter will push us over the limit. ISE is
+            // what Request.parseParts() uses for requests that are too big
+            throw new IllegalStateException(sm.getString(
+                    "parameters.maxCountFail", limit));
+        }
+
+        ArrayList<String> values = paramHashValues.get(key);
+        if (values == null) {
             values = new ArrayList<String>(1);
             paramHashValues.put(key, values);
         }
-
         values.add(value);
     }
 
@@ -469,13 +477,7 @@ public final class Parameters {
         int pos = start;
 
         while (pos < end) {
-            parameterCount++;
 
-            if (limit > -1 && parameterCount >= limit) {
-                logger.warning(sm.getString("parameters.maxCountFail",
-                        limit));
-                break;
-            }
             int nameStart = pos;
             int nameEnd = -1;
             int valueStart = -1;
@@ -603,7 +605,14 @@ public final class Parameters {
                     value = tmpValue.toString();
                 }
 
-                addParam(name, value);
+                try {
+                    addParameter(name, value);
+                } catch (IllegalStateException ise) {
+                    // Hitting limit stops processing further params but does
+                    // not cause request to fail.
+                    logger.warning(ise.getMessage());
+                    break;
+                }
             } catch (IOException e) {
                 decodeFailCount++;
                 if (decodeFailCount == 1 || debug > 0) {
@@ -706,7 +715,7 @@ public final class Parameters {
                     log(tmpNameC + "= " + tmpValueC);
                 }
 
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
@@ -856,7 +865,7 @@ public final class Parameters {
                 }
 
                 if (str.compareTo(tmpNameC.toString()) == 0) {
-                    addParam(tmpNameC.toString(), tmpValueC.toString());
+                    addParameter(tmpNameC.toString(), tmpValueC.toString());
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -940,7 +949,7 @@ public final class Parameters {
                     log(tmpNameC + "= " + tmpValueC);
                 }
 
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
