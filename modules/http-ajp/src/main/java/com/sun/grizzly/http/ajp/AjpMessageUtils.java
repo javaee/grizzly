@@ -42,6 +42,7 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.HttpMessages;
 import com.sun.grizzly.util.http.MimeHeaders;
@@ -49,7 +50,6 @@ import com.sun.grizzly.util.net.SSLSupport;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Enumeration;
 
 
 /**
@@ -62,6 +62,8 @@ final class AjpMessageUtils {
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE = AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE;
 
+    private static final byte[] EMPTY_ARRAY = new byte[0];
+    
     public static int decodeForwardRequest(byte[] buffer, int pos,
             boolean tomcatAuthentication, AjpHttpRequest request) {
         
@@ -346,7 +348,7 @@ final class AjpMessageUtils {
                 message = HttpMessages.getMessage(response.getStatus());
             }
 
-            putBytes(headerBuffer, message.getBytes());
+            putBytes(headerBuffer, message);
 
             if (false/*response.isAcknowledgement()*/) {
                 // If it's acknowledgment packet - don't encode the headers
@@ -371,19 +373,13 @@ final class AjpMessageUtils {
 
                 putShort(headerBuffer, (short) numHeaders);
 
-                final Enumeration<String> names = headers.names();
-                while (names.hasMoreElements()) {
-                    final String name = names.nextElement();
-                    final Enumeration<String> value = headers.values(name);
-                    while (value.hasMoreElements()) {
-                        putBytes(headerBuffer, name.getBytes());
-                        putBytes(headerBuffer, value.nextElement().getBytes());
-                    }
+                for (int i = 0; i < numHeaders; i++) {
+                    putBytes(headerBuffer, headers.getName(i));
+                    putBytes(headerBuffer, headers.getValue(i));
                 }
             }
 
             // Add Ajp message header
-//            ByteChunk encodedBuffer = new ByteChunk(4096);
             final byte[] headerBytes = headerBuffer.getBuffer();
             headerBytes[start] = ((byte) 'A');
             headerBytes[start + 1] = ((byte) 'B');
@@ -438,10 +434,114 @@ final class AjpMessageUtils {
         b[off + 1] = ((byte) (value & 0xFF));
     }
     
-    private static void putBytes(ByteChunk dstBuffer, byte[] bytes) throws IOException {
-        putShort(dstBuffer, (short) bytes.length);
-        dstBuffer.append(bytes, 0, bytes.length);
-        dstBuffer.append((byte) 0);
+    private static void putBytes(ByteChunk dstBuffer, final MessageBytes mb)
+            throws IOException {
+        
+        if (mb == null || mb.isNull()) {
+            putBytes(dstBuffer, EMPTY_ARRAY);
+            return;
+        }
+        
+        if (mb.getType() == MessageBytes.T_BYTES) {
+            final ByteChunk bc = mb.getByteChunk();
+            putBytes(dstBuffer, bc.getBytes(), bc.getStart(), bc.getLength());
+        } else if (mb.getType() == MessageBytes.T_CHARS) {
+            final CharChunk cc = mb.getCharChunk();
+            putBytes(dstBuffer, cc);
+        } else {
+            putBytes(dstBuffer, mb.toString());
+        }
+    }
+
+    private static void putBytes(final ByteChunk dstBuffer, final byte[] bytes)
+            throws IOException {
+        putBytes(dstBuffer, bytes, 0, bytes.length);
+    }
+
+    private static void putBytes(final ByteChunk dstBuffer,
+            final byte[] bytes, final int start, final int length)
+            throws IOException {
+        
+        dstBuffer.makeSpace(length + 3);
+        
+        final byte[] dstArray = dstBuffer.getBuffer();
+        int pos = dstBuffer.getEnd();
+        putShort(dstArray, pos, (short) length);
+        pos += 2;
+
+        System.arraycopy(bytes, start, dstArray, pos, length);
+        pos += length;
+        
+        dstArray[pos++] = 0;
+
+        dstBuffer.setEnd(pos);
+    }
+
+    private static void putBytes(final ByteChunk dstBuffer, final CharChunk cc)
+            throws IOException {
+        
+        if (cc == null || cc.isNull()) {
+            putBytes(dstBuffer, EMPTY_ARRAY);
+            return;
+        }
+        
+        final int length = cc.getLength();
+        
+        dstBuffer.makeSpace(length + 3);
+        
+        final byte[] dstArray = dstBuffer.getBuffer();
+        int pos = dstBuffer.getEnd();
+        
+        putShort(dstArray, pos, (short) length);
+        pos += 2;
+        
+        final int start = cc.getStart();
+        final int end = cc.getEnd();
+        final char[] cbuf = cc.getBuffer();
+        for (int i = start; i < end; i++) {
+            char c = cbuf[i];
+            if ((c <= 31 && c != 9) || c == 127) {
+                c = ' ';
+            }
+            
+            dstArray[pos++] = (byte) c;
+        }
+        
+        dstArray[pos++] = 0;
+        
+        dstBuffer.setEnd(pos);
+    }
+
+    private static void putBytes(final ByteChunk dstBuffer, final String s)
+            throws IOException {
+        
+        if (s == null) {
+            putBytes(dstBuffer, EMPTY_ARRAY);
+            return;
+        }
+        
+        final int length = s.length();
+        
+        dstBuffer.makeSpace(length + 3);
+        
+        final byte[] dstArray = dstBuffer.getBuffer();
+        int pos = dstBuffer.getEnd();
+        
+        putShort(dstArray, pos, (short) length);
+        pos += 2;
+        
+        for (int i = 0; i < length; i++) {
+            char c = s.charAt(i);
+            if ((c <= 31 && c != 9) || c == 127) {
+                c = ' ';
+            }
+            
+            dstArray[pos++] = (byte) c;
+        }
+        
+        dstArray[pos++] = 0;
+        
+        dstBuffer.setEnd(pos);
     }
 
     private static boolean isNullLength(final int length) {
