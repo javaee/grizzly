@@ -89,7 +89,7 @@ public class HttpCodecUtils {
         final int len = s.length();
         for (int i = 0; i < len; i++) {
             char c = s.charAt(i);
-            if ((c <= 31 && c != 9) || c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
 

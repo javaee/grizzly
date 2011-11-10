@@ -227,27 +227,14 @@ public class HttpStatus {
                     break;
                 default:
                     char c = content[i];
-                    if (c <= 31 && c != 9) {
+                    if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                         if (result == null) {
                             result = new StringBuilder(content.length + 50);
                             result.append(content, 0, i);
                         }
                         c = ' ';
-                    } else if (c == 127) {
-                        c = ' ';
-                        if (result == null) {
-                            result = new StringBuilder(content.length + 50);
-                            result.append(content, 0, i);
-                        }
                     }
-                    final byte b = (byte) c;
-                    if (b == 10 || b == 13) {
-                        c = ' ';
-                        if (result == null) {
-                            result = new StringBuilder(content.length + 50);
-                            result.append(content, 0, i);
-                        }
-                    }
+                    
                     if (result != null) {
                         result.append(c);
                     }
