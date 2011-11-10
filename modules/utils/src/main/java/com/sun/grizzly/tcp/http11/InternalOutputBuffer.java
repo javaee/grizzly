@@ -746,13 +746,8 @@ public class InternalOutputBuffer
         char[] cbuf = cc.getBuffer();
         for (int i = start; i < end; i++) {
             char c = cbuf[i];
-            if (c != 9) {
-                if (c >= 0 && c <= 31) {
-                    c = ' ';
-                }
-                if (c == 127) {
-                    c = ' ';
-                }
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                c = ' ';
             }
 
             if (pos >= buf.length) {
@@ -821,9 +816,7 @@ public class InternalOutputBuffer
             // but is the only consistent approach within the current
             // servlet framework.  It must suffice until servlet output
             // streams properly encode their output.
-            if (c <= 31 && c != 9) {
-                c = ' ';
-            } else if (c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
 

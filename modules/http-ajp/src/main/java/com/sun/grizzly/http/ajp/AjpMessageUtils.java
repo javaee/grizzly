@@ -500,7 +500,7 @@ final class AjpMessageUtils {
         final char[] cbuf = cc.getBuffer();
         for (int i = start; i < end; i++) {
             char c = cbuf[i];
-            if ((c <= 31 && c != 9) || c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
             
@@ -532,7 +532,7 @@ final class AjpMessageUtils {
         
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if ((c <= 31 && c != 9) || c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
             
