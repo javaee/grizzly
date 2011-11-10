@@ -64,11 +64,6 @@ import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.buf.UDecoder;
 import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.Charsets;
-import org.apache.tomcat.util.buf.ByteChunk;
-import org.apache.tomcat.util.buf.CharChunk;
-import org.apache.tomcat.util.buf.MessageBytes;
-import org.apache.tomcat.util.buf.UDecoder;
-import org.apache.tomcat.util.res.StringManager;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -78,8 +73,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Costin Manolache
@@ -409,18 +402,26 @@ public final class Parameters {
     // incredibly inefficient data representation for parameters,
     // until we test the new one
 
-    private void addParam(String key, String value) {
+    public void addParameter(String key, String value)
+            throws IllegalStateException {
+
         if (key == null) {
             return;
         }
-        ArrayList<String> values = null;
-        if (paramHashValues.containsKey(key)) {
-            values = paramHashValues.get(key);
-        } else {
+
+        parameterCount++;
+        if (limit > -1 && parameterCount > limit) {
+            // Processing this parameter will push us over the limit. ISE is
+            // what Request.parseParts() uses for requests that are too big
+            throw new IllegalStateException(sm.getString(
+                    "parameters.maxCountFail", Integer.valueOf(limit)));
+        }
+
+        ArrayList<String> values = paramHashValues.get(key);
+        if (values == null) {
             values = new ArrayList<String>(1);
             paramHashValues.put(key, values);
         }
-
         values.add(value);
     }
 
@@ -468,13 +469,7 @@ public final class Parameters {
         int pos = start;
 
         while (pos < end) {
-            parameterCount++;
-
-            if (limit > -1 && parameterCount >= limit) {
-                log.error(sm.getString("parameters.maxCountFail",
-                        Integer.valueOf(limit)));
-                break;
-            }
+            
             int nameStart = pos;
             int nameEnd = -1;
             int valueStart = -1;
@@ -602,8 +597,14 @@ public final class Parameters {
                 } else {
                     value = tmpValue.toString();
                 }
-
-                addParam(name, value);
+                try {
+                    addParameter(name, value);
+                } catch (IllegalStateException ise) {
+                    // Hitting limit stops processing further params but does
+                    // not cause request to fail.
+                    log.warn(ise.getMessage());
+                    break;
+                }
             } catch (IOException e) {
                 decodeFailCount++;
                 if (decodeFailCount == 1 || debug > 0) {
@@ -706,7 +707,7 @@ public final class Parameters {
                     log(tmpNameC + "= " + tmpValueC);
                 }
 
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
@@ -857,7 +858,7 @@ public final class Parameters {
                 }
 
                 if (str.compareTo(tmpNameC.toString()) == 0) {
-                    addParam(tmpNameC.toString(), tmpValueC.toString());
+                    addParameter(tmpNameC.toString(), tmpValueC.toString());
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -940,7 +941,7 @@ public final class Parameters {
                     log(tmpNameC + "= " + tmpValueC);
                 }
 
-                addParam(tmpNameC.toString(), tmpValueC.toString());
+                addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
