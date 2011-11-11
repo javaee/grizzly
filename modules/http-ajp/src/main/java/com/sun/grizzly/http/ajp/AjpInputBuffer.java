@@ -98,8 +98,6 @@ public class AjpInputBuffer extends InternalInputBuffer {
         
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
         ajpRequest.setLength(size);
-        
-        thisPacketEnd = pos + size;
     }
 
     @Override
@@ -131,6 +129,8 @@ public class AjpInputBuffer extends InternalInputBuffer {
             throw new EOFException(sm.getString("iib.eof.error"));
         }
 
+        
+        thisPacketEnd = pos + length;
         
         ajpRequest.setType(ajpRequest.isForwardRequestProcessing() ?
                 AjpConstants.JK_AJP13_DATA : buf[pos++] & 0xFF);
@@ -191,6 +191,10 @@ public class AjpInputBuffer extends InternalInputBuffer {
             return true;
         }
         
+        if (pos == lastValid) {
+            pos = lastValid = end;
+        }
+        
         // check if we can read the required amount of data to this buf
         if (pos + length > buf.length) {
             // we have to shift available data
@@ -215,7 +219,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
             pos = offs;
             lastValid = pos + available;
         }
-        
+
         while (lastValid - pos < length) {
             final int readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
             if (readNow < 0) {
@@ -266,7 +270,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
     private void requestDataChunk() throws IOException {
         ((AjpOutputBuffer) request.getResponse().getOutputBuffer())
                 .writeEncodedAjpMessage(GET_BODY_CHUNK_PACKET, 0,
-                GET_BODY_CHUNK_PACKET.length);
+                GET_BODY_CHUNK_PACKET.length, true);
     }
     
     // ------------------------------------- InputStreamInputBuffer Inner Class

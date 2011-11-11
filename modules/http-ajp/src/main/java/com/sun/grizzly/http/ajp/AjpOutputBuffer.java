@@ -78,9 +78,18 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     public void writeEncodedAjpMessage(final byte[] cbuf, final int off,
             final int len) throws IOException {
     
-        super.realWriteBytes(cbuf, off, len);
+        writeEncodedAjpMessage(cbuf, off, len, false);
     } 
     
+    public void writeEncodedAjpMessage(final byte[] cbuf, final int off,
+            final int len, final boolean isFlush) throws IOException {
+    
+        super.realWriteBytes(cbuf, off, len);
+        if (isFlush) {
+            flushBuffer();
+        }
+    } 
+
     @Override
     public void realWriteBytes(byte[] cbuf, int off, int len) throws IOException {
         if (response.isCommitted()) { // serialize payload
