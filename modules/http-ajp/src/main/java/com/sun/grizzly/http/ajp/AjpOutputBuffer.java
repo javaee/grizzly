@@ -94,12 +94,13 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
                 
                 bc.append('A');
                 bc.append('B');
-                AjpMessageUtils.putShort(bc, (short) (count + 3));
+                AjpMessageUtils.putShort(bc, (short) (count + 4));
                 
                 bc.append(AjpConstants.JK_AJP13_SEND_BODY_CHUNK);
                 AjpMessageUtils.putShort(bc, (short) count);
                 super.realWriteBytes(bc.getBytes(), bc.getStart(), bc.getLength()); // AJP header
                 super.realWriteBytes(cbuf, off + written, count); // payload
+                super.realWriteBytes(TERMINATING_BYTE, 0, 1); // terminating byte
                 
                 written += count;
             }

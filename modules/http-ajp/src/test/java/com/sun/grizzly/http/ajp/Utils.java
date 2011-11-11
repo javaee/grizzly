@@ -105,6 +105,8 @@ public class Utils {
                 body = new byte[size];
                 System.arraycopy(buffer, pos, body, 0, size);
                 pos += size;
+                
+                pos ++;
 
                 ajpResponse.setBody(body);
                 break;
