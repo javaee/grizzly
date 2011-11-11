@@ -51,6 +51,11 @@ import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.buf.UDecoder;
+import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import com.sun.grizzly.util.http.mapper.Mapper;
+import com.sun.grizzly.util.http.mapper.MappingData;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -62,12 +67,16 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Response response;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
+    private final Mapper mapper;
+    private UDecoder urlDecoder = new UDecoder();
 
-    public ServerNetworkHandler(Request req, Response resp) {
+    public ServerNetworkHandler(Request req, Response resp, Mapper mapper) {
         request = req;
         response = resp;
+        this.mapper = mapper;
         inputBuffer = (InternalInputBuffer) req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
+        
     }
 
     @Override
@@ -155,7 +164,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     public HttpServletRequest getRequest() throws IOException {
         GrizzlyRequest r = new GrizzlyRequest();
         r.setRequest(request);
-        return new WSServletRequestImpl(r);
+        return new WSServletRequestImpl(r, mapper);
     }
 
     public HttpServletResponse getResponse() throws IOException {
@@ -164,12 +173,64 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         return new HttpServletResponseImpl(r);
     }
 
-    private static class WSServletRequestImpl extends HttpServletRequestImpl {
-        public WSServletRequestImpl(GrizzlyRequest r) throws IOException {
+    private class WSServletRequestImpl extends HttpServletRequestImpl {
+        private String pathInfo;
+        private String servletPath;
+        private String contextPath;
+        public WSServletRequestImpl(GrizzlyRequest r, Mapper mapper) throws IOException {
             super(r);
             setContextImpl(new ServletContextImpl());
+            if (mapper != null) {
+                updatePaths(r, mapper);
+            }
         }
-    }
+
+        @Override
+        public String getContextPath() {
+            if (contextPath != null) {
+                return contextPath;
+            } else {
+                return super.getContextPath();
+            }
+        }
+
+        @Override
+        public String getServletPath() {
+            if (servletPath != null) {
+                return servletPath;
+            } else {
+                return super.getServletPath();
+            }
+        }
+
+        @Override
+        public String getPathInfo() {
+            if (pathInfo != null) {
+                return pathInfo;
+            } else {
+                return super.getPathInfo();
+            }
+        }
+
+        private void updatePaths(GrizzlyRequest r, Mapper mapper) {
+            final Request req = r.getRequest();
+            try {
+                MessageBytes decodedURI = req.decodedURI();
+                decodedURI.duplicate(req.requestURI());
+                HttpRequestURIDecoder.decode(decodedURI, urlDecoder, null, null);
+                mapper.map(req.remoteHost(), decodedURI, (MappingData) req.getNote(12));
+                MappingData data = (MappingData) req.getNote(12);
+                pathInfo = data.pathInfo.getString();
+                servletPath = data.requestPath.getString();
+                contextPath = data.contextPath.getString();
+            } catch (Exception e) {
+                pathInfo = null;
+                servletPath = null;
+                contextPath = null;
+            }
+        }
+
+    } // END WSServletRequestImpl
 
     @Override
     public String toString() {

@@ -40,7 +40,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.PongFrameType;
 
 import javax.servlet.http.HttpServletRequest;

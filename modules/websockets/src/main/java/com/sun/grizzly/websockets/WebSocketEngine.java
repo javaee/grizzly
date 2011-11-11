@@ -48,6 +48,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.http.mapper.Mapper;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -133,7 +134,13 @@ public class WebSocketEngine {
         return null;
     }
 
+    // maintained for compatibility - useful still for most cases.
     public boolean upgrade(AsyncExecutor asyncExecutor) {
+        return upgrade(asyncExecutor, null);
+    }
+
+    // Mapper will be non-null when integrated in GF.
+    public boolean upgrade(AsyncExecutor asyncExecutor, Mapper mapper) {
         Request request = asyncExecutor.getProcessorTask().getRequest();
         final MimeHeaders mimeHeaders = request.getMimeHeaders();
         if (isUpgradable(request)) {
@@ -156,7 +163,7 @@ public class WebSocketEngine {
                             } catch (IOException ignored) {
                             }
                         }
-                        final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
+                        final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse(), mapper);
                         protocolHandler.setNetworkHandler(handler);
                         protocolHandler.setKey(key);
                         protocolHandler.setProcessorTask(task);
@@ -165,6 +172,9 @@ public class WebSocketEngine {
                         protocolHandler.handshake(app, request);
 
                         socket = app.createWebSocket(protocolHandler, app, new KeyWebSocketListener(key));
+                        if (socket instanceof DefaultWebSocket) {
+
+                        }
 
                         ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
                                 .setConnectionCloseHandler(closeHandler);
@@ -220,8 +230,15 @@ public class WebSocketEngine {
         applications.add(app);
     }
 
+    /**
+     * When invoked, the all websockets currently connected to the
+     * application will be closed.
+     *
+     * @param app the application to de-register
+     */
     public void unregister(WebSocketApplication app) {
         applications.remove(app);
+        app.shutdown();
     }
 
 }

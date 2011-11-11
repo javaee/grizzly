@@ -72,10 +72,13 @@ import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.UDecoder;
+import com.sun.grizzly.util.http.mapper.Mapper;
 import org.jvnet.hk2.component.Habitat;
+import org.jvnet.hk2.component.Inhabitant;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -315,7 +318,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configureFileCache(http.getFileCache());
             defaultVirtualServer = http.getDefaultVirtualServer();
             if (mayEnableAsync && GrizzlyConfig.toBoolean(http.getWebsocketsSupportEnabled())) {
-                enableWebSockets(habitat);
+                enableWebSockets(networkListener, habitat);
             }
             if (mayEnableAsync && (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) ||
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
@@ -445,9 +448,17 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      *
      * @param habitat
      */
-    private void enableWebSockets(Habitat habitat) {
+    @SuppressWarnings("unchecked")
+    private void enableWebSockets(NetworkListener l, Habitat habitat) {
         final AsyncFilter asyncFilter = loadWebSocketsAsyncFilter(habitat);
         if (asyncFilter != null) {
+            try {
+                Method m = asyncFilter.getClass().getMethod("setMapper", Mapper.class);
+                Inhabitant<Mapper> inhab =
+                        (Inhabitant<Mapper>) habitat.getInhabitant(Mapper.class, l.getAddress() + l.getPort());
+                m.invoke(asyncFilter, inhab.get());
+            } catch (Exception ignored) {
+            }
             addAsyncFilter(asyncFilter);
         }
     }

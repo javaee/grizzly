@@ -99,4 +99,16 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     public List<String> getSupportedProtocols(List<String> subProtocol) {
         return Collections.emptyList();
     }
+
+    /**
+     * When invoked, all currently connected WebSockets will be closed.
+     */
+    void shutdown() {
+        for (WebSocket webSocket : sockets.keySet()) {
+            if (webSocket.isConnected()) {
+                webSocket.onClose(null);
+            }
+        }
+        sockets.clear();
+    }
 }

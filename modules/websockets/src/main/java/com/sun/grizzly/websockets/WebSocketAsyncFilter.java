@@ -42,18 +42,25 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
+import com.sun.grizzly.util.http.mapper.Mapper;
 
 import java.util.logging.Logger;
 
 public class WebSocketAsyncFilter implements AsyncFilter {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    
+    private Mapper mapper = null;
 
     public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
-        if (WebSocketEngine.getEngine().upgrade(asyncExecutor)) {
+        if (WebSocketEngine.getEngine().upgrade(asyncExecutor, mapper)) {
             return AsyncFilter.Result.INTERRUPT;
         }
 
         return AsyncFilter.Result.NEXT;
+    }
+
+    // This method is leveraged by GlassFish code - don't remove
+    public void setMapper(final Mapper mapper) {
+        this.mapper = mapper;
     }
 
 }
