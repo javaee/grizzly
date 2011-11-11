@@ -49,6 +49,7 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
@@ -476,7 +477,7 @@ final class AjpMessageUtils {
 
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE =
-            AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE;
+            AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE - 1; // -1 becaise of terminating \0
     public static Buffer appendContentAndTrim(final MemoryManager memoryManager,
             Buffer dstBuffer, Buffer httpContentBuffer) {
         Buffer resultBuffer = null;
@@ -500,7 +501,7 @@ final class AjpMessageUtils {
         return resultBuffer;
     }
 
-    public static Buffer appendContentChunkAndTrim(final MemoryManager memoryManager,
+    private static Buffer appendContentChunkAndTrim(final MemoryManager memoryManager,
             final Buffer dstBuffer, final Buffer httpContentBuffer) {
 
         final boolean useDstBufferForHeaders = dstBuffer != null &&
@@ -514,18 +515,26 @@ final class AjpMessageUtils {
                 dstBuffer.trim();
             }
             headerBuffer = memoryManager.allocate(BODY_CHUNK_HEADER_SIZE);
+            headerBuffer.allowBufferDispose(true);
         }
 
         headerBuffer.put((byte) 'A');
         headerBuffer.put((byte) 'B');
-        headerBuffer.putShort((short) (3 + httpContentBuffer.remaining()));
+        headerBuffer.putShort((short) (4 + httpContentBuffer.remaining()));
         headerBuffer.put(AjpConstants.JK_AJP13_SEND_BODY_CHUNK);
         headerBuffer.putShort((short) httpContentBuffer.remaining());
         headerBuffer.trim();
 
         Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
                 headerBuffer, httpContentBuffer);
-
+        
+        // Add terminating \0
+        final Buffer terminatingBuffer = memoryManager.allocate(1);
+        terminatingBuffer.allowBufferDispose(true);
+        
+        resultBuffer = Buffers.appendBuffers(memoryManager,
+                resultBuffer, terminatingBuffer);
+        
         if (!useDstBufferForHeaders && dstBuffer != null) {
             resultBuffer = Buffers.appendBuffers(memoryManager,
                     dstBuffer, resultBuffer);
@@ -534,7 +543,7 @@ final class AjpMessageUtils {
         if (resultBuffer.isComposite()) {
             // If during buffer appending - composite buffer was created -
             // allow buffer disposing
-            resultBuffer.allowBufferDispose(true);
+            ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
         }
 
         return resultBuffer;
