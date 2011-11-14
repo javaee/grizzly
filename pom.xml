@@ -52,7 +52,7 @@
     <packaging>pom</packaging>
     <name>grizzly-project</name>
     <version>1.9.41-SNAPSHOT</version>
-    <url>https://grizzly.java.net</url>
+    <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
         <url>http://java.net/jira/browse/GRIZZLY</url>
@@ -75,7 +75,7 @@
         <developer>
             <id>oleksiys</id>
             <name>Oleksiy Stashok</name>
-            <email>oleksiys@dev.java.net</email>
+            <email>oleksiys@java.net</email>
             <url>http://blogs.sun.com/oleksiys/</url>
             <organization>Oracle Corporation</organization>
             <organizationUrl>http://www.oracle.com</organizationUrl>
@@ -100,7 +100,7 @@
     <licenses>
         <license>
             <name>CDDL+GPL</name>
-            <url>https://glassfish.java.net/public/CDDL+GPL.html</url>
+            <url>http://glassfish.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
