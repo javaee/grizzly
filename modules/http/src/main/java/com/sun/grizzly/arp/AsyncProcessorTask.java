@@ -45,7 +45,11 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.TaskBase;
 import com.sun.grizzly.tcp.SuspendResponseUtils;
 
+import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.ThreadAttachment;
+import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
 /**
@@ -70,7 +74,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      */
     private int stage = AsyncTask.PRE_EXECUTE;
 
-    
+
     /**
      * Execute the {@link AsyncExecutor} based on the <code>stage</code>
      * of the {@link ProcessorTask} execution.
@@ -86,6 +90,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                             asyncExecutor.getAsyncHandler().returnTask(this);
                             return;
                         } else {
+                            disableTimeout();
                             stage = AsyncTask.INTERRUPTED;
                         }
                         break;
@@ -116,12 +121,13 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         break;
 //                        asyncExecutor.getAsyncHandler().returnTask(this);
                     case AsyncTask.FINISH:
+                        enableTimeout();
+                        
                         asyncExecutor.finishExecute();
                         asyncExecutor.getAsyncHandler().returnTask(this);
                         return;
                 }
             } catch (Throwable t) {
-                t.printStackTrace();
                 SelectorThread.logger().log(Level.SEVERE, t.getMessage(), t);
                 if (stage <= AsyncTask.INTERRUPTED) {
                     // We must close the connection.
@@ -199,4 +205,41 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
         
     }
 
+    /**
+     * Switch to request timeout mode.
+     */
+    private void disableTimeout() {
+        final ThreadAttachment attachment = obtainAndSetThreadAttachment();
+        attachment.setIdleTimeoutDelay(Long.MAX_VALUE);
+    }
+    
+    /**
+     * Switch back to keep-alive timeout mode.
+     */
+    private void enableTimeout() {
+        final ThreadAttachment attachment = obtainAndSetThreadAttachment();
+        attachment.setIdleTimeoutDelay(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
+        attachment.setTimeout(System.currentTimeMillis());
+    }
+    
+    private ThreadAttachment obtainAndSetThreadAttachment() {
+        final SelectionKey selectionKey = getProcessorTask().getSelectionKey();
+        Object attachment = selectionKey.attachment();
+        if (attachment == null || !(attachment instanceof ThreadAttachment)) {
+            attachment = obtainThreadAttachment();
+            selectionKey.attach(attachment);
+        }
+        
+        return (ThreadAttachment) attachment;
+    }
+    
+    private static ThreadAttachment obtainThreadAttachment() {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof WorkerThread) {
+            return ((WorkerThread) currentThread).getAttachment();
+        }
+
+        return new ThreadAttachment();
+    }
+    
 }
