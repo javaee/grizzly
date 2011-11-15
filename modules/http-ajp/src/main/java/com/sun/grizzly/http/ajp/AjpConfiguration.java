@@ -95,4 +95,30 @@ public interface AjpConfiguration {
      * secret keyword will be accepted.
      */
     public void setSecret(String requiredSecret);
+    
+    /**
+     * If <tt>true</tt> and a secret has been configured,
+     * a correctly formatted AJP request (that includes the secret) will
+     * shutdown the server instance associated with this connector.
+     * This is set to <tt>false</tt> by default.
+     * 
+     * @return If <tt>true</tt> and a secret has been configured,
+     * a correctly formatted AJP request (that includes the secret) will
+     * shutdown the server instance associated with this connector.
+     * This is set to <tt>false</tt> by default.
+     */
+    public boolean isShutdownEnabled();
+    
+    /**
+     * If <tt>true</tt> and a secret has been configured,
+     * a correctly formatted AJP request (that includes the secret) will
+     * shutdown the server instance associated with this connector.
+     * This is set to <tt>false</tt> by default.
+     * 
+     * @param isShutdownEnabled If <tt>true</tt> and a secret has been configured,
+     * a correctly formatted AJP request (that includes the secret) will
+     * shutdown the server instance associated with this connector.
+     * This is set to <tt>false</tt> by default.
+     */
+    public void setShutdownEnabled(boolean isShutdownEnabled);
 }

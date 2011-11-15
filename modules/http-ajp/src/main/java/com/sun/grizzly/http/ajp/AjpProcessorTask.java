@@ -153,6 +153,9 @@ public class AjpProcessorTask extends ProcessorTask {
     }
 
     private void processShutdown() {
+        if (!ajpConfiguration.isShutdownEnabled()) {
+            throw new IllegalStateException("Shutdown is disabled");
+        }
 
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
         String shutdownSecret = null;

@@ -65,6 +65,7 @@ public class AjpSelectorThread extends SelectorThread {
                 new ConcurrentLinkedQueue<ShutdownHandler>();
         private String secret;
         private boolean isTomcatAuthentication = true;
+        private boolean isShutdownEnabled = false;
 
         /**
          * {@inheritDoc}
@@ -99,6 +100,20 @@ public class AjpSelectorThread extends SelectorThread {
          */
         public void setSecret(String requiredSecret) {
             this.secret = requiredSecret;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean isShutdownEnabled() {
+            return isShutdownEnabled;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public void setShutdownEnabled(final boolean isShutdownEnabled) {
+            this.isShutdownEnabled = isShutdownEnabled;
         }
     }
 }
