@@ -43,8 +43,15 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.ProcessorTaskFactory;
 import com.sun.grizzly.http.SelectorThread;
+import java.util.Properties;
 
 public class AjpProcessorTaskFactory implements ProcessorTaskFactory {
+    public static final String REQUEST_SECRET = "request.secret";
+    public static final String REQUEST_SECRET2 = "secret";
+    public static final String SHUTDOWN_ENABLED = "request.shutdownEnabled";
+    public static final String TOMCAT_AUTHENTICATION = "tomcatAuthentication";
+    public static final String USE_SECRET = "request.useSecret";
+
     protected final AjpConfiguration configuration;
 
     public AjpProcessorTaskFactory(AjpConfiguration configuration) {
@@ -56,6 +63,30 @@ public class AjpProcessorTaskFactory implements ProcessorTaskFactory {
         return new AjpProcessorTask(configuration, isInitialize);
     }
 
+    public void configure(final Properties props) {
+        String secret = props.getProperty(REQUEST_SECRET);
+        if (secret == null) {
+            secret = props.getProperty(REQUEST_SECRET2);
+        }
+        
+        final boolean tomcatAuth = Boolean.parseBoolean(
+                props.getProperty(TOMCAT_AUTHENTICATION, "true"));
+
+        final boolean shutdownEnabled = Boolean.parseBoolean(
+                props.getProperty(SHUTDOWN_ENABLED, "false"));
+
+        final boolean useSecret = Boolean.parseBoolean(
+                props.getProperty(USE_SECRET, "false"));
+        
+        if (useSecret && secret == null) {
+            secret = Double.toString(Math.random());
+        }
+        
+        configuration.setSecret(secret);
+        configuration.setTomcatAuthentication(tomcatAuth);
+        configuration.setShutdownEnabled(shutdownEnabled);
+    }
+    
     public AjpConfiguration getConfiguration() {
         return configuration;
     }        
