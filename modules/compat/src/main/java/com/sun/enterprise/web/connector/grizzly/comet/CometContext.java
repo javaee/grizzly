@@ -99,7 +99,8 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
      * @param handler The CometHandler to resume.
      * @return <tt>true</tt> if the operation succeeded.
      */
-    public boolean resumeCometHandler(CometHandler handler){
+    @Override
+    public boolean resumeCometHandler(com.sun.grizzly.comet.CometHandler handler){
         boolean status = CometEngine.getEngine().interrupt(handlers.get(handler),false);
         if (status){
             try {
