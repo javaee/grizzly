@@ -92,7 +92,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if (cfg == null) {
             throw new IllegalArgumentException("config is null");
         }
-        cfg = cfg.clone();
+        cfg = cfg.copy();
         final Queue<Runnable> queue = cfg.getQueue();
         if ((queue == null || queue instanceof BlockingQueue) &&
                 (cfg.getCorePoolSize() < 0 || cfg.getCorePoolSize() == cfg.getMaxPoolSize())) {
@@ -139,7 +139,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return config - {@link ThreadPoolConfig}
      */
     public ThreadPoolConfig getConfiguration() {
-        return config.clone();
+        return config.copy();
     }
 
     public void shutdown() {

@@ -103,11 +103,19 @@ public class ThreadPoolConfig {
         this.monitoringProbe = cfg.monitoringProbe;
     }
 
+    /**
+     * @deprecated
+     * Use {@link #copy()} instead.
+     */
     @Override
     public ThreadPoolConfig clone() {
-        return new ThreadPoolConfig(this);
+        return copy();
     }
 
+    public ThreadPoolConfig copy() {
+        return new ThreadPoolConfig(this);
+    }
+    
     @SuppressWarnings("deprecation")
     protected ThreadPoolConfig updateFrom(ExtendedThreadPool ep) {
         this.queue = ep.getQueue();
