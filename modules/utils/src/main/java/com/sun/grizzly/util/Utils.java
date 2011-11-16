@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,7 +79,9 @@ public class Utils {
         Charset charset = ALIAS_MAP.get(charsetName);
         if (charset == null) {
             charset = Charset.forName(charsetName);
-            ALIAS_MAP.putIfAbsent(charsetName, charset);
+            final Charset existingCharset =
+                    ALIAS_MAP.putIfAbsent(charsetName, charset);
+            charset = existingCharset != null ? existingCharset : charset;
         }
 
         return charset;
