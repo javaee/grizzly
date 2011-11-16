@@ -72,11 +72,6 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     protected final CometHandler cometHandler;
 
     /**
-     *  true if run() should call comet context.interrupt0
-     */
-    protected boolean callInterrupt;
-
-    /**
      *  true if interrupt should flushAPT
      */
     protected boolean interruptFlushAPT;
