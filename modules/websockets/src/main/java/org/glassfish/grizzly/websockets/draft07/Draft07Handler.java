@@ -173,8 +173,7 @@ public class Draft07Handler extends ProtocolHandler {
                     if (buffer.remaining() < state.length) {
                         return null;
                     }
-                    state.state++;
-                case 4:
+                    
                     state.masker.setBuffer(buffer);
                     final byte[] data = state.masker.unmask((int) state.length);
                     if (data.length != state.length) {
