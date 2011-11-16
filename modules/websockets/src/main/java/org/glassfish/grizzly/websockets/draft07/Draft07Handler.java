@@ -91,14 +91,15 @@ public class Draft07Handler extends ProtocolHandler {
     @Override
     public DataFrame parse(Buffer buffer) {
 
-        if (buffer.remaining() < 2) {
-            // Don't have enough bytes to read opcode and lengthCode
-            return null;
-        }
         DataFrame dataFrame = null;
         try {
             switch (state.state) {
                 case 0:
+                    if (buffer.remaining() < 2) {
+                        // Don't have enough bytes to read opcode and lengthCode
+                        return null;
+                    }
+                    
                     byte opcode = buffer.get();
                     boolean rsvBitSet = isBitSet(opcode, 6)
                             || isBitSet(opcode, 5)
@@ -137,17 +138,28 @@ public class Draft07Handler extends ProtocolHandler {
                     if (state.masked) {
                         lengthCode ^= 0x80;
                     }
-
-                    if (lengthCode <= 125) {
-                        state.length = lengthCode;
+                    state.lengthCode = lengthCode;
+                    
+                    state.state++;
+                    
+                case 1:
+                    if (state.lengthCode <= 125) {
+                        state.length = state.lengthCode;
                     } else {
                         if (state.controlFrame) {
                             throw new ProtocolError("Control frame payloads must be no greater than 125 bytes.");
                         }
-                        state.length = decodeLength(state.masker.get(lengthCode == 126 ? 2 : 8));
+                        
+                        final int lengthBytes = state.lengthCode == 126 ? 2 : 8;
+                        if (buffer.remaining() < lengthBytes) {
+                            // Don't have enought bytes to read length
+                            return null;
+                        }
+                        state.masker.setBuffer(buffer);
+                        state.length = decodeLength(state.masker.unmask(lengthBytes));
                     }
                     state.state++;
-                case 1:
+                case 2:
                     if (state.masked) {
                         if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
                             // Don't have enough bytes to read mask
@@ -157,12 +169,12 @@ public class Draft07Handler extends ProtocolHandler {
                         state.masker.readMask();
                     }
                     state.state++;
-                case 2:
+                case 3:
                     if (buffer.remaining() < state.length) {
                         return null;
                     }
                     state.state++;
-                case 3:
+                case 4:
                     state.masker.setBuffer(buffer);
                     final byte[] data = state.masker.unmask((int) state.length);
                     if (data.length != state.length) {
@@ -272,11 +284,13 @@ public class Draft07Handler extends ProtocolHandler {
         Masker masker;
         boolean finalFragment;
         boolean controlFrame;
+        private byte lengthCode = -1;
         
         void recycle() {
             state = 0;
             opcode = (byte) -1;
             length = -1;
+            lengthCode = -1;
             masked = false;
             masker = null;
             finalFragment = false;
