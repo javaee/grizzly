@@ -40,39 +40,62 @@
 package org.glassfish.grizzly.websockets.draft06;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 
 import org.glassfish.grizzly.websockets.DataFrame;
-import org.glassfish.grizzly.websockets.FramingException;
+import org.glassfish.grizzly.websockets.ProtocolError;
+import org.glassfish.grizzly.websockets.StrictUtf8;
+import org.glassfish.grizzly.websockets.Utf8DecodingError;
+import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 
 public class ClosingFrame extends DataFrame {
     public static final byte[] EMPTY_BYTES = new byte[0];
-    private int code;
+    private int code = WebSocket.NORMAL_CLOSURE;
+    private String reason;
+
+    public ClosingFrame() {
+        super(new ClosingFrameType());
+    }
 
     public ClosingFrame(int code, String reason) {
-        super(new ClosingFrameType(), reason, true);
-        this.code = code;
+        super(new ClosingFrameType());
+        if (code > 0) {
+            this.code = code;
+        }
+        this.reason = reason;
     }
 
     public ClosingFrame(byte[] data) {
-        super(new ClosingFrameType(), data);
+        super(new ClosingFrameType());
+        setPayload(data);
     }
 
     public int getCode() {
         return code;
     }
 
+    public String getReason() {
+        return reason;
+    }
+
     @Override
     public void setPayload(byte[] bytes) {
+        if (bytes.length == 1) {
+            throw new ProtocolError("Closing frame payload, if present, must be a minimum of 2 bytes in length");
+        }
         if (bytes.length > 0) {
             code = (int) WebSocketEngine.toLong(bytes, 0, 2);
+            if (code < 1000 || code == 1004 || code == 1005 || code == 1006 || (code > 1010 && code < 3000) || code > 4999) {
+                throw new ProtocolError("Illegal status code: " + code);
+            }
             if (bytes.length > 2) {
-                try {
-                    setPayload(new String(bytes, 2, bytes.length - 2, "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new FramingException(e.getMessage(), e);
-                }
+                utf8Decode(bytes);
             }
         }
     }
@@ -82,11 +105,13 @@ public class ClosingFrame extends DataFrame {
         if (code == -1) {
             return EMPTY_BYTES;
         }
+
         final byte[] bytes = WebSocketEngine.toArray(code);
-        final byte[] reasonBytes = super.getBytes() == null ? EMPTY_BYTES : super.getBytes();
+        final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes(new StrictUtf8());
         final byte[] frameBytes = new byte[2 + reasonBytes.length];
         System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
         System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
+
         return frameBytes;
     }
 
@@ -95,8 +120,39 @@ public class ClosingFrame extends DataFrame {
         final StringBuilder sb = new StringBuilder();
         sb.append("ClosingFrame");
         sb.append("{code=").append(code);
-        sb.append(", payload=").append(getTextPayload() == null ? null : "'" + getTextPayload() + "'");
+        sb.append(", reason=").append(reason == null ? null : "'" + reason + "'");
         sb.append('}');
         return sb.toString();
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+    private void utf8Decode(byte[] data) {
+        final ByteBuffer b = ByteBuffer.wrap(data, 2, data.length - 2);
+        Charset charset = new StrictUtf8();
+        final CharsetDecoder decoder = charset.newDecoder();
+        int n = (int) (b.remaining() * decoder.averageCharsPerByte());
+        CharBuffer cb = CharBuffer.allocate(n);
+        for (; ; ) {
+            CoderResult result = decoder.decode(b, cb, true);
+            if (result.isUnderflow()) {
+                decoder.flush(cb);
+                cb.flip();
+                reason = cb.toString();
+                break;
+            }
+            if (result.isOverflow()) {
+                CharBuffer tmp = CharBuffer.allocate(2 * n + 1);
+                cb.flip();
+                tmp.put(cb);
+                cb = tmp;
+                continue;
+            }
+            if (result.isError() || result.isMalformed()) {
+                throw new Utf8DecodingError("Illegal UTF-8 Sequence");
+            }
+        }
+
     }
 }

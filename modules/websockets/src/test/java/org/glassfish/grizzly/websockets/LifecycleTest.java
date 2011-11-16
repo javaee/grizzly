@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -139,6 +140,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
     }
 
     @Test
+    @Ignore
     public void multipleClientClosing() throws Exception {
         final CountDownLatch close = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication() {
@@ -181,6 +183,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         client.close();
         Assert.assertTrue(client.waitForClosed());
         Assert.assertFalse(client.isConnected());
+        Assert.assertEquals("There should be 1 client connected", 1, app.getWebSockets().size());
         checkSend(client2);
         Assert.assertTrue(client2.isConnected());
         client2.close();

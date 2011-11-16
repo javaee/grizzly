@@ -108,6 +108,10 @@ public class Masker {
         mask(masked, WebSocketEngine.MASK_SIZE, packet);
         return masked;
     }
+    
+    public void setBuffer(Buffer buffer) {
+        this.buffer = buffer;
+    }
 
 
     public byte[] getMask() {
