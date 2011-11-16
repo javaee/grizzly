@@ -51,7 +51,11 @@ public class DataFrame {
     private String payload;
     private byte[] bytes;
     private final FrameType type;
-    private boolean last;
+    private boolean last = true;
+    
+    public DataFrame(FrameType type) {
+        this.type = type;
+    }
 
     public DataFrame(FrameType type, String data) {
         this(type, data, true);
@@ -83,11 +87,6 @@ public class DataFrame {
 
     public final void setPayload(String payload) {
         this.payload = payload;
-        try {
-            bytes = payload != null ? payload.getBytes("UTF-8") : null;
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     public void setPayload(byte[] bytes) {
@@ -95,6 +94,9 @@ public class DataFrame {
     }
 
     public byte[] getBytes() {
+        if (bytes == null) {
+            bytes = Utf8Utils.encode(new StrictUtf8(), payload);
+        }
         return bytes;
     }
 

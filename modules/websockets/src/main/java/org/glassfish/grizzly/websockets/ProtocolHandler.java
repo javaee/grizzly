@@ -41,6 +41,11 @@ package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -62,6 +67,10 @@ public abstract class ProtocolHandler {
     protected byte inFragmentedType;
     protected byte outFragmentedType;
     protected final boolean maskData;
+    protected boolean processingFragment;
+    protected Charset utf8 = new StrictUtf8();
+        protected CharsetDecoder currentDecoder = utf8.newDecoder();
+        protected ByteBuffer remainder;
 
     public ProtocolHandler(boolean maskData) {
         this.maskData = maskData;
@@ -141,11 +150,16 @@ public abstract class ProtocolHandler {
         return send(new ClosingFrame(code, reason),
                 new EmptyCompletionHandler<DataFrame>() {
 
-            @Override
-            public void failed(final Throwable throwable) {
-                webSocket.onClose(null);
-            }
-        });
+                    @Override
+                    public void failed(final Throwable throwable) {
+                        webSocket.onClose(null);
+                    }
+
+                    @Override
+                    public void completed(DataFrame result) {
+                        webSocket.onClose(null);
+                    }
+                });
     }
 
     @SuppressWarnings({"unchecked"})
@@ -181,14 +195,7 @@ public abstract class ProtocolHandler {
     }
 
     public DataFrame unframe(Buffer buffer) {
-        final int position = buffer.position();
-        DataFrame frame = parse(buffer);
-        
-        if (frame == null) {
-            buffer.position(position);            
-        }
-        
-        return frame;
+        return parse(buffer);
     }
 
     public abstract DataFrame parse(Buffer buffer);
@@ -264,4 +271,55 @@ public abstract class ProtocolHandler {
             throw new WebSocketException(e.getMessage(), e);
         }
     }
+
+    protected void utf8Decode(boolean finalFragment, byte[] data, DataFrame dataFrame) {
+            final ByteBuffer b = getByteBuffer(data);
+            int n = (int) (b.remaining() * currentDecoder.averageCharsPerByte());
+            CharBuffer cb = CharBuffer.allocate(n);
+            for (; ; ) {
+                CoderResult result = currentDecoder.decode(b, cb, finalFragment);
+                if (result.isUnderflow()) {
+                    if (finalFragment) {
+                        currentDecoder.flush(cb);
+                        if (b.hasRemaining()) {
+                            throw new IllegalStateException("Final UTF-8 fragment received, but not all bytes consumed by decode process");
+                        }
+                        currentDecoder.reset();
+                    } else {
+                        if (b.hasRemaining()) {
+                            remainder = b;
+                        }
+                    }
+                    cb.flip();
+                    String res = cb.toString();
+                    dataFrame.setPayload(res);
+                    dataFrame.setPayload(Utf8Utils.encode(new StrictUtf8(), res));
+                    break;
+                }
+                if (result.isOverflow()) {
+                    CharBuffer tmp = CharBuffer.allocate(2 * n + 1);
+                    cb.flip();
+                    tmp.put(cb);
+                    cb = tmp;
+                    continue;
+                }
+                if (result.isError() || result.isMalformed()) {
+                    throw new Utf8DecodingError("Illegal UTF-8 Sequence");
+                }
+            }
+        }
+
+        protected ByteBuffer getByteBuffer(final byte[] data) {
+            if (remainder == null) {
+                return ByteBuffer.wrap(data);
+            } else {
+                final int rem = remainder.remaining();
+                final byte[] orig = remainder.array();
+                byte[] b = new byte[rem + data.length];
+                System.arraycopy(orig, orig.length - rem, b, 0, rem);
+                System.arraycopy(data, 0, b, rem, data.length);
+                remainder = null;
+                return ByteBuffer.wrap(b);
+            }
+        }
 }

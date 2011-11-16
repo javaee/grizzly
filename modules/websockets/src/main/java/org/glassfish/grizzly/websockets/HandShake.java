@@ -103,7 +103,7 @@ public abstract class HandShake {
         }
         determineHostAndPort(mimeHeaders);
         subProtocol = split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
-        if (serverHostName == null || origin == null) {
+        if (serverHostName == null) {
             throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
         resourcePath = request.getRequestURI();

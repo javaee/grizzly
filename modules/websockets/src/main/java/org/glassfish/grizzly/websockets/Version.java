@@ -45,45 +45,7 @@ import org.glassfish.grizzly.websockets.draft07.Draft07Handler;
 import org.glassfish.grizzly.websockets.draft08.Draft08Handler;
 
 public enum Version {
-/*    DRAFT76 {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft76Handler();
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return headers.getHeader(HandShake76.SEC_WS_KEY1_HEADER) != null;
-        }
-
-        @Override
-        public boolean isFragmentationSupported() {
-            return false;
-        }
-    },*/
-    DRAFT06 {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft06Handler(mask);
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return "6".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
-        }
-    },
-    DRAFT07 {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft07Handler(mask);
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return "7".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
-        }
-    },
-    DRAFT08 {
+    DRAFT17("13") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
             return new Draft08Handler(mask);
@@ -91,13 +53,53 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return "8".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+    DRAFT08("8") {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft08Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+
+    DRAFT07("7") {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft07Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+    DRAFT06("6") {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft06Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     };
 
     public abstract ProtocolHandler createHandler(boolean mask);
 
     public abstract boolean validate(MimeHeaders headers);
+
+    String wireProtocolVersion;
+
+    private Version(final String wireProtocolVersion) {
+        this.wireProtocolVersion = wireProtocolVersion;
+    }
 
     @Override
     public String toString() {
@@ -106,5 +108,16 @@ public enum Version {
 
     public boolean isFragmentationSupported() {
         return true;
+    }
+
+    public static String getSupportedWireProtocolVersions() {
+        final StringBuilder sb = new StringBuilder();
+        for (Version v : Version.values()) {
+            if (v.wireProtocolVersion.length() > 0) {
+                sb.append(v.wireProtocolVersion).append(", ");
+            }
+        }
+        return sb.substring(0, sb.length() - 2);
+
     }
 }

@@ -50,6 +50,7 @@ import org.glassfish.grizzly.websockets.FrameType;
 import org.glassfish.grizzly.websockets.FramingException;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
+import org.glassfish.grizzly.websockets.ProtocolError;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
@@ -119,6 +120,7 @@ public class Draft06Handler extends ProtocolHandler {
         
         byte opcode = masker.unmask();
         boolean finalFragment = (opcode & 0x80) == 0x80;
+        final boolean controlFrame = isControlFrame(opcode);
         opcode &= 0x7F;
         FrameType type = valueOf(inFragmentedType, opcode);
         if (!finalFragment) {
@@ -149,10 +151,23 @@ public class Draft06Handler extends ProtocolHandler {
         
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
-            throw new FramingException(String.format("Data read (%s) is not the expected" +
+            throw new ProtocolError(String.format("Data read (%s) is not the expected" +
                     " size (%s)", data.length, length));
         }
-        return type.create(finalFragment, data);
+        DataFrame dataFrame = type.create(finalFragment, data);
+
+        if (!controlFrame && (isTextFrame(opcode) || inFragmentedType == 4)) {
+            utf8Decode(finalFragment, data, dataFrame);
+        }
+
+        if (!controlFrame && finalFragment) {
+            inFragmentedType = 0;
+        }
+        return dataFrame;
+    }
+
+    private boolean isTextFrame(byte opcode) {
+        return opcode == 4;
     }
 
     @Override
@@ -175,7 +190,7 @@ public class Draft06Handler extends ProtocolHandler {
             return 0x05;
         }
 
-        throw new FramingException("Unknown frame type: " + type.getClass().getName());
+        throw new ProtocolError("Unknown frame type: " + type.getClass().getName());
     }
 
     private FrameType valueOf(byte fragmentType, byte value) {
@@ -194,7 +209,7 @@ public class Draft06Handler extends ProtocolHandler {
             case 0x05:
                 return new BinaryFrameType();
             default:
-                throw new FramingException("Unknown frame type: " + value);
+                throw new ProtocolError("Unknown frame type: " + value);
         }
     }
 }

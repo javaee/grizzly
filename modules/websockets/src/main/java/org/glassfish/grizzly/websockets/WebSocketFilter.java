@@ -61,6 +61,7 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
+import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 
 /**
  * WebSocket {@link Filter} implementation, which supposed to be placed into a {@link FilterChain} right after HTTP
@@ -200,6 +201,7 @@ public class WebSocketFilter extends BaseFilter {
         // this is websocket with the completed handshake
         if (message.getContent().hasRemaining()) {
             // get the frame(s) content
+
             Buffer buffer = message.getContent();
             message.recycle();
             // check if we're currently parsing a frame
@@ -213,7 +215,6 @@ public class WebSocketFilter extends BaseFilter {
                     }
                     final DataFrame result = holder.handler.unframe(buffer);
                     if (result == null) {
-//                        System.out.println("result = " + result);
                         holder.buffer = buffer;
                         break;
                     } else {
@@ -221,11 +222,7 @@ public class WebSocketFilter extends BaseFilter {
                     }
                 }
             } catch (FramingException e) {
-                if (e.getCode() != -1) {
-                    holder.webSocket.close(e.getCode(), e.getMessage());
-                } else {
-                    holder.webSocket.close();
-                }
+                holder.webSocket.onClose(new ClosingFrame(e.getClosingCode(), e.getMessage()));
             }
         }
         return ctx.getStopAction();

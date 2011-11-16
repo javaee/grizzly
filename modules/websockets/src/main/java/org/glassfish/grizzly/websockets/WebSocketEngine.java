@@ -54,6 +54,8 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.utils.Utils;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
@@ -138,14 +140,17 @@ public class WebSocketEngine {
         return null;
     }
 
-    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent) {
+    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent) throws IOException {
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
         WebSocket socket = null;
         try {
             if (app != null) {
                 final ProtocolHandler protocolHandler = loadHandler(request.getHeaders());
-//                    final ServerNetworkHandler connection = new ServerNetworkHandler(request, request.getResponse());
+                if (protocolHandler == null) {
+                    handleUnsupportedVersion(ctx, request);
+                    return false;
+                }
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setConnection(connection);
                 socket = app.createSocket(protocolHandler, app);
@@ -180,7 +185,7 @@ public class WebSocketEngine {
                 return version.createHandler(false);
             }
         }
-        throw new HandshakeException("Unknown specification version");
+        return null;
     }
 
     public void register(String name, WebSocketApplication app) {
@@ -234,6 +239,15 @@ public class WebSocketEngine {
         final WebSocketHolder holder = new WebSocketHolder(handler, socket);
         webSocketAttribute.set(connection, holder);
         return holder;
+    }
+
+    private static void handleUnsupportedVersion(final FilterChainContext ctx,
+                                                 final HttpRequestPacket request)
+    throws IOException {
+        HttpResponsePacket response = HttpResponsePacket.builder(request).build();
+        response.setStatus(HttpStatus.BAD_REQUEST_400);
+        response.addHeader(WebSocketEngine.SEC_WS_VERSION, Version.getSupportedWireProtocolVersions());
+        ctx.write(response);
     }
 
     /**

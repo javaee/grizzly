@@ -37,23 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-public abstract class FramingException extends WebSocketException {
-    private int code = -1;
+public class ProtocolError extends FramingException {
 
-    public FramingException(String s) {
-        super(s);
-    }
+    // ------------------------------------------------------------ Constructors
 
-    public FramingException(String s, Throwable throwable) {
-        super(s, throwable);
-    }
 
-    public FramingException(Throwable throwable) {
-        super(throwable);
-    }
+        public ProtocolError(String s) {
+            super(s);
+        }
 
-    public abstract int getClosingCode();
+        public ProtocolError(String s, Throwable throwable) {
+            super(s, throwable);
+        }
+
+        public ProtocolError(Throwable throwable) {
+            super(throwable);
+        }
+
+        @Override
+        public int getClosingCode() {
+            return WebSocket.PROTOCOL_ERROR;
+        }
+
 }
