@@ -161,7 +161,7 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
                 // canceled key wont get canceled again due to isvalid check
                 key.cancel();
 
-                task.callInterrupt = true;
+                task.setCallInterrupt(true);
                 task.interruptFlushAPT = finishExecution;
                 task.run();
 

@@ -206,4 +206,8 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
         return cometHandler;
     }
 
+    void setCallInterrupt(final boolean isCallInterrupt) {
+        callInterrupt = isCallInterrupt;
+    }
+
 }
