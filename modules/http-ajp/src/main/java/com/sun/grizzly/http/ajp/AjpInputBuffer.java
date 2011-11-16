@@ -48,7 +48,6 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.Properties;
 
 public class AjpInputBuffer extends InternalInputBuffer {
     private static final byte[] GET_BODY_CHUNK_PACKET;
@@ -63,15 +62,16 @@ public class AjpInputBuffer extends InternalInputBuffer {
                     getBodyChunkPayload);
     }
 
-    private String secret;
-    private boolean isTomcatAuthentication = true;
+    private final AjpConfiguration configuration;
 
     private int thisPacketEnd;
     private int dataPacketRemaining;
     
-    public AjpInputBuffer(Request request, int requestBufferSize) {
+    public AjpInputBuffer(final AjpConfiguration configuration,
+            final Request request, final int requestBufferSize) {
         super(request, requestBufferSize);
         
+        this.configuration = configuration;
         inputStreamInputBuffer = new AjpInputStreamInputBuffer();
     }
 
@@ -139,8 +139,10 @@ public class AjpInputBuffer extends InternalInputBuffer {
     protected void parseAjpHttpHeaders() {
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
         pos = end = AjpMessageUtils.decodeForwardRequest(buf, pos,
-                isTomcatAuthentication, ajpRequest);
+                configuration.isTomcatAuthentication(), ajpRequest);
 
+        final String secret = configuration.getSecret();
+        
         if (secret != null) {
             final String epSecret = ajpRequest.getSecret();
             if (epSecret == null || !secret.equals(epSecret)) {
@@ -158,22 +160,6 @@ public class AjpInputBuffer extends InternalInputBuffer {
             ajpRequest.setExpectContent(false);
         }
     }
-    
-    /**
-     * Configure Ajp Filter using properties.
-     * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
-     *
-     * @param properties
-     */
-    public void configure(final Properties properties) {
-        if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {
-            secret = Double.toString(Math.random());
-        }
-
-        secret = properties.getProperty("request.secret", secret);
-        isTomcatAuthentication = Boolean.parseBoolean(properties.getProperty("tomcatAuthentication", "true"));
-    }
-
     
     final void getBytesToMB(final MessageBytes messageBytes) {
         pos = AjpMessageUtils.getBytesToByteChunk(buf, pos, messageBytes);

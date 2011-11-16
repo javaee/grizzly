@@ -78,7 +78,7 @@ public class AjpProcessorTask extends ProcessorTask {
 
     @Override
     protected InternalInputBuffer createInputBuffer(Request request, int requestBufferSize) {
-        return new AjpInputBuffer(request, requestBufferSize);
+        return new AjpInputBuffer(ajpConfiguration, request, requestBufferSize);
     }
 
     @Override
