@@ -66,10 +66,6 @@
             <name>Grizzly Support List</name>
             <archive>users@grizzly.java.net</archive>
         </mailingList>
-        <mailingList>
-            <name>Grizzly Announce List</name>
-            <archive>announces@grizzly.java.net</archive>
-        </mailingList>
     </mailingLists>
     <developers>
         <developer>
@@ -117,7 +113,7 @@
         <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
     <organization>
-        <name>Oracle Corpration</name>
+        <name>Oracle Corporation</name>
         <url>http://www.oracle.com</url>
     </organization>
     <build>
