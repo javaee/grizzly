@@ -98,7 +98,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         }
     }
 
-    @Test
+//    @Test
     public void single()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = new WebSocketServer(PORT);
@@ -154,7 +154,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         }
     }
 
-    @Test
+//    @Test
     public void multipleClients()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = new WebSocketServer(PORT);

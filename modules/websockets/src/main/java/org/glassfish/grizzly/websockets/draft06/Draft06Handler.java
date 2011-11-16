@@ -47,7 +47,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FrameType;
-import org.glassfish.grizzly.websockets.FramingException;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
 import org.glassfish.grizzly.websockets.ProtocolError;
@@ -61,6 +60,7 @@ import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
 import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
 public class Draft06Handler extends ProtocolHandler {
+    private final ParsingState state = new ParsingState();
 
     public Draft06Handler() {
         super(false);
@@ -102,68 +102,96 @@ public class Draft06Handler extends ProtocolHandler {
     }
 
     @Override
-    public DataFrame parse(Buffer buffer) {
-        Masker masker = new Masker(buffer);
-        if (!maskData) {
-            if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
-                // Don't have enough bytes to read mask
-                return null;
-            }
-            
-            masker.readMask();
-        }
-        
-        if (buffer.remaining() < 2) {
-            // Don't have enough bytes to read opcode and lengthCode
-            return null;
-        }
-        
-        byte opcode = masker.unmask();
-        boolean finalFragment = (opcode & 0x80) == 0x80;
-        final boolean controlFrame = isControlFrame(opcode);
-        opcode &= 0x7F;
-        FrameType type = valueOf(inFragmentedType, opcode);
-        if (!finalFragment) {
-            if(inFragmentedType == 0) {
-                inFragmentedType = opcode;
-            }
-        } else {
-            inFragmentedType = 0;
-        }
+    public DataFrame parse(final Buffer buffer) {
+        DataFrame dataFrame = null;
 
-        byte lengthCode = masker.unmask();
-        long length;
-        if (lengthCode <= 125) {
-            length = lengthCode;
-        } else {
-            final int lengthBytes = lengthCode == 126 ? 2 : 8;
-            if (buffer.remaining() < lengthBytes) {
-                // Don't have enought bytes to read length
-                return null;
+        try {
+            switch (state.state) {
+
+                case 0:
+                    state.masker = new Masker(buffer);
+                    if (!maskData) {
+                        if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
+                            // Don't have enough bytes to read mask
+                            return null;
+                        }
+
+                        state.masker.readMask();
+                    }
+                    
+                    state.state++;
+                case 1:
+               
+                    if (buffer.remaining() < 2) {
+                        // Don't have enough bytes to read opcode and lengthCode
+                        return null;
+                    }
+
+                    state.masker.setBuffer(buffer);
+                    state.opcode = state.masker.unmask();
+                    state.finalFragment = (state.opcode & 0x80) == 0x80;
+                    state.controlFrame = isControlFrame(state.opcode);
+                    state.opcode &= 0x7F;
+                    state.frameType = valueOf(inFragmentedType, state.opcode);
+                    if (!state.finalFragment) {
+                        if (inFragmentedType == 0) {
+                            inFragmentedType = state.opcode;
+                        }
+                    } else {
+                        inFragmentedType = 0;
+                    }
+                    
+                    state.lengthCode = state.masker.unmask();
+                    state.state++;
+                case 2:
+                    if (state.lengthCode <= 125) {
+                        state.length = state.lengthCode;
+                    } else {
+                        final int lengthBytes = state.lengthCode == 126 ? 2 : 8;
+                        if (buffer.remaining() < lengthBytes) {
+                            // Don't have enought bytes to read length
+                            return null;
+                        }
+                        state.masker.setBuffer(buffer);
+                        state.length = decodeLength(state.masker.unmask(lengthBytes));
+                    }
+                    
+                    state.state++;
+                case 3:
+                    if (buffer.remaining() < state.length) {
+                        // Don't have enought bytes to read data
+                        return null;
+                    }
+        
+                    state.masker.setBuffer(buffer);
+                    final byte[] data = state.masker.unmask((int) state.length);
+                    if (data.length != state.length) {
+                        throw new ProtocolError(String.format("Data read (%s) is not the expected" +
+                                " size (%s)", data.length, state.length));
+                    }
+                    
+                    dataFrame = state.frameType.create(state.finalFragment, data);
+
+                    if (!state.controlFrame && (isTextFrame(state.opcode) || inFragmentedType == 4)) {
+                        utf8Decode(state.finalFragment, data, dataFrame);
+                    }
+
+                    if (!state.controlFrame && state.finalFragment) {
+                        inFragmentedType = 0;
+                    }
+             
+                    state.recycle();
             }
-            length = decodeLength(masker.unmask(lengthBytes));
+        } catch (Exception e) {
+            state.recycle();
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new RuntimeException(e);
+            }
         }
         
-        if (buffer.remaining() < length) {
-            // Don't have enought bytes to read data
-            return null;
-        }
-        
-        final byte[] data = masker.unmask((int) length);
-        if (data.length != length) {
-            throw new ProtocolError(String.format("Data read (%s) is not the expected" +
-                    " size (%s)", data.length, length));
-        }
-        DataFrame dataFrame = type.create(finalFragment, data);
-
-        if (!controlFrame && (isTextFrame(opcode) || inFragmentedType == 4)) {
-            utf8Decode(finalFragment, data, dataFrame);
-        }
-
-        if (!controlFrame && finalFragment) {
-            inFragmentedType = 0;
-        }
-        return dataFrame;
+        return dataFrame;        
     }
 
     private boolean isTextFrame(byte opcode) {
@@ -212,4 +240,31 @@ public class Draft06Handler extends ProtocolHandler {
                 throw new ProtocolError("Unknown frame type: " + value);
         }
     }
+    
+    // ---------------------------------------------------------- Nested Classes
+    
+    
+    private static class ParsingState {
+        int state = 0;
+        byte opcode = (byte) -1;
+        long length = -1;
+        byte lengthCode = -1;
+        FrameType frameType;
+        boolean masked;
+        Masker masker;
+        boolean finalFragment;
+        boolean controlFrame;
+        
+        void recycle() {
+            state = 0;
+            opcode = (byte) -1;
+            length = -1;
+            lengthCode = -1;
+            masked = false;
+            masker = null;
+            finalFragment = false;
+            controlFrame = false;
+            frameType = null;
+        }
+    }    
 }
