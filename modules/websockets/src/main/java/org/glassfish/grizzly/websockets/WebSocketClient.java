@@ -55,8 +55,6 @@ import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -107,20 +105,20 @@ public class WebSocketClient extends DefaultWebSocket {
      */
     public WebSocket connect(long timeout, TimeUnit unit) {
         try {
-            final FutureImpl<Connection> future = SafeFutureImpl.create();
             transport = TCPNIOTransportBuilder.newInstance().build();
             transport.start();
             final TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(transport) {
                 @Override
                 protected void preConfigure(Connection conn) {
                     super.preConfigure(conn);
-                    final ProtocolHandler handler = version.createHandler(true);
+//                    final ProtocolHandler handler = version.createHandler(true);
                     /*
                     holder.handshake = handshake;
                      */
-                    final WebSocketHolder holder = WebSocketEngine.getEngine().setWebSocketHolder(conn, handler,
+                    protocolHandler.setConnection(conn);
+                    final WebSocketHolder holder = WebSocketEngine.getEngine().setWebSocketHolder(conn, protocolHandler,
                         WebSocketClient.this);
-                    holder.handshake = handler.createHandShake(address);
+                    holder.handshake = protocolHandler.createHandShake(address);
                 }
             };
             final CountDownLatch latch = new CountDownLatch(1);
@@ -133,9 +131,8 @@ public class WebSocketClient extends DefaultWebSocket {
             });
             connectorHandler.setProcessor(createFilterChain());
             // start connect
-            connectorHandler.connect(new InetSocketAddress(address.getHost(), address.getPort()),
-                new WebSocketCompletionHandler(future));
-            protocolHandler.setConnection(future.get(timeout, unit));
+            connectorHandler.connect(new InetSocketAddress(
+                    address.getHost(), address.getPort())).markForRecycle(false);
             latch.await(timeout, unit);
 
             return this;
