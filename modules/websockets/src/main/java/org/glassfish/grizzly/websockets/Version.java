@@ -43,12 +43,13 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.websockets.draft06.Draft06Handler;
 import org.glassfish.grizzly.websockets.draft07.Draft07Handler;
 import org.glassfish.grizzly.websockets.draft08.Draft08Handler;
+import org.glassfish.grizzly.websockets.draft17.Draft17Handler;
 
 public enum Version {
     DRAFT17("13") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
-            return new Draft08Handler(mask);
+            return new Draft17Handler(mask);
         }
 
         @Override
