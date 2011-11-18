@@ -44,3 +44,6 @@ modules/http-ajp/src/test/resources/request2.txt
 modules/http-ajp/src/test/resources/response1.txt
 modules/http-ajp/src/test/resources/response2.txt
 modules/http-ajp/src/test/resources/response3.txt
+modules/http-ajp/src/test/resources/badpacket.txt
+modules/http-ajp/src/test/resources/large-request.txt
+modules/http-ajp/src/test/resources/ajplarge.html
