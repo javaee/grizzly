@@ -1392,10 +1392,12 @@ public class GrizzlyRequest {
         } else {
             dummy = new String(buffer, enc);
         }
+        
+        assert dummy != null;
         // END S1AS 6179607
 
         // Save the validated encoding
-        request.setCharacterEncoding(dummy);
+        request.setCharacterEncoding(enc);
 
     }
 
