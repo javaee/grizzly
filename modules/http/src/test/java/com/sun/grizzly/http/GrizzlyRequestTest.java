@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
@@ -206,7 +207,42 @@ public class GrizzlyRequestTest extends TestCase {
         }
     }
 
+    public void testReaderCharacterEncoding() throws Throwable {
+        final String msg = "\u043F\u0440\u0438\u0432\u0435\u0442";
+        
+        try {
+            createSelectorThread(new GrizzlyAdapter() {
 
+                @Override
+                public void service(GrizzlyRequest request,
+                        GrizzlyResponse response) throws Exception {
+                    request.setCharacterEncoding("UTF-16");
+
+                    BufferedReader r = request.getReader();
+                    String gotMsg = r.readLine();
+                    if (msg.equals(gotMsg)) {
+                        response.getWriter().write("OK");
+                    } else {
+                        response.setStatus(500, "Unexpected msg: " + gotMsg);
+                    }
+                }
+            });
+            URL url = new URL("http://localhost:" + PORT + "/path");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setDoOutput(true);
+            c.setRequestMethod("POST");
+            c.setRequestProperty("content-type", "text/plain;charset=UTF-16");
+            OutputStream out = c.getOutputStream();
+            out.write((msg + "\r\n").getBytes("UTF-16"));
+            out.flush();
+            out.close();
+
+            assertEquals("Status: " + c.getResponseMessage(), 200, c.getResponseCode());
+            
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
     // --------------------------------------------------------- Private Methods
 
 

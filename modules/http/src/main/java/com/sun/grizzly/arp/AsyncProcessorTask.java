@@ -223,7 +223,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     }
     
     private ThreadAttachment obtainAndSetThreadAttachment() {
-        final SelectionKey selectionKey = getProcessorTask().getSelectionKey();
+        final SelectionKey selectionKey = asyncExecutor.getProcessorTask().getSelectionKey();
         Object attachment = selectionKey.attachment();
         if (attachment == null || !(attachment instanceof ThreadAttachment)) {
             attachment = obtainThreadAttachment();
