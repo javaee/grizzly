@@ -224,7 +224,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             configureProcessorTask(processorTask, ctx, streamAlgorithm);
 
             try {
-                processorTask.setPostProcessor(POST_PROCESSOR);
+                processorTask.setAsyncPostProcessor(POST_PROCESSOR);
                 keepAlive = processorTask.process(inputStream, null);
 
                 final boolean isSuspended = SuspendResponseUtils.removeSuspendedInCurrentThread();
@@ -359,7 +359,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
 
     private static final class PostProcessor implements ProcessorTask.PostProcessor {
 
-        public void postProcess(ProcessorTask processorTask) {
+        public boolean postProcess(ProcessorTask processorTask) {
             final boolean keepAlive = processorTask.isKeepAlive();
             final SelectorHandler selectorHandler = processorTask.getSelectorHandler();
             final SelectionKey selectionKey = processorTask.getSelectionKey();
@@ -379,6 +379,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             ((InputReader) processorTask.getInputStream()).recycle();
             processorTask.recycle();
             selectorThread.returnTask(processorTask);
+            return true;
         }
 
     }

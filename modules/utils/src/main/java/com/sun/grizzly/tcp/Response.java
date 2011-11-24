@@ -782,12 +782,12 @@ public class Response<A> {
             }
 
             ra.resume();
-            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
-
         } finally {
             ra = null;
             lock.unlock();
         }
+        
+        req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
     }
     
     /**
@@ -816,10 +816,12 @@ public class Response<A> {
             }
 
             ra.cancel();
-            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
         } finally {
+            ra = null;
             lock.unlock();
         }
+        
+        req.action(ActionCode.ACTION_FINISH_RESPONSE, null);        
     }
         
     /**

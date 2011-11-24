@@ -130,6 +130,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         StringManager.getManager(Constants.Package,
                                  Constants.class.getClassLoader());
 
+    // PostProcessor responsible for continuing processing of next pipelined
+    // HTTP request (if any) after processing of the current HTTP request
+    // is resumed asynchronously
+    private static final PostProcessor DEFAULT_RESPONSE_POST_PROCESSOR = new AsyncResponsePostProcessor();
 
     /*
      * Tracks how many internal filters are in the filter library so they
@@ -478,7 +482,10 @@ public class ProcessorTask extends TaskBase implements Processor,
     private boolean httpExtension = false;
 
     // ProcessorTask post processor
-    private PostProcessor externalPostProcessor;
+    private PostProcessor externalAsyncPostProcessor;
+    
+    // Response post processor
+    private PostProcessor externalAsyncResponsePostProcessor;    
     
     // ----------------------------------------------------- Constructor ---- //
 
@@ -673,7 +680,9 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Process an HTTP request using a non blocking {@link Socket}
      */
     protected boolean doProcess() throws Exception {
-        do{
+        setAsyncResponsePostProcessor(DEFAULT_RESPONSE_POST_PROCESSOR);
+
+        do {
             int soTimeout = ((InputReader)inputStream).getReadTimeout();
             if (handleKeepAliveBlockingThread) {
                 ExtendedThreadPool st =(ExtendedThreadPool) getThreadPool();
@@ -895,9 +904,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 return error;
             }
 
-            WorkerThread workerThread = (WorkerThread)Thread.currentThread();
-            KeepAliveThreadAttachment k =
-                    (KeepAliveThreadAttachment) workerThread.getAttachment();
+            KeepAliveThreadAttachment k = getKeepAliveAttachment();
             k.setTransactionTimeout(transactionTimeout);
 
             request.setStartTime(System.currentTimeMillis());
@@ -1256,41 +1263,44 @@ public class ProcessorTask extends TaskBase implements Processor,
                     suspendedResponse.resetTimeout();
                 }
             }
-        } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) {
+        } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH) {
             if (key != null) {
-                try{
-                   outputBuffer.flush();
-                } catch (IOException ex){
-                    if (logger.isLoggable(Level.FINEST)){
+                try {
+                    outputBuffer.flush();
+                } catch (IOException ex) {
+                    if (logger.isLoggable(Level.FINEST)) {
                         logger.log(Level.FINEST,
-                                "ACTION_CLIENT_FLUSH",ex);
+                                "ACTION_CLIENT_FLUSH", ex);
                     }
                     error = true;
                     response.setErrorException(ex);
                 }
             }
-        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){
+        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE) {  // Executed when response.resume() is called asynchronously
             finishResponse();
-            try{
+            
+            if (externalAsyncResponsePostProcessor != null) {
+                if (!externalAsyncResponsePostProcessor.postProcess(this)) {
+                    // if false returned - it means post processor becomes in charge of
+                    // finishing the ProcessorTask life cycle.
+                    return;
+                }
+            }
+            
+            try {
                 postProcess();
-            } catch (Exception ex){
-                if (logger.isLoggable(Level.FINEST)){
+            } catch (Exception ex) {
+                if (logger.isLoggable(Level.FINEST)) {
                     logger.log(Level.FINEST,
-                            "ACTION_FINISH_RESPONSE",ex);
+                            "ACTION_FINISH_RESPONSE", ex);
                 }
                 error = true;
                 response.setErrorException(ex);
             }
 
-            if (externalPostProcessor != null) {
-                externalPostProcessor.postProcess(this);
+            if (externalAsyncPostProcessor != null) {
+                externalAsyncPostProcessor.postProcess(this);
             }
-
-//            if (!keepAlive){
-//                selectorHandler.addPendingKeyCancel(key);
-//                recycle();
-//                selectorThread.returnTask(this);
-//            }
         }
     }
 
@@ -1379,9 +1389,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         if (keepAlive) {
-            final WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-            final KeepAliveThreadAttachment k =
-                    (KeepAliveThreadAttachment) workerThread.getAttachment();
+            final KeepAliveThreadAttachment k = getKeepAliveAttachment();
             final KeepAliveStats ks = selectorThread.getKeepAliveStats();
 
             final int count = k.increaseKeepAliveCount();
@@ -2147,7 +2155,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             streamAlgorithm = null;
         }
 
-        externalPostProcessor = null;
+        externalAsyncPostProcessor = null;
+        externalAsyncResponsePostProcessor = null;
         socket = null;
         dropConnection = false;
         reRegisterSelectionKey = true;
@@ -2694,8 +2703,20 @@ public class ProcessorTask extends TaskBase implements Processor,
         return started;
     }
 
-    void setPostProcessor(PostProcessor postProcessor) {
-        this.externalPostProcessor = postProcessor;
+    /**
+     * {@link PostProcessor} to be called when <tt>ProcessorTask</tt> is completed
+     * asynchronously.
+     */
+    void setAsyncPostProcessor(PostProcessor postProcessor) {
+        this.externalAsyncPostProcessor = postProcessor;
+    }
+
+    /**
+     * {@link PostProcessor} to be called when current Request processing is
+     * completed asynchronously.
+     */
+    public void setAsyncResponsePostProcessor(PostProcessor postProcessor) {
+        this.externalAsyncResponsePostProcessor = postProcessor;
     }
 
     public ErrorHandler getErrorHandler() {
@@ -2706,8 +2727,58 @@ public class ProcessorTask extends TaskBase implements Processor,
         isProcessingCompleted = false;
     }
 
+    private KeepAliveThreadAttachment getKeepAliveAttachment() {
+        final Thread t = Thread.currentThread();
+        if (t instanceof WorkerThread) {
+            final WorkerThread workerThread = (WorkerThread) t;
+            final KeepAliveThreadAttachment threadAttachment =
+                    (KeepAliveThreadAttachment) workerThread.getAttachment();
+            key.attach(threadAttachment);
+            return threadAttachment;
+        }
+        
+        final Object attachment = key.attachment();
+        if (attachment != null) {
+            return (KeepAliveThreadAttachment) attachment;
+        }
+        
+        final KeepAliveThreadAttachment threadAttachment = new KeepAliveThreadAttachment();
+        threadAttachment.associate();
+        key.attach(threadAttachment);
+        
+        return threadAttachment;
+        
+    }
+
     public static interface PostProcessor {
-        public void postProcess(ProcessorTask processorTask);
+        public boolean postProcess(ProcessorTask processorTask);
+    }
+
+    /**
+     * PostProcessor responsible for continuing processing of next pipelined
+     * HTTP request (if any) after processing of the current HTTP request
+     * is resumed asynchronously
+     */
+    private final static class AsyncResponsePostProcessor implements PostProcessor {
+
+        public boolean postProcess(final ProcessorTask processorTask) {
+            if (processorTask.hasNextRequest()) {
+                try {
+                    processorTask.doProcess();
+                    return !processorTask.response.isSuspended() &&
+                            !SuspendResponseUtils.isSuspendedInCurrentThread();
+                } catch (Exception e) {
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.log(Level.FINEST,
+                                "AsyncResponsePostProcessor", e);
+                    }
+                    processorTask.error = true;
+                    processorTask.response.setErrorException(e);                    
+                }
+            }
+            
+            return true;
+        }
     }
 }
 

@@ -54,32 +54,60 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import static org.junit.Assert.*;
 
 /**
  * HTTP pipelining test
  * 
  * @author Alexey Stashok
  */
-public class HttpPipeliningTest extends TestCase {
+@RunWith(Parameterized.class)
+public class HttpPipeliningTest {
     private static final Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
-    public void testSync() throws IOException, InstantiationException {
-        try {
-            startSelectorThread(0, false);
-            runClient();
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
+    @Parameters
+    public static Collection<Object[]> getAsyncParameters() {
+        // fill array with all possible FALSE/TRUE combinations
+        
+        final int params = 3;
+        final int cases = (int) Math.pow(2, params);
+        final Object[][] array = new Object[cases][params];
+        for (int i = 0; i < cases; i++) {
+            for (int j = 0; j < params; j++) {
+                final int step = (int) Math.pow(2, params - j - 1);
+                array[i][j] = ((i / step) % 2) == 0 ? Boolean.FALSE : Boolean.TRUE;
+            }
         }
+        
+        return Arrays.asList(array);
     }
 
-    public void testAsync() throws IOException, InstantiationException {
+    private final boolean isArpEnabled;
+    private final boolean isSuspendResumeEnabled;
+    private final boolean isSplitRequests;
+
+    public HttpPipeliningTest(boolean isArpEnabled, boolean isSuspendResumeEnabled,
+            boolean isSplitRequests) {
+        this.isArpEnabled = isArpEnabled;
+        this.isSuspendResumeEnabled = isSuspendResumeEnabled;
+        this.isSplitRequests = isSplitRequests;
+    }
+    
+    @Test
+    public void test() throws IOException, InstantiationException {
         try {
-            startSelectorThread(0, true);
+            startSelectorThread(0, isArpEnabled, isSuspendResumeEnabled);
             runClient();
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
@@ -92,12 +120,25 @@ public class HttpPipeliningTest extends TestCase {
         String request1 = "GET / HTTP/1.1\nHost: localhost:" + port + "\n\n";
         String request2 = "POST / HTTP/1.1\nHost: localhost:" + port + "\nContent-length: 10\n\n0123456789";
         String request3 = "GET / HTTP/1.1\nHost: localhost:" + port + "\n\n";
-        String pipeline = request1 + request2 + request3;
         Socket s = new Socket("localhost", port);
         s.setSoTimeout(5000);
         OutputStream os = s.getOutputStream();
-        os.write(pipeline.getBytes());
-        os.flush();
+        if (!isSplitRequests) {
+            String pipeline = request1 + request2 + request3;
+            os.write(pipeline.getBytes());
+            os.flush();
+        } else {
+            os.write(request1.getBytes());
+            os.flush();
+            Thread.yield();
+            os.write(request2.getBytes());
+            os.flush();
+            Thread.yield();
+            os.write(request3.getBytes());
+            os.flush();
+            Thread.yield();
+        }
+        
         BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         String responseReportString = "Response #";
         String line;
@@ -121,18 +162,49 @@ public class HttpPipeliningTest extends TestCase {
     }
     
     private static class MyAdapter extends GrizzlyAdapter {
-        private int count = 0;
+        private final AtomicInteger count = new AtomicInteger();
+        private final boolean isSuspendResume;
 
-        public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+        public MyAdapter(boolean isSuspendResume) {
+            this.isSuspendResume = isSuspendResume;
+        }
+        
+        public void service(final GrizzlyRequest request, final GrizzlyResponse response)
+                throws Exception {
+            if (!isSuspendResume) {
+                doTask(request, response);
+            } else {
+                response.suspend();
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(500);
+                            doTask(request, response);
+                        } catch (Exception e) {
+                            response.setStatus(500, e.getClass().getName() + ": " + e.getMessage());
+                        } finally {
+                            response.resume();
+                        }
+                    }
+                    
+                }.start();
+            }
+        }
+
+        private void doTask(GrizzlyRequest request, GrizzlyResponse response) throws IOException {
             InputStream is = request.getInputStream();
             while(is.read() != -1);
 
             OutputStream os = response.getOutputStream();
-            os.write(("Response #" + count++ + "\n").getBytes());
+            os.write(("Response #" + count.getAndIncrement() + "\n").getBytes());
         }
     }
 
-    private void startSelectorThread(int port, boolean isAsync) throws IOException, InstantiationException {
+    private void startSelectorThread(final int port, final boolean isAsync,
+            final boolean isSuspendResume)
+            throws IOException, InstantiationException {
+        
         st = new SelectorThread() {
 
             /**
@@ -177,7 +249,7 @@ public class HttpPipeliningTest extends TestCase {
             }
         };
 
-        st.setAdapter(new MyAdapter());
+        st.setAdapter(new MyAdapter(isSuspendResume));
         st.setPort(port);
         st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 

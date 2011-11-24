@@ -61,7 +61,9 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class AsyncProcessorTask extends TaskBase implements AsyncTask {
-
+    private final ProcessorTask.PostProcessor asyncResponsePostProcessor =
+            new AsyncResponsePostProcessor();
+    
     /**
      * The {@link AsyncExecutor} which drive the execution of the 
      * {@link ProcessorTask}
@@ -73,7 +75,6 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      * The current execution stage.
      */
     private int stage = AsyncTask.PRE_EXECUTE;
-
 
     /**
      * Execute the {@link AsyncExecutor} based on the <code>stage</code>
@@ -96,18 +97,20 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         break;
                     case AsyncTask.INTERRUPTED:
                         stage = AsyncTask.POST_EXECUTE;
+                        setAsyncResponsePostProcessor();
                         continueExecution = asyncExecutor.interrupt();
                         break;
                     case AsyncTask.EXECUTE:
-                        continueExecution = asyncExecutor.execute();
                         stage = AsyncTask.POST_EXECUTE;
+                        setAsyncResponsePostProcessor();
+                        continueExecution = asyncExecutor.execute();
                         break;
                     case AsyncTask.POST_EXECUTE:
-                        continueExecution = asyncExecutor.postExecute();
                         if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
-                            break;
+                            return;
                         }
-                        
+
+                        continueExecution = asyncExecutor.postExecute();
                         if (continueExecution) {
                             if (asyncExecutor.getProcessorTask().hasNextRequest()) {
                                 asyncExecutor.reset();
@@ -119,7 +122,6 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                             }
                         }
                         break;
-//                        asyncExecutor.getAsyncHandler().returnTask(this);
                     case AsyncTask.FINISH:
                         enableTimeout();
                         
@@ -241,5 +243,30 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
 
         return new ThreadAttachment();
     }
-    
+
+    /**
+     * Set {@link PostProcessor}, which will be executed on asynchronous
+     * response.resume() call.
+     */
+    private void setAsyncResponsePostProcessor() {
+        asyncExecutor.getProcessorTask().setAsyncResponsePostProcessor(
+                asyncResponsePostProcessor);
+    }
+
+    /**
+     * PostProcessor responsible for continuing processing of next pipelined
+     * HTTP request (if any) after processing of the current HTTP request
+     * is resumed asynchronously
+     */
+    private final class AsyncResponsePostProcessor implements ProcessorTask.PostProcessor {
+
+        public boolean postProcess(final ProcessorTask processorTask) {
+            try {
+                doTask();
+            } catch (IOException ignored) {
+            }
+            
+            return false;
+        }
+    }    
 }
