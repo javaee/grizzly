@@ -4,14 +4,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-o</version>
+        <version>1.9.18-p</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <packaging>hk2-jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.18-p</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
@@ -128,17 +128,17 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-utils</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
 <!--        <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 -->

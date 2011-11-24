@@ -4,13 +4,13 @@
   <parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
-    <version>1.9.18-o</version>
+    <version>1.9.18-p</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>jar</packaging>
   <name>Grizzly OSGi HttpService</name>
-  <version>1.9.18-o</version>
+  <version>1.9.18-p</version>
   <groupId>com.sun.grizzly.osgi</groupId>
   <artifactId>grizzly-httpservice</artifactId>
   <dependencies>
@@ -34,37 +34,37 @@
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-http-servlet</artifactId>
-      <version>1.9.18-o</version>
+      <version>1.9.18-p</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-utils</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-http</artifactId>
-      <version>1.9.18-o</version>
+      <version>1.9.18-p</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-framework</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-rcm</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-portunif</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-comet</artifactId>
-      <version>${grizzly-version}</version>
+      <version>${project.version}</version>
     </dependency>
 <!-- Prepaartion for integration tests
     <dependency>

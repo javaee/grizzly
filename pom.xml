@@ -1,119 +1,130 @@
+<!--
+
+    DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+
+    Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+
+    The contents of this file are subject to the terms of either the GNU
+    General Public License Version 2 only ("GPL") or the Common Development
+    and Distribution License("CDDL") (collectively, the "License").  You
+    may not use this file except in compliance with the License.  You can
+    obtain a copy of the License at
+    https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+    or packager/legal/LICENSE.txt.  See the License for the specific
+    language governing permissions and limitations under the License.
+
+    When distributing the software, include this License Header Notice in each
+    file and include the License file at packager/legal/LICENSE.txt.
+
+    GPL Classpath Exception:
+    Oracle designates this particular file as subject to the "Classpath"
+    exception as provided by Oracle in the GPL Version 2 section of the License
+    file that accompanied this code.
+
+    Modifications:
+    If applicable, add the following below the License Header, with the fields
+    enclosed by brackets [] replaced by your own identifying information:
+    "Portions Copyright [year] [name of copyright owner]"
+
+    Contributor(s):
+    If you wish your version of this file to be governed by only the CDDL or
+    only the GPL Version 2, indicate your decision by adding "[Contributor]
+    elects to include this software in this distribution under the [CDDL or GPL
+    Version 2] license."  If you don't indicate a single choice of license, a
+    recipient has the option to distribute your version of this file under
+    either the CDDL, the GPL Version 2 or to extend the choice of license to
+    its licensees as provided above.  However, if you add GPL Version 2 code
+    and therefore, elected the GPL Version 2 license, then the option applies
+    only if the new code is made subject to such option by the copyright
+    holder.
+
+-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>net.java</groupId>
+        <artifactId>jvnet-parent</artifactId>
+        <version>1</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.18-o</version>
-    <url>https://grizzly.dev.java.net</url>
+    <version>1.9.18-p</version>
+    <url>http://grizzly.java.net</url>
     <issueManagement>
-        <system>bugzilla</system>
-        <url>https://grizzly.dev.java.net/servlets/ProjectIssues</url>
+        <system>JIRA</system>
+        <url>http://java.net/jira/browse/GRIZZLY</url>
     </issueManagement>
     <mailingLists>
         <mailingList>
             <name>Grizzly Dev List</name>
-            <archive>dev@grizzly.dev.java.net</archive>
+            <archive>dev@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Support List</name>
-            <archive>users@grizzly.dev.java.net</archive>
+            <archive>users@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Announce List</name>
-            <archive>announces@grizzly.dev.java.net</archive>
+            <archive>announce@grizzly.java.net</archive>
         </mailingList>
     </mailingLists>
     <developers>
         <developer>
-            <id>jfarcand</id>
-            <name>Jeanfrancois Arcand</name>
-            <email>jfarcand@dev.java.net</email>
-            <url>http://weblogs.java.net/blog/jfarcand/</url>
-            <organization>SUN Microsystems</organization>
-            <organizationUrl>http://www.sun.com</organizationUrl>
-        </developer>
-        <developer>
             <id>oleksiys</id>
             <name>Oleksiy Stashok</name>
-            <email>oleksiys@dev.java.net</email>
+            <email>oleksiys@java.net</email>
             <url>http://blogs.sun.com/oleksiys/</url>
-            <organization>SUN Microsystems</organization>
-            <organizationUrl>http://www.sun.com</organizationUrl>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
+        <developer>
+            <id>cheeser</id>
+            <name>Justin Lee</name>
+            <email>justin.d.lee@oracle.com</email>
+            <url>http://antwerkz.com</url>
+            <organization>Oracle</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
+        <developer>
+            <id>rlubke</id>
+            <name>Ryan Lubke</name>
+            <email>rlubke@dev.java.net</email>
+            <url>http://blogs.sun.com/rlubke</url>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
         </developer>
     </developers>
     <licenses>
         <license>
-            <name>CDDL</name>
-            <url>https://glassfish.dev.java.net/public/CDDLv1.0.html</url>
+            <name>CDDL+GPL</name>
+            <url>http://glassfish.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://www.dev.java.net/svn/grizzly</connection>
-        <developerConnection>scm:svn:https://www.dev.java.net/svn/grizzly</developerConnection>
-        <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
+        <connection>scm:svn:https://svn.java.net/svn/grizzly~svn</connection>
+        <developerConnection>scm:svn:svn+ssh://username@svn.java.net/grizzly~svn</developerConnection>
+        <tag>1.9.x</tag>
+        <url>http://java.net/projects/grizzly/sources/svn/show</url>
     </scm>
     <organization>
-        <name>SUN Microsystems</name>
-        <url>http://www.sun.com</url>
+        <name>Oracle Corporation</name>
+        <url>http://www.oracle.com</url>
     </organization>
-    <repositories>
-        <repository>
-            <id>java.net</id>
-            <name>Java.net Repository for Grizzly</name>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-        <repository>
-            <id>maven-repository.dev.java.net</id>
-            <name>Java.net Maven 1 Repository (legacy)</name>
-            <url>http://download.java.net/maven/1</url>
-            <layout>legacy</layout>
-        </repository>
-        <repository>
-            <id>java.net</id>
-            <name>maven-repository.dev.java.net</name>
-            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
-            <layout>legacy</layout>
-        </repository>
-        <repository>
-            <id>codehaus</id>
-            <name>repository.codehaus.org</name>
-            <url>http://repository.codehaus.org</url>
-        </repository>
-        <repository>
-            <id>glassfish-maven2-repository.dev.java.net</id>
-            <name>Java.net Maven 2 Repository for GlassFish</name>
-            <url>http://download.java.net/maven/glassfish/</url>
-            <layout>default</layout>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>glassfish</id>
-            <url>http://download.java.net/maven/2/</url>
-        </pluginRepository>
-    </pluginRepositories>
+
     <build>
-        <sourceDirectory>src/main/java</sourceDirectory>
-        <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory>
-        <testSourceDirectory>src/test/java</testSourceDirectory>
-        <outputDirectory>target/classes</outputDirectory>
-        <testOutputDirectory>target/test-classes</testOutputDirectory>
         <extensions>
-            <extension>
-                <groupId>org.jvnet.wagon-svn</groupId>
-                <artifactId>wagon-svn</artifactId>
-                <version>1.8</version>
-            </extension>
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-ssh-external</artifactId>
-                <version>1.0-alpha-6</version>
+                <version>1.0-beta-2</version>
             </extension>
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-webdav</artifactId>
-                <version>1.0-beta-1</version>
+                <version>1.0-beta-2</version>
             </extension>
         </extensions>
         <defaultGoal>install</defaultGoal>
@@ -132,14 +143,16 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <inherited>true</inherited>
                     <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
                     <artifactId>maven-antrun-extended-plugin</artifactId>
-                    <version> 1.36 </version>
+                    <version>1.40</version>
                 </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
+                <inherited>true</inherited>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.5</source>
@@ -148,16 +161,20 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <tagBase>https://www.dev.java.net/svn/grizzly/tags</tagBase>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <preparationGoals>clean install</preparationGoals>
+                    <pushChanges>false</pushChanges>
+                    <goals>deploy -Dmaven.test.skip=true</goals>
                 </configuration>
             </plugin>
-
             <plugin>
+                <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.1</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -169,23 +186,64 @@
                     </archive>
                 </configuration>
             </plugin>
-            <!--           <plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs.version}</version>
                 <configuration>
-                    <formats>
-                        <format>xml</format>
-                    </formats>
+                    <skip>${findbugs.skip}</skip>
+                    <threshold>${findbugs.threshold}</threshold>
+                    <excludeFilterFile>${findbugs.exclude}</excludeFilterFile>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
                 </configuration>
-            </plugin> -->
+            </plugin>
+            <plugin>
+                <groupId>org.glassfish.copyright</groupId>
+                <artifactId>glassfish-copyright-maven-plugin</artifactId>
+                <version>1.28</version>
+                <configuration>
+                    <excludeFile>copyright-exclude</excludeFile>
+                    <scm>svm</scm>
+                    <scmOnly>true</scmOnly>
+                    <warn>false</warn>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>release-profile</id>
             <build>
                 <plugins>
                     <plugin>
+                        <inherited>true</inherited>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
                         <executions>
@@ -217,6 +275,7 @@
                         </executions>
                     </plugin>
                     <plugin>
+                        <inherited>true</inherited>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
@@ -239,8 +298,8 @@
             <modules>
                 <module>modules/grizzly-aio</module>
                 <module>modules/http-aio</module>
-                <module>modules/bundles/grizzly-aio/</module>
-                <module>modules/bundles/http-aio/</module>
+                <module>modules/grizzly-aio/</module>
+                <module>modules/http-aio/</module>
             </modules>
         </profile>
     </profiles>
@@ -256,6 +315,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.6.1</version>
                 <configuration>
                     <aggregate>true</aggregate>
                     <debug>true</debug>
@@ -263,12 +323,13 @@
                         <link>http://java.sun.com/javaee/5/docs/api</link>
                         <link>http://java.sun.com/j2se/1.5.0/docs/api</link>
                     </links>
-                    <excludePackageNames>dojox:org.mortbay:com.sun.enterprise.web</excludePackageNames>
+                    <excludePackageNames>dojox:org.mortbay</excludePackageNames>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.1</version>
                 <configuration>
                     <aggregate>true</aggregate>
                 </configuration>
@@ -276,6 +337,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.1.2</version>
                 <reportSets>
                     <reportSet>
                         <reports>
@@ -287,10 +349,13 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>1.2</version>
+                <version>${findbugs.version}</version>
                 <configuration>
+                    <skip>${findbugs.skip}</skip>
                     <xmlOutput>true</xmlOutput>
                     <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
+                    <threshold>${findbugs.threshold}</threshold>
+                    <excludeFilterFile>${findbugs.exclude}</excludeFilterFile>
                 </configuration>
             </plugin>
         </plugins>
@@ -307,31 +372,149 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix-version}</version>
             </dependency>
+            <dependency>
+                <groupId>commons-modeler</groupId>
+                <artifactId>commons-modeler</artifactId>
+                <version>1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>servlet-api</artifactId>
+                <version>2.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>6.1.11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>cometd-bayeux</artifactId>
+                <version>6.1.11</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>hk2</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>config-types</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>osgi-adapter</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>stax</groupId>
+                <artifactId>stax</artifactId>
+                <version>1.2.0</version>
+            </dependency>
+            <dependency> <!-- depend on JAXB to enable WADL support -->
+                <groupId>com.sun.xml.bind</groupId>
+                <artifactId>jaxb-impl</artifactId>
+                <version>2.1.12</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.activation</groupId>
+                <artifactId>activation</artifactId>
+                <version>1.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.xml.stream</groupId>
+                <artifactId>stax-api</artifactId>
+                <version>1.0-2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-client</artifactId>
+                <version>${jersey-version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.jersey</groupId>
+                <artifactId>jersey-server</artifactId>
+                <version>${jersey-version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>jsr250-api</artifactId>
+                <version>1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.core</artifactId>
+                <version>4.1.0</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.compendium</artifactId>
+                <version>4.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>jasper-jdt</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>jasper-el</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>jasper</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>el-api</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>jsp-api</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>juli</artifactId>
+                <version>6.0.20</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.7</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-    <distributionManagement>
-        <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <!-- the ID maps to settings.xml, so don't change the ID -->
-            <id>rator.sfbay</id>
-            <url>dav:http://rator.sfbay/maven/repositories/glassfish/</url>
-        </repository>
-    </distributionManagement>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>${junit-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
     <properties>
-        <grizzly-version>1.9.18-o</grizzly-version>
-        <grizzly-released-version>1.9.18-o</grizzly-released-version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <felix-version>2.1.0</felix-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
-        <junit-version>3.8.1</junit-version>
+        <grizzly-released-version>1.9.41</grizzly-released-version>
+        <hk2.version>1.0.25</hk2.version>
+        <hk2.plugin.version>1.0.25</hk2.plugin.version>
+        <jersey-version>1.1.5</jersey-version>
+        <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
-        <felix-version>1.4.3</felix-version>
+        <cobertura.version>2.4</cobertura.version>
+        <findbugs.skip>false</findbugs.skip>
+        <findbugs.version>2.3.1</findbugs.version>
+        <findbugs.exclude />
+        <findbugs.threshold>High</findbugs.threshold>
     </properties>
 </project>

@@ -3,14 +3,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-o</version>
+        <version>1.9.18-p</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-rcm</artifactId>
     <packaging>jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.18-p</version>
     <name>grizzly-rcm</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
@@ -43,7 +43,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

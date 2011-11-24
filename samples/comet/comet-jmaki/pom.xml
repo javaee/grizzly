@@ -4,14 +4,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-o</version>
+        <version>1.9.18-p</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sun.grizzly.samples</groupId>
   <artifactId>grizzly-comet-jmaki</artifactId>
   <packaging>war</packaging>
-  <version>${grizzly-version}</version>
+  <version>1.9.18-p</version>
   <name>grizzly-comet-jmaki</name>
   <url>http://maven.apache.org</url>
   <dependencies>
@@ -24,7 +24,7 @@
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-comet</artifactId>
-       <version>${grizzly-version}</version>
+       <version>${project.version}</version>
        <scope>provided</scope>
     </dependency>
   </dependencies>

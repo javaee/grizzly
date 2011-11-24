@@ -4,12 +4,12 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-o</version>
+        <version>1.9.18-p</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>httpclient</artifactId>
-    <version>${grizzly-version}</version>
+    <version>1.9.18-p</version>
     <name>Grizzly HTTP Client</name>
     <url>https://grizzly.dev.java.net</url>
     <!-- Devs -->
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
