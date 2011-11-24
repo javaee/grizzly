@@ -209,7 +209,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public final DataChunk getReasonPhraseDC() {
         if (isCustomReasonPhraseSet()) {
-            return HttpStatus.filter(reasonPhraseC);
+            return reasonPhraseC;
         } else {
             final Buffer b = Buffers.wrap(null, httpStatus.getReasonPhraseBytes());
             b.allowBufferDispose(true);

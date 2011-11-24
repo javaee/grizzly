@@ -540,9 +540,11 @@ public class HttpServerFilter extends HttpCodecFilter {
         output = put(memoryManager, output, httpResponse.getHttpStatus().getStatusBytes());
         output = put(memoryManager, output, Constants.SP);
         if (httpResponse.isCustomReasonPhraseSet()) {
-            output = put(memoryManager, output, httpResponse.getReasonPhraseDC());
+            output = put(memoryManager, output,
+                    HttpStatus.filter(httpResponse.getReasonPhraseDC()));
         } else {
-            output = put(memoryManager, output, httpResponse.getHttpStatus().getReasonPhraseBytes());
+            output = put(memoryManager, output,
+                    httpResponse.getHttpStatus().getReasonPhraseBytes());
         }
 
         return output;
