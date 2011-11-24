@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.ajp;
 
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.Buffers;
 import java.io.CharConversionException;
 import java.io.IOException;
@@ -425,7 +426,7 @@ final class AjpMessageUtils {
 
         if (httpResponsePacket.isCustomReasonPhraseSet()) {
             encodedBuffer = putBytes(mm, encodedBuffer,
-                    httpResponsePacket.getReasonPhraseDC());
+                    HttpStatus.filter(httpResponsePacket.getReasonPhraseDC()));
         } else {
             encodedBuffer = putBytes(mm, encodedBuffer,
                     httpResponsePacket.getHttpStatus().getReasonPhraseBytes());
