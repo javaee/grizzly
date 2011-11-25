@@ -103,11 +103,15 @@ public class HttpRedirectFilter implements ProtocolFilter,
         
         int totalBytesRead = 0;
         while(true) {
-            final Utils.Result result = Utils.readWithTemporarySelector(channel, bb, 20);
+            Utils.Result result = null;
+            try {
+                result = Utils.readWithTemporarySelector(channel, bb, 20);
+            } catch (Exception ignored) {
+            }
 
             bb.clear();
 
-            if (result.isClosed || result.bytesRead <= 0) {
+            if (result == null || result.isClosed || result.bytesRead <= 0) {
                 return true;
             }
 
