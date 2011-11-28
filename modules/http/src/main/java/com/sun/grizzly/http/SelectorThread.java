@@ -98,6 +98,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -402,9 +403,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * If the list becomes empty, new {@link ProcessorTask} will be
      * automatically added to the list.
      */
-    protected final Queue<ProcessorTask> processorTasks =
-        DataStructures.getCLQinstance(ProcessorTask.class);
-                                                                             
+    protected volatile Queue<ProcessorTask> processorTasks;
+                                                           
+    /**
+     * Maximum number of {@link ProcessorTask}s to be cached.
+     */
+    private int maxCachedProcessorTasks =
+            Integer.getInteger("com.sun.grizzly.http.maxCachedProcessorTasks", -1);
     
     /**
      * List of active {@link ProcessorTask}.
@@ -584,7 +589,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Create the {@link Selector} object. Each instance of this class
      * will listen to a specific port.
      */
-    public SelectorThread(){
+    public SelectorThread() {
+        setMaxCachedProcessorTasks(maxCachedProcessorTasks);
     }
     
     // ------------------------------------------------------ Selector hook --/
@@ -2586,5 +2592,28 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setProcessorTaskFactory(ProcessorTaskFactory processorTaskFactory) {
         this.processorTaskFactory = processorTaskFactory;
         clearTasks();
+    }
+
+    /**
+     * Maximum number of {@link ProcessorTask}s to be cached.
+     * @return maximum number of {@link ProcessorTask}s to be cached.
+     */
+    public int getMaxCachedProcessorTasks() {
+        return maxCachedProcessorTasks;
+    }
+
+    /**
+     * Maximum number of {@link ProcessorTask}s to be cached.
+     * @param maximum number of {@link ProcessorTask}s to be cached.
+     */
+    public void setMaxCachedProcessorTasks(final int maxCachedProcessorTasks) {
+        if (maxCachedProcessorTasks != this.maxCachedProcessorTasks ||
+                processorTasks == null) {
+            processorTasks = maxCachedProcessorTasks >= 0 ?
+                    new LinkedBlockingQueue<ProcessorTask>(maxCachedProcessorTasks) :
+                    DataStructures.getCLQinstance(ProcessorTask.class);
+        }
+        
+        this.maxCachedProcessorTasks = maxCachedProcessorTasks;
     }
 }
