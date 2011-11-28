@@ -255,6 +255,6 @@ public class AddProtocolFinder implements ProtocolFinder {
         transport.start();</programlisting></para>
 
     <para>Complete sample code could be found <link
-    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-portunif-samples/@project.version@">here</link>.</para>
+    xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/@project.version@">here</link>.</para>
   </section>
 </chapter>
