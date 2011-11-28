@@ -143,7 +143,7 @@ public interface MultipartEntryHandler {
                     Server framework</link>, required by:<itemizedlist>
                     <listitem>
                         <para><link
-                                xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/@project.version@/grizzly-http-server-multipart-@project.version@.jar"
+                                xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/@project.version@/grizzly-http-server-multipart-@project.version@.jar"
                                 >grizzly-http-server-multipart.jar</link></para>
                     </listitem>
                 </itemizedlist></para>
@@ -383,7 +383,7 @@ public interface MultipartEntryHandler {
                 be notified.  If there is no more data to be processed, finish the upload by closing
                 the local file output stream.</para>
       <para>The complete working sample could be downloaded <link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/@project.version@/grizzly-http-multipart-samples-@project.version@-sources.jar"
+          xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/@project.version@/grizzly-http-multipart-samples-@project.version@-sources.jar"
           >here</link></para>
     </section>  
   </section>

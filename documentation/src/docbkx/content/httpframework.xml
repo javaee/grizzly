@@ -1117,6 +1117,6 @@ INFO: Stopped transport...
 </screen>
 
     <para>This example within the java.net maven repository: <link
-    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@</link>.</para>
+    xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@">https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@</link>.</para>
   </section>
 </chapter>

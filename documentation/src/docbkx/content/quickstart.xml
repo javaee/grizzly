@@ -54,7 +54,7 @@
   client and server side.</para>
 
   <para>First, it is necessary to depend on the correct Grizzly @project.version@ <link
-  xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
+  xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-framework/">core</link>
   artifact. Maven developers will need to add following dependency to the
   pom:<programlisting language="xml">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
@@ -65,7 +65,7 @@
   <para>Maven repository to be used is<programlisting language="xml">&lt;repository&gt;
     &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
     &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
-    &lt;url&gt;http://download.java.net/maven/glassfish/&lt;/url&gt;
+    &lt;url&gt;https://maven.java.net/content/repositories/releases/&lt;/url&gt;
 &lt;/repository&gt;</programlisting></para>
 
   <para>Let's implement simple Echo client-server application. The client will
