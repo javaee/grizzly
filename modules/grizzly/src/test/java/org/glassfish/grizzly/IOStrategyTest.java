@@ -145,8 +145,14 @@ public class IOStrategyTest {
                 for (int j = 0; j < msgNum; j++) {
                     connection.write(pattern + j);
                 }
-
-                assertEquals(msgNum, resultEcho.get(10, TimeUnit.SECONDS));
+                
+                try {
+                    final Integer result = resultEcho.get(10, TimeUnit.SECONDS);
+                    assertEquals(msgNum, result);
+                } catch (Exception e) {
+                    throw new IllegalStateException("Unexpected error strategy: "
+                            + strategy.getClass().getName(), e);
+                }
                 
                 connection.close();
                 connection = null;
