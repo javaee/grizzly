@@ -161,6 +161,7 @@ public final class SelectorRunner implements Runnable {
             ((WorkerThread) currentThread).setSelectorThread(false);
         }
         
+        runnerThreadActivityCounter.compareAndSet(1, 0);
         selectorRunnerThread = null;
         isResume = true;
         dumbVolatile++;
