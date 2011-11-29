@@ -58,6 +58,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -170,10 +171,6 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
 
             final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
             
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
@@ -189,7 +186,14 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             for (int i = 0; i < messageNum; i++) {
                 Future<WriteResult> writeFuture = connection.write(

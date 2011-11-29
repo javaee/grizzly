@@ -58,13 +58,20 @@ public class ArraySet<T> implements Set<T> {
     private volatile T[] array;
     private final Object sync = new Object();
     private final Class<T> clazz;
-
+    private final boolean replaceElementIfEquals;
+    
     @SuppressWarnings("unchecked")
     public ArraySet(final Class<T> clazz) {
-        this.clazz = clazz;
-        emptyArray = (T[]) Array.newInstance(clazz, 0);
+        this(clazz, true);
     }
     
+    @SuppressWarnings("unchecked")
+    public ArraySet(final Class<T> clazz, final boolean replaceElementIfEquals) {
+        this.clazz = clazz;
+        emptyArray = (T[]) Array.newInstance(clazz, 0);
+        this.replaceElementIfEquals = replaceElementIfEquals;
+    }
+
     /**
      * Add the element(s) to the set.
      *
@@ -94,7 +101,7 @@ public class ArraySet<T> implements Set<T> {
                 final T element = elements[i];
 
                 final T[] oldArray = array;
-                array = ArrayUtils.addUnique(array, element);
+                array = ArrayUtils.addUnique(array, element, replaceElementIfEquals);
 
                 result |= (oldArray != array);
             }
@@ -123,7 +130,7 @@ public class ArraySet<T> implements Set<T> {
             for (T element : collection) {
 
                 final T[] oldArray = array;
-                array = ArrayUtils.addUnique(array, element);
+                array = ArrayUtils.addUnique(array, element, replaceElementIfEquals);
 
                 result |= (oldArray != array);
             }
@@ -160,7 +167,7 @@ public class ArraySet<T> implements Set<T> {
                 final T element = sourceArraySet[i];
 
                 final T[] oldArray = array;
-                array = ArrayUtils.addUnique(array, element);
+                array = ArrayUtils.addUnique(array, element, replaceElementIfEquals);
 
                 result |= (oldArray != array);
             }
@@ -273,8 +280,24 @@ public class ArraySet<T> implements Set<T> {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public boolean add(T e) {
-        return addAll(e);
+    public boolean add(final T element) {
+
+        if (element == null) {
+            return false;
+        }
+
+        synchronized (sync) {
+            if (array == null) {
+                array = (T[]) Array.newInstance(clazz, 1);
+                array[0] = element;
+                return true;
+            }
+
+            final T[] oldArray = array;
+            array = ArrayUtils.addUnique(array, element, replaceElementIfEquals);
+
+            return oldArray != array;
+        }
     }
 
     /**

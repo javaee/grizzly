@@ -72,8 +72,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -102,12 +104,7 @@ public class HttpCommTest extends TestCase {
         try {
             transport.bind(PORT);
             transport.start();
-
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
-            assertNotNull(connection);
-
+            
             final BlockingQueue<HttpPacket> resultQueue = DataStructures.getLTQInstance(HttpPacket.class);
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -124,7 +121,16 @@ public class HttpCommTest extends TestCase {
 
             });
             FilterChain clientFilterChain = clientFilterChainBuilder.build();
-            connection.setProcessor(clientFilterChain);
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+            
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
+            assertNotNull(connection);
 
             HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET").
                     uri("/dummyURL").query("p1=v1&p2=v2").protocol(Protocol.HTTP_1_0).

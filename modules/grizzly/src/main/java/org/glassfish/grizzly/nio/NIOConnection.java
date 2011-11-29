@@ -43,8 +43,9 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -71,6 +72,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -98,9 +100,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile SelectionKey selectionKey;
     protected volatile SelectorRunner selectorRunner;
     
-//    protected volatile SelectionKey writerSelectionKey;
-//    protected volatile SelectorRunner writerSelectorRunner;
-    
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
     protected final AttributeHolder attributes;
@@ -116,6 +115,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
             DataStructures.getLTQInstance(CloseListener.class);
+    
+    /**
+     * Storage contains states of different Processors this Connection is associated with.
+     */
+    private final ProcessorStatesMap processorStateStorage =
+            new ProcessorStatesMap();
         
     /**
      * Connection probes
@@ -300,6 +305,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.processorSelector = preferableProcessorSelector;
     }
 
+    @Override
+    public <E> E obtainProcessorState(final Processor processor,
+            final NullaryFunction<E> factory) {
+        return processorStateStorage.getState(processor, factory);
+    }
+    
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
         return asyncReadQueue;
     }
@@ -667,58 +678,18 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             return;
         }
         
-//        if (interest == SelectionKey.OP_WRITE) {
-//            new Exception("enable write").printStackTrace(System.out);
-//        }
-        
         notifyIOEventEnabled(this, ioEvent);
-//        if (interest == SelectionKey.OP_WRITE) {
-//            enableWrite();
-//            return;
-//        }
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
             interest);
     }
 
-//    private void enableWrite() throws IOException {
-//        if (writerSelectorRunner == null) {
-//            ((NIOTransport) getTransport()).getNIOChannelDistributor()
-//                    .registerChannelAsync(channel, SelectionKey.OP_WRITE, this,
-//                    new EmptyCompletionHandler<RegisterChannelResult>() {
-//
-//                        @Override
-//                        public void completed(final RegisterChannelResult result) {
-//                            writerSelectorRunner = result.getSelectorRunner();
-//                            writerSelectionKey = result.getSelectionKey();
-//                        }
-//                    });
-//        } else {
-//            final SelectorHandler selectorHandler = transport.getSelectorHandler();
-//            selectorHandler.registerKeyInterest(writerSelectorRunner, writerSelectionKey,
-//                SelectionKey.OP_WRITE);            
-//        }
-//    }
-    
-//    public static final Queue<String> l = new ConcurrentLinkedQueue<String>();
-//    {
-//        Runtime.getRuntime().addShutdownHook(new Thread() {
-//
-//            @Override
-//            public void run() {
-//                System.out.println(l);
-//            }
-//            
-//        });
-//    }
-    
     private final SelectorHandler.Task writeSimulatorRunnable =
             new SelectorHandler.Task() {
 
                 @Override
                 public boolean run() throws IOException {
-//                    l.offer("r.simulate2 " + Thread.currentThread().getId());
                     return transport.getIOStrategy().executeIoEvent(
                             NIOConnection.this, IOEvent.WRITE, false);
                 }
@@ -743,23 +714,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
         notifyIOEventDisabled(this, ioEvent);
 
-//        if (interest == SelectionKey.OP_WRITE) {
-//            disableWrite();
-//            return;
-//        }
-        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
     }
 
-//    private void disableWrite() throws IOException {
-//        if (writerSelectorRunner != null) {
-//            final SelectorHandler selectorHandler = transport.getSelectorHandler();
-//            selectorHandler.deregisterKeyInterest(writerSelectorRunner, writerSelectionKey,
-//                SelectionKey.OP_WRITE);            
-//        }
-//    }
-    
     protected final void checkEmptyRead(final int size) {
         if (WIN32) {
             if (size == 0) {
@@ -772,6 +730,122 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 }
             } else {
                 zeroByteReadCount = 0;
+            }
+        }
+    }
+    
+    /**
+     * Map, which contains {@link Processor}s and their states related to this {@link Connection}.
+     */
+    private final static class ProcessorStatesMap {
+        private volatile int volatileFlag;
+        private ProcessorState singleProcessorState;
+        private ConcurrentHashMap<Processor, Object> processorStatesMap;
+        
+        @SuppressWarnings("unchecked")
+        public <E> E getState(final Processor processor,
+                final NullaryFunction<E> stateFactory) {
+
+            final int c = volatileFlag;
+            if (volatileFlag == 0) {
+                // Connection doesn't have any processor state associated
+                return (E) getStateSync(processor, stateFactory);
+            } else {
+                final ProcessorState localProcessorState = singleProcessorState;
+                if (localProcessorState != null) {
+                    if (localProcessorState.processor.equals(processor)) {
+                        // the normal code path (Connection has only one processor associated)
+                        return (E) localProcessorState.state;
+                    }
+                } else {
+                    return (E) getStateSync(processor, stateFactory);
+                }
+
+                // Code should be invoked in PU cases only, so move it under
+                // static class to let Hotspot initialize it lazily only when
+                // needed
+                return (E) StaticMapAccessor.getFromMap(this, processor, stateFactory);
+            }
+        }
+        
+        private synchronized <E> Object getStateSync(final Processor processor,
+                final NullaryFunction<E> stateFactory) {
+            if (volatileFlag == 0) {
+                final E state = stateFactory.evaluate();
+                singleProcessorState = new ProcessorState(processor, state);
+                volatileFlag++;
+                
+                return state;
+            } else if (volatileFlag == 1) {
+                if (singleProcessorState.processor.equals(processor)) {
+                    return singleProcessorState.state;
+                }
+            }
+
+            // Code should be invoked in PU cases only, so move it under
+            // static class to let Hotspot initialize it lazily only when
+            // needed
+            return StaticMapAccessor.getFromMapSync(this, processor, stateFactory);
+        }
+        
+        private static final class ProcessorState {
+            private final Processor processor;
+            private final Object state;
+
+            public ProcessorState(Processor processor, Object state) {
+                this.processor = processor;
+                this.state = state;
+            }                        
+        }
+        
+        private static final class StaticMapAccessor {
+            
+            static {
+                Grizzly.logger(StaticMapAccessor.class).fine("Map is going to "
+                        + "be used as Connection<->ProcessorState storage");
+            }
+
+            private static <E> Object getFromMap(
+                    final ProcessorStatesMap storage,
+                    final Processor processor,
+                    final NullaryFunction<E> stateFactory) {
+                
+                final Map<Processor, Object> localStateMap = storage.processorStatesMap;
+                if (localStateMap != null) {
+                    final Object state = storage.processorStatesMap.get(processor);
+                    if (state != null) {
+                        return state;
+                    }
+                }
+
+                return storage.getStateSync(processor, stateFactory);
+            }
+            
+            private static <E> Object getFromMapSync(
+                    final ProcessorStatesMap storage,
+                    final Processor processor,
+                    final NullaryFunction<E> stateFactory) {
+                
+                ConcurrentHashMap<Processor, Object> localStatesMap =
+                        storage.processorStatesMap;
+
+
+                if (localStatesMap != null) {
+                    if (localStatesMap.containsKey(processor)) {
+                        return localStatesMap.get(processor);
+                    }
+
+                    final Object state = stateFactory.evaluate();
+                    localStatesMap.put(processor, state);
+                    return state;
+                }
+
+                localStatesMap = new ConcurrentHashMap<Processor, Object>();
+                final Object state = stateFactory.evaluate();
+                localStatesMap.put(processor, state);
+                storage.processorStatesMap = localStatesMap;
+                storage.volatileFlag++;
+                return state;
             }
         }
     }

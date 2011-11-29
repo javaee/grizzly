@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
@@ -161,6 +162,15 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
     void setProcessorSelector(
         ProcessorSelector preferableProcessorSelector);
 
+    /**
+     * Returns the {@link Processor} state associated with this <tt>Connection</tt>.
+     * @param processor {@link Processor}
+     * 
+     * @return the {@link Processor} state associated with this <tt>Connection</tt>.
+     */
+    <E> E obtainProcessorState(Processor processor,
+            NullaryFunction<E> factory);
+    
     /**
      * Get the connection peer address
      * @return the connection peer address
