@@ -41,6 +41,8 @@ package org.glassfish.grizzly.websockets;
 
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -59,7 +61,13 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new WebSocketAddOn());
+            networkListener.registerAddOn(new AddOn() {
+                @Override
+                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                    int idx = builder.indexOfType(HttpServerFilter.class);
+                    builder.add(idx, new WebSocketFilter());
+                }
+            });
             networkListener.getKeepAlive().setIdleTimeoutInSeconds(5);
         }
         WebSocketEngine.getEngine().register("/echo", new EchoApplication());

@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -46,37 +46,43 @@
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>2.2-SNAPSHOT</version>
-        <relativePath>../../../pom.xml</relativePath>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly.samples</groupId>
-    <artifactId>grizzly-websockets-chat</artifactId>
-    <packaging>war</packaging>
+    <groupId>org.glassfish.grizzly</groupId>
+    <artifactId>grizzly-websockets-addon</artifactId>
+    <packaging>bundle</packaging>
     <version>2.2-SNAPSHOT</version>
-    <name>grizzly-websockets-chat</name>
-    <url>http://maven.apache.org</url>
+    <name>grizzly-websockets-addon</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>
             <resource>
-                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <directory>src/main/java/</directory>
+                <excludes>
+                    <exclude>**/*.java</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources/</directory>
+                <excludes>
+                    <exclude>**/*.java</exclude>
+                </excludes>
             </resource>
         </resources>
-        <testResources>
-            <testResource>
-                <directory>src/test/resources</directory>
-            </testResource>
-        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>1.4.0</version>
+                <version>${felix-version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.samples.websockets</Export-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.websockets.*
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -90,18 +96,18 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-websockets</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-websockets-addon</artifactId>
+            <artifactId>grizzly-http-server</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
         </dependency>
     </dependencies>
 </project>

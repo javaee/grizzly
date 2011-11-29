@@ -51,13 +51,16 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.Servlet;
 
 import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.servlet.ServletHandler;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.junit.After;
@@ -69,7 +72,6 @@ import org.junit.runners.Parameterized;
 @SuppressWarnings({"StringContatenationInLoop"})
 @RunWith(Parameterized.class)
 public class WebSocketsTest extends BaseWebSocketTestUtilities {
-    private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 5;
     private final Version version;
 
@@ -95,7 +97,13 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new WebSocketAddOn());
+            networkListener.registerAddOn(new AddOn() {
+                @Override
+                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                    int idx = builder.indexOfType(HttpServerFilter.class);
+                    builder.add(idx, new WebSocketFilter());
+                }
+            });
         }
         ctx.deploy(httpServer);
         httpServer.start();
@@ -179,7 +187,13 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         configuration.setHttpServerName("WebSocket Server");
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new WebSocketAddOn());
+            networkListener.registerAddOn(new AddOn() {
+                @Override
+                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                    int idx = builder.indexOfType(HttpServerFilter.class);
+                    builder.add(idx, new WebSocketFilter());
+                }
+            });
         }
         ctx.deploy(httpServer);
         httpServer.start();
@@ -207,7 +221,13 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         configuration.setHttpServerName("WebSocket Server");
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new WebSocketAddOn());
+            networkListener.registerAddOn(new AddOn() {
+                @Override
+                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                    int idx = builder.indexOfType(HttpServerFilter.class);
+                    builder.add(idx, new WebSocketFilter());
+                }
+            });
         }
         ctx.deploy(httpServer);
         httpServer.start();
@@ -234,10 +254,17 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         };
         
         final HttpServer server = HttpServer.createSimpleServer(".", 8051);
-        server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
+        NetworkListener listener = server.getListener("grizzly");
+        listener.registerAddOn(new AddOn() {
+            @Override
+            public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                int idx = builder.indexOfType(HttpServerFilter.class);
+                builder.add(idx, new WebSocketFilter());
+            }
+        });
         WebSocketEngine.getEngine().register("/grizzly-websockets-chat/chat", app);
         
-        final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.create();
         WebSocketClient client = new WebSocketClient("ws://localhost:8051/chat",
                 new WebSocketAdapter() {
             @Override

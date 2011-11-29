@@ -44,7 +44,11 @@ import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.junit.Assert;
 import org.junit.Test;
@@ -63,7 +67,13 @@ public class ServletBasedTest {
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new WebSocketAddOn());
+            networkListener.registerAddOn(new AddOn() {
+                @Override
+                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                    int idx = builder.indexOfType(HttpServerFilter.class);
+                    builder.add(idx, new WebSocketFilter());
+                }
+            });
         }
         httpServer.start();
         
