@@ -216,15 +216,13 @@ public class FilterChainTest extends TestCase {
                     msgSize, resultEcho));
             final FilterChain clientChain = clientFilterChainBuilder.build();
 
-            Future<Connection> connectFuture = transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>() {
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChain)
+                    .build();
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            connection.setProcessor(clientChain);
-                        }
-                    });
+            Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);

@@ -100,6 +100,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -638,10 +639,7 @@ public class SSLTest {
             transport.start();
 
             for (int i = 0; i < connectionsNum; i++) {
-            final String messagePattern = "Hello world! Connection#" + i + " Packet#";
-                Future<Connection> future = transport.connect("localhost", PORT);
-                connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
+                final String messagePattern = "Hello world! Connection#" + i + " Packet#";
 
                 final FutureImpl<Integer> clientFuture = SafeFutureImpl.create();
                 FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -654,7 +652,14 @@ public class SSLTest {
 
                 clientFilterChainBuilder.add(clientTestFilter);
 
-                connection.setProcessor(clientFilterChainBuilder.build());
+                SocketConnectorHandler connectorHandler =
+                        TCPNIOConnectorHandler.builder(transport)
+                        .processor(clientFilterChainBuilder.build())
+                        .build();
+                
+                Future<Connection> future = connectorHandler.connect("localhost", PORT);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
 
                 int packetNum = 0;
                 try {
@@ -725,10 +730,6 @@ public class SSLTest {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             final FutureImpl<Boolean> clientFuture = SafeFutureImpl.<Boolean>create();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
@@ -741,7 +742,14 @@ public class SSLTest {
 
             clientFilterChainBuilder.add(clientTestFilter);
 
-            connection.setProcessor(clientFilterChainBuilder.build());
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChainBuilder.build())
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             try {
                 connection.write("start");

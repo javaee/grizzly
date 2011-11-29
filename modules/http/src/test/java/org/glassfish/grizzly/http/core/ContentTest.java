@@ -70,7 +70,9 @@ import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 
 /**
  *
@@ -139,16 +141,20 @@ public class ContentTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());
             FilterChain clientFilterChain = clientFilterChainBuilder.build();
-            connection.setProcessor(clientFilterChain);
+            
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             final HttpHeader patternHeader = patternContentMessages[0].getHttpHeader();
 

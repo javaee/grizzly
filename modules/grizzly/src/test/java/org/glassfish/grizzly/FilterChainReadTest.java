@@ -49,7 +49,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.StringEncoder;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
@@ -62,6 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -125,10 +125,6 @@ public class FilterChainReadTest extends TestCase {
 
             final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
@@ -144,7 +140,15 @@ public class FilterChainReadTest extends TestCase {
             });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             for (int i = 0; i < messageNum; i++) {
                 String clientMessage = "";
@@ -228,10 +232,6 @@ public class FilterChainReadTest extends TestCase {
 
             final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
@@ -247,7 +247,14 @@ public class FilterChainReadTest extends TestCase {
             });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             for (int i = 0; i < messageNum; i++) {
                 String clientMessage = "";
@@ -332,17 +339,20 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             String msg = "Hello";
             Future<WriteResult> writeFuture = connection.write(msg);

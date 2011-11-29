@@ -80,6 +80,25 @@ public final class ArrayUtils {
      * is already present in the array.
      */
     public static <T> T[] addUnique(T[] array, T element) {
+        return addUnique(array, element, true);
+    }
+
+    /**
+     * Add unique element to the array.
+     * @param <T> type of the array element
+     * @param array array
+     * @param element element to add
+     * @param replaceElementIfEquals if passed element is equal to some element
+     *              in the array then depending on this parameter it will be
+     *              replaced or not with the passed element.
+     *
+     * @return array, which will contain the new element. Either new array instance, if
+     * passed array didn't contain the element, or the same array instance, if the element
+     * is already present in the array.
+     */
+    public static <T> T[] addUnique(final T[] array, final T element,
+            final boolean replaceElementIfEquals) {
+        
         final int idx = indexOf(array, element);
         if (idx == -1) {
             final int length = array.length;
@@ -88,7 +107,9 @@ public final class ArrayUtils {
             return newArray;
         }
         
-        array[idx] = element;
+        if (replaceElementIfEquals) {
+            array[idx] = element;
+        }
         
         return array;
     }
