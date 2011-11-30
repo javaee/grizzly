@@ -44,7 +44,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.DataStructures;
 
 import java.io.IOException;

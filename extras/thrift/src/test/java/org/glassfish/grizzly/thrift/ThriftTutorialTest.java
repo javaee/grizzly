@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.thrift;
 
-import java.io.IOException;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -50,37 +48,35 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
-
-import java.util.concurrent.TimeUnit;
-import java.net.InetSocketAddress;
-import java.util.concurrent.Future;
-
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.runners.Parameterized.Parameters;
-
-import java.util.Collection;
-import java.util.Arrays;
-import java.util.logging.Logger;
-
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.SimpleDynamicNIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.junit.runners.Parameterized;
-import org.junit.runner.RunWith;
+
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import shared.SharedStruct;
 import tutorial.Calculator;
 import tutorial.InvalidOperation;
 import tutorial.Operation;
 import tutorial.Work;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.junit.runner.RunWith;
 
 import static org.junit.Assert.*;
 
@@ -125,7 +121,7 @@ public class ThriftTutorialTest {
 
         Connection connection = null;
 
-        // CalculatorHandler class is thrift's tutorial generated code.
+        // CalculatorHandler class is thrift's tutorial code.
         // shared.* and tutorial.*' classes are thrift's generated codes based on shared.thrift and tutorial.thrift files in thrift tutorial.
         final CalculatorHandler handler = new CalculatorHandler();
         final Calculator.Processor tprocessor = new Calculator.Processor(handler);
@@ -169,7 +165,7 @@ public class ThriftTutorialTest {
                         perform(client);
                     } catch (TException te) {
                         logger.warning(te.getMessage());
-                        Assert.fail();
+                        fail();
                     }
                 }
                 connection.close();
@@ -184,7 +180,7 @@ public class ThriftTutorialTest {
         }
     }
 
-    private static void perform(Calculator.Client client) throws TException {
+    private void perform(Calculator.Client client) throws TException {
         client.ping();
         logger.info("ping()");
 
@@ -199,7 +195,7 @@ public class ThriftTutorialTest {
         try {
             int quotient = client.calculate(1, work);
             logger.info("Whoa we can divide by 0");
-            Assert.fail();
+            fail();
         } catch (InvalidOperation io) {
             logger.info("Invalid operation: " + io.why);
         }
@@ -212,7 +208,7 @@ public class ThriftTutorialTest {
             logger.info("15-10=" + diff);
         } catch (InvalidOperation io) {
             logger.warning("Invalid operation: " + io.why);
-            Assert.fail();
+            fail();
         }
 
         SharedStruct log = client.getStruct(1);
