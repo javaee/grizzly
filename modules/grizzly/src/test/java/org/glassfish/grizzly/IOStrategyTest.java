@@ -83,7 +83,7 @@ public class IOStrategyTest {
     private final IOStrategy strategy;
     
     @Parameters
-    public static Collection<Object[]> getLazySslInit() {
+    public static Collection<Object[]> getIOStrategy() {
         return Arrays.asList(new Object[][]{
                     {WorkerThreadIOStrategy.getInstance()},
                     {LeaderFollowerNIOStrategy.getInstance()},
