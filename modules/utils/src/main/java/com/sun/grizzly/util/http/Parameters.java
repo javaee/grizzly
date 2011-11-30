@@ -561,10 +561,10 @@ public final class Parameters {
                             logger.log(Level.SEVERE, sm.getString("parameters.convertBytesFail"), e);
                         }
                     } else {
-                        logger.info(sm.getString("parameters.invalidChunk",
+                        logger.fine(sm.getString("parameters.invalidChunk",
                                 nameStart,
                                 nameEnd,
-                               null));
+                                null));
                     }
                 }
                 continue;
