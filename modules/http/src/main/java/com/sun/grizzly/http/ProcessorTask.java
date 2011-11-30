@@ -720,7 +720,10 @@ public class ProcessorTask extends TaskBase implements Processor,
 
                 final ErrorHandler errorHandler = getErrorHandler();
                 if (errorHandler != null) {
-                    errorHandler.onParsingError(response);
+                    try {
+                        errorHandler.onParsingError(response);
+                    } catch (Exception ingored) {
+                    }
                 }
                 
                 response.flushHeaders();
