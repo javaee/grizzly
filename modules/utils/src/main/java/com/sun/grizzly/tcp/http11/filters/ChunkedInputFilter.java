@@ -233,7 +233,6 @@ public class ChunkedInputFilter implements InputFilter {
     /**
      * Read the content length from the request.
      */
-    @Override
     public void setRequest(Request request) {
         this.request = request;
     }
