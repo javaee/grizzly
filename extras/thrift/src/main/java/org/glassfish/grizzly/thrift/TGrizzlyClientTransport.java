@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ package org.glassfish.grizzly.thrift;
 import org.apache.thrift.transport.TTransportException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.BufferOutputStream;
 
 import java.io.IOException;
@@ -67,7 +67,17 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     public TGrizzlyClientTransport(Connection connection, ThriftClientFilter filter) {
         this.connection = connection;
         this.resultQueue = filter.getResultQueue();
-        this.outputStream = new BufferOutputStream(memoryManager);
+        this.outputStream = new BufferOutputStream(
+                connection.getTransport().getMemoryManager()) {
+
+            @Override
+            protected Buffer allocateNewBuffer(
+                    final MemoryManager memoryManager, final int size) {
+                final Buffer b = memoryManager.allocate(size);
+                b.allowBufferDispose(true);
+                return b;
+            }
+        };
     }
 
     @Override
@@ -91,37 +101,36 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     public void flush() throws TTransportException {
         final Buffer output = outputStream.getBuffer();
         output.trim();
-        Buffer clone = Buffers.cloneBuffer(output);
-        clone.allowBufferDispose(true);
+        outputStream.reset();
+        
         try {
-            connection.write(clone);
+            connection.write(output);
         } catch (IOException ie) {
             throw new TTransportException(ie);
         }
-        output.clear();
     }
 
     @Override
     protected Buffer getInputBuffer() throws TTransportException {
-        Buffer input = this.input;
-        if (input == null) {
+        Buffer localInput = this.input;
+        if (localInput == null) {
             try {
-                input = resultQueue.take();
+                localInput = resultQueue.take();
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new TTransportException(ie);
             }
-        } else if (input.remaining() <= 0) {
-            input.dispose();
+        } else if (localInput.remaining() <= 0) {
+            localInput.dispose();
             try {
-                input = resultQueue.take();
+                localInput = resultQueue.take();
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new TTransportException(ie);
             }
         }
-        this.input = input;
-        return input;
+        this.input = localInput;
+        return localInput;
     }
 
     @Override

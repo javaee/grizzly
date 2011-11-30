@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.thrift;
 
+import java.util.logging.Level;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -94,7 +95,7 @@ public class ThriftTutorialTest {
     private final IOStrategy strategy;
 
     @Parameters
-    public static Collection<Object[]> getLazySslInit() {
+    public static Collection<Object[]> getIOStrategy() {
         return Arrays.asList(new Object[][]{
                 {WorkerThreadIOStrategy.getInstance()},
                 {LeaderFollowerNIOStrategy.getInstance()},
@@ -117,7 +118,7 @@ public class ThriftTutorialTest {
         final int clientsNum = Runtime.getRuntime().availableProcessors();
         final Integer executionNum = 2;
 
-        logger.info("** IOStrategy = " + strategy + ", clientsNum = " + clientsNum + ", executionNum = " + executionNum);
+        logger.log(Level.INFO, "** IOStrategy = {0}, clientsNum = {1}, executionNum = {2}", new Object[]{strategy, clientsNum, executionNum});
 
         Connection connection = null;
 
@@ -185,7 +186,7 @@ public class ThriftTutorialTest {
         logger.info("ping()");
 
         int sum = client.add(1, 1);
-        logger.info("1+1=" + sum);
+        logger.log(Level.INFO, "1+1={0}", sum);
 
         Work work = new Work();
 
@@ -197,7 +198,7 @@ public class ThriftTutorialTest {
             logger.info("Whoa we can divide by 0");
             fail();
         } catch (InvalidOperation io) {
-            logger.info("Invalid operation: " + io.why);
+            logger.log(Level.INFO, "Invalid operation: {0}", io.why);
         }
 
         work.op = Operation.SUBTRACT;
@@ -205,13 +206,13 @@ public class ThriftTutorialTest {
         work.num2 = 10;
         try {
             int diff = client.calculate(1, work);
-            logger.info("15-10=" + diff);
+            logger.log(Level.INFO, "15-10={0}", diff);
         } catch (InvalidOperation io) {
-            logger.warning("Invalid operation: " + io.why);
+            logger.log(Level.WARNING, "Invalid operation: {0}", io.why);
             fail();
         }
 
         SharedStruct log = client.getStruct(1);
-        logger.info("Check log: " + log.value);
+        logger.log(Level.INFO, "Check log: {0}", log.value);
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,7 +79,6 @@ import java.io.IOException;
  */
 public class ThriftServerFilter extends BaseFilter {
 
-    private static final MemoryManager memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
     private static final int THRIFT_DEFAULT_RESPONSE_BUFFER_SIZE = 4096;
 
     private final TProcessor processor;
@@ -124,11 +123,13 @@ public class ThriftServerFilter extends BaseFilter {
         if (!input.hasRemaining()) {
             return ctx.getStopAction();
         }
-
+        
+        final MemoryManager memoryManager = ctx.getMemoryManager();
         final Buffer output = memoryManager.allocate(responseSize);
         output.allowBufferDispose(true);
 
-        final TProtocol protocol = protocolFactory.getProtocol(new TGrizzlyServerTransport(input, output));
+        final TProtocol protocol = protocolFactory.getProtocol(
+                new TGrizzlyServerTransport(memoryManager, input, output));
         try {
             processor.process(protocol, protocol);
         } catch (TException te) {
