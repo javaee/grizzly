@@ -183,6 +183,17 @@ public class BufferOutputStream extends OutputStream {
         // no-op
     }
 
+    public void reset() {
+        currentBuffer = null;
+        compositeBuffer = null;
+    }
+    
+    // --------------------------------------------------------- Protected Methods
+    
+    protected Buffer allocateNewBuffer(final MemoryManager memoryManager,
+            final int size) {
+        return memoryManager.allocate(size);
+    }
 
     // --------------------------------------------------------- Private Methods
 
@@ -190,7 +201,7 @@ public class BufferOutputStream extends OutputStream {
     @SuppressWarnings({"unchecked"})
     private void ensureCapacity(final int len) {
         if (currentBuffer == null) {
-            currentBuffer = mm.allocate(Math.max(BUFFER_SIZE, len));
+            currentBuffer = allocateNewBuffer(mm, Math.max(BUFFER_SIZE, len));
         } else if (currentBuffer.remaining() < len) {
             if (reallocate) {
                 currentBuffer = mm.reallocate(currentBuffer, Math.max(
@@ -198,7 +209,7 @@ public class BufferOutputStream extends OutputStream {
                     (currentBuffer.capacity() * 3) / 2 + 1));
             } else {
                 flushCurrent();
-                currentBuffer = mm.allocate(Math.max(BUFFER_SIZE, len));
+                currentBuffer = allocateNewBuffer(mm, Math.max(BUFFER_SIZE, len));
             }
         }
     }
