@@ -224,6 +224,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * the current request payload and prepare input to process next request.
      */
     protected long maxSwallowingInputBytes = -1;
+
+    protected int maxTrailerSize = Constants.DEFAULT_MAX_TRAILER_SIZE;
     
     /**
      * Size of the ByteBuffer used to store the bytes before flushing.
@@ -1049,6 +1051,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setDefaultResponseType(defaultResponseType);
         task.setForcedRequestType(forcedRequestType);
         task.setMaxPostSize(maxPostSize);
+        task.setMaxTrailerSize(maxTrailerSize);
         task.setTimeout(uploadTimeout);
         task.setDisableUploadTimeout(disableUploadTimeout);
         task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
@@ -2351,6 +2354,15 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         this.maxPostSize = maxPostSize;
     }
       
+
+    public int getMaxTrailerSize() {
+        return maxTrailerSize;
+    }
+
+    
+    public void setMaxTrailerSize(int maxTrailerSize) {
+        this.maxTrailerSize = maxTrailerSize;
+    }
     /**
      * Get the max number of bytes Grizzly will try to swallow in order
      * to read off from the current request payload and prepare input to

@@ -136,6 +136,11 @@ public final class Constants {
      * Default queue in bytes size.
      */
     public final static int DEFAULT_QUEUE_SIZE = 4096;
+
+    /**
+     * Default max trailer size.
+     */
+    public final static int DEFAULT_MAX_TRAILER_SIZE = 8192;
     
 
     // -------------------------------------------------------------- Constants

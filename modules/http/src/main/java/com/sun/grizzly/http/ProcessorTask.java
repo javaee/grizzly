@@ -288,6 +288,12 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
+     * Max trailer size.
+     */
+    protected int maxTrailerSize = Constants.DEFAULT_MAX_TRAILER_SIZE;
+
+
+    /**
      * Host name (used to avoid useless B2C conversion on the host name).
      */
     protected char[] hostNameC = new char[0];
@@ -1740,7 +1746,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         outputBuffer.addFilter(new IdentityOutputFilter());
 
         // Create and add the chunked filters.
-        inputBuffer.addFilter(new ChunkedInputFilter());
+        inputBuffer.addFilter(new ChunkedInputFilter(maxTrailerSize));
         outputBuffer.addFilter(new ChunkedOutputFilter());
 
         // Create and add the void filters.
@@ -1888,6 +1894,21 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public int getMaxPostSize() {
         return maxPostSize;
+    }
+
+
+    /**
+     * Set the maximum size of a trailer header.
+     */
+    public void setMaxTrailerSize(int mts) {
+        maxTrailerSize = mts;
+    }
+
+    /**
+     * Return the maximum size of a trailer header.
+     */
+    public int getMaxTrailerSize() {
+        return maxTrailerSize;
     }
 
 
