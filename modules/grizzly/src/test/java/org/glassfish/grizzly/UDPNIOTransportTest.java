@@ -48,11 +48,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.UDPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.EchoFilter;
 
 /**
@@ -408,4 +411,17 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.stop();
         }
     }
+    public void testWorkerThreadPoolConfiguration() throws Exception {
+            UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
+            ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+            config.setCorePoolSize(1);
+            config.setMaxPoolSize(1);
+            config.setPoolName("custom");
+            t.setWorkerThreadPoolConfig(config);
+            t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
+            ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
+            assertEquals(1, underTest.getCorePoolSize());
+            assertEquals(1, underTest.getMaxPoolSize());
+            assertEquals("custom", underTest.getPoolName());
+        }
 }
