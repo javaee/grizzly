@@ -81,19 +81,19 @@ public class ProcessorResult {
         return LEAVE_RESULT;
     }
 
-    public static ProcessorResult createReregister() {
-        return REREGISTER_RESULT;
+    public static ProcessorResult createReregister(final Context context) {
+        return create().setStatus(Status.REREGISTER).setData(context);
     }
 
     public static ProcessorResult createError() {
         return ERROR_RESULT;
     }
 
-    public static ProcessorResult createError(Object description) {
+    public static ProcessorResult createError(final Object description) {
         return create().setStatus(Status.ERROR).setData(description);
     }
 
-    public static ProcessorResult createRerun(Context context) {
+    public static ProcessorResult createRerun(final Context context) {
         return create().setStatus(Status.RERUN).setData(context);
     }
 

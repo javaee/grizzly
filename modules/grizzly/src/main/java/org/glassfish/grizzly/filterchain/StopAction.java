@@ -88,4 +88,9 @@ final class StopAction extends AbstractNextAction {
         this.remainder = remainder;
         this.appender = appender;
     }
+
+    void reset() {
+        remainder = null;
+        appender = null;
+    }
 }

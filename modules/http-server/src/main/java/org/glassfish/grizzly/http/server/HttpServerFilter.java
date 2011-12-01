@@ -176,13 +176,8 @@ public class HttpServerFilter extends BaseFilter
                 } finally {
                     if (!suspendStatus.get()) {
                         afterService(connection, handlerRequest, handlerResponse);
-                    }
-                    else {
-//                        if (handlerRequest.asyncInput()) {
-//                            return ctx.getSuspendingStopAction();
-//                        } else {
-                            return ctx.getSuspendAction();
-//                        }
+                    } else {
+                        return ctx.getSuspendAction();
                     }
                 }
             } else {
@@ -217,6 +212,7 @@ public class HttpServerFilter extends BaseFilter
         } else { // this code will be run, when we resume the context
             if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
                 // Do we want to reregister OP_READ to get more data async?
+                ctx.suspend();
                 return ctx.getSuspendingStopAction();
             } else {
                 // We're finishing the request processing

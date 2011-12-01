@@ -72,4 +72,8 @@ final class InvokeAction extends AbstractNextAction {
     public void setRemainder(Object remainder) {
         this.remainder = remainder;
     }
+
+    void reset() {
+        remainder = null;
+    }
 }
