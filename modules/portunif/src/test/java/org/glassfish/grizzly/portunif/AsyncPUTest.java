@@ -107,7 +107,7 @@ public class AsyncPUTest {
     }
     
     @Test
-    public void suspendingStopActionTest() throws Exception {
+    public void asyncTest() throws Exception {
         final String[] protocols = {"X", "Y", "Z"};
 
         Connection connection = null;
@@ -163,14 +163,25 @@ public class AsyncPUTest {
     }
 
     @Test
-    public void suspendingStopAction2Test() throws Exception {
+    public void asyncWithRemainderTest() throws Exception {
+        doAsyncWithRemainder(500, 0);
+    }
+
+    @Test
+    public void asyncWithRemainder2Test() throws Exception {
+        doAsyncWithRemainder(0, 500);
+    }
+
+    private void doAsyncWithRemainder(final long scheduleDelayMillis,
+            long exitDelayMillis) throws Exception {
         final String[] protocols = {"X", "Y", "Z"};
 
         Connection connection = null;
 
         final PUFilter puFilter = new PUFilter();
         for (final String protocol : protocols) {
-            puFilter.register(createProtocol2(puFilter, protocol, 2));
+            puFilter.register(createProtocol2(puFilter, protocol, 2,
+                    scheduleDelayMillis, exitDelayMillis));
         }
 
         FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
@@ -218,22 +229,21 @@ public class AsyncPUTest {
         }
     }
 
-    // --------------------------------------------------------- Private Methods
-
-
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
         final FilterChain chain = puFilter.getPUFilterChainBuilder()
-                .add(new SimpleResponseFilter(name))
+                .add(new SimpleResponseFilter(name, 500, 0))
                 .build();
         
         return new PUProtocol(new SimpleProtocolFinder(name), chain);
     }
 
     private PUProtocol createProtocol2(final PUFilter puFilter, final String name,
-            final int duplications) {
+            final int duplications,
+            final long scheduleDelayMillis, long exitDelayMillis) {
         final FilterChain chain = puFilter.getPUFilterChainBuilder()
                 .add(new StringDuplicatorFilter(duplications))
-                .add(new SimpleResponseFilter(name))
+                .add(new SimpleResponseFilter(name,
+                        scheduleDelayMillis, exitDelayMillis))
                 .build();
         
         return new PUProtocol(new SimpleProtocolFinder(name), chain);
@@ -255,15 +265,23 @@ public class AsyncPUTest {
         }
     }
 
-    private static final class SimpleResponseFilter extends BaseFilter {        
+    private static final class SimpleResponseFilter extends BaseFilter {
         private final String name;
 
-        public SimpleResponseFilter(String name) {
+        private final long scheduleDelayMillis;
+        private final long exitDelayMillis;
+
+        public SimpleResponseFilter(String name, long scheduleDelayMillis, long exitDelayMillis) {
             this.name = name;
+            this.scheduleDelayMillis = scheduleDelayMillis;
+            this.exitDelayMillis = exitDelayMillis;
         }
         
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            ctx.suspend();
+            final NextAction suspendingStopAction = ctx.getSuspendingStopAction();
+            
             tp.schedule(new Runnable() {
                 @Override
                 public void run() {
@@ -273,11 +291,16 @@ public class AsyncPUTest {
                         LOGGER.log(Level.SEVERE, "Error", e);
                     }
                     
-//                    ctx.completeAndRecycle();
+                    ctx.completeAndRecycle();
                 }
-            }, 1, TimeUnit.SECONDS);
-
-            return ctx.getSuspendingStopAction();
+            }, scheduleDelayMillis, TimeUnit.MILLISECONDS);
+            
+            try {
+                Thread.sleep(exitDelayMillis);
+            } catch (InterruptedException ignored) {
+            }
+            
+            return suspendingStopAction;
         }
     }
 

@@ -57,6 +57,7 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainContext.CopyListener;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
@@ -69,13 +70,15 @@ import org.glassfish.grizzly.utils.ArraySet;
 public class PUFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(PUFilter.class);
 
+    private final SuspendedContextCopyListener suspendedContextCopyListener =
+            new SuspendedContextCopyListener();
+    
     private final BackChannelFilter backChannelFilter =
             new BackChannelFilter(this);
     private final ArraySet<PUProtocol> protocols =
             new ArraySet<PUProtocol>(PUProtocol.class);
     
     final Attribute<PUContext> puContextAttribute;
-//    final Attribute<Boolean> isProcessingAttribute;
     final Attribute<NextAction> terminateNextActionAttribute;
     final Attribute<FilterChainContext> suspendedContextAttribute;
 
@@ -83,9 +86,6 @@ public class PUFilter extends BaseFilter {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
-//        isProcessingAttribute =
-//                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-//                PUFilter.class.getName() + '-' + hashCode() + ".isProcessing");
         terminateNextActionAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 PUFilter.class.getName() + '-' + hashCode() + ".terminateNextActionAttribute");
@@ -206,19 +206,17 @@ public class PUFilter extends BaseFilter {
             
             terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
-            final FilterChain filterChain = protocol.getFilterChain();
-
             final FilterChainContext filterChainContext =
-                    filterChain.obtainFilterChainContext(connection);
-            final Context context = filterChainContext.getInternalContext();
-            context.setIoEvent(IOEvent.READ);
-            context.setProcessingHandler(new InternalProcessingHandler(ctx));
-            filterChainContext.setAddress(ctx.getAddress());
-            filterChainContext.setMessage(ctx.getMessage());
-            suspendedContextAttribute.set(context, ctx);
-            ProcessorExecutor.execute(context);
+                    obtainChildFilterChainContext(protocol, connection, ctx);
+            
+            filterChainContext.addCopyListener(suspendedContextCopyListener);
+            suspendedContextAttribute.set(filterChainContext, ctx);
+            
+            final NextAction suspendAction = ctx.getSuspendAction();
+            ctx.suspend();
+            ProcessorExecutor.execute(filterChainContext.getInternalContext());
 
-            return ctx.getSuspendAction();
+            return suspendAction;
         }
 
         // no matching protocols within the set of known protocols were found,
@@ -230,6 +228,22 @@ public class PUFilter extends BaseFilter {
         // one or more protocols need more data, stop processing until
         // it becomes available to check again
         return ctx.getStopAction(ctx.getMessage());
+    }
+
+    private FilterChainContext obtainChildFilterChainContext(
+            final PUProtocol protocol,
+            final Connection connection,
+            final FilterChainContext ctx) {
+        
+        final FilterChain filterChain = protocol.getFilterChain();        
+        final FilterChainContext filterChainContext =
+                filterChain.obtainFilterChainContext(connection);
+        final Context context = filterChainContext.getInternalContext();
+        context.setIoEvent(IOEvent.READ);
+        context.setProcessingHandler(new InternalProcessingHandler(ctx));
+        filterChainContext.setAddress(ctx.getAddress());
+        filterChainContext.setMessage(ctx.getMessage());
+        return filterChainContext;
     }
 
     @Override
@@ -252,9 +266,12 @@ public class PUFilter extends BaseFilter {
                 context.setEndIdx(filterChain.size());
 
                 suspendedContextAttribute.set(context, ctx);
+                ctx.suspend();
+                final NextAction suspendAction = ctx.getSuspendAction();
+                
                 context.notifyUpstream(event, new InternalCompletionHandler(ctx));
                 
-                return ctx.getSuspendAction();
+                return suspendAction;
             }
         }
 
@@ -308,13 +325,13 @@ public class PUFilter extends BaseFilter {
         
         @Override
         public void onReregister(final Context context) throws IOException {
-            FilterChainContext suspendedContext =
+            final FilterChainContext suspendedContext =
                     suspendedContextAttribute.get(context);
 
             assert suspendedContext != null;
             
-            terminateNextActionAttribute.set(parentContext,
-                    parentContext.getSuspendingStopAction());
+            terminateNextActionAttribute.set(suspendedContext,
+                    suspendedContext.getSuspendingStopAction());
             
             suspendedContext.resume();
         }
@@ -322,7 +339,7 @@ public class PUFilter extends BaseFilter {
         @Override
         public void onComplete(final Context context, final Object data)
                 throws IOException {
-            FilterChainContext suspendedContext =
+            final FilterChainContext suspendedContext =
                     suspendedContextAttribute.remove(context);
 
             assert suspendedContext != null;
@@ -332,16 +349,6 @@ public class PUFilter extends BaseFilter {
             
             suspendedContext.resume();
         }
-
-        @Override
-        public void onRerun(final Context context, final Context newContext)
-                throws IOException {
-            if (!suspendedContextAttribute.isSet(newContext)) {
-                suspendedContextAttribute.set(newContext, parentContext.copy());
-            }
-        }
-        
-        
     }
 
     private static class InternalCompletionHandler implements
@@ -372,5 +379,18 @@ public class PUFilter extends BaseFilter {
         public void updated(FilterChainContext result) {
         }
 
+    }
+    
+    private class SuspendedContextCopyListener implements CopyListener {
+
+        @Override
+        public void onCopy(final FilterChainContext srcContext,
+                final FilterChainContext copiedContext) {
+            final FilterChainContext suspendedContextCopy =
+                    suspendedContextAttribute.get(srcContext).copy();
+            suspendedContextAttribute.set(copiedContext, suspendedContextCopy);
+            copiedContext.addCopyListener(this);
+        }
+        
     }
 }

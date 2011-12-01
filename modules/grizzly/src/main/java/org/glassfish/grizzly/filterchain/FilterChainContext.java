@@ -118,11 +118,6 @@ public final class FilterChainContext implements AttributeStorage {
      */
     private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
 
-    /**
-     * Cached {@link NextAction} instance for "Suspending stop action" implementation
-     */
-    private static final NextAction SUSPENDING_STOP_ACTION = new SuspendingStopAction();
-
     final InternalContextImpl internalContext = new InternalContextImpl(this);
 
     final TransportContext transportFilterContext = new TransportContext();
@@ -179,12 +174,15 @@ public final class FilterChainContext implements AttributeStorage {
     private int endIdx;
 
     private final StopAction cachedStopAction = new StopAction();
-
+    
     private final InvokeAction cachedInvokeAction = new InvokeAction();
 
     private final List<CompletionListener> completionListeners =
             new ArrayList<CompletionListener>(2);
 
+    private final List<CopyListener> copyListeners =
+            new ArrayList<CopyListener>(2);
+    
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
 
@@ -422,7 +420,11 @@ public final class FilterChainContext implements AttributeStorage {
      * as instructed by {@link StopAction} with a clean {@link FilterChainContext}.
      */
     public NextAction getSuspendingStopAction() {
-        return SUSPENDING_STOP_ACTION;
+        final FilterChainContext contextCopy = copy();
+        // Copy doesn't copy address
+        contextCopy.setAddress(address);
+        
+        return new SuspendingStopAction(contextCopy);
     }
 
 
@@ -724,6 +726,28 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
+     * Add the {@link CopyListener}, which will be notified, right after
+     * this {@link FilterChainContext#copy()} is called.
+     *
+     * @param listener the {@link CopyListener}, which will be notified, right
+     * after this {@link FilterChainContext#copy()} is called.
+     */
+    public final void addCopyListener(final CopyListener listener) {
+        copyListeners.add(listener);
+    }
+
+    /**
+     * Remove the {@link CopyListener}.
+     *
+     * @param listener the {@link CopyListener} to be removed.
+     * @return <tt>true</tt>, if the listener was removed from the list, or
+     *          <tt>false</tt>, if the listener wasn't on the list.
+     */
+    public final boolean removeCopyListener(final CopyListener listener) {
+        return copyListeners.remove(listener);
+    }
+    
+    /**
      * <p>A simple alias for <code>FilterChainContext.getConnection().getTransport().getMemoryManager()</code>.
      *
      * @return the {@link MemoryManager} associated with the {@link Connection}
@@ -745,6 +769,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setEndIdx(getEndIdx());
         newContext.setFilterIdx(getFilterIdx());
 
+        notifyCopy(this, newContext, copyListeners);
         return newContext;        
     }
     
@@ -752,6 +777,8 @@ public final class FilterChainContext implements AttributeStorage {
      * Release the context associated resources.
      */
     public void reset() {
+        cachedInvokeAction.reset();
+        cachedStopAction.reset();
         message = null;
         event = null;
         address = null;
@@ -763,10 +790,11 @@ public final class FilterChainContext implements AttributeStorage {
         operation = Operation.NONE;
         internalContext.reset();
         transportFilterContext.reset();
+        copyListeners.clear();
     }
 
     public void completeAndRecycle() {
-        notifyComplete();
+        notifyComplete(this, completionListeners);
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -841,12 +869,26 @@ public final class FilterChainContext implements AttributeStorage {
         }
     }
 
-    void notifyComplete() {
+    static void notifyComplete(
+            final FilterChainContext context,
+            final List<CompletionListener> completionListeners) {
         final int size = completionListeners.size();
         for (int i = size - 1; i >= 0; i--) {
-            completionListeners.remove(i).onComplete(this);
+            completionListeners.remove(i).onComplete(context);
         }
     }
+    
+    static void notifyCopy(
+            final FilterChainContext srcContext,
+            final FilterChainContext copiedContext,
+            final List<CopyListener> copyListeners) {
+        
+        final int size = copyListeners.size();
+        for (int i = 0; i < size; i++) {
+            copyListeners.get(i).onCopy(srcContext, copiedContext);
+        }
+    }
+    
     /**
      * The interface, which represents a listener, which will be notified,
      * once {@link FilterChainContext} processing is complete.
@@ -862,4 +904,21 @@ public final class FilterChainContext implements AttributeStorage {
          */
         public void onComplete(FilterChainContext context);
     }
+    /**
+     * The interface, which represents a listener, which will be notified,
+     * after {@link FilterChainContext#copy()} is called.
+     *
+     * @see #addCopyListener(org.glassfish.grizzly.filterchain.FilterChainContext.CopyListener)
+     */
+    public interface CopyListener {
+        /**
+         * The method is called, when passed {@link FilterChainContext}
+         * is copied.
+         * 
+         * @param srcContext source Context
+         * @param dstContext copied Context
+         */
+        public void onCopy(FilterChainContext srcContext,
+                FilterChainContext copiedContext);
+    }    
 }

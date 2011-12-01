@@ -48,13 +48,18 @@ final class SuspendingStopAction extends AbstractNextAction {
     static final int TYPE = 5;
 
 
+    private final FilterChainContext context;
     // ------------------------------------------------------------ Constructors
 
     
-    protected SuspendingStopAction() {
+    SuspendingStopAction(final FilterChainContext context) {
 
         super(TYPE);
+        this.context = context;
 
     }
 
+    FilterChainContext getContext() {
+        return context;
+    }
 }

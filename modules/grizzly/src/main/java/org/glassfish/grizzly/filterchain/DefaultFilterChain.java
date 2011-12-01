@@ -82,19 +82,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     public enum FILTER_STATE_TYPE {
         INCOMPLETE, REMAINDER
     }
-
-    public enum FilterExecution {
-        CONTINUE,
-        REEXECUTE,
-        TERMINATE
-    }
     
     private final FiltersStateFactory filtersStateFactory =
             new FiltersStateFactory();
-//    protected final Attribute<FiltersState> FILTERS_STATE_ATTR =
-//            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-//            DefaultFilterChain.class.getName() + '-' +
-//            System.identityHashCode(this) + ".connection-state");
     
     /**
      * Logger
@@ -154,18 +144,20 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
         try {
             do {
-                switch (executeChainPart(ctx, executor, ctx.getFilterIdx(), end,
-                        filtersState)) {
-                    case TERMINATE:
+                final FilterExecution execution = executeChainPart(ctx,
+                        executor, ctx.getFilterIdx(), end, filtersState);
+                switch (execution.type) {
+                    case FilterExecution.TERMINATE_TYPE:
                         return ProcessorResult.createTerminate();
-                    case REEXECUTE:
+                    case FilterExecution.REEXECUTE_TYPE:
+                        ctx = execution.getContext();
+                        
                         final int idx = indexOfRemainder(
                                 filtersState,
                                 ctx.getOperation(), ctx.getStartIdx(), end);
                         if (idx != -1) {
                             // if there is a remainder associated with the connection
                             // rerun the filter chain with the new context right away
-                            ctx = ctx.copy();
                             ctx.setMessage(null);
                             ctx.setFilterIdx(idx);
                             return ProcessorResult.createRerun(ctx.internalContext);
@@ -173,7 +165,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
                         // reregister to listen for next operation,
                         // keeping the current Context
-                        return ProcessorResult.createReregister();
+                        return ProcessorResult.createReregister(ctx.internalContext);
                 }
             } while (prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
@@ -208,8 +200,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final int end,
             final FiltersState filtersState)
             throws IOException {
-
-        final Connection connection = ctx.getConnection();
 
         int i = start;
 
@@ -255,13 +245,15 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                              stopAction.getAppender());
                 break;
             case SuspendingStopAction.TYPE:
-                ctx.suspend();
-                return FilterExecution.REEXECUTE;
+                final SuspendingStopAction suspendingStopAction =
+                        (SuspendingStopAction) lastNextAction;
+                return FilterExecution.createReExecute(
+                        suspendingStopAction.getContext());
             case SuspendAction.TYPE: // on suspend - return immediatelly
-                return FilterExecution.TERMINATE;
+                return FilterExecution.createTerminate();
         }
 
-        return FilterExecution.CONTINUE;
+        return FilterExecution.createContinue();
     }
     
     /**
@@ -743,11 +735,52 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
     
-    private final class FiltersStateFactory implements NullaryFunction<FiltersState> {
+    private final class FiltersStateFactory implements
+            NullaryFunction<FiltersState> {
 
         @Override
         public FiltersState evaluate() {
             return new FiltersState(size());
         }        
+    }
+    
+    private static final class FilterExecution {
+        private static final int CONTINUE_TYPE = 0;
+        private static final int TERMINATE_TYPE = 1;
+        private static final int REEXECUTE_TYPE = 2;
+        
+        private static final FilterExecution CONTINUE =
+                new FilterExecution(CONTINUE_TYPE, null);
+        
+        private static final FilterExecution TERMINATE =
+                new FilterExecution(TERMINATE_TYPE, null);
+        
+        private final int type;
+        private final FilterChainContext context;
+        
+        public static FilterExecution createContinue() {
+            return CONTINUE;
+        }
+
+        public static FilterExecution createTerminate() {
+            return TERMINATE;
+        }
+        
+        public static FilterExecution createReExecute(final FilterChainContext context) {
+            return new FilterExecution(REEXECUTE_TYPE, context);
+        }
+
+        public FilterExecution(final int type, final FilterChainContext context) {
+            this.type = type;
+            this.context = context;
+        }
+
+        public int getType() {
+            return type;
+        }
+        
+        public FilterChainContext getContext() {
+            return context;
+        }
     }
 }

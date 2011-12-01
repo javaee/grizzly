@@ -99,7 +99,7 @@ public final class ProcessorExecutor {
                 return false;
 
             case REREGISTER:
-                reregister(context);
+                reregister(context, result.getData());
                 return true;
 
             case ERROR:
@@ -146,12 +146,21 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void reregister(final Context context) throws IOException {
+    private static void reregister(final Context context, final Object data)
+            throws IOException {
+        
+        // "Context context" was suspended, so we reregister with its copy
+        // which is passed as "Object data"
+        final Context realContext = (Context) data;
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
-        
-        if (processingHandler != null) {
-            processingHandler.onReregister(context);
+
+        try {
+            if (processingHandler != null) {
+                processingHandler.onReregister(realContext);
+            }
+        } finally {
+            realContext.recycle();
         }
     }
 
