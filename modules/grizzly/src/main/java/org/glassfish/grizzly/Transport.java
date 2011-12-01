@@ -238,10 +238,6 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link IOStrategy} is responsible for choosing the way, how I/O event
      * will be processed: using current {@link Thread}, worker {@link Thread};
      * or make any other decisions.
-     * 
-     * Note that as a side effect of calling this method, the worker thread pool
-     * configuration will be updated based on the defaults provided by
-     * {@link IOStrategy#createDefaultWorkerPoolConfig(Transport)}.
      *
      * @param IOStrategy the {@link IOStrategy} implementation, which will be used
      * by {@link Transport} to process {@link IOEvent}.

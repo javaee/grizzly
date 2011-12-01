@@ -59,8 +59,10 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.EchoFilter;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -711,6 +713,20 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             transport.stop();
         }
+    }
+    
+    public void testWorkerThreadPoolConfiguration() throws Exception {
+        TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
+        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        config.setCorePoolSize(1);
+        config.setMaxPoolSize(1);
+        config.setPoolName("custom");
+        t.setWorkerThreadPoolConfig(config);
+        t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
+        ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
+        assertEquals(1, underTest.getCorePoolSize());
+        assertEquals(1, underTest.getMaxPoolSize());
+        assertEquals("custom", underTest.getPoolName());
     }
 
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
