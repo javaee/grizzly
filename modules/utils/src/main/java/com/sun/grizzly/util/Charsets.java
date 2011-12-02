@@ -41,6 +41,9 @@
 package com.sun.grizzly.util;
 
 import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -49,6 +52,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Alexey Stashok
  */
 public final class Charsets {
+    static {
+        if (Boolean.getBoolean(Charsets.class.getName() + ".preloadAllCharsets")) {
+            preloadAllCharsets();
+        }
+    }
+    
     public static final String DEFAULT_CHARACTER_ENCODING = "ISO-8859-1";
 
     private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
@@ -58,6 +67,8 @@ public final class Charsets {
     public static final Charset UTF8_CHARSET = lookupCharset("UTF-8");
     public static final Charset DEFAULT_CHARSET = lookupCharset(DEFAULT_CHARACTER_ENCODING);
 
+    private static volatile boolean areCharsetsPreloaded;
+    
     /**
      * Lookup a {@link Charset} by name.
      * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
@@ -66,14 +77,53 @@ public final class Charsets {
      * @return {@link Charset}
      */
     public static Charset lookupCharset(final String charsetName) {
-        Charset charset = charsetAliasMap.get(charsetName);
+        final String charsetLowerCase = charsetName.toLowerCase(Locale.US);
+        
+        Charset charset = charsetAliasMap.get(charsetLowerCase);
         if (charset == null) {
-            final Charset newCharset = Charset.forName(charsetName);
-            final Charset prevCharset = charsetAliasMap.putIfAbsent(charsetName, newCharset);
+            if (areCharsetsPreloaded) {
+                // if all charsets are preloaded - throw Exception right away
+                throw new UnsupportedCharsetException(charsetName);
+            }
+            
+            final Charset newCharset = Charset.forName(charsetLowerCase);
+            final Charset prevCharset =
+                    charsetAliasMap.putIfAbsent(charsetLowerCase, newCharset);
             
             charset = prevCharset == null ? newCharset : prevCharset;
         }
 
         return charset;
     }
+    
+    /**
+     * Preloads all JVM available {@link Charset}s, which makes charset search
+     * faster (for memory cost), especially non-existed charsets, because it
+     * lets us avoid pretty expensive {@link Charset#forName(java.lang.String)}
+     * call.
+     */
+    public static void preloadAllCharsets() {
+        synchronized (charsetAliasMap) {
+            final Map<String, Charset> charsetsMap = Charset.availableCharsets();
+            for (Charset charset : charsetsMap.values()) {
+                charsetAliasMap.put(
+                        charset.name().toLowerCase(Locale.US), charset);
+                for (String alias : charset.aliases()) {
+                    charsetAliasMap.put(alias.toLowerCase(Locale.US), charset);
+                }
+            }
+            
+            areCharsetsPreloaded = true;
+        }
+    }
+    
+    /**
+     * Removes all the charsets preloaded before.
+     */
+    public static void drainAllCharsets() {
+        synchronized (charsetAliasMap) {
+            areCharsetsPreloaded = false;
+            charsetAliasMap.clear();
+        }
+    }        
 }
