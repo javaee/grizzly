@@ -41,13 +41,14 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.server.AddOn;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 public class WebSocketServer {
+    private static final Logger logger = Grizzly.logger(WebSocketServer.class);
     private static final Object SYNC = new Object();
     private HttpServer httpServer;
 
@@ -56,13 +57,7 @@ public class WebSocketServer {
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.registerAddOn(new AddOn() {
-                @Override
-                public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-                    int idx = builder.indexOfType(HttpServerFilter.class);
-                    builder.add(idx, new WebSocketFilter());
-                }
-            });
+            networkListener.registerAddOn(new WebSocketAddOn());
         }
     }
 

@@ -136,7 +136,7 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-websockets-addon</artifactId>
+            <artifactId>grizzly-websockets</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

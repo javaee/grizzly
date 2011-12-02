@@ -120,7 +120,6 @@
         <module>http-servlet</module>
         <module>comet</module>
         <module>websockets</module>
-        <module>websockets-addon</module>
         <module>portunif</module>
         <module>http-ajp</module>
         <module>config</module>
