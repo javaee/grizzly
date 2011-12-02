@@ -119,10 +119,10 @@ public final class Charsets {
     }
     
     /**
-     * Preloads all JVM available {@link Charset}s, which makes charset search
-     * faster (for memory cost), especially non-existed charsets, because it
-     * lets us avoid pretty expensive {@link Charset#forName(java.lang.String)}
-     * call.
+     * Preloads all {@link Charset}s available to the JMV, which makes charset
+     * searching faster (at the cost of memory).  The speed gain is most noticable
+     * in the case of non-existing charsets as it allows us to avoid an expensive
+     * call to {@link Charset#forName(java.lang.String)}.
      */
     public static void preloadAllCharsets() {
         synchronized (charsetAliasMap) {
@@ -140,7 +140,7 @@ public final class Charsets {
     }
     
     /**
-     * Removes all the charsets preloaded before.
+     * Remove all preloaded charsets.
      */
     public static void drainAllCharsets() {
         synchronized (charsetAliasMap) {
@@ -151,9 +151,8 @@ public final class Charsets {
     
     /**
      * Return the {@link Charset}'s {@link CharsetDecoder}.
-     * <tt>Charsets</tt> class maintains the {@link CharsetDecoder} thread-local
-     * cache, so be accurate with the returned {@link CharsetDecoder}, it shouldn't
-     * be used in other threads.
+     * The <tt>Charsets</tt> class maintains the {@link CharsetDecoder} thread-local
+     * cache.  Be aware - this shouldn't be used by multiple threads.
      * 
      * @param charset {@link Charset}.
      * @return the {@link Charset}'s {@link CharsetDecoder}.
@@ -171,9 +170,8 @@ public final class Charsets {
     
     /**
      * Return the {@link Charset}'s {@link CharsetEncoder}.
-     * <tt>Charsets</tt> class maintains the {@link CharsetEncoder} thread-local
-     * cache, so be accurate with the returned {@link CharsetEncoder}, it shouldn't
-     * be used in other threads.
+     * The <tt>Charsets</tt> class maintains the {@link CharsetEncoder} thread-local
+     * cache.  Be aware - this shouldn't be used by multiple threads.
      * 
      * @param charset {@link Charset}.
      * @return the {@link Charset}'s {@link CharsetEncoder}.
