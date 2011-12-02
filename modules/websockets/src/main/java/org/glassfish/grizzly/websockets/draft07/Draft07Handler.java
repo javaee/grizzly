@@ -261,12 +261,12 @@ public class Draft07Handler extends ProtocolHandler {
     }
 
     @Override
-    protected HandShake createHandShake(HttpContent requestContent) {
+    public HandShake createHandShake(HttpContent requestContent) {
         return new HandShake07((HttpRequestPacket) requestContent.getHttpHeader());
     }
 
     @Override
-    protected HandShake createHandShake(URI uri) {
+    public HandShake createHandShake(URI uri) {
         return new HandShake07(uri);
     }
     

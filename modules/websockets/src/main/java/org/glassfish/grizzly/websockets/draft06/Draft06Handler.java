@@ -71,12 +71,12 @@ public class Draft06Handler extends ProtocolHandler {
     }
 
     @Override
-    protected HandShake createHandShake(HttpContent requestContent) {
+    public HandShake createHandShake(HttpContent requestContent) {
         return new HandShake06((HttpRequestPacket) requestContent.getHttpHeader());
     }
 
     @Override
-    protected HandShake createHandShake(URI uri) {
+    public HandShake createHandShake(URI uri) {
         return new HandShake06(uri);
     }
 

@@ -226,16 +226,16 @@ public class WebSocketEngine {
      * @return the {@link WebSocket} associated with the Grizzly {@link Connection}, or <tt>null</tt>, if there none is
      *         associated.
      */
-    WebSocket getWebSocket(Connection connection) {
+    public WebSocket getWebSocket(Connection connection) {
         final WebSocketHolder holder = getWebSocketHolder(connection);
         return holder == null ? null : holder.webSocket;
     }
 
-    WebSocketHolder getWebSocketHolder(final Connection connection) {
+    public WebSocketHolder getWebSocketHolder(final Connection connection) {
         return webSocketAttribute.get(connection);
     }
 
-    WebSocketHolder setWebSocketHolder(final Connection connection, ProtocolHandler handler, WebSocket socket) {
+    public WebSocketHolder setWebSocketHolder(final Connection connection, ProtocolHandler handler, WebSocket socket) {
         final WebSocketHolder holder = new WebSocketHolder(handler, socket);
         webSocketAttribute.set(connection, holder);
         return holder;
