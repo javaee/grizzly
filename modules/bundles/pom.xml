@@ -61,6 +61,5 @@
         <module>comet</module>
         <module>websockets</module>
         <module>http-all</module>
-        <module>http-client</module>
     </modules>
 </project>

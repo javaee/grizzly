@@ -115,7 +115,6 @@
         <module>grizzly</module>
         <module>rcm</module>
         <module>http</module>
-        <module>http-client</module>
         <module>http-server</module>
         <module>http-servlet</module>
         <module>comet</module>
