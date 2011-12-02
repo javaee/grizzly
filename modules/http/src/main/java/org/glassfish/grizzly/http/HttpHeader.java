@@ -231,7 +231,7 @@ public abstract class HttpHeader extends HttpPacket
         return isExpectContent;
     }
 
-    public void setExpectContent(boolean isExpectContent) {
+    protected void setExpectContent(boolean isExpectContent) {
         this.isExpectContent = isExpectContent;
     }
 
