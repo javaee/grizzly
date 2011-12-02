@@ -71,7 +71,7 @@ public class ThriftFrameFilter extends BaseFilter {
         this(DEFAULT_DEFAULT_MAX_THRIFT_FRAME_LENGTH);
     }
 
-    public ThriftFrameFilter(int maxFrameLength) {
+    public ThriftFrameFilter(final int maxFrameLength) {
         if (maxFrameLength < DEFAULT_DEFAULT_MAX_THRIFT_FRAME_LENGTH) {
             this.maxFrameLength = DEFAULT_DEFAULT_MAX_THRIFT_FRAME_LENGTH;
         } else {
@@ -131,7 +131,7 @@ public class ThriftFrameFilter extends BaseFilter {
         }
 
         final MemoryManager memoryManager = ctx.getMemoryManager();
-        
+
         final int frameLength = body.remaining();
         final Buffer header = memoryManager.allocate(THRIFT_FRAME_HEADER_LENGTH);
         header.allowBufferDispose(true);

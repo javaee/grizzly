@@ -44,9 +44,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.utils.BufferOutputStream;
 
-import java.io.IOException;
-import org.glassfish.grizzly.memory.MemoryManager;
-
 /**
  * TGrizzlyServerTransport is the server-side TTransport.
  * <p/>
@@ -56,15 +53,12 @@ import org.glassfish.grizzly.memory.MemoryManager;
  */
 public class TGrizzlyServerTransport extends AbstractTGrizzlyTransport {
 
-    private final MemoryManager memoryManager;
     private final Buffer input;
     private final BufferOutputStream outputStream;
 
-    public TGrizzlyServerTransport(final MemoryManager memoryManager,
-            final Buffer input, final Buffer output) {
-        this.memoryManager = memoryManager;
+    public TGrizzlyServerTransport(final Buffer input, final BufferOutputStream outputStream) {
         this.input = input;
-        this.outputStream = new BufferOutputStream(memoryManager, output);
+        this.outputStream = outputStream;
     }
 
     @Override
@@ -74,11 +68,6 @@ public class TGrizzlyServerTransport extends AbstractTGrizzlyTransport {
 
     @Override
     public void close() {
-        try {
-            outputStream.close();
-        } catch (IOException ie) {
-            // ignore
-        }
     }
 
     @Override

@@ -64,7 +64,7 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     private final BlockingQueue<Buffer> resultQueue;
     private final BufferOutputStream outputStream;
 
-    public TGrizzlyClientTransport(Connection connection, ThriftClientFilter filter) {
+    public TGrizzlyClientTransport(final Connection connection, final ThriftClientFilter filter) {
         this.connection = connection;
         this.resultQueue = filter.getResultQueue();
         this.outputStream = new BufferOutputStream(
@@ -91,8 +91,7 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
         output.dispose();
         try {
             outputStream.close();
-        } catch (IOException ie) {
-            // ignore
+        } catch (IOException ignore) {
         }
     }
 
@@ -102,7 +101,7 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
         final Buffer output = outputStream.getBuffer();
         output.trim();
         outputStream.reset();
-        
+
         try {
             connection.write(output);
         } catch (IOException ie) {

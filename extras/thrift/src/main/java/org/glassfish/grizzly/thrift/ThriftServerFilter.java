@@ -45,11 +45,13 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.transport.TTransport;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.BufferOutputStream;
 
 import java.io.IOException;
 
@@ -85,19 +87,19 @@ public class ThriftServerFilter extends BaseFilter {
     private final TProtocolFactory protocolFactory;
     private final int responseSize;
 
-    public ThriftServerFilter(TProcessor processor) {
+    public ThriftServerFilter(final TProcessor processor) {
         this(processor, new TBinaryProtocol.Factory(), THRIFT_DEFAULT_RESPONSE_BUFFER_SIZE);
     }
 
-    public ThriftServerFilter(TProcessor processor, TProtocolFactory protocolFactory) {
+    public ThriftServerFilter(final TProcessor processor, final TProtocolFactory protocolFactory) {
         this(processor, protocolFactory, THRIFT_DEFAULT_RESPONSE_BUFFER_SIZE);
     }
 
-    public ThriftServerFilter(TProcessor processor, int responseSize) {
+    public ThriftServerFilter(final TProcessor processor, final int responseSize) {
         this(processor, new TBinaryProtocol.Factory(), responseSize);
     }
 
-    public ThriftServerFilter(TProcessor processor, TProtocolFactory protocolFactory, int responseSize) {
+    public ThriftServerFilter(final TProcessor processor, final TProtocolFactory protocolFactory, final int responseSize) {
         this.processor = processor;
         if (protocolFactory == null) {
             this.protocolFactory = new TBinaryProtocol.Factory();
@@ -123,21 +125,29 @@ public class ThriftServerFilter extends BaseFilter {
         if (!input.hasRemaining()) {
             return ctx.getStopAction();
         }
-        
-        final MemoryManager memoryManager = ctx.getMemoryManager();
-        final Buffer output = memoryManager.allocate(responseSize);
-        output.allowBufferDispose(true);
 
-        final TProtocol protocol = protocolFactory.getProtocol(
-                new TGrizzlyServerTransport(memoryManager, input, output));
+        final MemoryManager memoryManager = ctx.getMemoryManager();
+        final BufferOutputStream outputStream = new BufferOutputStream(memoryManager, memoryManager.allocate(responseSize));
+        final TTransport ttransport = new TGrizzlyServerTransport(input, outputStream);
+        final TProtocol protocol = protocolFactory.getProtocol(ttransport);
         try {
             processor.process(protocol, protocol);
         } catch (TException te) {
+            ttransport.close();
+            input.dispose();
+            outputStream.getBuffer().dispose();
             throw new IOException(te);
         }
         input.dispose();
+        final Buffer output = outputStream.getBuffer();
         output.trim();
+        output.allowBufferDispose(true);
         ctx.write(ctx.getAddress(), output, null);
+        try {
+            outputStream.close();
+        } catch (IOException ignore) {
+        }
+        ttransport.close();
         return ctx.getStopAction();
     }
 }
