@@ -48,7 +48,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.utils.Charsets;
-import static org.glassfish.grizzly.utils.Charsets.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -64,6 +63,8 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
+
+import static org.glassfish.grizzly.http.util.Constants.*;
 
 /**
  * Abstraction exposing both byte and character methods to read content
@@ -134,7 +135,7 @@ public class InputBuffer {
      * The default character encoding to use if none is specified by the
      * {@link org.glassfish.grizzly.http.HttpRequestPacket}.
      */
-    private String encoding = DEFAULT_CHARACTER_ENCODING;
+    private String encoding = DEFAULT_HTTP_CHARACTER_ENCODING;
 
     /**
      * The {@link CharsetDecoder} used to convert binary to character data.
@@ -258,7 +259,7 @@ public class InputBuffer {
         
         isWaitingDataAsynchronously = false;
 
-        encoding = DEFAULT_CHARACTER_ENCODING;
+        encoding = DEFAULT_HTTP_CHARACTER_ENCODING;
 
     }
 

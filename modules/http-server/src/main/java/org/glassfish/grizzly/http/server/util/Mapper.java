@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.server.util;
 
+import org.glassfish.grizzly.http.util.Constants;
 import java.io.IOException;
 import java.util.logging.Level;
 import javax.naming.NamingException;
@@ -74,7 +75,6 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MessageBytes;
-import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived
@@ -851,7 +851,7 @@ public class Mapper {
             host.getCharChunk().append(defaultHostName);
         }
         
-        host.toChars(DEFAULT_CHARSET);
+        host.toChars(Constants.DEFAULT_HTTP_CHARSET);
         uri.toChars(null);
         internalMap(host.getCharChunk(), uri.getCharChunk(), mappingData);
 

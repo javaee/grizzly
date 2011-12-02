@@ -53,12 +53,12 @@ public class Draft08Handler extends Draft07Handler {
     }
 
     @Override
-    protected HandShake createHandShake(HttpContent requestContent) {
+    public HandShake createHandShake(HttpContent requestContent) {
         return new HandShake08((HttpRequestPacket) requestContent.getHttpHeader());
     }
 
     @Override
-    protected HandShake createHandShake(URI uri) {
+    public HandShake createHandShake(URI uri) {
         return new HandShake08(uri);
     }
 }

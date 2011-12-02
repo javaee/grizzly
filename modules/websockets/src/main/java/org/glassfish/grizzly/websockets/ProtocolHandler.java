@@ -126,9 +126,9 @@ public abstract class ProtocolHandler {
     }
 */
 
-    protected abstract HandShake createHandShake(HttpContent requestContent);
+    public abstract HandShake createHandShake(HttpContent requestContent);
 
-    protected abstract HandShake createHandShake(URI uri);
+    public abstract HandShake createHandShake(URI uri);
 
     public GrizzlyFuture<DataFrame> send(byte[] data) {
         return send(new DataFrame(new BinaryFrameType(), data));

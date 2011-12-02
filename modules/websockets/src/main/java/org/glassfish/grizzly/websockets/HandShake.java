@@ -258,11 +258,15 @@ public abstract class HandShake {
     }
 
     public HttpContent composeHeaders() {
+        String host = getServerHostName();
+        if (port != 80 || port != 443) {
+            host += ":" + getPort();
+        }
         final HttpRequestPacket.Builder builder = HttpRequestPacket.builder()
             .method("GET")
             .uri(getResourcePath())
             .protocol(Protocol.HTTP_1_1)
-            .header("Host", getServerHostName())
+            .header("Host", host)
             .header("Connection", "Upgrade")
             .upgrade("WebSocket");
         if (!getSubProtocol().isEmpty()) {

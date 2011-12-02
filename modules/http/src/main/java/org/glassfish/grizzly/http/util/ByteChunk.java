@@ -58,7 +58,6 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.utils.Charsets;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -122,16 +121,7 @@ public final class ByteChunk implements Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
     */
-    public static Charset DEFAULT_CHARSET = null;
-
-    static {
-        try {
-            DEFAULT_CHARSET = Charsets.lookupCharset("ISO-8859-1");
-        } catch(IllegalArgumentException e) {
-            // Should never happen since all JVMs must support ISO-8859-1
-        }
-    }
-
+    public static Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
     // byte[]
     private byte[] buff;
@@ -516,6 +506,7 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     // -------------------- Conversion and getters --------------------
 
+    @Override
     public String toString() {
         if (null == buff || end - start == 0) {
             return "";

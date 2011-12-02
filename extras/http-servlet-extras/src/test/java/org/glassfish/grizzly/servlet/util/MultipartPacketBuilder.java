@@ -40,9 +40,9 @@
 
 package org.glassfish.grizzly.servlet.util;
 
+import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.server.Constants;
-import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -50,16 +50,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.put;
-
 /**
  * HTTP Multi-part packet builder
  * 
  * @author Alexey Stashok
  */
 public class MultipartPacketBuilder {
-    private static final byte[] DOUBLE_DASH = "--".getBytes(Charsets.DEFAULT_CHARSET);
-    private static final byte[] CONTENT_DISPOSITION_BYTES = "Content-Disposition".getBytes(Charsets.DEFAULT_CHARSET);
-    private static final byte[] CONTENT_TYPE_BYTES = "Content-Type".getBytes(Charsets.DEFAULT_CHARSET);
+    private static final Charset DEFAULT_HTTP_CHARSET = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
+    private static final byte[] DOUBLE_DASH = "--".getBytes(DEFAULT_HTTP_CHARSET);
+    private static final byte[] CONTENT_DISPOSITION_BYTES = "Content-Disposition".getBytes(DEFAULT_HTTP_CHARSET);
+    private static final byte[] CONTENT_TYPE_BYTES = "Content-Type".getBytes(DEFAULT_HTTP_CHARSET);
     
     private final String boundary;
 

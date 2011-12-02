@@ -732,7 +732,7 @@ public class OutputBuffer {
         if (encoder == null) {
             String encoding = response.getCharacterEncoding();
             if (encoding == null) {
-                encoding = Constants.DEFAULT_CHARACTER_ENCODING;
+                encoding = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARACTER_ENCODING;
             }
             
             encoder = encoders.get(encoding);

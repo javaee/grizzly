@@ -100,9 +100,10 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.UEncoder;
-import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
+
+import static org.glassfish.grizzly.http.util.Constants.*;
 
 /**
  * Wrapper object for the Coyote response.
@@ -545,7 +546,7 @@ public class Response {
         final String characterEncoding = response.getCharacterEncoding();
 
         if (characterEncoding == null) {
-            return Charsets.DEFAULT_CHARACTER_ENCODING;
+            return DEFAULT_HTTP_CHARACTER_ENCODING;
         }
 
         return characterEncoding;
