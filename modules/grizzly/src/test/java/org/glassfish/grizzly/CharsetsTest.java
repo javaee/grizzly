@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.UnsupportedCharsetException;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -113,4 +114,25 @@ public class CharsetsTest extends TestCase{
                 encoder4 == Charsets.getCharsetEncoder(charsets[4]));
     }
     
+    public void testPreloadedCharsets() {
+        Charsets.preloadAllCharsets();
+        try {
+            Charsets.lookupCharset("NON-EXISTED-CHARSET");
+        } catch (UnsupportedCharsetException e) {
+            StackTraceElement[] elements = e.getStackTrace();
+            assertEquals("Exception is not thrown from Charsets class",
+                    elements[0].getClassName(), Charsets.class.getName());
+        }
+        
+        Charsets.drainAllCharsets();
+        
+        try {
+            Charsets.lookupCharset("NON-EXISTED-CHARSET");
+        } catch (UnsupportedCharsetException e) {
+            StackTraceElement[] elements = e.getStackTrace();
+            assertFalse("Exception is unexpectedly thrown from Charsets class",
+                    elements[0].getClassName().equals(Charsets.class.getName()));
+        }
+        
+    }    
 }
