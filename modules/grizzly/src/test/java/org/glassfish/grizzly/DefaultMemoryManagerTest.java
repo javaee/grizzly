@@ -52,6 +52,8 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
@@ -334,6 +336,28 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
+    public void testBufferEquals() {
+        final HeapMemoryManager hmm = new HeapMemoryManager();
+        final ByteBufferManager bbm = new ByteBufferManager();
+        
+        Buffer[] buffers = new Buffer[3];
+        buffers[0] = Buffers.wrap(hmm, "Value#1");
+        buffers[1] = Buffers.wrap(bbm, "Value#1");
+        
+        Buffer b11 = Buffers.wrap(hmm, "Val");
+        Buffer b12 = Buffers.wrap(bbm, "ue#1");
+
+        buffers[2] = Buffers.appendBuffers(bbm, b11, b12);
+        
+        for (int i = 0; i < buffers.length; i++) {
+            for (int j = 0; j < buffers.length; j++) {
+                assertEquals(buffers[i], buffers[j]);
+            }
+        }
+        
+        
+    }
+    
     public void testBufferPut() {
         final HeapMemoryManager mm = new HeapMemoryManager();
         final Buffer b = mm.allocate(127);
