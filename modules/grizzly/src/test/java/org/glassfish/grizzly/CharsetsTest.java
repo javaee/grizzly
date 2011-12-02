@@ -54,7 +54,7 @@ public class CharsetsTest extends TestCase{
     private Charset[] charsets = new Charset[] {
         Charsets.UTF8_CHARSET, Charset.forName("UTF-16"),
         Charset.forName("UTF-32"), Charsets.ASCII_CHARSET,
-        Charsets.DEFAULT_CHARSET
+        Charset.forName("GB2312")
     };
     
     public void testDecodersCache() {

@@ -1816,10 +1816,10 @@ public class Request {
             try {
                 charset = Charsets.lookupCharset(enc);
             } catch (Exception e) {
-                charset = Charsets.DEFAULT_CHARSET;
+                charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
             }
         } else {
-            charset = Charsets.DEFAULT_CHARSET;
+            charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
         }
         
         parameters.setEncoding(charset);
@@ -1906,7 +1906,7 @@ public class Request {
         // a local collection, sorted by the quality value (so we can
         // add Locales in descending order).  The values will be ArrayLists
         // containing the corresponding Locales to be added
-        TreeMap<Double,List<Locale>> localLocales = new TreeMap<Double,List<Locale>>();
+        TreeMap<Double,List<Locale>> localLocalesMap = new TreeMap<Double,List<Locale>>();
 
         // Preprocess the value to remove all whitespace
         int white = value.indexOf(' ');
@@ -1991,10 +1991,10 @@ public class Request {
             // Add a new Locale to the list of Locales for this quality level
             Locale locale = new Locale(language, country, variant);
             Double key = -quality;  // Reverse the order
-            List<Locale> values = localLocales.get(key);
+            List<Locale> values = localLocalesMap.get(key);
             if (values == null) {
                 values = new ArrayList<Locale>();
-                localLocales.put(key, values);
+                localLocalesMap.put(key, values);
             }
             values.add(locale);
 
@@ -2002,8 +2002,8 @@ public class Request {
 
         // Process the quality values in highest->lowest order (due to
         // negating the Double value when creating the key)
-        for (List<Locale> locales: localLocales.values()) {
-            for (Locale locale : locales) {
+        for (List<Locale> localLocales: localLocalesMap.values()) {
+            for (Locale locale : localLocales) {
                 addLocale(locale);
             }
         }

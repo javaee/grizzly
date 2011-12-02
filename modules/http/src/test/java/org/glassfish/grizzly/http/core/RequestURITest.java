@@ -45,6 +45,7 @@ import java.net.URLEncoder;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.RequestURIRef;
@@ -88,7 +89,8 @@ public class RequestURITest extends TestCase {
         }
 
         // Try wrong charset
-        DataChunk decodedDC = rur.getDecodedRequestURIBC(true, Charsets.DEFAULT_CHARSET);
+        DataChunk decodedDC = rur.getDecodedRequestURIBC(true,
+                Constants.DEFAULT_HTTP_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there shouldn't be our decoded word
         assertEquals(-1, decodedDC.toString().indexOf(rus));

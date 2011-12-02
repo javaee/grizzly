@@ -294,7 +294,7 @@ public final class Parameters {
     public String getParameter(final String name) {
         ArrayList<String> values = paramHashValues.get(name);
         if (values != null) {
-            if (values.size() == 0) {
+            if (values.isEmpty()) {
                 return "";
             }
             return values.get(0);
@@ -401,8 +401,8 @@ public final class Parameters {
     final CharChunk tmpNameC = new CharChunk(1024);
     final CharChunk tmpValueC = new CharChunk(1024);
 
-    public static final String DEFAULT_ENCODING = "ISO-8859-1";
-    public static final Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_ENCODING);
+    public static final String DEFAULT_ENCODING = Constants.DEFAULT_HTTP_CHARACTER_ENCODING;
+    public static final Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
 
     public void processParameters(final Buffer buffer, final int start, final int len) {

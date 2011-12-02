@@ -76,6 +76,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * Wrapper around a <code>javax.servlet.http.HttpServletRequest</code>
@@ -286,10 +287,10 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             try {
                 charset = Charsets.lookupCharset( enc );
             } catch( Exception e ) {
-                charset = Charsets.DEFAULT_CHARSET;
+                charset = Constants.DEFAULT_HTTP_CHARSET;
             }
         } else {
-            charset = Charsets.DEFAULT_CHARSET;
+            charset = Constants.DEFAULT_HTTP_CHARSET;
         }
         mergedParameters.setEncoding( charset );
         mergedParameters.setQueryStringEncoding( charset );

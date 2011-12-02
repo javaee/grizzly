@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -297,10 +297,6 @@ public final class Constants {
      * Default header names.
      */
     public static final String AUTHORIZATION_HEADER = "authorization";
-
-    // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
-    // We should probably do so with query parameters
-    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
 
     // START SJSAS 6346226
     public final static String JROUTE_COOKIE = "JROUTE";

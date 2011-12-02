@@ -50,7 +50,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
-import static org.glassfish.grizzly.utils.Charsets.*;
+import static org.glassfish.grizzly.http.util.Constants.*;
 
 /**
  * {@link Buffer} chunk representation.
@@ -339,7 +339,7 @@ public class BufferChunk implements Chunk {
     }
 
     public String toString(Charset charset) {
-        if (charset == null) charset = UTF8_CHARSET;
+        if (charset == null) charset = Charsets.UTF8_CHARSET;
 
         if (cachedString != null && charset.equals(cachedStringCharset)) {
             return cachedString;
@@ -354,7 +354,7 @@ public class BufferChunk implements Chunk {
 
     @Override
     public String toString(final int start, final int end) {
-        return buffer.toStringContent(UTF8_CHARSET, this.start + start,
+        return buffer.toStringContent(Charsets.UTF8_CHARSET, this.start + start,
                 this.start + end);
     }
 
@@ -493,7 +493,7 @@ public class BufferChunk implements Chunk {
         final int length = getLength();
         cc.allocate(length, -1);
 
-        if (UTF8_CHARSET.equals(encoding)) {
+        if (Charsets.UTF8_CHARSET.equals(encoding)) {
             try {
                 final char[] ccBuf = cc.getChars();
                 final int ccStart = cc.getStart();
@@ -509,7 +509,7 @@ public class BufferChunk implements Chunk {
             }
 //            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
             return cc;
-        } else if (!DEFAULT_CHARSET.equals(encoding)) {
+        } else if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
             final ByteBuffer bb = buffer.toByteBuffer(start, end);
             final char[] ccBuf = cc.getChars();
             final int ccStart = cc.getStart();
