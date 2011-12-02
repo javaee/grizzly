@@ -157,7 +157,9 @@ public abstract class ProtocolHandler {
 
                     @Override
                     public void completed(DataFrame result) {
-                        webSocket.onClose(null);
+                        if (!maskData) {
+                            webSocket.onClose(null);
+                        }
                     }
                 });
     }
