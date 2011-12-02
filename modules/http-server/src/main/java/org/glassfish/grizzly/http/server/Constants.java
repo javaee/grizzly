@@ -298,10 +298,6 @@ public final class Constants {
      */
     public static final String AUTHORIZATION_HEADER = "authorization";
 
-    // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
-    // We should probably do so with query parameters
-    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
-
     // START SJSAS 6346226
     public final static String JROUTE_COOKIE = "JROUTE";
     // END SJSAS 6346226

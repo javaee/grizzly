@@ -58,6 +58,9 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.nio.charset.Charset;
+import org.glassfish.grizzly.utils.Charsets;
+
 
 /**
  * Constants.
@@ -156,5 +159,16 @@ public final class Constants {
      */
     public static final int DEFAULT_MAX_KEEP_ALIVE = 256;
 
-
+    /**
+     * Default HTTP character encoding
+     * TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
+     * We should probably do so with query parameters
+     */
+    public static final String DEFAULT_HTTP_CHARACTER_ENCODING = "ISO-8859-1";
+    
+    /**
+     * Default HTTP {@link Charset}
+     */
+    public static final Charset DEFAULT_HTTP_CHARSET =
+            Charsets.lookupCharset(DEFAULT_HTTP_CHARACTER_ENCODING);
 }

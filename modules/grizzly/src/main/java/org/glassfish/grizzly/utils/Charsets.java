@@ -53,14 +53,23 @@ import org.glassfish.grizzly.ThreadCache.CachedTypeIndex;
  * @author Alexey Stashok
  */
 public final class Charsets {
-    public static final String DEFAULT_CHARACTER_ENCODING = "ISO-8859-1";
+    /**
+     * The default character encoding of this Java virtual machine.
+     */
+    public static final String DEFAULT_CHARACTER_ENCODING =
+            Charset.defaultCharset().name();
 
     private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
             new ConcurrentHashMap<String, Charset>();
 
     public static final Charset ASCII_CHARSET = lookupCharset("ASCII");
     public static final Charset UTF8_CHARSET = lookupCharset("UTF-8");
-    public static final Charset DEFAULT_CHARSET = lookupCharset(DEFAULT_CHARACTER_ENCODING);
+    
+    /**
+     * Returns the default charset of this Java virtual machine.
+     * @see Charset#defaultCharset()
+     */
+    public static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
 
     public static final int CODECS_CACHE_SIZE = 4;
     private static final CharsetCodecResolver DECODER_RESOLVER =
