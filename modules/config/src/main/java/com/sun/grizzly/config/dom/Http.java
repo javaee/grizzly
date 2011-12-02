@@ -75,7 +75,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int MAX_CONNECTIONS = 256;
     int MAX_POST_SIZE = 2097152;
     long MAX_SWALLOWING_INPUT_BYTES = -1;
-    int MAX_TRAILER_SIZE = 8192;
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
@@ -209,11 +208,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getMaxSwallowingInputBytes();
 
     void setMaxSwallowingInputBytes(String max);
-
-    @Attribute(defaultValue = "" + MAX_TRAILER_SIZE, dataType = Integer.class)
-    String getMaxTrailerSize();
-
-    void setMaxTrailerSize(String max);
 
     @Attribute(dataType = Integer.class)
     String getNoCompressionUserAgents();

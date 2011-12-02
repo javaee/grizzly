@@ -288,12 +288,6 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Max trailer size.
-     */
-    protected int maxTrailerSize = Constants.DEFAULT_MAX_TRAILER_SIZE;
-
-
-    /**
      * Host name (used to avoid useless B2C conversion on the host name).
      */
     protected char[] hostNameC = new char[0];
@@ -716,31 +710,35 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             String serverName = Grizzly.getServerInfo();
             int status = response.getStatus();
-            if (statusDropsConnection(response.getStatus())){
-                ByteBuffer bb = HtmlHelper.getErrorPage(messageDropConnection(status),
-                        "HTTP/1.1 " +  response.getStatus()
-                        + " " + messageDropConnection(status) + "\r\n",
-                        serverName);
-                response.setContentLength(bb.limit());
-                response.setContentType("text/html");
+            if (statusDropsConnection(response.getStatus())) {
+                try {
+                    ByteBuffer bb = HtmlHelper.getErrorPage(messageDropConnection(status),
+                            "HTTP/1.1 " +  response.getStatus()
+                            + " " + messageDropConnection(status) + "\r\n",
+                            serverName);
+                    response.setContentLength(bb.limit());
+                    response.setContentType("text/html");
 
-                final ErrorHandler errorHandler = getErrorHandler();
-                if (errorHandler != null) {
-                    try {
-                        errorHandler.onParsingError(response);
-                    } catch (Exception ingored) {
+                    final ErrorHandler errorHandler = getErrorHandler();
+                    if (errorHandler != null) {
+                        try {
+                            errorHandler.onParsingError(response);
+                        } catch (Exception ingored) {
+                        }
                     }
-                }
-                
-                response.flushHeaders();
-                if (response.getChannel() != null) {
-                    response.getChannel().write(bb);
-                } else {
-                    byte b[] = new byte[bb.limit()];
-                    bb.get(b);
-                    ByteChunk chunk = new ByteChunk();
-                    chunk.setBytes(b, 0, b.length);
-                    response.doWrite(chunk);
+
+                    response.flushHeaders();
+                    if (response.getChannel() != null) {
+                        response.getChannel().write(bb);
+                    } else {
+                        byte b[] = new byte[bb.limit()];
+                        bb.get(b);
+                        ByteChunk chunk = new ByteChunk();
+                        chunk.setBytes(b, 0, b.length);
+                        response.doWrite(chunk);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_ERROR_SENDING_ERROR_RESPONSE(), e);
                 }
             }
             if ( exitWhile ) return exitWhile;
@@ -1746,7 +1744,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         outputBuffer.addFilter(new IdentityOutputFilter());
 
         // Create and add the chunked filters.
-        inputBuffer.addFilter(new ChunkedInputFilter(maxTrailerSize));
+        inputBuffer.addFilter(new ChunkedInputFilter(maxHttpHeaderSize));
         outputBuffer.addFilter(new ChunkedOutputFilter());
 
         // Create and add the void filters.
@@ -1894,21 +1892,6 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public int getMaxPostSize() {
         return maxPostSize;
-    }
-
-
-    /**
-     * Set the maximum size of a trailer header.
-     */
-    public void setMaxTrailerSize(int mts) {
-        maxTrailerSize = mts;
-    }
-
-    /**
-     * Return the maximum size of a trailer header.
-     */
-    public int getMaxTrailerSize() {
-        return maxTrailerSize;
     }
 
 
