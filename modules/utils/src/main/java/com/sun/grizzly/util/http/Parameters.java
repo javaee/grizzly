@@ -58,8 +58,8 @@
 
 package com.sun.grizzly.util.http;
 
+import com.sun.grizzly.util.Charsets;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
@@ -965,7 +965,7 @@ public final class Parameters {
             return DEFAULT_CHARSET;
         }
         try {
-            return Utils.lookupCharset(encoding);
+            return Charsets.lookupCharset(encoding);
         } catch(IllegalArgumentException e) {
             return DEFAULT_CHARSET;
         }

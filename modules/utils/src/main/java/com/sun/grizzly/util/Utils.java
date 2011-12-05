@@ -50,8 +50,6 @@ import java.nio.channels.Selector;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,7 +60,6 @@ import java.util.regex.Pattern;
  * @author Jean-Francois Arcand
  */
 public class Utils {
-    private static final ConcurrentHashMap<String, Charset> ALIAS_MAP = new ConcurrentHashMap<String, Charset>();
     public static boolean VERBOSE_TESTS = false;
 
     /**
@@ -71,20 +68,11 @@ public class Utils {
      *
      * @param charsetName
      * @return {@link Charset}
+     * 
+     * @deprecated use {@link Charsets#lookupCharset(java.lang.String)}
      */
     public static Charset lookupCharset(String charsetName) {
-        // Encoding names should all be ASCII
-        charsetName = charsetName.toLowerCase(Locale.US);
-
-        Charset charset = ALIAS_MAP.get(charsetName);
-        if (charset == null) {
-            charset = Charset.forName(charsetName);
-            final Charset existingCharset =
-                    ALIAS_MAP.putIfAbsent(charsetName, charset);
-            charset = existingCharset != null ? existingCharset : charset;
-        }
-
-        return charset;
+        return Charsets.lookupCharset(charsetName);
     }
 
     /**

@@ -58,8 +58,8 @@
 
 package com.sun.grizzly.util.buf;
 
+import com.sun.grizzly.util.Charsets;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -109,7 +109,7 @@ public class B2CConverter {
                 throw new IllegalStateException("Can not initialize blocking converter");
             }
         } else {
-            charset = Utils.lookupCharset(encoding);
+            charset = Charsets.lookupCharset(encoding);
             decoder = charset.newDecoder().
                     onMalformedInput(CodingErrorAction.REPLACE).
                     onUnmappableCharacter(CodingErrorAction.REPLACE);

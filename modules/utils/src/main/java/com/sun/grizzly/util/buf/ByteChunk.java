@@ -58,16 +58,13 @@
 
 package com.sun.grizzly.util.buf;
 
-import com.sun.grizzly.util.Utils;
+import com.sun.grizzly.util.Charsets;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
 
 /*
  * In a server it is very important to be able to operate on
@@ -141,15 +138,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         as most standards seem to converge, but the servlet API requires
         8859_1, and this object is used mostly for servlets. 
     */
-    public static Charset DEFAULT_CHARSET = null;
-
-    static {
-        try {
-            DEFAULT_CHARSET = Utils.lookupCharset("ISO-8859-1");
-        } catch(IllegalArgumentException e) {
-            // Should never happen since all JVMs must support ISO-8859-1
-        }
-    }
+    public static Charset DEFAULT_CHARSET = Charsets.DEFAULT_CHARSET;
 
     // byte[]
     private byte[] buff;
