@@ -211,6 +211,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         Assert.assertTrue(client2.waitForClosed());
         Assert.assertFalse(client2.isConnected());
 
+        Thread.sleep(3000);
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
     }
 
