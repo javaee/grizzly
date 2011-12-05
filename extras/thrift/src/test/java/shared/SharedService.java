@@ -149,6 +149,7 @@ public class SharedService {
 
     public static class getStruct_call extends org.apache.thrift.async.TAsyncMethodCall {
       private int key;
+      @SuppressWarnings("unchecked")
       public getStruct_call(int key, org.apache.thrift.async.AsyncMethodCallback<getStruct_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.key = key;
@@ -176,14 +177,17 @@ public class SharedService {
 
   public static class Processor<I extends Iface> extends org.apache.thrift.TBaseProcessor implements org.apache.thrift.TProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class.getName());
+    @SuppressWarnings("unchecked")
     public Processor(I iface) {
       super(iface, getProcessMap(new HashMap<String, org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>>()));
     }
 
+    @SuppressWarnings("unchecked")
     protected Processor(I iface, Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       super(iface, getProcessMap(processMap));
     }
 
+    @SuppressWarnings("unchecked")
     private static <I extends Iface> Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> getProcessMap(Map<String,  org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       processMap.put("getStruct", new getStruct());
       return processMap;

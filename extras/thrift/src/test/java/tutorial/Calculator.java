@@ -233,6 +233,7 @@ public class Calculator {
     }
 
     public static class ping_call extends org.apache.thrift.async.TAsyncMethodCall {
+      @SuppressWarnings("unchecked")
       public ping_call(org.apache.thrift.async.AsyncMethodCallback<ping_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
       }
@@ -264,6 +265,7 @@ public class Calculator {
     public static class add_call extends org.apache.thrift.async.TAsyncMethodCall {
       private int num1;
       private int num2;
+     @SuppressWarnings("unchecked")
       public add_call(int num1, int num2, org.apache.thrift.async.AsyncMethodCallback<add_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.num1 = num1;
@@ -299,6 +301,7 @@ public class Calculator {
     public static class calculate_call extends org.apache.thrift.async.TAsyncMethodCall {
       private int logid;
       private Work w;
+      @SuppressWarnings("unchecked")
       public calculate_call(int logid, Work w, org.apache.thrift.async.AsyncMethodCallback<calculate_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.logid = logid;
@@ -331,6 +334,7 @@ public class Calculator {
       ___manager.call(method_call);
     }
 
+    @SuppressWarnings("unchecked")
     public static class zip_call extends org.apache.thrift.async.TAsyncMethodCall {
       public zip_call(org.apache.thrift.async.AsyncMethodCallback<zip_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
@@ -354,6 +358,7 @@ public class Calculator {
 
   }
 
+  @SuppressWarnings("unchecked")
   public static class Processor<I extends Iface> extends shared.SharedService.Processor implements org.apache.thrift.TProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class.getName());
     public Processor(I iface) {

@@ -139,11 +139,10 @@ public class ThriftTutorialTest {
             transport.start();
 
             for (int i = 0; i < clientsNum; i++) {
-                final ThriftClientFilter clientFilter = new ThriftClientFilter();
                 FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
                 clientFilterChainBuilder.add(new TransportFilter());
                 clientFilterChainBuilder.add(new ThriftFrameFilter());
-                clientFilterChainBuilder.add(clientFilter);
+                clientFilterChainBuilder.add(new ThriftClientFilter());
 
                 final FilterChain clientChain = clientFilterChainBuilder.build();
                 SocketConnectorHandler connectorHandler =
@@ -157,7 +156,7 @@ public class ThriftTutorialTest {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
 
-                final TTransport ttransport = new TGrizzlyClientTransport(connection, clientFilter);
+                final TTransport ttransport = TGrizzlyClientTransport.create(connection);
                 final TProtocol tprotocol = new TBinaryProtocol(ttransport);
                 final Calculator.Client client = new Calculator.Client(tprotocol);
 

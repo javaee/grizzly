@@ -81,7 +81,8 @@ import java.util.concurrent.BlockingQueue;
  */
 public class ThriftClientFilter extends BaseFilter {
 
-    private final BlockingQueue<Buffer> resultQueue = DataStructures.getLTQInstance();
+    private final BlockingQueue<Buffer> inputBuffersQueue =
+            DataStructures.getLTQInstance();
 
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -92,11 +93,11 @@ public class ThriftClientFilter extends BaseFilter {
         if (!input.hasRemaining()) {
             return ctx.getStopAction();
         }
-        resultQueue.offer(input);
+        inputBuffersQueue.offer(input);
         return ctx.getStopAction();
     }
 
-    public final BlockingQueue<Buffer> getResultQueue() {
-        return resultQueue;
+    public final BlockingQueue<Buffer> getInputBuffersQueue() {
+        return inputBuffersQueue;
     }
 }
