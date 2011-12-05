@@ -71,17 +71,19 @@ public class HttpProtocolFinder implements ProtocolFinder {
         int curLimit = byteBuffer.limit();
 
         byteBuffer.flip();
-        
+
         int state = 0;
         int start = 0;
         int end = 0;
 
         try {
             byte c = 0;
-            byte c2;
+            byte c2 = -1;
+            byte c3 = -1;
 
             // Rule b - try to determine the context-root
             while (byteBuffer.hasRemaining()) {
+                c3 = c2;
                 c2 = c;
                 c = byteBuffer.get();
                 // State Machine
@@ -96,6 +98,7 @@ public class HttpProtocolFinder implements ProtocolFinder {
                             state = 1;
                             start = byteBuffer.position();
                         }
+                        
                         break;
                     case 1:
                         // Search for next ' '
@@ -107,14 +110,25 @@ public class HttpProtocolFinder implements ProtocolFinder {
                             byteBuffer.get(requestURI);
                             context.setAttribute(HTTP_REQUEST_URL, requestURI);
                         }
+                        
                         break;
                     case 2:
                         // Search for P/ (part of HTTP/)
                         if (c == 0x2f && c2 == 'P') {
+                            state = 3;
+                        }
+                        
+                        break;
+                        
+                    case 3:
+                        // Search end of HTTP header
+                        if ((c == '\n' && c2 == '\n') ||
+                                (c == '\n' && c2 == '\r' && c3 == '\n')) {
                             // find SSL preprocessor
                             return protocolRequest.isPreProcessorPassed(
                                     TLSPUPreProcessor.ID) ? "https" : "http";
                         }
+                        
                         break;
                     default:
                         throw new IllegalArgumentException("Unexpected state");

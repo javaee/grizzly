@@ -104,7 +104,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
     }
 
 
-    public void httpToHttpsDifferentPortRedirect() throws IOException {
+    public void httpsToDifferentPortRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "http-https-redirect-different-port.xml",
                 "localhost",
@@ -113,7 +113,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
     }
 
 
-    public void httpsToHttpDifferentPortRedirect() throws IOException {
+    public void httpToDifferentPortRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "https-http-redirect-different-port.xml",
                 "localhost",
@@ -189,7 +189,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
     }
 
 
-    public SSLSocketFactory getSSLSocketFactory() throws IOException {
+    public SSLSocketFactory getSSLSocketFactory() {
         try {
             //---------------------------------
             // Create a trust manager that does not validate certificate chains
@@ -214,8 +214,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
             //---------------------------------
             return sc.getSocketFactory();
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
+            throw new IllegalStateException(e);
         }
     }
 

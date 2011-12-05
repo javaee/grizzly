@@ -51,11 +51,15 @@ import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.portunif.TLSPUPreProcessor;
 import com.sun.grizzly.ssl.SSLSelectorThread;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -74,7 +78,7 @@ import junit.framework.TestCase;
 public class HttpRedirectorTest extends TestCase {
     public static final int PORT = 18889;
     public static final int CLIENTS_COUNT = 2;
-    public static final int PACKETS_COUNT = 50;
+    public static final int PACKETS_COUNT = 10;
 
     private static Logger logger = Logger.getLogger("grizzly.test");
     
@@ -140,6 +144,7 @@ public class HttpRedirectorTest extends TestCase {
                         URL url = new URL("http://localhost:" + PORT);
                         connection = 
                                 (HttpURLConnection) url.openConnection();
+                        connection.setReadTimeout(10000);
                         connection.setRequestMethod("POST");
                         connection.setDoOutput(true);
                         os = connection.getOutputStream();
@@ -169,6 +174,80 @@ public class HttpRedirectorTest extends TestCase {
         }
     }
 
+    public void testSlowHttpProtocolProcess() throws Exception {
+        SelectorThread httpSelectorThread = createSelectorThread(PORT, 2);
+        ProtocolFinder finder = new HttpProtocolFinder();
+        
+        ProtocolHandler handler = 
+                new HttpProtocolHandler(HttpProtocolHandler.Mode.HTTPS);
+        
+        PUPreProcessor preProcessor = new TLSPUPreProcessor(sslConfig);
+        
+        List<ProtocolFinder> finders = Arrays.asList(finder);
+        List<ProtocolHandler> handlers = Arrays.asList(handler);
+        List<PUPreProcessor> preProcessors = Arrays.asList(preProcessor);
+
+        httpSelectorThread.configurePortUnification(finders, handlers, preProcessors);
+        
+        try {
+            SelectorThreadUtils.startSelectorThread(httpSelectorThread);
+            
+            for(int i=0; i<PACKETS_COUNT; i++) {
+                for(int j=0; j<CLIENTS_COUNT; j++) {
+                    String testString = "Hello. Client#" + j + " Packet#" + i;
+                    OutputStream os = null;
+                    InputStream is = null;
+                    Socket s = null;
+                    
+                    try {
+                        s = new Socket("localhost", PORT);
+                        s.setSoTimeout(10000);
+                        os = s.getOutputStream();
+                        
+                        os.write("POST / HTTP/1.1\r\n".getBytes());
+                        os.flush();
+                        Thread.sleep(50);
+
+                        os.write("Connection: close\r\n".getBytes());
+                        os.flush();
+                        Thread.sleep(50);
+                        
+                        os.write(("Host: localhost:" + PORT + "\r\n").getBytes());
+                        os.flush();
+                        Thread.sleep(50);
+
+                        os.write("\r\n".getBytes());
+                        os.flush();
+                        Thread.sleep(50);
+                        
+                        os.write(testString.getBytes());
+                        os.flush();
+                        
+                        
+                        is = s.getInputStream();
+                        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                        String line = br.readLine();
+                        assertTrue(line.indexOf("200 OK") != -1);
+                    } finally {
+                        if (os != null) {
+                            os.close();
+                        }
+                        
+                        if (is != null) {
+                            is.close();
+                        }
+                        
+                        if (s != null) {
+                            s.close();
+                        }
+                    }
+                }
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(httpSelectorThread);
+        }
+    }
+    
     public void testHttpsProtocolRedirect() throws IOException {
         SelectorThread httpSelectorThread = createSelectorThread(PORT, 2);
         ProtocolFinder finder = new HttpProtocolFinder();
@@ -205,6 +284,7 @@ public class HttpRedirectorTest extends TestCase {
                         URL url = new URL("https://localhost:" + PORT);
                         connection = 
                                 (HttpsURLConnection) url.openConnection();
+                        connection.setReadTimeout(10000);
                         connection.setRequestMethod("POST");
                         connection.setDoOutput(true);
                         os = connection.getOutputStream();
@@ -266,6 +346,7 @@ public class HttpRedirectorTest extends TestCase {
                         URL url = new URL("https://localhost:" + PORT);
                         connection = 
                                 (HttpsURLConnection) url.openConnection();
+                        connection.setReadTimeout(10000);
                         connection.setRequestMethod("POST");
                         connection.setDoOutput(true);
                         os = connection.getOutputStream();
@@ -324,6 +405,7 @@ public class HttpRedirectorTest extends TestCase {
                         URL url = new URL("http://localhost:" + PORT);
                         connection = 
                                 (HttpURLConnection) url.openConnection();
+                        connection.setReadTimeout(10000);
                         connection.setRequestMethod("POST");
                         connection.setDoOutput(true);
                         os = connection.getOutputStream();
@@ -343,6 +425,81 @@ public class HttpRedirectorTest extends TestCase {
                             connection.disconnect();
                         }
                     }
+                }
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(httpSelectorThread);
+        }
+    }
+
+    public void testSlowHttpProtocolRedirect() throws Exception {
+        SelectorThread httpSelectorThread = createSSLSelectorThread(PORT, 2);
+        ProtocolFinder finder = new HttpProtocolFinder();
+        
+        ProtocolHandler handler = 
+                new HttpProtocolHandler(HttpProtocolHandler.Mode.HTTP);
+        
+        PUPreProcessor preProcessor = new TLSPUPreProcessor(sslConfig);
+        
+        List<ProtocolFinder> finders = Arrays.asList(finder);
+        List<ProtocolHandler> handlers = Arrays.asList(handler);
+        List<PUPreProcessor> preProcessors = Arrays.asList(preProcessor);
+
+        httpSelectorThread.configurePortUnification(finders, handlers, preProcessors);
+        
+        try {
+            SelectorThreadUtils.startSelectorThread(httpSelectorThread);
+            
+            for(int i=0; i<PACKETS_COUNT; i++) {
+                for(int j=0; j<CLIENTS_COUNT; j++) {
+                    String testString = "Hello. Client#" + j + " Packet#" + i;
+                    OutputStream os = null;
+                    InputStream is = null;
+                    Socket s = null;
+                    
+                    try {
+                        s = new Socket("localhost", PORT);
+                        s.setSoTimeout(10000);
+                        os = s.getOutputStream();
+                        
+                        os.write("POST / HTTP/1.1\r\n".getBytes());
+                        os.flush();
+                        Thread.sleep(20);
+
+                        os.write("Connection: close\r\n".getBytes());
+                        os.flush();
+                        Thread.sleep(2);
+                        
+                        os.write(("Host: localhost:" + PORT + "\r\n").getBytes());
+                        os.flush();
+                        Thread.sleep(2);
+
+                        os.write(("\r\n" + testString).getBytes());
+                        os.flush();
+                        
+                        
+                        is = s.getInputStream();
+                        StringBuilder sb = new StringBuilder();
+                        int c;
+                        while ((c = is.read()) != -1) {
+                            sb.append((char) c);
+                            if (c == '\n') break;
+                        }
+                        
+                        assertTrue(sb.toString(), sb.indexOf("HTTP/1.1 302 Moved Temporarily") != -1);
+                    } finally {
+                        if (os != null) {
+                            os.close();
+                        }
+                        
+                        if (is != null) {
+                            is.close();
+                        }
+                        
+                        if (s != null) {
+                            s.close();
+                        }
+                    }                    
                 }
             }
         } finally {

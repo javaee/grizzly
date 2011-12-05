@@ -90,7 +90,9 @@ public class PUReadFilter extends ReadFilter {
     public static final String PU_PRE_PROCESSORS =
             "com.sun.grizzly.portunif.PUPreProcessors";
 
-    private static final int MAX_FIND_TRIES = 2;
+    private static final int MAX_FIND_TRIES = 10;
+    
+    private static final int FIND_TIMEOUT_MILLIS = 3000;
 
     private static final ProtocolHandler filterChainProtocolHandler =
             new DefaultFilterChainProtocolHandler();
@@ -168,7 +170,10 @@ public class PUReadFilter extends ReadFilter {
                     logger.log(Level.FINE, "PUReadFilter. Finding protocol...");
                 }
 
-                while (readTry++ < MAX_FIND_TRIES) {
+                final long startTime = System.currentTimeMillis();
+                
+                while (readTry++ < MAX_FIND_TRIES &&
+                        System.currentTimeMillis() - startTime < FIND_TIMEOUT_MILLIS) {
                     String protocolName;
 
                     if (preProcessors != null) {
