@@ -58,9 +58,7 @@ import java.util.concurrent.BlockingQueue;
  * <pre>
  * {@code
  * final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
- * final ThriftClientFilter clientFilter = new ThriftClientFilter();
- * <p/>
- * clientFilterChainBuilder.add(new TransportFilter()).add(new ThriftFrameFilter()).add(clientFilter);
+ * clientFilterChainBuilder.add(new TransportFilter()).add(new ThriftFrameFilter()).add(new ThriftClientFilter());
  * <p/>
  * final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
  * transport.setProcessor(clientFilterChainBuilder.build());
@@ -68,7 +66,7 @@ import java.util.concurrent.BlockingQueue;
  * Future<Connection> future = transport.connect(ip, port);
  * final Connection connection = future.get(10, TimeUnit.SECONDS);
  * <p/>
- * final TTransport ttransport = new TGrizzlyClientTransport(connection, clientFilter);
+ * final TTransport ttransport = TGrizzlyClientTransport.create(connection);
  * final TProtocol tprotocol = new TBinaryProtocol(ttransport);
  * user-generated.thrift.Client client = new user-generated.thrift.Client(tprotocol);
  * client.ping();
