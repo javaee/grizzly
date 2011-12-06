@@ -59,6 +59,7 @@ import org.junit.Before;
 import org.junit.runners.Parameterized.Parameters;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -99,13 +100,12 @@ public class IOStrategyTest {
     public IOStrategyTest(final IOStrategy strategy) {
         this.strategy = strategy;
     }
-
     
     @Test
     public void testSimplePackets() throws Exception {
         final Integer msgNum = 100;
         final String pattern = "Message #";
-        final int clientsNum = Runtime.getRuntime().availableProcessors() * 4;
+        final int clientsNum = Runtime.getRuntime().availableProcessors() * 16;
         
         Connection connection = null;
 
@@ -127,7 +127,10 @@ public class IOStrategyTest {
                 FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
                 clientFilterChainBuilder.add(new TransportFilter());
                 clientFilterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
-                clientFilterChainBuilder.add(new EchoResultFilter(msgNum, pattern, resultEcho));
+                
+                final EchoResultFilter echoResultFilter =
+                        new EchoResultFilter(msgNum, pattern, resultEcho);
+                clientFilterChainBuilder.add(echoResultFilter);
 
                 final FilterChain clientChain = clientFilterChainBuilder.build();
 
@@ -151,7 +154,8 @@ public class IOStrategyTest {
                     assertEquals(msgNum, result);
                 } catch (Exception e) {
                     throw new IllegalStateException("Unexpected error strategy: "
-                            + strategy.getClass().getName(), e);
+                            + strategy.getClass().getName() + ". counter="
+                            + echoResultFilter.counter.get(), e);
                 }
                 
                 connection.close();
@@ -169,7 +173,7 @@ public class IOStrategyTest {
     
     private static final class EchoResultFilter extends BaseFilter {
         // handleReads should be executed synchronously, so plain "int" is ok
-        private int counter;
+        private final AtomicInteger counter = new AtomicInteger();
 
         private final int msgNum;
         private final String pattern;
@@ -184,7 +188,8 @@ public class IOStrategyTest {
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             final String msg = ctx.getMessage();
-            final String check = pattern + counter;
+            final int count = counter.getAndIncrement();
+            final String check = pattern + count;
             
             if (!check.equals(msg)) {
                 resultFuture.failure(new IllegalStateException(
@@ -193,9 +198,7 @@ public class IOStrategyTest {
                 return ctx.getStopAction();
             }
             
-            counter++;
-            
-            if (counter == msgNum) {
+            if (count == msgNum - 1) {
                 resultFuture.result(msgNum);
             }
             
