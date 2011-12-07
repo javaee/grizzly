@@ -927,7 +927,22 @@ public class HeapBuffer implements Buffer {
         array.add(this, oldPos, oldLim);
         return array;
     }
-    
+
+    @Override
+    public boolean release() {
+        return tryDispose();
+    }
+
+    @Override
+    public boolean reserveQueueSpace() {
+        return true;
+    }
+
+    @Override
+    public boolean canBeAggregated() {
+        return true;
+    }
+
     protected byte[] array() {
         return heap;
     }

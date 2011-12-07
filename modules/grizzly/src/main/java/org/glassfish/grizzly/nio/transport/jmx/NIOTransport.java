@@ -352,7 +352,7 @@ public class NIOTransport extends JmxObject {
         }
 
         @Override
-        public void onWriteEvent(Connection connection, Buffer data, int size) {
+        public void onWriteEvent(Connection connection, Buffer data, long size) {
             bytesWritten.addAndGet(size);
         }
 

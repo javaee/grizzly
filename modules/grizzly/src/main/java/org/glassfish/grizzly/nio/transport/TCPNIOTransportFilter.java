@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -56,7 +57,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
@@ -117,7 +117,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     @SuppressWarnings("unchecked")
     public NextAction handleWrite(final FilterChainContext ctx)
             throws IOException {
-        final Buffer message = ctx.getMessage();
+        final WriteQueueMessage message = ctx.getMessage();
         if (message != null) {
             ctx.setMessage(null);
             final Connection connection = ctx.getConnection();

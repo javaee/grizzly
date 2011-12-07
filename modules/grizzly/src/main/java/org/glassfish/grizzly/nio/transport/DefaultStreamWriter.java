@@ -168,7 +168,7 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
         public void updated(WriteResult result) {
             if (completionHandler != null) {
                 completionHandler.updated(output.sentBytesCounter
-                        + result.getWrittenSize());
+                        + (int) result.getWrittenSize());
             }
         }
     }

@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -55,86 +57,91 @@ import java.util.concurrent.Future;
  */
 public interface Writer<L> {
     /**
-     * Method writes the <tt>buffer</tt>.
+     * Method writes the {@link WriteQueueMessage}.
      *
-     * @param connection the {@link Connection} to write to
-     * @param buffer the buffer, from which the data will be written
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
-            Buffer buffer) throws IOException;
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+            WriteQueueMessage message) throws IOException;
 
     /**
-     * Method writes the <tt>buffer</tt>.
+     * Method writes the {@link WriteQueueMessage}.
      *
-     * @param connection the {@link Connection} to write to
-     * @param buffer the buffer, from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler)
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+            WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
             throws IOException;
 
     /**
-     * Method writes the <tt>buffer</tt> to the specific address.
+     * Method writes the {@link WriteQueueMessage} to the specific address.
      *
-     * @param connection the {@link Connection} to write to
-     * @param dstAddress the destination address the <tt>buffer</tt> will be
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
      *        sent to
-     * @param buffer the buffer, from which the data will be written
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
-            Buffer buffer) throws IOException;
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection, L dstAddress,
+            WriteQueueMessage message) throws IOException;
 
     /**
-     * Method writes the <tt>buffer</tt> to the specific address.
+     * Method writes the {@link WriteQueueMessage} to the specific address.
      *
-     * @param connection the {@link Connection} to write to
-     * @param dstAddress the destination address the <tt>buffer</tt> will be
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
      *        sent to
-     * @param buffer the buffer, from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
-            L dstAddress, Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler)
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+            L dstAddress, WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
             throws IOException;
 
     /**
-     * Method writes the <tt>buffer</tt> to the specific address.
+     * Method writes the {@link WriteQueueMessage} to the specific address.
      *
-     * @param connection the {@link Connection} to write to
-     * @param dstAddress the destination address the <tt>buffer</tt> will be
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
      *        sent to
-     * @param buffer the buffer, from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was written from a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
-     *        completed or not, or provide other processing instructions.
+     * @param interceptor {@link org.glassfish.grizzly.Interceptor}, which will
+     *        be able to intercept control each time new portion of a data was
+     *        written from a {@link WriteQueueMessage}. The <tt>interceptor</tt>
+     *        can decide, whether asynchronous write is completed or not, or
+     *        provide other processing instructions.
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
-            L dstAddress, Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler,
-            Interceptor<WriteResult<Buffer, L>> interceptor)
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+            L dstAddress, WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler,
+            Interceptor<WriteResult<WriteQueueMessage, L>> interceptor)
             throws IOException;   
 }

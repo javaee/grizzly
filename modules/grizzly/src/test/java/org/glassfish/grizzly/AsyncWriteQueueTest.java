@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.junit.Test;
 import org.junit.runners.Parameterized.Parameters;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
@@ -160,10 +161,10 @@ public class AsyncWriteQueueTest {
 
             final CountDownLatch latch = new CountDownLatch(packetNumber);
 
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler =
-                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler =
+                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
                 @Override
-                public void completed(WriteResult<Buffer, SocketAddress> result) {
+                public void completed(WriteResult<WriteQueueMessage, SocketAddress> result) {
                     latch.countDown();
                 }
             };
@@ -295,7 +296,7 @@ public class AsyncWriteQueueTest {
                     } else {
                         if (loopCount == 3) {
                             asyncQueueWriter.write(con, buffer,
-                                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
+                                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
 
                                         @Override
                                         public void failed(Throwable throwable) {
@@ -466,11 +467,11 @@ public class AsyncWriteQueueTest {
             Buffer buffer = Buffers.wrap(mm, "" + ((char) ('A' + packetCounter.getAndIncrement())));
 
             asyncQueueWriter.write(con, buffer,
-                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
+                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
 
                         @Override
                         public void completed(
-                                WriteResult<Buffer, SocketAddress> result) {
+                                WriteResult<WriteQueueMessage, SocketAddress> result) {
 
                             final int packetNum = packetCounter.incrementAndGet();
                             if (packetNum <= maxReentrants + 1) {

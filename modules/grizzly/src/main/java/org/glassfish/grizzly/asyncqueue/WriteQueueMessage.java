@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,32 +37,56 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.nio.transport;
-
-import java.io.IOException;
-import java.net.SocketAddress;
-
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
+package org.glassfish.grizzly.asyncqueue;
 
 /**
+ * Common interface for entities that may be written to a {@link java.nio.channels.Channel}.
  *
- * @author oleksiys
+ * @since 2.2
  */
-public final class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
-    public TCPNIOTemporarySelectorWriter(final TCPNIOTransport transport) {
-        super(transport);
-    }
+public interface WriteQueueMessage {
 
-    @Override
-    protected long writeNow0(NIOConnection connection, SocketAddress dstAddress,
-            WriteQueueMessage message, WriteResult<WriteQueueMessage, SocketAddress> currentResult)
-            throws IOException {
+    /**
+     * Return <code>true</code> if this message has data remaining to be 
+     * written.
+     * 
+     * @return <code>true</code> if this message has data remaining to 
+     * be written.
+     */
+    boolean hasRemaining();
 
-        return ((TCPNIOTransport) transport).write(connection, message,
-                currentResult);
-    }
+
+    /**
+     * Return the number of bytes remaining to be written.
+     * @return the number of bytes remaining to be written.
+     */
+    int remaining();
+
+
+    /**
+     * Perform message specific actions to release resources held by the
+     * entity backing this <code>WriteQueueMessage</code>.
+     */
+    boolean release();
+
+
+    /**
+     * Return <code>true</code> if this message implementation requires
+     * reserving space within the async write queue.
+     *
+     * @return <code>true</code> if this message implementation requires
+     *  reserving space within the async write queue.
+     */
+    boolean reserveQueueSpace();
+
+
+    /**
+     * Return <code>true</code> if this message may be aggregated with other
+     * messages so that they may be sent in one logical operation.
+     *
+     * @return <code>true</code> if this message may be aggregated with other
+     *  messages so that they may be sent in one logical operation.
+     */
+    boolean canBeAggregated();
+
 }

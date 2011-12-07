@@ -547,7 +547,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify registered {@link ConnectionProbe}s about the write event.
      */
     protected static void notifyProbesWrite(NIOConnection connection,
-        Buffer data, int size) {
+        Buffer data, long size) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -747,7 +747,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 final NullaryFunction<E> stateFactory) {
 
             final int c = volatileFlag;
-            if (volatileFlag == 0) {
+            if (c == 0) {
                 // Connection doesn't have any processor state associated
                 return (E) getStateSync(processor, stateFactory);
             } else {

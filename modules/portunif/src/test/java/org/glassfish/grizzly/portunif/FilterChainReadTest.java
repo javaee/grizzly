@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.portunif;
 
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -49,7 +50,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.StringEncoder;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
@@ -232,7 +232,7 @@ public class FilterChainReadTest extends TestCase {
                 }
 
 
-                Future<WriteResult<Buffer, SocketAddress>> writeFuture =
+                Future<WriteResult<WriteQueueMessage, SocketAddress>> writeFuture =
                         transport.getAsyncQueueIO().getWriter().write(connection, bb);
 
                 assertTrue("Write timeout loop: " + i,

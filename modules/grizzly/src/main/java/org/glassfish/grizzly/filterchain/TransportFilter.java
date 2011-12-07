@@ -74,6 +74,7 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
  */
 public class TransportFilter extends BaseFilter {
 
+    @SuppressWarnings("UnusedDeclaration")
     public static FilterChainEvent createFlushEvent() {
         return FLUSH_EVENT;
     }
@@ -123,8 +124,6 @@ public class TransportFilter extends BaseFilter {
     private static final FlushEvent FLUSH_EVENT = new FlushEvent();
 
 
-
-    public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
     /**
      * Create <tt>TransportFilter</tt>.
      */

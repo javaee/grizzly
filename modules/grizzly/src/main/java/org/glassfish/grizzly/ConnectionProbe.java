@@ -88,7 +88,7 @@ public interface ConnectionProbe {
      * @param data {@link Buffer}, where the data gets writen.
      * @param size the data size.
      */
-    public void onWriteEvent(Connection connection, Buffer data, int size);
+    public void onWriteEvent(Connection connection, Buffer data, long size);
     
     /**
      * Method will be called, when error occurs on the {@link Connection}.

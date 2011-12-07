@@ -81,6 +81,8 @@ import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.junit.After;
 import org.junit.Before;
@@ -464,7 +466,7 @@ public class FileCacheTest {
     }
 
     private static class StatsConnectionProbe implements ConnectionProbe {
-        final AtomicInteger sentBytesCounter = new AtomicInteger();
+        final AtomicLong sentBytesCounter = new AtomicLong();
         final AtomicInteger receivedCounter = new AtomicInteger();
 
         @Override
@@ -486,7 +488,7 @@ public class FileCacheTest {
         }
 
         @Override
-        public void onWriteEvent(Connection connection, Buffer data, int size) {
+        public void onWriteEvent(Connection connection, Buffer data, long size) {
             sentBytesCounter.addAndGet(size);
         }
 

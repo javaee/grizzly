@@ -41,9 +41,11 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.DefaultSelectorHandler;
@@ -1102,60 +1104,68 @@ public final class TCPNIOTransport extends NIOTransport implements
         return read;
     }
 
-    public int write(final Connection connection, final Buffer buffer)
+    public int write(final Connection connection, final WriteQueueMessage message)
             throws IOException {
-        return write(connection, buffer, null);
+        return write(connection, message, null);
     }
-    
+
     @SuppressWarnings("unchecked")
-    public int write(final Connection connection, final Buffer buffer,
+    public int write(final Connection connection, final WriteQueueMessage message,
             final WriteResult currentResult) throws IOException {
 
-        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int oldPos = buffer.position();
-        
         int written;
-        try {
-            if (buffer.isComposite()) {
-                final BufferArray array = buffer.toBufferArray();
+        if (message instanceof Buffer) {
+            final Buffer buffer = (Buffer) message;
+            final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
+            final int oldPos = buffer.position();
 
-                written = writeGathered(tcpConnection, array);
+            try {
+                if (buffer.isComposite()) {
+                    final BufferArray array = buffer.toBufferArray();
 
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
-                            new Object[]{connection, written});
+                    written = writeGathered(tcpConnection, array);
+
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
+                                new Object[]{connection, written});
+                    }
+
+                    array.restore();
+                    array.recycle();
+                } else {
+                    written = writeSimple(tcpConnection, buffer);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
+                                new Object[]{connection, written});
+                    }
                 }
 
-                array.restore();
-                array.recycle();
-            } else {
-                written = writeSimple(tcpConnection, buffer);
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
-                            new Object[]{connection, written});
+                final boolean hasWritten = (written >= 0);
+                if (hasWritten) {
+                    buffer.position(oldPos + written);
                 }
-            }
 
-            final boolean hasWritten = (written >= 0);
-            if (hasWritten) {
-                buffer.position(oldPos + written);
-            }
+                tcpConnection.onWrite(buffer, written);
 
-            tcpConnection.onWrite(buffer, written);
-
-            if (hasWritten) {
-                if (currentResult != null) {
-                    currentResult.setMessage(buffer);
-                    currentResult.setWrittenSize(currentResult.getWrittenSize()
-                            + written);
-                    currentResult.setDstAddress(
-                            connection.getPeerAddress());
+                if (hasWritten) {
+                    if (currentResult != null) {
+                        currentResult.setMessage(message);
+                        currentResult.setWrittenSize(currentResult.getWrittenSize()
+                                + written);
+                        currentResult.setDstAddress(
+                                connection.getPeerAddress());
+                    }
                 }
+            } catch (IOException e) {
+                // Mark connection as closed remotely.
+                tcpConnection.close0(null, false);
+                throw e;
             }
-        } catch (IOException e) {
-            // Mark connection as closed remotely.
-            tcpConnection.close0(null, false);
-            throw e;
+        } else if (message instanceof FileTransfer) {
+            written = (int) ((FileTransfer) message).writeTo((SocketChannel)
+                                  ((TCPNIOConnection) connection).getChannel());
+        } else {
+            throw new IllegalStateException("Unhandled message type");
         }
 
         return written;

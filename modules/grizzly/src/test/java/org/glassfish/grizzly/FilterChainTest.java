@@ -252,7 +252,6 @@ public class FilterChainTest extends TestCase {
 
     public void testWriteCloner() throws Exception {
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        final MemoryManager mm = transport.getMemoryManager();
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());

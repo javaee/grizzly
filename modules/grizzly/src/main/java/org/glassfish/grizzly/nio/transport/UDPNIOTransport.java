@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
+import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
@@ -154,7 +156,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createImmutable(
+        asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
                 new UDPNIOAsyncQueueReader(this),
                 new UDPNIOAsyncQueueWriter(this));
 
@@ -256,7 +258,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     public UDPNIOServerConnection bind(final String host,
             final PortRange portRange, final int backlog) throws IOException {
 
-        IOException ioException = null;
+        IOException ioException;
 
         final int lower = portRange.getLower();
         final int range = portRange.getUpper() - lower + 1;
@@ -268,9 +270,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             final int port = lower + offset;
 
             try {
-                final UDPNIOServerConnection serverConnection =
-                        bind(host, port, backlog);
-                return serverConnection;
+                return bind(host, port, backlog);
             } catch (IOException e) {
                 ioException = e;
             }
@@ -831,48 +831,54 @@ public final class UDPNIOTransport extends NIOTransport implements
         return read;
     }
 
-    public int write(final UDPNIOConnection connection,
-            final SocketAddress dstAddress, final Buffer buffer)
+    public long write(final UDPNIOConnection connection,
+            final SocketAddress dstAddress, final WriteQueueMessage message)
             throws IOException {
-        return write(connection, dstAddress, buffer, null);
+        return write(connection, dstAddress, message, null);
     }
 
-    public int write(final UDPNIOConnection connection, final SocketAddress dstAddress,
-            final Buffer buffer, final WriteResult<Buffer, SocketAddress> currentResult)
+    public long write(final UDPNIOConnection connection, final SocketAddress dstAddress,
+            final WriteQueueMessage message, final WriteResult<WriteQueueMessage, SocketAddress> currentResult)
             throws IOException {
 
-        final int written;
+        final long written;
+        if (message instanceof Buffer) {
+            final Buffer buffer = (Buffer) message;
+            final int oldPos = buffer.position();
 
-        final int oldPos = buffer.position();
-
-        if (dstAddress != null) {
-            written = ((DatagramChannel) connection.getChannel()).send(
-                    buffer.toByteBuffer(), dstAddress);
-        } else {
-
-            if (buffer.isComposite()) {
-                final ByteBufferArray array = buffer.toByteBufferArray();
-                final ByteBuffer[] byteBuffers = array.getArray();
-                final int size = array.size();
-
-                written = (int) ((DatagramChannel) connection.getChannel()).write(byteBuffers, 0, size);
-
-                array.restore();
-                array.recycle();
+            if (dstAddress != null) {
+                written = ((DatagramChannel) connection.getChannel()).send(
+                        buffer.toByteBuffer(), dstAddress);
             } else {
-                written = ((DatagramChannel) connection.getChannel()).write(
-                        buffer.toByteBuffer());
-            }
-        }
 
-        if (written > 0) {
-            buffer.position(oldPos + written);
+                if (buffer.isComposite()) {
+                    final ByteBufferArray array = buffer.toByteBufferArray();
+                    final ByteBuffer[] byteBuffers = array.getArray();
+                    final int size = array.size();
+
+                    written = ((DatagramChannel) connection.getChannel()).write(byteBuffers, 0, size);
+
+                    array.restore();
+                    array.recycle();
+                } else {
+                    written = ((DatagramChannel) connection.getChannel()).write(
+                            buffer.toByteBuffer());
+                }
+            }
+
+            if (written > 0) {
+                buffer.position(oldPos + (int) written);
+            }
+
+            connection.onWrite(buffer, (int) written);
+        } else if (message instanceof FileTransfer) {
+            written = ((FileTransfer) message).writeTo((DatagramChannel) connection.getChannel());
+        } else {
+            throw new IllegalStateException("Unhandled message type");
         }
-        
-        connection.onWrite(buffer, written);
 
         if (currentResult != null) {
-            currentResult.setMessage(buffer);
+            currentResult.setMessage(message);
             currentResult.setWrittenSize(currentResult.getWrittenSize()
                     + written);
             currentResult.setDstAddress(
@@ -910,15 +916,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     protected JmxObject createJmxManagementObject() {
         return new org.glassfish.grizzly.nio.transport.jmx.UDPNIOTransport(this);
-    }
-
-    private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
-        int index = 0;
-        while (processed > 0) {
-            final ByteBuffer byteBuffer = byteBuffers[index++];
-            byteBuffer.position(0);
-            processed -= byteBuffer.remaining();
-        }
     }
 
     protected class RegisterChannelCompletionHandler

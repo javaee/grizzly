@@ -230,7 +230,7 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
 
             final WriteResult firstResult = record.getCurrentResult();
             final Buffer firstMessage = record.getMessage();
-            final int firstMessageRemaining =
+            final long firstMessageRemaining =
                     record.getInitialMessageSize() - firstResult.getWrittenSize();
 
             if (remainder >= firstMessageRemaining) {
@@ -248,8 +248,7 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
                         firstResult.getWrittenSize() + remainder);
                 
                 ((TCPNIOConnection) connection).onWrite(firstMessage, remainder);
-                remainder = 0;
-                
+
                 return written;
             }
         }
@@ -307,7 +306,6 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
             }
 
             compositeQueueRecord.append(currentRecord);
-            currentRecord = compositeQueueRecord;
         } else {
             compositeQueueRecord = (CompositeQueueRecord) currentRecord;
         }
@@ -321,7 +319,7 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
     }
     
     private final Attribute<CompositeQueueRecord> compositeBufferAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<CompositeQueueRecord>createAttribute(
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             TCPNIOMultiplexingAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
     
@@ -342,7 +340,7 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {
-            size += queueRecord.getMessage().remaining();
+            size += queueRecord.remaining();
             queue.add(queueRecord);
         }
 
@@ -357,7 +355,7 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
         }
 
         @Override
-        public int remaining() {
+        public long remaining() {
             return size;
         }
 

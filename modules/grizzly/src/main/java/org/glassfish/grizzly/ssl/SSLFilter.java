@@ -42,6 +42,7 @@ package org.glassfish.grizzly.ssl;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
@@ -205,6 +206,11 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
+
+        if (ctx.getMessage() instanceof FileTransfer) {
+            throw new IllegalStateException("TLS operations not supported with SendFile messages");
+        }
+
         synchronized (connection) {
             SSLEngine sslEngine = getSSLEngine(connection);
             if (sslEngine != null && !isHandshaking(sslEngine)) {

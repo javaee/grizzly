@@ -103,14 +103,14 @@ public final class WriteResult<K, L> implements Result, Cacheable {
     /**
      * Number of bytes written.
      */
-    private int writtenSize;
+    private long writtenSize;
 
     private WriteResult(Connection connection) {
         this(connection, null, null, 0);
     }
 
     private WriteResult(Connection connection, K message, L dstAddress,
-            int writeSize) {
+            long writeSize) {
         this.connection = connection;
         this.message = message;
         this.dstAddress = dstAddress;
@@ -173,7 +173,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      *
      * @return the number of bytes, which were written.
      */
-    public final int getWrittenSize() {
+    public final long getWrittenSize() {
         checkRecycled();
         return writtenSize;
     }
@@ -183,7 +183,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      *
      * @param writeSize the number of bytes, which were written.
      */
-    public final void setWrittenSize(int writeSize) {
+    public final void setWrittenSize(long writeSize) {
         checkRecycled();
         this.writtenSize = writeSize;
     }

@@ -1573,6 +1573,20 @@ public final class BuffersBuffer extends CompositeBuffer {
         return h;
     }
 
+    @Override
+    public boolean release() {
+        return tryDispose();
+    }
+
+    @Override
+    public boolean reserveQueueSpace() {
+        return true;
+    }
+
+    @Override
+    public boolean canBeAggregated() {
+        return true;
+    }
 
     // --------------------------------------------------------- Private Methods
 

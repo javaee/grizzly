@@ -42,7 +42,6 @@ package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Cacheable;
 import java.util.concurrent.Future;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -56,7 +55,7 @@ import org.glassfish.grizzly.utils.DebugPoint;
  */
 public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Connection connection;
-    protected Buffer message;
+    protected Object message;
     protected Future future;
     protected R currentResult;
     protected CompletionHandler completionHandler;
@@ -65,14 +64,14 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected DebugPoint recycleTrack;
     
     public AsyncQueueRecord(final Connection connection,
-            final Buffer message, final Future future,
+            final Object message, final Future future,
             final R currentResult, final CompletionHandler completionHandler) {
 
         set(connection, message, future, currentResult, completionHandler);
     }
 
     protected final void set(final Connection connection,
-            final Buffer message, final Future future,
+            final Object message, final Future future,
             final R currentResult, final CompletionHandler completionHandler) {
 
         checkRecycled();
@@ -87,12 +86,13 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         return connection;
     }
   
-    public final Buffer getMessage() {
+    @SuppressWarnings("unchecked")
+    public final <T> T getMessage() {
         checkRecycled();
-        return message;
+        return (T) message;
     }
 
-    public final void setMessage(final Buffer message) {
+    public final void setMessage(final Object message) {
         checkRecycled();
         this.message = message;
     }

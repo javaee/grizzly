@@ -45,18 +45,17 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractWriter;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 
@@ -64,8 +63,6 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 
 
 /**
@@ -95,17 +92,6 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
     // Cached IOException to throw from onClose()
     // Probably we shouldn't even care it's not volatile
     private IOException cachedIOException;
-
-    private final Attribute<Reentrant> reentrantsAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            AbstractNIOMultiplexingAsyncQueueWriter.class.getName() + hashCode() + ".reentrant",
-            new NullaryFunction<Reentrant>() {
-
-                @Override
-                public Reentrant evaluate() {
-                    return new Reentrant();
-                }
-            });
 
     private final static Reentrant DUMMY_REENTRANT = new Reentrant();
     
@@ -160,13 +146,13 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
     }
 
     @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
             final Connection connection, SocketAddress dstAddress,
-            final Buffer buffer,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor)
+            final WriteQueueMessage message,
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            final Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor)
             throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler,
+        return write(connection, dstAddress, message, completionHandler,
                 interceptor, null);
     }
 
@@ -174,12 +160,12 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
             final Connection connection, final SocketAddress dstAddress,
-            final Buffer buffer,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
-            final MessageCloner<Buffer> cloner) throws IOException {                
+            final WriteQueueMessage message,
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            final Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor,
+            final MessageCloner<WriteQueueMessage> cloner) throws IOException {
         
         if (connection == null) {
             return failure(new IOException("Connection is null"),
@@ -198,18 +184,18 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
                 nioConnection.getAsyncWriteQueue();
 
 
-        final WriteResult<Buffer, SocketAddress> currentResult =
-                WriteResult.create(nioConnection, buffer, dstAddress, 0);
+        final WriteResult<WriteQueueMessage, SocketAddress> currentResult =
+                WriteResult.create(nioConnection, message, dstAddress, 0);
         
-        final int bufferSize = buffer.remaining();
+        final int bufferSize = message.remaining();
         final boolean isEmptyRecord = bufferSize == 0;
 
-        final SafeFutureImpl<WriteResult<Buffer, SocketAddress>> future =
+        final SafeFutureImpl<WriteResult<WriteQueueMessage, SocketAddress>> future =
                 SafeFutureImpl.create();
 
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = createRecord(
-                nioConnection, buffer, future, currentResult, completionHandler,
+                nioConnection, message, future, currentResult, completionHandler,
                 dstAddress, isEmptyRecord);
 
         // For empty buffer reserve 1 byte space        
@@ -226,7 +212,7 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
                         nioConnection);
             }
 
-            queueRecord.setMessage(cloner.clone(nioConnection, buffer));
+            queueRecord.setMessage(cloner.clone(nioConnection, message));
         }
 
         connectionQueue.offer(queueRecord);
@@ -270,10 +256,10 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
     }
 
     protected AsyncWriteQueueRecord createRecord(final Connection connection,
-            final Buffer message,
-            final Future<WriteResult<Buffer, SocketAddress>> future,
-            final WriteResult<Buffer, SocketAddress> currentResult,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            final WriteQueueMessage message,
+            final Future<WriteResult<WriteQueueMessage, SocketAddress>> future,
+            final WriteResult<WriteQueueMessage, SocketAddress> currentResult,
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
             final SocketAddress dstAddress,
             final boolean isEmptyRecord) {
         return AsyncWriteQueueRecord.create(connection, message, future,
@@ -440,14 +426,14 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
         }
     }
     
-    private static GrizzlyFuture<WriteResult<Buffer, SocketAddress>> failure(
+    private static GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> failure(
             final Throwable failure,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) {
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler) {
         if (completionHandler != null) {
             completionHandler.failed(failure);
         }
         
-        return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
+        return ReadyFutureImpl.create(failure);
     }
     
     protected abstract int write0(final NIOConnection connection,

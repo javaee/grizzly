@@ -47,15 +47,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractWriter;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -65,8 +64,6 @@ import org.glassfish.grizzly.nio.NIOConnection;
  */
 public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
-
-    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorWriter.class);
 
     protected final TemporarySelectorsEnabledTransport transport;
 
@@ -79,34 +76,34 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor)
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor)
             throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler,
+        return write(connection, dstAddress, message, completionHandler,
                 interceptor,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Method writes the <tt>message</tt> to the specific address.
+     * Method writes the {@link WriteQueueMessage} to the specific address.
      *
-     * @param connection the {@link Connection} to write to
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
      * @param dstAddress the destination address the <tt>message</tt> will be
      *        sent to
-     * @param message the message, from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, Buffer message,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor,
             long timeout, TimeUnit timeunit) throws IOException {
 
         if (message == null) {
@@ -122,7 +119,7 @@ public abstract class TemporarySelectorWriter
 
         final NIOConnection nioConnection = (NIOConnection) connection;
         
-        final WriteResult<Buffer, SocketAddress> writeResult =
+        final WriteResult<WriteQueueMessage, SocketAddress> writeResult =
                 WriteResult.create(connection,
                         message, dstAddress, 0);
 
@@ -130,14 +127,14 @@ public abstract class TemporarySelectorWriter
             write0(nioConnection, dstAddress, message, writeResult,
                     timeout, timeunit);
 
-            final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
+            final GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> writeFuture =
                     ReadyFutureImpl.create(writeResult);
 
             if (completionHandler != null) {
                 completionHandler.completed(writeResult);
             }
 
-            message.tryDispose();
+            message.release();
             return writeFuture;
             
         } catch (IOException e) {
@@ -148,20 +145,20 @@ public abstract class TemporarySelectorWriter
     /**
      * Flush the buffer by looping until the {@link Buffer} is empty
      *
-     * @param connection the {@link Connection}.
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection}.
      * @param dstAddress the destination address.
-     * @param buffer the {@link Buffer} to write.
-     * @param currentResult the result of the write operation
+     * @param message
+     *@param currentResult the result of the write operation
      * @param timeout operation timeout value value
      * @param timeunit the timeout unit
-     *
-     * @return The number of bytes written.
+*    @return The number of bytes written.
      * 
      * @throws java.io.IOException
      */
-    protected int write0(final NIOConnection connection,
-            final SocketAddress dstAddress, final Buffer buffer,
-            final WriteResult<Buffer, SocketAddress> currentResult,
+    protected long write0(final NIOConnection connection,
+            final SocketAddress dstAddress, final WriteQueueMessage message,
+            final WriteResult<WriteQueueMessage, SocketAddress> currentResult,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
         final SelectableChannel channel = connection.getChannel();
@@ -173,8 +170,8 @@ public abstract class TemporarySelectorWriter
         int bytesWritten = 0;
 
         try {
-            while (buffer.hasRemaining()) {
-                int len = writeNow0(connection, dstAddress, buffer,
+            while (message.hasRemaining()) {
+                long len = writeNow0(connection, dstAddress, message,
                         currentResult);
 
                 if (len > 0) {
@@ -213,18 +210,18 @@ public abstract class TemporarySelectorWriter
         return transport;
     }
 
-    protected abstract int writeNow0(NIOConnection connection,
-            SocketAddress dstAddress, Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
+    protected abstract long writeNow0(NIOConnection connection,
+            SocketAddress dstAddress, WriteQueueMessage message,
+            WriteResult<WriteQueueMessage, SocketAddress> currentResult)
             throws IOException;
     
-    private static GrizzlyFuture<WriteResult<Buffer, SocketAddress>> failure(
+    private static GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> failure(
             final Throwable failure,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) {
+            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler) {
         if (completionHandler != null) {
             completionHandler.failed(failure);
         }
         
-        return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
+        return ReadyFutureImpl.create(failure);
     }
 }

@@ -42,11 +42,10 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOMultiplexingAsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
@@ -66,13 +65,13 @@ public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected int write0(final NIOConnection connection,
+    protected long write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
-        final Buffer outputBuffer = queueRecord.getMessage();
+        final WriteQueueMessage outputMessage = queueRecord.getMessage();
         final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
-        final WriteResult<Buffer, SocketAddress> currentResult = queueRecord.getCurrentResult();
+        final WriteResult<WriteQueueMessage, SocketAddress> currentResult = queueRecord.getCurrentResult();
         return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
-                dstAddress, outputBuffer, currentResult);
+                dstAddress, outputMessage, currentResult);
     }
 
     @Override

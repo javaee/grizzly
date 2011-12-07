@@ -62,29 +62,30 @@ public interface AsyncQueueWriter<L>
     /**
      * Method writes the {@link Buffer} to the specific address.
      *
-     * @param connection the {@link Connection} to write to
-     * @param dstAddress the destination address the <tt>message</tt> will be
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
      *        sent to
-     * @param buffer the Buffer from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
+     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was written from a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
+     * @param interceptor {@link org.glassfish.grizzly.Interceptor}, which will 
+     *        be able to intercept control each time new portion of a data was 
+     *        written from a {@link WriteQueueMessage}.
+     *        The {@link Interceptor} can decide, whether asynchronous write is
      *        completed or not, or provide other processing instructions.
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
-     *        channel directly and has to be put on a asynchronous queue
+     *        channel directly and has to be put on a asynchronous queue    
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
-            MessageCloner<Buffer> cloner)
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
+            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor,
+            MessageCloner<WriteQueueMessage> cloner)
             throws IOException;
 
     /**

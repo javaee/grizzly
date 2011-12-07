@@ -47,6 +47,8 @@ import java.nio.ByteOrder;
 import java.nio.InvalidMarkException;
 import java.nio.ReadOnlyBufferException;
 import java.nio.charset.Charset;
+
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 
@@ -58,7 +60,7 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
  *
  * @author Alexey Stashok
  */
-public interface Buffer extends Comparable<Buffer> {
+public interface Buffer extends Comparable<Buffer>, WriteQueueMessage {
 
     boolean isComposite();
 

@@ -46,6 +46,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -126,7 +127,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(final FilterChainContext ctx)
             throws IOException {
-        final Object message = ctx.getMessage();
+        final WriteQueueMessage message = ctx.getMessage();
         if (message != null) {
             ctx.setMessage(null);
             final Connection connection = ctx.getConnection();
@@ -152,7 +153,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
 
             transport.getWriter(transportContext.isBlocking()).write(
                     connection, address,
-                    (Buffer) message, writeCompletionHandler).markForRecycle(
+                    message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
         }
 

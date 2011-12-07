@@ -746,6 +746,23 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    @Override
+    public boolean release() {
+        return tryDispose();
+    }
+
+
+    @Override
+    public boolean reserveQueueSpace() {
+        return true;
+    }
+
+
+    @Override
+    public boolean canBeAggregated() {
+        return true;
+    }
+
     protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(byteBuffer);
     }

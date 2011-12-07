@@ -40,8 +40,10 @@
 
 package org.glassfish.grizzly.nio.transport;
 
+import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -77,52 +79,57 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected int write0(final NIOConnection connection,
+    protected long write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
 
         if (queueRecord instanceof CompositeQueueRecord) {
             return writeComposite0(connection, (CompositeQueueRecord) queueRecord);
         }
         
-        final WriteResult<Buffer, SocketAddress> currentResult =
+        final WriteResult<WriteQueueMessage, SocketAddress> currentResult =
                 queueRecord.getCurrentResult();
-        final Buffer buffer = queueRecord.getMessage();
+        final WriteQueueMessage message = queueRecord.getMessage();
 
-        final int written;
-        
-        final int oldPos = buffer.position();
-        final int bufferSize = buffer.remaining();
-        
-        if (bufferSize == 0) {
-            written = 0;
-        } else {
-            final DirectByteBufferRecord directByteBufferRecord =
-                    TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
-                                    
-            try {
-                final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-                final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
+        final long written;
 
-                fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
-                written = TCPNIOTransport.flushByteBuffer(
-                        socketChannel, directByteBuffer);
-                
-                buffer.position(oldPos + written);
-            } catch (IOException e) {
-                // Mark connection as closed remotely.
-                ((TCPNIOConnection) connection).close0(null, false).markForRecycle(true);
-                throw e;
-            } finally {
-                TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+        if (message instanceof Buffer) {
+            final Buffer buffer = (Buffer) message;
+            final int oldPos = buffer.position();
+            final int bufferSize = buffer.remaining();
+
+            if (bufferSize == 0) {
+                written = 0;
+            } else {
+                final DirectByteBufferRecord directByteBufferRecord =
+                        TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
+
+                try {
+                    final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                    final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
+
+                    fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
+                    written = TCPNIOTransport.flushByteBuffer(
+                            socketChannel, directByteBuffer);
+
+                    buffer.position(oldPos + (int) written);
+                    ((TCPNIOConnection) connection).onWrite(buffer, written);
+                } catch (IOException e) {
+                    // Mark connection as closed remotely.
+                    ((TCPNIOConnection) connection).close0(null, false).markForRecycle(true);
+                    throw e;
+                } finally {
+                    TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+                }
             }
-
+        } else if (message instanceof FileTransfer) {
+            written = ((FileTransfer) message).writeTo((SocketChannel) connection.getChannel());
+            ((TCPNIOConnection) connection).onWrite(null, written);
+        } else {
+            throw new IllegalStateException("Unhandled message type");
         }
 
-
-        ((TCPNIOConnection) connection).onWrite(buffer, written);
-
         if (currentResult != null) {
-            currentResult.setMessage(buffer);
+            currentResult.setMessage(message);
             currentResult.setWrittenSize(currentResult.getWrittenSize()
                     + written);
             currentResult.setDstAddress(
@@ -230,7 +237,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
             final WriteResult firstResult = record.getCurrentResult();
             final Buffer firstMessage = record.getMessage();
-            final int firstMessageRemaining =
+            final long firstMessageRemaining =
                     record.getInitialMessageSize() - firstResult.getWrittenSize();
 
             if (remainder >= firstMessageRemaining) {
@@ -248,8 +255,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                         firstResult.getWrittenSize() + remainder);
                 
                 ((TCPNIOConnection) connection).onWrite(firstMessage, remainder);
-                remainder = 0;
-                
                 return written;
             }
         }
@@ -282,9 +287,11 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         AsyncWriteQueueRecord currentRecord =
                 connectionQueue.obtainCurrentElementAndReserve();
         
-        if (currentRecord == null || currentRecord.isEmptyRecord() ||
-                currentRecord.remaining() == queueSize) {
-            if (currentRecord == null)
+        if (currentRecord == null
+                || currentRecord.isEmptyRecord()
+                || currentRecord.remaining() == queueSize
+                || (currentRecord.getWriteQueueMessage() != null && !currentRecord.getWriteQueueMessage().canBeAggregated())) {
+//            if (currentRecord == null)
 //                NIOConnection.l.offer("r.aggr2 null");
             return currentRecord;
         }
@@ -307,22 +314,22 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             }
 
             compositeQueueRecord.append(currentRecord);
-            currentRecord = compositeQueueRecord;
         } else {
             compositeQueueRecord = (CompositeQueueRecord) currentRecord;
         }
         
         do {
             compositeQueueRecord.append(nextRecord);
-        } while(compositeQueueRecord.remaining() < queueSize &&
-                (nextRecord = queue.poll()) != null);
+        } while (compositeQueueRecord.remaining() < queueSize
+                && (nextRecord = queue.poll()) != null
+                && nextRecord.getWriteQueueMessage().canBeAggregated());
         
         return compositeQueueRecord;
     }
     
     private final Attribute<CompositeQueueRecord> compositeBufferAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<CompositeQueueRecord>createAttribute(
-            TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                    TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
     
     private static final class CompositeQueueRecord extends AsyncWriteQueueRecord {
@@ -342,7 +349,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {
-            size += queueRecord.getMessage().remaining();
+            size += queueRecord.remaining();
             queue.add(queueRecord);
         }
 
@@ -357,7 +364,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         @Override
-        public int remaining() {
+        public long remaining() {
             return size;
         }
 

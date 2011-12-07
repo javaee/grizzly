@@ -249,7 +249,7 @@ public class TCPNIOConnection extends NIOConnection {
     /**
      * Method will be called, when some data was written on the connection
      */
-    protected final void onWrite(Buffer data, int size) {
+    protected final void onWrite(Buffer data, long size) {
         notifyProbesWrite(this, data, size);
     }
 
