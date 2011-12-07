@@ -220,7 +220,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
-        HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
+        HttpRequestPacketImpl httpRequest = getHttpRequestInProcess(connection);
         if (httpRequest == null) {
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = HttpRequestPacketImpl.create();
@@ -249,6 +249,10 @@ public class HttpServerFilter extends HttpCodecFilter {
                 }
             }
             httpRequestInProcessAttr.set(connection, httpRequest);
+        } else if (httpRequest.isContentBroken()) {
+            // if payload of the current/last HTTP request associated with the
+            // Connection is broken - stop processing here
+            return ctx.getStopAction();
         }
 
         return handleRead(ctx, httpRequest);
@@ -276,45 +280,49 @@ public class HttpServerFilter extends HttpCodecFilter {
                 final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
                 keepAliveContext.request = null;
 
-                return processResponseComplete(ctx, httpRequest, isStayAlive);
+                processResponseComplete(ctx, httpRequest, isStayAlive);
             } else {
-                return flushAndClose(ctx);
+                final HttpRequestPacket httpRequest = getHttpRequestInProcess(c);
+                if (httpRequest != null) {
+                    processResponseComplete(ctx, httpRequest, false);
+                }
+                
+                flushAndClose(ctx);
             }
+            
+            return ctx.getStopAction();
         }
 
         return ctx.getInvokeAction();
     }
 
-    private NextAction processResponseComplete(final FilterChainContext ctx,
+    private void processResponseComplete(final FilterChainContext ctx,
             final HttpRequestPacket httpRequest, final boolean isStayAlive)
             throws IOException {
         
         final boolean hasTransferEncoding = httpRequest.getTransferEncoding() != null;
 
         if (httpRequest.isExpectContent()) {
-            if (hasTransferEncoding) {
+            if (hasTransferEncoding && !httpRequest.isContentBroken()) {
                 // If transfer encoding is defined and we can determine the message body length
-                httpRequest.setSkipRemainder(true);
                 // we will check HTTP keep-alive settings once remainder is fully read
-                return ctx.getStopAction();
+                httpRequest.setSkipRemainder(true);
             } else {
                 // if we can not determine the message body length - assume this packet as processed
                 httpRequest.setExpectContent(false);
                 // notify processed. If packet has transfer encoding - the notification should be called elsewhere
                 onHttpPacketParsed(httpRequest, ctx);
                 // no matter it's keep-alive or not - we close the connection
-                return flushAndClose(ctx);                
+                flushAndClose(ctx);
             }
-        }
-
-        if (!isStayAlive) {
+        } else if (!isStayAlive) {
             // if we don't expect more data on the request and it's not in keep-alive mode
             // close it
-            return flushAndClose(ctx);
-        }
+            flushAndClose(ctx);
+        } /* else {
+            we don't expect more data on the request, but it's keep-alive
+        }*/
         
-        // we don't expect more data on the request, but it's keep-alive
-        return ctx.getStopAction();
     }
 
     @Override
@@ -387,7 +395,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    protected void onHttpError(final HttpHeader httpHeader,
+    protected void onHttpHeaderError(final HttpHeader httpHeader,
                                final FilterChainContext ctx,
                                final Throwable t) throws IOException {
 
@@ -407,6 +415,13 @@ public class HttpServerFilter extends HttpCodecFilter {
         ctx.flush(FLUSH_AND_CLOSE_HANDLER);
     }
 
+    @Override
+    protected void onHttpContentError(final HttpHeader httpHeader,
+            final FilterChainContext ctx,
+            final Throwable t) throws IOException {
+        httpHeader.setContentBroken(true);
+    }
+    
     @Override
     protected Buffer encodeHttpPacket(final FilterChainContext ctx,
             final HttpPacket input) {
@@ -924,6 +939,10 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         
         return isKeepAlive;
+    }
+
+    private HttpRequestPacketImpl getHttpRequestInProcess(final Connection connection) {
+        return httpRequestInProcessAttr.get(connection);
     }
 
     private boolean checkKeepAliveRequestsCount(final Connection connection) {

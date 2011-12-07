@@ -104,6 +104,12 @@ public abstract class HttpHeader extends HttpPacket
 
     protected boolean isSkipRemainder;
     
+    /**
+     * <tt>true</tt> if HTTP message payload is broken due to inappropriate
+     * Transfer-Encoding or Content-Encoding settings.
+     */
+    protected boolean isContentBroken;
+    
     protected boolean secure;
 
     protected final DataChunk upgrade = DataChunk.newInstance();
@@ -263,6 +269,35 @@ public abstract class HttpHeader extends HttpPacket
         this.isSkipRemainder = isSkipRemainder;
     }
 
+    /**
+     * Returns <tt>true</tt>, if HTTP packet payload
+     * was detected as broken due to unexpected error occurred during 
+     * Transfer-Encoding or Content-Encoding processing.
+     * Otherwise returns <tt>false</tt>.
+     * 
+     * @return <tt>true</tt>, if HTTP packet payload
+     * was detected as broken due to unexpected error occurred during 
+     * Transfer-Encoding or Content-Encoding processing.
+     * Otherwise returns <tt>false</tt>.
+     */
+    public boolean isContentBroken() {
+        return isContentBroken;
+    }
+
+    /**
+     * Set flag, which is set to <tt>true</tt>, means that HTTP packet payload
+     * was detected as broken due to unexpected error occurred during 
+     * Transfer-Encoding or Content-Encoding processing.
+     *
+     * @param isSkipRemainder <tt>true</tt>, means that HTTP packet payload
+     * was detected as broken due to unexpected error occurred during 
+     * Transfer-Encoding or Content-Encoding processing.
+     */
+    public void setContentBroken(final boolean isBroken) {
+        this.isContentBroken = isBroken;
+    }
+
+    
     public String getUpgrade() {
         if (!upgrade.isNull()) {
             return upgrade.toString();
@@ -773,6 +808,8 @@ public abstract class HttpHeader extends HttpPacket
     protected void reset() {
         isContentEncodingsSelected = false;
         secure = false;
+        isSkipRemainder = false;
+        isContentBroken = false;
         attributes.recycle();
         protocolC.recycle();
         parsedProtocol = null;

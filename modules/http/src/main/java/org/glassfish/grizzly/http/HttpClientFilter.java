@@ -184,9 +184,17 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
-    protected void onHttpError(final HttpHeader httpHeader,
+    protected void onHttpHeaderError(final HttpHeader httpHeader,
                                final FilterChainContext ctx,
                                final Throwable t) throws IOException {
+        throw new IllegalStateException(t);
+    }
+
+    @Override
+    protected void onHttpContentError(final HttpHeader httpHeader,
+                               final FilterChainContext ctx,
+                               final Throwable t) throws IOException {
+        httpHeader.setContentBroken(true);
         throw new IllegalStateException(t);
     }
 

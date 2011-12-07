@@ -40,6 +40,10 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import org.glassfish.grizzly.http.HttpBrokenContent;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpTrailer;
 import java.io.EOFException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -212,6 +216,9 @@ public class InputBuffer {
         final Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             final HttpContent content = (HttpContent) message;
+            
+            // Check if HttpContent is chunked message trailer w/ headers
+            checkHttpTrailer(content);
             inputContentBuffer = content.getContent();
             contentRead = content.isLast();
             content.recycle();
@@ -767,20 +774,34 @@ public class InputBuffer {
      *
      * @param buffer the {@link Buffer} to append
      *
-     * @return <code>true</code> if {@link ReadHandler#onDataAvailable()}
+     * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
      *
      * @throws IOException if an error occurs appending the {@link Buffer}
      */
-    public boolean append(final Buffer buffer) throws IOException {
-
-        if (buffer == null) {
+    public boolean append(final HttpContent httpContent) throws IOException {
+        
+        // check if it's broken HTTP content message
+        if (HttpContent.isBroken(httpContent)) {
+            final ReadHandler localHandler = handler;
+            handler = null;
+            if (!closed && localHandler != null) {
+                localHandler.onError(((HttpBrokenContent) httpContent).getException());
+                return true;
+            }
+            
             return false;
         }
+        
+        checkHttpTrailer(httpContent);
+        
+        final Buffer buffer = httpContent.getContent();
 
+        boolean wasCallbackInvoked = false;
+        
         if (closed) {
             buffer.dispose();
-        } else {
+        } else if (buffer != null && buffer.hasRemaining()) {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
                 updateInputContentBuffer(buffer);
@@ -795,14 +816,19 @@ public class InputBuffer {
                             localHandler.onError(t);
                             throw Exceptions.makeIOException(t);
                         }
-
-                        return true;
+                        
+                        wasCallbackInvoked = true;
                     }
                 }
             }
         }
 
-        return false;
+        if (httpContent.isLast()) {
+            finished();
+            wasCallbackInvoked = true;
+        }
+        
+        return wasCallbackInvoked;
         
     }
 
@@ -869,6 +895,10 @@ public class InputBuffer {
         while (read < requestedLen && request.isExpectContent()) {
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
+
+            // Check if HttpContent is chunked message trailer w/ headers
+            checkHttpTrailer(c);
+            
             final Buffer b = c.getContent();
             read += b.remaining();
             updateInputContentBuffer(b);
@@ -1058,4 +1088,25 @@ public class InputBuffer {
         return (CompositeBuffer) inputContentBuffer;
     }
 
+    /**
+     * Check if passed {@link HttpContent} is {@link HttpTrailer}, which represents
+     * trailer chunk (when chunked Transfer-Encoding is used), if it is a trailer
+     * chunk - then copy all the available trailer headers to request headers map.
+     * 
+     * @param httpContent 
+     */
+    private static void checkHttpTrailer(final HttpContent httpContent) {
+        if (HttpTrailer.isTrailer(httpContent)) {
+            final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
+            final HttpHeader httpHeader = httpContent.getHttpHeader();
+            
+            final MimeHeaders trailerHeaders = httpTrailer.getHeaders();
+            final int size = trailerHeaders.size();
+            for (int i = 0; i < size; i++) {
+                httpHeader.addHeader(
+                        trailerHeaders.getName(i).toString(),
+                        trailerHeaders.getValue(i).toString());
+            }
+        }
+    }    
 }

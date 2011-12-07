@@ -196,7 +196,7 @@ public class HttpRequestParseTest extends TestCase {
         HttpServerFilter filter = new HttpServerFilter(true, limit, null, null) {
 
             @Override
-            protected void onHttpError(final HttpHeader httpHeader,
+            protected void onHttpHeaderError(final HttpHeader httpHeader,
                     final FilterChainContext ctx,
                     final Throwable t) throws IOException {
                 throw new IllegalStateException(t);
@@ -275,7 +275,7 @@ public class HttpRequestParseTest extends TestCase {
             assertTrue("Write timeout", writeFuture.isDone());
             assertEquals(message.length, (int) writeFuture.get());
 
-            assertTrue(parseResult.get(1000, TimeUnit.SECONDS));
+            assertTrue(parseResult.get(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();

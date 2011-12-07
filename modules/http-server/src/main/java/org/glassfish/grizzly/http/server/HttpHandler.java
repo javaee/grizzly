@@ -162,10 +162,9 @@ public abstract class HttpHandler {
             request.parseSessionId();
             service(request, response);
         } catch (Exception t) {
-            LOGGER.log(Level.SEVERE,"service exception", t);
+            LOGGER.log(Level.WARNING, "service exception", t);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
-            throw t;
         }
     }
     

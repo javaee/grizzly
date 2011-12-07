@@ -69,7 +69,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     
     private final int maxHeadersSize;
 
-    public ChunkedTransferEncoding(int maxHeadersSize) {
+    public ChunkedTransferEncoding(final int maxHeadersSize) {
         this.maxHeadersSize = maxHeadersSize;
     }
 
@@ -77,7 +77,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public boolean wantDecode(HttpHeader httpPacket) {
+    public boolean wantDecode(final HttpHeader httpPacket) {
         return httpPacket.isChunked();
     }
 
@@ -85,7 +85,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public boolean wantEncode(HttpHeader httpPacket) {
+    public boolean wantEncode(final HttpHeader httpPacket) {
         return httpPacket.isChunked();
     }
 
@@ -93,9 +93,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public void prepareSerialize(FilterChainContext ctx,
-                                 HttpHeader httpHeader,
-                                 HttpContent content) {
+    public void prepareSerialize(final FilterChainContext ctx,
+                                 final HttpHeader httpHeader,
+                                 final HttpContent content) {
         httpHeader.makeTransferEncodingHeader(Constants.CHUNKED_ENCODING);
     }
 
@@ -104,8 +104,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      */
     @Override
     @SuppressWarnings({"UnusedDeclaration"})
-    public ParsingResult parsePacket(FilterChainContext ctx,
-            HttpHeader httpPacket, Buffer input) {
+    public ParsingResult parsePacket(final FilterChainContext ctx,
+            final HttpHeader httpPacket, Buffer input) {
         final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
 
         // Get HTTP content parsing state
@@ -178,9 +178,15 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             remainder = input.split(
                     (int) (chunkContentStart + thisPacketRemaining));
             input.position(chunkContentStart);
-//            input.limit((int) (chunkContentStart + thisPacketRemaining));
         } else if (chunkContentStart > 0) {
             input.position(chunkContentStart);
+        }
+
+        if (isLastChunk) {
+            // Build last chunk content message
+            return ParsingResult.create(httpPacket.httpTrailerBuilder().
+                    headers(contentParsingState.trailerHeaders).build(), remainder);
+
         }
 
         input.shrink();
@@ -192,13 +198,6 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             input = Buffers.EMPTY_BUFFER;
         }
 
-        if (isLastChunk) {
-            // Build last chunk content message
-            return ParsingResult.create(httpPacket.httpTrailerBuilder().
-                    headers(contentParsingState.trailerHeaders).build(), remainder);
-
-        }
-
         return ParsingResult.create(httpPacket.httpContentBuilder().content(input).build(), remainder);
     }
 
@@ -206,7 +205,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public Buffer serializePacket(FilterChainContext ctx, HttpContent httpContent) {
+    public Buffer serializePacket(final FilterChainContext ctx,
+            final HttpContent httpContent) {
         return encodeHttpChunk(ctx.getMemoryManager(),
                                httpContent,
                                httpContent.isLast());
@@ -225,10 +225,10 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         headerParsingState.packetLimit = start + maxHeadersSize;
     }
 
-    private boolean parseLastChunkTrailer(FilterChainContext ctx,
-                                          HttpHeader httpHeader,
-                                          HttpPacketParsing httpPacket,
-                                          Buffer input) {
+    private boolean parseLastChunkTrailer(final FilterChainContext ctx,
+                                          final HttpHeader httpHeader,
+                                          final HttpPacketParsing httpPacket,
+                                          final Buffer input) {
         final HeaderParsingState headerParsingState =
                 httpPacket.getHeaderParsingState();
         final ContentParsingState contentParsingState =
@@ -239,14 +239,20 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                                                    contentParsingState.trailerHeaders,
                                                    headerParsingState,
                                                    input);
-        if (contentParsingState.trailerHeaders.size() > 0) {
-            filter.onHttpHeadersParsed(httpHeader, ctx);
+        if (result) {
+            if (contentParsingState.trailerHeaders.size() > 0) {
+                filter.onHttpHeadersParsed(httpHeader, ctx);
+            }
+        } else {
+            headerParsingState.checkOverflow("The chunked encoding trailer header is too large");
         }
+        
         return result;
     }
 
-    private static boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
-            Buffer input) {
+    private static boolean parseHttpChunkLength(
+            final HttpPacketParsing httpPacket,
+            final Buffer input) {
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
         while (true) {
@@ -280,7 +286,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         } else if (parsingState.checkpoint == -1) {
                             value = value * 16 + (DEC[b]);
                         } else {
-                            throw new IllegalStateException("Unexpected HTTP chunk header");
+                            throw new HttpBrokenContentException("Unexpected HTTP chunk header");
                         }
 
                         offset++;
@@ -288,7 +294,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
                     parsingState.parsingNumericValue = value;
                     parsingState.offset = offset;
-                    parsingState.checkOverflow();
+                    parsingState.checkOverflow("The chunked encoding length prefix is too large");
                     return false;
 
                 }
@@ -309,7 +315,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
     }
 
-    private static Buffer parseTrailerCRLF(HttpPacketParsing httpPacket, Buffer input) {
+    private static Buffer parseTrailerCRLF(final HttpPacketParsing httpPacket,
+            final Buffer input) {
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
         if (parsingState.state == 2) {
@@ -330,8 +337,11 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         return input;
     }
 
-    private static Buffer encodeHttpChunk(MemoryManager memoryManager,
-            HttpContent httpContent, boolean isLastChunk) {
+    private static Buffer encodeHttpChunk(
+            final MemoryManager memoryManager,
+            final HttpContent httpContent,
+            final boolean isLastChunk) {
+        
         final Buffer content = httpContent.getContent();
 
         Buffer httpChunkBuffer = memoryManager.allocate(16);

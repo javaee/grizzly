@@ -132,10 +132,10 @@ public class HttpServerFilter extends BaseFilter
         final Connection connection = ctx.getConnection();
 
         if (HttpPacket.isHttp(message)) {
+
             // Otherwise cast message to a HttpContent
-
             final HttpContent httpContent = (HttpContent) message;
-
+            
             Request handlerRequest = httpRequestInProcessAttr.get(connection);
 
             if (handlerRequest == null) {
@@ -175,7 +175,8 @@ public class HttpServerFilter extends BaseFilter
                     }
                 } finally {
                     if (!suspendStatus.get()) {
-                        afterService(connection, handlerRequest, handlerResponse);
+                        return afterService(ctx, connection,
+                                handlerRequest, handlerResponse);
                     } else {
                         return ctx.getSuspendAction();
                     }
@@ -186,18 +187,11 @@ public class HttpServerFilter extends BaseFilter
                     try {
                         if (!handlerRequest.getInputBuffer().isFinished()) {
 
-                            final Buffer content = httpContent.getContent();
-
-                            if (!content.hasRemaining()
-                                    || !handlerRequest.getInputBuffer().append(content)) {
-                                if (!httpContent.isLast()) {
-                                    // need more data?
-                                    return ctx.getStopAction();
-                                }
-
-                            }
-                            if (httpContent.isLast()) {
-                                handlerRequest.getInputBuffer().finished();
+                            final boolean isLast = httpContent.isLast();
+                            
+                            handlerRequest.getInputBuffer().append(httpContent);
+                            
+                            if (isLast) {
                                 // we have enough data? - terminate filter chain execution
                                 final NextAction action = ctx.getSuspendAction();
                                 ctx.completeAndRecycle();
@@ -218,7 +212,8 @@ public class HttpServerFilter extends BaseFilter
                 // We're finishing the request processing
                 final Response response = (Response) message;
                 final Request request = response.getRequest();
-                afterService(connection, request, response);
+                return afterService(ctx, connection,
+                        request, response);
             }
         }
 
@@ -272,10 +267,12 @@ public class HttpServerFilter extends BaseFilter
     // --------------------------------------------------------- Private Methods
 
 
-    private void afterService(final Connection connection,
-                              final Request request,
-                              final Response response)
-    throws IOException {
+    private NextAction afterService(
+            final FilterChainContext ctx,
+            final Connection connection,
+            final Request request,
+            final Response response)
+            throws IOException {
 
         httpRequestInProcessAttr.remove(connection);
 
@@ -283,7 +280,10 @@ public class HttpServerFilter extends BaseFilter
         request.onAfterService();
         
         HttpServerProbeNotifier.notifyRequestComplete(this, connection, response);
-
+        
+        final HttpRequestPacket httpRequest = request.getRequest();
+        final boolean isBroken = httpRequest.isContentBroken();
+        
         // Suspend state is cancelled - it means normal processing might have
         // been broken. We don't want to reuse Request and Response in this state,
         // cause there still might be threads referencing them.
@@ -291,6 +291,18 @@ public class HttpServerFilter extends BaseFilter
             response.recycle();
             request.recycle();
         }
+        
+        if (isBroken) {
+            // if content is broken - we're not able to distinguish
+            // the end of the message - so stop processing any input data on
+            // this connection (connection is being closed by
+            // {@link org.glassfish.grizzly.http.HttpServerFilter#handleEvent(...)}
+            final NextAction suspendNextAction = ctx.getSuspendAction();
+            ctx.completeAndRecycle();
+            return suspendNextAction;
+        }
+        
+        return ctx.getStopAction();
     }
 
 }

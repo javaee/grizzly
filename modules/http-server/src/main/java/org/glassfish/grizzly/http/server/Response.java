@@ -309,7 +309,7 @@ public class Response {
         error = false;
         request = null;
         response.recycle();
-
+        
         response = null;
         ctx = null;
         suspendState.set(SuspendState.NONE);

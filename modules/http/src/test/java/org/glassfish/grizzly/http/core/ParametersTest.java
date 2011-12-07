@@ -65,16 +65,11 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.UEncoder;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 
 public class ParametersTest {

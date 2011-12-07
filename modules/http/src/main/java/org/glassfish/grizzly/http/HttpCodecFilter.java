@@ -40,6 +40,9 @@
 
 package org.glassfish.grizzly.http;
 
+import java.util.logging.Level;
+import org.glassfish.grizzly.Grizzly;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -92,6 +95,8 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
+    private final static Logger LOGGER = Grizzly.logger(HttpCodecFilter.class);
+    
     private final static byte[] CHUNKED_ENCODING_BYTES =
             Constants.CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
     /**
@@ -271,7 +276,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     /**
      * <p>
-     * Callback which is invoked when parsing an HTTP message fails.
+     * Callback which is invoked when parsing an HTTP message header fails.
      * The processing logic has to take care about error handling and following
      * connection closing.
      * </p>
@@ -280,10 +285,25 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @param ctx the {@link FilterChainContext} processing this request
      * @param t the cause of the error
      */
-    protected abstract void onHttpError(HttpHeader httpHeader,
+    protected abstract void onHttpHeaderError(HttpHeader httpHeader,
                                         FilterChainContext ctx,
                                         Throwable t) throws IOException;
 
+    /**
+     * <p>
+     * Callback which is invoked when parsing an HTTP message payload fails.
+     * The processing logic has to take care about error handling and following
+     * connection closing.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx the {@link FilterChainContext} processing this request
+     * @param t the cause of the error
+     */
+    protected abstract void onHttpContentError(HttpHeader httpHeader,
+                                        FilterChainContext ctx,
+                                        Throwable t) throws IOException;
+    
     /**
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
      * max header size parameter.
@@ -416,9 +436,9 @@ public abstract class HttpCodecFilter extends BaseFilter
          // Check if HTTP header has been parsed
         final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
         final HttpHeader httpHeader = (HttpHeader) httpPacket;
-
-        try {
-            if (!wasHeaderParsed) {
+        
+        if (!wasHeaderParsed) {
+            try {
                 // if header wasn't parsed - parse
                 if (!decodeHttpPacket(ctx, httpPacket, input)) {
                     // if there is not enough data to parse the HTTP header - stop
@@ -437,11 +457,11 @@ public abstract class HttpCodecFilter extends BaseFilter
                     // recycle header parsing state
                     httpPacket.getHeaderParsingState().recycle();
 
-                    final Buffer remainder = input.hasRemaining() ?
-                            input.split(input.position()) : Buffers.EMPTY_BUFFER;
+                    final Buffer remainder = input.hasRemaining()
+                            ? input.split(input.position()) : Buffers.EMPTY_BUFFER;
                     httpHeader.setHeaderBuffer(input);
                     input = remainder;
-                    
+
                     if (httpHeader.isExpectContent()) {
                         setTransferEncodingOnParsing(httpHeader);
                         setContentEncodingsOnParsing(httpHeader);
@@ -450,16 +470,32 @@ public abstract class HttpCodecFilter extends BaseFilter
                     HttpProbeNotifier.notifyHeaderParse(this, connection,
                             httpHeader, headerSizeInBytes);
                 }
-            }
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Error parsing HTTP header", e);
+                
+                HttpProbeNotifier.notifyProbesError(this, connection, httpHeader, e);
+                onHttpHeaderError(httpHeader, ctx, e);
 
-            if (httpHeader.isExpectContent()) {
-                final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
+                // make the connection deaf to any following input
+                // onHttpError call will take care of error processing
+                // and closing the connection
+                final NextAction suspendAction = ctx.getSuspendAction();
+                ctx.completeAndRecycle();
+                return suspendAction;
+            }
+        }
+
+        if (httpHeader.isExpectContent()) {
+            try {
+                final TransferEncoding transferEncoding =
+                        httpHeader.getTransferEncoding();
 
                 // Check if appropriate HTTP transfer encoder was found
                 if (transferEncoding != null) {
-                    return decodeWithTransferEncoding(ctx, httpHeader, input, wasHeaderParsed);
+                    return decodeWithTransferEncoding(ctx, httpHeader,
+                            input, wasHeaderParsed);
                 }
-                
+
                 if (input.hasRemaining()) {
                     // Transfer-encoding is unknown and there is no content-length header
 
@@ -482,46 +518,49 @@ public abstract class HttpCodecFilter extends BaseFilter
                         return ctx.getInvokeAction();
                     }
                 }
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Error parsing HTTP payload", e);
+                
+                httpHeader.getProcessingState().setError(true);
+                HttpProbeNotifier.notifyProbesError(this, connection,
+                        httpHeader, e);
+                onHttpContentError(httpHeader, ctx, e);
 
-                // We expect more content
-                if (!wasHeaderParsed) { // If HTTP header was just parsed
-                    // create empty message, which contains headers
-                    final HttpContent emptyContent =
-                            HttpContent.builder(httpHeader).last(false).build();
+                // create broken content message
+                final HttpContent brokenContent =
+                        HttpBrokenContent.builder(httpHeader).error(e).build();
 
-                    HttpProbeNotifier.notifyContentChunkParse(this,
-                            connection, emptyContent);
-
-                    ctx.setMessage(emptyContent);
-                    return ctx.getInvokeAction();
-                } else {
-                    return ctx.getStopAction();
-                }
-            } else { // We don't expect content
-                // process headers
-                onHttpPacketParsed(httpHeader, ctx);
-                final HttpContent emptyContent = HttpContent.builder(httpHeader).last(true).build();
+                ctx.setMessage(brokenContent);
+                return ctx.getInvokeAction();
+            }
+            
+            // We expect more content
+            if (!wasHeaderParsed) { // If HTTP header was just parsed
+                // create empty message, which contains headers
+                final HttpContent emptyContent =
+                        HttpContent.builder(httpHeader).last(false).build();
 
                 HttpProbeNotifier.notifyContentChunkParse(this,
                         connection, emptyContent);
 
                 ctx.setMessage(emptyContent);
-                if (input.remaining() > 0) {
-                    return ctx.getInvokeAction(input);
-                }
                 return ctx.getInvokeAction();
+            } else {
+                return ctx.getStopAction();
             }
+        } else { // We don't expect content
+            // process headers
+            onHttpPacketParsed(httpHeader, ctx);
+            final HttpContent emptyContent = HttpContent.builder(httpHeader).last(true).build();
 
-        } catch (RuntimeException re) {
-            HttpProbeNotifier.notifyProbesError(this, connection, httpHeader, re);
-            onHttpError(httpHeader, ctx, re);
+            HttpProbeNotifier.notifyContentChunkParse(this,
+                    connection, emptyContent);
 
-            // make the connection deaf to any following input
-            // onHttpError call will take care of error processing
-            // and closing the connection
-            final NextAction suspendAction = ctx.getSuspendAction();
-            ctx.completeAndRecycle();
-            return suspendAction;
+            ctx.setMessage(emptyContent);
+            if (input.remaining() > 0) {
+                return ctx.getInvokeAction(input);
+            }
+            return ctx.getInvokeAction();
         }
     }
 
@@ -553,7 +592,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                 if (isLast) {
                     onHttpPacketParsed(httpHeader, ctx);
                     if (!httpHeader.getProcessingState().isStayAlive()) {
-                        return flushAndClose(ctx);
+                        flushAndClose(ctx);
+                        return suspendAndFinishContext(ctx);
                     }
                 }
                 if (remainderBuffer != null) {
@@ -646,7 +686,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         switch (parsingState.state) {
             case 0: { // parsing initial line
                 if (!decodeInitialLine(ctx, httpPacket, parsingState, input)) {
-                    parsingState.checkOverflow();
+                    parsingState.checkOverflow("HTTP packet intial line is too large");
                     return false;
                 }
 
@@ -656,7 +696,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             case 1: { // parsing headers
                 if (!parseHeaders((HttpHeader) httpPacket,
                         httpPacket.getHeaders(), parsingState, input)) {
-                    parsingState.checkOverflow();
+                    parsingState.checkOverflow("HTTP packet header is too large");
                     return false;
                 }
 
@@ -1222,8 +1262,16 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         if (!httpContent.getContent().hasRemaining()
                 || isResponseToHeadRequest(httpContent.getHttpHeader())) {
-            httpContent.recycle();
-            return null;
+            
+            if (httpContent.isLast()) {
+                // If it's HttpContent is empty, but it's the last one - return it
+                // so it would be passed upstream to next filter
+                return httpContent;
+            } else {
+                // Otherwise recycle and return null
+                httpContent.recycle();
+                return null;
+            }
         }
 
         final Connection connection = ctx.getConnection();
@@ -1429,19 +1477,20 @@ public abstract class HttpCodecFilter extends BaseFilter
     /**
      * Flush the {@link FilterChainContext} and close the associated {@link Connection}.
      */
-    protected static NextAction flushAndClose(final FilterChainContext ctx)
+    protected static void flushAndClose(final FilterChainContext ctx)
             throws IOException {
         // no matter it's keep-alive or not - we close the connection
         ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-
+    }
+        
+    private static NextAction suspendAndFinishContext(final FilterChainContext ctx) {
         // we skip the processing and let connection to be closed
         final NextAction suspendAction = ctx.getSuspendAction();
         ctx.completeAndRecycle();
         return suspendAction;
     }
-        
-    // ---------------------------------------------------------- Nested Classes
 
+    // ---------------------------------------------------------- Nested Classes
 
     private static class FlushAndCloseHandler
             extends EmptyCompletionHandler<WriteResult> {
@@ -1510,10 +1559,10 @@ public abstract class HttpCodecFilter extends BaseFilter
             contentLengthsDiffer = false;
         }
 
-        public final void checkOverflow() {
+        public final void checkOverflow(final String errorDescriptionIfOverflow) {
             if (offset < packetLimit) return;
 
-            throw new IllegalStateException("HTTP packet is too long");
+            throw new IllegalStateException(errorDescriptionIfOverflow);
         }
     }
 

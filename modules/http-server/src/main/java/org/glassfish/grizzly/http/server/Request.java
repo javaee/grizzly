@@ -522,12 +522,8 @@ public class Request {
         secure = false;
 
         request.recycle();
-        if (rawCookies != null) {
-            rawCookies.recycle();
-        }
-
-        response = null;
         request = null;
+        response = null;
         ctx = null;
         httpServerFilter = null;
 

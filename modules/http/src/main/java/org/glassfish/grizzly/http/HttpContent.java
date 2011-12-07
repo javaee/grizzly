@@ -76,6 +76,16 @@ public class HttpContent extends HttpPacket
         return httpPacket instanceof HttpContent;
     }
 
+    /**
+     * Returns <tt>true</tt> if passed {@link HttpContent} is a <tt>BrokenHttpContent</tt>.
+     *
+     * @param httpContent
+     * @return <tt>true</tt> if passed {@link HttpContent} is a <tt>BrokenHttpContent</tt>.
+     */
+    public static boolean isBroken(final HttpContent httpContent) {
+        return httpContent instanceof HttpBrokenContent;
+    }
+
     public static HttpContent create() {
         return create(null);
     }
@@ -129,7 +139,7 @@ public class HttpContent extends HttpPacket
      *
      * @return {@link Buffer}.
      */
-    public final Buffer getContent() {
+    public Buffer getContent() {
         return content;
     }
 
@@ -170,11 +180,15 @@ public class HttpContent extends HttpPacket
     }
 
     @Override
-    public HttpContent append(HttpContent element) {
+    public HttpContent append(final HttpContent element) {
         if (isLast) {
             throw new IllegalStateException("Can not append to a last chunk");
         }
 
+        if (isBroken(element)) {
+            return element;
+        }
+        
         final Buffer content2 = element.getContent();
         if (content2 != null && content2.hasRemaining()) {
             content = Buffers.appendBuffers(null, content, content2);

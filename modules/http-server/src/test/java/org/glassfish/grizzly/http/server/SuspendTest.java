@@ -97,7 +97,7 @@ public class SuspendTest {
     private final String testString = "blabla test.";
     private final byte[] testData = testString.getBytes();
     private final boolean isSslEnabled;
-    private HttpServer gws;
+    private HttpServer httpServer;
 
     public SuspendTest(boolean isSslEnabled) {
         this.isSslEnabled = isSslEnabled;
@@ -114,20 +114,20 @@ public class SuspendTest {
     @Before
     public void before() throws Exception {
         scheduledThreadPool = new ScheduledThreadPoolExecutor(1);
-        configureWebServer();
+        configureHttpServer();
     }
 
     @After
     public void after() throws Exception {
-        if (gws != null) {
-            gws.stop();
+        if (httpServer != null) {
+            httpServer.stop();
         }
 
         scheduledThreadPool.shutdown();
     }
 
-    private void configureWebServer() throws Exception {
-        gws = new HttpServer();
+    private void configureHttpServer() throws Exception {
+        httpServer = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
@@ -136,7 +136,7 @@ public class SuspendTest {
             listener.setSecure(true);
             listener.setSSLEngineConfig(createSSLConfig(true));
         }
-        gws.addListener(listener);
+        httpServer.addListener(listener);
 
     }
 
@@ -162,14 +162,14 @@ public class SuspendTest {
                 !isServer, false, false);
     }
 
-    private void startWebServer(HttpHandler httpHandler) throws Exception {
-        gws.getServerConfiguration().addHttpHandler(httpHandler);
-        gws.start();
+    private void startHttpServer(HttpHandler httpHandler) throws Exception {
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler);
+        httpServer.start();
     }
 
     @Test
     public void testSuspendResumeSameTransaction() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
             @Override
             public void service(Request req, Response res) {
                 try {
@@ -187,7 +187,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumeOneTransaction() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(Request req, Response res) {
@@ -207,7 +207,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumeNoArgs() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(Request req, Response res) {
@@ -225,7 +225,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendNoArgs() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(Request req, final Response res) {
@@ -245,7 +245,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumedCompletionHandler() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -270,7 +270,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendCancelledCompletionHandler() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -294,7 +294,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendSuspendedExceptionCompletionHandler() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -323,7 +323,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendTimeoutCompletionHandler() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -348,7 +348,7 @@ public class SuspendTest {
         final AtomicReference<byte[]> responseData = new AtomicReference<byte[]>();
         responseData.set("bad response".getBytes());
 
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -385,7 +385,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendDoubleSuspendInvokation() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -423,7 +423,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendDoubleResumeInvokation() throws Exception {
-        startWebServer(new TestStaticHttpHandler() {
+        startHttpServer(new TestStaticHttpHandler() {
 
             @Override
             public void doLogic(Request req, final Response res) throws Throwable {
@@ -448,7 +448,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumedCompletionHandlerHttpHandler() throws Exception {
-        startWebServer(new HttpHandler() {
+        startHttpServer(new HttpHandler() {
 
             @Override
             public void service(Request req, final Response res) {
@@ -482,7 +482,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendTimeoutCompletionHandlerHttpHandler() throws Exception {
-        startWebServer(new HttpHandler() {
+        startHttpServer(new HttpHandler() {
 
             @Override
             public void service(Request req, final Response res) {
@@ -510,7 +510,7 @@ public class SuspendTest {
 
     @Test
     public void testFastSuspendResumeHttpHandler() throws Exception {
-        startWebServer(new HttpHandler() {
+        startHttpServer(new HttpHandler() {
 
             @Override
             public void service(Request req, final Response res) {
@@ -592,7 +592,7 @@ public class SuspendTest {
         builder.add(new ClientFilter(testString, checkResponse, resultFuture));
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
-                gws.getListener("grizzly").getTransport())
+                httpServer.getListener("grizzly").getTransport())
                 .processor(builder.build())
                 .build();
 

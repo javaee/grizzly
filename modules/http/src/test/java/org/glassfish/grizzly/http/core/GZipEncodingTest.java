@@ -90,7 +90,7 @@ import org.glassfish.grizzly.memory.Buffers;
 public class GZipEncodingTest extends TestCase {
     private static final Logger logger = Grizzly.logger(GZipEncodingTest.class);
 
-    public static int PORT = 19005;
+    public static int PORT = 19006;
 
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
