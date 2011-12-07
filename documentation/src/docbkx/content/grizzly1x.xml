@@ -74,7 +74,7 @@
      
 
     <para>Grizzly 1.9 can be checked out using following
-    command:<programlisting>git clone git clone git://java.net/grizzly~git
+    command:<programlisting>git clone git://java.net/grizzly~git
 cd grizzly~git
 git checkout 1.9.x</programlisting></para>
   </section>
