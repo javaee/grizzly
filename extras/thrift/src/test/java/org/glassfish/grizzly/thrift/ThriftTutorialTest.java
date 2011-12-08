@@ -131,7 +131,7 @@ public class ThriftTutorialTest {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ThriftFrameFilter());
         filterChainBuilder.add(new ThriftServerFilter(tprocessor));
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().setIOStrategy(strategy).build();
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().setIOStrategy(strategy).build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -139,18 +139,18 @@ public class ThriftTutorialTest {
             transport.start();
 
             for (int i = 0; i < clientsNum; i++) {
-                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+                final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
                 clientFilterChainBuilder.add(new TransportFilter());
                 clientFilterChainBuilder.add(new ThriftFrameFilter());
                 clientFilterChainBuilder.add(new ThriftClientFilter());
 
                 final FilterChain clientChain = clientFilterChainBuilder.build();
-                SocketConnectorHandler connectorHandler =
+                final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
                                 .processor(clientChain)
                                 .build();
 
-                Future<Connection> connectFuture = connectorHandler.connect(
+                final Future<Connection> connectFuture = connectorHandler.connect(
                         new InetSocketAddress("localhost", PORT));
 
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -194,7 +194,7 @@ public class ThriftTutorialTest {
         work.num1 = 1;
         work.num2 = 0;
         try {
-            int quotient = client.calculate(1, work);
+            client.calculate(1, work);
             logger.info("Whoa we can divide by 0");
             fail();
         } catch (InvalidOperation io) {

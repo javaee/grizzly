@@ -72,7 +72,7 @@ public class CalculatorHandler implements Calculator.Iface {
 
   public int calculate(int logid, Work work) throws InvalidOperation {
     System.out.println("calculate(" + logid + ", {" + work.op + "," + work.num1 + "," + work.num2 + "})");
-    int val = 0;
+    int val;
     switch (work.op) {
     case ADD:
       val = work.num1 + work.num2;

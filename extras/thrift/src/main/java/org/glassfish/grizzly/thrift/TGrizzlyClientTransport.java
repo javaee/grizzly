@@ -130,7 +130,7 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
         } catch (IOException ignore) {
         }
         try {
-            GrizzlyFuture closeFuture = connection.close();
+            final GrizzlyFuture closeFuture = connection.close();
             closeFuture.get(10, TimeUnit.SECONDS);
         } catch (Exception ignore) {
         }
