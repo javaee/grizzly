@@ -43,12 +43,14 @@ package org.glassfish.grizzly.thrift;
 import org.apache.thrift.transport.TTransportException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.BufferOutputStream;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.filterchain.FilterChain;
 
@@ -126,6 +128,11 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
         try {
             outputStream.close();
         } catch (IOException ignore) {
+        }
+        try {
+            GrizzlyFuture closeFuture = connection.close();
+            closeFuture.get(10, TimeUnit.SECONDS);
+        } catch (Exception ignore) {
         }
     }
 

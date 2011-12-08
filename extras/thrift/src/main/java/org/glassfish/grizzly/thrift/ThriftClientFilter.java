@@ -70,8 +70,12 @@ import java.util.concurrent.BlockingQueue;
  * final TProtocol tprotocol = new TBinaryProtocol(ttransport);
  * user-generated.thrift.Client client = new user-generated.thrift.Client(tprotocol);
  * client.ping();
+ * // execute more works
+ * // ...
  * // release
- * //...
+ * ttransport.close();
+ * connection.close();
+ * transport.stop();
  * }
  * </pre>
  *

@@ -168,6 +168,7 @@ public class ThriftTutorialTest {
                         fail();
                     }
                 }
+                ttransport.close();
                 connection.close();
                 connection = null;
             }
