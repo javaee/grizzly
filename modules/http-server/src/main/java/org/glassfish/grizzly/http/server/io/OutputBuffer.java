@@ -58,6 +58,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
@@ -66,7 +67,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
@@ -121,7 +121,7 @@ public class OutputBuffer {
 
     private final AtomicReference<Throwable> asyncError = new AtomicReference<Throwable>();
 
-    private TaskQueue.QueueMonitor monitor;
+    private WriteHandler asyncWriteQueueHandler;
 
     private AsyncQueueWriter asyncWriter;
 
@@ -279,7 +279,7 @@ public class OutputBuffer {
         memoryManager = null;
         handler = null;
         asyncError.set(null);
-        monitor = null;
+        asyncWriteQueueHandler = null;
         asyncWriter = null;
 
         committed = false;
@@ -299,11 +299,12 @@ public class OutputBuffer {
             return;
         }
 
-        if (monitor != null) {
+        final WriteHandler asyncWriteQueueHandlerLocal = asyncWriteQueueHandler;
+        if (asyncWriteQueueHandlerLocal != null) {
+            asyncWriteQueueHandler = null;
             final Connection c = ctx.getConnection();
             final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
-            tqueue.removeQueueMonitor();
-            monitor = null;
+            tqueue.forgetWritePossible(asyncWriteQueueHandlerLocal);
         }
 
         if (!closed) {
@@ -592,16 +593,9 @@ public class OutputBuffer {
         
         final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
 
-        monitor = new TaskQueue.QueueMonitor() {
-            
+        asyncWriteQueueHandler = new WriteHandler() {
             @Override
-            public boolean shouldNotify() {
-                return ((maxBytes - taskQueue.spaceInBytes()) >= totalLength);
-            }
-
-            @Override
-            public void onNotify() throws IOException {
-                OutputBuffer.this.monitor = null;
+            public void onWritePossible() throws Exception {
                 final Reentrant reentrant = asyncWriter.getWriteReentrant();
                 if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
                     notifyWritePossible();
@@ -609,11 +603,18 @@ public class OutputBuffer {
                     notifyWritePossibleAsync(c);
                 }
             }
+
+            @Override
+            public void onError(Throwable t) {
+                // If exception occurs here - it's from WriteHandler, so it must
+                // have been processed by WriteHandler.onError().
+            }
         };
+
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.setQueueMonitor(monitor);
+            taskQueue.notifyWritePossible(handler, length);
         } catch (Exception ignored) {
         }
     }
@@ -707,6 +708,7 @@ public class OutputBuffer {
         ctx.write(null,
                   builder.build(),
                   onAsyncErrorCompletionHandler,
+                  null,
                   messageCloner,
                   !asyncEnabled);
     }

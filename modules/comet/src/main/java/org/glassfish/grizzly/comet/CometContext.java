@@ -52,12 +52,12 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.ReadHandler;
 
 /**
  * The main object used by {@link CometHandler} and Servlet to push information amongst suspended request/response. The

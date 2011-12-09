@@ -41,19 +41,23 @@
 package org.glassfish.grizzly.samples.tunnel;
 
 import java.util.logging.Level;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.asyncqueue.PushBackContext;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Simple tunneling filter, which maps input of one connection to the output of
@@ -99,6 +103,8 @@ public class TunnelFilter extends BaseFilter {
             return ctx.getStopAction();
         }
 
+        final NextAction suspendNextAction = ctx.getSuspendAction();
+        
         // if peerConnection wasn't created - create it (usually happens on first connection request)
         if (peerConnection == null) {
             // "Peer connect" phase could take some time - so execute it in non-blocking mode
@@ -107,13 +113,21 @@ public class TunnelFilter extends BaseFilter {
             transport.connect(redirectAddress, new ConnectCompletionHandler(ctx));
 
             // return suspend status
-            return ctx.getSuspendAction();
+            return suspendNextAction;
         }
 
+        final Object message = ctx.getMessage();
+        if (message == null) { // resumed processing?
+            return ctx.getInvokeAction();
+        } else {
+            ctx.setMessage(null); // prepare for future resume
+        }
+        
         // if peer connection is already created - just forward data to peer
-        redirectToPeer(ctx, peerConnection);
+        redirectToPeer(ctx, peerConnection, message);
 
-        return ctx.getStopAction();
+//        return ctx.getStopAction();
+        return suspendNextAction;
     }
 
     /**
@@ -141,13 +155,37 @@ public class TunnelFilter extends BaseFilter {
      */
     @SuppressWarnings("unchecked")
     private static void redirectToPeer(final FilterChainContext context,
-            final Connection peerConnection) throws IOException {
+            final Connection peerConnection, Object message) throws IOException {
 
         final Connection srcConnection = context.getConnection();
-        final Object message = context.getMessage();
         logger.log(Level.FINE, "Redirecting from {0} to {1} message: {2}",
                 new Object[]{srcConnection.getPeerAddress(), peerConnection.getPeerAddress(), message});
-        peerConnection.write(message);
+
+//        peerConnection.write(message);
+        
+        peerConnection.write(message,
+                new EmptyCompletionHandler<WriteResult>() {
+
+                    @Override
+                    public void failed(Throwable throwable) {
+                        context.resume();
+                    }
+                },
+                
+                new PushBackHandler() {
+                    @Override
+                    public void onAccept(final Connection connection,
+                            final Buffer buffer) {
+                        context.resume();
+                    }
+
+                    @Override
+                    public void onPushBack(final Connection connection,
+                            final Buffer buffer,
+                            final PushBackContext pushBackContext) {
+                        pushBackContext.retryWhenPossible();
+                    }
+                });
     }
     
     /**

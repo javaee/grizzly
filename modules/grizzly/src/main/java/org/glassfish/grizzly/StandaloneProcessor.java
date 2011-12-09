@@ -50,6 +50,7 @@ import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import java.io.IOException;
 import java.net.Socket;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * {@link Processor}, which is not interested in processing I/O events.
@@ -149,12 +150,13 @@ public class StandaloneProcessor implements Processor {
 
     @Override
     public GrizzlyFuture write(Connection connection, Object dstAddress,
-            Object message, CompletionHandler completionHandler)
+            Object message, CompletionHandler completionHandler,
+            PushBackHandler pushBackHandler)
             throws IOException {
         
         final Transport transport = connection.getTransport();
         
         return transport.getWriter(connection).write(connection, dstAddress,
-                (Buffer) message, completionHandler);
+                (Buffer) message, completionHandler, pushBackHandler);
     }
 }

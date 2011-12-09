@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -48,6 +47,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.List;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.junit.After;
 import org.junit.Before;

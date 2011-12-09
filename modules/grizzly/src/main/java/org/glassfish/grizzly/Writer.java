@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Implementations of this interface are able to write data from a {@link Buffer}
@@ -93,8 +94,8 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
-            Buffer buffer) throws IOException;
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
+            L dstAddress, Buffer buffer) throws IOException;
 
     /**
      * Method writes the <tt>buffer</tt> to the specific address.
@@ -123,11 +124,8 @@ public interface Writer<L> {
      * @param buffer the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was written from a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
-     *        completed or not, or provide other processing instructions.
+     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     *        if message was accepted by transport write queue or refused
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
@@ -135,6 +133,6 @@ public interface Writer<L> {
     public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler,
-            Interceptor<WriteResult<Buffer, L>> interceptor)
+            PushBackHandler pushBackHandler)
             throws IOException;   
 }

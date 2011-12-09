@@ -46,10 +46,10 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import java.net.SocketAddress;
+import org.glassfish.grizzly.WriteHandler;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
@@ -68,11 +68,8 @@ public interface AsyncQueueWriter<L>
      * @param buffer the Buffer from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was written from a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
-     *        completed or not, or provide other processing instructions.
+     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     *        if message was accepted by transport write queue or refused
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
      *        channel directly and has to be put on a asynchronous queue
@@ -83,7 +80,7 @@ public interface AsyncQueueWriter<L>
     public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
+            PushBackHandler pushBackHandler,
             MessageCloner<Buffer> cloner)
             throws IOException;
 
@@ -96,6 +93,23 @@ public interface AsyncQueueWriter<L>
      */
     boolean canWrite(final Connection connection, int size);
 
+    /**
+     * Registers {@link WriteHandler}, which will be notified ones {@link Buffer}
+     * of "size"-bytes can be written.
+     * Note: using this method from different threads simultaneously may lead
+     * to quick situation changes, so at time {@link WriteHandler} is called -
+     * the queue may become busy again. It's recommended to use this method
+     * together with {@link PushBackHandler} to have a chance to handle
+     * such a situations properly.
+     * 
+     * @param connection {@link Connection}
+     * @param writeHandler {@link WriteHandler} to be notified.
+     * @param size number of bytes queue has to be able to accept before notifying
+     *             {@link WriteHandler}.
+     */
+    void notifyWritePossible(final Connection connection,
+            final WriteHandler writeHandler, final int size);
+    
     /**
      * Configures the maximum number of bytes pending to be written
      * for a particular {@link Connection}.

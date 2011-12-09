@@ -601,8 +601,10 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         ctx.write(address, message,
                 new CompletionHandlerAdapter(transportContext.getFuture(),
                         transportContext.getCompletionHandler()),
-                transportContext.getMessageCloner(), transportContext.isBlocking());
-        
+                        transportContext.getPushBackHandler(),
+                        transportContext.getMessageCloner(),
+                        transportContext.isBlocking());
+
         return ctx.getStopAction();
     }
     

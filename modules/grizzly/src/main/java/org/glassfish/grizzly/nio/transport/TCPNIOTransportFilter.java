@@ -56,8 +56,8 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
@@ -127,6 +127,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             final FutureImpl contextFuture = transportContext.getFuture();
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final MessageCloner cloner = transportContext.getMessageCloner();
+            final PushBackHandler pushBackHandler = transportContext.getPushBackHandler();
             
             CompletionHandler writeCompletionHandler = null;
 
@@ -141,14 +142,15 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
             transportContext.setMessageCloner(null);
+            transportContext.setPushBackHandler(null);
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueIO().getWriter().write(connection, null,
-                        message, writeCompletionHandler, null, cloner)
+                        message, writeCompletionHandler, pushBackHandler, cloner)
                         .markForRecycle(!hasFuture);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
-                        null, message, writeCompletionHandler)
+                        null, message, writeCompletionHandler, pushBackHandler)
                         .markForRecycle(!hasFuture);
             }
         }

@@ -60,8 +60,8 @@ public class TunnelServer {
     public static final String HOST = "localhost";
     public static final int PORT = 7777;
 
-    public static final String REDIRECT_HOST = "java.net";
-    public static final int REDIRECT_PORT = 80;
+    public static final String REDIRECT_HOST = "localhost";
+    public static final int REDIRECT_PORT = 5001;
 
     public static void main(String[] args) throws IOException {
         // Create TCP transport
@@ -78,6 +78,9 @@ public class TunnelServer {
                 REDIRECT_HOST, REDIRECT_PORT));
         
         transport.setProcessor(filterChainBuilder.build());
+        
+        // Set async write queue size limit
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(256 * 1024);
 
         try {
             // binding transport to start listen on certain host and port

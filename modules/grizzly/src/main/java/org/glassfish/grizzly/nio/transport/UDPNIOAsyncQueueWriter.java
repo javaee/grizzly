@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOMultiplexingAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;

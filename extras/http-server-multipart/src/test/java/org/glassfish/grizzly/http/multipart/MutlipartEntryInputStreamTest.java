@@ -64,6 +64,7 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -75,7 +76,6 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

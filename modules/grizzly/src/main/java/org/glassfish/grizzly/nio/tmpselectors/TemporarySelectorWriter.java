@@ -54,8 +54,8 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -82,10 +82,10 @@ public abstract class TemporarySelectorWriter
     public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor)
+            final PushBackHandler pushBackHandler)
             throws IOException {
         return write(connection, dstAddress, buffer, completionHandler,
-                interceptor,
+                pushBackHandler,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
@@ -106,7 +106,7 @@ public abstract class TemporarySelectorWriter
     public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, Buffer message,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
+            final PushBackHandler pushBackHandler,
             long timeout, TimeUnit timeunit) throws IOException {
 
         if (message == null) {
@@ -120,6 +120,10 @@ public abstract class TemporarySelectorWriter
                     completionHandler);
         }
 
+        if (pushBackHandler != null) {
+            pushBackHandler.onAccept(connection, message);
+        }
+        
         final NIOConnection nioConnection = (NIOConnection) connection;
         
         final WriteResult<Buffer, SocketAddress> writeResult =

@@ -66,6 +66,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
+            final PushBackHandler pushbackHandler,
             final boolean isEmptyRecord) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
@@ -74,42 +75,51 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.set(connection, message, future, currentResult,
-                    completionHandler, dstAddress, isEmptyRecord);
+                    completionHandler, dstAddress, pushbackHandler, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message, future,
-                currentResult, completionHandler, dstAddress, isEmptyRecord);
+                currentResult, completionHandler, dstAddress, pushbackHandler,
+                isEmptyRecord);
     }
     
     private int initialMessageSize;
+    private int momentumQueueSize = -1;
     private boolean isEmptyRecord;
     private Object dstAddress;
+    private PushBackHandler pushBackHandler;
 
     protected AsyncWriteQueueRecord(final Connection connection,
             final Buffer message, final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
+            final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
 
         super(connection, message, future, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
+        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
+        this.pushBackHandler = pushBackHandler;
     }
 
     protected void set(final Connection connection, final Buffer message,
             final Future future, final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
+            final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
         super.set(connection, message, future, currentResult, completionHandler);
 
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
+        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
+        this.pushBackHandler = pushBackHandler;
     }
 
     public final Object getDstAddress() {
@@ -121,14 +131,30 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return isEmptyRecord;
     }
 
-    public void setEmptyRecord(boolean isEmptyRecord) {
+    public void setEmptyRecord(final boolean isEmptyRecord) {
         this.isEmptyRecord = isEmptyRecord;
+    }
+
+    public int getMomentumQueueSize() {
+        return momentumQueueSize;
+    }
+
+    public void setMomentumQueueSize(final int momentumQueueSize) {
+        this.momentumQueueSize = momentumQueueSize;
+    }
+
+    public boolean isChecked() {
+        return momentumQueueSize < 0;
     }
 
     public int getInitialMessageSize() {
         return initialMessageSize;
     }
 
+    public PushBackHandler getPushBackHandler() {
+        return pushBackHandler;
+    }
+    
     public int remaining() {
         return message.remaining();
     }
@@ -162,7 +188,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, null, false);
     }
 
     @Override

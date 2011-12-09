@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server.io;
 
 import java.io.InputStream;
 import java.io.Reader;
+import org.glassfish.grizzly.ReadHandler;
 
 
 /**
