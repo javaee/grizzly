@@ -78,6 +78,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
+    boolean PREALLOCATE_PROCESSOR_TASKS = false;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
     String COMPRESSION_PATTERN = "on|off|force|\\d+";
@@ -308,4 +309,9 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getXpoweredBy();
 
     void setXpoweredBy(final String xpoweredBy);
+
+    @Attribute(defaultValue = "" + PREALLOCATE_PROCESSOR_TASKS, dataType = Boolean.class)
+    String getPreallocateProcessorTasks();
+    
+    void setPreallocateProcessorTasks(final String preallocate);
 }

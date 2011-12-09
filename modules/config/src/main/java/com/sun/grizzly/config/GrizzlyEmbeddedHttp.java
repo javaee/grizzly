@@ -607,6 +607,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setUseChunking(GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
         setProperty("uriEncoding", http.getUriEncoding());
         setProperty("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
+        setPreallocateProcessorTasks(GrizzlyConfig.toBoolean(http.getPreallocateProcessorTasks()));
     }
 
     /**
