@@ -52,7 +52,6 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.Queue;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -275,30 +274,23 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     protected AsyncWriteQueueRecord aggregate(
-            final TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
-//        return connectionQueue.obtainCurrentElementAndReserve();
-        final int queueSize = connectionQueue.spaceInBytes();
+            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue) {
+        final int queueSize = writeTaskQueue.spaceInBytes();
         
         if (queueSize == 0) {
-//            NIOConnection.l.offer("r.aggr1");
             return null;
         }
         
-        AsyncWriteQueueRecord currentRecord =
-                connectionQueue.obtainCurrentElementAndReserve();
-        
-        if (currentRecord == null
-                || currentRecord.isEmptyRecord()
-                || currentRecord.remaining() == queueSize
-                || (currentRecord.getWriteQueueMessage() != null && !currentRecord.getWriteQueueMessage().canBeAggregated())) {
-//            if (currentRecord == null)
-//                NIOConnection.l.offer("r.aggr2 null");
+        final AsyncWriteQueueRecord currentRecord =
+                writeTaskQueue.obtainCurrentElementAndReserve();
+
+        if (currentRecord == null ||
+                (!(currentRecord instanceof CompositeQueueRecord) &&
+                !currentRecord.getWriteQueueMessage().canBeAggregated())) {
             return currentRecord;
         }
         
-        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
-        
-        AsyncWriteQueueRecord nextRecord = queue.poll();
+        AsyncWriteQueueRecord nextRecord = checkAndGetNextRecord(writeTaskQueue);
         
         if (nextRecord == null) {
             return currentRecord;
@@ -321,11 +313,36 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         do {
             compositeQueueRecord.append(nextRecord);
         } while (compositeQueueRecord.remaining() < queueSize
-                && (nextRecord = queue.poll()) != null
-                && nextRecord.getWriteQueueMessage().canBeAggregated());
+                && (nextRecord = checkAndGetNextRecord(writeTaskQueue)) != null);
         
         return compositeQueueRecord;
     }
+
+    private static AsyncWriteQueueRecord checkAndGetNextRecord(
+            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue) {
+
+        final AsyncWriteQueueRecord nextRecord = writeTaskQueue.getQueue().poll();
+        if (nextRecord == null) {
+            return null;
+        } else if (!nextRecord.getWriteQueueMessage().canBeAggregated()) {
+            final NIOConnection connection = (NIOConnection) nextRecord.getConnection();
+            offerToTaskQueue(connection, nextRecord, writeTaskQueue);
+            return null;
+        }
+
+        return nextRecord;
+    }
+    
+    protected static void offerToTaskQueue(
+            final NIOConnection nioConnection,
+            final AsyncWriteQueueRecord queueRecord,
+            final TaskQueue<AsyncWriteQueueRecord> taskQueue) {
+        
+        taskQueue.offer(queueRecord);
+        if (!nioConnection.isOpen() && taskQueue.remove(queueRecord)) {
+            onWriteFailure(nioConnection, queueRecord, new IOException("Connection is closed"));
+        }
+    }    
     
     private final Attribute<CompositeQueueRecord> compositeBufferAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(

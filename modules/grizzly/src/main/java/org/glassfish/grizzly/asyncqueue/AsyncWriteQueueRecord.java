@@ -85,7 +85,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private long initialMessageSize;
     private boolean isEmptyRecord;
     private Object dstAddress;
-    private WriteQueueMessage message;
 
     protected AsyncWriteQueueRecord(final Connection connection,
             final WriteQueueMessage message, final Future future,
@@ -95,7 +94,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final boolean isEmptyRecord) {
 
         super(connection, message, future, currentResult, completionHandler);
-        this.message = message;
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
         this.initialMessageSize = message != null ? message.remaining() : 0;
@@ -124,7 +122,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
     
     public WriteQueueMessage getWriteQueueMessage() {
-        return this.message;
+        return (WriteQueueMessage) this.message;
     }
 
     public boolean isEmptyRecord() {
@@ -140,7 +138,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     public long remaining() {
-        return this.message.remaining();
+        return getWriteQueueMessage().remaining();
     }
 
     @SuppressWarnings("unchecked")
@@ -151,7 +149,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         final CompletionHandler<WriteResult> completionHandlerLocal =
                 completionHandler;
 
-        WriteQueueMessage messageLocal = this.message;
+        WriteQueueMessage messageLocal = getWriteQueueMessage();
 
         recycle();
         
@@ -169,7 +167,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
     
     public boolean isFinished() {
-        return !this.message.hasRemaining();
+        return !getWriteQueueMessage().hasRemaining();
     }
 
     protected final void reset() {

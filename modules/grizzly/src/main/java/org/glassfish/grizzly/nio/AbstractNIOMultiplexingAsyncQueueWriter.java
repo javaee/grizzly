@@ -188,7 +188,8 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
                 WriteResult.create(nioConnection, message, dstAddress, 0);
         
         final int bufferSize = message.remaining();
-        final boolean isEmptyRecord = bufferSize == 0;
+        final boolean isEmptyRecord = bufferSize == 0 ||
+                !message.reserveQueueSpace();
 
         final SafeFutureImpl<WriteResult<WriteQueueMessage, SocketAddress>> future =
                 SafeFutureImpl.create();
@@ -199,8 +200,9 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
                 dstAddress, isEmptyRecord);
 
         // For empty buffer reserve 1 byte space        
-        final int bytesToReserve = isEmptyRecord
-                ? EMPTY_RECORD_SPACE_VALUE : bufferSize;
+        final int bytesToReserve = isEmptyRecord 
+                                 ? EMPTY_RECORD_SPACE_VALUE 
+                                 : bufferSize;
 
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
 
@@ -288,23 +290,28 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 nioConnection.getAsyncWriteQueue();
                 
-        boolean done = true;
+        boolean done = false;
         AsyncWriteQueueRecord queueRecord = null;
 
         try {
             while ((queueRecord = aggregate(connectionQueue)) != null) {
-                
+
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.processAsync doWrite"
                             + "connection={0} record={1}",
                             nioConnection, queueRecord);
                 }                 
 
-                final int bytesToRelease = queueRecord.isEmptyRecord() ?
-                        EMPTY_RECORD_SPACE_VALUE :
-                        write0(nioConnection, queueRecord);
+                final int written = queueRecord.remaining() > 0 ?
+                        (int) write0(nioConnection, queueRecord) :
+                        0;
                 
                 final boolean isFinished = queueRecord.isFinished();
+
+                // If we can write directly - do it w/o creating queue record (simple)
+                final int bytesToRelease = !queueRecord.isEmptyRecord() ?
+                        written :
+                        (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
 
                 if (isFinished) {
                     // Is here a chance that queue becomes empty?
@@ -350,7 +357,7 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
                 }
             }
 
-            if (!done) {
+            if (!done && connectionQueue.spaceInBytes() > 0) {
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
@@ -401,7 +408,7 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
     @Override
     public Reentrant getWriteReentrant() {
         return DUMMY_REENTRANT;
-    }
+        }
 
     @Override
     public boolean isMaxReentrantsReached(final Reentrant reentrant) {
@@ -436,7 +443,7 @@ public abstract class AbstractNIOMultiplexingAsyncQueueWriter
         return ReadyFutureImpl.create(failure);
     }
     
-    protected abstract int write0(final NIOConnection connection,
+    protected abstract long write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord)
             throws IOException;
 

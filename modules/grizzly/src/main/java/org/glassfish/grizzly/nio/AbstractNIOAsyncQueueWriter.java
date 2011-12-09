@@ -207,33 +207,22 @@ public abstract class AbstractNIOAsyncQueueWriter
                 WriteResult.create(nioConnection, message, dstAddress, 0);
         
         final int bufferSize = message.remaining();
-        final boolean isEmptyRecord = bufferSize == 0;
+        final boolean isEmptyRecord = (bufferSize == 0) ||
+                !message.reserveQueueSpace();
 
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = createRecord(
                 nioConnection, message, null, currentResult, completionHandler,
                 dstAddress, isEmptyRecord);
         
-        final int bytesToReserve;
-        if (message.reserveQueueSpace()) {
-            // For empty buffer reserve 1 byte space        
-            bytesToReserve = isEmptyRecord 
+        // For empty buffer reserve 1 byte space        
+        final int bytesToReserve = isEmptyRecord 
                                  ? EMPTY_RECORD_SPACE_VALUE 
                                  : bufferSize;
-        } else {
-            bytesToReserve = -1;
-        }
 
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
-        final int pendingBytes;
-        final boolean isCurrent;
-        if (bytesToReserve != -1) {
-            pendingBytes = connectionQueue.reserveSpace(bytesToReserve);
-            isCurrent = (pendingBytes == bytesToReserve);
-        } else {
-            pendingBytes = -1;
-            isCurrent = true;
-        }
+        final int pendingBytes = connectionQueue.reserveSpace(bytesToReserve);
+        final boolean isCurrent = (pendingBytes == bytesToReserve);
         
         if (isLogFine) {
             doFineLog("AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
@@ -254,15 +243,21 @@ public abstract class AbstractNIOAsyncQueueWriter
             if (isCurrent && (reentrants =
                     getWriteReentrant()).incAndGet() < maxWriteReentrants) {
                 
+                final int written = bufferSize > 0 ?
+                        (int) write0(nioConnection, queueRecord) :
+                        0;
+                
+                final boolean isFinished = queueRecord.isFinished();
+                
                 // If we can write directly - do it w/o creating queue record (simple)
-                final int bytesToRelease = isEmptyRecord ?
-                        EMPTY_RECORD_SPACE_VALUE :
-                        (int) write0(nioConnection, queueRecord);
+                final int bytesToRelease = !isEmptyRecord ?
+                        written :
+                        (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
                 
                 final boolean isQueueEmpty =
                         (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
 
-                if (queueRecord.isFinished()) {
+                if (isFinished) {
                     queueRecord.notifyCompleteAndRecycle();
                     if (!isQueueEmpty) {
                         nioConnection.simulateIOEvent(IOEvent.WRITE);
@@ -346,7 +341,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 nioConnection.getAsyncWriteQueue();
                 
-        boolean done;
+        boolean done = false;
         AsyncWriteQueueRecord queueRecord = null;
 
         try {
@@ -359,11 +354,16 @@ public abstract class AbstractNIOAsyncQueueWriter
                             nioConnection, queueRecord);
                 }                 
 
-                final int bytesToRelease = queueRecord.isEmptyRecord() ?
-                        EMPTY_RECORD_SPACE_VALUE :
-                        (int) write0(nioConnection, queueRecord);
+                final int written = queueRecord.remaining() > 0 ?
+                        (int) write0(nioConnection, queueRecord) :
+                        0;
                 
                 final boolean isFinished = queueRecord.isFinished();
+
+                // If we can write directly - do it w/o creating queue record (simple)
+                final int bytesToRelease = !queueRecord.isEmptyRecord() ?
+                        written :
+                        (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
 
                 if (isFinished) {
                     // Is here a chance that queue becomes empty?
@@ -409,12 +409,12 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
 
-//            if (!done) {
-//                // Counter shows there should be some elements in queue,
-//                // but seems write() method still didn't add them to a queue
-//                // so we can release the thread for now
-//                return AsyncResult.EXPECTING_MORE;
-//            }
+            if (!done && connectionQueue.spaceInBytes() > 0) {
+                // Counter shows there should be some elements in queue,
+                // but seems write() method still didn't add them to a queue
+                // so we can release the thread for now
+                return AsyncResult.EXPECTING_MORE;
+            }
         } catch (IOException e) {
             if (isLogFine) {
                 logger.log(Level.FINEST, "AsyncQueueWriter.processAsync "
