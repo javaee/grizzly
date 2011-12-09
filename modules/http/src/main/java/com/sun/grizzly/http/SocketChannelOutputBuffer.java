@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncQueueWriter;
@@ -55,6 +56,9 @@ import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.ByteBufferFactory;
+import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.CharChunk;
+
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.WritableByteChannel;
@@ -153,15 +157,28 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     public SocketChannelOutputBuffer(Response response, 
             int sendBufferSize, boolean useSocketBuffer) {
-        super(response,sendBufferSize, useSocketBuffer);
+        super();
 
         if (sendBufferSize > maxBufferedBytes){
             maxBufferedBytes = sendBufferSize;
         }
 
+        this.response = response;
+        headers = response.getMimeHeaders();
+        outputStreamOutputBuffer = new OutputStreamOutputBuffer();
+        filterLibrary = new OutputFilter[0];
+        activeFilters = new OutputFilter[0];
+        lastActiveFilter = -1;
+
+        committed = false;
+        finished = false;
         if (!useSocketBuffer){
             outputStream = new NIOOutputStream();
             outputByteBuffer = createByteBuffer(sendBufferSize);
+        } else {
+            buf = new byte[sendBufferSize];
+            socketBuffer = new ByteChunk();
+            socketBuffer.setByteOutputChannel(this);
         }
     }
 
@@ -180,6 +197,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     /**
      * Set the underlying socket output stream.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void setChannel(Channel channel) {
         this.channel = channel;
     }
@@ -221,6 +239,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * @return <tt>true</tt>, if async HTTP write enabled, or <tt>false</tt>
      * otherwise.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isAsyncHttpWriteEnabled() {
         return isAsyncHttpWriteEnabled;
     }
@@ -241,6 +260,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * @return The asynchronous queue writer, which will be used if asyncHttp
      * mode is enabled
      */
+    @SuppressWarnings("UnusedDeclaration")
     protected AsyncQueueWriter getAsyncQueueWriter() {
         return asyncQueueWriter;
     }
@@ -267,8 +287,72 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         if (!committed)
             flushChannel(ACK.slice());
     }
-    
-    
+
+    @Override
+    protected void write(CharChunk cc) {
+        if (!useSocketBuffer) {
+            int start = cc.getStart();
+            int end = cc.getEnd();
+            char[] cbuf = cc.getBuffer();
+            for (int i = start; i < end; i++) {
+                char c = cbuf[i];
+                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                    c = ' ';
+                }
+
+                if (outputByteBuffer.position() >= outputByteBuffer.limit()) {
+                    try {
+                        flushBuffer();
+                    } catch (IOException ignore) {
+                    }
+                }
+                outputByteBuffer.putChar(c);
+
+            }
+
+        } else {
+            super.write(cc);
+        }
+    }
+
+    @Override
+    protected void write(String s, boolean replacingCRLF) {
+        if (!useSocketBuffer) {
+            if (s == null) {
+                return;
+            }
+
+            // From the Tomcat 3.3 HTTP/1.0 connector
+            int len = s.length();
+            for (int i = 0; i < len; i++) {
+                char c = s.charAt(i);
+                // Note:  This is clearly incorrect for many strings,
+                // but is the only consistent approach within the current
+                // servlet framework.  It must suffice until servlet output
+                // streams properly encode their output.
+                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                    c = ' ';
+                }
+
+                byte b = (byte) c;
+                if (replacingCRLF && (b == 10 || b == 13)) {  // \n or \r
+                    b = 32; // space
+                }
+
+                if (outputByteBuffer.position() >= outputByteBuffer.limit()) {
+                    try {
+                        flushBuffer();
+                    } catch (IOException ignore) {
+                    }
+                }
+                outputByteBuffer.put(b);
+            }
+
+        } else {
+            super.write(s, replacingCRLF);
+        }
+    }
+
     /**
      * Callback to write data from the buffer.
      */
@@ -414,7 +498,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     public void recycle() {        
         discardBytes = false;
         response.recycle();
-        socketBuffer.recycle();
+        if (useSocketBuffer) {
+            socketBuffer.recycle();
+        }
         pos = 0;
 
         // Recycle filters
@@ -458,7 +544,6 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
                 outputByteBuffer = tmp;
             }
             outputByteBuffer.put(b);
-            return;
         }
     }
 
@@ -610,6 +695,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Return the maximum of buffered bytes.
      * @return
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static int getMaxBufferedBytes() {
         return maxBufferedBytes;
     }
@@ -644,6 +730,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Return the maximum number of cached {@link ByteBuffer}
      * @return
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static int getMaxBufferPoolSize() {
         return maxBufferPoolSize;
     }

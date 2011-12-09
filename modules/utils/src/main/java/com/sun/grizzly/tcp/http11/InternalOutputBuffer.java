@@ -121,7 +121,6 @@ public class InternalOutputBuffer
         this.response = response;
         headers = response.getMimeHeaders();
 
-
         buf = new byte[headerBufferSize];
 
         outputStreamOutputBuffer = new OutputStreamOutputBuffer();
@@ -137,6 +136,8 @@ public class InternalOutputBuffer
         finished = false;
 
     }
+
+    protected InternalOutputBuffer() {}
 
 
     // ----------------------------------------------------- Instance Variables
@@ -367,7 +368,7 @@ public class InternalOutputBuffer
     /**
      * Flush the buffer.
      */
-    private void flush(boolean isFull) throws IOException {
+    protected void flush(boolean isFull) throws IOException {
         // Sending the response header buffer
         realWriteBytes(buf, 0, pos);
 
@@ -429,7 +430,9 @@ public class InternalOutputBuffer
 
         // Recycle Request object
         response.recycle();
-        socketBuffer.recycle();
+        if (socketBuffer != null) {
+            socketBuffer.recycle();
+        }
 
         // Recycle filters
         for (int i = 0; i <= lastActiveFilter; i++) {
@@ -802,7 +805,7 @@ public class InternalOutputBuffer
      * @param s             data to be written
      * @param replacingCRLF replacing char with lower byte that is \n or \r
      */
-    private void write(String s, boolean replacingCRLF) {
+    protected void write(String s, boolean replacingCRLF) {
 
         if (s == null) {
             return;
@@ -878,7 +881,7 @@ public class InternalOutputBuffer
      * This class is an output buffer which will write data to an output
      * stream.
      */
-    protected class OutputStreamOutputBuffer
+    public class OutputStreamOutputBuffer
             implements OutputBuffer {
 
 
