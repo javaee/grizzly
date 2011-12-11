@@ -47,7 +47,7 @@ import java.nio.channels.SelectionKey;
 /**
  * Interface represents condition, which will be checked when 
  * {@link AsyncQueueReader} was able to read new portion of data from 
- * {@link SelectableChannel}, whoch is associated with a
+ * {@link java.nio.channels.SelectableChannel}, which is associated with a
  * {@link SelectionKey}. Custom condition code could decide whether read data
  * is enough to call <code>AsyncReadCallbackHandler.onReadCompleted()</code> or
  * more data is expected.
