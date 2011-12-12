@@ -53,7 +53,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -76,10 +76,10 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
+    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
-            WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+            WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final PushBackHandler pushBackHandler)
             throws IOException {
         return write(connection, dstAddress, message, completionHandler,
@@ -101,9 +101,9 @@ public abstract class TemporarySelectorWriter
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final PushBackHandler pushBackHandler,
             long timeout, TimeUnit timeunit) throws IOException {
 
@@ -120,7 +120,7 @@ public abstract class TemporarySelectorWriter
 
         final NIOConnection nioConnection = (NIOConnection) connection;
         
-        final WriteResult<WriteQueueMessage, SocketAddress> writeResult =
+        final WriteResult<WritableMessage, SocketAddress> writeResult =
                 WriteResult.create(connection,
                         message, dstAddress, 0);
 
@@ -134,7 +134,7 @@ public abstract class TemporarySelectorWriter
                 pushBackHandler.onAccept(connection, message);
             }
             
-            final GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> writeFuture =
+            final GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> writeFuture =
                     ReadyFutureImpl.create(writeResult);
 
             if (completionHandler != null) {
@@ -164,8 +164,8 @@ public abstract class TemporarySelectorWriter
      * @throws java.io.IOException
      */
     protected long write0(final NIOConnection connection,
-            final SocketAddress dstAddress, final WriteQueueMessage message,
-            final WriteResult<WriteQueueMessage, SocketAddress> currentResult,
+            final SocketAddress dstAddress, final WritableMessage message,
+            final WriteResult<WritableMessage, SocketAddress> currentResult,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
         final SelectableChannel channel = connection.getChannel();
@@ -218,13 +218,13 @@ public abstract class TemporarySelectorWriter
     }
 
     protected abstract long writeNow0(NIOConnection connection,
-            SocketAddress dstAddress, WriteQueueMessage message,
-            WriteResult<WriteQueueMessage, SocketAddress> currentResult)
+            SocketAddress dstAddress, WritableMessage message,
+            WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException;
     
-    private static GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> failure(
+    private static GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> failure(
             final Throwable failure,
-            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler) {
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler) {
         if (completionHandler != null) {
             completionHandler.failed(failure);
         }

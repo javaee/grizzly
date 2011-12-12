@@ -41,7 +41,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
@@ -832,13 +832,13 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     public long write(final UDPNIOConnection connection,
-            final SocketAddress dstAddress, final WriteQueueMessage message)
+            final SocketAddress dstAddress, final WritableMessage message)
             throws IOException {
         return write(connection, dstAddress, message, null);
     }
 
     public long write(final UDPNIOConnection connection, final SocketAddress dstAddress,
-            final WriteQueueMessage message, final WriteResult<WriteQueueMessage, SocketAddress> currentResult)
+            final WritableMessage message, final WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException {
 
         final long written;

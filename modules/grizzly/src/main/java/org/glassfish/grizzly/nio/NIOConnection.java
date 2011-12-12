@@ -192,10 +192,28 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.writeBufferSize = writeBufferSize;
     }
 
+    /**
+     * Get the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @return the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @since 2.2
+     */
     public int getMaxAsyncWriteQueueSize() {
         return maxAsyncWriteQueueSize;
     }
 
+    /**
+     * Set the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @param maxAsyncWriteQueueSize the max size (in bytes) of asynchronous
+     * write queue associated with connection.
+     * 
+     * @since 2.2
+     */
     public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
         this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
     }

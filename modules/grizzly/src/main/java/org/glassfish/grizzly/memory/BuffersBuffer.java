@@ -1578,16 +1578,14 @@ public final class BuffersBuffer extends CompositeBuffer {
         return tryDispose();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean reserveQueueSpace() {
-        return true;
+    public boolean isExternal() {
+        return false;
     }
-
-    @Override
-    public boolean canBeAggregated() {
-        return true;
-    }
-
+    
     // --------------------------------------------------------- Private Methods
 
 

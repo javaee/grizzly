@@ -44,7 +44,7 @@ package org.glassfish.grizzly.asyncqueue;
  *
  * @since 2.2
  */
-public interface WriteQueueMessage {
+public interface WritableMessage {
 
     /**
      * Return <code>true</code> if this message has data remaining to be 
@@ -68,25 +68,14 @@ public interface WriteQueueMessage {
      * entity backing this <code>WriteQueueMessage</code>.
      */
     boolean release();
-
-
+    
     /**
-     * Return <code>true</code> if this message implementation requires
-     * reserving space within the async write queue.
-     *
-     * @return <code>true</code> if this message implementation requires
-     *  reserving space within the async write queue.
+     * Returns <tt>true</tt> if the message represents an external resource
+     * (for example {@link org.glassfish.grizzly.FileTransfer}),
+     * which is not loaded in memory.
+     * 
+     * <tt>False</tt>, if the message is
+     * located in memory (like {@link org.glassfish.grizzly.Buffer}).
      */
-    boolean reserveQueueSpace();
-
-
-    /**
-     * Return <code>true</code> if this message may be aggregated with other
-     * messages so that they may be sent in one logical operation.
-     *
-     * @return <code>true</code> if this message may be aggregated with other
-     *  messages so that they may be sent in one logical operation.
-     */
-    boolean canBeAggregated();
-
+    boolean isExternal();
 }

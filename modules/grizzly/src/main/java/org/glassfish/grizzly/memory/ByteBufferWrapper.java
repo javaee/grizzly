@@ -751,18 +751,14 @@ public class ByteBufferWrapper implements Buffer {
         return tryDispose();
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean reserveQueueSpace() {
-        return true;
+    public boolean isExternal() {
+        return false;
     }
-
-
-    @Override
-    public boolean canBeAggregated() {
-        return true;
-    }
-
+    
     protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(byteBuffer);
     }

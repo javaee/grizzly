@@ -93,11 +93,11 @@ public interface AsyncQueueWriter<L>
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
+    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             PushBackHandler pushBackHandler,
-            MessageCloner<WriteQueueMessage> cloner)
+            MessageCloner<WritableMessage> cloner)
             throws IOException;
 
     /**
@@ -122,6 +122,8 @@ public interface AsyncQueueWriter<L>
      * @param writeHandler {@link WriteHandler} to be notified.
      * @param size number of bytes queue has to be able to accept before notifying
      *             {@link WriteHandler}.
+     * 
+     * @since 2.2
      */
     void notifyWritePossible(final Connection connection,
             final WriteHandler writeHandler, final int size);

@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,7 +55,7 @@ import java.nio.channels.WritableByteChannel;
  *
  * @since 2.2
  */
-public class FileTransfer implements WriteQueueMessage {
+public class FileTransfer implements WritableMessage {
     
     private FileChannel fileChannel;
     private long len;
@@ -192,17 +192,7 @@ public class FileTransfer implements WriteQueueMessage {
      * {@inheritDoc}
      */
     @Override
-    public boolean reserveQueueSpace() {
-        return false;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean canBeAggregated() {
-        return false;
+    public boolean isExternal() {
+        return true;
     }
 }

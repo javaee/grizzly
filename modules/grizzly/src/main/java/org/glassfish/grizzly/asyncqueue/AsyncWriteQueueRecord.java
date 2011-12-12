@@ -60,7 +60,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
     public static AsyncWriteQueueRecord create(
             final Connection connection,
-            final WriteQueueMessage message,
+            final WritableMessage message,
             final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
@@ -91,7 +91,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private PushBackHandler pushBackHandler;
 
     protected AsyncWriteQueueRecord(final Connection connection,
-            final WriteQueueMessage message, final Future future,
+            final WritableMessage message, final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
@@ -106,14 +106,13 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         this.pushBackHandler = pushBackHandler;
     }
 
-    protected void set(final Connection connection, final WriteQueueMessage message,
+    protected void set(final Connection connection, final WritableMessage message,
             final Future future, final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
         super.set(connection, message, future, currentResult, completionHandler);
-        this.message = message;
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
         this.momentumQueueSize = -1;
@@ -125,14 +124,9 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         checkRecycled();
         return dstAddress;
     }
-
-    public void setMessage(final WriteQueueMessage message) {
-        super.setMessage(message);
-        this.message = message;
-    }
     
-    public WriteQueueMessage getWriteQueueMessage() {
-        return (WriteQueueMessage) this.message;
+    public final WritableMessage getWritableMessage() {
+        return (WritableMessage) message;
     }
 
     public boolean isEmptyRecord() {
@@ -148,7 +142,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     public long remaining() {
-        return getWriteQueueMessage().remaining();
+        return getWritableMessage().remaining();
     }
 
     public int getMomentumQueueSize() {
@@ -167,6 +161,10 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return pushBackHandler;
     }
     
+    public boolean canBeAggregated() {
+        return !getWritableMessage().isExternal();
+    }
+    
     @SuppressWarnings("unchecked")
     public void notifyCompleteAndRecycle() {
 
@@ -175,7 +173,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         final CompletionHandler<WriteResult> completionHandlerLocal =
                 completionHandler;
 
-        WriteQueueMessage messageLocal = getWriteQueueMessage();
+        final WritableMessage messageLocal = getWritableMessage();
 
         recycle();
         
@@ -193,7 +191,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
     
     public boolean isFinished() {
-        return !getWriteQueueMessage().hasRemaining();
+        return !getWritableMessage().hasRemaining();
     }
 
     protected final void reset() {

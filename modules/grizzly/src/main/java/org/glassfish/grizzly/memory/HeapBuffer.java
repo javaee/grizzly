@@ -40,12 +40,10 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -933,16 +931,14 @@ public class HeapBuffer implements Buffer {
         return tryDispose();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean reserveQueueSpace() {
-        return true;
+    public boolean isExternal() {
+        return false;
     }
-
-    @Override
-    public boolean canBeAggregated() {
-        return true;
-    }
-
+    
     protected byte[] array() {
         return heap;
     }

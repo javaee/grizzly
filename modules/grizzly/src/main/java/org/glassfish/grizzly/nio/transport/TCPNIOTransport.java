@@ -45,7 +45,7 @@ import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.DefaultSelectorHandler;
@@ -1098,13 +1098,13 @@ public final class TCPNIOTransport extends NIOTransport implements
         return read;
     }
 
-    public int write(final Connection connection, final WriteQueueMessage message)
+    public int write(final Connection connection, final WritableMessage message)
             throws IOException {
         return write(connection, message, null);
     }
 
     @SuppressWarnings("unchecked")
-    public int write(final Connection connection, final WriteQueueMessage message,
+    public int write(final Connection connection, final WritableMessage message,
             final WriteResult currentResult) throws IOException {
 
         int written;

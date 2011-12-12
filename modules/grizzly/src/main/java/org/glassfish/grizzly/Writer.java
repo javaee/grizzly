@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -67,8 +67,8 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            WriteQueueMessage message) throws IOException;
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+            WritableMessage message) throws IOException;
 
     /**
      * Method writes the {@link WriteQueueMessage}.
@@ -82,9 +82,9 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+            WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
             throws IOException;
 
     /**
@@ -99,8 +99,8 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            L dstAddress, WriteQueueMessage message) throws IOException;
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+            L dstAddress, WritableMessage message) throws IOException;
 
     /**
      * Method writes the {@link WriteQueueMessage} to the specific address.
@@ -116,9 +116,9 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            L dstAddress, WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+            L dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
             throws IOException;
 
     /**
@@ -137,10 +137,10 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(
             Connection connection,
-            L dstAddress, WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler,
+            L dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             PushBackHandler pushBackHandler)
             throws IOException;   
 }

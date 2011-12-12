@@ -43,7 +43,7 @@ package org.glassfish.grizzly.nio.transport;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -85,9 +85,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return writeComposite0(connection, (CompositeQueueRecord) queueRecord);
         }
         
-        final WriteResult<WriteQueueMessage, SocketAddress> currentResult =
+        final WriteResult<WritableMessage, SocketAddress> currentResult =
                 queueRecord.getCurrentResult();
-        final WriteQueueMessage message = queueRecord.getMessage();
+        final WritableMessage message = queueRecord.getMessage();
 
         final long written;
 
@@ -227,9 +227,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             record = queue.peekFirst();
             
             if (record.isEmptyRecord()) {
+                queue.removeFirst();
                 record.notifyCompleteAndRecycle();
                 written += EMPTY_RECORD_SPACE_VALUE;
-                queue.removeFirst();
                 continue;
             }
 
@@ -325,8 +325,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
     
     private static boolean canBeAggregated(final AsyncWriteQueueRecord record) {
-        return record.canBeAggregated() &&
-                record.isChecked();
+        return record.isChecked() && record.canBeAggregated();
     }
     
     protected static void offerToTaskQueue(
@@ -386,11 +385,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         @Override
-        public boolean canBeAggregated() {
-            return true;
-        }        
-        
-        @Override
         public boolean isEmptyRecord() {
             return false;
         }
@@ -400,6 +394,16 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return size == 0;
         }
 
+        @Override
+        public boolean isChecked() {
+            return true;
+        }
+
+        @Override
+        public boolean canBeAggregated() {
+            return true;
+        }       
+        
         @Override
         public long remaining() {
             return size;

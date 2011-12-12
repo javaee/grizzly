@@ -44,7 +44,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 
@@ -59,7 +59,7 @@ public final class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter
 
     @Override
     protected long writeNow0(NIOConnection connection, SocketAddress dstAddress,
-            WriteQueueMessage message, WriteResult<WriteQueueMessage, SocketAddress> currentResult)
+            WritableMessage message, WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException {
 
         return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,

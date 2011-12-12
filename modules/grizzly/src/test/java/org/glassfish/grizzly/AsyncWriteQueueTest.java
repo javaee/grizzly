@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import java.util.List;
 import org.glassfish.grizzly.asyncqueue.PushBackContext;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -207,7 +207,7 @@ public class AsyncWriteQueueTest {
 
                             @Override
                             public void onAccept(Connection connection,
-                                    WriteQueueMessage message) {
+                                    WritableMessage message) {
                                 try {
                                     final int msgNum = acceptedPackets.incrementAndGet();
                                     if (msgNum >= packetsCount) {
@@ -226,7 +226,7 @@ public class AsyncWriteQueueTest {
 
                             @Override
                             public void onPushBack(Connection connection,
-                                    WriteQueueMessage message, PushBackContext pushBackContext) {
+                                    WritableMessage message, PushBackContext pushBackContext) {
                                 pushBackContext.retryWhenPossible();
                             }
                         });
@@ -304,10 +304,10 @@ public class AsyncWriteQueueTest {
 
             final CountDownLatch latch = new CountDownLatch(packetNumber);
 
-            final CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler =
-                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler =
+                    new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
                 @Override
-                public void completed(WriteResult<WriteQueueMessage, SocketAddress> result) {
+                public void completed(WriteResult<WritableMessage, SocketAddress> result) {
                     latch.countDown();
                 }
             };
@@ -440,7 +440,7 @@ public class AsyncWriteQueueTest {
                     } else {
                         if (loopCount == 3) {
                             asyncQueueWriter.write(con, buffer,
-                                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
+                                    new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
 
                                         @Override
                                         public void failed(Throwable throwable) {
@@ -533,7 +533,7 @@ public class AsyncWriteQueueTest {
             } while (asyncQueueWriter.canWrite(con, 256000));  // fill the buffer
 
             // out of space.  Add a monitor to be notified when space is available
-            tqueue.notifyWritePossible(new WriteQueueFreeSpaceMonitor(con), 256000 * 4);
+            tqueue.notifyWritePossible(new WriteQueueHandler(con), 256000 * 4);
 
             transport.resume(); // resume the transport so bytes start draining from the queue
 
@@ -612,11 +612,11 @@ public class AsyncWriteQueueTest {
             Buffer buffer = Buffers.wrap(mm, "" + ((char) ('A' + packetCounter.getAndIncrement())));
 
             asyncQueueWriter.write(con, buffer,
-                    new EmptyCompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>>() {
+                    new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
 
                         @Override
                         public void completed(
-                                WriteResult<WriteQueueMessage, SocketAddress> result) {
+                                WriteResult<WritableMessage, SocketAddress> result) {
 
                             final int packetNum = packetCounter.incrementAndGet();
                             if (packetNum <= maxReentrants + 1) {
@@ -660,7 +660,7 @@ public class AsyncWriteQueueTest {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class WriteQueueFreeSpaceMonitor implements WriteHandler {
+    private static class WriteQueueHandler implements WriteHandler {
 
         private final Transport transport;
         private final Thread current;
@@ -669,28 +669,13 @@ public class AsyncWriteQueueTest {
         // -------------------------------------------------------- Constructors
 
 
-        public WriteQueueFreeSpaceMonitor(final Connection c) {
+        public WriteQueueHandler(final Connection c) {
             transport = c.getTransport();
             current = Thread.currentThread();
         }
 
 
-        // -------------------------------------- Methods from QueueMonitor
-
-//        @Override
-//        public boolean shouldNotify() {
-//            return ((maxSpace - writeQueue.spaceInBytes()) > freeSpaceAvailable);
-//        }
-
-//        @Override
-//        public void onNotify() {
-//            try {
-//                transport.pause(); // prevent more writes
-//            } catch (IOException ioe) {
-//                ioe.printStackTrace();
-//            }
-//            current.interrupt(); // wake up the test thread
-//        }
+        // -------------------------------------- Methods from WriteHandler
 
         @Override
         public void onWritePossible() throws Exception {
