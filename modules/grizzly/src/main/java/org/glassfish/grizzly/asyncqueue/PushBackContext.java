@@ -41,7 +41,7 @@ package org.glassfish.grizzly.asyncqueue;
 
 /**
  * Context being passed when {@link org.glassfish.grizzly.Writer} refuses to
- * accept passed {@link WriteQueueMessage} due to I/O or memory limitations.
+ * accept passed {@link WritableMessage} due to I/O or memory limitations.
  * User may perform one of the actions proposed by the context:
  * 1) {@link #cancel()} to cancel message writing
  * 2) {@link #retryWhenPossible()} to ask Grizzly to write the message once it's possible

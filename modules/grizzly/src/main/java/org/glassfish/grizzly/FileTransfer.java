@@ -152,7 +152,7 @@ public class FileTransfer implements WritableMessage {
     }
     
     
-    // ------------------------------------------ Methods from WriteQueueMessage
+    // ------------------------------------------ Methods from WritableMessage
 
 
     /**

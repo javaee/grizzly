@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.portunif;
 
-import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -232,7 +232,7 @@ public class FilterChainReadTest extends TestCase {
                 }
 
 
-                Future<WriteResult<WriteQueueMessage, SocketAddress>> writeFuture =
+                Future<WriteResult<WritableMessage, SocketAddress>> writeFuture =
                         transport.getAsyncQueueIO().getWriter().write(connection, bb);
 
                 assertTrue("Write timeout loop: " + i,

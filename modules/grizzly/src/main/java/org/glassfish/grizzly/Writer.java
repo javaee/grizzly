@@ -58,11 +58,11 @@ import org.glassfish.grizzly.asyncqueue.PushBackHandler;
  */
 public interface Writer<L> {
     /**
-     * Method writes the {@link WriteQueueMessage}.
+     * Method writes the {@link WritableMessage}.
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
@@ -71,11 +71,11 @@ public interface Writer<L> {
             WritableMessage message) throws IOException;
 
     /**
-     * Method writes the {@link WriteQueueMessage}.
+     * Method writes the {@link WritableMessage}.
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
@@ -88,13 +88,13 @@ public interface Writer<L> {
             throws IOException;
 
     /**
-     * Method writes the {@link WriteQueueMessage} to the specific address.
+     * Method writes the {@link WritableMessage} to the specific address.
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
+     * @param dstAddress the destination address the {@link WritableMessage} will be
      *        sent to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
@@ -103,13 +103,13 @@ public interface Writer<L> {
             L dstAddress, WritableMessage message) throws IOException;
 
     /**
-     * Method writes the {@link WriteQueueMessage} to the specific address.
+     * Method writes the {@link WritableMessage} to the specific address.
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
+     * @param dstAddress the destination address the {@link WritableMessage} will be
      *        sent to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
@@ -122,16 +122,16 @@ public interface Writer<L> {
             throws IOException;
 
     /**
-     * Method writes the {@link WriteQueueMessage} to the specific address.
+     * Method writes the {@link WritableMessage} to the specific address.
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
+     * @param dstAddress the destination address the {@link WritableMessage} will be
      *        sent to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     * @param pushBackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
      * @return {@link Future}, using which it's possible to check the
      *         result

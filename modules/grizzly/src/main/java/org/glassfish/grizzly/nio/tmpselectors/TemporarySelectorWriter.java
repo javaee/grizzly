@@ -89,12 +89,12 @@ public abstract class TemporarySelectorWriter
     }
 
     /**
-     * Method writes the {@link WriteQueueMessage} to the specific address.
+     * Method writes the {@link WritableMessage} to the specific address.
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
      * @param dstAddress the destination address the <tt>message</tt> will be
      *        sent to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the

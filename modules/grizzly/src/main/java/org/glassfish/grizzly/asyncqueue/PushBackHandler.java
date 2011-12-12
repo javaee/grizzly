@@ -60,7 +60,7 @@ public interface PushBackHandler {
      * or scheduled to be written asynchronously.
      * 
      * @param connection {@link Connection}
-     * @param message {@link WriteQueueMessage}
+     * @param message {@link WritableMessage}
      */
     public void onAccept(Connection connection, WritableMessage message);
 
@@ -71,7 +71,7 @@ public interface PushBackHandler {
      * or implement any custom processing logic.
      * 
      * @param connection {@link Connection}
-     * @param message {@link WriteQueueMessage}
+     * @param message {@link WritableMessage}
      * @param pushBackContext {@link PushBackContext}
      */
     public void onPushBack(Connection connection, WritableMessage message,

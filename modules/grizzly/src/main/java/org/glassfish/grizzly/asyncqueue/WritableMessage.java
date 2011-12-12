@@ -65,7 +65,7 @@ public interface WritableMessage {
 
     /**
      * Perform message specific actions to release resources held by the
-     * entity backing this <code>WriteQueueMessage</code>.
+     * entity backing this <code>WritableMessage</code>.
      */
     boolean release();
     

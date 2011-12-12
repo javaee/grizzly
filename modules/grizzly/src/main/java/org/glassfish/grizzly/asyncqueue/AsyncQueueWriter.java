@@ -79,9 +79,9 @@ public interface AsyncQueueWriter<L>
      *
      *
      * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WriteQueueMessage} will be
+     * @param dstAddress the destination address the {@link WritableMessage} will be
      *        sent to
-     * @param message the {@link WriteQueueMessage}, from which the data will be written
+     * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      * @param pushbackHandler {@link PushBackHandler}, which will be notified
