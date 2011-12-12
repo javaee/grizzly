@@ -57,6 +57,7 @@ public class WebSocketServer {
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
+            networkListener.setMaxPendingBytes(-1);
             networkListener.registerAddOn(new WebSocketAddOn());
         }
     }

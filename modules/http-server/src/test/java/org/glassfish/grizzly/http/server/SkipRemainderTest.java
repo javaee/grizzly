@@ -358,6 +358,7 @@ public class SkipRemainderTest {
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
+        listener.setMaxPendingBytes(-1);
         gws.addListener(listener);
     }
 
