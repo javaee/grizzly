@@ -128,6 +128,8 @@ public class ChunkedTransferEncodingTest {
         filterChainBuilder.add(httpRequestCheckFilter);
 
         transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
+        
         transport.setProcessor(filterChainBuilder.build());
         
         transport.bind(PORT);

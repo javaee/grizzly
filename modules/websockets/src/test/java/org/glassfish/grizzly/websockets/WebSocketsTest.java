@@ -57,7 +57,6 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.servlet.ServletHandler;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.junit.After;
@@ -137,7 +136,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
 //    @Test
     public void ssl() throws Exception {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
 

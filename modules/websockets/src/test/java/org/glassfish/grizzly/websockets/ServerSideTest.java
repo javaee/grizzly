@@ -66,7 +66,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     @Test
     public void steadyFlow()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
         TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version,
@@ -101,7 +101,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 //    @Test
     public void single()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
         TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version, 1);
@@ -123,7 +123,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     @SuppressWarnings({"StringContatenationInLoop"})
     public void sendAndWait()
         throws IOException, InstantiationException, InterruptedException, ExecutionException, URISyntaxException {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
         CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT), version);
@@ -157,7 +157,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 //    @Test
     public void multipleClients()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
@@ -193,7 +193,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     @Test
     public void bigPayload()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = WebSocketServer.createServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
         final int count = 5;

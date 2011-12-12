@@ -64,6 +64,8 @@ public class StandaloneTest extends GrizzlyTestCase {
     public void testStandalone() throws Exception {
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
+        
         int messageSize = 166434;
 
         Connection connection = null;

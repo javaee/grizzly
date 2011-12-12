@@ -68,7 +68,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
     public void detectClosed() throws Exception {
         final String name = "/detect";
         final WebSocketApplication serverApp = createServerApp(name);
-        WebSocketServer server = new WebSocketServer(WebSocketsTest.PORT);
+        WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
         server.register(name, serverApp);
         server.start();
         try {
@@ -93,7 +93,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
     public void dirtyClose() throws Exception {
         final String name = "/dirty";
         final WebSocketApplication app = createServerApp(name);
-        WebSocketServer server = WebSocketServer.createSimpleServer(WebSocketsTest.PORT);
+        WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
         server.register(name, app);
         server.start();
         try {
@@ -150,7 +150,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
                 close.countDown();
             }
         };
-        WebSocketServer server = WebSocketServer.createSimpleServer(WebSocketsTest.PORT);
+        WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
         server.register("/echo", app);
         server.start();
         try {

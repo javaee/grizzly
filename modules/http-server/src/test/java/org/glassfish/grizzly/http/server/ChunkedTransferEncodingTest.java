@@ -349,6 +349,7 @@ public class ChunkedTransferEncodingTest {
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
+        listener.getTransport().getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
         if (isChunkWhenParsing) {
             listener.registerAddOn(new AddOn() {
 

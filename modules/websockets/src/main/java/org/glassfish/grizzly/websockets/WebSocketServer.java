@@ -41,36 +41,138 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
 public class WebSocketServer {
     private static final Logger logger = Grizzly.logger(WebSocketServer.class);
     private static final Object SYNC = new Object();
     private HttpServer httpServer;
 
-    public WebSocketServer(int port) {
-        httpServer = HttpServer.createSimpleServer(".", port);
-        httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
-        httpServer.getServerConfiguration().setName("WebSocket Server");
-        for (NetworkListener networkListener : httpServer.getListeners()) {
-            networkListener.setMaxPendingBytes(-1);
-            networkListener.registerAddOn(new WebSocketAddOn());
-        }
+    /**
+     * Empty constructor, which doesn't do any network initialization.
+     */
+    protected WebSocketServer() {
+        
+    }
+    
+    /**
+     * @param port the network port to which this listener will bind.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
+     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>.
+     * 
+     * @deprecated please use {@link #createServer(int)}.
+     */
+    public WebSocketServer(final int port) {
+        this(NetworkListener.DEFAULT_NETWORK_HOST, new PortRange(port));
+    }
+    
+    /**
+     * @param host the network port to which this listener will bind.
+     * @param range port range to attempt to bind to.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests
+     * on <code>host</code>:<code>[port-range]</code>.
+     */
+    protected WebSocketServer(final String host, final PortRange portRange) {
+        final NetworkListener networkListener =
+                new NetworkListener("WebSocket NetworkListener",
+                                    host,
+                                    portRange);
+        networkListener.setMaxPendingBytes(-1);
+        networkListener.registerAddOn(new WebSocketAddOn());
+
+        httpServer = new HttpServer();
+        final ServerConfiguration config = httpServer.getServerConfiguration();
+        config.addHttpHandler(new StaticHttpHandler("."), "/");
+        
+        config.setHttpServerName("WebSocket Server");
+        config.setName("WebSocket Server");
+        
+        httpServer.addListener(networkListener);
     }
 
     /**
      * @param port the network port to which this listener will bind.
      *
      * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
-     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>, using the specified <code>path</code> as the
-     *         server's document root.
+     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>.
+     * 
+     * @deprecated please use {@link #createServer(int)}.
      */
-    public static WebSocketServer createSimpleServer(int port) {
-        return new WebSocketServer(port);
+    public static WebSocketServer createSimpleServer(final int port) {
+        return createServer(port);
+    }
+
+    /**
+     * @param port the network port to which this listener will bind.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
+     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>.
+     */
+    public static WebSocketServer createServer(final int port) {
+        return createServer(NetworkListener.DEFAULT_NETWORK_HOST,
+                new PortRange(port));
+    }
+
+    /**
+     * @param range port range to attempt to bind to.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests
+     * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>[port-range]</code>.
+     */
+    public static WebSocketServer createServer(final PortRange range) {
+
+        return createServer(NetworkListener.DEFAULT_NETWORK_HOST, range);
+
+    }
+
+    /**
+     * @param socketAddress the endpoint address to which this listener will bind.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests
+     * on <code>socketAddress</code>.
+     */
+    public static WebSocketServer createServer(final SocketAddress socketAddress) {
+
+        final InetSocketAddress inetAddr = (InetSocketAddress) socketAddress;
+        return createServer(inetAddr.getHostName(), inetAddr.getPort());
+    }
+
+    /**
+     * @param host the network port to which this listener will bind.
+     * @param port the network port to which this listener will bind.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests
+     * on <code>host</code>:<code>port</code>.
+     */
+    public static WebSocketServer createServer(final String host,
+                                                final int port) {
+        
+        return createServer(host, new PortRange(port));
+
+    }
+    
+    /**
+     * @param host the network port to which this listener will bind.
+     * @param range port range to attempt to bind to.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests
+     * on <code>host</code>:<code>[port-range]</code>.
+     */
+    public static WebSocketServer createServer(final String host,
+                                                final PortRange range) {
+
+        return new WebSocketServer(host, range);
     }
 
     public void start() throws IOException {

@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -430,17 +432,7 @@ public class HttpServer {
     public static HttpServer createSimpleServer(final String path,
                                                 final int port) {
 
-        final HttpServer server = new HttpServer();
-        final ServerConfiguration config = server.getServerConfiguration();
-        if (path != null) {
-            config.addHttpHandler(new StaticHttpHandler(path), "/");
-        }
-        final NetworkListener listener =
-                new NetworkListener("grizzly",
-                                    NetworkListener.DEFAULT_NETWORK_HOST,
-                                    port);
-        server.addListener(listener);
-        return server;
+        return createSimpleServer(path, NetworkListener.DEFAULT_NETWORK_HOST, port);
 
     }
 
@@ -456,6 +448,57 @@ public class HttpServer {
     public static HttpServer createSimpleServer(final String path,
                                                 final PortRange range) {
 
+        return createSimpleServer(path,
+                NetworkListener.DEFAULT_NETWORK_HOST,
+                range);
+
+    }
+
+    /**
+     * @param path the document root.
+     * @param socketAddress the endpoint address to which this listener will bind.
+     *
+     * @return a <code>HttpServer</code> configured to listen to requests
+     * on <code>socketAddress</code>,
+     * using the specified <code>path</code> as the server's document root.
+     */
+    public static HttpServer createSimpleServer(final String path,
+                                                final SocketAddress socketAddress) {
+
+        final InetSocketAddress inetAddr = (InetSocketAddress) socketAddress;
+        return createSimpleServer(path, inetAddr.getHostName(), inetAddr.getPort());
+    }
+
+    /**
+     * @param path the document root.
+     * @param host the network port to which this listener will bind.
+     * @param port the network port to which this listener will bind.
+     *
+     * @return a <code>HttpServer</code> configured to listen to requests
+     * on <code>host</code>:<code>port</code>,
+     * using the specified <code>path</code> as the server's document root.
+     */
+    public static HttpServer createSimpleServer(final String path,
+                                                final String host,
+                                                final int port) {
+        
+        return createSimpleServer(path, host, new PortRange(port));
+
+    }
+    
+    /**
+     * @param path the document root.
+     * @param host the network port to which this listener will bind.
+     * @param range port range to attempt to bind to.
+     *
+     * @return a <code>HttpServer</code> configured to listen to requests
+     * on <code>host</code>:<code>[port-range]</code>,
+     * using the specified <code>path</code> as the server's document root.
+     */
+    public static HttpServer createSimpleServer(final String path,
+                                                final String host,
+                                                final PortRange range) {
+
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
         if (path != null) {
@@ -463,14 +506,13 @@ public class HttpServer {
         }
         final NetworkListener listener =
                 new NetworkListener("grizzly",
-                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    host,
                                     range);
         server.addListener(listener);
         return server;
 
     }
-
-
+    
     // ------------------------------------------------------- Protected Methods
 
 

@@ -257,6 +257,8 @@ public class FilterChainTest extends TestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
+        
         transport.setProcessor(filterChainBuilder.build());
 
         Connection connection = null;
