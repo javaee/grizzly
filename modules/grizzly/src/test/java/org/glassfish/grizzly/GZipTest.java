@@ -158,6 +158,7 @@ public class GZipTest {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverChainBuilder.build());
         transport.setMemoryManager(manager);
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
 
         try {
             transport.bind(PORT);

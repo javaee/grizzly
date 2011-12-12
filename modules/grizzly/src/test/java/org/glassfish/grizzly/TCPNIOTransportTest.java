@@ -552,6 +552,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
 
         try {
             transport.bind(PORT);
