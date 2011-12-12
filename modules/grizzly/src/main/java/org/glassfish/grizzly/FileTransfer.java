@@ -119,7 +119,7 @@ public class FileTransfer implements WritableMessage {
         if (pos > f.length()) {
             throw new IllegalArgumentException("Illegal offset");
         }
-        if (f.length() - pos > len) {
+        if (f.length() - pos < len) {
             throw new IllegalArgumentException("Specified length exceeds available bytes to transfer.");
         }
         

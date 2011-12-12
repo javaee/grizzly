@@ -73,6 +73,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -473,6 +474,10 @@ public class OutputBuffer {
             throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
         }
         final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
+        response.setContentLengthLong(f.remaining());
+        if (response.getContentType() == null) {
+            response.setContentType(MimeType.getByFilename(file.getName()));
+        }
         flush(); // commit the headers, then send the file
         final CompletionHandler<WriteResult> ch;
         if (handler != null) {
