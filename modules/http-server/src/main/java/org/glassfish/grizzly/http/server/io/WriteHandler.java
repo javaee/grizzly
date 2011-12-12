@@ -46,24 +46,8 @@ package org.glassfish.grizzly.http.server.io;
  * to write content.
  *
  * @since 2.0
+ * 
+ * @deprecated please use {@link org.glassfish.grizzly.WriteHandler}
  */
-public interface WriteHandler {
-
-    /**
-     * This callback will be invoked when the requirements as dictated
-     * by {@link NIOOutputSink#notifyCanWrite(WriteHandler, int)} are met.
-     * 
-     * @throws Exception, {@link Exception} might be thrown by the custom
-     *  handler code. This exception will be delegated for processing to
-     *  {@link #onError(java.lang.Throwable)}.
-     */
-    void onWritePossible() throws Exception;
-
-    /**
-     * <p>
-     * Invoked when an error occurs processing the request asynchronously.
-     * </p>
-     */
-    void onError(final Throwable t);
-
+public interface WriteHandler extends org.glassfish.grizzly.WriteHandler {
 }

@@ -143,7 +143,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         
         final int bufferSize = Math.min(queueRecord.size,
                 connection.getWriteBufferSize() * 2);
-//        final int bufferSize = queueRecord.size;
         
         final DirectByteBufferRecord directByteBufferRecord =
                 TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
@@ -272,6 +271,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         connection.enableIOEvent(IOEvent.WRITE);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected AsyncWriteQueueRecord aggregate(
             final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue) {
@@ -285,8 +287,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 writeTaskQueue.obtainCurrentElementAndReserve();
 
         if (currentRecord == null ||
-                (!(currentRecord instanceof CompositeQueueRecord) &&
-                !currentRecord.getWriteQueueMessage().canBeAggregated())) {
+                !canBeAggregated(currentRecord) ||
+                queueSize == currentRecord.remaining()) {
             return currentRecord;
         }
         
@@ -296,24 +298,13 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return currentRecord;
         }
         
-        CompositeQueueRecord compositeQueueRecord;
-        if (!(currentRecord instanceof CompositeQueueRecord)) {
-            final Connection connection = currentRecord.getConnection();
-            compositeQueueRecord = compositeBufferAttr.get(connection);
-            if (compositeQueueRecord == null) {
-                compositeQueueRecord = CompositeQueueRecord.create(connection);
-                compositeBufferAttr.set(connection, compositeQueueRecord);
-            }
-
-            compositeQueueRecord.append(currentRecord);
-        } else {
-            compositeQueueRecord = (CompositeQueueRecord) currentRecord;
-        }
+        final CompositeQueueRecord compositeQueueRecord =
+                createCompositeQueueRecord(currentRecord);
         
         do {
             compositeQueueRecord.append(nextRecord);
-        } while (compositeQueueRecord.remaining() < queueSize
-                && (nextRecord = checkAndGetNextRecord(writeTaskQueue)) != null);
+        } while(compositeQueueRecord.remaining() < queueSize &&
+                (nextRecord = checkAndGetNextRecord(writeTaskQueue)) != null);
         
         return compositeQueueRecord;
     }
@@ -324,13 +315,18 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         final AsyncWriteQueueRecord nextRecord = writeTaskQueue.getQueue().poll();
         if (nextRecord == null) {
             return null;
-        } else if (!nextRecord.getWriteQueueMessage().canBeAggregated()) {
+        } else if (!canBeAggregated(nextRecord)) {
             final NIOConnection connection = (NIOConnection) nextRecord.getConnection();
             offerToTaskQueue(connection, nextRecord, writeTaskQueue);
             return null;
         }
 
         return nextRecord;
+    }
+    
+    private static boolean canBeAggregated(final AsyncWriteQueueRecord record) {
+        return record.canBeAggregated() &&
+                record.isChecked();
     }
     
     protected static void offerToTaskQueue(
@@ -348,6 +344,25 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                     TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
+    private CompositeQueueRecord createCompositeQueueRecord(
+            final AsyncWriteQueueRecord currentRecord) {
+        
+        if (!(currentRecord instanceof CompositeQueueRecord)) {
+            final Connection connection = currentRecord.getConnection();
+            
+            CompositeQueueRecord compositeQueueRecord =
+                    compositeBufferAttr.get(connection);
+            if (compositeQueueRecord == null) {
+                compositeQueueRecord = CompositeQueueRecord.create(connection);
+                compositeBufferAttr.set(connection, compositeQueueRecord);
+            }
+
+            compositeQueueRecord.append(currentRecord);
+            return compositeQueueRecord;
+        } else {
+            return (CompositeQueueRecord) currentRecord;
+        }
+    }
     
     private static final class CompositeQueueRecord extends AsyncWriteQueueRecord {
         
@@ -362,7 +377,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
         public CompositeQueueRecord(final Connection connection) {
             super(connection, null, null, null, null,
-                    null, false);
+                    null, null, false);
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {
@@ -370,6 +385,11 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             queue.add(queueRecord);
         }
 
+        @Override
+        public boolean canBeAggregated() {
+            return true;
+        }        
+        
         @Override
         public boolean isEmptyRecord() {
             return false;
@@ -396,7 +416,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 record.notifyFailure(e);
             }
         }
-        
+
         @Override
         public void recycle() {
         }

@@ -103,7 +103,6 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueIO.MutableAsyncQueueIO;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -131,7 +130,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    final MutableAsyncQueueIO<SocketAddress> asyncQueueIO;
+    final AsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
@@ -197,8 +196,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createMutable(
-                new TCPNIOAsyncQueueReader(this), pickupAsyncQueueWriter());
+        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createImmutable(
+                new TCPNIOAsyncQueueReader(this), new TCPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new TCPNIOTemporarySelectorReader(this),
@@ -817,15 +816,10 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     public void setOptimizedForMultiplexing(final boolean isOptimizedForMultiplexing) {
         this.isOptimizedForMultiplexing = isOptimizedForMultiplexing;
-        asyncQueueIO.setWriter(pickupAsyncQueueWriter());
+        ((TCPNIOAsyncQueueWriter) asyncQueueIO.getWriter())
+                .setAllowDirectWrite(!isOptimizedForMultiplexing);
     }
 
-    private AsyncQueueWriter<SocketAddress> pickupAsyncQueueWriter() {
-        return isOptimizedForMultiplexing()
-               ? new TCPNIOMultiplexingAsyncQueueWriter(this)
-               : new TCPNIOAsyncQueueWriter(this);
-    }
-    
     @Override
     public Filter getTransportFilter() {
         return defaultTransportFilter;

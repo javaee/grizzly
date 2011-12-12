@@ -44,6 +44,7 @@ import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Implementations of this interface are able to write data from a {@link Buffer}
@@ -98,8 +99,8 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection, L dstAddress,
-            WriteQueueMessage message) throws IOException;
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+            L dstAddress, WriteQueueMessage message) throws IOException;
 
     /**
      * Method writes the {@link WriteQueueMessage} to the specific address.
@@ -130,18 +131,16 @@ public interface Writer<L> {
      * @param message the {@link WriteQueueMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param interceptor {@link org.glassfish.grizzly.Interceptor}, which will
-     *        be able to intercept control each time new portion of a data was
-     *        written from a {@link WriteQueueMessage}. The <tt>interceptor</tt>
-     *        can decide, whether asynchronous write is completed or not, or
-     *        provide other processing instructions.
+     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     *        if message was accepted by transport write queue or refused
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+            Connection connection,
             L dstAddress, WriteQueueMessage message,
             CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler,
-            Interceptor<WriteResult<WriteQueueMessage, L>> interceptor)
+            PushBackHandler pushBackHandler)
             throws IOException;   
 }

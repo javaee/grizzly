@@ -43,9 +43,9 @@ package org.glassfish.grizzly.http.server;
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.ReadHandler;
 
 /**
  * {@link NIOInputStream} implementation based on {@link InputBuffer}.

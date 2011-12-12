@@ -97,6 +97,11 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.message = message;
     }
 
+    public Future getFuture() {
+        checkRecycled();
+        return future;
+    }
+
     public void setFuture(final Future future) {
         checkRecycled();
         this.future = future;

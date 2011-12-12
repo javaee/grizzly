@@ -41,6 +41,7 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Processor implementations are responsible for processing I/O events, which
@@ -69,11 +70,12 @@ public interface Processor<E extends Context> {
     ProcessorResult process(E context) throws IOException;
 
     GrizzlyFuture<ReadResult> read(Connection connection,
-        CompletionHandler<ReadResult> completionHandler) throws IOException;
+            CompletionHandler<ReadResult> completionHandler) throws IOException;
 
     GrizzlyFuture<WriteResult> write(Connection connection,
-        Object dstAddress, Object message,
-        CompletionHandler<WriteResult> completionHandler) throws IOException;
+            Object dstAddress, Object message,
+            CompletionHandler<WriteResult> completionHandler,
+            PushBackHandler pushBackHandler) throws IOException;
     
     /**
      * Is this {@link Processor} interested in processing the i/o event

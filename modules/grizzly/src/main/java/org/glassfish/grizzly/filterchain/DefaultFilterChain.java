@@ -67,6 +67,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 
 /**
@@ -387,15 +388,17 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture<WriteResult> write(Connection connection,
-            Object dstAddress, Object message,
-            CompletionHandler completionHandler)
+    public GrizzlyFuture<WriteResult> write(final Connection connection,
+            final Object dstAddress, final Object message,
+            final CompletionHandler completionHandler,
+            final PushBackHandler pushBackHandler)
             throws IOException {
         final FutureImpl<WriteResult> future = SafeFutureImpl.create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.transportFilterContext.future = future;
         context.transportFilterContext.completionHandler = completionHandler;
+        context.transportFilterContext.pushBackHandler = pushBackHandler;
         context.setAddress(dstAddress);
         context.setMessage(message);
         context.setOperation(Operation.WRITE);

@@ -52,9 +52,9 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.WriteQueueMessage;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -77,12 +77,13 @@ public abstract class TemporarySelectorWriter
      */
     @Override
     public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
+            Connection connection, SocketAddress dstAddress,
+            WriteQueueMessage message,
             CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor)
+            final PushBackHandler pushBackHandler)
             throws IOException {
         return write(connection, dstAddress, message, completionHandler,
-                interceptor,
+                pushBackHandler,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
@@ -103,7 +104,7 @@ public abstract class TemporarySelectorWriter
     public GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, WriteQueueMessage message,
             CompletionHandler<WriteResult<WriteQueueMessage, SocketAddress>> completionHandler,
-            Interceptor<WriteResult<WriteQueueMessage, SocketAddress>> interceptor,
+            final PushBackHandler pushBackHandler,
             long timeout, TimeUnit timeunit) throws IOException {
 
         if (message == null) {
@@ -127,6 +128,12 @@ public abstract class TemporarySelectorWriter
             write0(nioConnection, dstAddress, message, writeResult,
                     timeout, timeunit);
 
+            // Call PushBackHandler after data is written.
+            // IMO It has more sense for blocking case 
+            if (pushBackHandler != null) {
+                pushBackHandler.onAccept(connection, message);
+            }
+            
             final GrizzlyFuture<WriteResult<WriteQueueMessage, SocketAddress>> writeFuture =
                     ReadyFutureImpl.create(writeResult);
 

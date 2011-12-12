@@ -67,8 +67,10 @@ import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.StandaloneProcessorSelector;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -131,8 +133,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = TaskQueue.createTaskQueue();
-        asyncWriteQueue = TaskQueue.createTaskQueue();
+        asyncReadQueue = TaskQueue.createTaskQueue(null);
+        asyncWriteQueue = TaskQueue.createTaskQueue(((AsyncQueueEnabledTransport) transport).getAsyncQueueIO().getWriter());
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
@@ -342,32 +344,45 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @SuppressWarnings("unchecked")
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-        CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
-        throws IOException {
+            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
+            throws IOException {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.READ);
         return obtainedProcessor.read(this, completionHandler);
     }
 
     @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message)
-        throws IOException {
-        return write(null, message, null);
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message)
+            throws IOException {
+        return write(null, message, null, null);
+    }
+
+    @Override
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message,
+            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
+            throws IOException {
+        
+        return write(null, message, completionHandler, null);
     }
 
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message,
-        CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) throws IOException {
-        return write(null, message, completionHandler);
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            PushBackHandler pushbackHandler) throws IOException {
+        return write(null, message, completionHandler, pushbackHandler);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(SocketAddress dstAddress, M message,
-        CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) throws IOException {
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
+            SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            PushBackHandler pushbackHandler) throws IOException {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.WRITE);
-        return obtainedProcessor.write(this, dstAddress, message, completionHandler);
+        return obtainedProcessor.write(this, dstAddress, message,
+                completionHandler, pushbackHandler);
     }
 
+    
     @Override
     public boolean isOpen() {
         return channel != null && channel.isOpen() && closeFlag.get() == null;

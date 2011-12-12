@@ -42,8 +42,10 @@ package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 /**
@@ -52,6 +54,8 @@ import org.glassfish.grizzly.utils.LinkedTransferQueue;
  * @author Alexey Stashok
  */
 public final class TaskQueue<E> {
+    private volatile boolean isClosed;
+    
     /**
      * The queue of tasks, which will be processed asynchronously
      */
@@ -60,13 +64,16 @@ public final class TaskQueue<E> {
     private final AtomicReference<E> currentElement;
     private final AtomicInteger spaceInBytes = new AtomicInteger();
 
-    protected final AtomicReference<QueueMonitor> queueMonitor =
-            new AtomicReference<QueueMonitor>();
-
+    private final AsyncQueueWriter asyncQueueWriter;
+    
+    protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
+            new ConcurrentLinkedQueue<WriteHandlerQueueRecord>();
+    
     // ------------------------------------------------------------ Constructors
 
 
-    protected TaskQueue() {        
+    protected TaskQueue(final AsyncQueueWriter asyncQueueWriter) {
+        this.asyncQueueWriter = asyncQueueWriter;
         currentElement = new AtomicReference<E>();
         queue = new LinkedTransferQueue<E>();
     }
@@ -74,8 +81,8 @@ public final class TaskQueue<E> {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createTaskQueue() {
-        return new TaskQueue<E>();
+    public static <E> TaskQueue<E> createTaskQueue(AsyncQueueWriter asyncQueueWriter) {
+        return new TaskQueue<E>(asyncQueueWriter);
     }
 
     /**
@@ -146,37 +153,80 @@ public final class TaskQueue<E> {
         return queue;
     }
 
-
-    public void setQueueMonitor(final QueueMonitor monitor) throws IOException {
-        if (monitor == null) {
-            removeQueueMonitor();
+    public void notifyWritePossible(final WriteHandler writeHandler,
+            final int size) {
+        
+        if (writeHandler == null) {
             return;
         }
         
-        if (!queueMonitor.compareAndSet(null, monitor)) {
-            throw new IllegalStateException("Illegal attempt to set a new monitor before the existing monitor has been notified.");
+        if (isClosed) {
+            writeHandler.onError(new IOException("Connection is closed"));
+            return;
         }
         
-        if (monitor.shouldNotify() &&
-                queueMonitor.compareAndSet(monitor, null)) {
-            monitor.onNotify();
+        final int maxSize = asyncQueueWriter.getMaxPendingBytesPerConnection();
+        final WriteHandlerQueueRecord record =
+                new WriteHandlerQueueRecord(writeHandler, size);
+        
+        int reservedBytes = spaceInBytes();
+        
+        if (reservedBytes == 0 || (maxSize - reservedBytes >= size)) {
+            try {
+                writeHandler.onWritePossible();
+            } catch (Exception e) {
+                writeHandler.onError(e);
+            }
+            
+            return;
+        }
+        
+        writeHandlersQueue.offer(record);
+        
+        reservedBytes = spaceInBytes();
+        
+        if (reservedBytes == 0 && writeHandlersQueue.remove(record)) {
+            try {
+                writeHandler.onWritePossible();
+            } catch (Exception e) {
+                writeHandler.onError(e);
+            }
+        } else {
+            checkWriteHandlerOnClose(record);
         }
     }
 
-
-    public void removeQueueMonitor() {
-        queueMonitor.set(null);
+    public boolean forgetWritePossible(final WriteHandler writeHandler) {
+        return writeHandlersQueue.remove(
+                new WriteHandlerQueueRecord(writeHandler, 0));
     }
-
-
+    
+    private void checkWriteHandlerOnClose(final WriteHandlerQueueRecord record) {
+        if (isClosed && writeHandlersQueue.remove(record)) {
+            record.writeHandler.onError(new IOException("Connection is closed"));
+        }
+    }
     // ------------------------------------------------------- Protected Methods
 
 
     protected void doNotify() throws IOException {
-        final QueueMonitor monitor = queueMonitor.get();
-        if (monitor != null && monitor.shouldNotify() &&
-                queueMonitor.compareAndSet(monitor, null)) {
-            monitor.onNotify();
+        if (asyncQueueWriter == null) return;
+        final int maxSize = asyncQueueWriter.getMaxPendingBytesPerConnection();
+        
+        WriteHandlerQueueRecord record;
+        while((record = writeHandlersQueue.poll()) != null) {
+            final int reservedBytes = spaceInBytes();
+            if ((reservedBytes == 0 || (maxSize - reservedBytes >= record.size))) {
+                try {
+                    record.writeHandler.onWritePossible();
+                } catch (Exception e) {
+                    record.writeHandler.onError(e);
+                }
+            } else {
+                writeHandlersQueue.offer(record);
+                checkWriteHandlerOnClose(record);
+                return;
+            }
         }
     }
     
@@ -210,34 +260,69 @@ public final class TaskQueue<E> {
         return spaceInBytes.get() == 0;
     }
 
+    public void onClose() {
+        isClosed = true;
+        
+        IOException error = null;
+        if (!isEmpty()) {
+            if (error == null) {
+                error = new IOException("Connection closed");
+            }
+            
+            AsyncWriteQueueRecord record;
+            while ((record = (AsyncWriteQueueRecord) obtainCurrentElementAndReserve()) != null) {
+                record.notifyFailure(error);
+            }
+        }
+        
+        WriteHandlerQueueRecord record;
+        while ((record = writeHandlersQueue.poll()) != null) {
+            if (error == null) {
+                error = new IOException("Connection closed");
+            }
+            record.writeHandler.onError(error);
+        }
+        
+    }
+    
     //----------------------------------------------------------- Nested Classes
+    
+    private static final class WriteHandlerQueueRecord {
+        private final int size;
+        private final WriteHandler writeHandler;
 
-    /**
-     * Notification mechanism which will be invoked when
-     * {@link TaskQueue#releaseSpace(int)} or {@link TaskQueue#releaseSpaceAndNotify(int)}
-     * is called.
-     */
-    public static abstract class QueueMonitor {
-        // ------------------------------------------------------ Public Methods
+        public WriteHandlerQueueRecord(final WriteHandler writeHandler,
+                final int size) {
+            this.writeHandler = writeHandler;
+            this.size = size;
+        }
 
-        /**
-         * Action(s) to perform when the current queue space meets the conditions
-         * mandated by {@link #shouldNotify()}.
-         */
-        public abstract void onNotify() throws IOException;
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final WriteHandlerQueueRecord other = (WriteHandlerQueueRecord) obj;
+            if (this.writeHandler != other.writeHandler &&
+                    (this.writeHandler == null || !this.writeHandler.equals(other.writeHandler))) {
+                return false;
+            }
+            return true;
+        }
 
-        /**
-         * This method will be invoked to determine if {@link #onNotify()} should
-         * be called.  It's recommended that implementations of this method be
-         * as light-weight as possible as this method may be invoked multiple
-         * times.
-         *
-         * @return <code>true</code> if {@link #onNotify()} should be invoked on
-         *  this <code>QueueMonitor</code> at the point in time <code>shouldNotify</code>
-         *  was called, otherwise returns <code>false</code>
-         */
-        public abstract boolean shouldNotify();
-
-
-    } // END QueueMonitor
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 31 * hash + 
+                    (this.writeHandler != null ?
+                    this.writeHandler.hashCode() :
+                    0);
+            return hash;
+        }
+        
+        
+    }
 }

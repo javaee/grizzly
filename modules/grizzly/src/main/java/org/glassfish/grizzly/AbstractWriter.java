@@ -56,8 +56,9 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            WriteQueueMessage message) throws IOException {
+    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+            final Connection connection,
+            final WriteQueueMessage message) throws IOException {
         return write(connection, null, message, null, null);
     }
 
@@ -65,9 +66,10 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
+    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+            final Connection connection,
+            final WriteQueueMessage message,
+            final CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
             throws IOException {
         return write(connection, null, message, completionHandler, null);
     }
@@ -76,8 +78,10 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            L dstAddress, WriteQueueMessage message) throws IOException {
+    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+            final Connection connection,
+            final L dstAddress, final WriteQueueMessage message)
+            throws IOException {
         return write(connection, dstAddress, message, null, null);
     }
 
@@ -85,9 +89,10 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(Connection connection,
-            L dstAddress, WriteQueueMessage message,
-            CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
+    public final GrizzlyFuture<WriteResult<WriteQueueMessage, L>> write(
+            final Connection connection,
+            final L dstAddress, final WriteQueueMessage message,
+            final CompletionHandler<WriteResult<WriteQueueMessage, L>> completionHandler)
             throws IOException {
         return write(connection, dstAddress, message, completionHandler, null);
     }
