@@ -413,12 +413,14 @@ public class OutputBuffer {
     }
 
     /**
+     * <p>
      * Will use {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
      * to send file to the remote endpoint.  Note that all headers necessary
      * for the file transfer must be set prior to invoking this method as this will
      * case the HTTP header to be flushed to the client prior to sending the file
      * content. This should also be the last call to write any content to the remote
      * endpoint.
+     * </p>
      * 
      * @param file the {@link File} to transfer.
      *             
@@ -426,9 +428,18 @@ public class OutputBuffer {
      * 
      * @since 2.2   
      */
-    public void write(final File file) throws IOException {
-        flush();
-        ctx.write(new FileTransfer(file));
+    public void write(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
+        if (file == null) {
+            throw new IllegalArgumentException("Argument 'file' cannot be null");
+        }
+        write(file, 0, file.length(), handler);
+    }
+    
+    public void write(final File file, long offset, long length, final CompletionHandler<WriteResult> handler) 
+    throws IOException {
+        final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
+        flush(); 
+        ctx.write(f, handler);
     }
     
     public void write(final byte b[], final int off, final int len) throws IOException {

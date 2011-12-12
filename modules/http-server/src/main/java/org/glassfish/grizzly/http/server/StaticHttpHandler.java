@@ -268,7 +268,7 @@ public class StaticHttpHandler extends HttpHandler {
                     outputBuffer.write(b, 0, rd);
                 }
             } else {
-                outputBuffer.write(file);
+                outputBuffer.write(file, null);
             }
         } finally {
             if (fis != null) {
