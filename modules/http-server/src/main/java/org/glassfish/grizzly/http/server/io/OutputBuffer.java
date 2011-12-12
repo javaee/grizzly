@@ -53,12 +53,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
@@ -81,6 +84,8 @@ import org.glassfish.grizzly.utils.Exceptions;
  * to the HTTP messaging system in Grizzly.
  */
 public class OutputBuffer {
+    
+    private static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
     
@@ -414,17 +419,17 @@ public class OutputBuffer {
 
     /**
      * <p>
-     * Will use {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     * to send file to the remote endpoint.  Note that all headers necessary
-     * for the file transfer must be set prior to invoking this method as this will
-     * case the HTTP header to be flushed to the client prior to sending the file
-     * content. This should also be the last call to write any content to the remote
-     * endpoint.
+     * Calls <code>write(file, 0, file.length())</code>.
      * </p>
      * 
      * @param file the {@link File} to transfer.
+     * @param handler {@link CompletionHandler} that will be notified
+     *                of the transfer progress/completion or failure.
      *             
      * @throws IOException if an error occurs during the transfer
+     * @throws IllegalArgumentException if <code>file</code> is null
+     * 
+     * @see #write(java.io.File, long, long, org.glassfish.grizzly.CompletionHandler) 
      * 
      * @since 2.2   
      */
@@ -434,12 +439,57 @@ public class OutputBuffer {
         }
         write(file, 0, file.length(), handler);
     }
-    
-    public void write(final File file, long offset, long length, final CompletionHandler<WriteResult> handler) 
+
+    /**
+     * <p>
+     * Will use {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * to send file to the remote endpoint.  Note that all headers necessary
+     * for the file transfer must be set prior to invoking this method as this will
+     * case the HTTP header to be flushed to the client prior to sending the file
+     * content. This should also be the last call to write any content to the remote
+     * endpoint.
+     * </p>
+     *
+     * @param file the {@link File} to transfer.
+     * @param offset the starting offset within the File
+     * @param length the total number of bytes to transfer
+     * @param handler {@link CompletionHandler} that will be notified
+     *                of the transfer progress/completion or failure.
+     *               
+     * @throws IOException              if an error occurs during the transfer
+     * @throws IOException              if an I/O error occurs
+     * @throws IllegalArgumentException if the response has already been committed
+     *                                  at the time this method was invoked.
+     * @since 2.2
+     */
+    public void write(final File file, 
+                      final long offset, 
+                      final long length, 
+                      final CompletionHandler<WriteResult> handler) 
     throws IOException {
+        if (committed) {
+            throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
+        }
         final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
-        flush(); 
-        ctx.write(f, handler);
+        flush(); // commit the headers, then send the file
+        final CompletionHandler<WriteResult> ch;
+        if (handler != null) {
+            ch = handler;
+        } else {
+            ch = new EmptyCompletionHandler<WriteResult>() {
+                @Override
+                public void failed(Throwable throwable) {
+                    if (LOGGER.isLoggable(Level.SEVERE)) {
+                        LOGGER.log(Level.SEVERE,
+                                String.format("Failed to transfer file %s.  Cause: %s.",
+                                              file.getAbsolutePath(),
+                                              throwable.getMessage()),
+                                throwable);
+                    }
+                }
+            };
+        }
+        ctx.write(f, ch);
     }
     
     public void write(final byte b[], final int off, final int len) throws IOException {
