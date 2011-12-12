@@ -62,19 +62,24 @@ import org.glassfish.grizzly.utils.ArraySet;
  * @author Alexey Stashok
  */
 public class StaticHttpHandler extends HttpHandler {
+    
+    private static final String USE_SEND_FILE = "org.glassfish.grizzly.http.USE_SEND_FILE";
+
     private static final Logger LOGGER = Grizzly.logger(StaticHttpHandler.class);
 
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
 
     private volatile int fileCacheFilterIdx = -1;
+    
+    private volatile boolean sendFileEnabled = true;
 
-
-   /**
+    /**
      * Create <tt>HttpHandler</tt>, which, by default, will handle requests
      * to the static resources located in the current directory.
      */
     public StaticHttpHandler() {
         addDocRoot(".");
+        configureSendFileSupport();
     }
 
 
@@ -93,6 +98,7 @@ public class StaticHttpHandler extends HttpHandler {
                 addDocRoot(docRoot);
             }
         }
+        configureSendFileSupport();
     }
 
     /**
@@ -104,18 +110,21 @@ public class StaticHttpHandler extends HttpHandler {
      * If the <tt>docRoot</tt> is empty - static pages won't be served
      * by this <tt>HttpHandler</tt>
      */
+    @SuppressWarnings("UnusedDeclaration")
     public StaticHttpHandler(Set<String> docRoots) {
         if (docRoots != null) {
             for (String docRoot : docRoots) {
                 addDocRoot(docRoot);
             }
         }
+        configureSendFileSupport();
     }
 
     /**
      * Return the default directory from where files will be serviced.
      * @return the default directory from where file will be serviced.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public File getDefaultDocRoot() {
         final File[] array = docRoots.getArray();
         return (array != null && array.length > 0) ? array[0] : null;
@@ -164,9 +173,128 @@ public class StaticHttpHandler extends HttpHandler {
      *
      * @param docRoot the directory to remove.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void removeDocRoot(File docRoot) {
         docRoots.remove(docRoot);
     }
+
+    /**
+     * <p>
+     * Returns <code>true</code> if resources will be sent using 
+     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * </p>
+     * 
+     * <p>
+     * By default, this property will be true, except in the following cases:
+     * </p>
+     *
+     * <ul>
+     *     <li>JVM OS is HP-UX</li>
+     *     <li>JVM OS is Linux, and the Oracle JVM in use is 1.6.0_17 or older</li>
+     * </ul>
+     *
+     * <p>
+     * This logic can be overridden by explicitly setting the property via
+     * {@link #setSendFileEnabled(boolean)} or by specifying the system property
+     * {@value #USE_SEND_FILE} with a value of <code>true</code>
+     * </p>
+     *
+     * <p>
+     * Finally, if the connection between endpoints is secure, send file functionality
+     * will be disabled regardless of configuration.
+     * </p>
+     * 
+     * @return <code>true</code> if resources will be sent using 
+     *  {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     *  
+     * @since 2.2
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public boolean isSendFileEnabled() {
+        return sendFileEnabled;
+    }
+
+
+    /**
+     * Configure whether or not static resources will be sent using
+     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * or use the more traditional byte[] copy to send content.
+     * 
+     * @param sendFileEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     *  support.
+     *
+     * @since 2.2
+     */
+    public void setSendFileEnabled(boolean sendFileEnabled) {
+        this.sendFileEnabled = sendFileEnabled;
+    }
+
+    public static void sendFile(final Response response, 
+                                final File file, 
+                                final boolean useSendFile) throws IOException {
+        final String path = file.getPath();
+        FileInputStream fis = null;
+
+        try {
+            response.setStatus(HttpStatus.OK_200);
+            String substr;
+            int dot = path.lastIndexOf('.');
+            if (dot < 0) {
+                substr = file.toString();
+                dot = substr.lastIndexOf('.');
+            } else {
+                substr = path;
+            }
+            if (dot > 0) {
+                String ext = substr.substring(dot + 1);
+                String ct = MimeType.get(ext);
+                if (ct != null) {
+                    response.setContentType(ct);
+                }
+            } else {
+                response.setContentType(MimeType.get("html"));
+            }
+
+            final long length = file.length();
+            response.setContentLengthLong(length);
+            final OutputBuffer outputBuffer = response.getOutputBuffer();
+            if (!useSendFile || response.getRequest().isSecure()) {
+                fis = new FileInputStream(file);
+
+                byte b[] = new byte[8192];
+                int rd;
+                while ((rd = fis.read(b)) > 0) {
+                    //chunk.setBytes(b, 0, rd);
+                    outputBuffer.write(b, 0, rd);
+                }
+            } else {
+                outputBuffer.write(file);
+            }
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException ignore) {
+                }
+            }
+        }
+    }
+
+    public final boolean addToFileCache(Request req, File resource) {
+        final FilterChainContext fcContext = req.getContext();
+        final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
+        if (fileCacheFilter != null) {
+            final FileCache fileCache = fileCacheFilter.getFileCache();
+            fileCache.add(req.getRequest(), resource);
+            return true;
+        }
+
+        return false;
+    }
+    
+    
+    // ------------------------------------------------ Methods from HttpHandler
+    
     
     /**
      * Based on the {@link Request} URI, try to map the file from the
@@ -183,10 +311,14 @@ public class StaticHttpHandler extends HttpHandler {
             onMissingResource(request, response);
         }
     }
+    
+    
+    // ------------------------------------------------------- Protected Methods
+    
 
     protected String getRelativeURI(final Request request) {
         String uri = request.getRequestURI();
-        if (uri.indexOf("..") >= 0) {
+        if (uri.contains("..")) {
             return null;
         }
 
@@ -271,66 +403,14 @@ public class StaticHttpHandler extends HttpHandler {
         }
 
         addToFileCache(req, resource);
-        sendFile(res, resource);
+        sendFile(res, resource, sendFileEnabled);
 
         return true;
     }
 
-    public static void sendFile(final Response response, final File file)
-            throws IOException {
-        final String path = file.getPath();
-        final FileInputStream fis = new FileInputStream(file);
-
-        try {
-            response.setStatus(HttpStatus.OK_200);
-            String substr;
-            int dot = path.lastIndexOf('.');
-            if (dot < 0) {
-                substr = file.toString();
-                dot = substr.lastIndexOf('.');
-            } else {
-                substr = path;
-            }
-            if (dot > 0) {
-                String ext = substr.substring(dot + 1);
-                String ct = MimeType.get(ext);
-                if (ct != null) {
-                    response.setContentType(ct);
-                }
-            } else {
-                response.setContentType(MimeType.get("html"));
-            }
-
-            final long length = file.length();
-            response.setContentLengthLong(length);
-
-            final OutputBuffer outputBuffer = response.getOutputBuffer();
-
-            byte b[] = new byte[8192];
-            int rd;
-            while ((rd = fis.read(b)) > 0) {
-                //chunk.setBytes(b, 0, rd);
-                outputBuffer.write(b, 0, rd);
-            }
-        } finally {
-            try {
-                fis.close();
-            } catch (IOException ignore) {
-            }
-        }
-    }
-
-    public final boolean addToFileCache(Request req, File resource) {
-        final FilterChainContext fcContext = req.getContext();
-        final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
-        if (fileCacheFilter != null) {
-            final FileCache fileCache = fileCacheFilter.getFileCache();
-            fileCache.add(req.getRequest(), resource);
-            return true;
-        }
-
-        return false;
-    }
+    
+    // --------------------------------------------------------- Private Methods
+    
 
     private FileCacheFilter lookupFileCache(final FilterChainContext fcContext) {
         final FilterChain fc = fcContext.getFilterChain();
@@ -355,6 +435,37 @@ public class StaticHttpHandler extends HttpHandler {
 
         fileCacheFilterIdx = -1;
         return null;
+    }
+    
+    
+    private static boolean linuxSendFileSupported() {
+        final String version = System.getProperty("java.version");
+        if (version.startsWith("1.6")) {
+            int idx = version.indexOf('_');
+            if (idx == -1) {
+                return false;
+            }
+            final int patchRev = Integer.parseInt(version.substring(idx + 1));
+            return (patchRev >= 18);
+        } else {
+            return version.startsWith("1.7") || version.startsWith("1.8");
+        }
+    }
+
+    private void configureSendFileSupport() {
+
+        if ((System.getProperty("os.name").equalsIgnoreCase("linux")
+                && !linuxSendFileSupported())
+                || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
+            sendFileEnabled = false;
+
+        }
+
+        // overrides the config from the previous block
+        if (System.getProperty(USE_SEND_FILE) != null) {
+            sendFileEnabled = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
+        }
+
     }
     
 }

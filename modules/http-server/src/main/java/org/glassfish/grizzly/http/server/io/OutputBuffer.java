@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -57,6 +58,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
@@ -66,7 +68,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
@@ -411,6 +412,23 @@ public class OutputBuffer {
         write(b, 0, b.length);
     }
 
+    /**
+     * Will use {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * to send file to the remote endpoint.  Note that all headers necessary
+     * for the file transfer must be set prior to invoking this method as this will
+     * case the HTTP header to be flushed to the client prior to sending the file
+     * content.
+     * 
+     * @param file the {@link File} to transfer.
+     *             
+     * @throws IOException if an error occurs during the transfer
+     * 
+     * @since 2.2   
+     */
+    public void write(final File file) throws IOException {
+        flush();
+        ctx.write(new FileTransfer(file));
+    }
     
     public void write(final byte b[], final int off, final int len) throws IOException {
 
@@ -887,7 +905,7 @@ public class OutputBuffer {
                 localHandler.onError(throwable);
             }
         }
-    };
+    }
 
     private final class OnWritePossibleCompletionHandler
             extends OnErrorCompletionHandler {
