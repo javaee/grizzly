@@ -417,7 +417,8 @@ public class OutputBuffer {
      * to send file to the remote endpoint.  Note that all headers necessary
      * for the file transfer must be set prior to invoking this method as this will
      * case the HTTP header to be flushed to the client prior to sending the file
-     * content.
+     * content. This should also be the last call to write any content to the remote
+     * endpoint.
      * 
      * @param file the {@link File} to transfer.
      *             
