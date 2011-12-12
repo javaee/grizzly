@@ -59,6 +59,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -132,6 +133,15 @@ public class TCPNIOConnection extends NIOConnection {
             setReadBufferSize(transport.getReadBufferSize());
             setWriteBufferSize(transport.getWriteBufferSize());
 
+            final int transportMaxAsyncWriteQueueSize =
+                    ((TCPNIOTransport) transport).getAsyncQueueIO()
+                    .getWriter().getMaxPendingBytesPerConnection();
+            
+            setMaxAsyncWriteQueueSize(
+                    transportMaxAsyncWriteQueueSize == AsyncQueueWriter.AUTO_SIZE ?
+                    getWriteBufferSize() * 4 :
+                    transportMaxAsyncWriteQueueSize);
+            
             if (channel instanceof SocketChannel) {
                 localSocketAddress =
                         ((SocketChannel) channel).socket().getLocalSocketAddress();

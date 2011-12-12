@@ -55,6 +55,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -143,6 +144,15 @@ public class UDPNIOConnection extends NIOConnection {
             setReadBufferSize(transport.getReadBufferSize());
             setWriteBufferSize(transport.getWriteBufferSize());
 
+            final int transportMaxAsyncWriteQueueSize =
+                    ((UDPNIOTransport) transport).getAsyncQueueIO()
+                    .getWriter().getMaxPendingBytesPerConnection();
+            
+            setMaxAsyncWriteQueueSize(
+                    transportMaxAsyncWriteQueueSize == AsyncQueueWriter.AUTO_SIZE ?
+                    getWriteBufferSize() * 4 :
+                    transportMaxAsyncWriteQueueSize);
+            
             localSocketAddress =
                     ((DatagramChannel) channel).socket().getLocalSocketAddress();
             peerSocketAddress =

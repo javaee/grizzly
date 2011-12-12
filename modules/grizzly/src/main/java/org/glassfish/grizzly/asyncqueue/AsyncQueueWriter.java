@@ -50,6 +50,7 @@ import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import java.net.SocketAddress;
+import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
@@ -59,6 +60,20 @@ import java.net.SocketAddress;
  */
 public interface AsyncQueueWriter<L> 
         extends Writer<L>, AsyncQueue {
+    
+    /**
+     * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
+     * the async write queue size is unlimited.
+     */
+    public static final int UNLIMITED_SIZE = -1;
+    
+    /**
+     * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
+     * the async write queue size will be configured automatically per
+     * {@link NIOConnection} depending on connections write buffer size.
+     */
+    public static final int AUTO_SIZE = -2;
+    
     /**
      * Method writes the {@link Buffer} to the specific address.
      *

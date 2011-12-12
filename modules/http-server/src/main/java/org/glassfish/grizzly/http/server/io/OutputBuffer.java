@@ -613,7 +613,7 @@ public class OutputBuffer {
 
 
     public boolean canWriteChar(final int length) {
-        if (length <= 0 || asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
+        if (length <= 0 || getMaxAsyncWriteQueueSize() <= 0) {
             return true;
         }
         final CharsetEncoder e = getEncoder();
@@ -625,7 +625,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      */
     public boolean canWrite(final int length) {
-        if (length <= 0 || asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
+        if (length <= 0 || getMaxAsyncWriteQueueSize() <= 0) {
             return true;
         }
         
@@ -647,7 +647,7 @@ public class OutputBuffer {
 
         this.handler = handler;
 
-        final int maxBytes = asyncWriter.getMaxPendingBytesPerConnection();
+        final int maxBytes = getMaxAsyncWriteQueueSize();
         if (maxBytes > 0 && length > maxBytes) {
             throw new IllegalArgumentException("Illegal request to write "
                                                   + length
@@ -696,6 +696,10 @@ public class OutputBuffer {
             taskQueue.setQueueMonitor(monitor);
         } catch (Exception ignored) {
         }
+    }
+
+    private int getMaxAsyncWriteQueueSize() {
+        return ((NIOConnection) ctx.getConnection()).getMaxAsyncWriteQueueSize();
     }
 
     /**

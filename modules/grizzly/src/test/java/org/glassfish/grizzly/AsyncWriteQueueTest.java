@@ -262,6 +262,10 @@ public class AsyncWriteQueueTest {
 
 
         try {
+            final AsyncQueueWriter<SocketAddress> asyncQueueWriter =
+                    transport.getAsyncQueueIO().getWriter();
+            asyncQueueWriter.setMaxPendingBytesPerConnection(queueLimit);
+            
             transport.bind(PORT);
             transport.start();
 
@@ -270,9 +274,6 @@ public class AsyncWriteQueueTest {
             assertTrue(connection != null);
             connection.configureStandalone(true);
 
-            final AsyncQueueWriter<SocketAddress> asyncQueueWriter =
-                    transport.getAsyncQueueIO().getWriter();
-            asyncQueueWriter.setMaxPendingBytesPerConnection(queueLimit);
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
@@ -357,6 +358,10 @@ public class AsyncWriteQueueTest {
 
 
         try {
+            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            asyncQueueWriter.setMaxPendingBytesPerConnection(256000 * 10);
+            System.out.println("Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
+            
             transport.bind(PORT);
             transport.start();
 
@@ -365,9 +370,6 @@ public class AsyncWriteQueueTest {
             assertTrue(connection != null);
             connection.configureStandalone(true);
 
-            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
-            asyncQueueWriter.setMaxPendingBytesPerConnection(256000 * 10);
-            System.out.println("Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 

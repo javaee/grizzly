@@ -41,6 +41,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
@@ -229,6 +230,30 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     public TCPNIOTransportBuilder setOptimizedForMultiplexing(
             final boolean isOptimizedForMultiplexing) {
         tcpTransport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
+        return this;
+    }
+
+    /**
+     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * 
+     * Note: the value is per connection, not transport total.
+     */
+    public int getMaxAsyncWriteQueueSizeInBytes() {
+        return tcpTransport.getAsyncQueueIO()
+                .getWriter().getMaxPendingBytesPerConnection();
+    }
+    
+    /**
+     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * 
+     * Note: the value is per connection, not transport total.
+     *
+     * @return this <code>TCPNIOTransportBuilder</code>
+     */
+    public TCPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
+            final int size) {
+        tcpTransport.getAsyncQueueIO()
+                .getWriter().setMaxPendingBytesPerConnection(size);
         return this;
     }
     

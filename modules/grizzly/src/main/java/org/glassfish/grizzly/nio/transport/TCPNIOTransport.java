@@ -199,7 +199,6 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createMutable(
                 new TCPNIOAsyncQueueReader(this), pickupAsyncQueueWriter());
-        configWriteQueuePendingBytes(asyncQueueIO);
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new TCPNIOTemporarySelectorReader(this),
@@ -1287,18 +1286,6 @@ public final class TCPNIOTransport extends NIOTransport implements
             final ByteBuffer byteBuffer) throws IOException {
         
         return channel.write(byteBuffer);
-    }
-
-    private static void configWriteQueuePendingBytes(final MutableAsyncQueueIO<SocketAddress> asyncQueueIO) {
-        Socket s;
-        try {
-            s = new Socket();
-            asyncQueueIO.getWriter().setMaxPendingBytesPerConnection(s.getSendBufferSize() * 4);
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Unable to obtain Socket send buffer size.  Falling back to class defaults");
-            }
-        }
     }
 
     private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =

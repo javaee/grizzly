@@ -94,6 +94,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final NIOTransport transport;
     protected volatile int readBufferSize;
     protected volatile int writeBufferSize;
+    protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
     protected volatile SelectableChannel channel;
@@ -128,7 +129,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
         new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
 
-    public NIOConnection(NIOTransport transport) {
+    public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
         asyncReadQueue = TaskQueue.createTaskQueue();
         asyncWriteQueue = TaskQueue.createTaskQueue();
@@ -189,6 +190,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.writeBufferSize = writeBufferSize;
     }
 
+    public int getMaxAsyncWriteQueueSize() {
+        return maxAsyncWriteQueueSize;
+    }
+
+    public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
+        this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
+    }
+    
     @Override
     public long getReadTimeout(TimeUnit timeUnit) {
         return timeUnit.convert(readTimeoutMillis, TimeUnit.MILLISECONDS);

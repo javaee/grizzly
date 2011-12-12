@@ -119,6 +119,30 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     /**
+     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * 
+     * Note: the value is per connection, not transport total.
+     */
+    public int getMaxAsyncWriteQueueSizeInBytes() {
+        return udpTransport.getAsyncQueueIO()
+                .getWriter().getMaxPendingBytesPerConnection();
+    }
+    
+    /**
+     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * 
+     * Note: the value is per connection, not transport total.
+     *
+     * @return this <code>UDPNIOTransportBuilder</code>
+     */
+    public UDPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
+            final int size) {
+        udpTransport.getAsyncQueueIO()
+                .getWriter().setMaxPendingBytesPerConnection(size);
+        return this;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

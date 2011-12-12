@@ -124,12 +124,14 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public boolean canWrite(final Connection connection, final int size) {
-        if (maxPendingBytes < 0) {
+        final int connectionMaxPendingBytes = getMaxQueueSize(connection);
+        
+        if (connectionMaxPendingBytes < 0) {
             return true;
         }
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((NIOConnection) connection).getAsyncWriteQueue();
-        return connectionQueue.spaceInBytes() + size < maxPendingBytes;
+        return connectionQueue.spaceInBytes() + size < connectionMaxPendingBytes;
     }
 
     /**
@@ -137,7 +139,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
-        this.maxPendingBytes = maxPendingBytes <= 0 ? -1 : maxPendingBytes;
+        this.maxPendingBytes = maxPendingBytes < AUTO_SIZE ? AUTO_SIZE : maxPendingBytes;
     }
 
     /**
@@ -232,12 +234,15 @@ public abstract class AbstractNIOAsyncQueueWriter
         Reentrant reentrants = null;
         
         try {
+            final int connectionMaxPendingBytes = getMaxQueueSize(connection);
+            
             // Check if the buffer size matches maxPendingBytes
-            if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes) {
+            if (connectionMaxPendingBytes > 0 && 
+                    pendingBytes > connectionMaxPendingBytes) {
                 connectionQueue.releaseSpace(bytesToReserve);
                 throw new PendingWriteQueueLimitExceededException(
                         "Max queued data limit exceeded: "
-                        + pendingBytes + '>' + maxPendingBytes);
+                        + pendingBytes + '>' + connectionMaxPendingBytes);
             }
 
             if (isCurrent && (reentrants =
@@ -427,7 +432,11 @@ public abstract class AbstractNIOAsyncQueueWriter
         return AsyncResult.COMPLETE;
     }
        
-    private static void doFineLog(String msg, Object... params) {
+    private static int getMaxQueueSize(final Connection connection) {
+        return ((NIOConnection) connection).getMaxAsyncWriteQueueSize();
+    }
+
+    private static void doFineLog(final String msg, final Object... params) {
         logger.log(Level.FINEST, msg, params);
     }
 
@@ -513,5 +522,4 @@ public abstract class AbstractNIOAsyncQueueWriter
     protected AsyncWriteQueueRecord aggregate(TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
         return connectionQueue.obtainCurrentElementAndReserve();
     }
-
 }
