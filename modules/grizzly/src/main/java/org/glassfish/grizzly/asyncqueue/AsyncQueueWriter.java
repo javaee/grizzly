@@ -109,7 +109,8 @@ public interface AsyncQueueWriter<L>
 
     /**
      * @return the maximum number of bytes that may be pending to be written
-     *  to a particular {@link Connection}.
+     *  to a particular {@link Connection}.  By default, this will be four
+     *  times the size of the {@link java.net.Socket} send buffer size.
      */
     int getMaxPendingBytesPerConnection();
     
@@ -141,7 +142,7 @@ public interface AsyncQueueWriter<L>
      * Returns the current write reentrants counter.
      * Might be useful, if developer wants to use custom notification mechanism,
      * based on on {@link #canWrite(org.glassfish.grizzly.Connection, int)} and
-     * {@link #write()} methods.
+     * various write methods.
      */
     Reentrant getWriteReentrant();
 

@@ -438,7 +438,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 nioChannel.close();
             } catch (IOException e) {
                 LOGGER.log(Level.FINE,
-                        "TCPNIOTransport.closeChannel exception", e);
+                        "UDPNIOTransport.closeChannel exception", e);
             }
         }
 
@@ -776,7 +776,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                     underlyingBB);
             read = underlyingBB.position() - initialBufferPos;
         } else {
-            throw new IllegalStateException("Can not read from "
+            throw new IllegalStateException("Cannot read from "
                     + "non-connection UDP connection into CompositeBuffer");
         }
 
