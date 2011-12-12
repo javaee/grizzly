@@ -99,12 +99,11 @@ public class StaticResourcesAdapter implements Adapter {
 
         // Ugly workaround
         // See Issue 327
-        if (System.getProperty("os.name").equalsIgnoreCase("linux")
-                && !System.getProperty("java.version").startsWith("1.7")
+        if ((System.getProperty("os.name").equalsIgnoreCase("linux")
+                && !linuxSendFileSupported())
                 || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
             useSendFile = false;
         }
-
         if (System.getProperty(USE_SEND_FILE) != null) {
             useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
             logger.info("Send-file enabled:" + useSendFile);
@@ -232,7 +231,7 @@ public class StaticResourcesAdapter implements Adapter {
             } else {
                 byte b[] = new byte[8192];
                 ByteChunk chunk = new ByteChunk();
-                int rd = 0;
+                int rd;
                 while ((rd = fis.read(b)) > 0) {
                     chunk.setBytes(b, 0, rd);
                     res.doWrite(chunk);
@@ -242,7 +241,7 @@ public class StaticResourcesAdapter implements Adapter {
             if (fis != null) {
                 try {
                     fis.close();
-                } catch (IOException ex) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -371,6 +370,7 @@ public class StaticResourcesAdapter implements Adapter {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
@@ -379,6 +379,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @return <code>true</code> if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
      *  to send a static resources.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isUseSendFile() {
         return useSendFile;
     }
@@ -403,6 +404,7 @@ public class StaticResourcesAdapter implements Adapter {
      * http://host:port/context-path/index.html
      * @return the context path.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getResourcesContextPath() {
         return resourcesContextPath;
     }
@@ -424,6 +426,7 @@ public class StaticResourcesAdapter implements Adapter {
      * 
      * @return the defaultContentType
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getDefaultContentType() {
         return defaultContentType;
     }
@@ -436,5 +439,20 @@ public class StaticResourcesAdapter implements Adapter {
      */
     public void setDefaultContentType(String defaultContentType) {
         this.defaultContentType = defaultContentType;
+    }
+
+
+    private static boolean linuxSendFileSupported() {
+        final String version = System.getProperty("java.version");
+        if (version.startsWith("1.6")) {
+            int idx = version.indexOf('_');
+            if (idx == -1) {
+                return false;
+            }
+            final int patchRev = Integer.parseInt(version.substring(idx + 1));
+            return (patchRev >= 18);
+        } else {
+            return version.startsWith("1.7") || version.startsWith("1.8");
+        }
     }
 }
