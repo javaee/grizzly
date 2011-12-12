@@ -52,6 +52,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.fail;
+
 /**
  * Created Jan 5, 2009
  *
@@ -205,4 +208,40 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             grizzlyConfig.shutdown();
         }
     }
+    
+    public void testMissingTransport() throws Exception {
+        GrizzlyConfig config = new GrizzlyConfig("bad-transport.xml");
+        try {
+             config.setupNetwork();                        
+            fail("No exception thrown");
+        } catch (GrizzlyConfigException gce) {
+            assertEquals("GRIZZLY0084: Unable to find transport [tcpp] defined by listener [http-listener].", gce.getMessage());
+        } finally {
+            config.shutdown();
+        }
+    }
+
+    public void testMissingThreadPool() throws Exception {
+        GrizzlyConfig config = new GrizzlyConfig("bad-threadpool.xml");
+        try {
+            config.setupNetwork();
+            fail("No exception thrown");
+        } catch (GrizzlyConfigException gce) {
+            assertEquals("GRIZZLY0085: Unable to find thread pool [defaultThreadPooll] defined by listener [http-listener].", gce.getMessage());
+        } finally {
+            config.shutdown();
+        }
+    }
+
+    public void testMissingProtocol() throws Exception {
+            GrizzlyConfig config = new GrizzlyConfig("bad-protocol.xml");
+            try {
+                config.setupNetwork();
+                fail("No exception thrown");
+            } catch (GrizzlyConfigException gce) {
+                assertEquals("GRIZZLY0083: Unable to find protocol [httpp] defined by listener [http-listener].", gce.getMessage());
+            } finally {
+                config.shutdown();
+            }
+        }
 }
