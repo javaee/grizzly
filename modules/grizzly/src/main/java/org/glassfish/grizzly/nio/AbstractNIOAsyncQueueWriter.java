@@ -314,14 +314,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                 return;
             }
             
-//            switch (checkQueueSize(queueRecord, pushBackContext)) {
-//                case PUSHBACK_CONTINUE:
-//                    if (isCurrent) {
-//                        connection.simulateIOEvent(IOEvent.WRITE);
-//                    }
-//                case PUSHBACK_DONE: return;
-//            }
-            
             if (isCurrent && isAllowDirectWrite) {
                 
                 // If we can write directly - do it w/o creating queue record (simple)
@@ -456,7 +448,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
 
-            if (!done && writeTaskQueue.spaceInBytes() > 0) {
+            if (!done) {
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
@@ -474,20 +466,19 @@ public abstract class AbstractNIOAsyncQueueWriter
         return AsyncResult.COMPLETE;
     }
 
+    /**
+     * Return <tt>true</tt> if async write queue counter got zero-value after
+     * subtracting bytes scheduled for release.
+     */
     private static boolean checkRefusedBytes(
             final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue)
             throws IOException {
         final AtomicInteger refusedBytesCounter =
                 writeTaskQueue.getRefusedBytes();
         
-        final int refusedBytes = refusedBytesCounter.get();
-        if (refusedBytes > 0) {
-            refusedBytesCounter.addAndGet(-refusedBytes);
-            if (writeTaskQueue.releaseSpaceAndNotify(refusedBytes) == 0) {
-                return true;
-            }
-        }
-        return false;
+        final int refusedBytes = refusedBytesCounter.getAndSet(0);
+        return refusedBytes > 0 &&
+            writeTaskQueue.releaseSpaceAndNotify(refusedBytes) == 0;
     }
 
     private static void finishQueueRecord(final NIOConnection nioConnection,
