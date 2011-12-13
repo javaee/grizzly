@@ -70,7 +70,7 @@ public class HttpContinueTest {
     }
 
     @Parameters
-    public static Collection<Object[]> getSslParameter() {
+    public static Collection<Object[]> getNumberOfExtraHttpHandlers() {
         return Arrays.asList(new Object[][]{
                     {0},
                     {5}
