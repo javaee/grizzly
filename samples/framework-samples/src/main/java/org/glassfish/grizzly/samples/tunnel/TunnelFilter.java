@@ -41,12 +41,12 @@
 package org.glassfish.grizzly.samples.tunnel;
 
 import java.util.logging.Level;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.asyncqueue.PushBackContext;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -174,15 +174,12 @@ public class TunnelFilter extends BaseFilter {
                 
                 new PushBackHandler() {
                     @Override
-                    public void onAccept(final Connection connection,
-                            final Buffer buffer) {
+                    public void onAccept(Connection connection, WritableMessage message) {
                         context.resume();
                     }
 
                     @Override
-                    public void onPushBack(final Connection connection,
-                            final Buffer buffer,
-                            final PushBackContext pushBackContext) {
+                    public void onPushBack(Connection connection, WritableMessage message, PushBackContext pushBackContext) {
                         pushBackContext.retryWhenPossible();
                     }
                 });
@@ -230,7 +227,7 @@ public class TunnelFilter extends BaseFilter {
         }
 
         /**
-         * Resume {@link FilterChain} execution on stage, where it was
+         * Resume {@link org.glassfish.grizzly.filterchain.FilterChain} execution on stage, where it was
          * earlier suspended.
          */
         private void resumeContext() {
@@ -244,7 +241,7 @@ public class TunnelFilter extends BaseFilter {
         private void close(Connection connection) {
             try {
                 connection.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }
