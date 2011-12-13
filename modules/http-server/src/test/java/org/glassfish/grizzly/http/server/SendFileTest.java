@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.util.logging.Level;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -346,8 +347,11 @@ public class SendFileTest extends TestCase {
                     }
                     try {
                         out.close();
+                        LOGGER.log(Level.INFO, "Client received file ({0} bytes) in {1}ms.",
+                                new Object[]{f.length(), stop - start});
+                        // result.result(f) should be the last operation in handleRead
+                        // otherwise NPE may occur in handleWrite asynchronously
                         result.result(f);
-                        LOGGER.info("Client received file (" + f.length() + " bytes) in " + (stop - start) + "ms.");
                     } catch (IOException ioe) {
                         ioe.printStackTrace();
                     }
@@ -360,7 +364,7 @@ public class SendFileTest extends TestCase {
                 try {
                     if (f != null) {
                         if (!f.delete()) {
-                            LOGGER.warning("Unable to explicitly delete file: " + f.getAbsolutePath());
+                            LOGGER.log(Level.WARNING, "Unable to explicitly delete file: {0}", f.getAbsolutePath());
                         }
                         f = null;
                     }
