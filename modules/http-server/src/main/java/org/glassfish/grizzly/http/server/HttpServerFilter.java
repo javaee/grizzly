@@ -42,8 +42,10 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -52,6 +54,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -61,8 +64,12 @@ import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -71,6 +78,7 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpServerFilter extends BaseFilter
         implements JmxMonitoringAware<HttpServerProbe> {
 
+    private static final Logger LOGGER = Grizzly.logger(HttpServerFilter.class);
 
     private final Attribute<Request> httpRequestInProcessAttr;
     final Attribute<Boolean> reregisterForReadAttr;
@@ -148,7 +156,7 @@ public class HttpServerFilter extends BaseFilter
 
                 handlerRequest.initialize(handlerResponse, request, ctx, this);
                 final SuspendStatus suspendStatus = handlerResponse.initialize(
-                        handlerRequest, response, ctx, suspendedResponseQueue);
+                        handlerRequest, response, ctx, suspendedResponseQueue, this);
 
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
@@ -159,6 +167,57 @@ public class HttpServerFilter extends BaseFilter
                     final HttpHandler httpHandlerLocal = httpHandler;
                     if (httpHandlerLocal != null) {
                         httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
+                    }
+                    if (getConfiguration().isSendFileEnabled()) {
+                        final Object f = request.getAttribute(Request.SEND_FILE_ATTR);
+                        if (f != null) {
+                            final File file = (File) f;
+                            Long offset = (Long) request.getAttribute(Request.SEND_FILE_START_OFFSET_ATTR);
+                            Long len = (Long) request.getAttribute(Request.SEND_FILE_WRITE_LEN_ATTR);
+                            if (offset == null) {
+                                offset = 0L;
+                            }
+                            if (len == null) {
+                                len = file.length();
+                            }
+                            handlerResponse.suspend();
+                            final OutputBuffer buffer = 
+                                    handlerResponse.getOutputBuffer();
+                            buffer.sendfile(file, offset, len, new EmptyCompletionHandler<WriteResult>() {
+                                @Override
+                                public void cancelled() {
+                                    if (LOGGER.isLoggable(Level.WARNING)) {
+                                        LOGGER.log(Level.WARNING,
+                                                   "Transfer of file {0} cancelled.",
+                                                   file.getAbsolutePath());
+                                    }
+                                    handlerResponse.resume();
+                                }
+
+                                @Override
+                                public void failed(Throwable throwable) {
+                                    if (LOGGER.isLoggable(Level.WARNING)) {
+                                        LOGGER.log(Level.SEVERE,
+                                                "Transfer of file {0} failed: {1}",
+                                                new Object[] {
+                                                        file.getAbsolutePath(),
+                                                        throwable.getMessage()
+                                                });
+                                    }
+                                    if (LOGGER.isLoggable(Level.FINE)) {
+                                        LOGGER.log(Level.FINE,
+                                                   throwable.getMessage(),
+                                                   throwable);
+                                    }
+                                    handlerResponse.resume();
+                                }
+
+                                @Override
+                                public void completed(WriteResult result) {
+                                    handlerResponse.resume();
+                                }
+                            });
+                        }
                     }
                 } catch (Throwable t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);

@@ -63,7 +63,7 @@ import org.glassfish.grizzly.utils.ArraySet;
  */
 public class StaticHttpHandler extends HttpHandler {
     
-    private static final String USE_SEND_FILE = "org.glassfish.grizzly.http.USE_SEND_FILE";
+
 
     private static final Logger LOGGER = Grizzly.logger(StaticHttpHandler.class);
 
@@ -71,15 +71,12 @@ public class StaticHttpHandler extends HttpHandler {
 
     private volatile int fileCacheFilterIdx = -1;
     
-    private volatile boolean sendFileEnabled = true;
-
     /**
      * Create <tt>HttpHandler</tt>, which, by default, will handle requests
      * to the static resources located in the current directory.
      */
     public StaticHttpHandler() {
         addDocRoot(".");
-        configureSendFileSupport();
     }
 
 
@@ -98,7 +95,6 @@ public class StaticHttpHandler extends HttpHandler {
                 addDocRoot(docRoot);
             }
         }
-        configureSendFileSupport();
     }
 
     /**
@@ -117,7 +113,6 @@ public class StaticHttpHandler extends HttpHandler {
                 addDocRoot(docRoot);
             }
         }
-        configureSendFileSupport();
     }
 
     /**
@@ -178,60 +173,8 @@ public class StaticHttpHandler extends HttpHandler {
         docRoots.remove(docRoot);
     }
 
-    /**
-     * <p>
-     * Returns <code>true</code> if resources will be sent using 
-     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
-     * </p>
-     * 
-     * <p>
-     * By default, this property will be true, except in the following cases:
-     * </p>
-     *
-     * <ul>
-     *     <li>JVM OS is HP-UX</li>
-     *     <li>JVM OS is Linux, and the Oracle JVM in use is 1.6.0_17 or older</li>
-     * </ul>
-     *
-     * <p>
-     * This logic can be overridden by explicitly setting the property via
-     * {@link #setSendFileEnabled(boolean)} or by specifying the system property
-     * {@value #USE_SEND_FILE} with a value of <code>true</code>
-     * </p>
-     *
-     * <p>
-     * Finally, if the connection between endpoints is secure, send file functionality
-     * will be disabled regardless of configuration.
-     * </p>
-     * 
-     * @return <code>true</code> if resources will be sent using 
-     *  {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
-     *  
-     * @since 2.2
-     */
-    @SuppressWarnings("UnusedDeclaration")
-    public boolean isSendFileEnabled() {
-        return sendFileEnabled;
-    }
-
-
-    /**
-     * Configure whether or not static resources will be sent using
-     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     * or use the more traditional byte[] copy to send content.
-     * 
-     * @param sendFileEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     *  support.
-     *
-     * @since 2.2
-     */
-    public void setSendFileEnabled(boolean sendFileEnabled) {
-        this.sendFileEnabled = sendFileEnabled;
-    }
-
-    public static void sendFile(final Response response, 
-                                final File file, 
-                                final boolean useSendFile) throws IOException {
+    public static void sendFile(final Response response, final File file)
+    throws IOException {
         final String path = file.getPath();
         FileInputStream fis = null;
 
@@ -258,7 +201,7 @@ public class StaticHttpHandler extends HttpHandler {
             final long length = file.length();
             response.setContentLengthLong(length);
             final OutputBuffer outputBuffer = response.getOutputBuffer();
-            if (!useSendFile || response.getRequest().isSecure()) {
+            if (!response.isSendFileEnabled() || response.getRequest().isSecure()) {
                 fis = new FileInputStream(file);
 
                 byte b[] = new byte[8192];
@@ -268,7 +211,7 @@ public class StaticHttpHandler extends HttpHandler {
                     outputBuffer.write(b, 0, rd);
                 }
             } else {
-                outputBuffer.write(file, null);
+                outputBuffer.sendfile(file, null);
             }
         } finally {
             if (fis != null) {
@@ -403,7 +346,7 @@ public class StaticHttpHandler extends HttpHandler {
         }
 
         addToFileCache(req, resource);
-        sendFile(res, resource, sendFileEnabled);
+        sendFile(res, resource);
 
         return true;
     }
@@ -436,36 +379,5 @@ public class StaticHttpHandler extends HttpHandler {
         fileCacheFilterIdx = -1;
         return null;
     }
-    
-    
-    private static boolean linuxSendFileSupported() {
-        final String version = System.getProperty("java.version");
-        if (version.startsWith("1.6")) {
-            int idx = version.indexOf('_');
-            if (idx == -1) {
-                return false;
-            }
-            final int patchRev = Integer.parseInt(version.substring(idx + 1));
-            return (patchRev >= 18);
-        } else {
-            return version.startsWith("1.7") || version.startsWith("1.8");
-        }
-    }
 
-    private void configureSendFileSupport() {
-
-        if ((System.getProperty("os.name").equalsIgnoreCase("linux")
-                && !linuxSendFileSupported())
-                || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
-            sendFileEnabled = false;
-
-        }
-
-        // overrides the config from the previous block
-        if (System.getProperty(USE_SEND_FILE) != null) {
-            sendFileEnabled = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
-        }
-
-    }
-    
 }

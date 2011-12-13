@@ -170,6 +170,7 @@ public class NetworkListener {
     private boolean traceEnabled;
     private String uriEncoding;
     private int transactionTimeout;
+    private Boolean sendFileEnabled;
     // ------------------------------------------------------------ Constructors
 
     /**
@@ -181,7 +182,6 @@ public class NetworkListener {
     public NetworkListener(final String name) {
         validateArg("name", name);
         this.name = name;
-
     }
 
     /**
@@ -203,9 +203,7 @@ public class NetworkListener {
      * @param host the network host to which this listener will bind.
      * @param port the network port to which this listener will bind..
      */
-    public NetworkListener(final String name,
-        final String host,
-        final int port) {
+    public NetworkListener(final String name, final String host, final int port) {
         validateArg("name", name);
         validateArg("host", name);
         if (port < 0) {
@@ -214,7 +212,6 @@ public class NetworkListener {
         this.name = name;
         this.host = host;
         this.port = port;
-
     }
 
     /**
@@ -769,4 +766,29 @@ public class NetworkListener {
     public void setTransactionTimeout(final int transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
     }
+
+    /**
+     * @see org.glassfish.grizzly.http.server.ServerFilterConfiguration#isSendFileEnabled()
+     *
+     * @since 2.2
+     */
+    public boolean isSendFileEnabled() {
+        return sendFileEnabled;
+    }
+
+    /**
+     * @see ServerFilterConfiguration#setSendFileEnabled(boolean)
+     *
+     * @since 2.2
+     */
+    public void setSendFileEnabled(boolean sendFileEnabled) {
+        this.sendFileEnabled = sendFileEnabled;
+    }
+
+    boolean isSendFileExplicitlyConfigured() {
+        return (sendFileEnabled != null);
+    }
+
+
+
 }

@@ -138,6 +138,44 @@ public class Request {
         return new Request();
     }
 
+    /**
+     * Request attribute will be associated with a boolean value indicating 
+     * whether or not it's possible to transfer a {@link java.io.File} using sendfile.
+     * 
+     * @since 2.2
+     */
+    public static final String SEND_FILE_ENABLED_ATTR = "org.glassfish.grizzly.http.SEND_FILE_ENABLED";
+
+    /**
+     * The value of this request attribute, as set by the developer must be a {@link java.io.File}
+     * that exists, is not a directory, and is readable.  This {@link java.io.File} will be
+     * transferred using sendfile if {@link #SEND_FILE_ENABLED_ATTR} is true.  If sendfile
+     * support isn't enabled, an IllegalStateException will be raised at runtime.
+     * The {@link HttpHandler} using this functionality should refrain from writing content
+     * via the response.
+     *
+     * @since 2.2
+     */
+    public static final String SEND_FILE_ATTR = "org.glassfish.grizzly.http.SEND_FILE";
+
+    /**
+     * The value of this request attribute signifies the starting offset of the file
+     * transfer.  If not specified, an offset of zero will be assumed.   The type of
+     * the value must be {@link Long}
+     *
+     * @since 2.2
+     */
+    public static final String SEND_FILE_START_OFFSET_ATTR = "org.glassfish.grizzly.http.FILE_START_OFFSET";
+
+    /**
+     * The value of this request attribute signifies the total number of bytes to
+     * transfer.  If not specified, the entire file will be transferred.
+     * The type of the value must be {@link Long}
+     *
+     * @since 2.2
+     */
+    public static final String SEND_FILE_WRITE_LEN_ATTR = "org.glassfish.grizzly.http.FILE_WRITE_LEN";
+
     // ------------------------------------------------------------- Properties
     /**
      * The match string for identifying a session ID parameter.
@@ -439,7 +477,9 @@ public class Request {
         final DataChunk remoteUser = request.remoteUser();
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
-    }
+        }
+        setAttribute(SEND_FILE_ENABLED_ATTR, 
+                     httpServerFilter.getConfiguration().isSendFileEnabled());
     }
 
     final HttpServerFilter getServerFilter() {

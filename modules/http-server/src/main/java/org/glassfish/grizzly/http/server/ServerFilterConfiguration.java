@@ -45,8 +45,12 @@ package org.glassfish.grizzly.http.server;
  * @author Alexey Stashok
  */
 public class ServerFilterConfiguration {
+
+    public static final String USE_SEND_FILE = "org.glassfish.grizzly.http.USE_SEND_FILE";
+
     private String httpServerName;
     private String httpServerVersion;
+    private boolean sendFileEnabled;
 
     public ServerFilterConfiguration() {
         this("Grizzly", "2.1");
@@ -55,6 +59,7 @@ public class ServerFilterConfiguration {
     public ServerFilterConfiguration(final String serverName, final String serverVersion) {
         this.httpServerName = serverName;
         this.httpServerVersion = serverVersion;
+        configureSendFileSupport();
     }
 
     /**
@@ -80,7 +85,6 @@ public class ServerFilterConfiguration {
      */
     public String getHttpServerVersion() {
         return httpServerVersion;
-
     }
 
     /**
@@ -91,6 +95,86 @@ public class ServerFilterConfiguration {
      */
     public void setHttpServerVersion(String httpServerVersion) {
         this.httpServerVersion = httpServerVersion;
+    }
+
+    /**
+     * <p>
+     * Returns <code>true</code> if File resources may be be sent using
+     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * </p>
+     * <p/>
+     * <p>
+     * By default, this property will be true, except in the following cases:
+     * </p>
+     * <p/>
+     * <ul>
+     * <li>JVM OS is HP-UX</li>
+     * <li>JVM OS is Linux, and the Oracle JVM in use is 1.6.0_17 or older</li>
+     * </ul>
+     * <p/>
+     * <p>
+     * This logic can be overridden by explicitly setting the property via
+     * {@link #setSendFileEnabled(boolean)} or by specifying the system property
+     * {@value #USE_SEND_FILE} with a value of <code>true</code>
+     * </p>
+     * <p/>
+     * <p>
+     * Finally, if the connection between endpoints is secure, send file functionality
+     * will be disabled regardless of configuration.
+     * </p>
+     *
+     * @return <code>true</code> if resources will be sent using
+     *         {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * @since 2.2
+     */
+    public boolean isSendFileEnabled() {
+        return sendFileEnabled;
+    }
+
+    /**
+     * Configure whether or sendfile support will enabled which allows sending
+     * {@link java.io.File} resources via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * If disabled, the more traditional byte[] copy will be used to send content.
+     *
+     * @param sendFileEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     *                        support.
+     * @since 2.2
+     */
+    public void setSendFileEnabled(boolean sendFileEnabled) {
+        this.sendFileEnabled = sendFileEnabled;
+    }
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private void configureSendFileSupport() {
+
+        if ((System.getProperty("os.name").equalsIgnoreCase("linux")
+                && !linuxSendFileSupported())
+                || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
+            sendFileEnabled = false;
+        }
+
+        // overrides the config from the previous block
+        if (System.getProperty(USE_SEND_FILE) != null) {
+            sendFileEnabled = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
+        }
 
     }
+
+
+    private static boolean linuxSendFileSupported() {
+        final String version = System.getProperty("java.version");
+        if (version.startsWith("1.6")) {
+            int idx = version.indexOf('_');
+            if (idx == -1) {
+                return false;
+            }
+            final int patchRev = Integer.parseInt(version.substring(idx + 1));
+            return (patchRev >= 18);
+        } else {
+            return version.startsWith("1.7") || version.startsWith("1.8");
+        }
+    }
+
 }

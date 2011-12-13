@@ -132,6 +132,8 @@ public class OutputBuffer {
     private WriteHandler asyncWriteQueueHandler;
 
     private AsyncQueueWriter asyncWriter;
+    
+    private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
 
@@ -140,6 +142,8 @@ public class OutputBuffer {
      * input streams.
      */
     private boolean asyncEnabled;
+    
+    private boolean sendfileEnabled;
     
     private final CompletionHandler<WriteResult> onAsyncErrorCompletionHandler =
             new OnErrorCompletionHandler();
@@ -154,6 +158,7 @@ public class OutputBuffer {
                            final FilterChainContext ctx) {
 
         this.response = response.getResponse();
+        sendfileEnabled = response.isSendFileEnabled();
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
@@ -281,7 +286,8 @@ public class OutputBuffer {
         }
 
         charBuf.position(0);
-        
+
+        fileTransferRequested = false;
         encoder = null;
         ctx = null;
         memoryManager = null;
@@ -432,15 +438,15 @@ public class OutputBuffer {
      * @throws IOException if an error occurs during the transfer
      * @throws IllegalArgumentException if <code>file</code> is null
      * 
-     * @see #write(java.io.File, long, long, org.glassfish.grizzly.CompletionHandler) 
+     * @see #write 
      * 
      * @since 2.2   
      */
-    public void write(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
+    public void sendfile(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
         if (file == null) {
             throw new IllegalArgumentException("Argument 'file' cannot be null");
         }
-        write(file, 0, file.length(), handler);
+        sendfile(file, 0, file.length(), handler);
     }
 
     /**
@@ -463,22 +469,33 @@ public class OutputBuffer {
      * @throws IOException              if an I/O error occurs
      * @throws IllegalArgumentException if the response has already been committed
      *                                  at the time this method was invoked.
+     * @throws IllegalStateException    if a file transfer request has already
+     *                                  been made or if send file support isn't
+     *                                  available.
      * @since 2.2
      */
-    public void write(final File file, 
-                      final long offset, 
-                      final long length, 
-                      final CompletionHandler<WriteResult> handler) 
+    public void sendfile(final File file, 
+                         final long offset, 
+                         final long length, 
+                         final CompletionHandler<WriteResult> handler) 
     throws IOException {
+        if (!sendfileEnabled) {
+            throw new IllegalStateException("sendfile support isn't available.");
+        }
+        if (fileTransferRequested) {
+            throw new IllegalStateException("Only one file transfer allowed per request");
+        }
         if (committed) {
             throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
         }
+        final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
+        fileTransferRequested = true;
         if (currentBuffer != null) {
             currentBuffer.clear();
         } if (compositeBuffer != null) {
             compositeBuffer.clear();
         }
-        final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
+        
         response.setContentLengthLong(f.remaining());
         if (response.getContentType() == null) {
             response.setContentType(MimeType.getByFilename(file.getName()));

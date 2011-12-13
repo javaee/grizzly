@@ -241,9 +241,120 @@ public class SendFileTest extends TestCase {
             server.stop();
         }
     }
+
+    public void testSimpleSendFileViaRequestAttribute() throws Exception {
+        File control = generateTempFile(1024);
+        HttpHandler h = new SendFileRequestAttributeHandler(control);
+        HttpServer server = createServer(h);
+        MimeType.add("tmp", "text/temp");
+        TestFuture result = new TestFuture();
+        BigInteger controlSum = getMDSum(control);
+
+        TCPNIOTransport client = createClient(result, new ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals("1024", response.getHeader(Header.ContentLength));
+                // explicit mime type set
+                assertEquals("text/temp", response.getHeader(Header.ContentType));
+            }
+        });
+        try {
+            server.start();
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/" + control.getName())
+                            .method(Method.GET)
+                            .protocol(Protocol.HTTP_1_1)
+                            .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            BigInteger resultSum = getMDSum(fResult);
+            assertTrue("MD5Sum between control and test files differ.",
+                    controlSum.equals(resultSum));
+            result.reset();
+            c.close();
+        } finally {
+            client.stop();
+            server.stop();
+        }
+    }
+
+    public void testSimpleSendFileViaRequestAttributeCustomPosLen() throws Exception {
+        File control = generateTempFile(1024);
+        HttpHandler h = new SendFileRequestAttributeHandler(511, 512);
+        HttpServer server = createServer(h);
+        MimeType.add("tmp", "text/temp");
+        TestFuture result = new TestFuture();
+
+        TCPNIOTransport client = createClient(result, new ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals("512", response.getHeader(Header.ContentLength));
+                // explicit mime type set
+                assertEquals("text/temp", response.getHeader(Header.ContentType));
+            }
+        });
+        try {
+            server.start();
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/" + control.getName())
+                            .method(Method.GET)
+                            .protocol(Protocol.HTTP_1_1)
+                            .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            assertEquals(512, fResult.length());
+            result.reset();
+            c.close();
+        } finally {
+            client.stop();
+            server.stop();
+        }
+    }
     
     
     // --------------------------------------------------------- Private Methods
+    
+    
+    private static final class SendFileRequestAttributeHandler extends HttpHandler {
+        private final long pos;
+        private final long len;
+
+
+        // -------------------------------------------------------- Constructors
+
+        private SendFileRequestAttributeHandler(final File f) {
+            pos = 0;
+            len = f.length();
+        }
+
+        private SendFileRequestAttributeHandler(long pos, long len) {
+            this.pos = pos;
+            this.len = len;
+        }
+        
+        // -------------------------------------------- Methods from HttpHandler
+        
+        
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            final String requestURI = request.getRequestURI();
+            assertTrue((Boolean) request.getAttribute(Request.SEND_FILE_ENABLED_ATTR));
+            final String fileName = requestURI.substring(requestURI.lastIndexOf('/') + 1);
+            File tempDir = new File(System.getProperty("java.io.tmpdir"));
+            File toSend = new File(tempDir, fileName);
+            request.setAttribute(Request.SEND_FILE_ATTR, toSend);
+            if (pos != 0) {
+                request.setAttribute(Request.SEND_FILE_START_OFFSET_ATTR, pos);                
+            }
+            if (len != toSend.length()) {
+                request.setAttribute(Request.SEND_FILE_WRITE_LEN_ATTR, len);
+            }
+        }
+    } // END SendFileRequestAttributeHandler
     
     
     private static final class SendFileApiHandler extends HttpHandler {
@@ -270,7 +381,7 @@ public class SendFileTest extends TestCase {
         }
 
 
-        // ---------------------------------------------Methods from HttpHandler
+        // -------------------------------------------- Methods from HttpHandler
 
 
         @Override
@@ -288,7 +399,7 @@ public class SendFileTest extends TestCase {
                     response.flush();
                 }
             }
-            response.getOutputBuffer().write(toSend, pos, len, new CompletionHandler<WriteResult>() {
+            response.getOutputBuffer().sendfile(toSend, pos, len, new CompletionHandler<WriteResult>() {
                 @Override
                 public void cancelled() {
                     fail("Cancelled");
@@ -321,7 +432,7 @@ public class SendFileTest extends TestCase {
             this.commitResponse = commitResponse;
         }
 
-    }
+    } // END SendFileApiHandler
     
     
     private static TCPNIOTransport createClient(final TestFuture result,
@@ -390,13 +501,11 @@ public class SendFileTest extends TestCase {
                 new NetworkListener("test", 
                                     NetworkListener.DEFAULT_NETWORK_HOST, 
                                     PORT);
+        listener.setSendFileEnabled(true);
         listener.getFileCache().setEnabled(false);
         server.addListener(listener);
         if (handler == null) {
-            final StaticHttpHandler staticHandler =
-                    new StaticHttpHandler(System.getProperty("java.io.tmpdir"));
-            staticHandler.setSendFileEnabled(true); // for the purpose of the test, force it
-            handler = staticHandler;
+            handler = new StaticHttpHandler(System.getProperty("java.io.tmpdir"));
         }
         server.getServerConfiguration().addHttpHandler(handler, "/");
         return server;

@@ -596,6 +596,9 @@ public class HttpServer {
             builder.add(fileCacheFilter);
 
             final HttpServerFilter webServerFilter = new HttpServerFilter(serverConfig, delayedExecutor);
+            if (listener.isSendFileExplicitlyConfigured()) {
+                webServerFilter.getConfiguration().setSendFileEnabled(listener.isSendFileEnabled());
+            }
             webServerFilter.setHttpHandler(httpHandlerChain);
             
             webServerFilter.getMonitoringConfig().addProbes(

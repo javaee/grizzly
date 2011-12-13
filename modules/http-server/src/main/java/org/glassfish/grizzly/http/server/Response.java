@@ -261,19 +261,21 @@ public class Response {
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
 
     private final SuspendStatus suspendStatus = new SuspendStatus();
+    private boolean sendFileEnabled;
     
     // --------------------------------------------------------- Public Methods
 
     public SuspendStatus initialize(final Request request,
                            final HttpResponsePacket response,
                            final FilterChainContext ctx,
-                           final DelayedExecutor.DelayQueue<Response> delayQueue) {
+                           final DelayedExecutor.DelayQueue<Response> delayQueue,
+                           final HttpServerFilter serverFilter) {
         this.request = request;
         this.response = response;
+        sendFileEnabled = serverFilter.getConfiguration().isSendFileEnabled();
         outputBuffer.initialize(this, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;
-        
         return suspendStatus.reset();
     }
 
@@ -309,7 +311,7 @@ public class Response {
         error = false;
         request = null;
         response.recycle();
-        
+        sendFileEnabled = false;
         response = null;
         ctx = null;
         suspendState.set(SuspendState.NONE);
@@ -1775,6 +1777,10 @@ public class Response {
 
     public static void setCurrent(Response response) {
         current.set(response);
+    }
+
+    public boolean isSendFileEnabled() {
+        return sendFileEnabled;
     }
 
     public final class SuspendedContextImpl implements SuspendContext,
