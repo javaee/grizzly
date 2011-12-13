@@ -553,6 +553,12 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            if (state.getState() == State.PAUSE) {
+                // if Transport is paused - first we need to resume it
+                // so selectorrunners can perform the close phase
+                resume();
+            }
+            
             unbindAll();
 
             state.setState(State.STOP);
