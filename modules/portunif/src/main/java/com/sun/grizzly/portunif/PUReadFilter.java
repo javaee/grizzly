@@ -179,7 +179,7 @@ public class PUReadFilter extends ReadFilter {
                     if (preProcessors != null) {
                         for (PUPreProcessor preProcessor : preProcessors) {
                             if (isloglevelfine) {
-                                logger.log(Level.FINE, "PUReadFilter. Apply preprocessor process: " + preProcessor);
+                                logger.log(Level.FINE, "PUReadFilter. Apply preprocessor process: {0}", preProcessor);
                             }
 
                             if (preProcessor.process(context, protocolRequest)) {
@@ -192,7 +192,7 @@ public class PUReadFilter extends ReadFilter {
                     try {
                         protocolName = findProtocol(context, protocolRequest);
                         if (isloglevelfine) {
-                            logger.log(Level.FINE, "PUReadFilter. Found protocol: " + protocolName);
+                            logger.log(Level.FINE, "PUReadFilter. Found protocol: {0}", protocolName);
                         }
                     } catch (IOException e) {
                         if (isloglevelfine) {
@@ -237,8 +237,7 @@ public class PUReadFilter extends ReadFilter {
                                 if (passedPreProcessors.contains(preProcessor.getId())) {
                                     if (isloglevelfine) {
                                         logger.log(Level.FINE,
-                                                "PUReadFilter. Apply preprocessor POSTProcess: " +
-                                                preProcessor);
+                                                "PUReadFilter. Apply preprocessor POSTProcess: {0}", preProcessor);
                                     }
 
                                     preProcessor.postProcess(context, protocolRequest);
@@ -247,12 +246,18 @@ public class PUReadFilter extends ReadFilter {
                         }
 
                         // Try to read more data
-                        int bytesRead = Utils.readWithTemporarySelector(
+                        int bytesRead;
+                        try {
+                            bytesRead = Utils.readWithTemporarySelector(
                                 selectionKey.channel(),
                                 protocolRequest.getByteBuffer(), readTimeout).bytesRead;
+                        } catch (Exception e) {
+                            logger.log(Level.FINE, "PUReadFilter. Error when reading more bytes", e);
+                            bytesRead = -1;
+                        }
 
                         if (isloglevelfine) {
-                            logger.log(Level.FINE, "PUReadFilter. Read more bytes: " + bytesRead);
+                            logger.log(Level.FINE, "PUReadFilter. Read more bytes: {0}", bytesRead);
                         }
 
                         if (bytesRead <= 0) {
@@ -308,7 +313,7 @@ public class PUReadFilter extends ReadFilter {
             boolean mapSelectionKey) throws IOException {
 
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "PUReadFilter. Process request with handler: " + protocolHandler);
+            logger.log(Level.FINE, "PUReadFilter. Process request with handler: {0}", protocolHandler);
         }
 
         boolean isKeepAlive = protocolHandler.handle(context, protocolRequest);
