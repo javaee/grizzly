@@ -473,6 +473,11 @@ public class OutputBuffer {
         if (committed) {
             throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
         }
+        if (currentBuffer != null) {
+            currentBuffer.clear();
+        } if (compositeBuffer != null) {
+            compositeBuffer.clear();
+        }
         final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
         response.setContentLengthLong(f.remaining());
         if (response.getContentType() == null) {

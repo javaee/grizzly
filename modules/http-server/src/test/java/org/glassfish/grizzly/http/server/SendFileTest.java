@@ -111,7 +111,8 @@ public class SendFileTest extends TestCase {
                 c.write(request);
                 File fResult = result.get(20, TimeUnit.SECONDS);
                 BigInteger resultSum = getMDSum(fResult);
-                assertTrue(controlSum.equals(resultSum));
+                assertTrue("MD5Sum between control and test files differ.",
+                           controlSum.equals(resultSum));
                 result.reset();
             }
             c.close();
@@ -122,7 +123,7 @@ public class SendFileTest extends TestCase {
     }
 
     @SuppressWarnings("unchecked")
-    public void testSimpleSendFileViaAPI_001() throws Exception {
+    public void testSimpleSendFileViaAPISingleArgWithMimeType() throws Exception {
         File control = generateTempFile(1024);
         HttpServer server = createServer(new SendFileApiHandler(control, null));
         MimeType.add("tmp", "text/temp");
@@ -149,7 +150,8 @@ public class SendFileTest extends TestCase {
                 c.write(request);
                 File fResult = result.get(20, TimeUnit.SECONDS);
                 BigInteger resultSum = getMDSum(fResult);
-                assertTrue(controlSum.equals(resultSum));
+                assertTrue("MD5Sum between control and test files differ.",
+                           controlSum.equals(resultSum));
                 result.reset();
             }
             c.close();
@@ -161,10 +163,10 @@ public class SendFileTest extends TestCase {
 
 
     @SuppressWarnings("unchecked")
-    public void testSimpleSendFileViaAPI_002() throws Exception {
+    public void testSimpleSendFileViaAPIMultiArgExplicitMimeType() throws Exception {
         File control = generateTempFile(1024);
         HttpServer server = createServer(new SendFileApiHandler(511, 512, "application/tmp")); // send half
-        MimeType.add(".tmp", "text/temp");
+        MimeType.add("tmp", "text/temp");
         TestFuture result = new TestFuture();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
@@ -196,6 +198,48 @@ public class SendFileTest extends TestCase {
             server.stop();
         }
     }
+
+    @SuppressWarnings("unchecked")
+    public void testSimpleSendFileViaAPIClearBuffer() throws Exception {
+        File control = generateTempFile(1024);
+        SendFileApiHandler h = new SendFileApiHandler(control, null);
+        h.setSendExtraContext(true);
+        HttpServer server = createServer(h);
+        MimeType.add("tmp", "text/temp");
+        TestFuture result = new TestFuture();
+        BigInteger controlSum = getMDSum(control);
+        
+        TCPNIOTransport client = createClient(result, new ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals("1024", response.getHeader(Header.ContentLength));
+                // explicit mime type set
+                assertEquals("text/temp", response.getHeader(Header.ContentType));
+            }
+        });
+        try {
+            server.start();
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            for (int i = 0; i < 5; i++) {
+                HttpRequestPacket request =
+                        HttpRequestPacket.builder().uri("/" + control.getName())
+                                .method(Method.GET)
+                                .protocol(Protocol.HTTP_1_1)
+                                .header("Host", "localhost:" + PORT).build();
+                c.write(request);
+                File fResult = result.get(20, TimeUnit.SECONDS);
+                BigInteger resultSum = getMDSum(fResult);
+                assertTrue("MD5Sum between control and test files differ.",
+                           controlSum.equals(resultSum));
+                result.reset();
+            }
+            c.close();
+        } finally {
+            client.stop();
+            server.stop();
+        }
+    }
     
     
     // --------------------------------------------------------- Private Methods
@@ -206,6 +250,8 @@ public class SendFileTest extends TestCase {
         private final long pos;
         private final long len;
         private final String contentType;
+        private boolean sendExtraContext;
+        private boolean commitResponse;
 
 
         // -------------------------------------------------------- Constructors
@@ -235,6 +281,12 @@ public class SendFileTest extends TestCase {
             if (contentType != null) {
                 response.setContentType(contentType);
             }
+            if (sendExtraContext) {
+                response.getOutputBuffer().write("Surprise!");
+                if (commitResponse) {
+                    response.flush();
+                }
+            }
             response.getOutputBuffer().write(toSend, pos, len, new CompletionHandler<WriteResult>() {
                 @Override
                 public void cancelled() {
@@ -257,6 +309,17 @@ public class SendFileTest extends TestCase {
                 }
             });
         }
+        
+        // ------------------------------------------------------ Public Methods
+
+        public void setSendExtraContext(boolean sendExtraContext) {
+            this.sendExtraContext = sendExtraContext;
+        }
+
+        public void setCommitResponse(boolean commitResponse) {
+            this.commitResponse = commitResponse;
+        }
+
     }
     
     
