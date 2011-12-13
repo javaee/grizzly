@@ -40,22 +40,46 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.http.util.HttpStatus;
+import java.io.IOException;
+import org.junit.Test;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import junit.framework.TestCase;
 
 import javax.net.SocketFactory;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import static org.junit.Assert.*;
 
-public class HttpContinueTest extends TestCase {
+@RunWith(Parameterized.class)
+public class HttpContinueTest {
 
     private static final int PORT = 9495;
 
 
+    private final int numberOfExtraHttpHandlers;
+    
+    public HttpContinueTest(final int numberOfExtraHttpHandlers) {
+        this.numberOfExtraHttpHandlers = numberOfExtraHttpHandlers;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getSslParameter() {
+        return Arrays.asList(new Object[][]{
+                    {0},
+                    {5}
+                });
+    }
+    
     // ------------------------------------------------------------ Test Methods
 
+    @Test
     public void test100Continue() throws Exception {
 
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
@@ -124,9 +148,10 @@ public class HttpContinueTest extends TestCase {
 
     }
 
+    @Test
     public void testExpectationIgnored() throws Exception {
 
-        HttpServer server = createServer(null);
+        HttpServer server = createServer(new StaticHttpHandler(), "/path");
 
         Socket s = null;
         try {
@@ -167,9 +192,10 @@ public class HttpContinueTest extends TestCase {
     }
 
 
+    @Test
     public void testFailedExpectation() throws Exception {
 
-        HttpServer server = createServer(null);
+        HttpServer server = createServer(new StaticHttpHandler(), "/path");
 
         Socket s = null;
         try {
@@ -206,7 +232,54 @@ public class HttpContinueTest extends TestCase {
 
     }
 
+    @Test
+    public void testCustomFailedExpectation() throws Exception {
 
+        HttpServer server = createServer(new StaticHttpHandler() {
+
+            @Override
+            protected boolean sendAcknowledgment(Request request,
+                    Response response) throws IOException {
+                response.setStatus(HttpStatus.EXPECTATION_FAILED_417);
+                return false;
+            }
+            
+        }, "/path");
+
+        Socket s = null;
+        try {
+            server.start();
+            s = SocketFactory.getDefault().createSocket("localhost", PORT);
+            OutputStream out = s.getOutputStream();
+            InputStream in = s.getInputStream();
+
+            out.write("POST /path HTTP/1.1\r\n".getBytes());
+            out.write(("Host: localhost:" + PORT + "\r\n").getBytes());
+            out.write("Content-Type: application/x-www-form-urlencoded\r\n".getBytes());
+            out.write("Content-Length: 7\r\n".getBytes());
+            out.write("Expect: 100-Continue\r\n".getBytes());
+            out.write("\r\n".getBytes());
+
+            StringBuilder sb = new StringBuilder();
+            for (;;) {
+                int i = in.read();
+                if (i == '\r') {
+                    break;
+                } else {
+                    sb.append((char) i);
+                }
+            }
+
+            assertEquals("HTTP/1.1 417 Expectation Failed", sb.toString().trim());
+
+        } finally {
+            server.stop();
+            if (s != null) {
+                s.close();
+            }
+        }
+
+    }
     // --------------------------------------------------------- Private Methods
 
 
@@ -219,9 +292,13 @@ public class HttpContinueTest extends TestCase {
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
-        if (httpHandler != null) {
-            server.getServerConfiguration().addHttpHandler(httpHandler, mappings);
+        server.getServerConfiguration().addHttpHandler(httpHandler, mappings);
+        
+        for (int i = 0; i < numberOfExtraHttpHandlers; i++) {
+            server.getServerConfiguration().addHttpHandler(
+                    new StaticHttpHandler(), String.valueOf("/" + i));
         }
+        
         return server;
 
     }

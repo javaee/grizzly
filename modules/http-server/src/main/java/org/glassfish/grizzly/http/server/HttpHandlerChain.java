@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.io.IOException;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 import org.glassfish.grizzly.http.server.jmx.Monitorable;
@@ -141,7 +142,18 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         }
     }
 
+    /**
+     * Skip 100-Continue processing in HttpHandlerChain. It's going to be
+     * delegated to one of the children HttpHandler.
+     */
+    @Override
+    protected boolean sendAcknowledgment(Request request, Response response)
+            throws IOException {
+        return true;
+    }
+
     // ---------------------------------------------------------- Public Methods
+    
     @Override
     public void start() {
         for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
