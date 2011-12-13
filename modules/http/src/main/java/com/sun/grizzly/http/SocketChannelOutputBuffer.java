@@ -159,6 +159,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             int sendBufferSize, boolean useSocketBuffer) {
         super();
 
+        this.useSocketBuffer = useSocketBuffer;
+        
         if (sendBufferSize > maxBufferedBytes){
             maxBufferedBytes = sendBufferSize;
         }
