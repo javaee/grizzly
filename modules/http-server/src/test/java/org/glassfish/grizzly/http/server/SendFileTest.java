@@ -109,7 +109,7 @@ public class SendFileTest extends TestCase {
                             .protocol(Protocol.HTTP_1_1)
                             .header("Host", "localhost:" + PORT).build();
                 c.write(request);
-                File fResult = result.get(10, TimeUnit.SECONDS);
+                File fResult = result.get(20, TimeUnit.SECONDS);
                 BigInteger resultSum = getMDSum(fResult);
                 assertTrue(controlSum.equals(resultSum));
                 result.reset();
@@ -147,7 +147,7 @@ public class SendFileTest extends TestCase {
                                 .protocol(Protocol.HTTP_1_1)
                                 .header("Host", "localhost:" + PORT).build();
                 c.write(request);
-                File fResult = result.get(10, TimeUnit.SECONDS);
+                File fResult = result.get(20, TimeUnit.SECONDS);
                 BigInteger resultSum = getMDSum(fResult);
                 assertTrue(controlSum.equals(resultSum));
                 result.reset();
@@ -186,7 +186,7 @@ public class SendFileTest extends TestCase {
                                 .protocol(Protocol.HTTP_1_1)
                                 .header("Host", "localhost:" + PORT).build();
                 c.write(request);
-                File fResult = result.get(10, TimeUnit.SECONDS);
+                File fResult = result.get(20, TimeUnit.SECONDS);
                 assertEquals(512, fResult.length());
                 result.reset();
             }
