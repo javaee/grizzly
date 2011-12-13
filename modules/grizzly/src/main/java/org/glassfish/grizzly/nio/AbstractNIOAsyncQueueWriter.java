@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.nio;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -306,13 +307,20 @@ public abstract class AbstractNIOAsyncQueueWriter
                 return;
             }
 
-            switch (checkQueueSize(queueRecord, pushBackContext)) {
-                case PUSHBACK_CONTINUE:
-                    if (isCurrent) {
-                        connection.simulateIOEvent(IOEvent.WRITE);
-                    }
-                case PUSHBACK_DONE: return;
+            if (!checkQueueSize(queueRecord, pushBackContext)) {
+                assert !isCurrent;
+                
+                writeTaskQueue.getRefusedBytes().addAndGet(bytesToReserve);
+                return;
             }
+            
+//            switch (checkQueueSize(queueRecord, pushBackContext)) {
+//                case PUSHBACK_CONTINUE:
+//                    if (isCurrent) {
+//                        connection.simulateIOEvent(IOEvent.WRITE);
+//                    }
+//                case PUSHBACK_DONE: return;
+//            }
             
             if (isCurrent && isAllowDirectWrite) {
                 
@@ -357,10 +365,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             
             onWriteFailure(connection, queueRecord, e);
         } finally {
-            if (reentrants != null) {
-                // If reentrants != null - it means its counter was increased above
-                reentrants.decAndGet();
-            }
+            reentrants.decAndGet();
         }
     }
     
@@ -372,14 +377,18 @@ public abstract class AbstractNIOAsyncQueueWriter
         final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
         final NIOConnection nioConnection = (NIOConnection) context.getConnection();
         
-        final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
+        final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
-                
+        
+        if (checkRefusedBytes(writeTaskQueue)) {
+            return AsyncResult.COMPLETE;
+        }
+        
         boolean done = false;
         AsyncWriteQueueRecord queueRecord = null;
 
         try {
-            while ((queueRecord = aggregate(connectionQueue)) != null) {
+            while ((queueRecord = aggregate(writeTaskQueue)) != null) {
 
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.processAsync doWrite"
@@ -387,23 +396,31 @@ public abstract class AbstractNIOAsyncQueueWriter
                             nioConnection, queueRecord);
                 }                 
 
-                if (!queueRecord.isChecked()) {
-                    switch (checkQueueSize(queueRecord, null)) {
-                        case PUSHBACK_CONTINUE: continue;
-                        case PUSHBACK_DONE: return AsyncResult.COMPLETE;
-                    }
-                }
+                final boolean isEmpty = queueRecord.isEmptyRecord();
+                final int bytesToReleaseBefore = (int) (!isEmpty ?
+                                   queueRecord.remaining() :
+                                   EMPTY_RECORD_SPACE_VALUE);
                 
-                final int written = queueRecord.remaining() > 0 ?
-                        (int) write0(nioConnection, queueRecord) :
-                        0;
-                                
-                final boolean isFinished = queueRecord.isFinished();
+                final boolean isFinished;
+                final int bytesToRelease;
+                
+                if (!queueRecord.isChecked() &&
+                        !checkQueueSize(queueRecord, null)) {
+                    bytesToRelease = bytesToReleaseBefore;
+                    isFinished = true;
+                    queueRecord = null;
+                } else {
+                    final int written = queueRecord.remaining() > 0 ?
+                            (int) write0(nioConnection, queueRecord) :
+                            0;
 
-                // If we can write directly - do it w/o creating queue record (simple)
-                final int bytesToRelease = !queueRecord.isEmptyRecord() ?
-                        written :
-                        (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
+                    isFinished = queueRecord.isFinished();
+
+                    // If we can write directly - do it w/o creating queue record (simple)
+                    bytesToRelease = !queueRecord.isEmptyRecord() ?
+                            written :
+                            (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
+                }
 
                 if (isFinished) {
                     // Is here a chance that queue becomes empty?
@@ -412,31 +429,21 @@ public abstract class AbstractNIOAsyncQueueWriter
                     // so we don't have either neverending WRITE events processing
                     // or stuck, when other thread tried to add data to the queue.
                     if (!context.isManualIOEventControl() &&
-                            connectionQueue.spaceInBytes() - bytesToRelease <= 0) {
+                            writeTaskQueue.spaceInBytes() - bytesToRelease <= 0) {
                         context.setManualIOEventControl();
                     }
                 }
                 
-                done = (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
+                done = (writeTaskQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
+                
                 if (isFinished) {
-                    if (isLogFine) {
-                        doFineLog("AsyncQueueWriter.processAsync finished "
-                                + "connection={0} record={1}",
-                                nioConnection, queueRecord);
-                    }
-                    // Do compareAndSet, because connection might have been close
-                    // from another thread, and failReadRecord has been invoked already
-                    queueRecord.notifyCompleteAndRecycle();
-                    if (isLogFine) {
-                        doFineLog("AsyncQueueWriter.processAsync nextRecord "
-                                + "connection={0} nextRecord={1}",
-                                nioConnection, queueRecord);
-                    }
+                    finishQueueRecord(nioConnection, queueRecord);
+                    
                     if (done) {
                         return AsyncResult.COMPLETE;
                     }
                 } else { // if there is still some data in current message
-                    connectionQueue.setCurrentElement(queueRecord);
+                    writeTaskQueue.setCurrentElement(queueRecord);
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync onReadyToWrite "
                                 + "connection={0} peekRecord={1}",
@@ -449,7 +456,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
 
-            if (!done && connectionQueue.spaceInBytes() > 0) {
+            if (!done && writeTaskQueue.spaceInBytes() > 0) {
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
@@ -465,6 +472,43 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
         
         return AsyncResult.COMPLETE;
+    }
+
+    private static boolean checkRefusedBytes(
+            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue)
+            throws IOException {
+        final AtomicInteger refusedBytesCounter =
+                writeTaskQueue.getRefusedBytes();
+        
+        final int refusedBytes = refusedBytesCounter.get();
+        if (refusedBytes > 0) {
+            refusedBytesCounter.addAndGet(-refusedBytes);
+            if (writeTaskQueue.releaseSpaceAndNotify(refusedBytes) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void finishQueueRecord(final NIOConnection nioConnection,
+            final AsyncWriteQueueRecord queueRecord) {
+        final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
+        
+        if (isLogFine) {
+            doFineLog("AsyncQueueWriter.processAsync finished "
+                    + "connection={0} record={1}",
+                    nioConnection, queueRecord);
+        }
+
+        if (queueRecord != null) {
+            queueRecord.notifyCompleteAndRecycle();
+        }
+        
+        if (isLogFine) {
+            doFineLog("AsyncQueueWriter.processAsync nextRecord "
+                    + "connection={0} nextRecord={1}",
+                    nioConnection, queueRecord);
+        }
     }
     
     protected static void offerToTaskQueue(
@@ -589,13 +633,13 @@ public abstract class AbstractNIOAsyncQueueWriter
         return connectionQueue.obtainCurrentElementAndReserve();
     }
 
-    private enum CheckResult {CONTINUE, PUSHBACK_DONE, PUSHBACK_CONTINUE}
+//    private enum CheckResult {CONTINUE, PUSHBACK_DONE, PUSHBACK_CONTINUE}
     
     /**
      * {@link AsyncWriteQueueRecord} was added w/o size check (because of reentrants
      * limit), so check it.
      */
-    private CheckResult checkQueueSize(
+    private boolean checkQueueSize(
             final AsyncWriteQueueRecord queueRecord,
             final PushBackContext pushBackContext) {
         final NIOConnection connection = (NIOConnection) queueRecord.getConnection();
@@ -620,7 +664,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                     connection.getAsyncWriteQueue();
             
-            final int remainingSize = writeTaskQueue.releaseSpace(bytesToReserve);
+//            final int remainingSize = writeTaskQueue.releaseSpace(bytesToReserve);
 
             if (pushBackHandler == null) {
                 final Throwable error =
@@ -635,16 +679,19 @@ public abstract class AbstractNIOAsyncQueueWriter
                 pushBackHandler.onPushBack(connection, message, pbContextLocal);
             }
             
-            return remainingSize == 0 ?
-                    CheckResult.PUSHBACK_DONE :
-                    CheckResult.PUSHBACK_CONTINUE;
+            return false;
+            
+//            return remainingSize == 0 ?
+//                    CheckResult.PUSHBACK_DONE :
+//                    CheckResult.PUSHBACK_CONTINUE;
         }
 
         if (pushBackHandler != null) {
             pushBackHandler.onAccept(connection, message);
         }
         
-        return CheckResult.CONTINUE;
+//        return CheckResult.CONTINUE;
+        return true;
     }
     
     private final class PushBackContextImpl extends PushBackContext

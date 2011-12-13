@@ -63,7 +63,10 @@ public final class TaskQueue<E> {
     
     private final AtomicReference<E> currentElement;
     private final AtomicInteger spaceInBytes = new AtomicInteger();
-
+    
+    // refused/(pushed back) bytes counter
+    private final AtomicInteger refusedBytes = new AtomicInteger();
+    
     private final AsyncQueueWriter asyncQueueWriter;
     
     protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
@@ -122,6 +125,13 @@ public final class TaskQueue<E> {
      */
     public int spaceInBytes() {
         return spaceInBytes.get();
+    }
+
+    /**
+     * Get refused bytes counter.
+     */
+    public AtomicInteger getRefusedBytes() {
+        return refusedBytes;
     }
 
     /**

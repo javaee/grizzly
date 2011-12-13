@@ -226,6 +226,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         while (remainder > 0) {
             record = queue.peekFirst();
             
+            assert record != null;
+            
             if (record.isEmptyRecord()) {
                 queue.removeFirst();
                 record.notifyCompleteAndRecycle();
