@@ -172,12 +172,6 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     }
 
     @Override
-    protected void setSecure(final boolean secure) {
-        super.setSecure(secure);
-    }
-
-
-    @Override
     protected void reset() {
         processingState.recycle();
         contentBytesRemaining = -1;

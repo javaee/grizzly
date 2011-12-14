@@ -57,8 +57,4 @@ public final class AjpHttpResponse extends HttpResponsePacket {
         return processingState;
     }
 
-    @Override
-    protected void setSecure(final boolean secure) {
-        super.setSecure(secure);
-    }    
 }
