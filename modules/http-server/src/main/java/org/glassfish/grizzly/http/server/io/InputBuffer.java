@@ -186,6 +186,10 @@ public class InputBuffer {
      */
     private float averageCharsPerByte = 1.0f;
 
+    /**
+     * Flag shows if we're currently waiting for input data asynchronously
+     * (is OP_READ enabled for the Connection)
+     */
     private boolean isWaitingDataAsynchronously;
     
     // ------------------------------------------------------------ Constructors
@@ -702,14 +706,13 @@ public class InputBuffer {
      *
      * @param handler the {@link ReadHandler} to invoke.
      *
-     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
-     *  or if <code>size</code> is less than zero.
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
      */
     public void notifyAvailable(final ReadHandler handler) {
-        notifyAvailable(handler, 0);
+        notifyAvailable(handler, 1);
     }
 
 
@@ -722,7 +725,7 @@ public class InputBuffer {
      *  the {@link ReadHandler} is notified.
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
-     *  or if <code>size</code> is less than zero.
+     *  or if <code>size</code> is less or equal to zero.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked.
      */
@@ -731,8 +734,8 @@ public class InputBuffer {
         if (handler == null) {
             throw new IllegalArgumentException("handler cannot be null.");
         }
-        if (size < 0) {
-            throw new IllegalArgumentException("size cannot be negative");
+        if (size <= 0) {
+            throw new IllegalArgumentException("size should be positive integer");
         }
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to register a new handler before the existing handler has been notified");
@@ -782,34 +785,35 @@ public class InputBuffer {
      */
     public boolean append(final HttpContent httpContent) throws IOException {
         
-        // check if it's broken HTTP content message
-        if (HttpContent.isBroken(httpContent)) {
-            final ReadHandler localHandler = handler;
-            handler = null;
-            if (!closed && localHandler != null) {
-                localHandler.onError(((HttpBrokenContent) httpContent).getException());
-                return true;
+        // Stop waiting for data asynchronously and enable it again
+        // only if we have a handler registered, which requirement
+        // (expected size) is not met.
+        isWaitingDataAsynchronously = false;
+        
+        // check if it's broken HTTP content message or not
+        if (!HttpContent.isBroken(httpContent)) {
+            final Buffer buffer = httpContent.getContent();
+
+            if (closed) {
+                buffer.dispose();
+                return false;
             }
             
-            return false;
-        }
+            final ReadHandler localHandler = handler;
+            
+            // if we have a handler registered - switch the flag to true
+            boolean askForMoreDataInThisThread = localHandler != null;
         
-        checkHttpTrailer(httpContent);
-        
-        final Buffer buffer = httpContent.getContent();
-
-        boolean wasCallbackInvoked = false;
-        
-        if (closed) {
-            buffer.dispose();
-        } else if (buffer != null && buffer.hasRemaining()) {
-            final int addSize = buffer.remaining();
-            if (addSize > 0) {
+            if (buffer.hasRemaining()) {
                 updateInputContentBuffer(buffer);
-                if (handler != null) {
+                if (!httpContent.isLast() && localHandler != null) {
+                    // it's not the last chunk
                     final int available = readyData();
-                    if (available > requestedSize) {
-                        final ReadHandler localHandler = handler;
+                    if (available >= requestedSize) {
+                        // handler is going to be notified,
+                        // switch flags to false
+                        askForMoreDataInThisThread = false;
+                        
                         handler = null;
                         try {
                             localHandler.onDataAvailable();
@@ -817,20 +821,37 @@ public class InputBuffer {
                             localHandler.onError(t);
                             throw Exceptions.makeIOException(t);
                         }
-                        
-                        wasCallbackInvoked = true;
                     }
                 }
             }
-        }
 
-        if (httpContent.isLast()) {
-            finished();
-            wasCallbackInvoked = true;
+            if (httpContent.isLast()) {
+                // handler is going to be notified,
+                // switch flags to false
+                askForMoreDataInThisThread = false;
+                checkHttpTrailer(httpContent);
+                finished();
+            }
+            
+            if (askForMoreDataInThisThread) {
+                // Note: it can't be changed to:
+                // isWaitingDataAsynchronously = askForMoreDataInThisThread;
+                // because if askForMoreDataInThisThread == false - some other
+                // thread might have gained control over
+                // isWaitingDataAsynchronously field
+                isWaitingDataAsynchronously = true;
+            }
+            
+            return askForMoreDataInThisThread;
+        } else { // broken content
+            final ReadHandler localHandler = handler;
+            handler = null;
+            if (!closed && localHandler != null) {
+                localHandler.onError(((HttpBrokenContent) httpContent).getException());
+            }
+            
+            return false;
         }
-        
-        return wasCallbackInvoked;
-        
     }
 
 

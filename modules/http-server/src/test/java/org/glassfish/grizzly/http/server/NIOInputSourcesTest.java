@@ -109,7 +109,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 0);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 1);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 10);
@@ -135,7 +135,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 0);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 1);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -282,7 +282,7 @@ public class NIOInputSourcesTest extends TestCase {
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         try {
             final FutureImpl<String> testResult = SafeFutureImpl.create();
-            final EchoHandler httpHandler = new EchoHttpHandler2(testResult, 0, threadPool);
+            final EchoHandler httpHandler = new EchoHttpHandler2(testResult, 1, threadPool);
             final String expected = buildString(5000);
 
             final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -321,7 +321,7 @@ public class NIOInputSourcesTest extends TestCase {
                     }
                 }
             };
-            doTest(httpHandler, request, expected, testResult, strategy, 3000);
+            doTest(httpHandler, request, expected, testResult, strategy, 30);
         } finally {
             threadPool.shutdownNow();
         }
@@ -334,7 +334,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 30);
@@ -349,7 +349,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final String encoding = "UTF-16";
-        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, encoding);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, encoding);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
@@ -376,7 +376,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, null);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -960,7 +960,7 @@ public class NIOInputSourcesTest extends TestCase {
                     public void onDataAvailable() {
                         try {
                             echo(reader, writer, echoedString);
-                            reader.notifyAvailable(this, 0);
+                            reader.notifyAvailable(this);
                         } catch (Exception ioe) {
                             testResult.failure(ioe);
                         }
@@ -982,7 +982,7 @@ public class NIOInputSourcesTest extends TestCase {
                         res.resume();
                         throw new RuntimeException(t);
                     }
-                }, 0);
+                });
             } catch (Throwable t) {
                 testResult.failure(t);
             }

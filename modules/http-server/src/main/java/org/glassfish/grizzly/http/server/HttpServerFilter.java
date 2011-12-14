@@ -54,7 +54,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -167,58 +166,7 @@ public class HttpServerFilter extends BaseFilter
                     final HttpHandler httpHandlerLocal = httpHandler;
                     if (httpHandlerLocal != null) {
                         httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
-                    }
-                    if (getConfiguration().isSendFileEnabled()) {
-                        final Object f = request.getAttribute(Request.SEND_FILE_ATTR);
-                        if (f != null) {
-                            final File file = (File) f;
-                            Long offset = (Long) request.getAttribute(Request.SEND_FILE_START_OFFSET_ATTR);
-                            Long len = (Long) request.getAttribute(Request.SEND_FILE_WRITE_LEN_ATTR);
-                            if (offset == null) {
-                                offset = 0L;
-                            }
-                            if (len == null) {
-                                len = file.length();
-                            }
-                            handlerResponse.suspend();
-                            final OutputBuffer buffer = 
-                                    handlerResponse.getOutputBuffer();
-                            buffer.sendfile(file, offset, len, new EmptyCompletionHandler<WriteResult>() {
-                                @Override
-                                public void cancelled() {
-                                    if (LOGGER.isLoggable(Level.WARNING)) {
-                                        LOGGER.log(Level.WARNING,
-                                                   "Transfer of file {0} cancelled.",
-                                                   file.getAbsolutePath());
-                                    }
-                                    handlerResponse.resume();
-                                }
-
-                                @Override
-                                public void failed(Throwable throwable) {
-                                    if (LOGGER.isLoggable(Level.WARNING)) {
-                                        LOGGER.log(Level.SEVERE,
-                                                "Transfer of file {0} failed: {1}",
-                                                new Object[] {
-                                                        file.getAbsolutePath(),
-                                                        throwable.getMessage()
-                                                });
-                                    }
-                                    if (LOGGER.isLoggable(Level.FINE)) {
-                                        LOGGER.log(Level.FINE,
-                                                   throwable.getMessage(),
-                                                   throwable);
-                                    }
-                                    handlerResponse.resume();
-                                }
-
-                                @Override
-                                public void completed(WriteResult result) {
-                                    handlerResponse.resume();
-                                }
-                            });
-                        }
-                    }
+                    }                    
                 } catch (Throwable t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     
@@ -242,25 +190,28 @@ public class HttpServerFilter extends BaseFilter
                 }
             } else {
                 // We're working with suspended HTTP request
-                if (handlerRequest.asyncInput()) {
+//                if (handlerRequest.asyncInput()) {
                     try {
-                        if (!handlerRequest.getInputBuffer().isFinished()) {
+//                        if (!handlerRequest.getInputBuffer().isFinished()) {
 
-                            final boolean isLast = httpContent.isLast();
+//                            final boolean isLast = httpContent.isLast();
+
+                        if (!handlerRequest.getInputBuffer().append(httpContent)) {
+                            // we don't want this thread/context to reset
+                            // OP_READ on Connection
                             
-                            handlerRequest.getInputBuffer().append(httpContent);
-                            
-                            if (isLast) {
+//                            if (isLast) {
                                 // we have enough data? - terminate filter chain execution
                                 final NextAction action = ctx.getSuspendAction();
                                 ctx.completeAndRecycle();
                                 return action;
-                            }
+//                            }
+//                        }
                         }
                     } finally {
                         httpContent.recycle();
                     }
-                }
+//                }
             }
         } else { // this code will be run, when we resume the context
             if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
@@ -333,6 +284,8 @@ public class HttpServerFilter extends BaseFilter
             final Response response)
             throws IOException {
 
+        checkSendFileAttributes(request, response);
+        
         httpRequestInProcessAttr.remove(connection);
 
         response.finish();
@@ -364,4 +317,61 @@ public class HttpServerFilter extends BaseFilter
         return ctx.getStopAction();
     }
 
+    private void checkSendFileAttributes(final Request request,
+            final Response response) throws IOException {
+        
+        if (getConfiguration().isSendFileEnabled()) {
+            final Object f = request.getAttribute(Request.SEND_FILE_ATTR);
+            if (f != null) {
+                if (response.isCommitted()) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   "SendFile can't be performed,"
+                                + "because response headers are commited");
+                    }
+                    
+                    return;
+                }
+                
+                final File file = (File) f;
+                Long offset = (Long) request.getAttribute(Request.SEND_FILE_START_OFFSET_ATTR);
+                Long len = (Long) request.getAttribute(Request.SEND_FILE_WRITE_LEN_ATTR);
+                if (offset == null) {
+                    offset = 0L;
+                }
+                if (len == null) {
+                    len = file.length();
+                }
+                
+                response.getOutputBuffer().sendfile(file, offset, len,
+                        new EmptyCompletionHandler<WriteResult>() {
+                    @Override
+                    public void cancelled() {
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.log(Level.WARNING,
+                                       "Transfer of file {0} cancelled.",
+                                       file.getAbsolutePath());
+                        }
+                    }
+
+                    @Override
+                    public void failed(Throwable throwable) {
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.log(Level.SEVERE,
+                                    "Transfer of file {0} failed: {1}",
+                                    new Object[] {
+                                            file.getAbsolutePath(),
+                                            throwable.getMessage()
+                                    });
+                        }
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE,
+                                       throwable.getMessage(),
+                                       throwable);
+                        }
+                    }
+                });
+            }
+        }
+    }    
 }
