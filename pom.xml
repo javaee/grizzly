@@ -308,6 +308,7 @@
         <module>extras</module>
         <module>samples</module>
         <module>contribs</module>
+        <module>documentation</module>
     </modules>
     <reporting>
         <outputDirectory>target/site</outputDirectory>
