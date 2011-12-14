@@ -280,7 +280,7 @@ public class AsyncPUTest {
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             ctx.suspend();
-            final NextAction suspendingStopAction = ctx.getSuspendingStopAction();
+            final NextAction forkAction = ctx.getForkAction();
             
             tp.schedule(new Runnable() {
                 @Override
@@ -300,7 +300,7 @@ public class AsyncPUTest {
             } catch (InterruptedException ignored) {
             }
             
-            return suspendingStopAction;
+            return forkAction;
         }
     }
 

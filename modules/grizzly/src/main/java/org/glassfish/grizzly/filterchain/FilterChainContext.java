@@ -417,15 +417,28 @@ public final class FilterChainContext implements AttributeStorage {
 
     /**
      * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
-     * to suspend the current {@link FilterChainContext} and invoke similar logic
-     * as instructed by {@link StopAction} with a clean {@link FilterChainContext}.
+     * to suspend the current {@link FilterChainContext}, but does not disable
+     * correspondent {@link IOEvent}, so if the same {@link IOEvent} occurs on
+     * the {@link Connection} - it will be processed using new
+     * {@link FilterChainContext}.
      */
-    public NextAction getSuspendingStopAction() {
+    public NextAction getForkAction() {
         final FilterChainContext contextCopy = copy();
         // Copy doesn't copy address
         contextCopy.setAddress(address);
         
-        return new SuspendingStopAction(contextCopy);
+        return new ForkAction(contextCopy);
+    }
+
+    /**
+     * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
+     * to suspend the current {@link FilterChainContext} and invoke similar logic
+     * as instructed by {@link StopAction} with a clean {@link FilterChainContext}.
+     * 
+     * @deprecated use {@link #getForkAction()}
+     */
+    public NextAction getSuspendingStopAction() {
+        return getForkAction();
     }
 
 

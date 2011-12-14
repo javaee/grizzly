@@ -245,11 +245,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                              stopAction.getRemainder(),
                              stopAction.getAppender());
                 break;
-            case SuspendingStopAction.TYPE:
-                final SuspendingStopAction suspendingStopAction =
-                        (SuspendingStopAction) lastNextAction;
+            case ForkAction.TYPE:
+                final ForkAction forkAction =
+                        (ForkAction) lastNextAction;
                 return FilterExecution.createReExecute(
-                        suspendingStopAction.getContext());
+                        forkAction.getContext());
             case SuspendAction.TYPE: // on suspend - return immediatelly
                 return FilterExecution.createTerminate();
         }

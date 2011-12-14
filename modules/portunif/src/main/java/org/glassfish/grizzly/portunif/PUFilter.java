@@ -331,7 +331,7 @@ public class PUFilter extends BaseFilter {
             assert suspendedContext != null;
             
             terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getSuspendingStopAction());
+                    suspendedContext.getForkAction());
             
             suspendedContext.resume();
         }

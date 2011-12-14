@@ -43,7 +43,7 @@ package org.glassfish.grizzly.filterchain;
 /**
  * TODO: Documentation
  */
-final class SuspendingStopAction extends AbstractNextAction {
+final class ForkAction extends AbstractNextAction {
 
     static final int TYPE = 5;
 
@@ -52,7 +52,7 @@ final class SuspendingStopAction extends AbstractNextAction {
     // ------------------------------------------------------------ Constructors
 
     
-    SuspendingStopAction(final FilterChainContext context) {
+    ForkAction(final FilterChainContext context) {
 
         super(TYPE);
         this.context = context;

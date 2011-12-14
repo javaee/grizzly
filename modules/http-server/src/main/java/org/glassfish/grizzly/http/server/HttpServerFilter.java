@@ -217,7 +217,7 @@ public class HttpServerFilter extends BaseFilter
             if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
                 // Do we want to reregister OP_READ to get more data async?
                 ctx.suspend();
-                return ctx.getSuspendingStopAction();
+                return ctx.getForkAction();
             } else {
                 // We're finishing the request processing
                 final Response response = (Response) message;
