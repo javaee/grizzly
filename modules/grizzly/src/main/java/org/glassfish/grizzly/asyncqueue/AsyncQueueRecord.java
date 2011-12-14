@@ -127,6 +127,14 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
             }
         }
     }
+
+
+    @SuppressWarnings("unchecked")
+    public final void notifyIncomplete() {
+        if (completionHandler != null) {
+            completionHandler.updated(currentResult);
+        }
+    }
     
     protected final void checkRecycled() {
         if (Grizzly.isTrackingThreadCache() && isRecycled) {

@@ -780,7 +780,7 @@ public abstract class HttpHeader extends HttpPacket
      *
      * @param secure <code>true</code> if secure, otherwise <code>false</code>.
      */
-    protected void setSecure(boolean secure) {
+    public void setSecure(boolean secure) {
         this.secure = secure;
     }
     

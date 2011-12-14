@@ -435,6 +435,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                         return AsyncResult.COMPLETE;
                     }
                 } else { // if there is still some data in current message
+                    queueRecord.notifyIncomplete();
                     writeTaskQueue.setCurrentElement(queueRecord);
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync onReadyToWrite "

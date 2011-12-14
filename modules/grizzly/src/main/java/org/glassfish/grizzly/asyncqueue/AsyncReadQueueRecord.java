@@ -108,13 +108,6 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
-    }   
-
-    @SuppressWarnings("unchecked")
-    public final void notifyIncomplete() {
-        if (completionHandler != null) {
-            completionHandler.updated(currentResult);
-        }
     }
     
     public boolean isFinished() {
