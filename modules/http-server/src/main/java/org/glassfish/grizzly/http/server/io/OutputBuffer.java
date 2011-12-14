@@ -439,7 +439,7 @@ public class OutputBuffer {
      * @throws IOException if an error occurs during the transfer
      * @throws IllegalArgumentException if <code>file</code> is null
      * 
-     * @see #write 
+     * @see #sendfile(java.io.File, long, long, org.glassfish.grizzly.CompletionHandler)
      * 
      * @since 2.2   
      */
