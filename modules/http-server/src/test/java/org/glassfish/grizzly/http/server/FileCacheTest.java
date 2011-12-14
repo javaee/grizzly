@@ -48,7 +48,6 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
-import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -338,33 +337,7 @@ public class FileCacheTest {
             listener.setSSLEngineConfig(createSSLConfig(true));
         }
         listener.getFileCache().setEnabled(true);
-        listener.getContentEncodings().add(new GZipContentEncoding(
-                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
-                new EncodingFilter() {
-
-                    @Override
-                    public boolean applyEncoding(HttpHeader httpPacket) {
-                        if (!httpPacket.isRequest()) {
-                            final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
-                            final HttpRequestPacket request;
-                            final DataChunk acceptEncoding;
-                            if (/*response.isChunked() && */(request = response.getRequest()) != null
-                                    && (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null
-                                    && acceptEncoding.indexOf("gzip", 0) >= 0) {
-                                return true;
-                            }
-                        }
-
-                        return false;
-                    }
-
-                    @Override
-                    public boolean applyDecoding(HttpHeader httpPacket) {
-                        return false;
-                    }
-                }));
-
+        listener.setCompression("FORCE");
         httpServer.addListener(listener);
     }
 

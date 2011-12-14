@@ -171,4 +171,6 @@ public final class Constants {
      */
     public static final Charset DEFAULT_HTTP_CHARSET =
             Charsets.lookupCharset(DEFAULT_HTTP_CHARACTER_ENCODING);
+
+    public static final byte[] IDENTITY = "identity".getBytes(DEFAULT_HTTP_CHARSET);
 }

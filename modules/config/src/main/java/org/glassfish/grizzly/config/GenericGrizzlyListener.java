@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -76,21 +75,18 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.ContentEncoding;
-import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.http.GZipContentEncoding;
-import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.http.server.CompressionEncodingFilter;
+import org.glassfish.grizzly.http.server.CompressionLevel;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -690,23 +686,29 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected Set<ContentEncoding> configureCompressionEncodings(Habitat habitat, Http http) {
         final String mode = http.getCompression();
         int compressionMinSize = Integer.parseInt(http.getCompressionMinSizeBytes());
-        COMPRESSION_LEVEL compressionLevel;
+        CompressionLevel compressionLevel;
         try {
-            compressionLevel = getCompressionLevel(mode);
+            compressionLevel = CompressionLevel.getCompressionLevel(mode);
         } catch (IllegalArgumentException e) {
             try {
                 // Try to parse compression as an int, which would give the
                 // minimum compression size
-                compressionLevel = COMPRESSION_LEVEL.ON;
+                compressionLevel = CompressionLevel.ON;
                 compressionMinSize = Integer.parseInt(mode);
             } catch (Exception ignore) {
-                compressionLevel = COMPRESSION_LEVEL.OFF;
+                compressionLevel = CompressionLevel.OFF;
             }
         }
         final String compressableMimeTypesString = http.getCompressableMimeType();
         final String noCompressionUserAgentsString = http.getNoCompressionUserAgents();
-        final String[] compressableMimeTypes = split(compressableMimeTypesString, ",");
-        final String[] noCompressionUserAgents = split(noCompressionUserAgentsString, ",");
+        final String[] compressableMimeTypes = 
+                ((compressableMimeTypesString != null) 
+                        ? compressableMimeTypesString.split(",") 
+                        : new String[0]);
+        final String[] noCompressionUserAgents = 
+                ((noCompressionUserAgentsString != null) 
+                        ? noCompressionUserAgentsString.split(",") 
+                        : new String[0]);
         final ContentEncoding gzipContentEncoding = new GZipContentEncoding(
             GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
             GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
@@ -743,153 +745,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         } catch (Exception e) {
             throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + e);
         }
-    }
-
-    private String[] split(String s, String delim) {
-        if (s == null) {
-            return new String[0];
-        }
-        final List<String> compressableMimeTypeList = new ArrayList<String>(4);
-        final StringTokenizer st = new StringTokenizer(s, delim);
-        while (st.hasMoreTokens()) {
-            compressableMimeTypeList.add(st.nextToken().trim());
-        }
-        final String[] splitStrings = new String[compressableMimeTypeList.size()];
-        compressableMimeTypeList.toArray(splitStrings);
-        return splitStrings;
-    }
-
-    public enum COMPRESSION_LEVEL {OFF, ON, FORCE}
-
-    /**
-     * Set compression level.
-     */
-    protected final COMPRESSION_LEVEL getCompressionLevel(String compression) {
-        if ("on".equalsIgnoreCase(compression)) {
-            return COMPRESSION_LEVEL.ON;
-        } else if ("force".equalsIgnoreCase(compression)) {
-            return COMPRESSION_LEVEL.FORCE;
-        } else if ("off".equalsIgnoreCase(compression)) {
-            return COMPRESSION_LEVEL.OFF;
-        }
-        throw new IllegalArgumentException();
-    }
-
-    public static class CompressionEncodingFilter implements EncodingFilter {
-        private final COMPRESSION_LEVEL compressionLevel;
-        private final int compressionMinSize;
-        private final String[] compressableMimeTypes;
-        private final String[] noCompressionUserAgents;
-        private final String[] aliases;
-
-        public CompressionEncodingFilter(COMPRESSION_LEVEL compressionLevel,
-            int compressionMinSize,
-            String[] compressableMimeTypes,
-            String[] noCompressionUserAgents,
-            String[] aliases) {
-            this.compressionLevel = compressionLevel;
-            this.compressionMinSize = compressionMinSize;
-            this.compressableMimeTypes = compressableMimeTypes;
-            this.noCompressionUserAgents = noCompressionUserAgents;
-            this.aliases = aliases;
-        }
-
-        @Override
-        public boolean applyEncoding(HttpHeader httpPacket) {
-            switch (compressionLevel) {
-                case OFF:
-                    return false;
-                default:
-                    // Compress only since HTTP 1.1
-                    if (org.glassfish.grizzly.http.Protocol.HTTP_1_1 != httpPacket.getProtocol()) {
-                        return false;
-                    }
-                    
-                    // If at least one encoding has been already selected
-                    // skip this one
-                    if (!httpPacket.getContentEncodings().isEmpty()) {
-                        return false;
-                    }
-
-                    final HttpResponsePacket responsePacket = (HttpResponsePacket) httpPacket;
-                    
-                    final MimeHeaders responseHeaders = responsePacket.getHeaders();
-                    // Check if content is already encoded (no matter which encoding)
-                    final DataChunk contentEncodingMB =
-                        responseHeaders.getValue("Content-Encoding");
-                    if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
-                        return false;
-                    }
-                    
-                    final MimeHeaders requestHeaders = responsePacket.getRequest().getHeaders();
-                    // Check if browser support gzip encoding
-                    final DataChunk acceptEncodingDC =
-                        requestHeaders.getValue("accept-encoding");
-                    if (acceptEncodingDC == null || indexOf(aliases, acceptEncodingDC) == -1) {
-                        return false;
-                    }
-                    
-                    // If force mode, always compress (test purposes only)
-                    if (compressionLevel == COMPRESSION_LEVEL.FORCE) {
-                        responsePacket.setChunked(true);
-                        responsePacket.setContentLength(-1);
-                        return true;
-                    }
-                    // Check for incompatible Browser
-                    if (noCompressionUserAgents.length > 0) {
-                        final DataChunk userAgentValueDC =
-                            requestHeaders.getValue("user-agent");
-                        if (userAgentValueDC != null &&
-                             indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
-                            return false;
-                        }
-                    }
-                    // Check if sufficient len to trig the compression
-                    final long contentLength = responsePacket.getContentLength();
-                    if (contentLength == -1
-                        || contentLength > compressionMinSize) {
-                        // Check for compatible MIME-TYPE
-                        if (compressableMimeTypes.length > 0) {
-                            final boolean found =
-                                    indexOfStartsWith(compressableMimeTypes,
-                                                      responsePacket.getContentType()) != -1;
-                            if (found) {
-                                responsePacket.setChunked(true);
-                                responsePacket.setContentLength(-1);
-                            }
-                            return found;
-                        }
-                    }
-                    responsePacket.setChunked(true);
-                    responsePacket.setContentLength(-1);
-                    return true;
-            }
-        }
-
-        @Override
-        public boolean applyDecoding(HttpHeader httpPacket) {
-            return false;
-        }
-    }
-
-    private static int indexOf(String[] aliases, DataChunk dc) {
-        for (int i = 0; i < aliases.length; i++) {
-            final String alias = aliases[i];
-            if (dc.indexOf(alias, 0) != -1) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int indexOfStartsWith(String[] aliases, String s) {
-        for (int i = 0; i < aliases.length; i++) {
-            final String alias = aliases[i];
-            if (s.startsWith(alias)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private static Ssl getSsl(Protocol protocol) {

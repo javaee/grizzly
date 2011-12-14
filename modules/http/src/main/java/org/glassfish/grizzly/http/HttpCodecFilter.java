@@ -1247,7 +1247,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         final TransferEncoding[] encodings = transferEncodings.getArray();
         if (encodings == null) return;
-        
+
         for (TransferEncoding encoding : encodings) {
             if (encoding.wantEncode(httpHeader)) {
                 encoding.prepareSerialize(ctx, httpHeader, httpContent);
@@ -1383,9 +1383,19 @@ public abstract class HttpCodecFilter extends BaseFilter
         final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
         if (encodingsLibrary == null) return;
 
+        boolean isSomeEncodingApplied = false;
         final DataChunk bc =
                 httpHeader.getHeaders().getValue(Header.ContentEncoding);
-        final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
+        if (bc != null && bc.getLength() > 0) {
+            // remove the header as it's illegal to include the content-encoding
+            // header with a value of identity.  Since the value is identity,
+            // return without applying any transformation.
+            if (bc.equals("identity")) {
+                httpHeader.getHeaders().removeHeader(Header.ContentEncoding);
+                return;
+            }
+            isSomeEncodingApplied = true;
+        }
 
         final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
         

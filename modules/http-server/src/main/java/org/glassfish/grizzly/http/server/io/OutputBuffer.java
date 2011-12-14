@@ -74,6 +74,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -497,6 +498,9 @@ public class OutputBuffer {
         }
         
         response.setContentLengthLong(f.remaining());
+        // set Content-Encoding to identity to prevent compression
+        response.setHeader(Header.ContentEncoding, "identity");
+        // set Cache-Control to no-transform to prevent proxies from
         if (response.getContentType() == null) {
             response.setContentType(MimeType.getByFilename(file.getName()));
         }

@@ -138,11 +138,6 @@ public class NetworkListener {
      */
     private final FileCache fileCache = new FileCache();
     /**
-     * The set of the supported {@link ContentEncoding}s.
-     */
-    private final Set<ContentEncoding> contentEncodings =
-        new HashSet<ContentEncoding>();
-    /**
      * Maximum size, in bytes, of all data waiting to be written.
      */
     private volatile int maxPendingBytes = -1;
@@ -481,13 +476,6 @@ public class NetworkListener {
      */
     public FileCache getFileCache() {
         return fileCache;
-    }
-
-    /**
-     * @return the set of the supported {@link ContentEncoding}s.
-     */
-    public Set<ContentEncoding> getContentEncodings() {
-        return contentEncodings;
     }
 
     /**
