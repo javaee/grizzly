@@ -1383,18 +1383,16 @@ public abstract class HttpCodecFilter extends BaseFilter
         final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
         if (encodingsLibrary == null) return;
 
-        boolean isSomeEncodingApplied = false;
         final DataChunk bc =
                 httpHeader.getHeaders().getValue(Header.ContentEncoding);
-        if (bc != null && bc.getLength() > 0) {
+        
+        final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
+        if (isSomeEncodingApplied && bc.equals("identity")) {
             // remove the header as it's illegal to include the content-encoding
             // header with a value of identity.  Since the value is identity,
             // return without applying any transformation.
-            if (bc.equals("identity")) {
-                httpHeader.getHeaders().removeHeader(Header.ContentEncoding);
-                return;
-            }
-            isSomeEncodingApplied = true;
+            httpHeader.getHeaders().removeHeader(Header.ContentEncoding);
+            return;
         }
 
         final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
