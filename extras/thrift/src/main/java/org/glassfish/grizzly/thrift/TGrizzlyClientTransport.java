@@ -64,14 +64,23 @@ import org.glassfish.grizzly.filterchain.FilterChain;
  */
 public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
 
+    private static final int DEFAULT_READ_TIMEOUT_Millis = -1; // never timed out
+
     public static TGrizzlyClientTransport create(final Connection connection) {
+        return create(connection, DEFAULT_READ_TIMEOUT_Millis);
+    }
+
+    public static TGrizzlyClientTransport create(final Connection connection, final int readTimeoutMillis) {
+        if (connection == null) {
+            throw new IllegalStateException("Connection should not be null");
+        }
         
         final Processor processor = connection.getProcessor();
         
         if (!(processor instanceof FilterChain)) {
             throw new IllegalStateException("Connection's processor has to be a FilterChain");
         }
-        
+
         final FilterChain connectionFilterChain = (FilterChain) connection.getProcessor();
         final int idx = connectionFilterChain.indexOfType(ThriftClientFilter.class);
         
@@ -81,25 +90,29 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
         
         final ThriftClientFilter thriftClientFilter =
                 (ThriftClientFilter) connectionFilterChain.get(idx);
-        
-        
-        return new TGrizzlyClientTransport(connection,
-                thriftClientFilter.getInputBuffersQueue());
+
+        if (thriftClientFilter == null) {
+            throw new IllegalStateException("thriftClientFilter should not be null");
+        }
+
+        final BlockingQueue<Buffer> inputBuffersQueue = thriftClientFilter.getInputBuffersQueue();
+
+        if (inputBuffersQueue == null) {
+            throw new IllegalStateException("inputBuffersQueue should not be null");
+        }
+
+        return new TGrizzlyClientTransport(connection, inputBuffersQueue, readTimeoutMillis);
     }
 
-    public static TGrizzlyClientTransport create(final Connection connection,
-            final BlockingQueue<Buffer> inputBuffersQueue) {
-        
-        return new TGrizzlyClientTransport(connection, inputBuffersQueue);
-    }
-    
     private Buffer input = null;
     private final Connection connection;
     private final BlockingQueue<Buffer> inputBuffersQueue;
     private final BufferOutputStream outputStream;
+    private final int readTimeoutMillis;
 
     private TGrizzlyClientTransport(final Connection connection,
-            final BlockingQueue<Buffer> inputBuffersQueue) {
+            final BlockingQueue<Buffer> inputBuffersQueue,
+            final int readTimeoutMillis) {
         this.connection = connection;
         
         this.inputBuffersQueue = inputBuffersQueue;
@@ -114,6 +127,7 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
                 return b;
             }
         };
+        this.readTimeoutMillis = readTimeoutMillis;
     }
 
     @Override
@@ -154,22 +168,30 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     protected Buffer getInputBuffer() throws TTransportException {
         Buffer localInput = this.input;
         if (localInput == null) {
-            try {
-                localInput = inputBuffersQueue.take();
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                throw new TTransportException(ie);
-            }
+            localInput = getLocalInput(readTimeoutMillis);
         } else if (localInput.remaining() <= 0) {
             localInput.dispose();
-            try {
-                localInput = inputBuffersQueue.take();
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                throw new TTransportException(ie);
-            }
+            localInput = getLocalInput(readTimeoutMillis);
+        }
+        if (localInput == null) {
+            throw new TTransportException( "timed out while reading the input buffer");
         }
         this.input = localInput;
+        return localInput;
+    }
+
+    private Buffer getLocalInput(final int readTimeoutMillis) throws TTransportException {
+        final Buffer localInput;
+        try {
+            if (readTimeoutMillis < 0) {
+                localInput = inputBuffersQueue.take();
+            } else {
+                localInput = inputBuffersQueue.poll(readTimeoutMillis, TimeUnit.MILLISECONDS);
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new TTransportException(ie);
+        }
         return localInput;
     }
 
