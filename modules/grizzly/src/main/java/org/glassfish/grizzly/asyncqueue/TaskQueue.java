@@ -46,7 +46,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -67,7 +66,7 @@ public final class TaskQueue<E> {
     // refused/(pushed back) bytes counter
     private final AtomicInteger refusedBytes = new AtomicInteger();
     
-    private final AsyncQueueWriter asyncQueueWriter;
+    private final MutableMaxQueueSize maxQueueSizeHolder;
     
     protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
             new ConcurrentLinkedQueue<WriteHandlerQueueRecord>();
@@ -75,17 +74,18 @@ public final class TaskQueue<E> {
     // ------------------------------------------------------------ Constructors
 
 
-    protected TaskQueue(final AsyncQueueWriter asyncQueueWriter) {
-        this.asyncQueueWriter = asyncQueueWriter;
+    protected TaskQueue(final MutableMaxQueueSize maxQueueSizeHolder) {
+        this.maxQueueSizeHolder = maxQueueSizeHolder;
         currentElement = new AtomicReference<E>();
-        queue = new LinkedTransferQueue<E>();
+        queue = new ConcurrentLinkedQueue<E>();
     }
 
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createTaskQueue(AsyncQueueWriter asyncQueueWriter) {
-        return new TaskQueue<E>(asyncQueueWriter);
+    public static <E> TaskQueue<E> createTaskQueue(
+            final MutableMaxQueueSize maxQueueSizeHolder) {
+        return new TaskQueue<E>(maxQueueSizeHolder);
     }
 
     /**
@@ -175,13 +175,12 @@ public final class TaskQueue<E> {
             return;
         }
         
-        final int maxSize = asyncQueueWriter.getMaxPendingBytesPerConnection();
-        final WriteHandlerQueueRecord record =
-                new WriteHandlerQueueRecord(writeHandler, size);
+        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
         
-        int reservedBytes = spaceInBytes();
+        int reservedBytes;
         
-        if (reservedBytes == 0 || (maxSize - reservedBytes >= size)) {
+        if (maxSize <= 0 || (reservedBytes = spaceInBytes()) == 0 ||
+                (maxSize - reservedBytes >= size)) {
             try {
                 writeHandler.onWritePossible();
             } catch (Exception e) {
@@ -191,6 +190,8 @@ public final class TaskQueue<E> {
             return;
         }
         
+        final WriteHandlerQueueRecord record =
+                new WriteHandlerQueueRecord(writeHandler, size);
         writeHandlersQueue.offer(record);
         
         reservedBytes = spaceInBytes();
@@ -220,8 +221,11 @@ public final class TaskQueue<E> {
 
 
     protected void doNotify() throws IOException {
-        if (asyncQueueWriter == null) return;
-        final int maxSize = asyncQueueWriter.getMaxPendingBytesPerConnection();
+        if (maxQueueSizeHolder == null) {
+            return;
+        }
+        
+        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
         
         WriteHandlerQueueRecord record;
         while((record = writeHandlersQueue.poll()) != null) {
@@ -332,7 +336,9 @@ public final class TaskQueue<E> {
                     0);
             return hash;
         }
-        
-        
+    }
+    
+    public interface MutableMaxQueueSize {
+        public int getMaxQueueSize();
     }
 }

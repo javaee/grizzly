@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
@@ -244,6 +243,28 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      */
     void setWriteBufferSize(int writeBufferSize);
 
+    /**
+     * Get the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @return the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @since 2.2
+     */
+    public int getMaxAsyncWriteQueueSize();
+
+    /**
+     * Set the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @param maxAsyncWriteQueueSize the max size (in bytes) of asynchronous
+     * write queue associated with connection.
+     * 
+     * @since 2.2
+     */
+    public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize);
+    
     long getReadTimeout(TimeUnit timeUnit);
 
     void setReadTimeout(long timeout, TimeUnit timeUnit);

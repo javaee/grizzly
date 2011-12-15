@@ -732,7 +732,7 @@ public class OutputBuffer {
     }
 
     private int getMaxAsyncWriteQueueSize() {
-        return ((NIOConnection) ctx.getConnection()).getMaxAsyncWriteQueueSize();
+        return ctx.getConnection().getMaxAsyncWriteQueueSize();
     }
 
     /**

@@ -40,34 +40,18 @@
 
 package org.glassfish.grizzly.nio;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.CancellationException;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.AbstractWriter;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.asyncqueue.PushBackContext;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 
 
@@ -129,7 +113,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public boolean canWrite(final Connection connection, final int size) {
-        final int connectionMaxPendingBytes = getMaxQueueSize(connection);
+        final int connectionMaxPendingBytes = connection.getMaxAsyncWriteQueueSize();
         
         if (connectionMaxPendingBytes < 0) {
             return true;
@@ -552,10 +536,6 @@ public abstract class AbstractNIOAsyncQueueWriter
         return connectionQueue != null && !connectionQueue.isEmpty();
     }
        
-    private static int getMaxQueueSize(final Connection connection) {
-        return ((NIOConnection) connection).getMaxAsyncWriteQueueSize();
-    }
-
     private static void doFineLog(final String msg, final Object... params) {
         LOGGER.log(Level.FINEST, msg, params);
     }
@@ -646,16 +626,16 @@ public abstract class AbstractNIOAsyncQueueWriter
         queueRecord.setMomentumQueueSize(-1);
         final boolean isCurrent = (pendingBytes == bytesToReserve);
 
-        final int maxPendingBytesLocal = getMaxQueueSize(connection);
+        final int maxPendingBytesLocal = connection.getMaxAsyncWriteQueueSize();
 
         // Check if the buffer size matches maxPendingBytes
         if (!isCurrent
                 && maxPendingBytesLocal > 0 && pendingBytes > maxPendingBytesLocal) {
             
             // Get connection async write queue
-            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
-                    connection.getAsyncWriteQueue();
-            
+//            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
+//                    connection.getAsyncWriteQueue();
+//            
 //            final int remainingSize = writeTaskQueue.releaseSpace(bytesToReserve);
 
             if (pushBackHandler == null) {

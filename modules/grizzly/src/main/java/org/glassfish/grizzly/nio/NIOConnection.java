@@ -52,22 +52,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorSelector;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.StandaloneProcessorSelector;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
@@ -134,7 +119,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
         asyncReadQueue = TaskQueue.createTaskQueue(null);
-        asyncWriteQueue = TaskQueue.createTaskQueue(((AsyncQueueEnabledTransport) transport).getAsyncQueueIO().getWriter());
+        asyncWriteQueue = TaskQueue.createTaskQueue(
+                new TaskQueue.MutableMaxQueueSize() {
+
+                    @Override
+                    public int getMaxQueueSize() {
+                        return maxAsyncWriteQueueSize;
+                    }
+                });
+        
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
@@ -193,27 +186,17 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     /**
-     * Get the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @return the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @since 2.2
+     * {@inheritDoc}
      */
+    @Override
     public int getMaxAsyncWriteQueueSize() {
         return maxAsyncWriteQueueSize;
     }
 
     /**
-     * Set the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @param maxAsyncWriteQueueSize the max size (in bytes) of asynchronous
-     * write queue associated with connection.
-     * 
-     * @since 2.2
+     * {@inheritDoc}
      */
+    @Override
     public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
         this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
     }
