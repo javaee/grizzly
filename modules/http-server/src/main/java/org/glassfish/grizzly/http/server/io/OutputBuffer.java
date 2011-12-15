@@ -142,9 +142,11 @@ public class OutputBuffer {
      * Flag indicating whether or not async operations are being used on the
      * input streams.
      */
-    private boolean asyncEnabled;
+    private boolean asyncEnabled = true;
     
     private boolean sendfileEnabled;
+    
+    private Response serverResponse;
     
     private final CompletionHandler<WriteResult> onAsyncErrorCompletionHandler =
             new OnErrorCompletionHandler();
@@ -158,6 +160,7 @@ public class OutputBuffer {
     public void initialize(final Response response,
                            final FilterChainContext ctx) {
 
+        this.serverResponse = response;
         this.response = response.getResponse();
         sendfileEnabled = response.isSendFileEnabled();
         this.ctx = ctx;
@@ -459,6 +462,12 @@ public class OutputBuffer {
      * content. This should also be the last call to write any content to the remote
      * endpoint.
      * </p>
+     * 
+     * <p>
+     * It's required that the response be suspended when using this functionality.
+     * It will be assumed that if the response wasn't suspended when this method
+     * is called, that it's desired that this method manages the suspend/resume cycle.
+     * </p>
      *
      * @param file the {@link File} to transfer.
      * @param offset the starting offset within the File
@@ -473,6 +482,9 @@ public class OutputBuffer {
      * @throws IllegalStateException    if a file transfer request has already
      *                                  been made or if send file support isn't
      *                                  available.
+     * @throws IllegalStateException    if the response was in a suspended state
+     *                                  when this method was invoked, but no
+     *                                  {@link CompletionHandler} was provided.
      * @since 2.2
      */
     public void sendfile(final File file, 
@@ -489,8 +501,17 @@ public class OutputBuffer {
         if (committed) {
             throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
         }
-        final FileTransfer f = new FileTransfer(file, offset, length); // error validation done here
+
+
+
+        // additional precondition validation performed by FileTransfer
+        // constructor
+        final FileTransfer f = new FileTransfer(file, offset, length);
+
+        // lock further sendfile requests out
         fileTransferRequested = true;
+
+        // clear the internal buffers; sendfile content is exclusive
         if (currentBuffer != null) {
             currentBuffer.clear();
         } if (compositeBuffer != null) {
@@ -498,33 +519,32 @@ public class OutputBuffer {
         }
         
         response.setContentLengthLong(f.remaining());
-        // set Content-Encoding to identity to prevent compression
-        response.setHeader(Header.ContentEncoding, "identity");
-        // set Cache-Control to no-transform to prevent proxies from
         if (response.getContentType() == null) {
             response.setContentType(MimeType.getByFilename(file.getName()));
         }
+        // set Content-Encoding to identity to prevent compression
+        response.setHeader(Header.ContentEncoding, "identity");
+
         flush(); // commit the headers, then send the file
+
+        // check the suspend status at the time this method was invoked
+        // and take action based on this value
+        final boolean suspendedAtStart = serverResponse.isSuspended();
         final CompletionHandler<WriteResult> ch;
-        if (handler != null) {
+        if (suspendedAtStart && handler != null) {
+            // provided CompletionHandler assumed to manage suspend/resume
             ch = handler;
+        } else if (!suspendedAtStart && handler != null) {
+            // provided CompletionHandler assumed to not managed suspend/resume
+            ch = suspendAndCreateHandler(handler);
         } else {
-            ch = new EmptyCompletionHandler<WriteResult>() {
-                @Override
-                public void failed(Throwable throwable) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE,
-                                String.format("Failed to transfer file %s.  Cause: %s.",
-                                              file.getAbsolutePath(),
-                                              throwable.getMessage()),
-                                throwable);
-                    }
-                }
-            };
+            // create internal CompletionHandler that will take the
+            // appropriate action depending on the current suspend status
+            ch = createInternalCompletionHandler(file, suspendedAtStart);
         }
         ctx.write(f, ch);
     }
-    
+
     public void write(final byte b[], final int off, final int len) throws IOException {
 
         handleAsyncErrors();
@@ -944,6 +964,79 @@ public class OutputBuffer {
         for (int i = 0; i < lifeCycleListeners.size(); i++) {
             lifeCycleListeners.get(i).onCommit();
         }
+    }
+
+    private CompletionHandler<WriteResult> createInternalCompletionHandler(
+            final File file, final boolean suspendedAtStart) {
+
+        CompletionHandler<WriteResult> ch;
+        if (!suspendedAtStart) {
+            serverResponse.suspend();
+        }
+        ch = new CompletionHandler<WriteResult>() {
+            @Override
+            public void cancelled() {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                            "Transfer of file {0} was cancelled.",
+                            file.getAbsolutePath());
+                }
+                serverResponse.resume();
+            }
+
+            @Override
+            public void failed(Throwable throwable) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE,
+                            String.format("Failed to transfer file %s.  Cause: %s.",
+                                    file.getAbsolutePath(),
+                                    throwable.getMessage()),
+                            throwable);
+                }
+                serverResponse.resume();
+            }
+
+            @Override
+            public void completed(WriteResult result) {
+                serverResponse.resume();
+            }
+
+            @Override
+            public void updated(WriteResult result) {
+                // no-op
+            }
+        };
+        return ch;
+
+    }
+
+    private CompletionHandler<WriteResult> suspendAndCreateHandler(final CompletionHandler<WriteResult> handler) {
+        serverResponse.suspend();
+        return new CompletionHandler<WriteResult>() {
+
+            @Override
+            public void cancelled() {
+                handler.cancelled();
+                serverResponse.resume();
+            }
+
+            @Override
+            public void failed(Throwable throwable) {
+                handler.failed(throwable);
+                serverResponse.resume();
+            }
+
+            @Override
+            public void completed(WriteResult result) {
+                handler.completed(result);
+                serverResponse.resume();
+            }
+
+            @Override
+            public void updated(WriteResult result) {
+                handler.updated(result);
+            }
+        };
     }
     
     /**

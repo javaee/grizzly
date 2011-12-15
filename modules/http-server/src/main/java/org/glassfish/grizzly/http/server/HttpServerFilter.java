@@ -42,10 +42,8 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -166,7 +164,8 @@ public class HttpServerFilter extends BaseFilter
                     final HttpHandler httpHandlerLocal = httpHandler;
                     if (httpHandlerLocal != null) {
                         httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
-                    }                    
+                    }
+                    checkSendFileAttributes(handlerRequest, handlerResponse);
                 } catch (Throwable t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     
@@ -284,8 +283,6 @@ public class HttpServerFilter extends BaseFilter
             final Response response)
             throws IOException {
 
-        checkSendFileAttributes(request, response);
-        
         httpRequestInProcessAttr.remove(connection);
 
         response.finish();
@@ -327,7 +324,7 @@ public class HttpServerFilter extends BaseFilter
                     if (LOGGER.isLoggable(Level.WARNING)) {
                         LOGGER.log(Level.WARNING,
                                    "SendFile can't be performed,"
-                                + "because response headers are commited");
+                                + "because response headers are committed");
                     }
                     
                     return;
@@ -342,35 +339,8 @@ public class HttpServerFilter extends BaseFilter
                 if (len == null) {
                     len = file.length();
                 }
-                
-                response.getOutputBuffer().sendfile(file, offset, len,
-                        new EmptyCompletionHandler<WriteResult>() {
-                    @Override
-                    public void cancelled() {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.log(Level.WARNING,
-                                       "Transfer of file {0} cancelled.",
-                                       file.getAbsolutePath());
-                        }
-                    }
-
-                    @Override
-                    public void failed(Throwable throwable) {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.log(Level.SEVERE,
-                                    "Transfer of file {0} failed: {1}",
-                                    new Object[] {
-                                            file.getAbsolutePath(),
-                                            throwable.getMessage()
-                                    });
-                        }
-                        if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE,
-                                       throwable.getMessage(),
-                                       throwable);
-                        }
-                    }
-                });
+                // let the sendfile() method suspend/resume the response.
+                response.getOutputBuffer().sendfile(file, offset, len, null);
             }
         }
     }    
