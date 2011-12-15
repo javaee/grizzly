@@ -59,6 +59,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.InputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Method;
@@ -133,6 +134,7 @@ final class EchoServer {
                                       : new NonBlockingEchoHandler()),
                                 PATH);
         final Transport transport = httpServer.getListener(LISTENER_NAME).getTransport();
+        httpServer.getListener(LISTENER_NAME).setMaxPendingBytes(-1);
         if (settings.isMonitoringMemory()) {
             probe = new MemoryStatsProbe();
             transport.getMemoryManager().getMonitoringConfig().addProbes(probe);
@@ -183,8 +185,8 @@ final class EchoServer {
                 response.setContentLength(request.getContentLength());
             }
             if (settings.isBinary()) {
-                NIOInputStream in = request.getInputStream(true);
-                NIOOutputStream out = response.getOutputStream();
+                InputStream in = request.getInputStream();
+                OutputStream out = response.getOutputStream();
                 byte[] buf = new byte[1024];
                 int read;
                 try {
@@ -196,7 +198,7 @@ final class EchoServer {
                     out.close();
                 }
             } else {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 Writer out = response.getWriter();
                 char[] buf = new char[1024];
                 int read;
@@ -227,8 +229,8 @@ final class EchoServer {
                 response.setContentLength(request.getContentLength());
             }
             if (settings.isBinary()) {
-                final NIOInputStream in = request.getInputStream(false);
-                final OutputStream out = response.getOutputStream();
+                final NIOInputStream in = request.getNIOInputStream();
+                final NIOOutputStream out = response.getNIOOutputStream();
                 final byte[] buf = new byte[1024];
 
                 if (in.isFinished()) {
@@ -270,8 +272,8 @@ final class EchoServer {
                     }
                 });
             } else {
-                final NIOReader in = request.getReader(false);
-                final NIOWriter out = response.getWriter();
+                final NIOReader in = request.getNIOReader();
+                final NIOWriter out = response.getNIOWriter();
                 final char[] buf = new char[1024];
 
                 if (in.isFinished()) {
