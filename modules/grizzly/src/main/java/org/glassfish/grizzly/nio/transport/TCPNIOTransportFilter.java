@@ -40,26 +40,18 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
-import java.util.concurrent.ExecutionException;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
