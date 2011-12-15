@@ -446,7 +446,9 @@ public class Request {
     // START SJSAS 6346226
     private String jrouteId;
     // END SJSAS 6346226
-
+    
+    private boolean sendFileEnabled;
+    private boolean sendFileAttributeInitialized;
 
     /**
      * The response with which this request is associated.
@@ -478,8 +480,7 @@ public class Request {
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
-        setAttribute(SEND_FILE_ENABLED_ATTR, 
-                     httpServerFilter.getConfiguration().isSendFileEnabled());
+        sendFileEnabled = httpServerFilter.getConfiguration().isSendFileEnabled();
     }
 
     final HttpServerFilter getServerFilter() {
@@ -626,17 +627,6 @@ public class Request {
 
 
     /**
-     * Perform whatever actions are required to flush and close the input
-     * stream or reader, in a single operation.
-     *
-     * @exception java.io.IOException if an input/output error occurs
-     */
-//    public void finishRequest() throws IOException {
-//        // The reader and input stream don't need to be closed
-//    }
-
-
-    /**
      * Create a named {@link Note} associated with this Request.
      *
      * @param <E> the {@link Note} type.
@@ -742,6 +732,15 @@ public class Request {
      * @param name Name of the request attribute to return
      */
     public Object getAttribute(String name) {
+        if (name.charAt(0) == 'o' 
+                && name.charAt(name.length() - 1) == 'D'
+                && SEND_FILE_ENABLED_ATTR.equals(name)) {
+            if (!sendFileAttributeInitialized) {
+                sendFileAttributeInitialized = true;
+                readOnlyAttributes.put(SEND_FILE_ENABLED_ATTR, sendFileEnabled);
+            }
+            return sendFileEnabled;
+        }
         Object attribute = request.getAttribute(name);
 
         if (attribute != null) {
@@ -1804,7 +1803,8 @@ public class Request {
 
     /**
      * @return the {@link InputBuffer} associated with this request, which is the
-     * source for {@link #getInputStream(boolean)} and {@link #getReader(boolean)}.
+     * source for {@link #getInputStream()}, {@link #getReader()}, 
+     * {@link #getNIOInputStream()}, and {@link #getNIOReader()}
      */
     public InputBuffer getInputBuffer() {
 
