@@ -91,7 +91,7 @@ public class ClosingFrame extends DataFrame {
         }
         if (bytes.length > 0) {
             code = (int) WebSocketEngine.toLong(bytes, 0, 2);
-            if (code < 1000 || code == 1004 || code == 1005 || code == 1006 || (code > 1010 && code < 3000) || code > 4999) {
+            if (code < 1000 || code == 1004 || code == 1005 || code == 1006 || (code > 1011 && code < 3000) || code > 4999) {
                 throw new ProtocolError("Illegal status code: " + code);
             }
             if (bytes.length > 2) {
