@@ -41,7 +41,6 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.String;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -57,6 +56,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Note;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.server.AfterServiceListener;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -114,8 +114,9 @@ public class ServletHandler extends HttpHandler {
     protected boolean initialize = true;
     protected ClassLoader classLoader;
 
-    private FilterChainFactory filterChainFactory;
+    protected ExpectationHandler expectationHandler;
 
+    private FilterChainFactory filterChainFactory;
 
     // ------------------------------------------------------------ Constructors
 
@@ -156,7 +157,22 @@ public class ServletHandler extends HttpHandler {
             classLoader = ClassLoaderUtil.createURLClassLoader(applicationPath);
         }
     }
+    
+    /**
+     * Override parent's {@link HttpHandler#sendAcknowledgment(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
+     * to let {@link ExpectationHandler} (if one is registered) process the expectation.
+     */
+    @Override
+    protected boolean sendAcknowledgment(Request request, Response response)
+            throws IOException {
+        if (expectationHandler == null) {
+            return super.sendAcknowledgment(request, response);
+        }
+        
+        return true;
+    }
 
+    
     /**
      * {@inheritDoc}
      */
@@ -216,6 +232,18 @@ public class ServletHandler extends HttpHandler {
 
             //TODO: Make this configurable.
             servletResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
+            
+            if (expectationHandler != null) {
+                final AckActionImpl ackAction = new AckActionImpl(response);
+                expectationHandler.onExpectAcknowledgement(servletRequest,
+                        servletResponse, ackAction);
+                if (!ackAction.isAcknowledged()) {
+                    ackAction.acknowledge();
+                } else if (ackAction.isFailAcknowledgement()) {
+                    return;
+                }
+            }
+            
             FilterChainInvoker filterChain = getFilterChain(request);
             if (filterChain != null) {
                 filterChain.invokeFilterChain(servletRequest, servletResponse);
@@ -463,6 +491,28 @@ public class ServletHandler extends HttpHandler {
         return servletConfig.getServletName();
     }
 
+    /**
+     * Get the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     * 
+     * @return the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     */
+    public ExpectationHandler getExpectationHandler() {
+        return expectationHandler;
+    }
+
+    /**
+     * Set the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     * 
+     * @param expectationHandler  the {@link ExpectationHandler} responsible
+     * for processing <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     */
+    public void setExpectationHandler(ExpectationHandler expectationHandler) {
+        this.expectationHandler = expectationHandler;
+    }
+    
     @Override
     protected void setDispatcherHelper( final DispatcherHelper dispatcherHelper ) {
         servletCtx.setDispatcherHelper( dispatcherHelper );
@@ -489,6 +539,48 @@ public class ServletHandler extends HttpHandler {
                 servletRequest.recycle();
                 servletResponse.recycle();
             }
+        }
+    }
+    
+    static final class AckActionImpl implements ExpectationHandler.AckAction {
+        private boolean isAcknowledged;
+        private boolean isFailAcknowledgement;
+        
+        private final Response response;
+
+        private AckActionImpl(final Response response) {
+            this.response = response;
+        }
+        
+        @Override
+        public void acknowledge() throws IOException {
+            if (isAcknowledged) {
+                throw new IllegalStateException("Already acknowledged");
+            }
+            
+            isAcknowledged = true;
+            response.setStatus(HttpStatus.CONINTUE_100);
+            response.sendAcknowledgement();
+        }
+
+        @Override
+        public void fail() throws IOException {
+            if (isAcknowledged) {
+                throw new IllegalStateException("Already acknowledged");
+            }
+            isAcknowledged = true;
+            isFailAcknowledgement = true;
+            
+            response.setStatus(HttpStatus.EXPECTATION_FAILED_417);
+            response.finish();
+        }
+
+        public boolean isAcknowledged() {
+            return isAcknowledged;
+        }
+
+        public boolean isFailAcknowledgement() {
+            return isFailAcknowledgement;
         }
     }
 }

@@ -43,7 +43,6 @@ package org.glassfish.grizzly.servlet;
 import org.glassfish.grizzly.utils.ArraySet;
 
 import javax.servlet.Servlet;
-import java.lang.String;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +59,7 @@ public class ServletRegistration extends Registration implements Comparable<Serv
     protected ArraySet<String> urlPatterns = new ArraySet<String>(String.class);
     protected Servlet servlet;
     protected int loadOnStartup = -1;
-
+    protected ExpectationHandler expectationHandler;
 
     // ------------------------------------------------------------ Constructors
 
@@ -203,6 +202,28 @@ public class ServletRegistration extends Registration implements Comparable<Serv
         }
     }
 
+    /**
+     * Get the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     * 
+     * @return the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     */
+    public ExpectationHandler getExpectationHandler() {
+        return expectationHandler;
+    }
+
+    /**
+     * Set the {@link ExpectationHandler} responsible for processing
+     * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     * 
+     * @param expectationHandler  the {@link ExpectationHandler} responsible
+     * for processing <tt>Expect:</tt> header (for example "Expect: 100-Continue").
+     */
+    public void setExpectationHandler(ExpectationHandler expectationHandler) {
+        this.expectationHandler = expectationHandler;
+    }
+    
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();

@@ -84,7 +84,6 @@ import javax.servlet.SingleThreadModel;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.String;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -1484,6 +1483,7 @@ public class WebappContext implements ServletContext {
                 servletHandler.setServletClassName(registration.className);
                 servletHandler.setContextPath(contextPath);
                 servletHandler.setFilterChainFactory(filterChainFactory);
+                servletHandler.setExpectationHandler(registration.expectationHandler);
 
                 final String[] patterns = registration.urlPatterns.getArray();
                 for (final String spath : patterns) {
