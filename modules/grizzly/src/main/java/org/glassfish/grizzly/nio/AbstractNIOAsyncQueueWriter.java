@@ -586,7 +586,9 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         failedRecord.notifyFailure(e);
         try {
-            connection.close().markForRecycle(true);
+            if (connection != null) {
+                connection.close().markForRecycle(true);
+            }
         } catch (IOException ignored) {
         }
     }
