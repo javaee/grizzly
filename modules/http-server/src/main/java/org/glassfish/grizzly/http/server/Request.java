@@ -1209,11 +1209,11 @@ public class Request {
 
         request.setAttribute(name, value);
 
-        if (sendFileEnabled) {
-            if (name.charAt(0) == 'o' && name.charAt(name.length() - 1) == 'E' &&
-                    SEND_FILE_ATTR.equals(name)) {
-                RequestUtils.handleSendFile(this);
-            }
+        if (sendFileEnabled
+                && name.charAt(0) == 'o'
+                && name.charAt(name.length() - 1) == 'E'
+                && SEND_FILE_ATTR.equals(name)) {
+            RequestUtils.handleSendFile(this);
         }
 
     }
