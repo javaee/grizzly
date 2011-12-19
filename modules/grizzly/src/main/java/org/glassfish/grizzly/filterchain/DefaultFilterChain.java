@@ -39,36 +39,22 @@
  */
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
-
-import org.glassfish.grizzly.ProcessorResult;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Appendable;
-import org.glassfish.grizzly.Appender;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.impl.UnsafeFutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Appendable;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.NullaryFunction;
+import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Default {@link FilterChain} implementation
@@ -101,7 +87,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public ProcessorResult process(final Context context) throws IOException {
+    public ProcessorResult process(final Context context) {
         if (isEmpty()) return ProcessorResult.createComplete();
         
         final InternalContextImpl internalContext = (InternalContextImpl) context;
@@ -171,16 +157,12 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             } while (prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
         } catch (Exception e) {
-            try {
-                LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
-                        "Exception during FilterChain execution", e);
-                throwChain(ctx, executor, e);
-                ctx.getConnection().close().markForRecycle(true);
-            } catch (IOException ioe) {
-                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
-            }
+            LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
+                    "Exception during FilterChain execution", e);
+            throwChain(ctx, executor, e);
+            ctx.getConnection().closeSilently();
 
-            return ProcessorResult.createLeave();
+            return ProcessorResult.createError(e);
         }
 
         return ProcessorResult.createComplete();
@@ -331,13 +313,18 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
     
     @Override
-    public GrizzlyFuture<ReadResult> read(final Connection connection,
-            final CompletionHandler completionHandler) throws IOException {
+    public void read(final Connection connection,
+            final CompletionHandler<ReadResult> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(FilterChainContext.Operation.READ);
         context.getTransportContext().configureBlocking(true);
-
-        return ReadyFutureImpl.create(read(context));
+        
+        try {
+            final ReadResult readResult = read(context);
+            Futures.notifyResult(null, completionHandler, readResult);
+        } catch (IOException e) {
+            Futures.notifyFailure(null, completionHandler, e);
+        }
     }
 
     @Override
@@ -347,8 +334,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         if (!context.getTransportContext().isBlocking()) {
             throw new IllegalStateException("FilterChain doesn't support standalone non blocking read. Please use Filter instead.");
         } else {
-            final UnsafeFutureImpl<FilterChainContext> future =
-                    UnsafeFutureImpl.create();
+            final FutureImpl<FilterChainContext> future =
+                    Futures.<FilterChainContext>createUnsafeFuture();
             context.operationCompletionFuture = future;
 
             final FilterExecutor executor = ExecutorResolver.resolve(context);
@@ -388,77 +375,55 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture<WriteResult> write(final Connection connection,
+    public void write(final Connection connection,
             final Object dstAddress, final Object message,
             final CompletionHandler completionHandler,
-            final PushBackHandler pushBackHandler)
-            throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
+            final PushBackHandler pushBackHandler) {
 
         final FilterChainContext context = obtainFilterChainContext(connection);
-        context.transportFilterContext.future = future;
         context.transportFilterContext.completionHandler = completionHandler;
         context.transportFilterContext.pushBackHandler = pushBackHandler;
         context.setAddress(dstAddress);
         context.setMessage(message);
         context.setOperation(Operation.WRITE);
         ProcessorExecutor.execute(context.internalContext);
-
-        return future;
     }
 
     @Override
-    public <M> GrizzlyFuture<WriteResult> flush(final Connection connection,
-            final CompletionHandler<WriteResult> completionHandler)
-            throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
-
+    public void flush(final Connection connection,
+            final CompletionHandler<WriteResult> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(Operation.EVENT);
-        context.event = TransportFilter.createFlushEvent(future, completionHandler);
+        context.event = TransportFilter.createFlushEvent(completionHandler);
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
-
-        return future;
     }
 
     @Override
-    public GrizzlyFuture<FilterChainContext> fireEventDownstream(final Connection connection,
+    public void fireEventDownstream(final Connection connection,
             final FilterChainEvent event,
-            final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
-        final FutureImpl<FilterChainContext> future =
-                SafeFutureImpl.create();
-
+            final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
-        context.operationCompletionFuture = future;
         context.operationCompletionHandler = completionHandler;
         context.setOperation(Operation.EVENT);
         context.event = event;
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
-
-        return future;
     }
 
     @Override
-    public GrizzlyFuture<FilterChainContext> fireEventUpstream(final Connection connection,
+    public void fireEventUpstream(final Connection connection,
             final FilterChainEvent event,
-            final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
-        final FutureImpl<FilterChainContext> future =
-                SafeFutureImpl.create();
-
+            final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
-        context.operationCompletionFuture = future;
         context.operationCompletionHandler = completionHandler;
         context.setOperation(Operation.EVENT);
         context.event = event;
         ExecutorResolver.UPSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
-
-        return future;
     }
 
     @Override

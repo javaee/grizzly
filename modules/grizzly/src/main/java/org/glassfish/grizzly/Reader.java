@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
@@ -62,10 +61,8 @@ public interface Reader<L> {
      *
      * @param connection the {@link Connection} to read from
      * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection)
-            throws IOException;
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection);
 
     /**
      * Method reads data to the <tt>buffer</tt>.
@@ -73,10 +70,9 @@ public interface Reader<L> {
      * @param connection the {@link Connection} to read from
      * @param buffer the buffer, where data will be read
      * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
      */
     public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
-            Buffer buffer) throws IOException;
+            Buffer buffer);
 
     /**
      * Method reads data to the <tt>buffer</tt>.
@@ -85,13 +81,10 @@ public interface Reader<L> {
      * @param buffer the buffer, where data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
+    public void read(Connection connection,
             Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler)
-            throws IOException;
+            CompletionHandler<ReadResult<Buffer, L>> completionHandler);
 
 
     /**
@@ -106,12 +99,9 @@ public interface Reader<L> {
      *        <tt>buffer</tt>.
      *        The <tt>interceptor</tt> can decide, whether asynchronous read is
      *        completed or not, or provide other processing instructions.
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
+    public void read(Connection connection,
             Buffer buffer,
             CompletionHandler<ReadResult<Buffer, L>> completionHandler,
-            Interceptor<ReadResult> interceptor)
-            throws IOException;
+            Interceptor<ReadResult> interceptor);
 }

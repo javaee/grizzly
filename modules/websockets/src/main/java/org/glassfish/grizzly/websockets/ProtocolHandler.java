@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -169,29 +168,25 @@ public abstract class ProtocolHandler {
             final CompletionHandler<DataFrame> completionHandler) {
         final FutureImpl<DataFrame> localFuture = SafeFutureImpl.<DataFrame>create();
 
-        try {
-            connection.write(frame, new EmptyCompletionHandler() {
-                @Override
-                public void completed(final Object result) {
-                    if (completionHandler != null) {
-                        completionHandler.completed(frame);
-                    }
-                    
-                    localFuture.result(frame);
+        connection.write(frame, new EmptyCompletionHandler() {
+            @Override
+            public void completed(final Object result) {
+                if (completionHandler != null) {
+                    completionHandler.completed(frame);
                 }
 
-                @Override
-                public void failed(final Throwable throwable) {
-                    if (completionHandler != null) {
-                        completionHandler.failed(throwable);
-                    }
-                    
-                    localFuture.failure(throwable);
+                localFuture.result(frame);
+            }
+
+            @Override
+            public void failed(final Throwable throwable) {
+                if (completionHandler != null) {
+                    completionHandler.failed(throwable);
                 }
-            });
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
-        }
+
+                localFuture.failure(throwable);
+            }
+        });
 
         return localFuture;
     }
@@ -267,11 +262,7 @@ public abstract class ProtocolHandler {
     }
 
     public void doClose() {
-        try {
-            connection.close();
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
-        }
+        connection.closeSilently();
     }
 
     protected void utf8Decode(boolean finalFragment, byte[] data, DataFrame dataFrame) {

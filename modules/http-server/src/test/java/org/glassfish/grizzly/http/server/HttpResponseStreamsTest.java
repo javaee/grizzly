@@ -1056,7 +1056,7 @@ public class HttpResponseStreamsTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
             assertEquals(expectedResult, res);

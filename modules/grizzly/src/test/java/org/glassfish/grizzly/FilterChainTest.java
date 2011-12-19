@@ -68,6 +68,7 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Test general {@link FilterChain} functionality.
@@ -120,26 +121,13 @@ public class FilterChainTest extends TestCase {
                 .add(new EventCounterFilter(3))
                 .build();
 
-        final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
+        final FutureImpl<FilterChainContext> resultFuture =
+                Futures.<FilterChainContext>createSafeFuture();
         
-        final CompletionHandler<FilterChainContext> completionHandler =
-                new EmptyCompletionHandler<FilterChainContext>() {
+        chain.fireEventUpstream(connection, INC_EVENT,
+                Futures.toCompletionHandler(resultFuture));
 
-            @Override
-            public void completed(FilterChainContext result) {
-                resultFuture.result(true);
-            }
-
-            @Override
-            public void failed(Throwable throwable) {
-                resultFuture.failure(throwable);
-            }
-        };
-
-        final GrizzlyFuture f = chain.fireEventUpstream(connection, INC_EVENT,
-                completionHandler);
-
-        f.get(10, TimeUnit.SECONDS);
+        resultFuture.get(10, TimeUnit.SECONDS);
     }
 
     public void testEventDownstream() throws Exception {
@@ -155,26 +143,13 @@ public class FilterChainTest extends TestCase {
                 .add(new EventCounterFilter(3))
                 .build();
 
-        final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
+        final FutureImpl<FilterChainContext> resultFuture =
+                Futures.<FilterChainContext>createSafeFuture();
+        
+        chain.fireEventDownstream(connection, DEC_EVENT,
+                Futures.toCompletionHandler(resultFuture));
 
-        final CompletionHandler<FilterChainContext> completionHandler =
-                new EmptyCompletionHandler<FilterChainContext>() {
-
-            @Override
-            public void completed(FilterChainContext result) {
-                resultFuture.result(true);
-            }
-
-            @Override
-            public void failed(Throwable throwable) {
-                resultFuture.failure(throwable);
-            }
-        };
-
-        final GrizzlyFuture f = chain.fireEventDownstream(connection, DEC_EVENT,
-                completionHandler);
-
-        f.get(10, TimeUnit.SECONDS);
+        resultFuture.get(10, TimeUnit.SECONDS);
     }
 
     public void testFlush() throws Exception {
@@ -235,15 +210,18 @@ public class FilterChainTest extends TestCase {
             } catch (TimeoutException expected) {
             }
 
-            Future f = clientChain.flush(connection, null);
-            f.get(10, TimeUnit.SECONDS);
+            final FutureImpl<WriteResult> future =
+                    Futures.<WriteResult>createSafeFuture();
+            
+            clientChain.flush(connection, Futures.toCompletionHandler(future));
+            future.get(10, TimeUnit.SECONDS);
 
             assertEquals((Integer) msgSize, resultEcho.get(10, TimeUnit.SECONDS));
             assertEquals(msgSize, serverEchoCounter.get());
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -287,7 +265,7 @@ public class FilterChainTest extends TestCase {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

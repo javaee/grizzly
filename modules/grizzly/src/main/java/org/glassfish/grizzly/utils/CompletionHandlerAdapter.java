@@ -50,14 +50,14 @@ import org.glassfish.grizzly.impl.FutureImpl;
 public class CompletionHandlerAdapter<A, B>
         implements CompletionHandler<B> {
 
-    private final static ResultAdapter DIRECT_ADAPTER = new ResultAdapter() {
+    private final static GenericAdapter DIRECT_ADAPTER = new GenericAdapter() {
         @Override
-        public Object adapt(Object result) {
+        public Object adapt(final Object result) {
             return result;
         }
     };
 
-    private final ResultAdapter<A, B> adapter;
+    private final GenericAdapter<B, A> adapter;
     private final FutureImpl<A> future;
     private final CompletionHandler<A> completionHandler;
 
@@ -72,7 +72,7 @@ public class CompletionHandlerAdapter<A, B>
 
     public CompletionHandlerAdapter(FutureImpl<A> future,
             CompletionHandler<A> completionHandler,
-            ResultAdapter<A, B> adapter) {
+            GenericAdapter<B, A> adapter) {
         this.future = future;
         this.completionHandler = completionHandler;
         if (adapter != null) {
@@ -85,37 +85,37 @@ public class CompletionHandlerAdapter<A, B>
 
     @Override
     public void cancelled() {
-        if (future != null) {
-            future.cancel(false);            
-        }
-        
         if (completionHandler != null) {
             completionHandler.cancelled();
         }
+        
+        if (future != null) {
+            future.cancel(false);            
+        }        
     }
 
     @Override
     public void failed(Throwable throwable) {
-        if (future != null) {
-            future.failure(throwable);
-        }
-        
         if (completionHandler != null) {
             completionHandler.failed(throwable);
+        }
+        
+        if (future != null) {
+            future.failure(throwable);
         }
     }
 
     @Override
     public void completed(B result) {
         final A adaptedResult = adapt(result);
-        
-        if (future != null) {
-            future.result(adaptedResult);
-        }
-        
+
         if (completionHandler != null) {
             completionHandler.completed(adaptedResult);
         }
+        
+        if (future != null) {
+            future.result(adaptedResult);
+        }        
     }
 
     @Override
@@ -131,12 +131,8 @@ public class CompletionHandlerAdapter<A, B>
         return adapter.adapt(result);
     }
     
-    public interface ResultAdapter<K, V> {
-        public K adapt(V result);
-    }
-
     @SuppressWarnings("unchecked")
-    private static <K, V> ResultAdapter<K, V> getDirectAdapter() {
+    private static <K, V> GenericAdapter<K, V> getDirectAdapter() {
         return DIRECT_ADAPTER;
     }
 }

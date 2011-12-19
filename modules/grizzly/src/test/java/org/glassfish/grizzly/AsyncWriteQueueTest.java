@@ -59,7 +59,6 @@ import java.util.Collection;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -84,6 +83,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -253,7 +253,7 @@ public class AsyncWriteQueueTest {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -302,13 +302,21 @@ public class AsyncWriteQueueTest {
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
-            final CountDownLatch latch = new CountDownLatch(packetNumber);
-
+            final AtomicInteger counter = new AtomicInteger(packetNumber);
+            final FutureImpl<Boolean> sentFuture = Futures.<Boolean>createSafeFuture();
+            
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler =
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
                 @Override
                 public void completed(WriteResult<WritableMessage, SocketAddress> result) {
-                    latch.countDown();
+                    if (counter.decrementAndGet() == 0) {
+                        sentFuture.result(true);
+                    }
+                }
+
+                @Override
+                public void failed(Throwable throwable) {
+                    sentFuture.failure(throwable);
                 }
             };
 
@@ -322,11 +330,7 @@ public class AsyncWriteQueueTest {
                         byte[] originalMessage = new byte[packetSize];
                         Arrays.fill(originalMessage, b);
                         Buffer buffer = Buffers.wrap(mm, originalMessage);
-                        try {
-                            asyncQueueWriter.write(con, buffer, completionHandler);
-                        } catch (IOException e) {
-                            assertTrue("IOException occurred", false);
-                        }
+                        asyncQueueWriter.write(con, buffer, completionHandler);
 
                         return null;
                     }
@@ -336,7 +340,7 @@ public class AsyncWriteQueueTest {
             ExecutorService executorService = Executors.newFixedThreadPool(packetNumber / 10);
             try {
                 executorService.invokeAll(sendTasks);
-                if (!latch.await(10, TimeUnit.SECONDS)) {
+                if (!sentFuture.get(10, TimeUnit.SECONDS)) {
                     assertTrue("Send timeout!", false);
                 }
             } finally {
@@ -381,7 +385,7 @@ public class AsyncWriteQueueTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -476,7 +480,7 @@ public class AsyncWriteQueueTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             if (transport.isPaused()) {
                 transport.resume();
@@ -552,7 +556,7 @@ public class AsyncWriteQueueTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             if (transport.isPaused()) {
                 transport.resume();
@@ -621,16 +625,17 @@ public class AsyncWriteQueueTest {
                             final int packetNum = packetCounter.incrementAndGet();
                             if (packetNum <= maxReentrants + 1) {
                                 threadsHistory.add(Thread.currentThread());
-                                Buffer bufferInner = Buffers.wrap(mm, "" +
-                                        ((char) ('A' + packetNum)));
-                                try {
-                                    asyncQueueWriter.write(con, bufferInner, this);
-                                } catch (IOException e) {
-                                    resultFuture.failure(e);
-                                }
+                                Buffer bufferInner = Buffers.wrap(mm, ""
+                                        + ((char) ('A' + packetNum)));
+                                asyncQueueWriter.write(con, bufferInner, this);
                             } else {
                                 resultFuture.result(Boolean.TRUE);
                             }
+                        }
+
+                        @Override
+                        public void failed(Throwable throwable) {
+                            resultFuture.failure(throwable);
                         }
                     });
 
@@ -650,7 +655,7 @@ public class AsyncWriteQueueTest {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

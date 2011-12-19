@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2006-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,39 +38,13 @@
  * holder.
  */
 
-package org.glassfish.grizzly.config;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
+package org.glassfish.grizzly.utils;
 
 /**
- *
- * @author oleksiys
+ * Generic Adapter interface.
+ * 
+ * @author Alexey Stashok
  */
-public class XProtocolFilter extends BaseFilter {
-    public static final Charset CHARSET = Charset.forName("ISO-8859-1");
-
-    @Override
-    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
-        ctx.write(Buffers.wrap(memoryManager, "X-Protocol-Response", CHARSET));
-
-        ctx.flush(new EmptyCompletionHandler() {
-
-            @Override
-            public void completed(Object result) {
-                connection.closeSilently();
-            }
-
-        });
-        return ctx.getStopAction();
-    }
+public interface GenericAdapter<K, V> {
+    public V adapt(K result);    
 }

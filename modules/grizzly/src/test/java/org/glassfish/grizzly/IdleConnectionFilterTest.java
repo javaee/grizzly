@@ -109,7 +109,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             assertTrue(latch.await(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             timeoutExecutor.stop();
             transport.stop();
@@ -164,7 +164,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             assertTrue(latch.await(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             timeoutExecutor.stop();
             transport.stop();
@@ -218,7 +218,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             assertFalse(latch.await(2, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             timeoutExecutor.stop();
             transport.stop();

@@ -139,7 +139,7 @@ public class GZipTest extends TestCase {
             assertTrue(completeFuture.get(120, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

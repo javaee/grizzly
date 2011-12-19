@@ -102,11 +102,8 @@ public class EchoFilterAsync extends BaseFilter {
 
                 @Override
                 public void run() {
-                    try {
-                        // write the response
-                        ctx.write(peerAddress, message, null);
-                    } catch (IOException ignored) {
-                    }
+                    // write the response
+                    ctx.write(peerAddress, message, null);
 
                     // set the message null, to let our filter to distinguish resumed context
                     ctx.setMessage(null);

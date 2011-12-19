@@ -187,25 +187,24 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      *
      * @return {@link Future}, which could be checked in case, if close operation
      *         will be run asynchronously
-     * @throws IOException if I/O error was detected
-     * during {@link Connection} closing.
      */
     @Override
-    GrizzlyFuture<Connection> close() throws IOException;
+    GrizzlyFuture<Connection> close();
 
     /**
      * Close the {@link Connection}
      *
      * @param completionHandler {@link CompletionHandler} to be called, when
      *  the connection is closed.
-     * @return {@link Future}, which could be checked in case, if close operation
-     *         will be run asynchronously
-     * @throws IOException if I/O error was detected
-     * during {@link Connection} closing.
      */
     @Override
-    GrizzlyFuture<Connection> close(
-            CompletionHandler<Connection> completionHandler) throws IOException;
+    void close(CompletionHandler<Connection> completionHandler);
+
+    /**
+     * Close the {@link Connection} silently, no notification required on
+     * completion or failure.
+     */
+    void closeSilently();
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for

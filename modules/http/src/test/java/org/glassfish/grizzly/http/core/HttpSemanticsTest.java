@@ -465,7 +465,7 @@ public class HttpSemanticsTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } finally {
@@ -669,8 +669,7 @@ public class HttpSemanticsTest extends TestCase {
         public void completed(Object result) {
             final WriteResult wr = (WriteResult) result;
             try {
-                wr.getConnection().close().markForRecycle(false);
-            } catch (IOException ignore) {
+                wr.getConnection().closeSilently();
             } finally {
                 wr.recycle();
             }

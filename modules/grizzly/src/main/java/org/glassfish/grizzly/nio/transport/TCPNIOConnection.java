@@ -40,12 +40,6 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -56,10 +50,10 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.SelectorRunner;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -97,13 +91,8 @@ public class TCPNIOConnection extends NIOConnection {
 
     @Override
     protected void preClose() {
-        try {
-            checkConnectFailed(null);
-            transport.fireIOEvent(IOEvent.CLOSED, this, null);
-        } catch (IOException e) {
-            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
-                    "when firing CLOSE event");
-        }
+        checkConnectFailed(null);
+        transport.fireIOEvent(IOEvent.CLOSED, this, null);
     }
 
     /**
@@ -239,10 +228,10 @@ public class TCPNIOConnection extends NIOConnection {
      * {@inheritDoc}
      */
     @Override
-    protected GrizzlyFuture<Connection> close0(
+    protected void close0(
             final CompletionHandler<Connection> completionHandler,
-            final boolean isClosedLocally) throws IOException {
-        return super.close0(completionHandler, isClosedLocally);
+            final boolean isClosedLocally) {
+        super.close0(completionHandler, isClosedLocally);
     }
 
     

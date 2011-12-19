@@ -40,26 +40,20 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.Future;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import java.util.Map;
-import java.util.Queue;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Default implementation of NIO <code>SelectorHandler</code>
@@ -169,9 +163,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
             final SelectableChannel channel, final int interest,
             final Object attachment) throws IOException {
         
-        final Future<RegisterChannelResult> future =
-                registerChannelAsync(selectorRunner, channel, interest,
-                attachment, null);
+        final FutureImpl<RegisterChannelResult> future =
+                SafeFutureImpl.create();
+
+        registerChannelAsync(selectorRunner, channel, interest,
+                attachment, Futures.toCompletionHandler(future));
         try {
             future.get(selectTimeout, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -180,25 +176,19 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    public void registerChannelAsync(
             SelectorRunner selectorRunner, SelectableChannel channel,
             int interest, Object attachment,
-            CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException {
-
-        final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.create();
+            CompletionHandler<RegisterChannelResult> completionHandler) {
 
         if (isSelectorRunnerThread(selectorRunner)) {
             registerChannel0(selectorRunner, channel, interest, attachment,
-                    completionHandler, future);
+                    completionHandler);
         } else {
             addPendingTask(selectorRunner,
                     new RegisterChannelOperation(
-                    channel, interest, attachment, future, completionHandler));
+                    channel, interest, attachment, completionHandler));
         }
-
-        return future;
     }
 
     @Override
@@ -206,8 +196,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
                                   final SelectableChannel channel)
             throws IOException {
 
-        final Future<RegisterChannelResult> future =
-                deregisterChannelAsync(selectorRunner, channel, null);
+        final FutureImpl<RegisterChannelResult> future =
+                SafeFutureImpl.<RegisterChannelResult>create();
+
+        deregisterChannelAsync(selectorRunner, channel,
+                Futures.toCompletionHandler(future));
         try {
             future.get(selectTimeout, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -216,75 +209,56 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public GrizzlyFuture<RegisterChannelResult> deregisterChannelAsync(
+    public void deregisterChannelAsync(
             final SelectorRunner selectorRunner, final SelectableChannel channel,
-            final CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException {
-
-        final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.<RegisterChannelResult>create();
+            final CompletionHandler<RegisterChannelResult> completionHandler) {
 
         if (isSelectorRunnerThread(selectorRunner)) {
             deregisterChannel0(selectorRunner, channel,
-                    completionHandler, future);
+                    completionHandler);
         } else {
             addPendingTask(selectorRunner, new DeregisterChannelOperation(
-                    channel, future, completionHandler));
+                    channel, completionHandler));
         }
-
-        return future;
     }
 
     @Override
-    public GrizzlyFuture<Task> execute(
+    public void execute(
             final SelectorRunner selectorRunner, final Task task,
             final CompletionHandler<Task> completionHandler) {
         if (isSelectorRunnerThread(selectorRunner)) {
             try {
                 task.run();
+                if (completionHandler != null) {
+                    completionHandler.completed(task);
+                }
             } catch (Exception e) {
                 if (completionHandler != null) {
                     completionHandler.failed(e);
                 }
-                
-                return ReadyFutureImpl.<Task>create(e);
-            }
-            if (completionHandler != null) {
-                completionHandler.completed(task);
-            }
-            
-            return ReadyFutureImpl.create(task);
+            }            
         } else {
-            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
-
             addPendingTask(selectorRunner, new RunnableTask(task,
-                    future, completionHandler));
-            return future;
+                    completionHandler));
         }
     }
 
     @Override
-    public GrizzlyFuture<Task> enque(
+    public void enque(
             final SelectorRunner selectorRunner, final Task task,
             final CompletionHandler<Task> completionHandler) {
         
         if (isSelectorRunnerThread(selectorRunner)) {
             // If this is Selector thread - put the task to postponed queue
             // it's faster than using pending task queue, which is thread-safe
-            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
-
             final Queue<SelectorHandlerTask> postponedTasks =
                     selectorRunner.getPostponedTasks();
             postponedTasks.offer(new RunnableTask(task,
-                    future, completionHandler));
+                    completionHandler));
             
-            return future;
         } else {
-            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
-
             addPendingTask(selectorRunner, new RunnableTask(task,
-                    future, completionHandler));
-            return future;
+                    completionHandler));
         }
     }
     
@@ -355,79 +329,67 @@ public class DefaultSelectorHandler implements SelectorHandler {
     private void registerChannel0(final SelectorRunner selectorRunner,
             final SelectableChannel channel, final int interest,
             final Object attachment,
-            final CompletionHandler<RegisterChannelResult> completionHandler,
-            final FutureImpl<RegisterChannelResult> future) throws IOException {
+            final CompletionHandler<RegisterChannelResult> completionHandler) {
 
-        if (future == null || !future.isCancelled()) {
-            try {
-                if (channel.isOpen()) {
+        try {
+            if (channel.isOpen()) {
 
-                    final Selector selector = selectorRunner.getSelector();
-                    
-                    final SelectionKey key = channel.keyFor(selector);
+                final Selector selector = selectorRunner.getSelector();
 
-                    // Check whether the channel has been registered on a selector
-                    if (key == null || key.isValid()) {
-                        // If channel is not registered or key is valid
-                        final SelectionKey registeredSelectionKey =
-                                channel.register(selector, interest, attachment);
+                final SelectionKey key = channel.keyFor(selector);
 
-                        selectorRunner.getTransport().
-                                getSelectionKeyHandler().
-                                onKeyRegistered(registeredSelectionKey);
+                // Check whether the channel has been registered on a selector
+                if (key == null || key.isValid()) {
+                    // If channel is not registered or key is valid
+                    final SelectionKey registeredSelectionKey =
+                            channel.register(selector, interest, attachment);
 
-                        final RegisterChannelResult result =
-                                new RegisterChannelResult(selectorRunner,
-                                registeredSelectionKey, channel);
+                    selectorRunner.getTransport().
+                            getSelectionKeyHandler().
+                            onKeyRegistered(registeredSelectionKey);
 
-                        if (completionHandler != null) {
-                            completionHandler.completed(result);
-                        }
-                        if (future != null) {
-                            future.result(result);
-                        }
-                    } else {
-                        // Channel has been registered already,
-                        // but the key is not valid
-                        final Queue<SelectorHandlerTask> postponedTasks =
-                                selectorRunner.getPostponedTasks();
-                        final RegisterChannelOperation operation =
-                                new RegisterChannelOperation(channel, interest,
-                                attachment, future, completionHandler);
+                    final RegisterChannelResult result =
+                            new RegisterChannelResult(selectorRunner,
+                            registeredSelectionKey, channel);
 
-                        postponedTasks.add(operation);
+                    if (completionHandler != null) {
+                        completionHandler.completed(result);
                     }
                 } else {
-                    failChannelRegistration(completionHandler, future,
-                            new ClosedChannelException());
+                    // Channel has been registered already,
+                    // but the key is not valid
+                    final Queue<SelectorHandlerTask> postponedTasks =
+                            selectorRunner.getPostponedTasks();
+                    final RegisterChannelOperation operation =
+                            new RegisterChannelOperation(channel, interest,
+                            attachment, completionHandler);
+
+                    postponedTasks.add(operation);
                 }
-            } catch (IOException e) {
-                failChannelRegistration(completionHandler, future, e);
-                throw e;
+            } else {
+                failChannelRegistration(completionHandler,
+                        new ClosedChannelException());
             }
+        } catch (IOException e) {
+            failChannelRegistration(completionHandler, e);
         }
     }
 
     private void failChannelRegistration(
             final CompletionHandler<RegisterChannelResult> completionHandler,
-            final FutureImpl<RegisterChannelResult> future,
             final Throwable error) {
-            if (completionHandler != null) {
-                completionHandler.failed(error);
-            }
 
-            if (future != null) {
-                future.failure(error);
-            }
+        if (completionHandler != null) {
+            completionHandler.failed(error);
+        }
     }
 
     private void deregisterChannel0(final SelectorRunner selectorRunner,
                                     final SelectableChannel channel,
-                                    final CompletionHandler<RegisterChannelResult> completionHandler,
-                                    final FutureImpl<RegisterChannelResult> future) throws IOException {
+                                    final CompletionHandler<RegisterChannelResult> completionHandler) {
 
-        if (future == null || !future.isCancelled()) {
-            final Throwable error;
+        final Throwable error;
+        try {
             if (channel.isOpen()) {
 
                 final Selector selector = selectorRunner.getSelector();
@@ -450,9 +412,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
                     if (completionHandler != null) {
                         completionHandler.completed(result);
                     }
-                    if (future != null) {
-                        future.result(result);
-                    }
                     return;
                 }
 
@@ -461,14 +420,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 error = new ClosedChannelException();
             }
             
-            if (completionHandler != null) {
-                completionHandler.failed(error);
-            }
-
-            if (future != null) {
-                future.failure(error);
-            }
-
+            Futures.notifyFailure(null, completionHandler, error);
+        } catch (IOException e) {
+            Futures.notifyFailure(null, completionHandler, e);
         }
     }
     
@@ -581,24 +535,21 @@ public class DefaultSelectorHandler implements SelectorHandler {
         private final SelectableChannel channel;
         private final int interest;
         private final Object attachment;
-        private final FutureImpl<RegisterChannelResult> future;
         private final CompletionHandler<RegisterChannelResult> completionHandler;
 
         private RegisterChannelOperation(final SelectableChannel channel,
                 final int interest, final Object attachment,
-                final FutureImpl<RegisterChannelResult> future,
                 final CompletionHandler<RegisterChannelResult> completionHandler) {
             this.channel = channel;
             this.interest = interest;
             this.attachment = attachment;
-            this.future = future;
             this.completionHandler = completionHandler;
         }
 
         @Override
         public boolean run(final SelectorRunner selectorRunner) throws IOException {
             registerChannel0(selectorRunner, channel, interest,
-                    attachment, completionHandler, future);
+                    attachment, completionHandler);
             return true;
         }
 
@@ -606,30 +557,23 @@ public class DefaultSelectorHandler implements SelectorHandler {
         public void cancel() {
             if (completionHandler != null) {
                 completionHandler.failed(new IOException("Selector is closed"));
-            }
-
-            if (future != null) {
-                future.failure(new IOException("Selector is closed"));
             }
         }
     }
 
     protected final class DeregisterChannelOperation implements SelectorHandlerTask {
         private final SelectableChannel channel;
-        private final FutureImpl<RegisterChannelResult> future;
         private final CompletionHandler<RegisterChannelResult> completionHandler;
 
         private DeregisterChannelOperation(final SelectableChannel channel,
-                                           final FutureImpl<RegisterChannelResult> future,
                                            final CompletionHandler<RegisterChannelResult> completionHandler) {
             this.channel = channel;
-            this.future = future;
             this.completionHandler = completionHandler;
         }
 
         @Override
         public boolean run(final SelectorRunner selectorRunner) throws IOException {
-            deregisterChannel0(selectorRunner, channel, completionHandler, future);
+            deregisterChannel0(selectorRunner, channel, completionHandler);
             return true;
         }
 
@@ -638,22 +582,16 @@ public class DefaultSelectorHandler implements SelectorHandler {
             if (completionHandler != null) {
                 completionHandler.failed(new IOException("Selector is closed"));
             }
-
-            if (future != null) {
-                future.failure(new IOException("Selector is closed"));
-            }
         }
     }
     
     protected static final class RunnableTask implements SelectorHandlerTask {
         private final Task task;
-        private final FutureImpl<Task> future;
         private final CompletionHandler<Task> completionHandler;
 
-        private RunnableTask(final Task task, final FutureImpl<Task> future,
+        private RunnableTask(final Task task,
                 final CompletionHandler<Task> completionHandler) {
             this.task = task;
-            this.future = future;
             this.completionHandler = completionHandler;
         }
 
@@ -666,16 +604,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 if (completionHandler != null) {
                     completionHandler.completed(task);
                 }
-
-                future.result(task);
             } catch (Throwable t) {
                 logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
                 
                 if (completionHandler != null) {
                     completionHandler.failed(t);
                 }
-
-                future.failure(t);
             }
             
             return continueExecution;
@@ -685,10 +619,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
         public void cancel() {
             if (completionHandler != null) {
                 completionHandler.failed(new IOException("Selector is closed"));
-            }
-
-            if (future != null) {
-                future.failure(new IOException("Selector is closed"));
             }
         }
     }

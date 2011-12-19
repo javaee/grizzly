@@ -1004,11 +1004,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         @Override
         public boolean doWork(final KeepAliveContext context) {
-            try {
-                KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
-                context.connection.close().markForRecycle(false);
-            } catch (IOException ignored) {
-            }
+            KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
+            context.connection.closeSilently();
 
             return true;
         }

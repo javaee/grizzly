@@ -44,14 +44,7 @@ import java.io.IOException;
 import java.nio.channels.DatagramChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorSelector;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.*;
 
 /**
  * Server {@link org.glassfish.grizzly.Connection} implementation
@@ -85,9 +78,8 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     }
 
     @Override
-    public GrizzlyFuture<Connection> close(
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException {
+    public void close(
+            final CompletionHandler<Connection> completionHandler) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("UDPNIOServerConnection might be only closed by calling unbind().");
         }
@@ -95,14 +87,11 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         if (completionHandler != null) {
             completionHandler.completed(this);
         }
-
-        return ReadyFutureImpl.<Connection>create(this);
     }
 
-    public GrizzlyFuture<Connection> unbind(
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException {
-        return super.close(null);
+    public void unbind(
+            final CompletionHandler<Connection> completionHandler) {
+        super.close(completionHandler);
     }
 
     @Override

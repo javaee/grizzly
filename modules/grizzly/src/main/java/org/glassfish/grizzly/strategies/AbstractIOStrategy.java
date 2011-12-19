@@ -39,22 +39,14 @@
  */
 package org.glassfish.grizzly.strategies;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
-
-import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueue;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  *
@@ -117,22 +109,9 @@ public abstract class AbstractIOStrategy implements IOStrategy {
                                       final Logger logger) {
         try {
             connection.getTransport().fireIOEvent(ioEvent, connection, ph);
-        } catch (IOException e) {
-            logger.log(Level.FINE, "Uncaught exception: ", e);
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ee) {
-                logger.log(Level.WARNING, "Exception occurred when " +
-                        "closing the connection: ", ee);
-            }
         } catch (Exception e) {
             logger.log(Level.WARNING, "Uncaught exception: ", e);
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ee) {
-                logger.log(Level.WARNING, "Exception occurred when " +
-                        "closing the connection: ", ee);
-            }
+            connection.closeSilently();
         }
 
     }

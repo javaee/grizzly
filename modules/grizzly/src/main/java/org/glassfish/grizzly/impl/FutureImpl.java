@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.impl;
 
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.GrizzlyFuture;
 
 /**
  * {@link Future} interface, which has full control over the state.
@@ -66,7 +66,7 @@ public interface FutureImpl<R> extends GrizzlyFuture<R> {
     public abstract void result(R result);
 
     /**
-     * Notify about the failure, occured during asynchronous operation execution.
+     * Notify about the failure, occurred during asynchronous operation execution.
      * 
      * @param failure
      */

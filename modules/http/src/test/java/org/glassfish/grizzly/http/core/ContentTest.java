@@ -183,7 +183,7 @@ public class ContentTest extends TestCase {
             
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

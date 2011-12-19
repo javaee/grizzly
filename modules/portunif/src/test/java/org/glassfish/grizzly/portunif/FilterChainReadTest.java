@@ -157,7 +157,7 @@ public class FilterChainReadTest extends TestCase {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -253,7 +253,7 @@ public class FilterChainReadTest extends TestCase {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -309,7 +309,7 @@ public class FilterChainReadTest extends TestCase {
 
             assertEquals("Unexpected interm. response", msg, srvInterm);
 
-            connection.close();
+            connection.closeSilently();
             connection = null;
             
             final Exception e = (Exception) intermResultQueue.poll(10, TimeUnit.SECONDS);
@@ -318,7 +318,7 @@ public class FilterChainReadTest extends TestCase {
                     e instanceof EOFException);
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

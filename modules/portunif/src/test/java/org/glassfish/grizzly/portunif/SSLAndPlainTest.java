@@ -187,7 +187,7 @@ public class SSLAndPlainTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

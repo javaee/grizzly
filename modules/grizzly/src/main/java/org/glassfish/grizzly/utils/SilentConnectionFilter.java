@@ -81,14 +81,7 @@ public final class SilentConnectionFilter extends BaseFilter {
 
             @Override
             public boolean doWork(Connection connection) {
-                try {
-                    connection.close().markForRecycle(true);
-                } catch (IOException e) {
-                    LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
-                            "unexpected exception, when trying " +
-                            "to close connection", e);
-                }
-
+                connection.closeSilently();
                 return true;
             }
         }, new Resolver());

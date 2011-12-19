@@ -120,7 +120,7 @@ public class StandaloneTest extends GrizzlyTestCase {
             serverThread.join(10 * 1000);
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -165,7 +165,7 @@ public class StandaloneTest extends GrizzlyTestCase {
                                 "Error working with accepted connection", e);
                         assertTrue("Error working with accepted connection", false);
                     } finally {
-                        connection.close();
+                        connection.closeSilently();
                     }
 
                 } catch (Exception e) {

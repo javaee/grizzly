@@ -760,13 +760,8 @@ public class OutputBuffer {
      */
     @SuppressWarnings("unchecked")
     private void notifyWritePossibleAsync(final Connection c) {
-        try {
-            asyncWriter.write(c, Buffers.EMPTY_BUFFER,
-                    onWritePossibleCompletionHandler);
-        } catch (IOException ignored) {
-            // If exception occurs here - it's from WriteHandler, so it must
-            // have been processed by WriteHandler.onError().
-        }
+        asyncWriter.write(c, Buffers.EMPTY_BUFFER,
+                onWritePossibleCompletionHandler);
     }
 
     /**

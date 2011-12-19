@@ -68,6 +68,7 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Testing HTTP keep-alive
@@ -473,12 +474,19 @@ public class KeepAliveTest extends TestCase {
                     .processor(filterChainBuilder.build())
                     .build();
 
-            return connector.connect(new InetSocketAddress(host, port), new EmptyCompletionHandler<Connection>() {
-                @Override
-                public void completed(Connection result) {
-                    connection = result;
-                }
-            });
+            final FutureImpl<Connection> future =
+                    Futures.<Connection>createSafeFuture();
+            connector.connect(new InetSocketAddress(host, port),
+                    Futures.toCompletionHandler(future,
+                    new EmptyCompletionHandler<Connection>() {
+
+                        @Override
+                        public void completed(Connection result) {
+                            connection = result;
+                        }
+                    }));
+            
+            return future;
         }
 
         public Future<Buffer> get(HttpRequestPacket request) throws IOException {
@@ -505,7 +513,7 @@ public class KeepAliveTest extends TestCase {
 
         public void close() throws IOException {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
         }
 

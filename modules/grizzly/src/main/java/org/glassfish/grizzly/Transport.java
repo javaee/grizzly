@@ -40,17 +40,17 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Transport interface describes the transport unit used in Grizzly.
@@ -63,8 +63,6 @@ import java.util.concurrent.ExecutorService;
 public interface Transport extends JmxMonitoringAware<TransportProbe> {
     
     enum State {STARTING, START, PAUSE, STOPPING, STOP}
-
-    enum IOEventReg {REGISTER, DEREGISTER}
 
     /**
      * Gets the {@link Transport} name.
@@ -415,8 +413,8 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @param connection {@link Connection}, on which we fire the event.
      * @param processingHandler I/O event processing handler.
      */
-    IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
-            IOEventProcessingHandler processingHandler) throws IOException;
+    void fireIOEvent(IOEvent ioEvent, Connection connection,
+            IOEventProcessingHandler processingHandler);
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

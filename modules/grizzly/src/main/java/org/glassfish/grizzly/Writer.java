@@ -40,11 +40,10 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-
 import java.io.IOException;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
 /**
  * Implementations of this interface are able to write data from a {@link Buffer}
@@ -65,7 +64,6 @@ public interface Writer<L> {
      * @param message the {@link WritableMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
-     * @throws java.io.IOException
      */
     public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
             WritableMessage message) throws IOException;
@@ -78,14 +76,10 @@ public interface Writer<L> {
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public void write(Connection connection,
             WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
-            throws IOException;
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -97,10 +91,9 @@ public interface Writer<L> {
      * @param message the {@link WritableMessage}, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
-     * @throws java.io.IOException
      */
     public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
-            L dstAddress, WritableMessage message) throws IOException;
+            L dstAddress, WritableMessage message);
 
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -112,14 +105,10 @@ public interface Writer<L> {
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public void write(Connection connection,
             L dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
-            throws IOException;
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -133,14 +122,10 @@ public interface Writer<L> {
      *        which will get notified, when write will be completed
      * @param pushBackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(
+    public void write(
             Connection connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
-            PushBackHandler pushBackHandler)
-            throws IOException;   
+            PushBackHandler pushBackHandler);
 }

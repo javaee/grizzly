@@ -61,12 +61,11 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -233,8 +232,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         throws IOException {
         detachSelectorRunner();
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-        final GrizzlyFuture<RegisterChannelResult> future = selectorHandler.registerChannelAsync(
-            selectorRunner, channel, 0, this, null);
+        
+        final FutureImpl<RegisterChannelResult> future =
+                Futures.<RegisterChannelResult>createSafeFuture();
+        
+        selectorHandler.registerChannelAsync(
+            selectorRunner, channel, 0, this, Futures.toCompletionHandler(future));
         try {
             final RegisterChannelResult result =
                 future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -337,49 +340,54 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read()
-        throws IOException {
-        return read(null);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
-            throws IOException {
-        final Processor obtainedProcessor = obtainProcessor(IOEvent.READ);
-        return obtainedProcessor.read(this, completionHandler);
-    }
-
-    @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message)
-            throws IOException {
-        return write(null, message, null, null);
-    }
-
-    @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message,
-            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
-            throws IOException {
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read() {
+        final FutureImpl<ReadResult<M, SocketAddress>> future =
+                Futures.<ReadResult<M, SocketAddress>>createSafeFuture();
+        read(Futures.toCompletionHandler(future));
         
-        return write(null, message, completionHandler, null);
-    }
-
-    @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            PushBackHandler pushbackHandler) throws IOException {
-        return write(null, message, completionHandler, pushbackHandler);
+        return future;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            SocketAddress dstAddress, M message,
+    public <M> void read(
+            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler) {
+        final Processor obtainedProcessor = obtainProcessor(IOEvent.READ);
+        obtainedProcessor.read(this, completionHandler);
+    }
+
+    @Override
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message) {
+        final FutureImpl<WriteResult<M, SocketAddress>> future =
+                Futures.<WriteResult<M, SocketAddress>>createSafeFuture();
+        write(null, message, Futures.toCompletionHandler(future), null);
+        
+        return future;
+        
+    }
+
+    @Override
+    public <M> void write(final M message,
+            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) {
+        
+        write(null, message, completionHandler, null);
+    }
+
+    @Override
+    public <M> void write(final M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            PushBackHandler pushbackHandler) throws IOException {
+            PushBackHandler pushbackHandler) {
+        write(null, message, completionHandler, pushbackHandler);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <M> void write(
+            final SocketAddress dstAddress, final M message,
+            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            final PushBackHandler pushbackHandler) {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.WRITE);
-        return obtainedProcessor.write(this, dstAddress, message,
+        obtainedProcessor.write(this, dstAddress, message,
                 completionHandler, pushbackHandler);
     }
 
@@ -390,21 +398,29 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public GrizzlyFuture<Connection> close() throws IOException {
-        return close0(null, true);
+    public GrizzlyFuture<Connection> close() {
+        
+        final FutureImpl<Connection> future = Futures.<Connection>createSafeFuture();
+        close(Futures.toCompletionHandler(future));
+        
+        return future;
     }
 
     @Override
-    public GrizzlyFuture<Connection> close(
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException {
-        return close0(completionHandler, true);
+    public void close(
+            final CompletionHandler<Connection> completionHandler) {
+        close0(completionHandler, true);
     }
         
-    protected GrizzlyFuture<Connection> close0(
+    @Override
+    @SuppressWarnings("unchecked")
+    public final void closeSilently() {
+        close(null);
+    }
+    
+    protected void close0(
             final CompletionHandler<Connection> completionHandler,
-            final boolean isClosedLocally)
-            throws IOException {
+            final boolean isClosedLocally) {
         
         if (closeFlag.compareAndSet(null,
                 isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
@@ -413,47 +429,40 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             notifyCloseListeners();
             notifyProbesClose(this);
 
-            try {
-                final FutureImpl<Connection> resultFuture =
-                        SafeFutureImpl.create();
-                
-                transport.getSelectorHandler().execute(
-                        selectorRunner, new SelectorHandler.Task() {
-                    @Override
-                    public boolean run() {
-                        try {
-                            transport.closeConnection(NIOConnection.this);
-                        } catch (IOException e) {
-                            logger.log(Level.FINE, "Error during connection close", e);
-                        }
-                        
-                        return true;
-                    }
-                }, new CompletionHandlerAdapter<Connection, SelectorHandler.Task>(
-                        resultFuture, completionHandler) {
+            transport.getSelectorHandler().execute(
+                    selectorRunner, new SelectorHandler.Task() {
 
-                    @Override
-                    protected Connection adapt(final SelectorHandler.Task result) {
-                        return NIOConnection.this;
+                @Override
+                public boolean run() {
+                    try {
+                        transport.closeConnection(NIOConnection.this);
+                    } catch (IOException e) {
+                        logger.log(Level.FINE, "Error during connection close", e);
                     }
 
-                    @Override
-                    public void failed(final Throwable throwable) {
-                        try {
-                            transport.closeConnection(NIOConnection.this);
-                        } catch (Exception ignored) {
-                        }
+                    return true;
+                }
+            }, new CompletionHandlerAdapter<Connection, SelectorHandler.Task>(
+                    null, completionHandler) {
 
-                        completed(null);
+                @Override
+                protected Connection adapt(final SelectorHandler.Task result) {
+                    return NIOConnection.this;
+                }
+
+                @Override
+                public void failed(final Throwable throwable) {
+                    try {
+                        transport.closeConnection(NIOConnection.this);
+                    } catch (Exception ignored) {
                     }
-                });
 
-                return resultFuture;
-            } catch (Exception e) {
-                transport.closeConnection(NIOConnection.this);
-            }
+                    completed(null);
+                }
+            });
+        } else {
+            Futures.notifyResult(null, completionHandler, this);
         }
-        return ReadyFutureImpl.<Connection>create(this);
     }
 
     /**
@@ -748,10 +757,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             if (size == 0) {
                 final short count = ++zeroByteReadCount;
                 if (count >= MAX_ZERO_READ_COUNT) {
-                    try {
-                        close();
-                    } catch (IOException ignored) {
-                    }
+                    closeSilently();
                 }
             } else {
                 zeroByteReadCount = 0;

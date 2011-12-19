@@ -40,10 +40,10 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 
 /**
  *
@@ -60,17 +60,15 @@ public interface NIOChannelDistributor {
             int interestOps, Object attachment) throws IOException;
 
     public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel) throws IOException;
+            SelectableChannel channel);
     
     public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel, int interestOps) throws IOException;
+            SelectableChannel channel, int interestOps);
     
     public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel, int interestOps, Object attachment) 
-            throws IOException;
+            SelectableChannel channel, int interestOps, Object attachment);
 
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    public void registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
-            CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException;
+            CompletionHandler<RegisterChannelResult> completionHandler);
 }

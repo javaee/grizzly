@@ -140,7 +140,7 @@ public class TunnelFilter extends BaseFilter {
 
         // Close peer connection as well, if it wasn't closed before
         if (peerConnection != null && peerConnection.isOpen()) {
-            peerConnection.close();
+            peerConnection.closeSilently();
         }
 
         return ctx.getInvokeAction();
@@ -197,13 +197,13 @@ public class TunnelFilter extends BaseFilter {
 
         @Override
         public void cancelled() {
-            close(context.getConnection());
+            context.getConnection().closeSilently();
             resumeContext();
         }
 
         @Override
         public void failed(Throwable throwable) {
-            close(context.getConnection());
+            context.getConnection().closeSilently();
             resumeContext();
         }
 
@@ -232,17 +232,6 @@ public class TunnelFilter extends BaseFilter {
          */
         private void resumeContext() {
             context.resume();
-        }
-
-        /**
-         * Close the {@link Connection}
-         * @param connection {@link Connection}
-         */
-        private void close(Connection connection) {
-            try {
-                connection.close();
-            } catch (IOException ignored) {
-            }
         }
     }
 }

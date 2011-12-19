@@ -40,7 +40,8 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Abstract class, which provides transitive dependencies for overloaded
@@ -53,27 +54,31 @@ public abstract class AbstractReader<L> implements Reader<L> {
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection)
-            throws IOException {
-        return read(connection, null, null, null);
+    public final GrizzlyFuture<ReadResult<Buffer, L>> read(
+            final Connection connection) {
+        return read(connection, null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
-            Buffer buffer) throws IOException {
-        return read(connection, buffer, null, null);
+    public final GrizzlyFuture<ReadResult<Buffer, L>> read(
+            final Connection connection,
+            final Buffer buffer) {
+        final FutureImpl<ReadResult<Buffer, L>> future =
+                Futures.<ReadResult<Buffer, L>>createSafeFuture();
+        
+        read(connection, buffer, Futures.toCompletionHandler(future), null);
+        return future;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection, Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler)
-            throws IOException {
-        return read(connection, buffer, completionHandler, null);
+    public final void read(final Connection connection, final Buffer buffer,
+            final CompletionHandler<ReadResult<Buffer, L>> completionHandler) {
+        read(connection, buffer, completionHandler, null);
     }
 }

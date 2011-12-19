@@ -41,11 +41,9 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Cacheable;
-import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -56,7 +54,6 @@ import org.glassfish.grizzly.utils.DebugPoint;
 public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Connection connection;
     protected Object message;
-    protected Future future;
     protected R currentResult;
     protected CompletionHandler completionHandler;
 
@@ -64,20 +61,19 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected DebugPoint recycleTrack;
     
     public AsyncQueueRecord(final Connection connection,
-            final Object message, final Future future,
-            final R currentResult, final CompletionHandler completionHandler) {
+            final Object message, final R currentResult,
+            final CompletionHandler completionHandler) {
 
-        set(connection, message, future, currentResult, completionHandler);
+        set(connection, message, currentResult, completionHandler);
     }
 
     protected final void set(final Connection connection,
-            final Object message, final Future future,
-            final R currentResult, final CompletionHandler completionHandler) {
+            final Object message, final R currentResult,
+            final CompletionHandler completionHandler) {
 
         checkRecycled();
         this.connection = connection;
         this.message = message;
-        this.future = future;
         this.currentResult = currentResult;
         this.completionHandler = completionHandler;
     }
@@ -97,34 +93,14 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.message = message;
     }
 
-    public Future getFuture() {
-        checkRecycled();
-        return future;
-    }
-
-    public void setFuture(final Future future) {
-        checkRecycled();
-        this.future = future;
-    }
-
     public final R getCurrentResult() {
         checkRecycled();
         return currentResult;
     }
 
     public void notifyFailure(final Throwable e) {
-        final FutureImpl futureImpl = (FutureImpl) future;
-        final boolean hasFuture = (futureImpl != null);
-        
-        if (!hasFuture || !futureImpl.isDone()) {
-
-            if (completionHandler != null) {
-                completionHandler.failed(e);
-            }
-
-            if (hasFuture) {
-                futureImpl.failure(e);
-            }
+        if (completionHandler != null) {
+            completionHandler.failed(e);
         }
     }
 

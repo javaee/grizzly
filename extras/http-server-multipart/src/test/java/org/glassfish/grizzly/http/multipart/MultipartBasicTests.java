@@ -74,6 +74,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.glassfish.grizzly.utils.Futures;
 import static org.junit.Assert.*;
 /**
  * Basic multipart tests.
@@ -295,13 +296,19 @@ public class MultipartBasicTests {
                     .processor(filterChainBuilder.build())
                     .build();
 
-            return connector.connect(new InetSocketAddress(host, port),
+            final FutureImpl<Connection> future =
+                    Futures.<Connection>createSafeFuture();
+            
+            connector.connect(new InetSocketAddress(host, port),
+                    Futures.toCompletionHandler(future, 
                     new EmptyCompletionHandler<Connection>() {
                 @Override
                 public void completed(Connection result) {
                     connection = result;
                 }
-            });
+            }));
+            
+            return future;
         }
 
         public Future<HttpPacket> get(HttpPacket request) throws IOException {
@@ -326,9 +333,9 @@ public class MultipartBasicTests {
             return localFuture;
         }
 
-        public void close() throws IOException {
+        public void close() {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
         }
 

@@ -40,28 +40,19 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Appendable;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.attributes.AttributeHolder;
+import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -544,21 +535,19 @@ public final class FilterChainContext implements AttributeStorage {
         return rr;
     }
     
-    public void write(final Object message) throws IOException {
+    public void write(final Object message) {
         write(null, message, null, null, null,
                 transportFilterContext.isBlocking());
     }
 
 
-    public void write(final Object message, final boolean blocking)
-    throws IOException {
+    public void write(final Object message, final boolean blocking) {
         write(null, message, null, null, null, blocking);
     }
 
 
     public void write(final Object message,
-                      final CompletionHandler<WriteResult> completionHandler)
-    throws IOException {
+                      final CompletionHandler<WriteResult> completionHandler) {
 
         write(null,
               message,
@@ -571,8 +560,7 @@ public final class FilterChainContext implements AttributeStorage {
 
     public void write(final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final boolean blocking)
-    throws IOException {
+                      final boolean blocking) {
 
         write(null, message, completionHandler, null, null, blocking);
 
@@ -581,8 +569,7 @@ public final class FilterChainContext implements AttributeStorage {
 
     public void write(final Object address,
                       final Object message,
-                      final CompletionHandler<WriteResult> completionHandler)
-    throws IOException {
+                      final CompletionHandler<WriteResult> completionHandler) {
 
         write(address,
               message,
@@ -597,8 +584,7 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final boolean blocking)
-    throws IOException {
+                      final boolean blocking) {
 
         write(address, message, completionHandler, null, null, blocking);
 
@@ -608,8 +594,7 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler)
-    throws IOException {
+                      final PushBackHandler pushBackHandler) {
         
         write(address,
               message,
@@ -623,16 +608,21 @@ public final class FilterChainContext implements AttributeStorage {
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
                       final PushBackHandler pushBackHandler,
-                      final boolean blocking)
-    throws IOException {
+                      final boolean blocking) {
+        write(address,
+              message,
+              completionHandler,
+              pushBackHandler,
+              null,
+              transportFilterContext.isBlocking());
+        
     }
 
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
                       final PushBackHandler pushBackHandler,
-                      final MessageCloner cloner)
-    throws IOException {
+                      final MessageCloner cloner) {
         
         write(address,
               message,
@@ -648,8 +638,7 @@ public final class FilterChainContext implements AttributeStorage {
                       final CompletionHandler<WriteResult> completionHandler,
                       final PushBackHandler pushBackHandler,
                       final MessageCloner cloner,
-                      final boolean blocking)
-    throws IOException {
+                      final boolean blocking) {
 
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
@@ -669,12 +658,12 @@ public final class FilterChainContext implements AttributeStorage {
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
-    public void flush(final CompletionHandler completionHandler) throws IOException {
+    public void flush(final CompletionHandler completionHandler) {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
 
         newContext.setOperation(Operation.EVENT);
-        newContext.event = TransportFilter.createFlushEvent(null, completionHandler);
+        newContext.event = TransportFilter.createFlushEvent(completionHandler);
         newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
         newContext.setAddress(address);
         newContext.setStartIdx(filterIdx - 1);
@@ -685,13 +674,12 @@ public final class FilterChainContext implements AttributeStorage {
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
-    public void notifyUpstream(final FilterChainEvent event) throws IOException {
+    public void notifyUpstream(final FilterChainEvent event) {
         notifyUpstream(event, null);
     }
 
     public void notifyUpstream(final FilterChainEvent event,
-            final CompletionHandler<FilterChainContext> completionHandler)
-            throws IOException {
+            final CompletionHandler<FilterChainContext> completionHandler) {
         
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
@@ -708,13 +696,12 @@ public final class FilterChainContext implements AttributeStorage {
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
-    public void notifyDownstream(final FilterChainEvent event) throws IOException {
+    public void notifyDownstream(final FilterChainEvent event) {
         notifyDownstream(event, null);
     }
 
     public void notifyDownstream(final FilterChainEvent event,
-            final CompletionHandler<FilterChainContext> completionHandler)
-            throws IOException {
+            final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
 

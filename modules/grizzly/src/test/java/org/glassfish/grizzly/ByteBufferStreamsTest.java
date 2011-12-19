@@ -1181,7 +1181,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         try {
             poisonFuture.get(20, TimeUnit.SECONDS);
             clientWriter.close();
-            clientconnection.close();
+            clientconnection.closeSilently();
             servertransport.stop();
             clienttransport.stop();
 
@@ -1289,7 +1289,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
                             LOGGER.log(Level.WARNING,
                                     "Error working with accepted connection", e);
                         } finally {
-                            connection.close();
+                            connection.closeSilently();
                         }
 
                     } catch (Exception e) {

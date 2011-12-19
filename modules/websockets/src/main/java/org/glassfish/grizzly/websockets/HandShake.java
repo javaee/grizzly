@@ -299,12 +299,8 @@ public abstract class HandShake {
             response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
                 join(application.getSupportedProtocols(getSubProtocol())));
         }
-        try {
-            ctx.write(HttpContent.builder(response)
-                .build());
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
-        }
+        
+        ctx.write(HttpContent.builder(response).build());
     }
 
     protected abstract void setHeaders(HttpResponsePacket response);

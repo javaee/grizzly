@@ -40,12 +40,11 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Set;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  *
@@ -82,13 +81,12 @@ public interface SelectorHandler {
                          Object attachment)
     throws IOException;
 
-    GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    void registerChannelAsync(
                                     SelectorRunner selectorRunner,
                                     SelectableChannel channel,
                                     int interest,
                                     Object attachment,
-                                    CompletionHandler<RegisterChannelResult> completionHandler)
-    throws IOException;
+                                    CompletionHandler<RegisterChannelResult> completionHandler);
 
     /**
      * Deregister the channel from the {@link SelectorRunner}'s Selector.
@@ -104,13 +102,11 @@ public interface SelectorHandler {
      * @param selectorRunner {@link SelectorRunner}
      * @param channel {@link SelectableChannel} channel to deregister
      * @param completionHandler {@link CompletionHandler}
-     * @throws IOException
      */
-    GrizzlyFuture<RegisterChannelResult> deregisterChannelAsync(
+    void deregisterChannelAsync(
                                     SelectorRunner selectorRunner,
                                     SelectableChannel channel,
-                                    CompletionHandler<RegisterChannelResult> completionHandler)
-    throws IOException;
+                                    CompletionHandler<RegisterChannelResult> completionHandler);
 
 
     /**
@@ -122,9 +118,8 @@ public interface SelectorHandler {
      * @param selectorRunner
      * @param task
      * @param completionHandler
-     * @return 
      */
-    GrizzlyFuture<Task> execute(
+    void execute(
                                     final SelectorRunner selectorRunner,
                                     final Task task,
                                     final CompletionHandler<Task> completionHandler);
@@ -139,9 +134,8 @@ public interface SelectorHandler {
      * @param selectorRunner
      * @param task
      * @param completionHandler
-     * @return 
      */
-    GrizzlyFuture<Task> enque(
+    void enque(
                                     final SelectorRunner selectorRunner,
                                     final Task task,
                                     final CompletionHandler<Task> completionHandler);

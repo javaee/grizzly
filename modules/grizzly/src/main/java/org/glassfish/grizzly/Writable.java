@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
@@ -58,10 +57,8 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
-     * @throws java.io.IOException
      */
-     <M> GrizzlyFuture<WriteResult<M, L>> write(M message)
-            throws IOException;
+     <M> GrizzlyFuture<WriteResult<M, L>> write(M message);
 
     /**
      * Method writes the <tt>buffer</tt>.
@@ -69,13 +66,9 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-     <M> GrizzlyFuture<WriteResult<M, L>> write(M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler)
-            throws IOException;
+     <M> void write(M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler);
 
     /**
      * Method writes the <tt>buffer</tt>.
@@ -85,14 +78,10 @@ public interface Writable<L> {
      *        which will get notified, when write will be completed
      * @param pushbackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-     <M> GrizzlyFuture<WriteResult<M, L>> write(M message,
+     <M> void write(M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler)
-            throws IOException;
+            PushBackHandler pushbackHandler);
 
     /**
      * Method writes the <tt>buffer</tt> to the specific address.
@@ -104,13 +93,9 @@ public interface Writable<L> {
      *        which will get notified, when write will be completed
      * @param pushbackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-     <M> GrizzlyFuture<WriteResult<M, L>> write(L dstAddress,
+     <M> void write(L dstAddress,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler)
-            throws IOException;
+            PushBackHandler pushbackHandler);
 }

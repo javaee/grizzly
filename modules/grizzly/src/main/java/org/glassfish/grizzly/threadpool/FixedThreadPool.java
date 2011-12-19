@@ -99,14 +99,6 @@ public class FixedThreadPool extends AbstractThreadPool {
      * not supported
      */
     @Override
-    public boolean isTerminated() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    /**
-     * not supported
-     */
-    @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         throw new UnsupportedOperationException("Not supported yet.");
     }

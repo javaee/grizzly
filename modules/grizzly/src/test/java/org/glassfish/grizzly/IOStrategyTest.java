@@ -158,13 +158,13 @@ public class IOStrategyTest {
                             + echoResultFilter.counter.get(), e);
                 }
                 
-                connection.close();
+                connection.closeSilently();
                 connection = null;
             }
             
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

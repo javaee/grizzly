@@ -39,11 +39,12 @@
  */
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.LinkedList;
 import java.util.List;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Abstract class simplifies the implementation of
@@ -69,34 +70,34 @@ public abstract class AbstractSocketConnectorHandler
     }
 
     @Override
-    public GrizzlyFuture<Connection> connect(String host, int port)
-            throws IOException {
+    public GrizzlyFuture<Connection> connect(String host, int port) {
         return connect(new InetSocketAddress(host, port));
     }
 
     @Override
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
-            throws IOException {
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress) {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
     @Override
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            CompletionHandler<Connection> completionHandler)
-            throws IOException {
-        return connect(remoteAddress, null, completionHandler);
+    public void connect(SocketAddress remoteAddress,
+            CompletionHandler<Connection> completionHandler) {
+        connect(remoteAddress, null, completionHandler);
     }
 
     @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
-        return connect(remoteAddress, localAddress, null);
+            SocketAddress localAddress) {
+        final FutureImpl<Connection> future =
+                Futures.<Connection>createSafeFuture();
+        connect(remoteAddress, localAddress, Futures.toCompletionHandler(future));
+        return future;
     }
 
     @Override
-    public abstract GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
+    public abstract void connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler) throws IOException;
+            CompletionHandler<Connection> completionHandler);
 
     /**
      * Get the default {@link Processor} to process {@link IOEvent}, occurring

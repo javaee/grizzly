@@ -40,12 +40,11 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Transport;
 import java.io.IOException;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
@@ -79,28 +78,25 @@ public class TransportFilter extends BaseFilter {
         return FLUSH_EVENT;
     }
 
-    public static FilterChainEvent createFlushEvent(final FutureImpl future,
+    public static FilterChainEvent createFlushEvent(
             final CompletionHandler completionHandler) {
-        if (future == null && completionHandler == null) {
+        if (completionHandler == null) {
             return FLUSH_EVENT;
         }
 
-        return new FlushEvent(future, completionHandler);
+        return new FlushEvent(completionHandler);
     }
 
     public static final class FlushEvent implements FilterChainEvent {
         public static final Object TYPE = FlushEvent.class;
 
-        final FutureImpl future;
         final CompletionHandler completionHandler;
         
         private FlushEvent() {
-            this(null, null);
+            this(null);
         }
 
-        private FlushEvent(final FutureImpl future,
-                final CompletionHandler completionHandler) {
-            this.future = future;
+        private FlushEvent(final CompletionHandler completionHandler) {
             this.completionHandler = completionHandler;
         }
 
@@ -111,10 +107,6 @@ public class TransportFilter extends BaseFilter {
 
         public CompletionHandler getCompletionHandler() {
             return completionHandler;
-        }
-
-        public FutureImpl getFuture() {
-            return future;
         }
     }
 

@@ -108,7 +108,7 @@ public class GIOPClient {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

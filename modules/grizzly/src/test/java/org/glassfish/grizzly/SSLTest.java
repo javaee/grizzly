@@ -101,6 +101,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -348,7 +349,7 @@ public class SSLTest {
                 fail("Timed out waiting for CompletionHandler.failed() to be invoked");
             }
 
-            connection.close();
+            connection.closeSilently();
             connection = null;
 
             future = cTransport.connect("localhost", PORT);
@@ -387,11 +388,11 @@ public class SSLTest {
                 fail("Timed out waiting for CompletionHandler.completed() to be invoked");
             }
 
-            connection.close();
+            connection.closeSilently();
             connection = null;
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
             cTransport.stop();
             transport.stop();
@@ -452,9 +453,12 @@ public class SSLTest {
             assertTrue(connection != null);
 
             try {
-                assertEquals(pingPongTurnArounds,
-                        pingPongFilter.getServerCompletedFeature().get(
-                        10, TimeUnit.SECONDS));
+                final Object get = pingPongFilter.getServerCompletedFeature().get(
+                                    10, TimeUnit.SECONDS);
+                if (get instanceof Connection) {
+                    System.out.println("unexpected future=" + pingPongFilter.getServerCompletedFeature() + " object=" + get);
+                }
+                assertEquals(pingPongTurnArounds, get);
             } catch (TimeoutException e) {
                 logger.severe("Server timeout");
             }
@@ -463,11 +467,11 @@ public class SSLTest {
                     pingPongFilter.getClientCompletedFeature().get(
                     10, TimeUnit.SECONDS));
             
-            connection.close();
+            connection.closeSilently();
             connection = null;
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -522,8 +526,12 @@ public class SSLTest {
             transport.configureBlocking(isBlocking);
 
             for (int i = 0; i < connectionsNum; i++) {
-                Future<Connection> future = transport.connect(
+                final FutureImpl<Connection> future =
+                        Futures.<Connection>createSafeFuture();
+                transport.connect(
                         new InetSocketAddress("localhost", PORT),
+                        Futures.<Connection>toCompletionHandler(
+                        future,
                         new EmptyCompletionHandler<Connection>()  {
 
                             @Override
@@ -531,7 +539,7 @@ public class SSLTest {
                                 connection.configureStandalone(true);
                                 connection.setReadTimeout(10, TimeUnit.SECONDS);
                             }
-                        });
+                        }));
 
                 connection = future.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
@@ -585,7 +593,7 @@ public class SSLTest {
                 writer.close();
                 writer = null;
                 
-                connection.close();
+                connection.closeSilently();
                 connection = null;
             }
         } finally {
@@ -597,7 +605,7 @@ public class SSLTest {
                 writer.close();
             }
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -681,12 +689,12 @@ public class SSLTest {
                     throw new TimeoutException("Received " + clientTestFilter.getBytesReceived() + " out of " + clientTestFilter.getPatternString().length());
                 }
 
-                connection.close();
+                connection.closeSilently();
                 connection = null;
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -767,7 +775,7 @@ public class SSLTest {
             
             if (connection != null) {
                 try {
-                    connection.close();
+                    connection.closeSilently();
                 } catch (Exception e) {}
             }
 
@@ -859,12 +867,13 @@ public class SSLTest {
 
                     @Override
                     public void completed(SSLEngine result) {
-                        try {
-                            connection.write("ping");
-                            turnAroundAttr.set(connection, 1);
-                        } catch (IOException e) {
-                            clientCompletedFeature.failure(e);
-                        }
+                        turnAroundAttr.set(connection, 1);
+                        connection.write("ping", new EmptyCompletionHandler<WriteResult>() {
+                            @Override
+                            public void failed(Throwable e) {
+                                clientCompletedFeature.failure(e);
+                            }
+                        });
                     }
                 });
             } catch (Exception e) {
@@ -1026,7 +1035,7 @@ public class SSLTest {
                         final FutureImpl<Boolean> completionHandlerFuture =
                                 SafeFutureImpl.<Boolean>create();
                         try {
-                            Future<WriteResult> writeFuture = connection.write(content, new CompletionHandler<WriteResult>() {
+                            connection.write(content, new CompletionHandler<WriteResult>() {
                                 @Override
                                 public void cancelled() {
                                     completionHandlerFuture.failure(new IOException("cancelled"));
@@ -1048,9 +1057,6 @@ public class SSLTest {
                             });
                             
                             completionHandlerFuture.get(10, TimeUnit.SECONDS);
-                            if (!writeFuture.isDone()) {
-                                throw new IllegalStateException("Write future should be done");
-                            }
                         } catch (Exception e) {
                             logger.log(Level.SEVERE, "sending packet #" + packetNumber, e);
                         }

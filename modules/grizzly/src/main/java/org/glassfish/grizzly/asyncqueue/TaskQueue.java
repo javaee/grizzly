@@ -112,7 +112,7 @@ public final class TaskQueue<E> {
      *
      * @return the new memory (in bytes) consumed by the queue.
      */
-    public int releaseSpaceAndNotify(final int amount) throws IOException {
+    public int releaseSpaceAndNotify(final int amount) {
         final int space = releaseSpace(amount);
         doNotify();
         return space;
@@ -220,7 +220,7 @@ public final class TaskQueue<E> {
     // ------------------------------------------------------- Protected Methods
 
 
-    protected void doNotify() throws IOException {
+    protected void doNotify() {
         if (maxQueueSizeHolder == null) {
             return;
         }

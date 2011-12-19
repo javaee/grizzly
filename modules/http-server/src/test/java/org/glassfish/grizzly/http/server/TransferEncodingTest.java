@@ -177,7 +177,7 @@ public class TransferEncodingTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } finally {
@@ -216,7 +216,7 @@ public class TransferEncodingTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } finally {

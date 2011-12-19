@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
@@ -65,17 +64,16 @@ public interface Processor<E extends Context> {
      * 
      * @param context processing context
      * @return the result of I/O event processing
-     * @throws IOException
      */
-    ProcessorResult process(E context) throws IOException;
+    ProcessorResult process(E context);
 
-    GrizzlyFuture<ReadResult> read(Connection connection,
-            CompletionHandler<ReadResult> completionHandler) throws IOException;
+    void read(Connection connection,
+            CompletionHandler<ReadResult> completionHandler);
 
-    GrizzlyFuture<WriteResult> write(Connection connection,
+    void write(Connection connection,
             Object dstAddress, Object message,
             CompletionHandler<WriteResult> completionHandler,
-            PushBackHandler pushBackHandler) throws IOException;
+            PushBackHandler pushBackHandler);
     
     /**
      * Is this {@link Processor} interested in processing the i/o event

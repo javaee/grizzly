@@ -40,15 +40,12 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
-
 /**
  * General asynchronous closable interface.
  * 
  * @author Alexey Stashok
  */
 public interface Closeable<E extends Closeable> {
-    public GrizzlyFuture<E> close() throws IOException;
-    public GrizzlyFuture<E> close(CompletionHandler<E> completionHandler)
-            throws IOException;
+    public GrizzlyFuture<E> close();
+    public void close(CompletionHandler<E> completionHandler);
 }

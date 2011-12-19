@@ -40,16 +40,8 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.Interceptor;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.utils.DebugPoint;
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.impl.FutureImpl;
 
 /**
  * {@link AsyncQueue} read element unit
@@ -61,7 +53,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
             ThreadCache.obtainIndex(AsyncReadQueueRecord.class, 2);
     
     public static AsyncReadQueueRecord create(final Connection connection,
-            final Buffer message, final Future future,
+            final Buffer message,
             final ReadResult currentResult, CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
 
@@ -71,24 +63,24 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         if (asyncReadQueueRecord != null) {
             asyncReadQueueRecord.isRecycled = false;
             asyncReadQueueRecord.interceptor = interceptor;
-            asyncReadQueueRecord.set(connection, message, future, currentResult,
+            asyncReadQueueRecord.set(connection, message, currentResult,
                     completionHandler);
             return asyncReadQueueRecord;
         }
 
-        return new AsyncReadQueueRecord(connection, message, future,
+        return new AsyncReadQueueRecord(connection, message,
                 currentResult, completionHandler, interceptor);
     }
 
     protected Interceptor interceptor;
     
     private AsyncReadQueueRecord(final Connection connection,
-            final Buffer message, final Future future,
+            final Buffer message,
             final ReadResult currentResult,
             final CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
         
-        super(connection, message, future, currentResult, completionHandler);
+        super(connection, message, currentResult, completionHandler);
         this.interceptor = interceptor;
     }
 
@@ -99,12 +91,6 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
 
     @SuppressWarnings("unchecked")
     public final void notifyComplete() {
-        final FutureImpl futureImpl = (FutureImpl) future;
-        
-        if (futureImpl != null) {
-            futureImpl.result(currentResult);
-        }
-
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
@@ -116,7 +102,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     }
     
     protected final void reset() {
-        set(null, null, null, null, null);
+        set(null, null, null, null);
         interceptor = null;
     }
 

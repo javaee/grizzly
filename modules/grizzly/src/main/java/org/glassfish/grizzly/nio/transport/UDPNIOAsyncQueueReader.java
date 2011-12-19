@@ -40,20 +40,14 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueReader;
-import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Interceptor;
-import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueReader;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
 
 /**
  * The UDP transport {@link AsyncQueueReader} implementation, based on
@@ -79,7 +73,7 @@ public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
             Interceptor<ReadResult> interceptor) {
         
         final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
-                connection, buffer, SafeFutureImpl.create(),
+                connection, buffer,
                 ReadResult.create(connection),
                 completionHandler, interceptor);
         ((UDPNIOConnection) connection).getAsyncReadQueue().offer(record);

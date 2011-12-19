@@ -41,8 +41,8 @@
 package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
-
-import java.io.IOException;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Abstract class, which provides transitive dependencies for overloaded
@@ -58,20 +58,19 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     @Override
     public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
             final Connection connection,
-            final WritableMessage message) throws IOException {
-        return write(connection, null, message, null, null);
+            final WritableMessage message) {
+        return write(connection, null, message);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
+    public final void write(
             final Connection connection,
             final WritableMessage message,
-            final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
-            throws IOException {
-        return write(connection, null, message, completionHandler, null);
+            final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
+        write(connection, null, message, completionHandler, null);
     }
 
     /**
@@ -80,20 +79,24 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     @Override
     public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
             final Connection connection,
-            final L dstAddress, final WritableMessage message)
-            throws IOException {
-        return write(connection, dstAddress, message, null, null);
+            final L dstAddress, final WritableMessage message) {
+        final FutureImpl<WriteResult<WritableMessage, L>> future =
+                Futures.<WriteResult<WritableMessage, L>>createSafeFuture();
+        
+        write(connection, dstAddress, message,
+                Futures.toCompletionHandler(future), null);
+        
+        return future;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
+    public final void write(
             final Connection connection,
             final L dstAddress, final WritableMessage message,
-            final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler)
-            throws IOException {
-        return write(connection, dstAddress, message, completionHandler, null);
+            final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
+        write(connection, dstAddress, message, completionHandler, null);
     }
 }

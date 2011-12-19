@@ -59,7 +59,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -155,7 +154,7 @@ public class AsyncPUTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -222,7 +221,7 @@ public class AsyncPUTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -285,12 +284,7 @@ public class AsyncPUTest {
             tp.schedule(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        ctx.write(makeResponseMessage(name));
-                    } catch (IOException e) {
-                        LOGGER.log(Level.SEVERE, "Error", e);
-                    }
-                    
+                    ctx.write(makeResponseMessage(name));
                     ctx.completeAndRecycle();
                 }
             }, scheduleDelayMillis, TimeUnit.MILLISECONDS);

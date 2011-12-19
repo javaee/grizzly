@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.ProcessorResult;
@@ -88,17 +87,14 @@ public interface AsyncQueue {
      * 
      * @param context {@link Context}
      * @return {@link AsyncResult}, depending on async queue status.
-     * 
-     * @throws java.io.IOException
      */
-    public abstract AsyncResult processAsync(Context context) throws IOException;
+    public abstract AsyncResult processAsync(Context context);
     
     /**
      * Callback method, which is called, when {@link Connection} has been closed,
      * to let processor release a connection associated resources.
      * 
      * @param connection {@link Connection}
-     * @throws java.io.IOException
      */
     public abstract void onClose(Connection connection);
     

@@ -574,7 +574,7 @@ public class SuspendTest {
         try {
             assertTrue(resultFuture.get(30, TimeUnit.SECONDS));
         } finally {
-            connection.close();
+            connection.closeSilently();
         }
     }
 

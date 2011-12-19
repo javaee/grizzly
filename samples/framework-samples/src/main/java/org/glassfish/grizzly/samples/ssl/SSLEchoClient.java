@@ -154,15 +154,8 @@ public class SSLEchoClient {
                  */
                 @Override
                 public void completed(SSLEngine result) {
-                    try {
-                        // Here we send String directly
-                        connection.write(MESSAGE);
-                    } catch (IOException e) {
-                        try {
-                            connection.close();
-                        } catch (IOException ex) {
-                        }
-                    }
+                    // Here we send String directly
+                    connection.write(MESSAGE);
                 }
             });
 

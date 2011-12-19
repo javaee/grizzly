@@ -40,71 +40,40 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.FileTransfer;
-import org.glassfish.grizzly.PortRange;
-import org.glassfish.grizzly.ProcessorSelector;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
-import org.glassfish.grizzly.nio.DefaultSelectorHandler;
-import org.glassfish.grizzly.nio.DefaultSelectionKeyHandler;
-import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
+import java.io.EOFException;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.Reader;
-import org.glassfish.grizzly.SocketBinder;
-import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.StandaloneProcessorSelector;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.Writer;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
+import org.glassfish.grizzly.memory.BufferArray;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.WorkerThread;
-import java.io.EOFException;
-import java.lang.ref.SoftReference;
-import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.memory.BufferArray;
-import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.utils.Exceptions;
 
 /**
@@ -438,10 +407,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             if (serverConnection != null) {
                 serverConnections.remove(serverConnection);
 
-                try {
-                    serverConnection.close();
-                } catch (IOException ignored) {
-                }
+                serverConnection.closeSilently();
             } else {
                 try {
                     serverSocketChannel.close();
@@ -538,12 +504,9 @@ public final class TCPNIOTransport extends NIOTransport implements
      * @param port remote port to connect to.
      * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
     @Override
-    public GrizzlyFuture<Connection> connect(final String host, final int port)
-            throws IOException {
+    public GrizzlyFuture<Connection> connect(final String host, final int port) {
         return connectorHandler.connect(host, port);
     }
 
@@ -554,12 +517,9 @@ public final class TCPNIOTransport extends NIOTransport implements
      * @param remoteAddress remote address to connect to.
      * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
     @Override
-    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress)
-            throws IOException {
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress) {
         return connectorHandler.connect(remoteAddress);
     }
 
@@ -569,16 +529,11 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @param remoteAddress remote address to connect to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
     @Override
-    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException {
-        return connectorHandler.connect(remoteAddress, completionHandler);
+    public void connect(final SocketAddress remoteAddress,
+            final CompletionHandler<Connection> completionHandler) {
+        connectorHandler.connect(remoteAddress, completionHandler);
     }
 
     /**
@@ -589,12 +544,10 @@ public final class TCPNIOTransport extends NIOTransport implements
      * @param localAddress local address to bind socket to.
      * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
     @Override
     public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
-            final SocketAddress localAddress) throws IOException {
+            final SocketAddress localAddress) {
         return connectorHandler.connect(remoteAddress, localAddress);
     }
 
@@ -605,17 +558,12 @@ public final class TCPNIOTransport extends NIOTransport implements
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
     @Override
-    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
+    public void connect(final SocketAddress remoteAddress,
             final SocketAddress localAddress,
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException {
-        return connectorHandler.connect(remoteAddress, localAddress,
+            final CompletionHandler<Connection> completionHandler) {
+        connectorHandler.connect(remoteAddress, localAddress,
                 completionHandler);
     }
 
@@ -837,40 +785,34 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public IOEventReg fireIOEvent(final IOEvent ioEvent,
+    public void fireIOEvent(final IOEvent ioEvent,
             final Connection connection,
-            final IOEventProcessingHandler processingHandler)
-            throws IOException {
+            final IOEventProcessingHandler processingHandler) {
 
-        try {
             if (ioEvent == IOEvent.SERVER_ACCEPT) {
-                ((TCPNIOServerConnection) connection).onAccept();
-                return IOEventReg.REGISTER;
+                try {
+                    ((TCPNIOServerConnection) connection).onAccept();
+                } catch (IOException e) {
+                    failProcessingHandler(ioEvent, connection,
+                            processingHandler, e);
+                }
+                
+                return;
             } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
-                ((TCPNIOConnection) connection).onConnect();
-                return IOEventReg.REGISTER;
+                try {
+                    ((TCPNIOConnection) connection).onConnect();
+                } catch (IOException e) {
+                    failProcessingHandler(ioEvent, connection,
+                            processingHandler, e);
+                }
+                
+                return;
             }
             
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-            if (ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, ioEvent, processingHandler))) {
-                return IOEventReg.REGISTER;
-            } else {
-                return IOEventReg.DEREGISTER;
-            }
-        } catch (IOException e) {
-            LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent(). "
-                    + "Connection={0} event={1}", new Object[] {connection, ioEvent});
-            throw e;
-        } catch (Exception e) {
-            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
-                    append("connection=").append(connection).
-                    append(" event=").append(ioEvent).toString();
-
-            LOGGER.log(Level.WARNING, text, e);
-            throw new IOException(e.getClass() + ": " + text);
-        }
+            ProcessorExecutor.execute(Context.create(connection,
+                    conProcessor, ioEvent, processingHandler));
     }
     
     /**
@@ -971,7 +913,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
                 if (read < 0) {
                     // Mark connection as closed remotely.
-                    tcpConnection.close0(null, false).markForRecycle(true);
+                    tcpConnection.close0(null, false);
                     throw new EOFException();
                 }                
             }
@@ -1020,7 +962,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 
                 if (read < 0) {
                     // Mark connection as closed remotely.
-                    tcpConnection.close0(null, false).markForRecycle(true);
+                    tcpConnection.close0(null, false);
                     throw new EOFException();
                 }
             }
@@ -1341,6 +1283,19 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
+    private static void failProcessingHandler(final IOEvent ioEvent,
+            final Connection connection,
+            final IOEventProcessingHandler processingHandler,
+            final IOException e) {
+        if (processingHandler != null) {
+            try {
+                processingHandler.onError(Context.create(connection, null,
+                        ioEvent, processingHandler), e);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+    
     /**
      * {@inheritDoc}
      */

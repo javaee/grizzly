@@ -49,16 +49,7 @@ import java.nio.channels.Selector;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.glassfish.grizzly.AbstractReader;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.Interceptor;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.Reader;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -78,11 +69,11 @@ public abstract class TemporarySelectorReader
     }
 
     @Override
-    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(
+    public void read(
             Connection connection, Buffer message,
             CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<ReadResult> interceptor) throws IOException {
-        return read(connection, message, completionHandler,
+            Interceptor<ReadResult> interceptor) {
+        read(connection, message, completionHandler,
                 interceptor,
                 connection.getReadTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
@@ -101,16 +92,17 @@ public abstract class TemporarySelectorReader
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(
+    public void read(
             final Connection connection, final Buffer message,
             final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             final Interceptor<ReadResult> interceptor,
-            final long timeout, final TimeUnit timeunit) throws IOException {
+            final long timeout, final TimeUnit timeunit) {
 
         if (connection == null || !(connection instanceof NIOConnection)) {
-            return failure(new IllegalStateException(
+            failure(new IllegalStateException(
                     "Connection should be NIOConnection and cannot be null"),
                     completionHandler);
+            return;
         }
 
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -131,13 +123,11 @@ public abstract class TemporarySelectorReader
                 if (interceptor != null) {
                     interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
                 }
-
-                return ReadyFutureImpl.create(currentResult);
             } else {
-                return failure(new TimeoutException(), completionHandler);
+                failure(new TimeoutException(), completionHandler);
             }
         } catch (IOException e) {
-            return failure(e, completionHandler);
+            failure(e, completionHandler);
         }
     }
     
@@ -226,13 +216,11 @@ public abstract class TemporarySelectorReader
         return transport;
     }
     
-    private static GrizzlyFuture<ReadResult<Buffer, SocketAddress>> failure(
+    private static void failure(
             final Throwable failure,
             final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) {
         if (completionHandler != null) {
             completionHandler.failed(failure);
         }
-        
-        return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(failure);
     }    
 }

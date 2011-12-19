@@ -174,7 +174,7 @@ public class HttpRedirectFilter extends BaseFilter implements
                     .build();
             ctx.write(response);
         } else {
-            connection.close();
+            connection.closeSilently();
         }
         
         return ctx.getStopAction();

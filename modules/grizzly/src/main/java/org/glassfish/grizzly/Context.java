@@ -40,11 +40,11 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
@@ -295,21 +295,20 @@ public class Context implements AttributeStorage, Cacheable {
         }
 
         @Override
-        public ProcessorResult process(Context context) throws IOException {
+        public ProcessorResult process(Context context) {
             return ProcessorResult.createNotRun();
         }
 
         @Override
-        public GrizzlyFuture read(Connection connection,
-                CompletionHandler completionHandler) throws IOException {
+        public void read(Connection connection,
+                CompletionHandler completionHandler) {
             throw new UnsupportedOperationException("Not supported.");
         }
 
         @Override
-        public GrizzlyFuture write(Connection connection, Object dstAddress,
+        public void write(Connection connection, Object dstAddress,
                 Object message, CompletionHandler completionHandler,
-                PushBackHandler pushBackHandler)
-                throws IOException {
+                PushBackHandler pushBackHandler) {
             throw new UnsupportedOperationException("Not supported.");
         }
 

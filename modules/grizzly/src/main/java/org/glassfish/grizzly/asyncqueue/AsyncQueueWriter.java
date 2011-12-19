@@ -40,17 +40,9 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import java.io.IOException;
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.Writer;
 import java.net.SocketAddress;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.WriteHandler;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
@@ -89,16 +81,12 @@ public interface AsyncQueueWriter<L>
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
      *        channel directly and has to be put on a asynchronous queue    
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
+    public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             PushBackHandler pushBackHandler,
-            MessageCloner<WritableMessage> cloner)
-            throws IOException;
+            MessageCloner<WritableMessage> cloner);
 
     /**
      * @param connection the {@link Connection} to test whether or not the

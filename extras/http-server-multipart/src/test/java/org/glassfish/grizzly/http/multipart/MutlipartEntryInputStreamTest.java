@@ -76,6 +76,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -320,13 +321,19 @@ public class MutlipartEntryInputStreamTest {
                     .processor(filterChainBuilder.build())
                     .build();
 
-            return connector.connect(new InetSocketAddress(host, port),
+            final FutureImpl<Connection> future =
+                    Futures.<Connection>createSafeFuture();
+            
+            connector.connect(new InetSocketAddress(host, port),
+                    Futures.toCompletionHandler(future, 
                     new EmptyCompletionHandler<Connection>() {
                 @Override
                 public void completed(Connection result) {
                     connection = result;
                 }
-            });
+            }));
+            
+            return future;
         }
 
         public Future<HttpPacket> get(HttpPacket request) throws IOException {
@@ -351,9 +358,9 @@ public class MutlipartEntryInputStreamTest {
             return localFuture;
         }
 
-        public void close() throws IOException {
+        public void close() {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
         }
 

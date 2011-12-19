@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
@@ -60,11 +59,8 @@ public interface ConnectorHandler<E> {
      * @param remoteAddress remote address to connect to.
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
-    public Future<Connection> connect(E remoteAddress)
-            throws IOException;
+    public Future<Connection> connect(E remoteAddress);
 
     /**
      * Creates, initializes and connects socket to the specific
@@ -72,13 +68,9 @@ public interface ConnectorHandler<E> {
      *
      * @param remoteAddress remote address to connect to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link Future} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
-    public Future<Connection> connect(E remoteAddress,
-            CompletionHandler<Connection> completionHandler) throws IOException;
+    public void connect(E remoteAddress,
+            CompletionHandler<Connection> completionHandler);
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
@@ -88,11 +80,8 @@ public interface ConnectorHandler<E> {
      * @param localAddress local address to bind socket to.
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
-    public Future<Connection> connect(E remoteAddress,
-            E localAddress) throws IOException;
+    public Future<Connection> connect(E remoteAddress, E localAddress);
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
@@ -101,12 +90,8 @@ public interface ConnectorHandler<E> {
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link Future} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     *
-     * @throws java.io.IOException
      */
-    public Future<Connection> connect(E remoteAddress,
+    public void connect(E remoteAddress,
             E localAddress,
-            CompletionHandler<Connection> completionHandler) throws IOException;
+            CompletionHandler<Connection> completionHandler);
 }

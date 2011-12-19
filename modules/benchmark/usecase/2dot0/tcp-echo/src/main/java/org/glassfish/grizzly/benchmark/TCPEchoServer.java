@@ -63,7 +63,9 @@ public class TCPEchoServer {
         System.out.println(settings);
         
         TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
-        TCPNIOTransport transport = builder.build();
+        TCPNIOTransport transport = builder
+		.setMaxAsyncWriteQueueSizeInBytes(-1)
+		.build();
 
         MemoryStatsProbe probe = null;
         if (settings.isMonitoringMemory()) {

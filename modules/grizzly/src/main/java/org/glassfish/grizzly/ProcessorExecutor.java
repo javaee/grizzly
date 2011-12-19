@@ -52,17 +52,16 @@ public final class ProcessorExecutor {
 
     private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 
-    public static boolean execute(final Connection connection,
+    public static void execute(final Connection connection,
             final IOEvent ioEvent, final Processor processor,
-            final IOEventProcessingHandler processingHandler)
-            throws IOException {
+            final IOEventProcessingHandler processingHandler) {
 
-        return execute(Context.create(connection, processor, ioEvent,
+        execute(Context.create(connection, processor, ioEvent,
                 processingHandler));
     }
    
     @SuppressWarnings("unchecked")
-    public static boolean execute(Context context) throws IOException {
+    public static void execute(Context context) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST,
                     "executing connection ({0}). IOEvent={1} processor={2}",
@@ -74,48 +73,55 @@ public final class ProcessorExecutor {
         ProcessorResult result;
         ProcessorResult.Status status;
         
-        do {
-            result = context.getProcessor().process(context);
-            status = result.getStatus();
-            isRerun = (status == ProcessorResult.Status.RERUN);
-            if (isRerun) {
-                final Context newContext = (Context) result.getData();
-                rerun(context, newContext);
-                context = newContext;
+        try {
+            do {
+                result = context.getProcessor().process(context);
+                status = result.getStatus();
+                isRerun = (status == ProcessorResult.Status.RERUN);
+                if (isRerun) {
+                    final Context newContext = (Context) result.getData();
+                    rerun(context, newContext);
+                    context = newContext;
+                }
+            } while (isRerun);
+
+            switch (status) {
+                case COMPLETE:
+                    complete(context, result.getData());
+                    break;
+
+                case LEAVE:
+                    leave(context);
+                    break;
+
+                case TERMINATE:
+                    terminate(context);
+                    break;
+
+                case REREGISTER:
+                    reregister(context, result.getData());
+                    break;
+
+                case ERROR:
+                    error(context, result.getData());
+                    break;
+
+                case NOT_RUN:
+                    notRun(context);
+                    break;
+
+                default: throw new IllegalStateException();
             }
-        } while (isRerun);
-        
-        switch (status) {
-            case COMPLETE:
-                complete(context, result.getData());
-                return true;
-
-            case LEAVE:
-                leave(context);
-                return false;
-
-            case TERMINATE:
-                terminate(context);
-                return false;
-
-            case REREGISTER:
-                reregister(context, result.getData());
-                return true;
-
-            case ERROR:
-                error(context, result.getData());
-                return false;
-
-            case NOT_RUN:
-                notRun(context);
-                return false;
-                
-            default: throw new IllegalStateException();
+        } catch (Throwable t) {
+            try {
+                error(context, t);
+            } catch (Exception ignored) {
+            }
         }
     }
 
-    public static boolean resume(final Context context) throws IOException {
-        return execute(context);
+    public static void resume(final Context context) throws IOException {
+        execute(context);
     }
 
     private static void complete(final Context context, final Object data)

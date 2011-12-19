@@ -40,17 +40,16 @@
 
 package org.glassfish.grizzly;
 
+import java.net.Socket;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.nio.transport.DefaultStreamReader;
 import org.glassfish.grizzly.nio.transport.DefaultStreamWriter;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
-import java.io.IOException;
-import java.net.Socket;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * {@link Processor}, which is not interested in processing I/O events.
@@ -73,7 +72,7 @@ public class StandaloneProcessor implements Processor {
      * {@link IOEvent}.
      */
     @Override
-    public ProcessorResult process(final Context context) throws IOException {
+    public ProcessorResult process(final Context context) {
         final IOEvent iOEvent = context.getIoEvent();
         if (iOEvent == IOEvent.READ) {
             final Connection connection = context.getConnection();
@@ -140,23 +139,22 @@ public class StandaloneProcessor implements Processor {
     }
 
     @Override
-    public GrizzlyFuture read(Connection connection,
-            CompletionHandler completionHandler) throws IOException {
+    public void read(Connection connection,
+            CompletionHandler completionHandler) {
         
         final Transport transport = connection.getTransport();
-        return transport.getReader(connection).read(connection,
+        transport.getReader(connection).read(connection,
                 null, completionHandler);
     }
 
     @Override
-    public GrizzlyFuture write(Connection connection, Object dstAddress,
+    public void write(Connection connection, Object dstAddress,
             Object message, CompletionHandler completionHandler,
-            PushBackHandler pushBackHandler)
-            throws IOException {
+            PushBackHandler pushBackHandler) {
         
         final Transport transport = connection.getTransport();
         
-        return transport.getWriter(connection).write(connection, dstAddress,
+        transport.getWriter(connection).write(connection, dstAddress,
                 (Buffer) message, completionHandler, pushBackHandler);
     }
 }

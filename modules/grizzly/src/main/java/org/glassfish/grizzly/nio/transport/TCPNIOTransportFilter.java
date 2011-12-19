@@ -139,12 +139,10 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueIO().getWriter().write(connection, null,
-                        message, writeCompletionHandler, pushBackHandler, cloner)
-                        .markForRecycle(!hasFuture);
+                        message, writeCompletionHandler, pushBackHandler, cloner);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
-                        null, message, writeCompletionHandler, pushBackHandler)
-                        .markForRecycle(!hasFuture);
+                        null, message, writeCompletionHandler, pushBackHandler);
             }
         }
 
@@ -166,25 +164,11 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 throw new IllegalStateException("TransportContext CompletionHandler and Future must be null");
             }
 
-            final FutureImpl contextFuture =
-                    ((TransportFilter.FlushEvent) event).getFuture();
             final CompletionHandler completionHandler =
                     ((TransportFilter.FlushEvent) event).getCompletionHandler();
 
-
-            final CompletionHandler writeCompletionHandler;
-
-            final boolean hasFuture = (contextFuture != null);
-            if (hasFuture) {
-                writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, completionHandler);
-            } else {
-                writeCompletionHandler = completionHandler;
-            }
-
             transport.getWriter(transportContext.isBlocking()).write(connection,
-                    Buffers.EMPTY_BUFFER, writeCompletionHandler)
-                    .markForRecycle(false);
+                    Buffers.EMPTY_BUFFER, completionHandler);
         }
         
         return ctx.getInvokeAction();
@@ -196,10 +180,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
         final Connection connection = ctx.getConnection();
         if (connection != null) {
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ignored) {
-            }
+            connection.closeSilently();
         }
     }
 }

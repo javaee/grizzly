@@ -226,7 +226,7 @@ public class NIOOutputSinksTest extends TestCase {
                 LOGGER.log(Level.INFO, "Written {0}", writeCounter);
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
 
@@ -386,7 +386,7 @@ public class NIOOutputSinksTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
 
@@ -487,7 +487,7 @@ public class NIOOutputSinksTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
 
@@ -600,7 +600,7 @@ public class NIOOutputSinksTest extends TestCase {
                 LOGGER.log(Level.INFO, "Written {0}", writeCounter);
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
 
@@ -725,7 +725,7 @@ public class NIOOutputSinksTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
 

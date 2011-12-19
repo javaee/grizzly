@@ -40,25 +40,16 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.filterchain.*;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -153,8 +144,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
 
             transport.getWriter(transportContext.isBlocking()).write(
                     connection, address,
-                    message, writeCompletionHandler).markForRecycle(
-                    !hasFuture);
+                    message, writeCompletionHandler);
         }
 
         return ctx.getInvokeAction();
@@ -174,25 +164,11 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                 throw new IllegalStateException("TransportContext CompletionHandler and Future must be null");
             }
 
-            final FutureImpl contextFuture =
-                    ((TransportFilter.FlushEvent) event).getFuture();
             final CompletionHandler completionHandler =
                     ((TransportFilter.FlushEvent) event).getCompletionHandler();
 
-
-            final CompletionHandler writeCompletionHandler;
-
-            final boolean hasFuture = (contextFuture != null);
-            if (hasFuture) {
-                writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, completionHandler);
-            } else {
-                writeCompletionHandler = completionHandler;
-            }
-
             transport.getWriter(transportContext.isBlocking()).write(connection,
-                    Buffers.EMPTY_BUFFER, writeCompletionHandler)
-                    .markForRecycle(false);
+                    Buffers.EMPTY_BUFFER, completionHandler);
 
             transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
@@ -207,10 +183,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
 
         final Connection connection = ctx.getConnection();
         if (connection != null) {
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ignored) {
-            }
+            connection.closeSilently();
         }
     }
 }

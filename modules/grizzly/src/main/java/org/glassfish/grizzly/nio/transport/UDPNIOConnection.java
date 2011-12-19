@@ -39,23 +39,24 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
-import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -84,11 +85,15 @@ public class UDPNIOConnection extends NIOConnection {
 
     public void register() throws IOException {
 
-        final Future future =
-                transport.getNIOChannelDistributor().registerChannelAsync(
+        final FutureImpl<RegisterChannelResult> future =
+                Futures.<RegisterChannelResult>createSafeFuture();
+
+        transport.getNIOChannelDistributor().registerChannelAsync(
                 channel,
                 isStandalone() ? 0 : SelectionKey.OP_READ, this,
-                ((UDPNIOTransport) transport).registerChannelCompletionHandler);
+                Futures.toCompletionHandler(future,
+                ((UDPNIOTransport) transport).registerChannelCompletionHandler
+                ));
 
         try {
             future.get(10, TimeUnit.SECONDS);
@@ -109,12 +114,7 @@ public class UDPNIOConnection extends NIOConnection {
 
     @Override
     protected void preClose() {
-        try {
-            transport.fireIOEvent(IOEvent.CLOSED, this, null);
-        } catch (IOException e) {
-            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
-                    "when firing CLOSE event");
-        }
+        transport.fireIOEvent(IOEvent.CLOSED, this, null);
     }
 
     /**

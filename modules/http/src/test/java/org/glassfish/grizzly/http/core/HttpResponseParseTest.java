@@ -233,7 +233,7 @@ public class HttpResponseParseTest extends TestCase {
             assertTrue(parseResult.get(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

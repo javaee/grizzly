@@ -178,7 +178,7 @@ public class ResourceAllocationFilter extends BaseFilter {
                 }
             }
             if (delayCount > 5) {
-                ctx.getConnection().close();
+                ctx.getConnection().closeSilently();
                 return ctx.getStopAction();
             }
         }

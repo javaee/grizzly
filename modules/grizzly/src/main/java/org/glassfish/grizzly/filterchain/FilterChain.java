@@ -40,18 +40,9 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.util.List;
-
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.Codec;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.ProcessorResult;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.WriteResult;
 import java.io.IOException;
+import java.util.List;
+import org.glassfish.grizzly.*;
 
 /**
  * <p>
@@ -94,7 +85,7 @@ import java.io.IOException;
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
-public interface FilterChain extends Processor, List<Filter> {
+public interface FilterChain extends Processor<Context>, List<Filter> {
     FilterChainContext obtainFilterChainContext(Connection connection);
 
     /**
@@ -115,20 +106,18 @@ public interface FilterChain extends Processor, List<Filter> {
      *
      * @throws IOException
      */
-    ProcessorResult execute(FilterChainContext context) throws IOException;
+    ProcessorResult execute(FilterChainContext context);
 
-    <M> GrizzlyFuture<WriteResult> flush(Connection connection,
-            CompletionHandler<WriteResult> completionHandler) throws IOException;
+    void flush(Connection connection,
+            CompletionHandler<WriteResult> completionHandler);
 
-    GrizzlyFuture<FilterChainContext> fireEventUpstream(Connection connection,
+    void fireEventUpstream(Connection connection,
             FilterChainEvent event,
-            CompletionHandler<FilterChainContext> completionHandler)
-            throws IOException;
+            CompletionHandler<FilterChainContext> completionHandler);
     
-    GrizzlyFuture<FilterChainContext> fireEventDownstream(Connection connection,
+    void fireEventDownstream(Connection connection,
             FilterChainEvent event,
-            CompletionHandler<FilterChainContext> completionHandler)
-            throws IOException;
+            CompletionHandler<FilterChainContext> completionHandler);
 
     ReadResult read(FilterChainContext context) throws IOException;
 

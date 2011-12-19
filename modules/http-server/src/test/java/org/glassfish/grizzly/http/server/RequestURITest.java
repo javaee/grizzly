@@ -216,7 +216,7 @@ public class RequestURITest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } finally {

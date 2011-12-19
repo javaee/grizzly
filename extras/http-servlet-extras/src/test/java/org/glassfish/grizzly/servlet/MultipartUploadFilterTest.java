@@ -80,6 +80,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.utils.Futures;
 
 public class MultipartUploadFilterTest extends TestCase {
 
@@ -263,13 +264,19 @@ public class MultipartUploadFilterTest extends TestCase {
                     .processor(filterChainBuilder.build())
                     .build();
 
-            return connector.connect(new InetSocketAddress(host, port),
+            final FutureImpl<Connection> future =
+                    Futures.<Connection>createSafeFuture();
+            
+            connector.connect(new InetSocketAddress(host, port),
+                    Futures.toCompletionHandler(future, 
                     new EmptyCompletionHandler<Connection>() {
                 @Override
                 public void completed(Connection result) {
                     connection = result;
                 }
-            });
+            }));
+            
+            return future;
         }
 
         public Future<HttpPacket> get(HttpPacket request) throws IOException {

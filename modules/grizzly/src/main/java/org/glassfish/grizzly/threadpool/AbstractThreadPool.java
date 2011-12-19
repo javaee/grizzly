@@ -40,19 +40,7 @@
 
 package org.glassfish.grizzly.threadpool;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.threadpool.jmx.ThreadPool;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
@@ -60,7 +48,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
+import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
+import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.threadpool.jmx.ThreadPool;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
@@ -246,6 +240,16 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return !running;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isTerminated() {
+        synchronized (stateLock) {
+            return !running && workers.isEmpty();
+        }
+    }
+    
     protected void poisonAll() {
         int size = Math.max(config.getMaxPoolSize(), workers.size()) * 4 / 3;
         final Queue<Runnable> q = getQueue();

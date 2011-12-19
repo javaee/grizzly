@@ -120,7 +120,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -186,7 +186,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
                             LOGGER.log(Level.WARNING,
                                     "Error working with accepted connection on step: " + i, e);
                         } finally {
-                            connection.close();
+                            connection.closeSilently();
                         }
 
                     } catch (Exception e) {

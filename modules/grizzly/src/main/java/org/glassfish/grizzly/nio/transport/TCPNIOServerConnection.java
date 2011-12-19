@@ -39,25 +39,21 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.CompletionHandler;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.GrizzlyFuture;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  *
@@ -81,9 +77,13 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         final CompletionHandler<RegisterChannelResult> registerCompletionHandler =
                 ((TCPNIOTransport) transport).selectorRegistrationHandler;
 
-        final Future<RegisterChannelResult> future =
-                transport.getNIOChannelDistributor().registerChannelAsync(
-                channel, SelectionKey.OP_ACCEPT, this, registerCompletionHandler);
+        final FutureImpl<RegisterChannelResult> future =
+                SafeFutureImpl.<RegisterChannelResult>create();
+        
+        transport.getNIOChannelDistributor().registerChannelAsync(
+                channel, SelectionKey.OP_ACCEPT, this,
+                new CompletionHandlerAdapter<RegisterChannelResult, RegisterChannelResult>(
+                future, registerCompletionHandler));
         try {
             future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
@@ -186,7 +186,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
-                completionHandler).markForRecycle(false);
+                completionHandler);
         
         return connection;
     }

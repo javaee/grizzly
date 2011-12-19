@@ -40,13 +40,7 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -61,7 +55,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     public static AsyncWriteQueueRecord create(
             final Connection connection,
             final WritableMessage message,
-            final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
@@ -73,13 +66,13 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
-            asyncWriteQueueRecord.set(connection, message, future, currentResult,
+            asyncWriteQueueRecord.set(connection, message, currentResult,
                     completionHandler, dstAddress, pushbackHandler, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
-        return new AsyncWriteQueueRecord(connection, message, future,
+        return new AsyncWriteQueueRecord(connection, message,
                 currentResult, completionHandler, dstAddress, pushbackHandler,
                 isEmptyRecord);
     }
@@ -91,14 +84,14 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private PushBackHandler pushBackHandler;
 
     protected AsyncWriteQueueRecord(final Connection connection,
-            final WritableMessage message, final Future future,
+            final WritableMessage message,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
 
-        super(connection, message, future, currentResult, completionHandler);
+        super(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
         this.momentumQueueSize = -1;
@@ -107,12 +100,12 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected void set(final Connection connection, final WritableMessage message,
-            final Future future, final WriteResult currentResult,
+            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
-        super.set(connection, message, future, currentResult, completionHandler);
+        super.set(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
         this.momentumQueueSize = -1;
@@ -169,17 +162,12 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     public void notifyCompleteAndRecycle() {
 
         final WriteResult currentResultLocal = currentResult;
-        final FutureImpl futureLocal = (FutureImpl) future;
         final CompletionHandler<WriteResult> completionHandlerLocal =
                 completionHandler;
 
         final WritableMessage messageLocal = getWritableMessage();
 
         recycle();
-        
-        if (futureLocal != null) {
-            futureLocal.result(currentResultLocal);
-        }        
 
         if (completionHandlerLocal != null) {
             completionHandlerLocal.completed(currentResultLocal);
@@ -195,7 +183,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, false);
     }
 
     @Override

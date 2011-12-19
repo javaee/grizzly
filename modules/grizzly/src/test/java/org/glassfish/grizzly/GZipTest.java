@@ -182,7 +182,7 @@ public class GZipTest {
             assertTrue(completeFuture.get(120, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

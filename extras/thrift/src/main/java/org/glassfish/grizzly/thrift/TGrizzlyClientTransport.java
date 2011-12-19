@@ -153,15 +153,13 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     @Override
     @SuppressWarnings("unchecked")
     public void flush() throws TTransportException {
+        checkConnectionOpen();
+        
         final Buffer output = outputStream.getBuffer();
         output.trim();
         outputStream.reset();
 
-        try {
-            connection.write(output);
-        } catch (IOException ie) {
-            throw new TTransportException(ie);
-        }
+        connection.write(output);
     }
 
     @Override
@@ -198,5 +196,11 @@ public class TGrizzlyClientTransport extends AbstractTGrizzlyTransport {
     @Override
     protected BufferOutputStream getOutputStream() {
         return outputStream;
+    }
+
+    private void checkConnectionOpen() throws TTransportException {
+        if (!isOpen()) {
+            throw new TTransportException("Client connection is closed");
+        }
     }
 }

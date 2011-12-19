@@ -40,44 +40,34 @@
 
 package org.glassfish.grizzly.ssl;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.FileTransfer;
-import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
-import org.glassfish.grizzly.filterchain.NextAction;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.logging.Filter;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.logging.Filter;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
-
 import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
-
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
+import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.NextAction;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
+import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
@@ -365,9 +355,6 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                                 context.write(dstAddress, buffer, null);
 
                                 handshakeStatus = sslEngine.getHandshakeStatus();
-                            } catch (IOException e) {
-                                buffer.dispose();
-                                throw e;
                             } catch (Exception e) {
                                 buffer.dispose();
                                 throw new IOException("Unexpected exception", e);
@@ -470,9 +457,6 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
             try {
                 context.write(context.getAddress(), buffer, null);
-            } catch (IOException e) {
-                buffer.dispose();
-                throw e;
             } catch (Exception e) {
                 buffer.dispose();
                 throw new IOException("Unexpected exception", e);
@@ -736,10 +720,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 }
             }
 
-            try {
-                connection.close();
-            } catch (IOException ignored) {
-            }
+            connection.closeSilently();
         }        
     }
 

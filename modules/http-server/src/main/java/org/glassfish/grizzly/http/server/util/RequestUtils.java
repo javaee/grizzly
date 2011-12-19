@@ -46,7 +46,6 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -62,13 +61,7 @@ public class RequestUtils {
 
         if (request.getRequest().isSecure()) {
             SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
-            try {
-                request.getContext().notifyDownstream(event);
-            } catch (IOException ioe) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ioe.toString(), ioe);
-                }
-            }
+            request.getContext().notifyDownstream(event);
             certificates = event.getCertificates();
             request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
         }

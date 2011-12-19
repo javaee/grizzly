@@ -151,10 +151,7 @@ public class ChunkedTransferEncodingTest {
     @After
     public void after() throws Exception {
         if (connection != null) {
-            try {
-                connection.close();
-            } catch (Exception ignored) {
-            }
+            connection.closeSilently();
         }
 
         if (transport != null) {

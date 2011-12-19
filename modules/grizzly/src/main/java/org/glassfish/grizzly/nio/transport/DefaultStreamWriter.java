@@ -109,7 +109,7 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
 
         @Override
         protected void onClosed() throws IOException {
-            connection.close().markForRecycle(true);
+            connection.closeSilently();
         }
     }
 

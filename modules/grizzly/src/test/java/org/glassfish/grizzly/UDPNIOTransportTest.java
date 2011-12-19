@@ -47,8 +47,8 @@ import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.UDPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
@@ -57,6 +57,7 @@ import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.EchoFilter;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Unit test for {@link UDPNIOTransport}
@@ -114,7 +115,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 Future<Connection> future = transport.connect("localhost", PORT + i);
                 connection = future.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
-                connection.close();
+                connection.closeSilently();
             }
         } finally {
             transport.stop();
@@ -134,7 +135,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             assertTrue(connection != null);
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -151,15 +152,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect(
+            final FutureImpl<Connection> connectFuture =
+                    Futures.<Connection>createSafeFuture();
+            transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
                         }
-                    });
+                    }));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
@@ -177,7 +182,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -200,15 +205,18 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect(
+            final FutureImpl<Connection> connectFuture =
+                    Futures.<Connection>createSafeFuture();
+            transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
                         }
-                    });
+                    }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
@@ -232,7 +240,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             assertTrue(Arrays.equals(echoMessage, originalMessage));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -256,15 +264,18 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
             transport.configureBlocking(true);
 
-            Future<Connection> connectFuture = transport.connect(
+            final FutureImpl<Connection> connectFuture =
+                    Futures.<Connection>createSafeFuture();
+            transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
                         }
-                    });
+                    }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
@@ -288,7 +299,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -311,15 +322,18 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect(
+            final FutureImpl<Connection> connectFuture =
+                    Futures.<Connection>createSafeFuture();
+            transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
                         }
-                    });
+                    }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
@@ -341,7 +355,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             assertTrue(Arrays.equals(echoMessage, originalMessage));
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();
@@ -371,15 +385,18 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect(
+            final FutureImpl<Connection> connectFuture =
+                    Futures.<Connection>createSafeFuture();
+            transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
                         }
-                    });
+                    }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
@@ -405,7 +422,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

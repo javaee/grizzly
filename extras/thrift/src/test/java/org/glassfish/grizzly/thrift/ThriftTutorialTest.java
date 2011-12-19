@@ -169,12 +169,12 @@ public class ThriftTutorialTest {
                     }
                 }
                 ttransport.close();
-                connection.close();
+                connection.closeSilently();
                 connection = null;
             }
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

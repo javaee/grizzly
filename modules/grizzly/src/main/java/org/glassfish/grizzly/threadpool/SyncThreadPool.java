@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
  * {@link ExecutorService} implementation, which function the similar way as
  * former Grizzly 1.x Pipeline based thread pools.
  *
- * The <tt>SyncThreadPool</tt> is sychronized similar way as Grizzly 1.x Pipeline,
+ * The <tt>SyncThreadPool</tt> is synchronized similar way as Grizzly 1.x Pipeline,
  * which makes thread pool more accurate when deciding to create or not
  * additional worker threads.
  *
@@ -160,16 +160,6 @@ public class SyncThreadPool extends AbstractThreadPool {
         synchronized (stateLock) {
             currentPoolSize--;
             activeThreadsCount--;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isTerminated() {
-        synchronized (stateLock) {
-            return !running && workers.isEmpty();
         }
     }
 

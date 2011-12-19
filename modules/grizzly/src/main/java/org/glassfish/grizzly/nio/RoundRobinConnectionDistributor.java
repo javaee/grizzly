@@ -40,11 +40,10 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * RoundRobin NIOConnectionDistributor implementation,
@@ -72,14 +71,13 @@ public final class RoundRobinConnectionDistributor
     }
 
     @Override
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    public void registerChannelAsync(
             final SelectableChannel channel, final int interestOps,
             final Object attachment,
-            final CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException {
+            final CompletionHandler<RegisterChannelResult> completionHandler) {
         final SelectorRunner runner = getSelectorRunner();
         
-        return transport.getSelectorHandler().registerChannelAsync(
+        transport.getSelectorHandler().registerChannelAsync(
                 runner, channel, interestOps, attachment, completionHandler);
     }
     

@@ -1507,8 +1507,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public void completed(final WriteResult wr) {
 
             try {
-                wr.getConnection().close().markForRecycle(false);
-            } catch (IOException ignore) {
+                wr.getConnection().closeSilently();
             } finally {
                 wr.recycle();
             }

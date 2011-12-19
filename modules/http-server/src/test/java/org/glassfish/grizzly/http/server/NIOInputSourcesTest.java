@@ -542,10 +542,7 @@ public class NIOInputSourcesTest extends TestCase {
 
                     @Override
                     public void completed(WriteResult result) {
-                        try {
-                            result.getConnection().close();
-                        } catch (IOException ignored) {
-                        }
+                        result.getConnection().closeSilently();
                     }
                 });
 
@@ -560,7 +557,7 @@ public class NIOInputSourcesTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } catch (IOException e) {
@@ -670,7 +667,7 @@ public class NIOInputSourcesTest extends TestCase {
             } finally {
                 // Close the client connection
                 if (connection != null) {
-                    connection.close();
+                    connection.closeSilently();
                 }
             }
         } finally {

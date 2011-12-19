@@ -40,9 +40,11 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  *
@@ -58,7 +60,8 @@ public abstract class AbstractNIOConnectionDistributor
     }
 
     @Override
-    public final void registerChannel(final SelectableChannel channel) throws IOException {
+    public final void registerChannel(final SelectableChannel channel)
+            throws IOException {
         registerChannel(channel, 0, null);
     }
 
@@ -70,23 +73,28 @@ public abstract class AbstractNIOConnectionDistributor
     
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            final SelectableChannel channel) throws IOException {
-        return registerChannelAsync(channel, 0, null, null);
+            final SelectableChannel channel) {
+        return registerChannelAsync(channel, 0, null);
     }
 
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            final SelectableChannel channel, final int interestOps)
-            throws IOException {
-        return registerChannelAsync(channel, interestOps, null, null);
+            final SelectableChannel channel, final int interestOps) {
+        return registerChannelAsync(channel, interestOps, null);
     }
 
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             final SelectableChannel channel, final int interestOps,
-            final Object attachment)
-            throws IOException {
-        return registerChannelAsync(channel, interestOps, attachment, null);
+            final Object attachment) {
+
+        final FutureImpl<RegisterChannelResult> future =
+                Futures.<RegisterChannelResult>createSafeFuture();
+        
+        registerChannelAsync(channel, interestOps, attachment,
+                Futures.toCompletionHandler(future));
+        
+        return future;
     }
 
     protected SelectorRunner[] getTransportSelectorRunners() {

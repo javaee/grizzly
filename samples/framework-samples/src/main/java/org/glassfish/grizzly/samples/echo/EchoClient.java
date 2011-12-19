@@ -111,7 +111,7 @@ public class EchoClient {
         } finally {
             // close the client connection
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             // stop the transport

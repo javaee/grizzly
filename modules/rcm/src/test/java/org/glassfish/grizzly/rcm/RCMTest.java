@@ -128,7 +128,7 @@ public class RCMTest extends TestCase {
                 final Buffer writeBuffer = Buffers.wrap(memoryManager, rBuf);
                 ctx.write(writeBuffer, null);
 
-                connection.close();
+                connection.closeSilently();
 
                 return ctx.getStopAction();
             }

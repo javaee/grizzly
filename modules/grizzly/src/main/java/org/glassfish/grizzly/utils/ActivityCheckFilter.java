@@ -42,18 +42,17 @@ package org.glassfish.grizzly.utils;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 
 /**
  * The Filter is responsible for tracking {@link Connection} activity and closing
@@ -258,16 +257,11 @@ public class ActivityCheckFilter extends BaseFilter {
 
         @Override
         public boolean doWork(final Connection connection) {
-            try {
-                if (handler != null) {
-                    handler.onTimeout(connection);
-                }
-                connection.close().markForRecycle(true);
-            } catch (IOException e) {
-                LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
-                        "unexpected exception, when trying " +
-                        "to close connection", e);
+            if (handler != null) {
+                handler.onTimeout(connection);
             }
+
+            connection.closeSilently();
 
             return true;
         }

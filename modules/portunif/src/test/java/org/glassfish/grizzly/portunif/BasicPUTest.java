@@ -123,7 +123,7 @@ public class BasicPUTest {
 
         } finally {
             if (connection != null) {
-                connection.close();
+                connection.closeSilently();
             }
 
             transport.stop();

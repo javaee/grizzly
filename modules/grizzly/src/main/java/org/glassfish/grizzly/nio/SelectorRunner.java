@@ -206,10 +206,7 @@ public final class SelectorRunner implements Runnable {
                     final Connection connection =
                             transport.getSelectionKeyHandler().
                             getConnectionForKey(selectionKey);
-                    try {
-                        connection.close();
-                    } catch (Exception ignored) {
-                    }
+                    connection.closeSilently();
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
@@ -457,7 +454,7 @@ public final class SelectorRunner implements Runnable {
                             transport.getSelectionKeyHandler().getConnectionForKey(key);
 
                     if (connection != null) {
-                        connection.close();
+                        connection.closeSilently();
                     } else {
                         final SelectableChannel channel = key.channel();
                         transport.getSelectionKeyHandler().cancel(key);

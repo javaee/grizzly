@@ -45,17 +45,10 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.AbstractWriter;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -76,13 +69,12 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
+    public void write(
             Connection connection, SocketAddress dstAddress,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final PushBackHandler pushBackHandler)
-            throws IOException {
-        return write(connection, dstAddress, message, completionHandler,
+            final PushBackHandler pushBackHandler) {
+        write(connection, dstAddress, message, completionHandler,
                 pushBackHandler,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
@@ -97,25 +89,23 @@ public abstract class TemporarySelectorWriter
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @return {@link Future}, using which it's possible to check the
-     *         result
-     * @throws java.io.IOException
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> write(
+    public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final PushBackHandler pushBackHandler,
-            long timeout, TimeUnit timeunit) throws IOException {
+            long timeout, TimeUnit timeunit) {
 
         if (message == null) {
-            return failure(new IllegalStateException("Message cannot be null"),
+            failure(new IllegalStateException("Message cannot be null"),
                     completionHandler);
+            return;
         }
 
         if (connection == null || !(connection instanceof NIOConnection)) {
-            return failure(
-                    new IllegalStateException("Connection should be NIOConnection and cannot be null"),
+            failure(new IllegalStateException("Connection should be NIOConnection and cannot be null"),
                     completionHandler);
+            return;
         }
 
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -134,18 +124,13 @@ public abstract class TemporarySelectorWriter
                 pushBackHandler.onAccept(connection, message);
             }
             
-            final GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> writeFuture =
-                    ReadyFutureImpl.create(writeResult);
-
             if (completionHandler != null) {
                 completionHandler.completed(writeResult);
             }
 
             message.release();
-            return writeFuture;
-            
         } catch (IOException e) {
-            return failure(e, completionHandler);
+            failure(e, completionHandler);
         }
     }
     
@@ -222,13 +207,11 @@ public abstract class TemporarySelectorWriter
             WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException;
     
-    private static GrizzlyFuture<WriteResult<WritableMessage, SocketAddress>> failure(
+    private static void failure(
             final Throwable failure,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler) {
         if (completionHandler != null) {
             completionHandler.failed(failure);
         }
-        
-        return ReadyFutureImpl.create(failure);
     }
 }

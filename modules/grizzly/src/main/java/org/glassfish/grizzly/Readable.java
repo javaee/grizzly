@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
@@ -56,11 +55,9 @@ public interface Readable<L> {
     /**
      * Method reads data.
      * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read() throws IOException;
+    public <M> GrizzlyFuture<ReadResult<M, L>> read();
     
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(
-            CompletionHandler<ReadResult<M, L>> completionHandler)
-            throws IOException;
+    public <M> void read(
+            CompletionHandler<ReadResult<M, L>> completionHandler);
 }
