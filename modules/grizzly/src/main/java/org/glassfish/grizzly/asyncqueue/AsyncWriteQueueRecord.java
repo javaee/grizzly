@@ -171,6 +171,8 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
         if (completionHandlerLocal != null) {
             completionHandlerLocal.completed(currentResultLocal);
+        } else {
+            currentResultLocal.recycle();
         }
 
         // try to dispose originalBuffer (if allowed)
