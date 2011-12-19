@@ -42,10 +42,12 @@ package org.glassfish.grizzly.http.server.util;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -110,4 +112,41 @@ public class RequestUtils {
     }
 
 
+    public static void handleSendFile(final Request request) {
+        if ((Boolean) request.getAttribute(Request.SEND_FILE_ENABLED_ATTR)) {
+            final Object f = request.getAttribute(Request.SEND_FILE_ATTR);
+            if (f != null) {
+                final Response response = request.getResponse();
+                if (response.isCommitted()) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                "SendFile can't be performed,"
+                                        + "because response headers are committed");
+                    }
+
+                    return;
+                }
+
+                final File file = (File) f;
+                Long offset = (Long) request.getAttribute(Request.SEND_FILE_START_OFFSET_ATTR);
+                Long len = (Long) request.getAttribute(Request.SEND_FILE_WRITE_LEN_ATTR);
+                if (offset == null) {
+                    offset = 0L;
+                }
+                if (len == null) {
+                    len = file.length();
+                }
+                // let the sendfile() method suspend/resume the response.
+                try {
+                    response.getOutputBuffer().sendfile(file, offset, len, null);
+                } catch (IOException ioe) {
+                    if (LOGGER.isLoggable(Level.SEVERE)) {
+                        LOGGER.log(Level.SEVERE,
+                                   "Failed to transfer file: " + ((File) f).getAbsolutePath(),
+                                   ioe);
+                    }
+                }
+            }
+        }
+    }
 }

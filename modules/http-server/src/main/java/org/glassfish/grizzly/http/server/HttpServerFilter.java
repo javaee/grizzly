@@ -61,10 +61,8 @@ import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.memory.Buffers;
@@ -165,7 +163,6 @@ public class HttpServerFilter extends BaseFilter
                     if (httpHandlerLocal != null) {
                         httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
                     }
-                    checkSendFileAttributes(handlerRequest, handlerResponse);
                 } catch (Throwable t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     
@@ -314,34 +311,4 @@ public class HttpServerFilter extends BaseFilter
         return ctx.getStopAction();
     }
 
-    private void checkSendFileAttributes(final Request request,
-            final Response response) throws IOException {
-        
-        if (getConfiguration().isSendFileEnabled()) {
-            final Object f = request.getAttribute(Request.SEND_FILE_ATTR);
-            if (f != null) {
-                if (response.isCommitted()) {
-                    if (LOGGER.isLoggable(Level.WARNING)) {
-                        LOGGER.log(Level.WARNING,
-                                   "SendFile can't be performed,"
-                                + "because response headers are committed");
-                    }
-                    
-                    return;
-                }
-                
-                final File file = (File) f;
-                Long offset = (Long) request.getAttribute(Request.SEND_FILE_START_OFFSET_ATTR);
-                Long len = (Long) request.getAttribute(Request.SEND_FILE_WRITE_LEN_ATTR);
-                if (offset == null) {
-                    offset = 0L;
-                }
-                if (len == null) {
-                    len = file.length();
-                }
-                // let the sendfile() method suspend/resume the response.
-                response.getOutputBuffer().sendfile(file, offset, len, null);
-            }
-        }
-    }    
 }

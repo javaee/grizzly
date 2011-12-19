@@ -147,30 +147,50 @@ public class Request {
     public static final String SEND_FILE_ENABLED_ATTR = "org.glassfish.grizzly.http.SEND_FILE_ENABLED";
 
     /**
+     * <p>
      * The value of this request attribute, as set by the developer must be a {@link java.io.File}
      * that exists, is not a directory, and is readable.  This {@link java.io.File} will be
      * transferred using sendfile if {@link #SEND_FILE_ENABLED_ATTR} is true.  If sendfile
      * support isn't enabled, an IllegalStateException will be raised at runtime.
      * The {@link HttpHandler} using this functionality should refrain from writing content
      * via the response.
+     * </p>
+     *
+     * <p>
+     * Note that once this attribute is set, the sendfile process will begin.
+     * </p>
      *
      * @since 2.2
      */
     public static final String SEND_FILE_ATTR = "org.glassfish.grizzly.http.SEND_FILE";
 
     /**
+     * <p>
      * The value of this request attribute signifies the starting offset of the file
      * transfer.  If not specified, an offset of zero will be assumed.   The type of
-     * the value must be {@link Long}
+     * the value must be {@link Long}.
+     * </p>
+     *
+     * <p>
+     * NOTE:  In order for this attribute to take effect, it <em>must</em> be
+     * set <em>before</em> the {@link #SEND_FILE_ATTR} is set.
+     * </p>
      *
      * @since 2.2
      */
     public static final String SEND_FILE_START_OFFSET_ATTR = "org.glassfish.grizzly.http.FILE_START_OFFSET";
 
     /**
+     * <p>
      * The value of this request attribute signifies the total number of bytes to
      * transfer.  If not specified, the entire file will be transferred.
      * The type of the value must be {@link Long}
+     * </p>
+     *
+     * <p>
+     * NOTE:  In order for this attribute to take effect, it <em>must</em> be
+     * set <em>before</em> the {@link #SEND_FILE_ATTR} is set.
+     * </p>
      *
      * @since 2.2
      */
@@ -1188,6 +1208,11 @@ public class Request {
         }
 
         request.setAttribute(name, value);
+        
+        if (name.charAt(0) == 'o' && name.charAt(name.length() - 1) == 'E' && 
+                SEND_FILE_ATTR.equals(name)) {
+            RequestUtils.handleSendFile(this);
+        }
 
     }
 

@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.CompletionHandler;
@@ -280,6 +282,49 @@ public class SendFileTest extends TestCase {
             server.stop();
         }
     }
+    
+    
+    @SuppressWarnings("unchecked")
+        public void testSimpleSendFileViaRequestAttributeCustomThread() throws Exception {
+            File control = generateTempFile(1024);
+            SendFileRequestAttributeHandler h = new SendFileRequestAttributeHandler(control);
+            ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
+            h.setExecutor(e);
+            HttpServer server = createServer(h, false, false);
+            MimeType.add("tmp", "text/temp");
+            TestFuture result = new TestFuture();
+            BigInteger controlSum = getMDSum(control);
+    
+            TCPNIOTransport client = createClient(result, new ResponseValidator() {
+                @Override
+                public void validate(HttpResponsePacket response) {
+                    assertEquals("1024", response.getHeader(Header.ContentLength));
+                    // explicit mime type set
+                    assertEquals("text/temp", response.getHeader(Header.ContentType));
+                }
+            });
+            try {
+                server.start();
+                client.start();
+                Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+                HttpRequestPacket request =
+                        HttpRequestPacket.builder().uri("/" + control.getName())
+                                .method(Method.GET)
+                                .protocol(Protocol.HTTP_1_1)
+                                .header("Host", "localhost:" + PORT).build();
+                c.write(request);
+                File fResult = result.get(20, TimeUnit.SECONDS);
+                BigInteger resultSum = getMDSum(fResult);
+                assertTrue("MD5Sum between control and test files differ.",
+                        controlSum.equals(resultSum));
+                result.reset();
+                c.close();
+            } finally {
+                client.stop();
+                server.stop();
+                e.shutdownNow();
+            }
+        }
 
     @SuppressWarnings("unchecked")
     public void testSimpleSendFileViaRequestAttributeCustomPosLen() throws Exception {
@@ -369,6 +414,7 @@ public class SendFileTest extends TestCase {
     private static final class SendFileRequestAttributeHandler extends HttpHandler {
         private final long pos;
         private final long len;
+        private ScheduledExecutorService executor;
 
 
         // -------------------------------------------------------- Constructors
@@ -382,23 +428,38 @@ public class SendFileTest extends TestCase {
             this.pos = pos;
             this.len = len;
         }
-        
+
         // -------------------------------------------- Methods from HttpHandler
-        
-        
+
+
+        public void setExecutor(ScheduledExecutorService executor) {
+            this.executor = executor;
+        }
+
         @Override
-        public void service(Request request, Response response) throws Exception {
-            final String requestURI = request.getRequestURI();
-            assertTrue((Boolean) request.getAttribute(Request.SEND_FILE_ENABLED_ATTR));
-            final String fileName = requestURI.substring(requestURI.lastIndexOf('/') + 1);
-            File tempDir = new File(System.getProperty("java.io.tmpdir"));
-            File toSend = new File(tempDir, fileName);
-            request.setAttribute(Request.SEND_FILE_ATTR, toSend);
-            if (pos != 0) {
-                request.setAttribute(Request.SEND_FILE_START_OFFSET_ATTR, pos);                
-            }
-            if (len != toSend.length()) {
-                request.setAttribute(Request.SEND_FILE_WRITE_LEN_ATTR, len);
+        public void service(final Request request, Response response) throws Exception {
+            final Runnable r = new Runnable() {
+                public void run() {
+                    final String requestURI = request.getRequestURI();
+                    assertTrue((Boolean) request.getAttribute(Request.SEND_FILE_ENABLED_ATTR));
+                    final String fileName = requestURI.substring(requestURI.lastIndexOf('/') + 1);
+                    File tempDir = new File(System.getProperty("java.io.tmpdir"));
+                    File toSend = new File(tempDir, fileName);
+                    if (pos != 0) {
+                        request.setAttribute(Request.SEND_FILE_START_OFFSET_ATTR, pos);
+                    }
+                    if (len != toSend.length()) {
+                        request.setAttribute(Request.SEND_FILE_WRITE_LEN_ATTR, len);
+                    }
+                    request.setAttribute(Request.SEND_FILE_ATTR, toSend);
+
+                }
+            };
+            if (executor != null) {
+                response.suspend();
+                executor.scheduleWithFixedDelay(r, 5, 5, TimeUnit.SECONDS);
+            } else {
+                r.run();
             }
         }
     } // END SendFileRequestAttributeHandler
