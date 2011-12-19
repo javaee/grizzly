@@ -49,9 +49,7 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.filterchain.*;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
@@ -117,32 +115,20 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
-            final FutureImpl contextFuture = transportContext.getFuture();
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final MessageCloner cloner = transportContext.getMessageCloner();
             final PushBackHandler pushBackHandler = transportContext.getPushBackHandler();
             
-            CompletionHandler writeCompletionHandler = null;
-
-            final boolean hasFuture = (contextFuture != null);
-            if (hasFuture) {
-                writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, completionHandler);
-            } else if (completionHandler != null) {
-                writeCompletionHandler = completionHandler;
-            }
-
-            transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
             transportContext.setMessageCloner(null);
             transportContext.setPushBackHandler(null);
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueIO().getWriter().write(connection, null,
-                        message, writeCompletionHandler, pushBackHandler, cloner);
+                        message, completionHandler, pushBackHandler, cloner);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
-                        null, message, writeCompletionHandler, pushBackHandler);
+                        null, message, completionHandler, pushBackHandler);
             }
         }
 
@@ -159,9 +145,8 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
-            if (transportContext.getFuture() != null ||
-                    transportContext.getCompletionHandler() != null) {
-                throw new IllegalStateException("TransportContext CompletionHandler and Future must be null");
+            if (transportContext.getCompletionHandler() != null) {
+                throw new IllegalStateException("TransportContext CompletionHandler must be null");
             }
 
             final CompletionHandler completionHandler =

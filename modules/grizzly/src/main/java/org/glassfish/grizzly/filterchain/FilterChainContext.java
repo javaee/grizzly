@@ -51,7 +51,6 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -126,12 +125,6 @@ public final class FilterChainContext implements AttributeStorage {
      */
     private AttributeHolder customAttributes;
 
-    /**
-     * {@link FutureImpl}, which will be notified, when operation will be
-     * complete. For WRITE it means the data will be written on wire, for other
-     * operations - the last Filter has finished the processing.
-     */
-    protected FutureImpl<FilterChainContext> operationCompletionFuture;
     /**
      * {@link CompletionHandler}, which will be notified, when operation will be
      * complete. For WRITE it means the data will be written on wire, for other
@@ -814,7 +807,6 @@ public final class FilterChainContext implements AttributeStorage {
         address = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
-        operationCompletionFuture = null;
         operationCompletionHandler = null;
         customAttributes = null;
         operation = Operation.NONE;
@@ -858,7 +850,6 @@ public final class FilterChainContext implements AttributeStorage {
         CompletionHandler completionHandler;
         PushBackHandler pushBackHandler;
         MessageCloner cloner;
-        FutureImpl future;
 
         public void configureBlocking(boolean isBlocking) {
             this.isBlocking = isBlocking;
@@ -892,20 +883,11 @@ public final class FilterChainContext implements AttributeStorage {
             this.cloner = cloner;
         }
 
-        public FutureImpl getFuture() {
-            return future;
-        }
-
-        public void setFuture(FutureImpl future) {
-            this.future = future;
-        }
-
         void reset() {
             isBlocking = false;
             completionHandler = null;
             pushBackHandler = null;
             cloner = null;
-            future = null;
         }
     }
 

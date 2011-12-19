@@ -67,7 +67,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
@@ -589,11 +588,10 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 ctx.getTransportContext();
         
         ctx.write(address, message,
-                new CompletionHandlerAdapter(transportContext.getFuture(),
-                        transportContext.getCompletionHandler()),
-                        transportContext.getPushBackHandler(),
-                        transportContext.getMessageCloner(),
-                        transportContext.isBlocking());
+                transportContext.getCompletionHandler(),
+                transportContext.getPushBackHandler(),
+                transportContext.getMessageCloner(),
+                transportContext.isBlocking());
 
         return ctx.getStopAction();
     }

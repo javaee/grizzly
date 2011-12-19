@@ -125,26 +125,14 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
-            final FutureImpl contextFuture = transportContext.getFuture();
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final Object address = ctx.getAddress();
             
-            CompletionHandler writeCompletionHandler = null;
-
-            final boolean hasFuture = (contextFuture != null);
-            if (hasFuture) {
-                writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, completionHandler);
-            } else if (completionHandler != null) {
-                writeCompletionHandler = completionHandler;
-            }
-
-            transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
 
             transport.getWriter(transportContext.isBlocking()).write(
                     connection, address,
-                    message, writeCompletionHandler);
+                    message, completionHandler);
         }
 
         return ctx.getInvokeAction();
@@ -159,9 +147,8 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
-            if (transportContext.getFuture() != null ||
-                    transportContext.getCompletionHandler() != null) {
-                throw new IllegalStateException("TransportContext CompletionHandler and Future must be null");
+            if (transportContext.getCompletionHandler() != null) {
+                throw new IllegalStateException("TransportContext CompletionHandler must be null");
             }
 
             final CompletionHandler completionHandler =
@@ -170,7 +157,6 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             transport.getWriter(transportContext.isBlocking()).write(connection,
                     Buffers.EMPTY_BUFFER, completionHandler);
 
-            transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
         }
 

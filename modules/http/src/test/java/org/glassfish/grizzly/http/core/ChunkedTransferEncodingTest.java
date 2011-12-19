@@ -244,6 +244,7 @@ public class ChunkedTransferEncodingTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void doHttpRequestTest(
             int packetsNum,
             boolean hasContent,

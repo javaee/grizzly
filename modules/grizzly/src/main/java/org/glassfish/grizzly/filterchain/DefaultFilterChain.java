@@ -336,7 +336,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         } else {
             final FutureImpl<FilterChainContext> future =
                     Futures.<FilterChainContext>createUnsafeFuture();
-            context.operationCompletionFuture = future;
+            context.operationCompletionHandler =
+                    Futures.toCompletionHandler(future);
 
             final FilterExecutor executor = ExecutorResolver.resolve(context);
             final FiltersState filtersState = obtainFiltersState(connection);
@@ -529,15 +530,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     private void notifyComplete(final FilterChainContext context) {
         final CompletionHandler<FilterChainContext> completionHandler =
                 context.operationCompletionHandler;
-        final FutureImpl<FilterChainContext> future =
-                context.operationCompletionFuture;
-
         if (completionHandler != null) {
             completionHandler.completed(context);
-        }
-
-        if (future != null) {
-            future.result(context);
         }
 
 
@@ -545,39 +539,24 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         // will be null.
         final CompletionHandler<?> transportCompletionHandler =
                 context.transportFilterContext.completionHandler;
-        final FutureImpl<?> transportFuture = context.transportFilterContext.future;
 
         if (transportCompletionHandler != null) {
             transportCompletionHandler.completed(null);
-        }
-
-        if (transportFuture != null) {
-            transportFuture.result(null);
         }
     }
 
     private void notifyFailure(final FilterChainContext context, final Throwable e) {
 
         final CompletionHandler completionHandler = context.operationCompletionHandler;
-        final FutureImpl future = context.operationCompletionFuture;
 
         if (completionHandler != null) {
             completionHandler.failed(e);
         }
 
-        if (future != null) {
-            future.failure(e);
-        }
-
         final CompletionHandler transportCompletionHandler = context.transportFilterContext.completionHandler;
-        final FutureImpl transportFuture = context.transportFilterContext.future;
 
         if (transportCompletionHandler != null) {
             transportCompletionHandler.failed(e);
-        }
-
-        if (transportFuture != null) {
-            transportFuture.failure(e);
         }
     }
 
