@@ -1006,7 +1006,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         int read = 0;
         int readAttempt = 0;
         int readNow;
-        while ((readNow = socketChannel.read(byteBuffer)) >= 0) {
+        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
             read += readNow;
             if (!byteBuffer.hasRemaining()
                     || ++readAttempt >= maxReadAttempts) {
@@ -1030,7 +1030,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         int readNow;
         final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
         
-        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) >= 0) {
+        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) > 0) {
             read += readNow;
             if (!lastByteBuffer.hasRemaining()
                     || ++readAttempt >= maxReadAttempts) {
