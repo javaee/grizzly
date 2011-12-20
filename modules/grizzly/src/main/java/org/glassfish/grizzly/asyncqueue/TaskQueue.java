@@ -68,6 +68,7 @@ public final class TaskQueue<E> {
     
     private final MutableMaxQueueSize maxQueueSizeHolder;
     
+    private final AtomicInteger writeHandlersCounter = new AtomicInteger();
     protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
             new ConcurrentLinkedQueue<WriteHandlerQueueRecord>();
     
@@ -179,7 +180,7 @@ public final class TaskQueue<E> {
         
         int reservedBytes;
         
-        if (maxSize <= 0 || (reservedBytes = spaceInBytes()) == 0 ||
+        if (maxSize < 0 || (reservedBytes = spaceInBytes()) == 0 ||
                 (maxSize - reservedBytes >= size)) {
             try {
                 writeHandler.onWritePossible();
@@ -192,11 +193,11 @@ public final class TaskQueue<E> {
         
         final WriteHandlerQueueRecord record =
                 new WriteHandlerQueueRecord(writeHandler, size);
-        writeHandlersQueue.offer(record);
+        offerWriteHandler(record);
         
         reservedBytes = spaceInBytes();
         
-        if (reservedBytes == 0 && writeHandlersQueue.remove(record)) {
+        if (reservedBytes == 0 && removeWriteHandler(record)) {
             try {
                 writeHandler.onWritePossible();
             } catch (Exception e) {
@@ -207,13 +208,12 @@ public final class TaskQueue<E> {
         }
     }
 
-    public boolean forgetWritePossible(final WriteHandler writeHandler) {
-        return writeHandlersQueue.remove(
-                new WriteHandlerQueueRecord(writeHandler, 0));
+    public final boolean forgetWritePossible(final WriteHandler writeHandler) {
+        return removeWriteHandler(new WriteHandlerQueueRecord(writeHandler, 0));
     }
     
     private void checkWriteHandlerOnClose(final WriteHandlerQueueRecord record) {
-        if (isClosed && writeHandlersQueue.remove(record)) {
+        if (isClosed && removeWriteHandler(record)) {
             record.writeHandler.onError(new IOException("Connection is closed"));
         }
     }
@@ -221,14 +221,15 @@ public final class TaskQueue<E> {
 
 
     protected void doNotify() {
-        if (maxQueueSizeHolder == null) {
+        if (maxQueueSizeHolder == null ||
+                writeHandlersCounter.get() == 0) {
             return;
         }
         
         final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
         
         WriteHandlerQueueRecord record;
-        while((record = writeHandlersQueue.poll()) != null) {
+        while((record = pollWriteHandler()) != null) {
             final int reservedBytes = spaceInBytes();
             if ((reservedBytes == 0 || (maxSize - reservedBytes >= record.size))) {
                 try {
@@ -237,7 +238,7 @@ public final class TaskQueue<E> {
                     record.writeHandler.onError(e);
                 }
             } else {
-                writeHandlersQueue.offer(record);
+                offerWriteHandler(record);
                 checkWriteHandlerOnClose(record);
                 return;
             }
@@ -290,13 +291,37 @@ public final class TaskQueue<E> {
         }
         
         WriteHandlerQueueRecord record;
-        while ((record = writeHandlersQueue.poll()) != null) {
+        while ((record = pollWriteHandler()) != null) {
             if (error == null) {
                 error = new IOException("Connection closed");
             }
             record.writeHandler.onError(error);
         }
         
+    }
+    
+    private void offerWriteHandler(final WriteHandlerQueueRecord record) {
+        writeHandlersCounter.incrementAndGet();
+        writeHandlersQueue.offer(record);
+    }
+    
+    private boolean removeWriteHandler(final WriteHandlerQueueRecord record) {
+        if (writeHandlersQueue.remove(record)) {
+            writeHandlersCounter.decrementAndGet();
+            return true;
+        }
+        
+        return false;
+    }
+
+    private WriteHandlerQueueRecord pollWriteHandler() {
+        final WriteHandlerQueueRecord record = writeHandlersQueue.poll();
+        if (record != null) {
+            writeHandlersCounter.decrementAndGet();
+            return record;
+        }
+        
+        return null;
     }
     
     //----------------------------------------------------------- Nested Classes
