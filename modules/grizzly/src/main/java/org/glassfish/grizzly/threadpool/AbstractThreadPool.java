@@ -58,6 +58,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
@@ -100,7 +102,13 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     };
     
     private final AtomicInteger nextThreadId = new AtomicInteger();
-    protected final Object stateLock = new Object();
+
+    protected final ReentrantLock stateLock = new ReentrantLock();
+    /**
+     * Wait condition to support awaitTermination
+     */
+    protected final Condition stateLockCondition = stateLock.newCondition();
+    
     protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
     protected volatile boolean running = true;
     protected final ThreadPoolConfig config;
@@ -205,7 +213,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      */
     @Override
     public List<Runnable> shutdownNow() {
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             List<Runnable> drained = new ArrayList<Runnable>();
             if (running) {
                 running = false;
@@ -222,6 +231,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 ProbeNotifier.notifyThreadPoolStopped(this);
             }
             return drained;
+        } finally {
+            stateLock.unlock();
         }
     }
 
@@ -230,14 +241,18 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      */
     @Override
     public void shutdown() {
-        synchronized (stateLock) {
+        stateLock.lock();
+        
+        try {
             if (running) {
                 running = false;
                 poisonAll();
-                stateLock.notifyAll();
+                stateLockCondition.signalAll();
 
                 ProbeNotifier.notifyThreadPoolStopped(this);
             }
+        } finally {
+            stateLock.unlock();
         }
     }
 
@@ -246,6 +261,46 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return !running;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isTerminated() {
+        stateLock.lock();
+        
+        try {
+            return !running && workers.isEmpty();
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean awaitTermination(final long timeout, final TimeUnit unit)
+            throws InterruptedException {
+        // see {@link java.util.concurrent.ThreadPoolExecutor#awaitTermination(long, TimeUnit)}
+        
+        long nanos = unit.toNanos(timeout);
+        final ReentrantLock mainLock = this.stateLock;
+        mainLock.lock();
+        try {
+            for (;;) {
+                if (isTerminated()) {
+                    return true;
+                }
+                if (nanos <= 0) {
+                    return false;
+                }
+                nanos = stateLockCondition.awaitNanos(nanos);
+            }
+        } finally {
+            mainLock.unlock();
+        }
+    }
+    
     protected void poisonAll() {
         int size = Math.max(config.getMaxPoolSize(), workers.size()) * 4 / 3;
         final Queue<Runnable> q = getQueue();
@@ -378,8 +433,17 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param worker
      */
     protected void onWorkerExit(Worker worker) {
-        synchronized (stateLock) {
+        stateLock.lock();
+        
+        try {
             workers.remove(worker);
+            
+            if (workers.isEmpty()) {
+                // notify awaitTermination threads
+                stateLockCondition.signalAll();
+            }
+        } finally {
+            stateLock.unlock();
         }
 
         ProbeNotifier.notifyThreadReleased(this, worker.t);

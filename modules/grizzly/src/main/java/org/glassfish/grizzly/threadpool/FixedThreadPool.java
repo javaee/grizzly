@@ -66,10 +66,13 @@ public class FixedThreadPool extends AbstractThreadPool {
 
         ProbeNotifier.notifyThreadPoolStarted(this);
         
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             while (poolSize-- > 0) {
                 doStartWorker();
             }
+        } finally {
+            stateLock.unlock();
         }
         
         super.onMaxNumberOfThreadsReached();
@@ -86,6 +89,11 @@ public class FixedThreadPool extends AbstractThreadPool {
     public void execute(Runnable command) {
         if (running) {
             if (workQueue.offer(command)) {
+                // doublecheck the pool is still running
+                if (!running && workQueue.remove(command)) {
+                    throw new RejectedExecutionException("ThreadPool is not running");
+                }
+                
                 onTaskQueued(command);
                 return;
             }
@@ -93,22 +101,6 @@ public class FixedThreadPool extends AbstractThreadPool {
             return;
         }
         throw new RejectedExecutionException("ThreadPool is not running");
-    }
-
-    /**
-     * not supported
-     */
-    @Override
-    public boolean isTerminated() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    /**
-     * not supported
-     */
-    @Override
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     private final class BasicWorker extends Worker {

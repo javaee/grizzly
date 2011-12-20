@@ -129,6 +129,36 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
             threadPool.shutdownNow();
         }
     }
+
+    public void testAwaitTermination() throws Exception {
+        int threads = 100;
+        ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
+                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
+        GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
+        final int tasks = 2000;
+        runTasks(r,tasks);
+        r.shutdown();
+        assertTrue(r.awaitTermination(10, TimeUnit.SECONDS));
+        assertTrue(r.isTerminated());
+
+        r = GrizzlyExecutorService.createInstance(cfg.setQueueLimit(tasks));
+        runTasks(r,tasks);
+        r.shutdown();
+        assertTrue(r.awaitTermination(10, TimeUnit.SECONDS));
+        assertTrue(r.isTerminated());
+        
+        int coresize = cfg.getMaxPoolSize()+1;
+        r = GrizzlyExecutorService.createInstance(cfg.setQueueLimit(tasks)
+                .setQueue(new LinkedList<Runnable>())
+                .setCorePoolSize(coresize)
+                .setKeepAliveTime(1, TimeUnit.MILLISECONDS)
+                .setMaxPoolSize(threads+=50));
+        doTest(r,tasks);
+        runTasks(r,tasks);
+        r.shutdown();
+        assertTrue(r.awaitTermination(10, TimeUnit.SECONDS));
+        assertTrue(r.isTerminated());
+    }
     
     private void doTest(GrizzlyExecutorService r, int tasks) throws Exception{
         final CountDownLatch cl = new CountDownLatch(tasks);
@@ -142,4 +172,19 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         }
         assertTrue("latch timed out",cl.await(30, TimeUnit.SECONDS));
     }
+    
+    private void runTasks(GrizzlyExecutorService r, int tasks) throws Exception{
+        while(tasks-->0){
+            r.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(50);
+                    } catch (Exception e) {
+                    }
+                }
+            });
+        }
+    }
+    
 }
