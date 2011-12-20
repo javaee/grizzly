@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -45,32 +44,88 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 /**
  * Class represents context-root associated information
  */
-public class ContextRootInfo {
-    protected HttpHandler handler;
-    protected Object container;
+public final class ContextRootInfo {
 
-    public ContextRootInfo() {
+    /**
+     * The interface, which is responsible for holding <tt>ContextRootInfo</tt>,
+     * which makes possible to initialize <tt>ContextRootInfo<tt> lazily.
+     */
+    public static interface Holder {
+
+        /**
+         * Gets the Grizzly {@link HttpHandler}, associated with the context.
+         *
+         * @return the Grizzly {@link HttpHandler}, associated with the context.
+         */
+        public HttpHandler getHttpHandler();
+
+        /**
+         * Gets the application container, associated with the context.
+         *
+         * @return the application container, associated with the context.
+         */
+        public Object getContainer();
+    }
+    private final Holder holder;
+
+    /**
+     * Create <tt>ContextRootInfo</tt> using prepared {@link HttpHandler} and
+     * application container parameters.
+     * 
+     * @param handler Grizzly {@link HttpHandler}, associated with the context.
+     * @param container application container, associated with the context.
+     */
+    public ContextRootInfo(final HttpHandler handler,
+            final Object container) {
+        holder = new SimpleHolder(handler, container);
     }
 
-    public ContextRootInfo(final HttpHandler handler, final Object container) {
-        this.handler = handler;
-        this.container = container;
+    /**
+     * Create <tt>ContextRootInfo</tt> using passed {@link Holder} object, which
+     * might be initialized lazily.
+     * 
+     * @param holder context info {@link Holder}.
+     */
+    public ContextRootInfo(final Holder holder) {
+        this.holder = holder;
     }
 
+    /**
+     * Gets the Grizzly {@link HttpHandler}, associated with the context.
+     *
+     * @return the Grizzly {@link HttpHandler}, associated with the context.
+     */
     public HttpHandler getHttpHandler() {
-        return handler;
+        return holder.getHttpHandler();
     }
 
-    public void setHttpHandler(final HttpHandler adapter) {
-        this.handler = adapter;
-    }
-
+    /**
+     * Gets the application container, associated with the context.
+     *
+     * @return the application container, associated with the context.
+     */
     public Object getContainer() {
-        return container;
+        return holder.getContainer();
     }
 
-    public void setContainer(final Object container) {
-        this.container = container;
-    }
+    private static class SimpleHolder implements Holder {
 
+        private final HttpHandler handler;
+        private final Object container;
+
+        public SimpleHolder(HttpHandler handler, Object container) {
+            this.handler = handler;
+            this.container = container;
+        }
+
+        @Override
+        public HttpHandler getHttpHandler() {
+            return handler;
+        }
+
+        @Override
+        public Object getContainer() {
+            return container;
+        }
+    }
 }
