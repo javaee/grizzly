@@ -105,7 +105,7 @@
                             <imgSrcPath>images/</imgSrcPath>
                             <chunkedOutput>true</chunkedOutput>
                             <htmlStylesheet>css/style.css</htmlStylesheet>
-                            <htmlCustomization>src/docbkx/hightlight.xsl</htmlCustomization>
+                            <htmlCustomization>${basedir}/src/docbkx/hightlight.xsl</htmlCustomization>
                             <!-- Any parameters specific to HTML version go here -->
                             <entities>
                                 <entity>
