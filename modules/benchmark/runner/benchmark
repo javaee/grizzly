@@ -57,7 +57,7 @@ my @RUNS;
 # --------------------------------- MAIN EXECUTION
 
 parseCommandLine();
-initializeGrizzly();
+#initializeGrizzly();
 parseBenchmarks();
 runBenchmarks();
 
@@ -166,7 +166,7 @@ sub stopBMServer {
     print "Stopping server process...\n";
     my $pid = shift;
     kill 'TERM', $pid;
-    kill 'TERM', $pid + 1;
+    kill 'TERM', $pid + 2;
     sleep 10;
 }
 
