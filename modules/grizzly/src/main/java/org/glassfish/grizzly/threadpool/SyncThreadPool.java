@@ -63,6 +63,8 @@ public class SyncThreadPool extends AbstractThreadPool {
     protected volatile int maxQueuedTasks = -1;
     private int currentPoolSize;
     private int activeThreadsCount;
+    
+    private boolean maxNumberOfThreadsSwitch;
 
     /**
      *
@@ -137,12 +139,17 @@ public class SyncThreadPool extends AbstractThreadPool {
             if (isCore ||
                     (currentPoolSize < config.getMaxPoolSize() &&
                     idleThreadsNumber < workQueueSize + 1)) {
+                maxNumberOfThreadsSwitch = false;
+                
                 startWorker(new SyncThreadWorker(isCore));
-            } else if (idleThreadsNumber == 0) {
+                return;
+            } else if (idleThreadsNumber < workQueueSize + 1 &&
+                    !maxNumberOfThreadsSwitch) {
+                maxNumberOfThreadsSwitch = true;
                 onMaxNumberOfThreadsReached();
-            } else {
-                stateLockCondition.signal();
             }
+            
+            stateLockCondition.signal();
         } finally {
             stateLock.unlock();
         }
