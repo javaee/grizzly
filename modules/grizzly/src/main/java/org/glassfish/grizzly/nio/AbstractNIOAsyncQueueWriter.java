@@ -80,7 +80,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected final NIOTransport transport;
 
-    protected volatile int maxPendingBytes = -1;
+    protected volatile int maxPendingBytes = AUTO_SIZE;
 
     protected volatile int maxWriteReentrants = 10;
     
