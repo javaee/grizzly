@@ -50,6 +50,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.sun.jersey.server.impl.application.WebApplicationContext;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.utils.Utils;
 
@@ -151,7 +152,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testDoubleSlash");
         try {
             newHttpServer(PORT);
-            WebappContext ctx = new WebappContext("Test");
+            WebappContext ctx = new WebappContext("Test", "/");
             addServlet(ctx, "TestServet", "*.html");
             ctx.deploy(httpServer);
             httpServer.start();
@@ -163,6 +164,35 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
+        }
+    }
+    
+    public void testDefaultServletPaths() throws Exception {
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test");
+            addServlet(ctx, "TestServlet", "");
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/index.html", PORT);
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
+            String s = conn.getHeaderField("Request-Was");
+            Utils.dumpOut("s: " + s);
+            assertEquals(s, "/index.html");
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
+    public void testInvalidServletContextPathSpec() throws Exception {
+        try {
+            new WebappContext("Test", "/test/");
+            fail("Expected IllegalArgumentException to be thrown when context path ends with '/'");
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e);
         }
     }
 

@@ -190,7 +190,7 @@ public class WebappContext implements ServletContext {
      * @param displayName
      */
     public WebappContext(final String displayName) {
-        this(displayName, "/");
+        this(displayName, "");
     }
 
     public WebappContext(final String displayName, final String contextPath) {
@@ -205,11 +205,18 @@ public class WebappContext implements ServletContext {
         if (displayName == null || displayName.length() == 0) {
             throw new IllegalArgumentException("'displayName' cannot be null or zero-length");
         }
-        if (contextPath == null || contextPath.length() == 0) {
-            throw new IllegalArgumentException("'contextPath' cannot be null or zero-length");
+        if (contextPath == null) {
+            throw new IllegalArgumentException("'contextPath' cannot be null");
         }
-        if (contextPath.charAt(0) != '/') {
-            throw new IllegalArgumentException("'contextPath' must start with a forward slash");
+        if (contextPath.length() > 0) {
+            if (contextPath.charAt(0) != '/') {
+                throw new IllegalArgumentException("'contextPath' must start with a forward slash");
+            }
+            if (!contextPath.equals("/")) {
+                if (contextPath.charAt(contextPath.length() - 1) == '/') {
+                    throw new IllegalArgumentException("'contextPath' must not end with a forward slash");
+                }
+            }
         }
         this.displayName = displayName;
         this.contextPath = contextPath;
@@ -1572,13 +1579,19 @@ public class WebappContext implements ServletContext {
     private static String updateMappings(ServletHandler handler, String mapping) {
 
         String mappingLocal = mapping;
-        if (mappingLocal.charAt(0) == '*') {
-            mappingLocal = "/" + mapping;
+        if (mappingLocal.length() == 0) {
+            mappingLocal = "/";
+        } else {
+            if (mappingLocal.charAt(0) == '*') {
+                mappingLocal = "/" + mapping;
+            }
+            if (mappingLocal.indexOf("//", 1) != -1) {
+                mappingLocal = mappingLocal.replaceAll("//", "/");
+            }
         }
-        if (mappingLocal.indexOf("//", 1) != -1) {
-            mappingLocal = mappingLocal.replaceAll("//", "/");
-        }
-        return String.format("%s%s", handler.getContextPath(), mappingLocal);
+        String contextPath = handler.getContextPath();
+        contextPath = ((contextPath.length() == 0) ? "/" : contextPath);
+        return (contextPath + mappingLocal);
 
     }
 

@@ -377,7 +377,7 @@ public class ServletHandler extends HttpHandler {
             contextPath = cc.toString();
         }
 
-        if ("/".equals(contextPath)) {
+        if ("".equals(contextPath)) {
             contextPath = "";
         }
 
