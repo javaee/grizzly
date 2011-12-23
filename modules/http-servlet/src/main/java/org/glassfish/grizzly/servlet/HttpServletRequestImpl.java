@@ -1207,7 +1207,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public void setServletPath(final String servletPath){
         if (servletPath != null) {
             if (servletPath.length() == 0) {
-                this.servletPath = "/";
+                this.servletPath = "";
             }  else {
                 this.servletPath = servletPath;
             }
