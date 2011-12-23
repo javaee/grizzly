@@ -287,6 +287,10 @@ public class AsyncWriteQueueTest {
         transport.setProcessor(filterChainBuilder.build());
 
         try {
+            final AsyncQueueWriter<SocketAddress> asyncQueueWriter =
+                    transport.getAsyncQueueIO().getWriter();
+            asyncQueueWriter.setMaxPendingBytesPerConnection(-1);
+
             transport.bind(PORT);
             transport.start();
 
@@ -298,7 +302,6 @@ public class AsyncWriteQueueTest {
 
             reader = ((StandaloneProcessor) connection.getProcessor()).getStreamReader(connection);
 
-            final Writer<SocketAddress> asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 

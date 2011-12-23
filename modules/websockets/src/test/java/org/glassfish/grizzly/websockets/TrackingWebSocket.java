@@ -56,8 +56,7 @@ public class TrackingWebSocket extends WebSocketClient {
 
     public TrackingWebSocket(String address, Version version, int count, WebSocketListener... listeners)
         throws IOException, URISyntaxException {
-        super(address, version, listeners);
-        received = new CountDownLatch(count);
+        this(address, null, version, count, listeners);
     }
 
     public TrackingWebSocket(String address, String name, Version version, int count, WebSocketListener... listeners)
@@ -96,5 +95,11 @@ public class TrackingWebSocket extends WebSocketClient {
 
     public CountDownLatch getReceived() {
         return received;
+    }
+    
+    @Override
+    protected void buildTransport() {
+        super.buildTransport();
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
     }
 }

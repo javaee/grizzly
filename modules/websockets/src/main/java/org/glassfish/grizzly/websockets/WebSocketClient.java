@@ -105,7 +105,7 @@ public class WebSocketClient extends DefaultWebSocket {
      */
     public WebSocket connect(long timeout, TimeUnit unit) {
         try {
-            transport = TCPNIOTransportBuilder.newInstance().build();
+            buildTransport();
             transport.start();
             final TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(transport) {
                 @Override
@@ -140,6 +140,10 @@ public class WebSocketClient extends DefaultWebSocket {
             e.printStackTrace();
             throw new HandshakeException(e.getMessage());
         }
+    }
+
+    protected void buildTransport() {
+        transport = TCPNIOTransportBuilder.newInstance().build();
     }
 
     private static Processor createFilterChain() {
