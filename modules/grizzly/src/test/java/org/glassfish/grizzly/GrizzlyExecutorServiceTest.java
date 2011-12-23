@@ -47,6 +47,8 @@ import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.threadpool.AbstractThreadPool;
+import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
@@ -104,7 +106,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
             final long transactionTimeoutMillis = 5000;
 
             final CountDownLatch cdl = new CountDownLatch(tasksNum);
-            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
+            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy()
                     .setTransactionTimeout(delayedExecutor, transactionTimeoutMillis, TimeUnit.MILLISECONDS)
                     .setCorePoolSize(tasksNum / 2).setMaxPoolSize(tasksNum / 2);
 
@@ -160,6 +162,23 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         assertTrue(r.isTerminated());
     }
     
+    public void testMonitoringProbesCopying() {
+        final EmptyThreadPoolProbe probe = new EmptyThreadPoolProbe();
+        
+        final ThreadPoolConfig tpc1 = ThreadPoolConfig.defaultConfig().copy();
+        tpc1.getInitialMonitoringConfig().addProbes(probe);
+
+        final ThreadPoolConfig tpc2 = tpc1.copy();
+        
+        assertFalse(tpc1.getInitialMonitoringConfig().getProbes().length == 0);
+        assertFalse(tpc2.getInitialMonitoringConfig().getProbes().length == 0);
+        
+        tpc1.getInitialMonitoringConfig().removeProbes(probe);
+
+        assertTrue(tpc1.getInitialMonitoringConfig().getProbes().length == 0);
+        assertFalse(tpc2.getInitialMonitoringConfig().getProbes().length == 0);
+    }
+    
     private void doTest(GrizzlyExecutorService r, int tasks) throws Exception{
         final CountDownLatch cl = new CountDownLatch(tasks);
         while(tasks-->0){
@@ -184,6 +203,44 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
                     }
                 }
             });
+        }
+    }
+
+    private static class EmptyThreadPoolProbe implements ThreadPoolProbe {
+        @Override
+        public void onThreadPoolStartEvent(AbstractThreadPool threadPool) {
+        }
+
+        @Override
+        public void onThreadPoolStopEvent(AbstractThreadPool threadPool) {
+        }
+
+        @Override
+        public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread) {
+        }
+
+        @Override
+        public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {
+        }
+
+        @Override
+        public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads) {
+        }
+
+        @Override
+        public void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task) {
+        }
+
+        @Override
+        public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {
+        }
+
+        @Override
+        public void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task) {
+        }
+
+        @Override
+        public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool) {
         }
     }
     

@@ -128,7 +128,15 @@ public class ThreadPoolConfig {
         this.corePoolSize    = cfg.corePoolSize;
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
         this.mm              = cfg.mm;
-        this.threadPoolMonitoringConfig = cfg.threadPoolMonitoringConfig;
+        
+        this.threadPoolMonitoringConfig =
+                new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+        
+        final ThreadPoolProbe[] srcProbes = cfg.threadPoolMonitoringConfig.getProbesUnsafe();
+        if (srcProbes != null) {
+            threadPoolMonitoringConfig.addProbes(srcProbes);
+        }
+        
         this.transactionMonitor = cfg.transactionMonitor;
         this.transactionTimeoutMillis = cfg.transactionTimeoutMillis;
     }
