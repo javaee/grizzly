@@ -110,7 +110,7 @@ public class MapperTest extends HttpServerAbstractTest {
    }
 
 
-    public void testRootMapping() throws IOException {
+    public void testRootStarMapping() throws IOException {
         Utils.dumpOut("testRootMapping");
         try {
             startHttpServer(PORT);
@@ -122,12 +122,69 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
-            assertEquals("/", conn.getHeaderField("servlet-path"));
+            assertEquals("", conn.getHeaderField("servlet-path"));
             assertEquals("/index.html", conn.getHeaderField("path-info"));
         } finally {
             stopHttpServer();
         }
     }
+
+    public void testRootStarMapping2() throws IOException {
+            Utils.dumpOut("testRootMapping");
+            try {
+                startHttpServer(PORT);
+                WebappContext ctx = new WebappContext("Test");
+                String alias = "/*";
+                addServlet(ctx, alias);   // overrides the static resource handler
+                ctx.deploy(httpServer);
+                HttpURLConnection conn = getConnection("/foo/index.html", PORT);
+                assertEquals(HttpServletResponse.SC_OK,
+                        getResponseCodeFromAlias(conn));
+                assertEquals(alias, readResponse(conn));
+                assertEquals("", conn.getHeaderField("servlet-path"));
+                assertEquals("/foo/index.html", conn.getHeaderField("path-info"));
+            } finally {
+                stopHttpServer();
+            }
+        }
+
+    public void testRootMapping() throws IOException {
+        Utils.dumpOut("testRootMapping");
+        try {
+            startHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test");
+            String alias = "/";
+            addServlet(ctx, alias);   // overrides the static resource handler
+            ctx.deploy(httpServer);
+            HttpURLConnection conn = getConnection("/", PORT);
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
+            assertEquals(alias, readResponse(conn));
+            assertEquals("/", conn.getHeaderField("servlet-path"));
+            assertEquals(null, conn.getHeaderField("path-info"));
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testRootMapping2() throws IOException {
+            Utils.dumpOut("testRootMapping");
+            try {
+                startHttpServer(PORT);
+                WebappContext ctx = new WebappContext("Test");
+                String alias = "/";
+                addServlet(ctx, alias);   // overrides the static resource handler
+                ctx.deploy(httpServer);
+                HttpURLConnection conn = getConnection("/foo/index.html", PORT);
+                assertEquals(HttpServletResponse.SC_OK,
+                        getResponseCodeFromAlias(conn));
+                assertEquals(alias, readResponse(conn));
+                assertEquals("/foo/index.html", conn.getHeaderField("servlet-path"));
+                assertEquals(null, conn.getHeaderField("path-info"));
+            } finally {
+                stopHttpServer();
+            }
+        }
 
     public void testWrongMapping() throws IOException {
         Utils.dumpOut("testWrongMapping");
