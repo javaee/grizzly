@@ -104,10 +104,10 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://svn.java.net/svn/grizzly~svn</connection>
-        <developerConnection>scm:svn:svn+ssh://username@svn.java.net/grizzly~svn</developerConnection>
-        <tag>1.9.x</tag>
-        <url>http://java.net/projects/grizzly/sources/svn/show</url>
+        <connection>scm:git:git://java.net/grizzly~git</connection>
+        <developerConnection>scm:git:ssh://${user.name}@git.java.net/grizzly~git</developerConnection>
+        <tag>1.9.18x</tag>
+        <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
     <organization>
         <name>Oracle Corporation</name>
@@ -204,7 +204,7 @@
                 <version>1.28</version>
                 <configuration>
                     <excludeFile>copyright-exclude</excludeFile>
-                    <scm>svm</scm>
+                    <scm>git</scm>
                     <scmOnly>true</scmOnly>
                     <warn>false</warn>
                 </configuration>
