@@ -83,7 +83,7 @@ public final class Parameters {
             com.sun.org.apache.commons.logging.LogFactory.getLog( Parameters.class );
 
     protected static final StringManager sm =
-            StringManager.getManager("org.apache.tomcat.util.http");
+            StringManager.getManager("org.apache.tomcat.util.http.res");
 
     // START PWC 6057385
     private LinkedHashMap<String, ArrayList<String>> paramHashValues =
