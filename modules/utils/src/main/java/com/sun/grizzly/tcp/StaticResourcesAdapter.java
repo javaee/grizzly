@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -441,18 +441,34 @@ public class StaticResourcesAdapter implements Adapter {
         this.defaultContentType = defaultContentType;
     }
 
-
-    private static boolean linuxSendFileSupported() {
-        final String version = System.getProperty("java.version");
-        if (version.startsWith("1.6")) {
-            int idx = version.indexOf('_');
+    private static boolean linuxSendFileSupported(final String jdkVersion) {
+        if (jdkVersion.startsWith("1.6")) {
+            int idx = jdkVersion.indexOf('_');
             if (idx == -1) {
                 return false;
             }
-            final int patchRev = Integer.parseInt(version.substring(idx + 1));
+            StringBuilder sb = new StringBuilder(3);
+            final String substr = jdkVersion.substring(idx + 1);
+            int len = Math.min(substr.length(), 3);
+            for (int i = 0; i < len; i++) {
+                final char c = substr.charAt(i);
+                if (Character.isDigit(c)) {
+                    sb.append(c);
+                    continue;
+                }
+                break;
+            }
+            if (sb.length() == 0) {
+                return false;
+            }
+            final int patchRev = Integer.parseInt(sb.toString());
             return (patchRev >= 18);
         } else {
-            return version.startsWith("1.7") || version.startsWith("1.8");
+            return jdkVersion.startsWith("1.7") || jdkVersion.startsWith("1.8");
         }
+    }
+
+    private static boolean linuxSendFileSupported() {
+        return linuxSendFileSupported(System.getProperty("java.version"));
     }
 }
