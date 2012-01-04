@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,7 +48,6 @@ import java.nio.channels.Selector;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.Writer;
-import org.glassfish.grizzly.nio.SelectorFactory;
 import java.util.logging.Logger;
 
 /**
@@ -106,19 +105,7 @@ public class TemporarySelectorIO {
         }
 
         if (selector != null) {
-            try {
-                selector.selectNow();
-                selectorPool.offer(selector);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        "Temporary Selector failure. Creating new one", e);
-                try {
-                    selectorPool.offer(SelectorFactory.instance().create());
-                } catch (IOException ee) {
-                    LOGGER.log(Level.WARNING,
-                            "Error creating new Selector", ee);
-                }
-            }
+            selectorPool.offer(selector);
         }
     }
 }

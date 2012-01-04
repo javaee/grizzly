@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,15 +41,16 @@
 package org.glassfish.grizzly.nio.tmpselectors;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.nio.SelectorFactory;
 import java.io.IOException;
 import java.nio.channels.Selector;
+import java.nio.channels.spi.SelectorProvider;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.nio.Selectors;
 
 /**
  *
@@ -84,13 +85,17 @@ public class TemporarySelectorPool {
      */
     private final AtomicInteger missesCounter;
     
-    public TemporarySelectorPool() {
-        this(DEFAULT_SELECTORS_COUNT);
+    private final SelectorProvider selectorProvider;
+    
+    public TemporarySelectorPool(final SelectorProvider selectorProvider) {
+        this(selectorProvider, DEFAULT_SELECTORS_COUNT);
     }
     
-    public TemporarySelectorPool(int selectorsCount) {
-        isClosed = new AtomicBoolean();
+    public TemporarySelectorPool(final SelectorProvider selectorProvider,
+            final int selectorsCount) {
+        this.selectorProvider = selectorProvider;
         this.maxPoolSize = selectorsCount;
+        isClosed = new AtomicBoolean();
         selectors = new ConcurrentLinkedQueue<Selector>();
         poolSize = new AtomicInteger();
         missesCounter = new AtomicInteger();
@@ -109,6 +114,10 @@ public class TemporarySelectorPool {
         this.maxPoolSize = size;
     }
 
+    public SelectorProvider getSelectorProvider() {
+        return selectorProvider;
+    }
+    
     public Selector poll() throws IOException {
         Selector selector = selectors.poll();
 
@@ -116,7 +125,7 @@ public class TemporarySelectorPool {
             poolSize.decrementAndGet();
         } else {
             try {
-                selector = SelectorFactory.instance().create();
+                selector = Selectors.newSelector(selectorProvider);
             } catch (IOException e) {
                LOGGER.log(Level.WARNING,
                          "SelectorFactory. Can not create a selector", e);
@@ -135,13 +144,24 @@ public class TemporarySelectorPool {
     }
 
     public void offer(Selector selector) {
+        if (selector == null) {
+            return;
+        }
+        
         final boolean wasReturned;
 
-        if (poolSize.getAndIncrement() < maxPoolSize) {
+        if (poolSize.getAndIncrement() < maxPoolSize
+                && (selector = checkSelector(selector)) != null) {
+
             selectors.offer(selector);
             wasReturned = true;
         } else {
             poolSize.decrementAndGet();
+            
+            if (selector == null) {
+                return;
+            }
+            
             wasReturned = false;
         }
 
@@ -172,5 +192,23 @@ public class TemporarySelectorPool {
                         "occurred when trying to close the Selector", e);
             }
         }
+    }
+
+    private Selector checkSelector(final Selector selector) {
+        try {
+            selector.selectNow();
+            return selector;
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING,
+                    "Temporary Selector failure. Creating new one", e);
+            try {
+                return Selectors.newSelector(selectorProvider);
+            } catch (IOException ee) {
+                LOGGER.log(Level.WARNING,
+                        "Error creating new Selector", ee);
+            }
+        }
+
+        return null;
     }
 }

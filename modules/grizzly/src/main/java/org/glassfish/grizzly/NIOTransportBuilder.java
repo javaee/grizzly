@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import java.nio.channels.spi.SelectorProvider;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
@@ -251,6 +252,27 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         return getThis();
     }
 
+    /**
+     * @return the {@link SelectorProvider} that will be used by the created {@link NIOTransport}.
+     *  If not explicitly set, then {@link SelectorProvider#provider()} will be used.
+     */
+    public SelectorProvider getSelectorProvider() {
+        return transport.getSelectorProvider();
+    }
+
+    /**
+     * Set the {@link SelectorProvider} to be used by the created {@link NIOTransport}.
+     *
+     * @param selectorProvider the {@link SelectorProvider}.
+     *
+     * @return this <code>NIOTransportBuilder</code>
+     */
+    public T setSelectorProvider(SelectorProvider selectorProvider) {
+        transport.setSelectorProvider(selectorProvider);
+        return getThis();
+    }
+
+    
     /**
      * @see Transport#getName()
      */

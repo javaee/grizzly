@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,54 +37,40 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
+import java.nio.channels.spi.SelectorProvider;
 
 /**
- *
- * @author oleksiys
+ * Utility class for {@link Selector} related operations.
+ * @author Alexey Stashok
  */
-public abstract class SelectorFactory {
-    private static volatile SelectorFactory instance;
-    
-    public static SelectorFactory instance() {
-        if (instance == null) {
-            synchronized(SelectorFactory.class) {
-                if (instance == null) {
-                    instance = new DefaultSelectorFactory();
+public final class Selectors {
+
+    /**
+     * Creates new {@link Selector} using passed {@link SelectorProvider}.
+     * 
+     * @param provider {@link SelectorProvider}
+     * @return {@link Selector}
+     * @throws IOException 
+     */
+    public static Selector newSelector(final SelectorProvider provider)
+            throws IOException {
+        try {
+            return provider.openSelector();
+        } catch (NullPointerException e) {
+            // This is a JDK issue http://bugs.glassfish.com/view_bug.do?bug_id=6427854
+            // Try 5 times and abort
+            for (int i = 0; i < 5; i++) {
+                try {
+                    return provider.openSelector();
+                } catch (NullPointerException ignored) {
                 }
             }
-        }
-        return instance;
-    }
 
-    public static void setInstance(SelectorFactory instance) {
-        SelectorFactory.instance = instance;
-    }
-    
-    public abstract Selector create() throws IOException;
-    
-    public static class DefaultSelectorFactory extends SelectorFactory {
-        @Override
-        public Selector create() throws IOException {
-            try {
-                return Selector.open();
-            } catch (NullPointerException e) {
-                // This is a JDK issue http://bugs.glassfish.com/view_bug.do?bug_id=6427854
-                // Try 5 times and abort
-                for (int i = 0; i < 5; i++) {
-                    try {
-                        return Selector.open();
-                    } catch (NullPointerException ignored) {
-                    }
-                }
-
-                String msg = e.getMessage();
-                throw new IOException("Can not open Selector" + (msg == null ? "" : msg));
-            }
+            throw new IOException("Can not open Selector due to NPE");
         }
     }
 }

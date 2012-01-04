@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -182,7 +182,8 @@ public final class UDPNIOTransport extends NIOTransport implements
             throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
-        final DatagramChannel serverDatagramChannel = DatagramChannel.open();
+        final DatagramChannel serverDatagramChannel =
+                selectorProvider.openDatagramChannel();
         UDPNIOServerConnection serverConnection = null;
 
         try {
@@ -427,6 +428,8 @@ public final class UDPNIOTransport extends NIOTransport implements
 
             state.setState(State.STARTING);
 
+            super.start();
+
             if (selectorHandler == null) {
                 selectorHandler = new DefaultSelectorHandler();
             }
@@ -480,7 +483,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             temporarySelectorIO.setSelectorPool(
-                    new TemporarySelectorPool(selectorPoolSize));
+                    new TemporarySelectorPool(selectorProvider, selectorPoolSize));
 
             startSelectorRunners();
 

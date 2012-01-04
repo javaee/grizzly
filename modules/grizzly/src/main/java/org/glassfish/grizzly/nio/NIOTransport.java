@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransportProbe;
 import java.io.IOException;
+import java.nio.channels.spi.SelectorProvider;
 import java.util.Random;
 
 /**
@@ -62,6 +63,8 @@ public abstract class NIOTransport extends AbstractTransport {
     
     protected NIOChannelDistributor nioChannelDistributor;
 
+    protected SelectorProvider selectorProvider = SelectorProvider.provider();
+    
     public NIOTransport(final String name) {
         super(name);
 
@@ -97,6 +100,30 @@ public abstract class NIOTransport extends AbstractTransport {
         notifyProbesConfigChanged(this);
     }
 
+    /**
+     * Get the {@link SelectorProvider} to be used by this transport.
+     * 
+     * @return the {@link SelectorProvider} to be used by this transport.
+     */    
+    public SelectorProvider getSelectorProvider() {
+        return selectorProvider;
+    }
+
+    /**
+     * Set the {@link SelectorProvider} to be used by this transport.
+     *
+     * @param selectorProvider the {@link SelectorProvider}.
+     */
+    public void setSelectorProvider(SelectorProvider selectorProvider) {
+        this.selectorProvider = selectorProvider;
+    }
+
+    @Override
+    public void start() throws IOException {
+        if (selectorProvider == null) {
+            selectorProvider = SelectorProvider.provider();
+        }
+    }
     
     protected synchronized void startSelectorRunners() throws IOException {
         selectorRunners = new SelectorRunner[selectorRunnersCount];

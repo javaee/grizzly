@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -101,7 +101,8 @@ public final class SelectorRunner implements Runnable {
 
     public static SelectorRunner create(final NIOTransport transport)
             throws IOException {
-        return new SelectorRunner(transport, SelectorFactory.instance().create());
+        return new SelectorRunner(transport,
+                Selectors.newSelector(transport.getSelectorProvider()));
     }
 
     private SelectorRunner(final NIOTransport transport,
@@ -484,7 +485,7 @@ public final class SelectorRunner implements Runnable {
 
     protected final void switchToNewSelector() throws IOException {
         final Selector oldSelector = selector;
-        final Selector newSelector = SelectorFactory.instance().create();
+        final Selector newSelector = Selectors.newSelector(transport.getSelectorProvider());
 
         final Set<SelectionKey> keys = oldSelector.keys();
         for (final SelectionKey selectionKey : keys) {
