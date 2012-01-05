@@ -1001,6 +1001,7 @@ public class Mapper {
         if (context.emptyPathWrapper != null) {
             if (path.equals(SLASH)) {
                 mappingData.wrapper = context.emptyPathWrapper.object;
+                mappingData.requestPath.setString("");
                 mappingData.wrapperPath.setString("");
                 mappingData.pathInfo.setString("/");
             }
