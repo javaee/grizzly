@@ -272,7 +272,8 @@ public class Response {
                            final HttpServerFilter serverFilter) {
         this.request = request;
         this.response = response;
-        sendFileEnabled = serverFilter.getConfiguration().isSendFileEnabled();
+        sendFileEnabled = ((serverFilter != null)
+                && serverFilter.getConfiguration().isSendFileEnabled());
         outputBuffer.initialize(this, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;

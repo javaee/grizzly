@@ -299,7 +299,10 @@ public class HttpServerTest extends HttpServerAbstractTest {
         final boolean filter[] = new boolean[]{false};
         final boolean destroy[] = new boolean[]{false};
         WebappContext ctx = new WebappContext("Test");
-        addServlet(ctx, "/foo");
+
+        // Overload the test by not adding a Servlet to the webapp.
+        // This means the default Servlet will be invoked in the FilterChain.
+        // The default servlet should return a 404 as /foo can't be resolved.
         FilterRegistration reg = ctx.addFilter("filter", new Filter() {
             @Override
             public void init(final FilterConfig filterConfig) {
@@ -325,7 +328,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
         httpServer.start();
         HttpURLConnection conn =
                     (HttpURLConnection) new URL("http", "localhost", port, "/foo").openConnection();
-            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
         ctx.undeploy();
         httpServer.stop();
         assertTrue(init[0]);

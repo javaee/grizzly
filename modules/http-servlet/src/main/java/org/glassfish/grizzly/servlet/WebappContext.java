@@ -1493,19 +1493,27 @@ public class WebappContext implements ServletContext {
                 servletHandler.setExpectationHandler(registration.expectationHandler);
 
                 final String[] patterns = registration.urlPatterns.getArray();
-                for (final String spath : patterns) {
+                if (patterns != null && patterns.length > 0) {
+                    for (final String spath : patterns) {
+                        serverConfig.addHttpHandler(servletHandler,
+                                updateMappings(servletHandler,
+                                        spath));
+                    }
+                } else {
                     serverConfig.addHttpHandler(servletHandler,
-                            updateMappings(servletHandler,
-                                    spath));
+                            updateMappings(servletHandler, ""));
                 }
                 servletHandlers.add(servletHandler);
                 if (LOGGER.isLoggable(Level.INFO)) {
+                    String p = ((patterns == null)
+                                        ? ""
+                                        : Arrays.toString(patterns));
                     LOGGER.log(Level.INFO,
                             "[{0}] Servlet [{1}] registered for url pattern(s) [{2}].",
                             new Object[]{
                                     displayName,
                                     registration.className,
-                                    Arrays.toString(registration.urlPatterns.getArray())});
+                                    p});
                 }
             }
         }

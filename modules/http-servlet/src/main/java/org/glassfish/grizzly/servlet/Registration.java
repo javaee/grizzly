@@ -172,6 +172,9 @@ public abstract class Registration {
         if (ctx.deployed) {
             throw new IllegalStateException("WebappContext has already been deployed");
         }
+        if (initParameters == null) {
+            return Collections.emptySet();
+        }
         final Set<String> conflicts = new LinkedHashSet<String>(4, 1.0f);
         for (final Map.Entry<String,String> entry : initParameters.entrySet()) {
             if (!setInitParameter(entry.getKey(), entry.getValue())) {
