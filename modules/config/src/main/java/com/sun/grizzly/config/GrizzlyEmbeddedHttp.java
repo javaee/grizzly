@@ -70,6 +70,7 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.mapper.Mapper;
@@ -91,6 +92,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+
+import static com.sun.grizzly.util.LogMessages.SEVERE_GRIZZLY_CONFIG_MISSING_PROTOCOL_ERROR;
+import static com.sun.grizzly.util.LogMessages.SEVERE_GRIZZLY_CONFIG_MISSING_THREADPOOL_ERROR;
+import static com.sun.grizzly.util.LogMessages.SEVERE_GRIZZLY_CONFIG_MISSING_TRANSPORT_ERROR;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -253,7 +258,19 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final Protocol httpProtocol = networkListener.findHttpProtocol();
 
         final Transport transport = networkListener.findTransport();
+        if (transport == null) {
+                throw new GrizzlyConfigException(
+                                    SEVERE_GRIZZLY_CONFIG_MISSING_TRANSPORT_ERROR(
+                                            networkListener.getTransport(),
+                                            networkListener.getName()));
+        }
         final ThreadPool pool = networkListener.findThreadPool();
+        if (pool == null) {
+            throw new GrizzlyConfigException(
+                                 SEVERE_GRIZZLY_CONFIG_MISSING_THREADPOOL_ERROR(
+                                         networkListener.getThreadPool(),
+                                         networkListener.getName()));
+        }
 
         setPort(Integer.parseInt(networkListener.getPort()));
         try {
@@ -274,7 +291,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         final Protocol protocol = networkListener.findProtocol();
-        //final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
+        if (protocol == null) {
+            throw new GrizzlyConfigException(
+                    SEVERE_GRIZZLY_CONFIG_MISSING_PROTOCOL_ERROR(
+                            networkListener.getProtocol(), 
+                            networkListener.getName()));
+        }
 
         rootProtocolChainHandler = configureProtocol(networkListener, protocol, habitat, true);
 
@@ -607,6 +629,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setUseChunking(GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
         setProperty("uriEncoding", http.getUriEncoding());
         setProperty("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
+        setPreallocateProcessorTasks(GrizzlyConfig.toBoolean(http.getPreallocateProcessorTasks()));
     }
 
     /**

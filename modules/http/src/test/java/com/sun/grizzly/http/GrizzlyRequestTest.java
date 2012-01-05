@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http;
 
+import org.junit.Test;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.ssl.SSLSelectorThread;
@@ -50,31 +51,39 @@ import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
-import junit.framework.TestCase;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import static org.junit.Assert.*;
 
-public class GrizzlyRequestTest extends TestCase {
 
+@RunWith(Parameterized.class)
+public class GrizzlyRequestTest {
+
+    boolean isBufferResponse;
+            
     private SSLConfig sslConfig;
     private SelectorThread st;
     private static final int PORT = 7333;
@@ -83,7 +92,19 @@ public class GrizzlyRequestTest extends TestCase {
     private String keyStoreFile;
     private AtomicReference<Throwable> error = new AtomicReference<Throwable>();
 
-    @Override
+    public GrizzlyRequestTest(boolean isBufferResponse) {
+        this.isBufferResponse = isBufferResponse;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getSslParameter() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+        });
+    }
+    
+    @Before
     public void setUp() throws URISyntaxException {
         sslConfig = new SSLConfig();
         ClassLoader cl = getClass().getClassLoader();
@@ -93,7 +114,7 @@ public class GrizzlyRequestTest extends TestCase {
             trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
             sslConfig.setTrustStoreFile(trustStoreFile);
             sslConfig.setTrustStorePass("changeit");
-            logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+            logger.log(Level.INFO, "SSL certs path: {0}", trustStoreFile);
         }
 
         // override system properties
@@ -104,7 +125,7 @@ public class GrizzlyRequestTest extends TestCase {
             sslConfig.setKeyStorePass("changeit");
 
         }
-        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
+        logger.log(Level.INFO, "SSL keystore path: {0}", keyStoreFile);
 
         SSLConfig.DEFAULT_CONFIG = sslConfig;
 
@@ -119,6 +140,7 @@ public class GrizzlyRequestTest extends TestCase {
     // ------------------------------------------------------------ Test Methods
 
 
+    @Test
     public void testGetUserPrincipalSSL() throws Exception {
         createSSLSelectorThread();
         try {
@@ -161,6 +183,7 @@ public class GrizzlyRequestTest extends TestCase {
         }
     }
 
+    @Test
     public void testParametersAvailable() throws Throwable {
         try {
             createSelectorThread(new InputAdapter());
@@ -184,6 +207,7 @@ public class GrizzlyRequestTest extends TestCase {
         }
     }
 
+    @Test
     public void testParametersAvailable2() throws Throwable {
         try {
             createSelectorThread(new InputAdapter2());
@@ -207,6 +231,7 @@ public class GrizzlyRequestTest extends TestCase {
         }
     }
 
+    @Test
     public void testReaderCharacterEncoding() throws Throwable {
         final String msg = "\u043F\u0440\u0438\u0432\u0435\u0442";
         
@@ -249,6 +274,7 @@ public class GrizzlyRequestTest extends TestCase {
     public void createSSLSelectorThread() throws Exception {
         final SSLSelectorThread sslt = new SSLSelectorThread();
         st = sslt;
+        st.setBufferResponse(isBufferResponse);
         st.setPort(PORT);
         st.setAdapter(new MyAdapter());
         st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
@@ -264,6 +290,7 @@ public class GrizzlyRequestTest extends TestCase {
         st.setMaxKeepAliveRequests(8196);
         st.setWebAppRootPath("/dev/null");
         sslt.setSSLConfig(sslConfig);
+        
         try {
             sslt.setSSLImplementation(new JSSEImplementation());
         } catch (ClassNotFoundException e) {
@@ -279,6 +306,7 @@ public class GrizzlyRequestTest extends TestCase {
 
      public void createSelectorThread(final GrizzlyAdapter adapter) throws Exception {
         st = new SelectorThread();
+        st.setBufferResponse(isBufferResponse);
         st.setPort(PORT);
         st.setAdapter(adapter);
         st.setDisplayConfiguration(Utils.VERBOSE_TESTS);

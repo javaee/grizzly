@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,12 +99,11 @@ public class StaticResourcesAdapter implements Adapter {
 
         // Ugly workaround
         // See Issue 327
-        if (System.getProperty("os.name").equalsIgnoreCase("linux")
-                && !System.getProperty("java.version").startsWith("1.7")
+        if ((System.getProperty("os.name").equalsIgnoreCase("linux")
+                && !linuxSendFileSupported())
                 || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
             useSendFile = false;
         }
-
         if (System.getProperty(USE_SEND_FILE) != null) {
             useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
             logger.info("Send-file enabled:" + useSendFile);
@@ -232,7 +231,7 @@ public class StaticResourcesAdapter implements Adapter {
             } else {
                 byte b[] = new byte[8192];
                 ByteChunk chunk = new ByteChunk();
-                int rd = 0;
+                int rd;
                 while ((rd = fis.read(b)) > 0) {
                     chunk.setBytes(b, 0, rd);
                     res.doWrite(chunk);
@@ -242,7 +241,7 @@ public class StaticResourcesAdapter implements Adapter {
             if (fis != null) {
                 try {
                     fis.close();
-                } catch (IOException ex) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -371,6 +370,7 @@ public class StaticResourcesAdapter implements Adapter {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
@@ -379,6 +379,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @return <code>true</code> if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
      *  to send a static resources.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isUseSendFile() {
         return useSendFile;
     }
@@ -403,6 +404,7 @@ public class StaticResourcesAdapter implements Adapter {
      * http://host:port/context-path/index.html
      * @return the context path.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getResourcesContextPath() {
         return resourcesContextPath;
     }
@@ -424,6 +426,7 @@ public class StaticResourcesAdapter implements Adapter {
      * 
      * @return the defaultContentType
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getDefaultContentType() {
         return defaultContentType;
     }
@@ -436,5 +439,36 @@ public class StaticResourcesAdapter implements Adapter {
      */
     public void setDefaultContentType(String defaultContentType) {
         this.defaultContentType = defaultContentType;
+    }
+
+    private static boolean linuxSendFileSupported(final String jdkVersion) {
+        if (jdkVersion.startsWith("1.6")) {
+            int idx = jdkVersion.indexOf('_');
+            if (idx == -1) {
+                return false;
+            }
+            StringBuilder sb = new StringBuilder(3);
+            final String substr = jdkVersion.substring(idx + 1);
+            int len = Math.min(substr.length(), 3);
+            for (int i = 0; i < len; i++) {
+                final char c = substr.charAt(i);
+                if (Character.isDigit(c)) {
+                    sb.append(c);
+                    continue;
+                }
+                break;
+            }
+            if (sb.length() == 0) {
+                return false;
+            }
+            final int patchRev = Integer.parseInt(sb.toString());
+            return (patchRev >= 18);
+        } else {
+            return jdkVersion.startsWith("1.7") || jdkVersion.startsWith("1.8");
+        }
+    }
+
+    private static boolean linuxSendFileSupported() {
+        return linuxSendFileSupported(System.getProperty("java.version"));
     }
 }

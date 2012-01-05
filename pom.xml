@@ -2,7 +2,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.42-SNAPSHOT</version>
+    <version>1.9.45-SNAPSHOT</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
@@ -161,6 +161,19 @@
                 </configuration>
             </plugin>
             <plugin>
+                <inherited>true</inherited>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
@@ -264,19 +277,6 @@
                     <plugin>
                         <inherited>true</inherited>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <inherited>true</inherited>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
                             <aggregate>true</aggregate>
@@ -308,6 +308,7 @@
         <module>extras</module>
         <module>samples</module>
         <module>contribs</module>
+        <module>documentation</module>
     </modules>
     <reporting>
         <outputDirectory>target/site</outputDirectory>

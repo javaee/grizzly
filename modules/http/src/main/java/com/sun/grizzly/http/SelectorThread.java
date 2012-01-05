@@ -394,6 +394,12 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * SelectorThread {@link ErrorHandler}.
      */
     protected ErrorHandler errorHandler;
+
+    /**
+     * Flag indicating whether or not {@link ProcessorTask} instances
+     * should be pre-allocated when the SelectorThread starts.
+     */
+    protected boolean preallocateProcessorTasks;
     
     // ---------------------------------------------------- Object pools --//
 
@@ -1108,7 +1114,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         try{
             running.set(true);
 
-            rampUpProcessorTask();
+            if (preallocateProcessorTasks) {
+                rampUpProcessorTask();
+            }
             registerComponents();
 
             displayConfiguration();
@@ -1144,7 +1152,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             maxPoolSize = ((ExtendedThreadPool) threadPool).getMaximumPoolSize();
         }
 
-        initProcessorTask(maxPoolSize);
+        if (preallocateProcessorTasks) {
+            initProcessorTask(maxPoolSize);
+        }
         
         if (SelectorFactory.getMaxSelectors() < maxPoolSize){
             SelectorFactory.setMaxSelectors(maxPoolSize);
@@ -2457,7 +2467,32 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setUseChunking(boolean useChunking) {
         this.useChunking = useChunking;
     }
-    
+
+    /**
+     * Return <code>true</code> if this <code>SelectorThread</code> will
+     * pre-allocate {@link ProcessorTask} instances.
+     * 
+     * @return <code>true</code> if this <code>SelectorThread</code> will
+     * pre-allocate {@link ProcessorTask} instances.
+     * 
+     * @since 1.9.43
+     */
+    public boolean isPreallocateProcessorTasks() {
+        return preallocateProcessorTasks;
+    }
+
+
+    /**
+     * Set the {@link ProcessorTask} pre-allocation flag.
+     * @param preallocateProcessorTasks <code>true</code> if {@link ProcessorTask}s
+     *  should be pre-allocated when starting the <code>SelectorThread</code>.
+     *
+     * @since 1.9.43
+     */
+    public void setPreallocateProcessorTasks(boolean preallocateProcessorTasks) {
+        this.preallocateProcessorTasks = preallocateProcessorTasks;
+    }
+
     // --------------------------------------------------------------------- //
     
     /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -94,7 +94,7 @@ public final class Parameters {
     */
 
     protected static final StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.http",
+        StringManager.getManager("com.sun.grizzly.util.http.res",
                                  Parameters.class.getClassLoader());
 
     // START PWC 6057385

@@ -87,6 +87,11 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
             handler.readFrame();
             enableRead();
         } catch (WebSocketException e) {
+            if (handler.maskData) {
+                handler.getWebSocket().onClose(null);
+            } else {
+                handler.close(1011, e.getMessage());
+            }
             handler.getWebSocket().onClose(null);
 //            key.cancel();
             processorTask.setAptCancelKey(true);

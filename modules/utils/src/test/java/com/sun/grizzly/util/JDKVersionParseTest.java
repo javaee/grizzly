@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,33 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package com.sun.grizzly.util;
 
-package com.sun.grizzly.async;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import junit.framework.TestCase;
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
+import java.lang.reflect.Method;
 
-/**
- * Interface represents condition, which will be checked when 
- * {@link AsyncQueueReader} was able to read new portion of data from 
- * {@link java.nio.channels.SelectableChannel}, which is associated with a
- * {@link SelectionKey}. Custom condition code could decide whether read data
- * is enough to call <code>AsyncReadCallbackHandler.onReadCompleted()</code> or
- * more data is expected.
- * 
- * @author Alexey Stashok
- */
-public interface AsyncReadCondition {
-    /**
-     * Method checks, whether data, which was read to the {@link ByteBuffer},
-     * is read completely, or custom code expects more data.
-     * 
-     * @param key {@link SelectionKey}
-     * @param srcAddress {@link SocketAddress} remote address data was read from
-     * @param buffer {@link ByteBuffer} data was read to
-     * @return true, if data reading is completed, false - if mora data is expected
-     */
-    public boolean checkAsyncReadCompleted(SelectionKey key, 
-            SocketAddress srcAddress, ByteBuffer buffer);
+public class JDKVersionParseTest extends TestCase {
+
+    public void testVersionParse() throws Exception {
+        Method m = StaticResourcesAdapter.class.getDeclaredMethod("linuxSendFileSupported", String.class);
+        m.setAccessible(true);
+        assertFalse((Boolean) m.invoke(null, "1.6.0_11"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_11a"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_11-ea"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_11--aaa"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_a11"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_1aa"));
+        assertFalse((Boolean) m.invoke(null, "1.6.0_11a"));
+        assertTrue((Boolean) m.invoke(null, "1.6.0_19a"));
+        assertTrue((Boolean) m.invoke(null, "1.6.0_19-ea"));
+        assertTrue((Boolean) m.invoke(null, "1.6.0_111"));
+        assertTrue((Boolean) m.invoke(null, "1.6.0_111-ea"));
+    }
 }

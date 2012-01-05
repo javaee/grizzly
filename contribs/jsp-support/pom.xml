@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -46,11 +46,11 @@
     <parent>
         <artifactId>grizzly-contribs</artifactId>
         <groupId>com.sun.grizzly</groupId>
-        <version>1.9.42-SNAPSHOT</version>
+        <version>1.9.45-SNAPSHOT</version>
     </parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>jsp-support</artifactId>
-    <version>1.9.42-SNAPSHOT</version>
+    <version>1.9.45-SNAPSHOT</version>
     <name>jsp-support</name>
     <dependencies>
         <dependency>
