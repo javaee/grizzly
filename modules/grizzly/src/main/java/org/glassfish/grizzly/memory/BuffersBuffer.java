@@ -47,6 +47,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import org.glassfish.grizzly.utils.ArrayUtils;
@@ -109,6 +110,8 @@ public final class BuffersBuffer extends CompositeBuffer {
     private boolean isDisposed;
 
     private boolean isReadOnly;
+
+    private int mark = -1;
 
     // absolute position
     private int position;
@@ -296,6 +299,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     public BuffersBuffer position(final int newPosition) {
         checkDispose();
         setPosLim(newPosition, limit);
+        if (mark > position) mark = -1;
         return this;
     }
 
@@ -309,6 +313,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     public BuffersBuffer limit(final int newLimit) {
         checkDispose();
         setPosLim(position <= newLimit ? position : newLimit, newLimit);
+        if (mark > limit) mark = -1;
         return this;
     }
 
@@ -320,12 +325,17 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public BuffersBuffer mark() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        mark = position;
+        return this;
     }
 
     @Override
     public BuffersBuffer reset() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        int m = mark;
+        if (m < 0)
+            throw new InvalidMarkException();
+        position = m;
+        return this;
     }
 
     @Override
@@ -338,6 +348,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         checkDispose();
         calcCapacity();
         setPosLim(0, capacity);
+        mark = -1;
         return this;
     }
 
@@ -345,6 +356,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     public BuffersBuffer flip() {
         checkDispose();
         setPosLim(0, position);
+        mark = -1;
         return this;
     }
 
@@ -352,7 +364,8 @@ public final class BuffersBuffer extends CompositeBuffer {
     public BuffersBuffer rewind() {
         checkDispose();
         setPosLim(0, limit);
-	return this;
+        mark = -1;
+	    return this;
     }
 
     @Override
@@ -493,6 +506,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         }       
         
         setPosLim(position - shift, limit - shift);
+        if (mark > position) mark = -1;
 
         for (int i = 0; i < rightTrim; i++) {
             final int idx = buffersSize - i - 1;
@@ -1570,6 +1584,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         int p = position();
         for (int i = limit() - 1; i >= p; i--)
             h = 31 * h + (int) get(i);
+        h = 31 * h + mark;
         return h;
     }
 
@@ -1615,6 +1630,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         position = 0;
         limit = 0;
         capacity = 0;
+        mark = -1;
         if (!isNulled) {
             Arrays.fill(buffers, 0, buffersSize, null);
         }
