@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,12 +40,11 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.CharBuffer;
+import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -192,6 +191,7 @@ public class HeapBuffer implements Buffer {
     public final HeapBuffer position(final int newPosition) {
         checkDispose();
         pos = newPosition;
+        if (mark > pos) mark = -1;
         return this;
     }
 
@@ -205,6 +205,7 @@ public class HeapBuffer implements Buffer {
     public final HeapBuffer limit(final int newLimit) {
         checkDispose();
         lim = newLimit;
+        if (mark > lim) mark = -1;
         return this;
     }
 
@@ -216,7 +217,10 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public final HeapBuffer reset() {
-        pos = mark;
+        int m = mark;
+        if (m < 0)
+            throw new InvalidMarkException();
+        pos = m;
         return this;
     }
 
@@ -224,6 +228,7 @@ public class HeapBuffer implements Buffer {
     public final HeapBuffer clear() {
         pos = 0;
         lim = cap;
+        mark = -1;
         return this;
     }
 
@@ -231,6 +236,7 @@ public class HeapBuffer implements Buffer {
     public final HeapBuffer flip() {
         lim = pos;
         pos = 0;
+        mark = -1;
         return this;
     }
 
