@@ -46,6 +46,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.InvalidMarkException;
 
 public class BuffersBufferTest extends GrizzlyTestCase {
 
@@ -153,6 +154,62 @@ public class BuffersBufferTest extends GrizzlyTestCase {
         buffer.putDouble(1.0d);
         buffer.flip();
         assertEquals("little endian", 1.0d, buffer.getDouble());
+    }
+
+    public void testMarkAndReset() {
+        final BuffersBuffer buffer = createOneSevenBuffer(mm);
+
+        buffer.putShort((short)0);
+        buffer.putShort((short) 1);
+        buffer.mark();
+        buffer.putShort((short)2);
+        buffer.putShort((short) 3);
+        assertTrue(buffer.remaining() == 0);
+        final int lastPosition = buffer.position();
+
+        buffer.reset();
+        assertTrue(lastPosition != buffer.position());
+        assertEquals(2, buffer.getShort());
+
+        buffer.reset();
+        assertEquals(2, buffer.getShort());
+        assertEquals(3, buffer.getShort());
+
+        buffer.flip();
+        assertEquals(0, buffer.getShort());
+        buffer.mark();
+        assertEquals(1, buffer.getShort());
+        assertEquals(2, buffer.getShort());
+
+        buffer.reset();
+        assertEquals(1, buffer.getShort());
+        assertEquals(2, buffer.getShort());
+        assertEquals(3, buffer.getShort());
+
+        assertEquals(lastPosition, buffer.position());
+        buffer.mark();
+        buffer.position(2); // mark should be reset because of mark > position
+        assertEquals(1, buffer.getShort());
+        try {
+            buffer.reset(); // exception should be thrown
+            fail();
+        } catch (InvalidMarkException ignore) {
+        }
+
+        assertEquals(2, buffer.getShort());
+        buffer.mark();
+        assertEquals(3, buffer.getShort());
+        buffer.reset();
+        assertEquals(3, buffer.getShort());
+
+        buffer.flip(); // mark should be reset
+        assertEquals(0, buffer.getShort());
+        try {
+            buffer.reset();
+            fail(); // exception should be thrown because mark was already reset
+        } catch (InvalidMarkException ignore) {
+        }
+        assertEquals(1, buffer.getShort());
     }
 
 
