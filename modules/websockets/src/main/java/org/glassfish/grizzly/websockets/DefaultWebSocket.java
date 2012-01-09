@@ -44,16 +44,13 @@ import java.util.EnumSet;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
+import org.glassfish.grizzly.websockets.frametypes.PingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
 
-@SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
-    private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
     private final Queue<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
     protected final ProtocolHandler protocolHandler;
 
@@ -61,7 +58,7 @@ public class DefaultWebSocket implements WebSocket {
         NEW, CONNECTED, CLOSING, CLOSED
     }
 
-    EnumSet<State> connected = EnumSet.<State>range(State.CONNECTED, State.CLOSING);
+    EnumSet<State> connected = EnumSet.range(State.CONNECTED, State.CLOSING);
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
 
     public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
@@ -72,6 +69,7 @@ public class DefaultWebSocket implements WebSocket {
         protocolHandler.setWebSocket(this);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public Collection<WebSocketListener> getListeners() {
         return listeners;
     }
@@ -88,6 +86,7 @@ public class DefaultWebSocket implements WebSocket {
         return connected.contains(state.get());
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setClosed() {
         state.set(State.CLOSED);
     }
@@ -187,7 +186,13 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
-    private GrizzlyFuture<DataFrame> send(DataFrame frame) {
+    public void sendPing(byte[] data) {
+        if (isConnected()) {
+            send(new DataFrame(new PingFrameType(), data));
+        }
+    }
+
+    protected GrizzlyFuture<DataFrame> send(DataFrame frame) {
         if (isConnected()) {
             return protocolHandler.send(frame);
         } else {
