@@ -500,7 +500,7 @@ public class Request {
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
-        sendFileEnabled = httpServerFilter.getConfiguration().isSendFileEnabled();
+        sendFileEnabled = ((httpServerFilter != null) && httpServerFilter.getConfiguration().isSendFileEnabled());
     }
 
     final HttpServerFilter getServerFilter() {
