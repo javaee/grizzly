@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -131,5 +131,82 @@ public interface ConnectionProbe {
      * @param ioEvent {@link IOEvent}.
      */
     public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent);
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+    /**
+     * {@link ConnectionProbe} adapter that provides no-op implementations for
+     * all interface methods allowing easy extension by the developer.
+     *
+     * @since 2.1.9
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public static class Adapter implements ConnectionProbe {
+
+
+        // ---------------------------------------- Methods from ConnectionProbe
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onBindEvent(Connection connection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onAcceptEvent(Connection serverConnection, Connection clientConnection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onConnectEvent(Connection connection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onReadEvent(Connection connection, Buffer data, int size) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onWriteEvent(Connection connection, Buffer data, long size) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onErrorEvent(Connection connection, Throwable error) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onCloseEvent(Connection connection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {}
+
+    } // END Adapter
 
 }

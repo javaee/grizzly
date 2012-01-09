@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -81,4 +81,46 @@ public interface KeepAliveProbe {
      * @param connection {@link Connection}, the event belongs to.
      */
     void onTimeoutEvent(Connection connection);
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    /**
+     * {@link KeepAliveProbe} adapter that provides no-op implementations for
+     * all interface methods allowing easy extension by the developer.
+     *
+     * @since 2.1.9
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public static class Adapter implements KeepAliveProbe {
+
+
+        // ----------------------------------------- Methods from KeepAliveProbe
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onConnectionAcceptEvent(Connection connection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onHitEvent(Connection connection, int requestNumber) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onRefuseEvent(Connection connection) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTimeoutEvent(Connection connection) {}
+
+    } // END Adapter
 }
