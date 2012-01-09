@@ -175,7 +175,7 @@ public interface ConnectionProbe {
          * {@inheritDoc}
          */
         @Override
-        public void onWriteEvent(Connection connection, Buffer data, long size) {}
+        public void onWriteEvent(Connection connection, Buffer data, int size) {}
 
         /**
          * {@inheritDoc}
