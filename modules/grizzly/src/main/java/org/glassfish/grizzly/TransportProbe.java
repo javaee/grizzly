@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -92,5 +92,58 @@ public interface TransportProbe {
      */
     public void onErrorEvent(Transport transport, Throwable error);
 
+
+    // ---------------------------------------------------------- Nested Classes
+
+    /**
+     * {@link TransportProbe} adapter that provides no-op implementations for
+     * all interface methods allowing easy extension by the developer.
+     *
+     * @since 2.1.9
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public class Adapter implements TransportProbe {
+
+
+        // ----------------------------------------- Methods from TransportProbe
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onStartEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onStopEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onPauseEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onResumeEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onConfigChangeEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onErrorEvent(Transport transport, Throwable error) {}
+
+    } // END Adapter
 
 }

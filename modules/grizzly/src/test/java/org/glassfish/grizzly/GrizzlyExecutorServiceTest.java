@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,6 @@ import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
@@ -163,7 +162,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
     }
     
     public void testMonitoringProbesCopying() {
-        final EmptyThreadPoolProbe probe = new EmptyThreadPoolProbe();
+        final ThreadPoolProbe probe = new ThreadPoolProbe.Adapter();
         
         final ThreadPoolConfig tpc1 = ThreadPoolConfig.defaultConfig().copy();
         tpc1.getInitialMonitoringConfig().addProbes(probe);
@@ -199,48 +198,10 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
                 public void run() {
                     try {
                         Thread.sleep(50);
-                    } catch (Exception e) {
+                    } catch (Exception ignore) {
                     }
                 }
             });
-        }
-    }
-
-    private static class EmptyThreadPoolProbe implements ThreadPoolProbe {
-        @Override
-        public void onThreadPoolStartEvent(AbstractThreadPool threadPool) {
-        }
-
-        @Override
-        public void onThreadPoolStopEvent(AbstractThreadPool threadPool) {
-        }
-
-        @Override
-        public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread) {
-        }
-
-        @Override
-        public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {
-        }
-
-        @Override
-        public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads) {
-        }
-
-        @Override
-        public void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task) {
-        }
-
-        @Override
-        public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {
-        }
-
-        @Override
-        public void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task) {
-        }
-
-        @Override
-        public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool) {
         }
     }
     

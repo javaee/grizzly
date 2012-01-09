@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -145,5 +145,78 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      */
     public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool);
+    
+    
+    // ---------------------------------------------------------- Nested Classes
+
+
+    /**
+     * {@link ThreadPoolProbe} adapter that provides no-op implementations for
+     * all interface methods allowing easy extension by the developer.
+     *
+     * @since 2.1.9
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public class Adapter implements ThreadPoolProbe {
+
+
+        // ---------------------------------------- Methods from ThreadPoolProbe
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onThreadPoolStartEvent(AbstractThreadPool threadPool) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onThreadPoolStopEvent(AbstractThreadPool threadPool) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool) {}
+
+    } // END Adapter
 
 }
