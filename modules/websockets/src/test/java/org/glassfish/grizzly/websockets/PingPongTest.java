@@ -59,7 +59,7 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(2);
 
-        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
+        WebSocketServer server = new WebSocketServer(PORT);
         server.register("/ping", 
                 new WebSocketApplication() {
                     @Override
@@ -102,7 +102,7 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(2);
 
-        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
+        WebSocketServer server = new WebSocketServer(PORT);
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
@@ -151,7 +151,7 @@ public class PingPongTest {
     public void testUnsolicitedPongFromClientToServer() throws Exception {
 
         final CountDownLatch latch = new CountDownLatch(1);
-        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
+        WebSocketServer server = new WebSocketServer(PORT);
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
@@ -219,7 +219,7 @@ public class PingPongTest {
     public void testUnsolicitedPongFromServerToClient() throws Exception {
 
         final CountDownLatch latch = new CountDownLatch(1);
-        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
+        WebSocketServer server = new WebSocketServer(PORT);
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
