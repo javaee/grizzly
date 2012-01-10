@@ -95,15 +95,6 @@ public interface WebSocket {
      */
     GrizzlyFuture<DataFrame> send(byte[] data);
 
-    /**
-     * Send a ping frame with optional data.
-     *
-     * @param data ping data
-     *
-     * @since 2.2.1
-     */
-    void sendPing(final byte[] data);
-
     GrizzlyFuture<DataFrame> stream(boolean last, String fragment);
 
     GrizzlyFuture<DataFrame> stream(boolean last, byte[] fragment, int off, int len);
