@@ -196,9 +196,7 @@ public class SyncThreadPool extends AbstractThreadPool {
             try {
                 activeThreadsCount--;
 
-                if (!running
-                        || (!core && currentPoolSize > config.getMaxPoolSize())) {
-                    // if maxpoolsize becomes lower during runtime we kill of the
+                if (!running) {
                     return null;
                 }
 
@@ -207,7 +205,12 @@ public class SyncThreadPool extends AbstractThreadPool {
                 long keepAliveNanos = config.getKeepAliveTime(TimeUnit.NANOSECONDS);
 
                 while (r == null) {
-                    keepAliveNanos = stateLockCondition.awaitNanos(keepAliveNanos);
+                    if (core) {
+                        stateLockCondition.await();
+                    } else {
+                        keepAliveNanos = stateLockCondition.awaitNanos(keepAliveNanos);
+                    }
+                    
                     r = workQueue.poll();
 
                     // Less than 100 millis remainder will consider as keepalive timeout
