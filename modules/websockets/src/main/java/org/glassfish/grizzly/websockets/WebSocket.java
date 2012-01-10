@@ -95,6 +95,39 @@ public interface WebSocket {
      */
     GrizzlyFuture<DataFrame> send(byte[] data);
 
+    /**
+     * Sends a <code>ping</code> frame with the specified payload (if any).
+     *
+     * @param data optional payload.  Note that payload length is restricted
+     *             to 125 bytes or less.
+     *
+     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     *
+     * @since 2.1.9
+     */
+    GrizzlyFuture<DataFrame> sendPing(byte[] data);
+
+    /**
+     * <p>
+     * Sends a <code>ping</code> frame with the specified payload (if any).
+     * </p>
+     *
+     * <p>It may seem odd to send a pong frame, however, RFC-6455 states:</p>
+     *
+     * <p>
+     *     "A Pong frame MAY be sent unsolicited.  This serves as a
+     *     unidirectional heartbeat.  A response to an unsolicited Pong frame is
+     *     not expected."
+     * </p>
+     *
+     * @param data optional payload.  Note that payload length is restricted
+     *             to 125 bytes or less.
+     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     *
+     * @since 2.1.9
+     */
+    GrizzlyFuture<DataFrame> sendPong(byte[] data);
+    
     GrizzlyFuture<DataFrame> stream(boolean last, String fragment);
 
     GrizzlyFuture<DataFrame> stream(boolean last, byte[] fragment, int off, int len);
