@@ -82,7 +82,7 @@ public class WebSocketEngine {
     public static final String UPGRADE = "upgrade";
     public static final String CONNECTION = "connection";
     public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
-    public static final Version DEFAULT_VERSION = Version.values()[Version.values().length - 1];
+    public static final Version DEFAULT_VERSION = Version.DRAFT17;
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT = Utils.isDebugVM() ? 900 : 30;
     private static final WebSocketEngine engine = new WebSocketEngine();
