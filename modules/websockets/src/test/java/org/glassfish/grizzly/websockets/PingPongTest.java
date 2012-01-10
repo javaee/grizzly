@@ -39,9 +39,9 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.utils.Charsets;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -59,7 +59,7 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(2);
 
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
         server.register("/ping", 
                 new WebSocketApplication() {
                     @Override
@@ -102,7 +102,7 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(2);
 
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
@@ -112,6 +112,10 @@ public class PingPongTest {
 
                     @Override
                     public void onConnect(WebSocket socket) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignored) {
+                        }
                         System.out.println("[server] client connected!");
                         socket.sendPing("Hi There!".getBytes(Charsets.UTF8_CHARSET));
                     }
@@ -147,7 +151,7 @@ public class PingPongTest {
     public void testUnsolicitedPongFromClientToServer() throws Exception {
 
         final CountDownLatch latch = new CountDownLatch(1);
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
@@ -215,7 +219,7 @@ public class PingPongTest {
     public void testUnsolicitedPongFromServerToClient() throws Exception {
 
         final CountDownLatch latch = new CountDownLatch(1);
-        WebSocketServer server = new WebSocketServer(PORT);
+        WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
         server.register("/ping",
                 new WebSocketApplication() {
                     @Override
@@ -225,6 +229,10 @@ public class PingPongTest {
 
                     @Override
                     public void onConnect(WebSocket socket) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ignored) {
+                        }
                         socket.sendPong("Surprise!".getBytes(Charsets.UTF8_CHARSET));
                     }
 
