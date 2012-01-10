@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,6 +90,36 @@ public interface WebSocket {
     void send(String data);
 
     void send(byte[] data);
+
+    /**
+     * Sends a <code>ping</code> frame with the specified payload (if any).
+     *
+     * @param data optional payload.  Note that payload length is restricted
+     *             to 125 bytes or less.
+     *
+     * @since 1.9.46
+     */
+    void sendPing(byte[] data);
+
+    /**
+     * <p>
+     * Sends a <code>ping</code> frame with the specified payload (if any).
+     * </p>
+     * <p/>
+     * <p>It may seem odd to send a pong frame, however, RFC-6455 states:</p>
+     * <p/>
+     * <p>
+     * "A Pong frame MAY be sent unsolicited.  This serves as a
+     * unidirectional heartbeat.  A response to an unsolicited Pong frame is
+     * not expected."
+     * </p>
+     *
+     * @param data optional payload.  Note that payload length is restricted
+     *             to 125 bytes or less.
+     *
+     * @since 1.9.46
+     */
+    void sendPong(byte[] data);
 
     void stream(boolean last, String fragment);
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,11 +55,6 @@ import com.sun.grizzly.websockets.frametypes.ContinuationFrameType;
 import com.sun.grizzly.websockets.frametypes.PingFrameType;
 import com.sun.grizzly.websockets.frametypes.PongFrameType;
 import com.sun.grizzly.websockets.frametypes.TextFrameType;
-import com.sun.grizzly.websockets.frametypes.Utf8DecodingError;
-
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CoderResult;
 
 public class Draft07Handler extends ProtocolHandler {
     public Draft07Handler(boolean maskData) {
@@ -70,9 +65,10 @@ public class Draft07Handler extends ProtocolHandler {
     public byte[] frame(DataFrame frame) {
         byte opcode = checkForLastFrame(frame, getOpcode(frame.getType()));
         final byte[] bytes = frame.getType().getBytes(frame);
-        final byte[] lengthBytes = encodeLength(bytes.length);
+        final int payloadLen = ((bytes != null) ? bytes.length : 0);
+        final byte[] lengthBytes = encodeLength(payloadLen);
 
-        int length = 1 + lengthBytes.length + bytes.length + (maskData ? WebSocketEngine.MASK_SIZE : 0);
+        int length = 1 + lengthBytes.length + payloadLen + (maskData ? WebSocketEngine.MASK_SIZE : 0);
         int payloadStart = 1 + lengthBytes.length + (maskData ? WebSocketEngine.MASK_SIZE : 0);
         final byte[] packet = new byte[length];
         packet[0] = opcode;
@@ -85,7 +81,7 @@ public class Draft07Handler extends ProtocolHandler {
             System.arraycopy(masker.getMask(), 0, packet, payloadStart - WebSocketEngine.MASK_SIZE,
                     WebSocketEngine.MASK_SIZE);
         } else {
-            System.arraycopy(bytes, 0, packet, payloadStart, bytes.length);
+            System.arraycopy(bytes, 0, packet, payloadStart, payloadLen);
         }
         return packet;
     }
