@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
+import org.glassfish.grizzly.websockets.frametypes.PingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
 
 @SuppressWarnings({"StringContatenationInLoop"})
@@ -185,6 +186,22 @@ public class DefaultWebSocket implements WebSocket {
         } else {
             throw new RuntimeException("Socket is not connected.");
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GrizzlyFuture<DataFrame> sendPing(byte[] data) {
+        return send(new DataFrame(new PingFrameType(), data));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GrizzlyFuture<DataFrame> sendPong(byte[] data) {
+        return send(new DataFrame(new PongFrameType(), data));
     }
 
     private GrizzlyFuture<DataFrame> send(DataFrame frame) {

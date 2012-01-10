@@ -84,15 +84,16 @@ public class Draft06Handler extends ProtocolHandler {
     public byte[] frame(DataFrame frame) {
         byte opcode = checkForLastFrame(frame, getOpcode(frame.getType()));
         byte[] payloadBytes = frame.getBytes();
-
-//        ByteBuffer buffer = ByteBuffer.allocate(payloadBytes.length  + 8);
-        final byte[] lengthBytes = encodeLength(payloadBytes.length);
+        final int payloadLen = ((payloadBytes != null) ? payloadBytes.length : 0);
+        final byte[] lengthBytes = encodeLength(payloadLen);
         int packetLength = 1 + lengthBytes.length;
 
-        byte[] packet = new byte[packetLength + payloadBytes.length];
+        byte[] packet = new byte[packetLength + payloadLen];
         packet[0] = opcode;
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
-        System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
+        if (payloadBytes != null) {
+            System.arraycopy(payloadBytes, 0, packet, packetLength, payloadLen);
+        }
 
         if (maskData) {
             packet = new Masker().maskAndPrepend(packet);
