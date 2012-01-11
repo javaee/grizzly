@@ -51,7 +51,6 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.junit.Test;
@@ -60,6 +59,9 @@ import org.junit.runners.Parameterized.Parameters;
 import java.util.Collection;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -80,6 +82,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 public class IOStrategyTest {
     private static final int PORT = 7789;
+    private static final Logger LOGGER = Grizzly.logger(IOStrategyTest.class);
     
     private final IOStrategy strategy;
     
@@ -89,7 +92,9 @@ public class IOStrategyTest {
                     {WorkerThreadIOStrategy.getInstance()},
                     {LeaderFollowerNIOStrategy.getInstance()},
                     {SameThreadIOStrategy.getInstance()},
-                    {SimpleDynamicNIOStrategy.getInstance()}});
+                    {SimpleDynamicNIOStrategy.getInstance()}
+        }
+                );
     }
 
     @Before
@@ -103,18 +108,20 @@ public class IOStrategyTest {
     
     @Test
     public void testSimplePackets() throws Exception {
-        final Integer msgNum = 100;
+        final Integer msgNum = 200;
         final String pattern = "Message #";
         final int clientsNum = Runtime.getRuntime().availableProcessors() * 16;
+        final EchoFilter serverEchoFilter = new EchoFilter(pattern);
         
         Connection connection = null;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
-        filterChainBuilder.add(new EchoFilter());
+        filterChainBuilder.add(serverEchoFilter);
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
                 .setIOStrategy(strategy)
+                .setMaxAsyncWriteQueueSizeInBytes(AsyncQueueWriter.UNLIMITED_SIZE)
                 .build();
         transport.setProcessor(filterChainBuilder.build());
 
@@ -123,6 +130,8 @@ public class IOStrategyTest {
             transport.start();
 
             for (int i = 0; i < clientsNum; i++) {
+                serverEchoFilter.reset();
+                
                 final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
                 FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
                 clientFilterChainBuilder.add(new TransportFilter());
@@ -146,7 +155,15 @@ public class IOStrategyTest {
                 assertTrue(connection != null);
 
                 for (int j = 0; j < msgNum; j++) {
-                    connection.write(pattern + j);
+                    final int num = j;
+                    
+                    connection.write(pattern + j, new EmptyCompletionHandler<WriteResult>() {
+                        @Override
+                        public void failed(Throwable throwable) {
+                            LOGGER.log(Level.WARNING, "connection.write(...) failed. Index={0}, error={1}",
+                                    new Object[]{num, throwable});
+                        }
+                    });
                 }
                 
                 try {
@@ -193,7 +210,7 @@ public class IOStrategyTest {
             
             if (!check.equals(msg)) {
                 resultFuture.failure(new IllegalStateException(
-                        "Unexpected echo came: " + msg +
+                        "Client ResultFilter: unexpected echo came: " + msg +
                         ". Expected response: " + check));
                 return ctx.getStopAction();
             }
@@ -203,8 +220,38 @@ public class IOStrategyTest {
             }
             
             return ctx.getStopAction();
+        }        
+    }
+
+    private static final class EchoFilter extends BaseFilter {
+        // handleReads should be executed synchronously, so plain "int" is ok
+        private final AtomicInteger counter = new AtomicInteger();
+
+        private final String pattern;
+        
+        private EchoFilter(String pattern) {
+            this.pattern = pattern;
         }
         
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            final String msg = ctx.getMessage();
+            final int count = counter.getAndIncrement();
+            final String check = pattern + count;
+            
+            if (!check.equals(msg)) {
+                LOGGER.log(Level.WARNING, "Server EchoFilter: unexpected message came: {0}. Expected response: {1}",
+                        new Object[]{msg, check});
+            }
+            
+            ctx.write(msg);
+            
+            return ctx.getStopAction();
+        }
+        
+        private void reset() {
+            counter.set(0);
+        }
     }
     
 }
