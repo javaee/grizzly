@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -167,7 +167,7 @@ public class StaticHttpHandler extends HttpHandler {
     public void removeDocRoot(File docRoot) {
         docRoots.remove(docRoot);
     }
-    
+
     /**
      * Based on the {@link Request} URI, try to map the file from the
      * {@link #getDocRoots()}, and send it back to a client.
@@ -270,6 +270,8 @@ public class StaticHttpHandler extends HttpHandler {
             return false;
         }
 
+        pickupContentType(res, resource);
+        
         addToFileCache(req, resource);
         sendFile(res, resource);
 
@@ -283,24 +285,10 @@ public class StaticHttpHandler extends HttpHandler {
 
         try {
             response.setStatus(HttpStatus.OK_200);
-            String substr;
-            int dot = path.lastIndexOf('.');
-            if (dot < 0) {
-                substr = file.toString();
-                dot = substr.lastIndexOf('.');
-            } else {
-                substr = path;
-            }
-            if (dot > 0) {
-                String ext = substr.substring(dot + 1);
-                String ct = MimeType.get(ext);
-                if (ct != null) {
-                    response.setContentType(ct);
-                }
-            } else {
-                response.setContentType(MimeType.get("html"));
-            }
-
+            
+            // In case this sendFile(...) is called directly by user - pickup the content-type
+            pickupContentType(response, file);
+            
             final long length = file.length();
             response.setContentLengthLong(length);
 
@@ -356,5 +344,29 @@ public class StaticHttpHandler extends HttpHandler {
         fileCacheFilterIdx = -1;
         return null;
     }
-    
+
+    private static void pickupContentType(final Response response,
+            final File file) {
+        if (!response.getResponse().isContentTypeSet()) {
+            final String path = file.getPath();
+            String substr;
+            int dot = path.lastIndexOf('.');
+            if (dot < 0) {
+                substr = file.toString();
+                dot = substr.lastIndexOf('.');
+            } else {
+                substr = path;
+            }
+
+            if (dot > 0) {
+                String ext = substr.substring(dot + 1);
+                String ct = MimeType.get(ext);
+                if (ct != null) {
+                    response.setContentType(ct);
+                }
+            } else {
+                response.setContentType(MimeType.get("html"));
+            }
+        }
+    }
 }

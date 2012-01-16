@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -82,6 +82,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
+import org.glassfish.grizzly.http.server.util.MimeType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -196,6 +197,66 @@ public class FileCacheTest {
             final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
             final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
             assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/xml", response2.getHttpHeader().getContentType());
+            assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
+            isOk = true;
+        } finally {
+            if (!isOk) {
+                System.err.println(connectionProbe);
+                System.err.println(httpProbe);
+                System.err.println(cacheProbe);
+            }
+        }
+    }
+    
+    /**
+     * http://java.net/jira/browse/GRIZZLY-1014
+     * "Content-type for files cached in the file cache is incorrect"
+     */
+    @Test
+    public void testContentType() throws Exception {
+        final String fileName = "./pom.xml";
+
+        final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
+        final StatsHttpProbe httpProbe = new StatsHttpProbe();
+        final StatsCacheProbe cacheProbe = new StatsCacheProbe();
+        httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(cacheProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
+
+        startHttpServer(new StaticHttpHandler());
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/pom.xml")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/pom.xml")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        boolean isOk = false;
+        try {
+            final File file = new File(fileName);
+            InputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
+
+            final String pattern = new String(data);
+            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
+            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+
+            assertEquals("ContentType is wrong " + response1.getHttpHeader().getContentType(), MimeType.getByFilename(fileName), response1.getHttpHeader().getContentType());
+            assertEquals("Direct data mismatch\n" + cacheProbe, pattern, response1.getContent().toStringContent());
+
+            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
+            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), MimeType.getByFilename(fileName), response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
             isOk = true;
         } finally {
