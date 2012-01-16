@@ -175,29 +175,14 @@ public class StaticHttpHandler extends HttpHandler {
 
     public static void sendFile(final Response response, final File file)
     throws IOException {
-        final String path = file.getPath();
         FileInputStream fis = null;
 
         try {
             response.setStatus(HttpStatus.OK_200);
-            String substr;
-            int dot = path.lastIndexOf('.');
-            if (dot < 0) {
-                substr = file.toString();
-                dot = substr.lastIndexOf('.');
-            } else {
-                substr = path;
-            }
-            if (dot > 0) {
-                String ext = substr.substring(dot + 1);
-                String ct = MimeType.get(ext);
-                if (ct != null) {
-                    response.setContentType(ct);
-                }
-            } else {
-                response.setContentType(MimeType.get("html"));
-            }
-
+            
+            // In case this sendFile(...) is called directly by user - pickup the content-type
+            pickupContentType(response, file);
+            
             final long length = file.length();
             response.setContentLengthLong(length);
             final OutputBuffer outputBuffer = response.getOutputBuffer();
@@ -345,6 +330,8 @@ public class StaticHttpHandler extends HttpHandler {
             return false;
         }
 
+        pickupContentType(res, resource);
+        
         addToFileCache(req, resource);
         sendFile(res, resource);
 
@@ -380,4 +367,29 @@ public class StaticHttpHandler extends HttpHandler {
         return null;
     }
 
+    private static void pickupContentType(final Response response,
+            final File file) {
+        if (!response.getResponse().isContentTypeSet()) {
+            final String path = file.getPath();
+            String substr;
+            int dot = path.lastIndexOf('.');
+            if (dot < 0) {
+                substr = file.toString();
+                dot = substr.lastIndexOf('.');
+            } else {
+                substr = path;
+            }
+
+            if (dot > 0) {
+                String ext = substr.substring(dot + 1);
+                String ct = MimeType.get(ext);
+                if (ct != null) {
+                    response.setContentType(ct);
+                }
+            } else {
+                response.setContentType(MimeType.get("html"));
+            }
+        }
+    }
+    
 }
