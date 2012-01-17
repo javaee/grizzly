@@ -41,7 +41,6 @@
 package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.aio.AIOTransport;
@@ -87,7 +86,7 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
      * </p>
      */
     public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
-            new DefaultAttributeBuilder();
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
 
     /**
      * The {@link AIOTransport} implementation.
