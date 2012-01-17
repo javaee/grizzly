@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.util.Properties;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import java.io.InputStream;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -58,7 +57,7 @@ import java.util.regex.Pattern;
 public class Grizzly {
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)(\\.\\d+)*){1}(?:-(.+))?");
     
-    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = new DefaultAttributeBuilder();
+    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
     
     private static final String dotedVersion;
     private static final int major;
