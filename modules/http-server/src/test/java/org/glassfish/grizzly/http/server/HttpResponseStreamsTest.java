@@ -71,7 +71,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 
 public class HttpResponseStreamsTest extends TestCase {
 
-    private static final int PORT = 8003;
+    private static final int PORT = 8004;
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
