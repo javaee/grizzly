@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,51 +37,42 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.IOEvent;
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
+import org.glassfish.grizzly.Grizzly;
 
-/**
- * {@link SelectionKeyHandler} implementations are responsible for handling
- * {@link SelectionKey} life cycle events.
- * 
- * @author Alexey Stashok
- */
-public interface SelectionKeyHandler {
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-    /**
-     * <p>
-     * The default {@link SelectionKeyHandler} used by all created builder instances.
-     * </p>
-     *
-     * <p>
-     * The default may be changed by setting the system property <code>org.glassfish.grizzly.DEFAULT_SELECTION_KEY_HANDLER</code>
-     * with the fully qualified name of the class that implements the SelectionKeyHandler interface.  Note that this class must
-     * be public and have a public no-arg constructor.
-     * </p>
-     */
-    public static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
-            SelectionKeyHandlerInitializer.initHandler();
-
-    void onKeyRegistered(SelectionKey key);
+class SelectionKeyHandlerInitializer {
     
-    void onKeyDeregistered(SelectionKey key);
-
-    boolean onProcessInterest(SelectionKey key, int interest) throws IOException;
-
-    void cancel(SelectionKey key) throws IOException;
+    private static final String PROP = "org.glassfish.grizzly.DEFAULT_SELECTION_KEY_HANDLER";
     
-    NIOConnection getConnectionForKey(SelectionKey selectionKey);
+    private static final Logger LOGGER = Grizzly.logger(SelectionKeyHandlerInitializer.class);
 
-    void setConnectionForKey(NIOConnection connection,
-            SelectionKey selectionKey);
+    @SuppressWarnings("unchecked")
+    static SelectionKeyHandler initHandler() {
+        final String className = System.getProperty(PROP);
+        if (className != null) {
+            try {
+                Class<? extends SelectionKeyHandler> handlerClass = (Class<? extends SelectionKeyHandler>)
+                        Class.forName(className, 
+                                      true, 
+                                      SelectionKeyHandler.class.getClassLoader());
+                return handlerClass.newInstance();
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE,
+                            "Unable to load or create a new instance of SelectionKeyHandler {0}.  Cause: {1}",
+                            new Object[]{className, e.getMessage()});
+                }
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, e.toString(), e);
+                }
+                return new DefaultSelectionKeyHandler();
+            }
+        }
+        return new DefaultSelectionKeyHandler();
+    }
 
-    int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
-    
-    IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
-
-    IOEvent[] getIOEvents(int interest);
 }
