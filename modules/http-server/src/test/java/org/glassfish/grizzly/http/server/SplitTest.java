@@ -75,7 +75,7 @@ import static org.junit.Assert.*;
  */
 @SuppressWarnings("unchecked")
 public class SplitTest {
-    private static final int PORT = 18898;
+    private static final int PORT = 18899;
     
     @Test
     public void testSplitReasonPhrase() throws Exception {
