@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,11 +62,13 @@ public interface MemoryManager<E extends Buffer>
      * </p>
      *
      * <p>
-     * This may be updated with an alternate {@link MemoryManager} implementation
-     * if so desired.
+     * The default may be changed by setting the system property <code>org.glassfish.grizzly.DEFAULT_MEMORY_MANAGER</code>
+     * with the fully qualified name of the class that implements the MemoryManager interface.  Note that this class must
+     * be public and have a public no-arg constructor.
      * </p>
      */
-    public static MemoryManager DEFAULT_MEMORY_MANAGER = new HeapMemoryManager();
+    public static final MemoryManager DEFAULT_MEMORY_MANAGER =
+            MemoryManagerInitializer.initManager();
 
     /**
      * Allocated {@link Buffer} of the required size.

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,51 +37,42 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.attributes;
 
-package org.glassfish.grizzly.nio;
+import org.glassfish.grizzly.Grizzly;
 
-import org.glassfish.grizzly.IOEvent;
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-/**
- * {@link SelectionKeyHandler} implementations are responsible for handling
- * {@link SelectionKey} life cycle events.
- * 
- * @author Alexey Stashok
- */
-public interface SelectionKeyHandler {
+class AttributeBuilderInitializer {
 
-    /**
-     * <p>
-     * The default {@link SelectionKeyHandler} used by all created builder instances.
-     * </p>
-     *
-     * <p>
-     * The default may be changed by setting the system property <code>org.glassfish.grizzly.DEFAULT_SELECTION_KEY_HANDLER</code>
-     * with the fully qualified name of the class that implements the SelectionKeyHandler interface.  Note that this class must
-     * be public and have a public no-arg constructor.
-     * </p>
-     */
-    public static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
-            SelectionKeyHandlerInitializer.initHandler();
+    private static final String PROP = "org.glassfish.grizzly.DEFAULT_ATTRIBUTE_BUILDER";
 
-    void onKeyRegistered(SelectionKey key);
-    
-    void onKeyDeregistered(SelectionKey key);
+    private static final Logger LOGGER = Grizzly.logger(AttributeBuilderInitializer.class);
 
-    boolean onProcessInterest(SelectionKey key, int interest) throws IOException;
+    @SuppressWarnings("unchecked")
+    static AttributeBuilder initBuilder() {
+        final String className = System.getProperty(PROP);
+        if (className != null) {
+            try {
+                Class<? extends AttributeBuilder> builderClass = (Class<? extends AttributeBuilder>)
+                        Class.forName(className,
+                                true,
+                                AttributeBuilder.class.getClassLoader());
+                return builderClass.newInstance();
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE,
+                            "Unable to load or create a new instance of AttributeBuilder {0}.  Cause: {1}",
+                            new Object[]{className, e.getMessage()});
+                }
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, e.toString(), e);
+                }
+                return new DefaultAttributeBuilder();
+            }
+        }
+        return new DefaultAttributeBuilder();
+    }
 
-    void cancel(SelectionKey key) throws IOException;
-    
-    NIOConnection getConnectionForKey(SelectionKey selectionKey);
-
-    void setConnectionForKey(NIOConnection connection,
-            SelectionKey selectionKey);
-
-    int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
-    
-    IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
-
-    IOEvent[] getIOEvents(int interest);
 }
