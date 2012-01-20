@@ -584,38 +584,40 @@ public class MemcachedClientFilter extends BaseFilter {
         if (requests == null) {
             throw new IllegalArgumentException("requests must be not null");
         }
+        final int requestLen = requests.length;
+        if (requestLen < 1) {
+            throw new IllegalArgumentException("requests must include at least one request");
+        }
         if (result == null) {
             throw new IllegalArgumentException("result must be not null");
         }
-        long timeout = timeoutInMillis;
-        for (MemcachedRequest request : requests) {
-            Object response;
-            ResponseStatus responseStatus;
-            if (timeoutInMillis < 0) {
-                request.notify.await();
-                response = request.response;
-                responseStatus = request.responseStatus;
-            } else {
-                final long startTime = System.currentTimeMillis();
-                request.notify.await(timeout, TimeUnit.MILLISECONDS);
-                response = request.response;
-                responseStatus = request.responseStatus;
-                final long elapse = System.currentTimeMillis() - startTime;
-                timeout = timeout - elapse;
-            }
 
-            if (response == null) {
-                if (!request.disposed.compareAndSet(false, true)) {
-                    request.notify.await();
-                    response = request.response;
-                    responseStatus = request.responseStatus;
-                } else {
-                    throw new TimeoutException("timed out while getting the response");
-                }
-            }
+        Object response;
+        ResponseStatus responseStatus;
+        final int lastIndex = requestLen - 1;
+        // wait for receiving last packet
+        if (timeoutInMillis < 0) {
+            requests[lastIndex].notify.await();
+            response = requests[lastIndex].response;
+            responseStatus = requests[lastIndex].responseStatus;
+        } else {
+            requests[lastIndex].notify.await(timeoutInMillis, TimeUnit.MILLISECONDS);
+            response = requests[lastIndex].response;
+            responseStatus = requests[lastIndex].responseStatus;
+        }
+        if (response == null) {
+            throw new TimeoutException("timed out while getting the response");
+        }
+        if (!ResponseStatus.isError(responseStatus)) {
+            result.put((K) requests[lastIndex].getOriginKey(), (V) response);
+        }
+        // collect previous packets
+        for (int i = 0; i < requestLen - 1; i++) {
+            response = requests[i].response;
+            responseStatus = requests[i].responseStatus;
             if (response != null) {
                 if (!ResponseStatus.isError(responseStatus)) {
-                    result.put((K) request.getOriginKey(), (V) response);
+                    result.put((K) requests[i].getOriginKey(), (V) response);
                 }
             }
         }
@@ -649,26 +651,16 @@ public class MemcachedClientFilter extends BaseFilter {
         }
 
         if (response == null) {
-            if (!request.disposed.compareAndSet(false, true)) {
-                request.notify.await();
-                response = request.response;
-                responseStatus = request.responseStatus;
-            } else {
-                throw new TimeoutException("timed out while getting the response");
-            }
+            throw new TimeoutException("timed out while getting the response");
         }
         final V result;
-        if (response != null) {
-            if (!ResponseStatus.isError(responseStatus)) {
-                result = (V) response;
-            } else {
-                result = null;
-                if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "error status code={0}, status msg={1}, op={2}, key={3}", new Object[]{responseStatus, responseStatus.message(), request.getOp(), request.getOriginKey()});
-                }
-            }
+        if (!ResponseStatus.isError(responseStatus)) {
+            result = (V) response;
         } else {
             result = null;
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE, "error status code={0}, status msg={1}, op={2}, key={3}", new Object[]{responseStatus, responseStatus.message(), request.getOp(), request.getOriginKey()});
+            }
         }
         return result;
     }

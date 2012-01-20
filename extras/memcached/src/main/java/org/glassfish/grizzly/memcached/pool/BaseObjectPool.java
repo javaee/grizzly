@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.memcached.pool;
 
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -480,7 +480,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
 
         private QueuePool(final int max) {
             if( max <= 0 || max == Integer.MAX_VALUE) {
-                queue = new LinkedTransferQueue<V>();
+                queue = DataStructures.getLTQInstance();
             } else {
                 queue = new LinkedBlockingQueue<V>(max);
             }
