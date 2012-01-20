@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.memcached.pool;
 
+import org.glassfish.grizzly.utils.LinkedTransferQueue;
+
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -477,7 +479,11 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         private final AtomicBoolean destroyed = new AtomicBoolean();
 
         private QueuePool(final int max) {
-            queue = new LinkedBlockingQueue<V>(max);
+            if( max <= 0 || max == Integer.MAX_VALUE) {
+                queue = new LinkedTransferQueue<V>();
+            } else {
+                queue = new LinkedBlockingQueue<V>(max);
+            }
         }
     }
 
@@ -517,7 +523,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
 
     public static class Builder<K, V> {
         private static final int DEFAULT_MIN = 5;
-        private static final int DEFAULT_MAX = 10;
+        private static final int DEFAULT_MAX = Integer.MAX_VALUE;
         private static final boolean DEFAULT_VALIDATION = false;
         private static final boolean DEFAULT_DISPOSABLE = false;
         private static final long DEFAULT_KEEP_ALIVE_TIMEOUT_IN_SEC = 30 * 60; // 30min

@@ -600,7 +600,7 @@ public class MemcachedClientFilter extends BaseFilter {
                 request.notify.await(timeout, TimeUnit.MILLISECONDS);
                 response = request.response;
                 responseStatus = request.responseStatus;
-                final Long elapse = System.currentTimeMillis() - startTime;
+                final long elapse = System.currentTimeMillis() - startTime;
                 timeout = timeout - elapse;
             }
 

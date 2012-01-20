@@ -52,6 +52,7 @@ import org.glassfish.grizzly.utils.BufferOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.logging.Level;
@@ -66,6 +67,7 @@ public class BufferWrapper<T> implements Cacheable {
 
     private static final ThreadCache.CachedTypeIndex<BufferWrapper> CACHE_IDX =
             ThreadCache.obtainIndex(BufferWrapper.class, 16);
+    private static final String DEFAULT_CHARSET = "UTF-8";
 
     private Buffer buffer;
     private BufferType type;
@@ -275,7 +277,17 @@ public class BufferWrapper<T> implements Cacheable {
             case NONE:
                 return buffer;
             case STRING:
-                return buffer.toStringContent(null, position, limit);
+                final int length = limit - position;
+                final byte[] bytes = new byte[length];
+                buffer.get(bytes, 0, length);
+                try {
+                    return new String(bytes, DEFAULT_CHARSET);
+                } catch (UnsupportedEncodingException uee) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "failed to decode the buffer", uee);
+                    }
+                    return null;
+                }
             case BYTE_ARRAY:
                 return buffer.toByteBuffer(position, limit).array();
             case BYTE_BUFFER:

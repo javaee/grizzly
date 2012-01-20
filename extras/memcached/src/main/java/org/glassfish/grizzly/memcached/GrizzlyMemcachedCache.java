@@ -2105,7 +2105,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
 
         // connection pool config
         private int minConnectionPerServer = 5;
-        private int maxConnectionPerServer = 10;
+        private int maxConnectionPerServer = Integer.MAX_VALUE;
         private long keepAliveTimeoutInSecs = 30 * 60; // 30 min
         private boolean allowDisposableConnection = false;
         private boolean checkValidation = false;
