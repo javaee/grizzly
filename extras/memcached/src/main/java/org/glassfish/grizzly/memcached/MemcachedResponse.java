@@ -297,6 +297,7 @@ public class MemcachedResponse implements Cacheable {
             case Prepend:
             case Verbosity:
             case Touch:
+            case Noop:
                 if (!isError()) {
                     result = Boolean.TRUE;
                 } else {
@@ -315,7 +316,6 @@ public class MemcachedResponse implements Cacheable {
                 break;
 
             // void type
-            case Noop:
             case SetQ:
             case AddQ:
             case ReplaceQ:

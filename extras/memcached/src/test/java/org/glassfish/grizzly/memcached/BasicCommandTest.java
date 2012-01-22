@@ -358,9 +358,6 @@ public class BasicCommandTest {
         final boolean result = userCache.quit(DEFAULT_MEMCACHED_ADDRESS, false);
         Assert.assertTrue(result);
 
-        String value = userCache.version(DEFAULT_MEMCACHED_ADDRESS);
-        Assert.assertNull(value); // timed out
-
         manager.shutdown();
     }
 
@@ -446,6 +443,7 @@ public class BasicCommandTest {
     }
 
     // memcached server should be booted in local
+    @SuppressWarnings("unchecked")
     //@Test
     public void testSetMulti() {
         final int multiSize = 100;

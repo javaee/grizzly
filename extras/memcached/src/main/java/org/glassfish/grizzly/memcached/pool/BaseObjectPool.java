@@ -546,7 +546,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
 
         public Builder<K, V> max(final int max) {
-            if (max > 1) {
+            if (max >= 1) {
                 this.max = max;
             }
             return this;

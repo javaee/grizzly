@@ -650,7 +650,7 @@ public class MemcachedClientFilter extends BaseFilter {
             responseStatus = request.responseStatus;
         }
 
-        if (response == null) {
+        if (response == null && responseStatus == null) {
             throw new TimeoutException("timed out while getting the response");
         }
         final V result;

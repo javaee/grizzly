@@ -1451,11 +1451,17 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         }
         final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(false, false, false);
         builder.op(CommandOpcodes.Noop);
-        builder.noReply(true);
+        builder.opaque(generateOpaque());
+        builder.noReply(false);
         final MemcachedRequest request = builder.build();
 
         try {
-            sendNoReply(address, request);
+            final Object result = send(address, request, writeTimeoutInMillis, responseTimeoutInMillis);
+            if (result instanceof Boolean) {
+                return (Boolean) result;
+            } else {
+                return false;
+            }
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             if (logger.isLoggable(Level.SEVERE)) {
@@ -1470,7 +1476,6 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         } finally {
             builder.recycle();
         }
-        return true;
     }
 
     @Override
@@ -1556,10 +1561,34 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         }
         final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(false, false, false);
         builder.op(CommandOpcodes.Noop);
-        builder.noReply(true);
+        builder.opaque(generateOpaque());
+        builder.noReply(false);
+        final MemcachedRequest request = builder.build();
 
         try {
-            return sendNoReplySafely(connection, builder.build());
+            final GrizzlyFuture<WriteResult<MemcachedRequest[], SocketAddress>> future = connection.write(new MemcachedRequest[]{request});
+            if (writeTimeoutInMillis > 0) {
+                future.get(writeTimeoutInMillis, TimeUnit.MILLISECONDS);
+            } else {
+                future.get();
+            }
+            final Object result = clientFilter.getCorrelatedResponse(connection, request, responseTimeoutInMillis);
+            if( result instanceof Boolean ) {
+                return (Boolean)result;
+            } else {
+                return false;
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE, "failed to execute the noop operation. connection=" + connection + ", request=" + request, ie);
+            }
+            return false;
+        } catch (Exception e) {
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE, "failed to execute the noop operation. connection=" + connection + ", request=" + request, e);
+            }
+            return false;
         } finally {
             builder.recycle();
         }
