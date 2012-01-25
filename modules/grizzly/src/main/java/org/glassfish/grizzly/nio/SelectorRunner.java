@@ -53,13 +53,9 @@ import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.ArrayDeque;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -494,6 +490,67 @@ public final class SelectorRunner implements Runnable {
             try {
                 task.cancel();
             } catch (Exception ignored) {
+            }
+        }
+    }
+    
+    
+    /********************** Selector spin discovering *************************/
+    
+    private long lastSpinTimestamp;
+    private int emptySpinCounter;
+    
+    private final Map<Selector, Long> spinnedSelectorsHistory =
+            new WeakHashMap<Selector, Long>();
+
+    final void resetSpinCounter() {
+        emptySpinCounter  = 0;
+    }
+
+    /**
+     * Increments spin counter and returns current spin rate (emptyspins/sec).
+     * 
+     * @return current spin rate (emptyspins/sec).
+     */
+    final int incSpinCounter() {
+        if (emptySpinCounter++ == 0){
+            lastSpinTimestamp = System.nanoTime();
+        } else if (emptySpinCounter == 1000) {
+            long deltatime = System.nanoTime() - lastSpinTimestamp;
+            int contspinspersec = (int) (1000 * 1000000000L / deltatime);
+            emptySpinCounter  = 0;
+            return contspinspersec;
+        }
+        
+        return 0;
+    }
+    
+    final SelectionKey checkIfSpinnedKey(final SelectionKey key) {
+        if (!key.isValid() && key.channel().isOpen() &&
+                spinnedSelectorsHistory.containsKey(key.selector())) {
+            final SelectionKey newKey = key.channel().keyFor(getSelector());
+            newKey.attach(key.attachment());
+            return newKey;
+        }
+
+        return key;
+    }
+
+    final void workaroundSelectorSpin()
+            throws IOException {
+        spinnedSelectorsHistory.put(getSelector(),
+                System.currentTimeMillis());
+        switchToNewSelector();
+    }
+
+    final void checkSelectorSpin(final boolean hasSelectedKeys,
+            final int spinRateThreshold) throws IOException {
+        if (hasSelectedKeys) {
+            resetSpinCounter();
+        } else {
+            final long sr = incSpinCounter();
+            if (sr > spinRateThreshold) {
+                workaroundSelectorSpin();
             }
         }
     }
