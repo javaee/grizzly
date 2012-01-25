@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,6 +52,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
@@ -159,7 +160,9 @@ public class TCPNIOConnection extends NIOConnection {
                 super.setReadBufferSize(socketReadBufferSize);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Error setting read buffer size", e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
+                    e);
         }
     }
 
@@ -178,7 +181,9 @@ public class TCPNIOConnection extends NIOConnection {
                 super.setWriteBufferSize(socketWriteBufferSize);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Error setting write buffer size", e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_WRITEBUFFER_SIZE_EXCEPTION(),
+                    e);
         }
     }
     

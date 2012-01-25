@@ -114,8 +114,10 @@ public abstract class NIOTransport extends AbstractTransport {
      *
      * @param selectorProvider the {@link SelectorProvider}.
      */
-    public void setSelectorProvider(SelectorProvider selectorProvider) {
-        this.selectorProvider = selectorProvider;
+    public void setSelectorProvider(final SelectorProvider selectorProvider) {
+        this.selectorProvider = selectorProvider != null
+                ? selectorProvider
+                : SelectorProvider.provider();
     }
 
     @Override

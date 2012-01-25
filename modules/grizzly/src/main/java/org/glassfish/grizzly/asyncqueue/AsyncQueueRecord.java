@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,10 +40,13 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -52,6 +55,8 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * @author Alexey Stashok
  */
 public abstract class AsyncQueueRecord<R> implements Cacheable {
+    private final static Logger LOGGER = Grizzly.logger(AsyncQueue.class);
+    
     protected Connection connection;
     protected Object message;
     protected R currentResult;
@@ -101,6 +106,11 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     public void notifyFailure(final Throwable e) {
         if (completionHandler != null) {
             completionHandler.failed(e);
+        } else {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,
+                        LogMessages.FINE_GRIZZLY_ASYNCQUEUE_ERROR_NOCALLBACK_ERROR(e));
+            }
         }
     }
 

@@ -49,6 +49,7 @@ import java.util.logging.Level;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.Writer;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  *
@@ -99,8 +100,8 @@ public class TemporarySelectorIO {
                 selectionKey.cancel();
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                        "Unexpected exception, when canceling the SelectionKey: " +
-                        selectionKey, e);
+                        LogMessages.WARNING_GRIZZLY_TEMPORARY_SELECTOR_IO_CANCEL_KEY_EXCEPTION(selectionKey),
+                        e);
             }
         }
 

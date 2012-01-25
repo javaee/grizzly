@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -118,7 +118,7 @@ public final class TaskQueue<E> {
         doNotify();
         return space;
     }
-
+    
     /**
      * Returns the number of queued bytes.
      * 
@@ -220,7 +220,7 @@ public final class TaskQueue<E> {
     // ------------------------------------------------------- Protected Methods
 
 
-    protected void doNotify() {
+    public void doNotify() {
         if (maxQueueSizeHolder == null ||
                 writeHandlersCounter.get() == 0) {
             return;

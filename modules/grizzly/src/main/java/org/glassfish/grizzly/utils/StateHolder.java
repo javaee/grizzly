@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,6 +52,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * Class, which holds the state.
@@ -221,7 +222,9 @@ public final class StateHolder<E> {
                     element.future.result(state);
                 }
             } catch(Exception e) {
-                _logger.log(Level.WARNING, "Error calling ConditionListener", e);
+                _logger.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_STATE_HOLDER_CALLING_CONDITIONLISTENER_EXCEPTION(),
+                        e);
             }
         }
     }

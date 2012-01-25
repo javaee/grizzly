@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -264,13 +265,15 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
             this.readBufferSize = readBufferSize;
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Error setting read buffer size", e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
+                    e);
         }
     }
 
     @Override
     public void setWriteBufferSize(final int writeBufferSize) {
-            this.writeBufferSize = writeBufferSize;
+        this.writeBufferSize = writeBufferSize;
     }
 
     protected final class RegisterAcceptedChannelCompletionHandler
