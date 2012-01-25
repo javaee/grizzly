@@ -64,6 +64,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 
 import com.sun.hk2.component.Holder;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -149,7 +151,7 @@ public class SSLConfigHolder {
     }
 
     /**
-     * Return the current <code>SSLImplementation</code> this Thread
+     * Return the <code>SSLImplementation</code>
      */
     public SSLImplementation getSSLImplementation() {
         return sslImplementation.get();
@@ -563,12 +565,12 @@ public class SSLConfigHolder {
 
         private static final Map<String,CipherInfo> ciphers =
                 new HashMap<String,CipherInfo>();
+        private static final ReadWriteLock ciphersLock = new ReentrantReadWriteLock();
 
         @SuppressWarnings({"UnusedDeclaration"})
         private final String configName;
         private final String cipherName;
         private final short protocolVersion;
-
 
         static {
             for (int i = 0, len = OLD_CIPHER_MAPPING.length; i < len; i++) {
@@ -593,15 +595,25 @@ public class SSLConfigHolder {
         }
 
         public static void updateCiphers(final SSLContext sslContext) {
-            SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
-            String[] supportedCiphers = factory.getDefaultCipherSuites();
-            for (int i = 0, len = supportedCiphers.length; i < len; i++) {
-                String s = supportedCiphers[i];
-                ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+            ciphersLock.writeLock().lock();
+            try {
+                SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
+                String[] supportedCiphers = factory.getDefaultCipherSuites();
+                for (int i = 0, len = supportedCiphers.length; i < len; i++) {
+                    String s = supportedCiphers[i];
+                    ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+                }
+            } finally {
+                ciphersLock.writeLock().unlock();
             }
         }
         public static CipherInfo getCipherInfo(final String configName) {
-            return ciphers.get(configName);
+            ciphersLock.readLock().lock();
+            try {
+                return ciphers.get(configName);
+            } finally {
+                ciphersLock.readLock().unlock();
+            }
         }
 
         public String getCipherName() {
