@@ -723,13 +723,16 @@ public class Response {
 
 
     /**
-     * Clear any content written to the buffer.
+     * Clears any data that exists in the buffer as well as the status code
+     * and headers.
      *
      * @exception IllegalStateException if this response has already
      *  been committed
      */
     public void reset() {
         checkResponse();
+        response.getHeaders().clear();
+        response.setStatus(null);
         outputBuffer.reset();
     }
 
