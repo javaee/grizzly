@@ -43,6 +43,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
+import com.sun.grizzly.websockets.draft76.Draft76Handler;
 
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
@@ -87,12 +88,16 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
             handler.readFrame();
             enableRead();
         } catch (WebSocketException e) {
-            if (handler.maskData) {
+            if (handler.maskData || handler instanceof Draft76Handler) {
                 handler.getWebSocket().onClose(null);
             } else {
-                handler.close(1011, e.getMessage());
+                try {
+                    handler.close(1011, e.getMessage());
+                } catch (Exception ee) {
+                    // dropped connection most likely
+                    handler.getWebSocket().onClose(null);
+                }
             }
-            handler.getWebSocket().onClose(null);
 //            key.cancel();
             processorTask.setAptCancelKey(true);
             processorTask.terminateProcess();
