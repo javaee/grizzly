@@ -538,10 +538,11 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         }
 
         public static void updateCiphers(final SSLContext sslContext) {
+            SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
+            String[] supportedCiphers = factory.getDefaultCipherSuites();
+            
             ciphersLock.writeLock().lock();
             try {
-                SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
-                String[] supportedCiphers = factory.getDefaultCipherSuites();
                 for (int i = 0, len = supportedCiphers.length; i < len; i++) {
                     String s = supportedCiphers[i];
                     ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
