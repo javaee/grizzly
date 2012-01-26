@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -301,15 +301,10 @@ public class InputBuffer {
             throw new IOException();
         }
         if (!inputContentBuffer.hasRemaining()) {
-            if (!asyncEnabled) {
-                if (fill(1) == -1) {
-                    return -1;
-                }
-            } else {
-                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+            if (fill(1) == -1) {
+                return -1;
             }
         }
-        
         if (readAheadLimit != -1) {
             readCount++;
             if (readCount > readAheadLimit) {
@@ -333,13 +328,9 @@ public class InputBuffer {
         if (len == 0) {
             return 0;
         }
-        if (!inputContentBuffer.hasRemaining()) {
-            if (!asyncEnabled) {
-                if (fill(1) == -1) {
-                    return -1;
-                }
-            } else {
-                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+        if (!asyncEnabled && !inputContentBuffer.hasRemaining()) {
+            if (fill(1) == -1) {
+                return -1;
             }
         }
 
@@ -427,7 +418,7 @@ public class InputBuffer {
         if (target == null) {
             throw new IllegalArgumentException("target cannot be null.");
         }
-        final int read = fillChars(1, target, !asyncEnabled);
+        final int read = fillChar(target.capacity(), target, !asyncEnabled, true);
         if (readAheadLimit != -1) {
             readCount += read;
             if (readCount > readAheadLimit) {
@@ -649,9 +640,9 @@ public class InputBuffer {
                 return 0L;
             }
             final CharBuffer skipBuffer = CharBuffer.allocate((int) n);
-            if (fillChars((int) n, skipBuffer, block) == -1) {
-                return 0;
-            }
+                if (fillChar((int) n, skipBuffer, block, true) == -1) {
+                    return 0;
+                }
             return Math.min(skipBuffer.remaining(), n);
         }
 
@@ -896,140 +887,106 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Used to convert bytes to chars.
+     * Used to convert bytes to char.
      * </p>
      *
      * @param requestedLen how much content should attempt to be read
      *
-     * @return the number of chars actually read
+     * @return the number of bytes actually read
      *
      * @throws IOException if an I/O error occurs while reading content
-     * @throws IllegalStateException if InputBuffer is operating in non-blocking mode,
-     *              but has to block in order to fill CharBuffer with the requested size.
      */
-    private int fillChars(final int requestedLen,
+    private int fillChar(final int requestedLen,
                          final CharBuffer dst,
-                         final boolean block) throws IOException {
+                         final boolean block,
+                         final boolean flip) throws IOException {
 
-        int read = 0;
-        
-        if (inputContentBuffer.hasRemaining()) {
-            read = fillAvailableChars(requestedLen, dst);
+        if (inputContentBuffer.hasRemaining() || !block) {
+            final CharsetDecoder decoderLocal = getDecoder();
+            final int charPos = dst.position();
+            final ByteBuffer bb = inputContentBuffer.toByteBuffer();
+            final int bbPos = bb.position();
+            CoderResult result = decoderLocal.decode(bb, dst, false);
+            if (result == CoderResult.UNDERFLOW && block) {
+                fill(1);
+                decoderLocal.decode(bb, dst, false);
+            }
+
+            int readChars = dst.position() - charPos;
+            final int readBytes = bb.position() - bbPos;
+            bb.position(bbPos);
+
+            inputContentBuffer.position(inputContentBuffer.position() + readBytes);
+            if (readAheadLimit == -1) {
+                inputContentBuffer.shrink();
+            }
+            
+            if (inputContentBuffer.hasRemaining() && readChars < requestedLen) {
+                readChars += fillChar(0, dst, false, false);
+            }
+
+            if (flip) {
+                dst.flip();
+            }
+            return readChars;
         }
         
-        if (!block && read < requestedLen) {
-            throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
-        } else if (read >= requestedLen) {
-            dst.flip();
+        if (request.isExpectContent()) {
+            int read = 0;
+            CharsetDecoder decoderLocal = getDecoder();
+
+            boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char
+            boolean last = false;
+
+            while (read < requestedLen && request.isExpectContent()) {
+
+                if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
+                    final ReadResult rr = ctx.read();
+                    final HttpContent c = (HttpContent) rr.getMessage();
+                    updateInputContentBuffer(c.getContent());
+                    last = c.isLast();
+
+                    rr.recycle();
+                    c.recycle();
+                    isNeedMoreInput = false;
+                }
+
+                final ByteBuffer bytes = inputContentBuffer.toByteBuffer();
+
+                final int bytesPos = bytes.position();
+                final int dstPos = dst.position();
+
+                final CoderResult result = decoderLocal.decode(bytes, dst, false);
+
+                final int producesChars = dst.position() - dstPos;
+                final int consumedBytes = bytes.position() - bytesPos;
+               
+                read += producesChars;
+                
+                if (consumedBytes > 0) {
+                    bytes.position(bytesPos);
+                    inputContentBuffer.position(inputContentBuffer.position() + consumedBytes);
+                    inputContentBuffer.shrink();
+                } else {
+                    isNeedMoreInput = true;
+                }
+
+                if (last || result == CoderResult.OVERFLOW) {
+                    break;
+                }
+            }
+
+            if (flip) {
+                dst.flip();
+            }
+            
+            if (last && read == 0) {
+                read = -1;
+            }
             return read;
         }
-        
-        if (!request.isExpectContent()) {
-            dst.flip();
-            return read > 0 ? read : -1;
-        }
-        
-        CharsetDecoder decoderLocal = getDecoder();
+        return -1;
 
-        boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char
-        boolean last = false;
-
-        while (read < requestedLen && request.isExpectContent()) {
-
-            if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
-                final ReadResult rr = ctx.read();
-                final HttpContent c = (HttpContent) rr.getMessage();
-                updateInputContentBuffer(c.getContent());
-                last = c.isLast();
-
-                rr.recycle();
-                c.recycle();
-                isNeedMoreInput = false;
-            }
-
-            final ByteBuffer bytes = inputContentBuffer.toByteBuffer();
-
-            final int bytesPos = bytes.position();
-            final int dstPos = dst.position();
-
-            final CoderResult result = decoderLocal.decode(bytes, dst, false);
-
-            final int producedChars = dst.position() - dstPos;
-            final int consumedBytes = bytes.position() - bytesPos;
-
-            read += producedChars;
-
-            if (consumedBytes > 0) {
-                bytes.position(bytesPos);
-                inputContentBuffer.position(inputContentBuffer.position() + consumedBytes);
-                inputContentBuffer.shrink();
-            } else {
-                isNeedMoreInput = true;
-            }
-
-            if (last || result == CoderResult.OVERFLOW) {
-                break;
-            }
-        }
-
-        dst.flip();
-
-        if (last && read == 0) {
-            read = -1;
-        }
-        return read;
-    }
-
-    /**
-     * <p>
-     * Used to convert pre-read (buffered) bytes to chars.
-     * </p>
-     *
-     * @param requestedLen how much content should attempt to be read
-     *
-     * @return the number of chars actually read
-     */
-    private int fillAvailableChars(final int requestedLen, final CharBuffer dst) {
-        
-        final CharsetDecoder decoderLocal = getDecoder();
-        final ByteBuffer bb = inputContentBuffer.toByteBuffer();
-        final int oldBBPos = bb.position();
-        
-        int producedChars = 0;
-        int consumedBytes = 0;
-        
-        int producedCharsNow;
-        int consumedBytesNow;
-        CoderResult result;
-        
-        int remaining = requestedLen;
-        
-        do {
-            final int charPos = dst.position();
-            final int bbPos = bb.position();
-            result = decoderLocal.decode(bb, dst, false);
-
-            producedCharsNow = dst.position() - charPos;
-            consumedBytesNow = bb.position() - bbPos;
-
-            producedChars += producedCharsNow;
-            consumedBytes += consumedBytesNow;
-            
-            remaining -= producedCharsNow;
-
-        } while (remaining > 0 &&
-                (producedCharsNow > 0 || consumedBytesNow > 0) &&
-                bb.hasRemaining() &&
-                result == CoderResult.UNDERFLOW);
-
-        bb.position(oldBBPos);
-        inputContentBuffer.position(inputContentBuffer.position() + consumedBytes);
-        
-        if (readAheadLimit == -1) {
-            inputContentBuffer.shrink();
-        }
-        
-        return producedChars;
     }
 
 
