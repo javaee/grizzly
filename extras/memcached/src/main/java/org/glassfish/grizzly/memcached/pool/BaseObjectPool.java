@@ -89,6 +89,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    @Override
     public void createAllMinObjects(final K key) throws NoValidObjectException {
         if (destroyed.get()) {
             throw new IllegalStateException("pool has already destroyed");
@@ -99,7 +100,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
             final QueuePool<V> newPool = new QueuePool<V>(max);
-            pool = keyedObjectPool.putIfAbsent(key, newPool) == null ? newPool : keyedObjectPool.get(key);
+            final QueuePool<V> oldPool = keyedObjectPool.putIfAbsent(key, newPool);
+            pool = oldPool == null ? newPool : oldPool;
         }
         if (pool.destroyed.get()) {
             throw new IllegalStateException("pool already has destroyed. key=" + key);
@@ -149,7 +151,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
             final QueuePool<V> newPool = new QueuePool<V>(max);
-            pool = keyedObjectPool.putIfAbsent(key, newPool) == null ? newPool : keyedObjectPool.get(key);
+            final QueuePool<V> oldPool = keyedObjectPool.putIfAbsent(key, newPool);
+            pool = oldPool == null ? newPool : oldPool;
         }
         if (pool.destroyed.get()) {
             throw new IllegalStateException("pool already has destroyed. key=" + key);
