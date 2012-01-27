@@ -45,6 +45,8 @@ import org.glassfish.grizzly.Grizzly;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.logging.Level;
@@ -64,11 +66,11 @@ public class ConsistentHashStore<T> {
     private static final int REPLICA_NUMBER = 160;
 
     private final ConcurrentSkipListMap<Long, T> buckets = new ConcurrentSkipListMap<Long, T>();
-    private final ConcurrentHashMap<T, Boolean> values = new ConcurrentHashMap<T, Boolean>();
+    private final Set<T> values = Collections.newSetFromMap(new ConcurrentHashMap<T, Boolean>());
 
     public void add(final T value) {
         addOrRemove(value, true);
-        values.put(value, Boolean.TRUE);
+        values.add(value);
     }
 
     public void remove(final T value) {
@@ -77,7 +79,7 @@ public class ConsistentHashStore<T> {
     }
 
     public boolean hasValue(final T value) {
-        return value != null && values.get(value) != null;
+        return value != null && values.contains(value);
     }
 
     public void clear() {
