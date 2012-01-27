@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -60,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  * @author Bongjae Chang
@@ -79,8 +81,21 @@ public class MemcachedClientFilter extends BaseFilter {
     }
 
     private final Attribute<ParsingStatus> statusAttribute = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.Status");
-    private final Attribute<MemcachedResponse> responseAttribute = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.Response");
-    private final Attribute<BlockingQueue<MemcachedRequest>> requestQueueAttribute = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.RequestQueue");
+    private final Attribute<MemcachedResponse> responseAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.Response",
+                new NullaryFunction<MemcachedResponse>() {
+                    public MemcachedResponse evaluate() {
+                        return MemcachedResponse.create();
+                    }
+            });
+    
+    private final Attribute<BlockingQueue<MemcachedRequest>> requestQueueAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.RequestQueue",
+                new NullaryFunction<BlockingQueue<MemcachedRequest>>() {
+                    public BlockingQueue<MemcachedRequest> evaluate() {
+                        return DataStructures.getLTQInstance();
+                    }
+            });
 
     private final boolean localParsingOptimizing;
     private final boolean onceAllocationOptimizing;
@@ -92,19 +107,6 @@ public class MemcachedClientFilter extends BaseFilter {
     public MemcachedClientFilter(final boolean localParsingOptimizing, final boolean onceAllocationOptimizing) {
         this.localParsingOptimizing = localParsingOptimizing;
         this.onceAllocationOptimizing = onceAllocationOptimizing;
-    }
-
-    @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-        if (connection != null) {
-            BlockingQueue<MemcachedRequest> requestQueue = requestQueueAttribute.get(connection);
-            if (requestQueue == null) {
-                requestQueue = DataStructures.getLTQInstance();
-                requestQueueAttribute.set(connection, requestQueue);
-            }
-        }
-        return ctx.getInvokeAction();
     }
 
     @Override
@@ -139,10 +141,6 @@ public class MemcachedClientFilter extends BaseFilter {
         MemcachedRequest sentRequest;
         MemcachedResponse response = responseAttribute.get(connection);
         while (true) {
-            if (response == null) {
-                response = MemcachedResponse.create();
-                responseAttribute.set(connection, response);
-            }
             switch (status) {
                 case NONE:
                     if (input.remaining() < HEADER_LENGTH) {
@@ -389,6 +387,9 @@ public class MemcachedClientFilter extends BaseFilter {
         }
         if (resultBuffer != null) {
             resultBuffer.allowBufferDispose(true);
+            if (resultBuffer.isComposite()) {
+                ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
+            }
             ctx.setMessage(resultBuffer);
         }
         return ctx.getInvokeAction();
