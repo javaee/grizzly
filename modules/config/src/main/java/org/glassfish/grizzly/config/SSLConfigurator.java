@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.config;
 
+import com.sun.hk2.component.Holder;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,6 +60,8 @@ import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -72,17 +75,41 @@ public class SSLConfigurator extends SSLEngineConfigurator {
      * SSL settings
      */
     private final Ssl ssl;
-    private final SSLImplementation sslImplementation;
+    protected final Holder<SSLImplementation> sslImplementation;
 
     public SSLConfigurator(final Habitat habitat, final Ssl ssl) {
         this.ssl = ssl;
-        sslImplementation = lookupSSLImplementation(habitat, ssl);
+        Holder<SSLImplementation> sslImplementationLocal =
+            habitat.getInhabitantByContract(
+                                            SSLImplementation.class.getName(),
+                                            ssl.getClassname());
+        if (sslImplementationLocal == null) {
+            final SSLImplementation impl = lookupSSLImplementation(habitat, ssl);
+            if (impl == null) {
+                throw new IllegalStateException("Can not configure SSLImplementation");
+            }
+            sslImplementationLocal = new Holder<SSLImplementation>() {
+                @Override
+                public SSLImplementation get() {
+                    return impl;
+                }
+            };
+        }
+        
+        sslImplementation = sslImplementationLocal;
         needClientAuth = isNeedClientAuth(ssl);
         wantClientAuth = isWantClientAuth(ssl);
         clientMode = false;
         sslContextConfiguration = new InternalSSLContextConfigurator();
     }
 
+    /**
+     * Return the <code>SSLImplementation</code>
+     */
+    public SSLImplementation getSslImplementation() {
+        return sslImplementation.get();
+    }
+    
     /**
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
      */
@@ -169,7 +196,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         SSLContext newSslContext = null;
 
         try {
-            final ServerSocketFactory serverSF = sslImplementation.getServerSocketFactory();
+            final ServerSocketFactory serverSF = getSslImplementation().getServerSocketFactory();
             if (ssl != null) {
                 if (ssl.getCrlFile() != null) {
                     setAttribute(serverSF, "crlFile", ssl.getCrlFile(), null, null);
@@ -478,8 +505,11 @@ public class SSLConfigurator extends SSLEngineConfigurator {
             {"SSL_RSA_WITH_NULL_MD5", "SSL_RSA_WITH_NULL_MD5"},
             {"SSL_RSA_WITH_NULL_SHA", "SSL_RSA_WITH_NULL_SHA"}
         };
-        private static final Map<String, CipherInfo> ciphers =
-                new HashMap<String, CipherInfo>();
+
+        private static final Map<String,CipherInfo> ciphers =
+                new HashMap<String,CipherInfo>();
+        private static final ReadWriteLock ciphersLock = new ReentrantReadWriteLock();
+
         @SuppressWarnings({"UnusedDeclaration"})
         private final String configName;
         private final String cipherName;
@@ -510,14 +540,25 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         public static void updateCiphers(final SSLContext sslContext) {
             SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
             String[] supportedCiphers = factory.getDefaultCipherSuites();
-            for (int i = 0, len = supportedCiphers.length; i < len; i++) {
-                String s = supportedCiphers[i];
-                ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+            
+            ciphersLock.writeLock().lock();
+            try {
+                for (int i = 0, len = supportedCiphers.length; i < len; i++) {
+                    String s = supportedCiphers[i];
+                    ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+                }
+            } finally {
+                ciphersLock.writeLock().unlock();
             }
         }
 
         public static CipherInfo getCipherInfo(final String configName) {
-            return ciphers.get(configName);
+            ciphersLock.readLock().lock();
+            try {
+                return ciphers.get(configName);
+            } finally {
+                ciphersLock.readLock().unlock();
+            }
         }
 
         public String getCipherName() {

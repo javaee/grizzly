@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,10 +79,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
      */
     private static final int SPIN_RATE_THRESHOLD = 2000;
 
-    private long lastSpinTimestamp;
-    private int emptySpinCounter;
-    private final Map<Selector, Long> spinnedSelectorsHistory;
-    private final Object spinSync;
     // ----------------
 
     public DefaultSelectorHandler() {
@@ -91,9 +87,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     public DefaultSelectorHandler(final long selectTimeout, final TimeUnit timeunit) {
         this.selectTimeout = TimeUnit.MILLISECONDS.convert(selectTimeout, timeunit);
-
-        spinnedSelectorsHistory = new WeakHashMap<Selector, Long>();
-        spinSync = new Object();
     }
 
     @Override
@@ -116,16 +109,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
         } else {
             hasSelectedKeys = selector.selectNow() > 0;
         }
-        
+
         if (IS_WORKAROUND_SELECTOR_SPIN) {
-            if (hasSelectedKeys) {
-                resetSpinCounter();
-            } else {
-                long sr = getSpinRate();
-                if (sr > SPIN_RATE_THRESHOLD) {
-                    workaroundSelectorSpin(selectorRunner);
-                }
-            }
+            selectorRunner.checkSelectorSpin(hasSelectedKeys, SPIN_RATE_THRESHOLD);
         }
 
         return hasSelectedKeys ? selector.selectedKeys() :
@@ -429,48 +415,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
     @Override
     public boolean onSelectorClosed(final SelectorRunner selectorRunner) {
         try {
-            workaroundSelectorSpin(selectorRunner);
+            selectorRunner.workaroundSelectorSpin();
             return true;
         } catch (Exception e) {
             return false;
-        }
-    }
-
-    private void resetSpinCounter(){
-        emptySpinCounter  = 0;
-    }
-
-    private int getSpinRate(){
-        if (emptySpinCounter++ == 0){
-            lastSpinTimestamp = System.nanoTime();
-        } else if (emptySpinCounter == 1000) {
-            long deltatime = System.nanoTime() - lastSpinTimestamp;
-            int contspinspersec = (int) (1000 * 1000000000L / deltatime);
-            emptySpinCounter  = 0;
-            return contspinspersec;
-        }
-        return 0;
-    }
-
-    private SelectionKey checkIfSpinnedKey(final SelectorRunner selectorRunner,
-            final SelectionKey key) {
-        if (!key.isValid() && key.channel().isOpen() &&
-                spinnedSelectorsHistory.containsKey(key.selector())) {
-            final SelectionKey newKey = key.channel().keyFor(
-                    selectorRunner.getSelector());
-            newKey.attach(key.attachment());
-            return newKey;
-        }
-
-        return key;
-    }
-
-    private void workaroundSelectorSpin(final SelectorRunner selectorRunner)
-            throws IOException {
-        synchronized(spinSync) {
-            spinnedSelectorsHistory.put(selectorRunner.getSelector(),
-                    System.currentTimeMillis());
-            selectorRunner.switchToNewSelector();
         }
     }
 
@@ -492,7 +440,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         public boolean run(final SelectorRunner selectorRunner) throws IOException {
             SelectionKey localSelectionKey = selectionKey;
             if (IS_WORKAROUND_SELECTOR_SPIN) {
-                localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
+                localSelectionKey = selectorRunner.checkIfSpinnedKey(selectionKey);
             }
 
             registerKey0(localSelectionKey, interest);
@@ -518,7 +466,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         public boolean run(final SelectorRunner selectorRunner) throws IOException {
             SelectionKey localSelectionKey = selectionKey;
             if (IS_WORKAROUND_SELECTOR_SPIN) {
-                localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
+                localSelectionKey = selectorRunner.checkIfSpinnedKey(selectionKey);
             }
 
             deregisterKey0(localSelectionKey, interest);

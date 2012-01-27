@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -52,6 +51,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * Class has useful methods to simplify the work with {@link Buffer}s.
@@ -274,9 +274,9 @@ public class Buffers {
             final int length, final ByteBuffer dstBuffer) {
 
         if (dstBuffer.remaining() < length) {
-            LOGGER.log(Level.WARNING, "BufferOverflow srcBuffer={0} srcOffset={1}"
-                    + " length={2} dstBuffer={3}",
-                    new Object[]{srcBuffer, srcOffset, length, dstBuffer});
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_BUFFERS_OVERFLOW_EXCEPTION(
+                    srcBuffer, srcOffset, length, dstBuffer));
             throw new BufferOverflowException();
         }
 

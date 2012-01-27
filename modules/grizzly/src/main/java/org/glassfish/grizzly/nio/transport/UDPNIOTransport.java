@@ -58,6 +58,7 @@ import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.*;
@@ -188,8 +189,20 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         try {
             final DatagramSocket socket = serverDatagramChannel.socket();
-            socket.setReuseAddress(reuseAddress);
-            socket.setSoTimeout(serverSocketSoTimeout);
+            try {
+                socket.setReuseAddress(reuseAddress);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
+            }
+
+            try {
+                socket.setSoTimeout(serverSocketSoTimeout);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
+            }
+            
             socket.bind(socketAddress);
 
             serverDatagramChannel.configureBlocking(false);
@@ -267,7 +280,9 @@ public final class UDPNIOTransport extends NIOTransport implements
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_TRANSPORT_UNBINDING_CONNECTION_EXCEPTION(connection),
+                            e);
                 } finally {
                     future.markForRecycle(true);
                 }
@@ -422,8 +437,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             State currentState = state.getState();
             if (currentState != State.STOP) {
-                LOGGER.log(Level.WARNING,
-                        "Transport is not in STOP or BOUND state!");
+                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_OR_BOUND_STATE_EXCEPTION());
             }
 
             state.setState(State.STARTING);
@@ -503,8 +517,8 @@ public final class UDPNIOTransport extends NIOTransport implements
                 serverConnection.register();
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                        "Exception occurred when starting server connection: "
-                        + serverConnection, e);
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(serverConnection),
+                        e);
             }
         }
     }
@@ -548,7 +562,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             if (state.getState() != State.START) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in START state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_START_STATE_EXCEPTION());
             }
             state.setState(State.PAUSE);
             notifyProbesPause(this);
@@ -564,7 +578,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             if (state.getState() != State.PAUSE) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in PAUSE state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_PAUSE_STATE_EXCEPTION());
             }
             state.setState(State.START);
             notifyProbesResume(this);
