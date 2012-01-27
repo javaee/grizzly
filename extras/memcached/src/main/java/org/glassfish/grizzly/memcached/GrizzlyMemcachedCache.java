@@ -417,11 +417,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keyList=" + keyList, ie);
+                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to set multi. address=" + address + ", keyList=" + keyList, ie);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keyList=" + keyList, e);
+                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keySize=" + keyList.size(), e);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to set multi. address=" + address + ", keyList=" + keyList, e);
                 }
             } finally {
                 recycleBufferWrappers(keyList);
@@ -764,11 +768,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keyList=" + keyList, ie);
+                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to get multi. address=" + address + ", keyList=" + keyList, ie);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keyList=" + keyList, e);
+                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keySize=" + keyList.size(), e);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to get multi. address=" + address + ", keyList=" + keyList, e);
                 }
             } finally {
                 recycleBufferWrappers(keyList);

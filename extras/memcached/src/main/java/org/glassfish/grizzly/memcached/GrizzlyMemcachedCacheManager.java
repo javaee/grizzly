@@ -69,7 +69,8 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         if (transport == null) {
             final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter()).add(new MemcachedClientFilter(true, true));
-            transport = TCPNIOTransportBuilder.newInstance().build();
+            final TCPNIOTransportBuilder clientTCPNIOTransportBuilder = TCPNIOTransportBuilder.newInstance();
+            transport = clientTCPNIOTransportBuilder.build();
             transport.setProcessor(clientFilterChainBuilder.build());
             transport.setSelectorRunnersCount(builder.selectorRunnersCount);
             transport.setIOStrategy(builder.ioStrategy);

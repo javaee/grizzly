@@ -552,10 +552,7 @@ public class MemcachedClientFilter extends BaseFilter {
                 requestQueue.clear();
                 requestQueueAttribute.remove(connection);
             }
-            MemcachedResponse response = responseAttribute.remove(connection);
-            if (response != null) {
-                response.recycle();
-            }
+            responseAttribute.remove(connection);
             statusAttribute.remove(connection);
 
             final AttributeHolder attributeHolder = connection.getAttributes();
