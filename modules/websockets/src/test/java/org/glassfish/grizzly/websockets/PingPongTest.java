@@ -112,10 +112,6 @@ public class PingPongTest {
 
                     @Override
                     public void onConnect(WebSocket socket) {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ignored) {
-                        }
                         System.out.println("[server] client connected!");
                         socket.sendPing("Hi There!".getBytes(Charsets.UTF8_CHARSET));
                     }
@@ -140,7 +136,7 @@ public class PingPongTest {
         try {
             server.start();
             client.connect(5, TimeUnit.SECONDS);
-            assertTrue(latch.await(10, TimeUnit.SECONDS));
+            assertTrue("" + latch.getCount(), latch.await(10, TimeUnit.SECONDS));
         } finally {
             client.close();
             server.stop();
