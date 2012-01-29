@@ -45,23 +45,23 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
-import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memcached.pool.ObjectPool;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  * @author Bongjae Chang
@@ -83,19 +83,22 @@ public class MemcachedClientFilter extends BaseFilter {
     private final Attribute<ParsingStatus> statusAttribute = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.Status");
     private final Attribute<MemcachedResponse> responseAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.Response",
-                new NullaryFunction<MemcachedResponse>() {
-                    public MemcachedResponse evaluate() {
-                        return MemcachedResponse.create();
-                    }
-            });
-    
+                    new NullaryFunction<MemcachedResponse>() {
+                        public MemcachedResponse evaluate() {
+                            return MemcachedResponse.create();
+                        }
+                    });
+
     private final Attribute<BlockingQueue<MemcachedRequest>> requestQueueAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("MemcachedClientFilter.RequestQueue",
-                new NullaryFunction<BlockingQueue<MemcachedRequest>>() {
-                    public BlockingQueue<MemcachedRequest> evaluate() {
-                        return DataStructures.getLTQInstance();
-                    }
-            });
+                    new NullaryFunction<BlockingQueue<MemcachedRequest>>() {
+                        public BlockingQueue<MemcachedRequest> evaluate() {
+                            return DataStructures.getLTQInstance();
+                        }
+                    });
+
+    private final Attribute<ObjectPool<SocketAddress, Connection<SocketAddress>>> connectionPoolAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(GrizzlyMemcachedCache.CONNECTION_POOL_ATTRIBUTE_NAME);
 
     private final boolean localParsingOptimizing;
     private final boolean onceAllocationOptimizing;
@@ -296,9 +299,6 @@ public class MemcachedClientFilter extends BaseFilter {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
                             sentRequest.notify.countDown();
-                            response.recycle();
-                            response = null;
-                            responseAttribute.remove(connection);
                         }
                     } else {
                         sentRequest = requestQueue.peek();
@@ -307,9 +307,6 @@ public class MemcachedClientFilter extends BaseFilter {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
                             sentRequest.notify.countDown();
-                            response.recycle();
-                            response = null;
-                            responseAttribute.remove(connection);
                         }
                     }
 
@@ -317,10 +314,13 @@ public class MemcachedClientFilter extends BaseFilter {
                         if (input.remaining() > 0) {
                             status = ParsingStatus.NONE;
                             statusAttribute.set(connection, status);
+                            response.clear();
                             break;
                         } else {
                             input.tryDispose();
                             statusAttribute.remove(connection);
+                            responseAttribute.remove(connection);
+                            response.recycle();
                             return ctx.getStopAction();
                         }
                     } else {
@@ -329,6 +329,8 @@ public class MemcachedClientFilter extends BaseFilter {
                         final Buffer remainder = input.remaining() > 0 ? input.split(input.position()) : null;
                         input.tryDispose();
                         statusAttribute.remove(connection);
+                        responseAttribute.remove(connection);
+                        response.recycle();
                         if (remainder == null) {
                             return ctx.getStopAction();
                         } else {
@@ -346,6 +348,7 @@ public class MemcachedClientFilter extends BaseFilter {
 
                     status = ParsingStatus.READ_HEADER;
                     statusAttribute.set(connection, status);
+                    response.clear();
                     break;
                 default:
                     throw new IllegalStateException("invalid internal status");
@@ -556,15 +559,11 @@ public class MemcachedClientFilter extends BaseFilter {
             responseAttribute.remove(connection);
             statusAttribute.remove(connection);
 
-            final AttributeHolder attributeHolder = connection.getAttributes();
-            if (attributeHolder != null) {
-                final Object attribute = attributeHolder.getAttribute(GrizzlyMemcachedCache.CONNECTION_POOL_ATTRIBUTE_NAME);
-                if (attribute instanceof ObjectPool) {
-                    final ObjectPool connectionPool = (ObjectPool) attribute;
-                    try {
-                        connectionPool.removeObject(connection.getPeerAddress(), connection);
-                    } catch (Exception ignore) {
-                    }
+            final ObjectPool connectionPool = connectionPoolAttribute.remove(connection);
+            if (connectionPool != null) {
+                try {
+                    connectionPool.removeObject(connection.getPeerAddress(), connection);
+                } catch (Exception ignore) {
                 }
             }
         }

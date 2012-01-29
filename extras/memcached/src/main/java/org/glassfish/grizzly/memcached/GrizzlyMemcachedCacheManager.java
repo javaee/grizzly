@@ -51,6 +51,7 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +64,7 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
 
     private final ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>> caches = new ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>>();
     private final TCPNIOTransport transport;
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private GrizzlyMemcachedCacheManager(final Builder builder) {
         TCPNIOTransport transport = builder.transport;
@@ -97,14 +99,20 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
     @SuppressWarnings("unchecked")
     @Override
     public <K, V> GrizzlyMemcachedCache<K, V> getCache(final String cacheName) {
+        if (shutdown.get()) {
+            return null;
+        }
         return cacheName != null ? (GrizzlyMemcachedCache<K, V>) caches.get(cacheName) : null;
     }
 
     @Override
     public boolean removeCache(final String cacheName) {
+        if (shutdown.get()) {
+            return false;
+        }
         if (cacheName == null)
             return false;
-        GrizzlyMemcachedCache cache = caches.remove(cacheName);
+        final GrizzlyMemcachedCache cache = caches.remove(cacheName);
         if (cache == null) {
             return false;
         }
@@ -114,6 +122,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
 
     @Override
     public void shutdown() {
+        if (!shutdown.compareAndSet(false, true)) {
+            return;
+        }
         for (MemcachedCache cache : caches.values()) {
             cache.stop();
         }
@@ -135,8 +146,8 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
      * @param cache a cache instance
      * @return true if the cache was added
      */
-    public <K, V> boolean addCache(final GrizzlyMemcachedCache<K, V> cache) {
-        return cache != null && caches.putIfAbsent(cache.getName(), cache) == null;
+    <K, V> boolean addCache(final GrizzlyMemcachedCache<K, V> cache) {
+        return !shutdown.get() && cache != null && caches.putIfAbsent(cache.getName(), cache) == null;
     }
 
     public static class Builder {

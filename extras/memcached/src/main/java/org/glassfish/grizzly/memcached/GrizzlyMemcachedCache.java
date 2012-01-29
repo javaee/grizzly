@@ -48,6 +48,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memcached.pool.BaseObjectPool;
@@ -95,6 +96,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
     private final long responseTimeoutInMillis;
 
     public static final String CONNECTION_POOL_ATTRIBUTE_NAME = "GrizzlyMemcachedCache.ConnectionPool";
+    private final Attribute<ObjectPool<SocketAddress, Connection<SocketAddress>>> connectionPoolAttribute = 
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(CONNECTION_POOL_ATTRIBUTE_NAME);
     private final ObjectPool<SocketAddress, Connection<SocketAddress>> connectionPool;
 
     private final Set<SocketAddress> initialServers;
@@ -122,7 +125,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                     @Override
                     public Connection<SocketAddress> createObject(final SocketAddress key) throws Exception {
                         final ConnectorHandler<SocketAddress> connectorHandler = TCPNIOConnectorHandler.builder(transport).setReuseAddress(true).build();
-                        Future<Connection> future = connectorHandler.connect(key);
+                        final Future<Connection> future = connectorHandler.connect(key);
                         final Connection<SocketAddress> connection;
                         try {
                             if (connectTimeoutInMillis < 0) {
@@ -147,10 +150,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                             throw te;
                         }
                         if (connection != null) {
-                            final AttributeHolder attributeHolder = connection.getAttributes();
-                            if (attributeHolder != null) {
-                                attributeHolder.setAttribute(CONNECTION_POOL_ATTRIBUTE_NAME, connectionPool);
-                            }
+                            connectionPoolAttribute.set(connection, connectionPool);
                             return connection;
                         } else {
                             throw new IllegalStateException("connection must be not null");
@@ -1581,8 +1581,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 future.get();
             }
             final Object result = clientFilter.getCorrelatedResponse(connection, request, responseTimeoutInMillis);
-            if( result instanceof Boolean ) {
-                return (Boolean)result;
+            if (result instanceof Boolean) {
+                return (Boolean) result;
             } else {
                 return false;
             }
@@ -2155,9 +2155,12 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
 
         @Override
         public GrizzlyMemcachedCache<K, V> build() {
-            GrizzlyMemcachedCache<K, V> cache = new GrizzlyMemcachedCache<K, V>(this);
+            final GrizzlyMemcachedCache<K, V> cache = new GrizzlyMemcachedCache<K, V>(this);
             cache.start();
-            manager.addCache(cache);
+            if (!manager.addCache(cache)) {
+                cache.stop();
+                throw new IllegalStateException("failed to add the cache because the CacheManager already stopped or the same cache name existed");
+            }
             return cache;
         }
 

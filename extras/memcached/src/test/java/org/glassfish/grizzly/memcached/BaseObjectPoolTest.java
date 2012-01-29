@@ -357,10 +357,10 @@ public class BaseObjectPoolTest {
         } catch (InterruptedException ignore) {
         }
 
-        // evict 5 idle objects
-        Assert.assertEquals(15, pool.getPoolSize(key));
+        // evict 10 idle objects
+        Assert.assertEquals(10, pool.getPoolSize(key));
         Assert.assertEquals(5, pool.getActiveCount(key));
-        Assert.assertEquals(10, pool.getIdleCount(key));
+        Assert.assertEquals(5, pool.getIdleCount(key));
         Assert.assertEquals(20, pool.getPeakCount(key));
 
         // 5 objects: managed, 5 objects: disposable
@@ -375,9 +375,9 @@ public class BaseObjectPoolTest {
         }
         objects.clear();
 
-        Assert.assertEquals(15, pool.getPoolSize(key));
+        Assert.assertEquals(10, pool.getPoolSize(key));
         Assert.assertEquals(0, pool.getActiveCount(key));
-        Assert.assertEquals(15, pool.getIdleCount(key));
+        Assert.assertEquals(10, pool.getIdleCount(key));
         Assert.assertEquals(20, pool.getPeakCount(key));
 
         try {
@@ -385,7 +385,7 @@ public class BaseObjectPoolTest {
         } catch (InterruptedException ignore) {
         }
 
-        // evict 5 idle objects
+        // there should be no evicted objects
         Assert.assertEquals(10, pool.getPoolSize(key));
         Assert.assertEquals(0, pool.getActiveCount(key));
         Assert.assertEquals(10, pool.getIdleCount(key));

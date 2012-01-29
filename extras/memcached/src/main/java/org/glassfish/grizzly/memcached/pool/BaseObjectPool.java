@@ -482,7 +482,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         private final AtomicBoolean destroyed = new AtomicBoolean();
 
         private QueuePool(final int max) {
-            if( max <= 0 || max == Integer.MAX_VALUE) {
+            if (max <= 0 || max == Integer.MAX_VALUE) {
                 queue = DataStructures.getLTQInstance();
             } else {
                 queue = new LinkedBlockingQueue<V>(max);
@@ -507,15 +507,16 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
                     if (pool.destroyed.get()) {
                         continue;
                     }
-                    final V[] snapshot = (V[]) pool.queue.toArray();
-                    for (V object : snapshot) {
-                        if (!pool.destroyed.get() && min < pool.queue.size() && pool.queue.remove(object)) {
-                            try {
-                                factory.destroyObject(key, object);
-                            } catch (Exception ignore) {
-                            }
-                            pool.poolSizeHint.decrementAndGet();
+                    while (!pool.destroyed.get() && min < pool.poolSizeHint.get()) {
+                        final V object = pool.queue.poll();
+                        if (object == null) {
+                            break;
                         }
+                        try {
+                            factory.destroyObject(key, object);
+                        } catch (Exception ignore) {
+                        }
+                        pool.poolSizeHint.decrementAndGet();
                     }
                 }
             } finally {

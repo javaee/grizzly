@@ -395,9 +395,8 @@ public class MemcachedResponse implements Cacheable {
                 return true;
         }
     }
-
-    @Override
-    public void recycle() {
+    
+    public void clear() {
         op = null;
         keyLength = 0;
         extraLength = 0;
@@ -410,6 +409,11 @@ public class MemcachedResponse implements Cacheable {
         decodedKey = null;
         decodedValue = null;
         result = null;
+    }
+
+    @Override
+    public void recycle() {
+        clear();
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
