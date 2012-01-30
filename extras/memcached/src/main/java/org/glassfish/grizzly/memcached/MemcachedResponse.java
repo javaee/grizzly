@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -171,7 +172,7 @@ public class MemcachedResponse implements Cacheable {
         this.flags = flags;
     }
 
-    public void setDecodedKey(final Buffer buffer, final int position, final int limit) {
+    public void setDecodedKey(final Buffer buffer, final int position, final int limit, final MemoryManager memoryManager) {
         if (buffer == null || position > limit) {
             return;
         }
@@ -179,7 +180,7 @@ public class MemcachedResponse implements Cacheable {
         switch (op) {
             case Stat:
                 if (!isError()) {
-                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.STRING);
+                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.STRING, memoryManager);
                 } else {
                     result = null;
                 }
@@ -195,7 +196,7 @@ public class MemcachedResponse implements Cacheable {
         this.decodedKey = decodedKey;
     }
 
-    public void setDecodedValue(final Buffer buffer, final int position, final int limit) {
+    public void setDecodedValue(final Buffer buffer, final int position, final int limit, final MemoryManager memoryManager) {
         if (buffer == null || position > limit) {
             return;
         }
@@ -211,7 +212,7 @@ public class MemcachedResponse implements Cacheable {
             case Gets:
             case GetsQ:
                 if (!isError()) {
-                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.getBufferType(this.flags));
+                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.getBufferType(this.flags), memoryManager);
                 } else {
                     result = null;
                 }
@@ -219,7 +220,7 @@ public class MemcachedResponse implements Cacheable {
             case Increment:
             case Decrement:
                 if (!isError()) {
-                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.LONG);
+                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.LONG, memoryManager);
                 } else {
                     result = INVALID_LONG;
                 }
@@ -228,7 +229,7 @@ public class MemcachedResponse implements Cacheable {
             case Version:
             case Stat:
                 if (!isError()) {
-                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.STRING);
+                    result = BufferWrapper.unwrap(buffer, position, limit, BufferWrapper.BufferType.STRING, memoryManager);
                 } else {
                     result = null;
                 }
@@ -395,7 +396,7 @@ public class MemcachedResponse implements Cacheable {
                 return true;
         }
     }
-    
+
     public void clear() {
         op = null;
         keyLength = 0;

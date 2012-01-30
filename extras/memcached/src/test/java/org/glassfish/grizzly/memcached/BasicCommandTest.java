@@ -503,4 +503,34 @@ public class BasicCommandTest {
 
         manager.shutdown();
     }
+
+    // memcached server should be booted in local
+    //@Test
+    public void testCompress() {
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+        
+        final int valueSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10;
+        final StringBuilder stringBuilder = new StringBuilder(valueSize); 
+        for( int i=0; i< valueSize; i++) {
+            stringBuilder.append("o");
+        }
+        final String largeValue = stringBuilder.toString();
+
+        // ensure "name" doesn't exist
+        userCache.delete("name", false);
+
+        boolean result = userCache.add("name", largeValue, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        String value = userCache.get("name", false);
+        Assert.assertEquals(largeValue, value);
+
+        // clear
+        result = userCache.delete("name", false);
+        Assert.assertTrue(result);
+        
+        manager.shutdown();
+    }
 }

@@ -125,6 +125,10 @@ public class MemcachedClientFilter extends BaseFilter {
         if (connection == null) {
             throw new IOException("connection could not be null");
         }
+        MemoryManager memoryManager = ctx.getMemoryManager();
+        if (memoryManager == null) {
+            memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
+        }
 
         ParsingStatus status = statusAttribute.get(connection);
         if (status == null) {
@@ -245,7 +249,7 @@ public class MemcachedClientFilter extends BaseFilter {
                     if (keyLength > 0) {
                         final int currentPosition = input.position();
                         final int limit = currentPosition + keyLength;
-                        response.setDecodedKey(input, currentPosition, limit);
+                        response.setDecodedKey(input, currentPosition, limit, memoryManager);
                         input.position(limit);
                     } else {
                         response.setDecodedKey(null);
@@ -277,7 +281,7 @@ public class MemcachedClientFilter extends BaseFilter {
                             if (sentRequest == null) {
                                 throw new IOException("invalid response");
                             }
-                            response.setDecodedValue(input, currentPosition, limit);
+                            response.setDecodedValue(input, currentPosition, limit, memoryManager);
                             input.position(limit);
                         } else {
                             response.setDecodedValue(null);

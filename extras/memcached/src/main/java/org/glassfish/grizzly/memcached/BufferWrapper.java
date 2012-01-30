@@ -49,6 +49,8 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.BufferInputStream;
 import org.glassfish.grizzly.utils.BufferOutputStream;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -57,6 +59,8 @@ import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * @author Bongjae Chang
@@ -69,12 +73,14 @@ public class BufferWrapper<T> implements Cacheable {
             ThreadCache.obtainIndex(BufferWrapper.class, 16);
     private static final String DEFAULT_CHARSET = "UTF-8";
 
+    public static final int DEFAULT_COMPRESSION_THRESHOLD = 16 * 1024; // 16K
+
     private Buffer buffer;
     private BufferType type;
     private T origin;
 
     public static enum BufferType {
-        NONE(0), STRING(1), BYTE_ARRAY(2), BYTE_BUFFER(3), BYTE(4), BOOLEAN(5), SHORT(6), INTEGER(7), FLOAT(8), DOUBLE(9), LONG(10), DATE(11), OBJECT(20);
+        NONE(0), STRING(1), STRING_COMPRESSED(2), BYTE_ARRAY(3), BYTE_ARRAY_COMPRESSED(4), BYTE_BUFFER(5), BYTE_BUFFER_COMPRESSED(6), BYTE(7), BOOLEAN(8), SHORT(9), INTEGER(10), FLOAT(11), DOUBLE(12), LONG(13), DATE(14), OBJECT(15), OBJECT_COMPRESSED(16);
 
         public final int flags;
 
@@ -89,27 +95,35 @@ public class BufferWrapper<T> implements Cacheable {
                 case 1:
                     return STRING;
                 case 2:
-                    return BYTE_ARRAY;
+                    return STRING_COMPRESSED;
                 case 3:
-                    return BYTE_BUFFER;
+                    return BYTE_ARRAY;
                 case 4:
-                    return BYTE;
+                    return BYTE_ARRAY_COMPRESSED;
                 case 5:
-                    return BOOLEAN;
+                    return BYTE_BUFFER;
                 case 6:
-                    return SHORT;
+                    return BYTE_BUFFER_COMPRESSED;
                 case 7:
-                    return INTEGER;
+                    return BYTE;
                 case 8:
-                    return FLOAT;
+                    return BOOLEAN;
                 case 9:
-                    return DOUBLE;
+                    return SHORT;
                 case 10:
-                    return LONG;
+                    return INTEGER;
                 case 11:
+                    return FLOAT;
+                case 12:
+                    return DOUBLE;
+                case 13:
+                    return LONG;
+                case 14:
                     return DATE;
-                case 20:
+                case 15:
                     return OBJECT;
+                case 16:
+                    return OBJECT_COMPRESSED;
                 default:
                     throw new IllegalArgumentException("invalid type");
             }
@@ -170,18 +184,32 @@ public class BufferWrapper<T> implements Cacheable {
         final BufferWrapper<T> bufferWrapper;
         if (origin instanceof String) {
             buffer = Buffers.wrap(memoryManager, (String) origin);
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.STRING);
+            if (buffer.remaining() > DEFAULT_COMPRESSION_THRESHOLD) {
+                bufferWrapper = create(origin, compressBuffer(buffer, memoryManager), BufferType.STRING_COMPRESSED);
+            } else {
+                bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.STRING);
+            }
         } else if (origin instanceof byte[]) {
-            buffer = Buffers.wrap(memoryManager, (byte[]) origin);
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.BYTE_ARRAY);
+            final byte[] originBytes = (byte[]) origin;
+            if (originBytes.length > DEFAULT_COMPRESSION_THRESHOLD) {
+                buffer = Buffers.wrap(memoryManager, compress(originBytes));
+                bufferWrapper = create(origin, buffer, BufferType.BYTE_ARRAY_COMPRESSED);
+            } else {
+                buffer = Buffers.wrap(memoryManager, originBytes);
+                bufferWrapper = create(origin, buffer, BufferType.BYTE_ARRAY);
+            }
         } else if (origin instanceof ByteBuffer) {
             buffer = Buffers.wrap(memoryManager, (ByteBuffer) origin);
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.BYTE_BUFFER);
+            if (buffer.remaining() > DEFAULT_COMPRESSION_THRESHOLD) {
+                bufferWrapper = create(origin, compressBuffer(buffer, memoryManager), BufferType.BYTE_BUFFER_COMPRESSED);
+            } else {
+                bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.BYTE_BUFFER);
+            }
         } else if (origin instanceof Byte) {
             buffer = memoryManager.allocate(1);
             buffer.put((Byte) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.BYTE);
+            bufferWrapper = create(origin, buffer, BufferType.BYTE);
         } else if (origin instanceof Boolean) {
             buffer = memoryManager.allocate(1);
             if ((Boolean) origin) {
@@ -190,37 +218,37 @@ public class BufferWrapper<T> implements Cacheable {
                 buffer.put((byte) '0');
             }
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.BOOLEAN);
+            bufferWrapper = create(origin, buffer, BufferType.BOOLEAN);
         } else if (origin instanceof Short) {
             buffer = memoryManager.allocate(2);
             buffer.putShort((Short) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.SHORT);
+            bufferWrapper = create(origin, buffer, BufferType.SHORT);
         } else if (origin instanceof Integer) {
             buffer = memoryManager.allocate(4);
             buffer.putInt((Integer) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.INTEGER);
+            bufferWrapper = create(origin, buffer, BufferType.INTEGER);
         } else if (origin instanceof Float) {
             buffer = memoryManager.allocate(4);
             buffer.putFloat((Float) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.FLOAT);
+            bufferWrapper = create(origin, buffer, BufferType.FLOAT);
         } else if (origin instanceof Double) {
             buffer = memoryManager.allocate(8);
             buffer.putDouble((Double) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.DOUBLE);
+            bufferWrapper = create(origin, buffer, BufferType.DOUBLE);
         } else if (origin instanceof Long) {
             buffer = memoryManager.allocate(8);
             buffer.putLong((Long) origin);
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.LONG);
+            bufferWrapper = create(origin, buffer, BufferType.LONG);
         } else if (origin instanceof Date) {
             buffer = memoryManager.allocate(8);
             buffer.putLong(((Date) origin).getTime());
             buffer.flip();
-            bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.DATE);
+            bufferWrapper = create(origin, buffer, BufferType.DATE);
         } else {
             BufferOutputStream bos = null;
             ObjectOutputStream oos = null;
@@ -238,7 +266,11 @@ public class BufferWrapper<T> implements Cacheable {
                 oos.writeObject(origin);
                 buffer = bos.getBuffer();
                 buffer.flip();
-                bufferWrapper = create(origin, buffer, BufferWrapper.BufferType.OBJECT);
+                if (buffer.remaining() > DEFAULT_COMPRESSION_THRESHOLD) {
+                    bufferWrapper = create(origin, compressBuffer(buffer, memoryManager), BufferType.OBJECT_COMPRESSED);
+                } else {
+                    bufferWrapper = create(origin, buffer, BufferType.OBJECT);
+                }
             } catch (IOException ie) {
                 throw new IllegalArgumentException("Non-serializable object", ie);
             } finally {
@@ -262,14 +294,14 @@ public class BufferWrapper<T> implements Cacheable {
         return bufferWrapper;
     }
 
-    public static Object unwrap(final Buffer buffer, final BufferWrapper.BufferType type) {
+    public static Object unwrap(final Buffer buffer, final BufferWrapper.BufferType type, final MemoryManager memoryManager) {
         if (buffer == null) {
             return null;
         }
-        return unwrap(buffer, buffer.position(), buffer.limit(), type);
+        return unwrap(buffer, buffer.position(), buffer.limit(), type, memoryManager);
     }
 
-    public static Object unwrap(final Buffer buffer, final int position, final int limit, final BufferWrapper.BufferType type) {
+    public static Object unwrap(final Buffer buffer, final int position, final int limit, final BufferWrapper.BufferType type, final MemoryManager memoryManager) {
         if (buffer == null || position > limit || type == null) {
             return null;
         }
@@ -288,10 +320,36 @@ public class BufferWrapper<T> implements Cacheable {
                     }
                     return null;
                 }
+            case STRING_COMPRESSED:
+                final int length2 = limit - position;
+                final byte[] bytes2 = new byte[length2];
+                buffer.get(bytes2, 0, length2);
+                final byte[] decompressedBytes = decompress(bytes2);
+                if (decompressedBytes == null) {
+                    return null;
+                }
+                try {
+                    return new String(decompressedBytes, DEFAULT_CHARSET);
+                } catch (UnsupportedEncodingException uee) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "failed to decode the buffer", uee);
+                    }
+                    return null;
+                }
             case BYTE_ARRAY:
                 return buffer.toByteBuffer(position, limit).array();
+            case BYTE_ARRAY_COMPRESSED:
+                return decompress(buffer.toByteBuffer(position, limit).array());
             case BYTE_BUFFER:
                 return buffer.toByteBuffer(position, limit);
+            case BYTE_BUFFER_COMPRESSED:
+                final Buffer decompressedBuffer2 = decompressBuffer(buffer, memoryManager);
+                if (decompressedBuffer2 == null) {
+                    return null;
+                }
+                final ByteBuffer result = decompressedBuffer2.toByteBuffer(position, limit);
+                decompressedBuffer2.tryDispose();
+                return result;
             case BYTE:
                 return buffer.get();
             case BOOLEAN:
@@ -340,9 +398,134 @@ public class BufferWrapper<T> implements Cacheable {
                     }
                 }
                 return obj;
+            case OBJECT_COMPRESSED:
+                final Buffer decompressedBuffer3 = decompressBuffer(buffer, memoryManager);
+                if (decompressedBuffer3 == null) {
+                    return null;
+                }
+                BufferInputStream bis2 = null;
+                ObjectInputStream ois2 = null;
+                Object obj2 = null;
+                try {
+                    bis2 = new BufferInputStream(decompressedBuffer3, position, limit);
+                    ois2 = new ObjectInputStream(bis2);
+                    obj2 = ois2.readObject();
+                } catch (IOException ie) {
+                    if (logger.isLoggable(Level.SEVERE)) {
+                        logger.log(Level.SEVERE, "failed to read the object", ie);
+                    }
+                } catch (ClassNotFoundException cnfe) {
+                    if (logger.isLoggable(Level.SEVERE)) {
+                        logger.log(Level.SEVERE, "failed to read the object", cnfe);
+                    }
+                } finally {
+                    if (ois2 != null) {
+                        try {
+                            ois2.close();
+                        } catch (IOException ignore) {
+                        }
+                    }
+                    if (bis2 != null) {
+                        try {
+                            bis2.close();
+                        } catch (IOException ignore) {
+                        }
+                    }
+                }
+                decompressedBuffer3.tryDispose();
+                return obj2;
             default:
                 return null;
         }
+    }
+
+    private static Buffer compressBuffer(final Buffer buffer, final MemoryManager memoryManager) {
+        if (buffer == null) {
+            throw new IllegalArgumentException("failed to compress the buffer. buffer should be not null");
+        }
+        final byte[] compressed = compress(buffer.toByteBuffer().array());
+        buffer.tryDispose();
+        return Buffers.wrap(memoryManager, compressed);
+    }
+
+    private static byte[] compress(final byte[] in) {
+        if (in == null) {
+            throw new IllegalArgumentException("Can't compress null");
+        }
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        GZIPOutputStream gz = null;
+        try {
+            gz = new GZIPOutputStream(bos);
+            gz.write(in);
+        } catch (IOException ie) {
+            throw new RuntimeException("IO exception compressing data", ie);
+        } finally {
+            if (gz != null) {
+                try {
+                    gz.close();
+                } catch (IOException ignore) {
+                }
+            }
+            try {
+                bos.close();
+            } catch (IOException ignore) {
+            }
+        }
+        return bos.toByteArray();
+    }
+
+    private static Buffer decompressBuffer(final Buffer buffer, final MemoryManager memoryManager) {
+        if (buffer == null) {
+            return null;
+        }
+        final byte[] decompressed = decompress(buffer.toByteBuffer().array());
+        if (decompressed == null) {
+            return null;
+        }
+        return Buffers.wrap(memoryManager, decompressed);
+    }
+
+    private static byte[] decompress(final byte[] in) {
+        ByteArrayOutputStream bos;
+        byte[] result = null;
+        if (in != null) {
+            ByteArrayInputStream bis = new ByteArrayInputStream(in);
+            bos = new ByteArrayOutputStream();
+            GZIPInputStream gis = null;
+            try {
+                gis = new GZIPInputStream(bis);
+
+                byte[] buf = new byte[8192];
+                int r;
+                while ((r = gis.read(buf)) > 0) {
+                    bos.write(buf, 0, r);
+                }
+                result = bos.toByteArray();
+            } catch (IOException ie) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "failed to decompress bytes", ie);
+                }
+                bos = null;
+            } finally {
+                if (gis != null) {
+                    try {
+                        gis.close();
+                    } catch (IOException ignore) {
+                    }
+                }
+                try {
+                    bis.close();
+                } catch (IOException ignore) {
+                }
+                if (bos != null) {
+                    try {
+                        bos.close();
+                    } catch (IOException ignore) {
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     @Override
