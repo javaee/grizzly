@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.arp;
 
+import com.sun.grizzly.http.KeepAliveThreadAttachment;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.TaskBase;
@@ -241,7 +242,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
             return ((WorkerThread) currentThread).getAttachment();
         }
 
-        return new ThreadAttachment();
+        return new KeepAliveThreadAttachment();
     }
 
     /**
