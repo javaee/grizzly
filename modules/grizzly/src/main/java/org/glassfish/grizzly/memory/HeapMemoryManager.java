@@ -64,6 +64,13 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     private static final ThreadCache.CachedTypeIndex<RecyclableByteBufferWrapper> BBW_CACHE_IDX =
             ThreadCache.obtainIndex(RecyclableByteBufferWrapper.class, 2);
 
+    public HeapMemoryManager() {
+        super();
+    }
+
+    public HeapMemoryManager(final int maxBufferSize) {
+        super(maxBufferSize);
+    }
 
     // ---------------------------------------------- Methods from MemoryManager
 
