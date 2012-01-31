@@ -118,5 +118,6 @@
         <module>bundles</module>
         <module>http-servlet-extras</module>
         <module>thrift</module>
+        <module>memcached</module>
     </modules>
 </project>
