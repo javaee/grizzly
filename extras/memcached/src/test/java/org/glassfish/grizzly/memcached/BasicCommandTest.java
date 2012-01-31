@@ -62,6 +62,10 @@ public class BasicCommandTest {
     private static final int expirationTimeoutInSec = 60 * 30; // 30min
     private static final SocketAddress DEFAULT_MEMCACHED_ADDRESS = new InetSocketAddress(11211);
 
+    @Test
+    public void emptyTest() {
+    }
+    
     // memcached server should be booted in local
     //@Test
     public void testBasicCommand() {
