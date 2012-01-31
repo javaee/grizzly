@@ -89,9 +89,9 @@ public class IOStrategyTest {
     @Parameters
     public static Collection<Object[]> getIOStrategy() {
         return Arrays.asList(new Object[][]{
-//                    {WorkerThreadIOStrategy.getInstance()},
-//                    {LeaderFollowerNIOStrategy.getInstance()},
-//                    {SameThreadIOStrategy.getInstance()},
+                    {WorkerThreadIOStrategy.getInstance()},
+                    {LeaderFollowerNIOStrategy.getInstance()},
+                    {SameThreadIOStrategy.getInstance()},
                     {SimpleDynamicNIOStrategy.getInstance()}
         }
                 );
