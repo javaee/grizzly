@@ -96,7 +96,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
     private final long responseTimeoutInMillis;
 
     public static final String CONNECTION_POOL_ATTRIBUTE_NAME = "GrizzlyMemcachedCache.ConnectionPool";
-    private final Attribute<ObjectPool<SocketAddress, Connection<SocketAddress>>> connectionPoolAttribute = 
+    private final Attribute<ObjectPool<SocketAddress, Connection<SocketAddress>>> connectionPoolAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(CONNECTION_POOL_ATTRIBUTE_NAME);
     private final ObjectPool<SocketAddress, Connection<SocketAddress>> connectionPool;
 
@@ -2068,7 +2068,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             try {
                 revivals.clear();
                 final Set<SocketAddress> failuresSet = failures.keySet();
-                if (logger.isLoggable(Level.INFO)) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "try to check the failures in health monitor. failed list hint={0}, interval={1}secs", new Object[]{failuresSet, healthMonitorIntervalInSecs});
+                } else if (logger.isLoggable(Level.INFO) && !failuresSet.isEmpty()) {
                     logger.log(Level.INFO, "try to check the failures in health monitor. failed list hint={0}, interval={1}secs", new Object[]{failuresSet, healthMonitorIntervalInSecs});
                 }
                 for (SocketAddress failure : failuresSet) {
@@ -2111,7 +2113,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                     }
                 }
                 final Set<SocketAddress> revivalsSet = revivals.keySet();
-                if (logger.isLoggable(Level.INFO)) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "try to restore revivals in health monitor. revival list hint={0}, interval={1}secs", new Object[]{revivalsSet, healthMonitorIntervalInSecs});
+                } else if (logger.isLoggable(Level.INFO) && !revivalsSet.isEmpty()) {
                     logger.log(Level.INFO, "try to restore revivals in health monitor. revival list hint={0}, interval={1}secs", new Object[]{revivalsSet, healthMonitorIntervalInSecs});
                 }
                 for (SocketAddress revival : revivalsSet) {
