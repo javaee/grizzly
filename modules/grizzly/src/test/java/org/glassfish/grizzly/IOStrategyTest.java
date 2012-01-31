@@ -89,9 +89,9 @@ public class IOStrategyTest {
     @Parameters
     public static Collection<Object[]> getIOStrategy() {
         return Arrays.asList(new Object[][]{
-                    {WorkerThreadIOStrategy.getInstance()},
-                    {LeaderFollowerNIOStrategy.getInstance()},
-                    {SameThreadIOStrategy.getInstance()},
+//                    {WorkerThreadIOStrategy.getInstance()},
+//                    {LeaderFollowerNIOStrategy.getInstance()},
+//                    {SameThreadIOStrategy.getInstance()},
                     {SimpleDynamicNIOStrategy.getInstance()}
         }
                 );
@@ -160,8 +160,8 @@ public class IOStrategyTest {
                     connection.write(pattern + j, new EmptyCompletionHandler<WriteResult>() {
                         @Override
                         public void failed(Throwable throwable) {
-                            LOGGER.log(Level.WARNING, "connection.write(...) failed. Index={0}, error={1}",
-                                    new Object[]{num, throwable});
+                            LOGGER.log(Level.WARNING, "connection.write(...) failed. Index=" + num,
+                                    throwable);
                         }
                     });
                 }
