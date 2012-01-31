@@ -62,33 +62,34 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
 
     private static final Logger logger = Grizzly.logger(GrizzlyMemcachedCacheManager.class);
 
-    private final ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>> caches = new ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>>();
+    private final ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>> caches =
+            new ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>>();
     private final TCPNIOTransport transport;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private GrizzlyMemcachedCacheManager(final Builder builder) {
-        TCPNIOTransport transport = builder.transport;
-        if (transport == null) {
+        TCPNIOTransport transportLocal = builder.transport;
+        if (transportLocal == null) {
             final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter()).add(new MemcachedClientFilter(true, true));
             final TCPNIOTransportBuilder clientTCPNIOTransportBuilder = TCPNIOTransportBuilder.newInstance();
-            transport = clientTCPNIOTransportBuilder.build();
-            transport.setProcessor(clientFilterChainBuilder.build());
-            transport.setSelectorRunnersCount(builder.selectorRunnersCount);
-            transport.setIOStrategy(builder.ioStrategy);
-            transport.configureBlocking(builder.blocking);
+            transportLocal = clientTCPNIOTransportBuilder.build();
+            transportLocal.setProcessor(clientFilterChainBuilder.build());
+            transportLocal.setSelectorRunnersCount(builder.selectorRunnersCount);
+            transportLocal.setIOStrategy(builder.ioStrategy);
+            transportLocal.configureBlocking(builder.blocking);
             if (builder.workerThreadPool != null) {
-                transport.setWorkerThreadPool(builder.workerThreadPool);
+                transportLocal.setWorkerThreadPool(builder.workerThreadPool);
             }
             try {
-                transport.start();
+                transportLocal.start();
             } catch (IOException ie) {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.log(Level.SEVERE, "failed to start the transport", ie);
                 }
             }
         }
-        this.transport = transport;
+        this.transport = transportLocal;
     }
 
     @Override
@@ -147,7 +148,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
      * @return true if the cache was added
      */
     <K, V> boolean addCache(final GrizzlyMemcachedCache<K, V> cache) {
-        return !shutdown.get() && cache != null && caches.putIfAbsent(cache.getName(), cache) == null;
+        return !shutdown.get() &&
+                cache != null && caches.putIfAbsent(cache.getName(), cache) == null &&
+                !(shutdown.get() && caches.remove(cache.getName()) == cache);
     }
 
     public static class Builder {

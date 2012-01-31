@@ -124,7 +124,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 new BaseObjectPool.Builder<SocketAddress, Connection<SocketAddress>>(new PoolableObjectFactory<SocketAddress, Connection<SocketAddress>>() {
                     @Override
                     public Connection<SocketAddress> createObject(final SocketAddress key) throws Exception {
-                        final ConnectorHandler<SocketAddress> connectorHandler = TCPNIOConnectorHandler.builder(transport).setReuseAddress(true).build();
+                        final ConnectorHandler<SocketAddress> connectorHandler =
+                                TCPNIOConnectorHandler.builder(transport).setReuseAddress(true).build();
                         final Future<Connection> future = connectorHandler.connect(key);
                         final Connection<SocketAddress> connection;
                         try {
