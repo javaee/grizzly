@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Utility class.
@@ -48,7 +47,181 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author Alexey Stashok
  */
 public class HttpUtils {
+    
+    private static final float[] MULTIPLIERS = new float[] {
+            .1f, .01f, .001f
+    };
+
+
     // ---------------------------------------------------------- Public Methods
+
+    public static float convertQValueToFloat(final DataChunk dc,
+                                             final int startIdx,
+                                             final int stopIdx) {
+
+        float qvalue = 0f;
+        DataChunk.Type type = dc.getType();
+        try {
+            switch (type) {
+                case String:
+                    qvalue = HttpUtils.convertQValueToFloat(dc.toString(), startIdx, stopIdx);
+                    break;
+                case Buffer:
+                    qvalue = HttpUtils.convertQValueToFloat(dc.getBufferChunk().getBuffer(), startIdx, stopIdx);
+                    break;
+                case Chars:
+                    qvalue = HttpUtils.convertQValueToFloat(dc.getCharChunk().getChars(), startIdx, stopIdx);
+            }
+        } catch (Exception e) {
+            qvalue = 0f;
+        }
+        return qvalue;
+
+    }
+
+
+    public static float convertQValueToFloat(final Buffer buffer, 
+                                             final int startIdx, 
+                                             final int stopIdx) {
+        float result = 0.0f;
+        boolean firstDigitProcessed = false;
+        int multIdx = -1;
+        for (int i = 0, len = (stopIdx - startIdx); i < len; i++) {
+            final char c = (char) buffer.get(i + startIdx);
+            if (multIdx == -1) {
+                if (firstDigitProcessed && c != '.') {
+                    throw new IllegalArgumentException("Invalid qvalue, "
+                            + buffer.toStringContent(Constants.DEFAULT_HTTP_CHARSET,
+                            startIdx,
+                            stopIdx)
+                            + ", detected");
+                }
+                if (c == '.') {
+                    multIdx = 0;
+                    continue;
+                }
+            }
+            if (Character.isDigit(c)) {
+                if (multIdx == -1) {
+                    result += Character.digit(c, 10);
+                    firstDigitProcessed = true;
+                    if (result > 1) {
+                        throw new IllegalArgumentException("Invalid qvalue, "
+                                + buffer.toStringContent(Constants.DEFAULT_HTTP_CHARSET,
+                                                         startIdx,
+                                                         stopIdx)
+                                + ", detected");
+                    }
+                } else {
+                    if (multIdx >= MULTIPLIERS.length) {
+                        throw new IllegalArgumentException("Invalid qvalue, "
+                                + buffer.toStringContent(Constants.DEFAULT_HTTP_CHARSET,
+                                                         startIdx,
+                                                         stopIdx)
+                                + ", detected");
+                    }
+                    result += Character.digit(c, 10) * MULTIPLIERS[multIdx++];
+                }
+            } else {
+                throw new IllegalArgumentException("Invalid qvalue, "
+                        + buffer.toStringContent(Constants.DEFAULT_HTTP_CHARSET,
+                                                 startIdx,
+                                                 stopIdx)
+                        + ", detected");
+            }
+        }
+        return result;
+    }
+
+    public static float convertQValueToFloat(final String string,
+                                             final int startIdx,
+                                             final int stopIdx) {
+        float result = 0.0f;
+        boolean firstDigitProcessed = false;
+        int multIdx = -1;
+        for (int i = 0, len = (stopIdx - startIdx); i < len; i++) {
+            final char c = string.charAt(i + startIdx);
+            if (multIdx == -1) {
+                if (firstDigitProcessed && c != '.') {
+                    throw new IllegalArgumentException("Invalid qvalue, "
+                            + new String(string.toCharArray(), startIdx, stopIdx)
+                            + ", detected");
+                }
+                if (c == '.') {
+                    multIdx = 0;
+                    continue;
+                }
+            }
+            if (Character.isDigit(c)) {
+                if (multIdx == -1) {
+                    result += Character.digit(c, 10);
+                    firstDigitProcessed = true;
+                    if (result > 1) {
+                        throw new IllegalArgumentException("Invalid qvalue, "
+                                + new String(string.toCharArray(), startIdx, stopIdx)
+                                + ", detected");
+                    }
+                } else {
+                    if (multIdx >= MULTIPLIERS.length) {
+                        throw new IllegalArgumentException("Invalid qvalue, "
+                                + new String(string.toCharArray(), startIdx, stopIdx)
+                                + ", detected");
+                    }
+                    result += Character.digit(c, 10) * MULTIPLIERS[multIdx++];
+                }
+            } else {
+                throw new IllegalArgumentException("Invalid qvalue, "
+                        + new String(string.toCharArray(), startIdx, stopIdx)
+                        + ", detected");
+            }
+        }
+        return result;
+    }
+
+    public static float convertQValueToFloat(final char[] chars,
+                                                 final int startIdx,
+                                                 final int stopIdx) {
+            float result = 0.0f;
+            boolean firstDigitProcessed = false;
+            int multIdx = -1;
+            for (int i = 0, len = (stopIdx - startIdx); i < len; i++) {
+                final char c = chars[i + startIdx];
+                if (multIdx == -1) {
+                    if (firstDigitProcessed && c != '.') {
+                        throw new IllegalArgumentException("Invalid qvalue, "
+                                + new String(chars, startIdx, stopIdx)
+                                + ", detected");
+                    }
+                    if (c == '.') {
+                        multIdx = 0;
+                        continue;
+                    }
+                }
+                if (Character.isDigit(c)) {
+                    if (multIdx == -1) {
+                        result += Character.digit(c, 10);
+                        firstDigitProcessed = true;
+                        if (result > 1) {
+                            throw new IllegalArgumentException("Invalid qvalue, "
+                                    + new String(chars, startIdx, stopIdx)
+                                    + ", detected");
+                        }
+                    } else {
+                        if (multIdx >= MULTIPLIERS.length) {
+                            throw new IllegalArgumentException("Invalid qvalue, "
+                                    + new String(chars, startIdx, stopIdx)
+                                    + ", detected");
+                        }
+                        result += Character.digit(c, 10) * MULTIPLIERS[multIdx++];
+                    }
+                } else {
+                    throw new IllegalArgumentException("Invalid qvalue, "
+                            + new String(chars, startIdx, stopIdx)
+                            + ", detected");
+                }
+            }
+            return result;
+        }
 
     /**
      * Converts the specified long as a string representation to the provided buffer.
@@ -83,14 +256,7 @@ public class HttpUtils {
         buffer.position(position);
 
     }
-    // --------------------------------------------------------- Private Methods
 
-    private static DataChunk newChunk(byte[] bytes) {
-        final DataChunk dc = DataChunk.newInstance();
-        final Buffer b = Buffers.wrap(null, bytes);
-        dc.setBuffer(b, 0, bytes.length);
-        return dc;
-    }
 
     /**
      * Filter the specified message string for characters that are sensitive in HTML.  This avoids potential attacks

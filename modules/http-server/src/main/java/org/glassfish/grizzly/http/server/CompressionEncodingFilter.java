@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,8 @@ import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 public class CompressionEncodingFilter implements EncodingFilter {
@@ -86,18 +88,14 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 final MimeHeaders responseHeaders = responsePacket.getHeaders();
                 // Check if content is already encoded (no matter which encoding)
                 final DataChunk contentEncodingMB =
-                    responseHeaders.getValue("Content-Encoding");
+                    responseHeaders.getValue(Header.ContentEncoding);
                 if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
                     return false;
                 }
 
                 final MimeHeaders requestHeaders = responsePacket.getRequest().getHeaders();
-                // Check if browser support gzip encoding
-                final DataChunk acceptEncodingDC =
-                    requestHeaders.getValue("accept-encoding");
-                if (acceptEncodingDC == null || indexOf(aliases, acceptEncodingDC) == -1) {
-                    return false;
-                }
+
+                if (!userAgentRequestsCompression(requestHeaders)) return false;
 
                 // If force mode, always compress (test purposes only)
                 if (compressionLevel == CompressionLevel.FORCE) {
@@ -108,7 +106,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 // Check for incompatible Browser
                 if (noCompressionUserAgents.length > 0) {
                     final DataChunk userAgentValueDC =
-                        requestHeaders.getValue("user-agent");
+                        requestHeaders.getValue(Header.UserAgent);
                     if (userAgentValueDC != null &&
                          indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
                         return false;
@@ -134,6 +132,44 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 responsePacket.setContentLength(-1);
                 return true;
         }
+    }
+
+    private boolean userAgentRequestsCompression(MimeHeaders requestHeaders) {
+        // Check if browser support gzip encoding
+        final DataChunk acceptEncodingDC =
+            requestHeaders.getValue(Header.AcceptEncoding);
+        if (acceptEncodingDC == null) {
+            return false;
+        }
+        String alias = null;
+        int idx;
+        for (int i = 0, len = aliases.length; i < len; i++) {
+            alias = aliases[i];
+            idx = acceptEncodingDC.indexOf(alias, 0);
+            if (idx != -1) {
+                break;
+            }
+            alias = null;
+        }
+
+        if (alias == null) {
+            return false;
+        }
+
+        // we only care about q=0/q=0.0.  If present, the user-agent
+        // doesn't support this particular compression.
+        int qvalueStart = acceptEncodingDC.indexOf(';', alias.length());
+        if (qvalueStart != -1) {
+            qvalueStart = acceptEncodingDC.indexOf('=', qvalueStart);
+            final int qvalueEnd = acceptEncodingDC.indexOf(',', qvalueStart);
+            if (HttpUtils.convertQValueToFloat(acceptEncodingDC,
+                    qvalueStart + 1,
+                    qvalueEnd) == 0.0f) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
