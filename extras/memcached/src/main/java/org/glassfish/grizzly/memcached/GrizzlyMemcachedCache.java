@@ -1846,13 +1846,14 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         final BufferWrapper.BufferType keyType = !keyList.isEmpty() ? keyList.get(0).getType() : null;
         for (int i = 0; i < keyList.size(); i++) {
             final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(false, true, false);
-            builder.noReply(false);
             builder.originKeyType(keyType);
             builder.originKey(keyList.get(i).getOrigin());
             builder.key(keyList.get(i).getBuffer());
             if (i == keyList.size() - 1) {
+                builder.noReply(false);
                 builder.op(CommandOpcodes.Get);
             } else {
+                builder.noReply(true);
                 builder.op(CommandOpcodes.GetQ);
                 builder.opaque(generateOpaque());
             }

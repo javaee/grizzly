@@ -270,7 +270,7 @@ public class MemcachedResponse implements Cacheable {
             // ValueWithKey type
             case GetK:
             case GetKQ:
-                if (!isError()) {
+                if (!isError() && decodedValue != null) {
                     result = new ValueWithKey(originKey, decodedValue);
                 } else {
                     result = null;
@@ -280,14 +280,14 @@ public class MemcachedResponse implements Cacheable {
             // ValueWithCas type
             case Gets:
             case GetsQ:
-                if (!isError()) {
+                if (!isError() && decodedValue != null) {
                     result = new ValueWithCas(decodedValue, this.cas);
                 } else {
                     result = null;
                 }
                 break;
 
-            // boolean type
+            // boolean and void type
             case Set:
             case Add:
             case Replace:
@@ -299,6 +299,16 @@ public class MemcachedResponse implements Cacheable {
             case Verbosity:
             case Touch:
             case Noop:
+            case SetQ:
+            case AddQ:
+            case ReplaceQ:
+            case DeleteQ:
+            case IncrementQ:
+            case DecrementQ:
+            case QuitQ:
+            case FlushQ:
+            case AppendQ:
+            case PrependQ:
                 if (!isError()) {
                     result = Boolean.TRUE;
                 } else {
@@ -314,20 +324,6 @@ public class MemcachedResponse implements Cacheable {
                 } else {
                     result = INVALID_LONG;
                 }
-                break;
-
-            // void type
-            case SetQ:
-            case AddQ:
-            case ReplaceQ:
-            case DeleteQ:
-            case IncrementQ:
-            case DecrementQ:
-            case QuitQ:
-            case FlushQ:
-            case AppendQ:
-            case PrependQ:
-                result = null;
                 break;
 
             // string type
@@ -383,7 +379,7 @@ public class MemcachedResponse implements Cacheable {
     }
 
     public boolean isError() {
-        return status != ResponseStatus.No_Error;
+        return status != null && status != ResponseStatus.No_Error;
     }
 
     public boolean complete() {

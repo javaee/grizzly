@@ -186,6 +186,7 @@ public class MemcachedClientFilter extends BaseFilter {
                         throw new IOException("invalid response");
                     }
                     final CommandOpcodes commandOpcode = sentRequest.getOp();
+                    response.setOp(commandOpcode);
                     if (op != commandOpcode.opcode()) {
                         if (sentRequest.isNoReply()) {
                             status = ParsingStatus.NO_REPLY;
@@ -194,8 +195,6 @@ public class MemcachedClientFilter extends BaseFilter {
                         } else {
                             throw new IOException("invalid op: " + op);
                         }
-                    } else {
-                        response.setOp(commandOpcode);
                     }
                     keyLength = input.getShort();
                     if (keyLength < 0) {
@@ -299,7 +298,7 @@ public class MemcachedClientFilter extends BaseFilter {
                     if (complete) {
                         sentRequest = requestQueue.remove();
                         response.setResult(sentRequest.getOriginKey());
-                        if (sentRequest.disposed.compareAndSet(false, true) && !sentRequest.isNoReply()) {
+                        if (sentRequest.disposed.compareAndSet(false, true)) {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
                             sentRequest.notify.countDown();
@@ -307,7 +306,7 @@ public class MemcachedClientFilter extends BaseFilter {
                     } else {
                         sentRequest = requestQueue.peek();
                         response.setResult(sentRequest.getOriginKey());
-                        if (!sentRequest.disposed.get() && !sentRequest.isNoReply()) {
+                        if (!sentRequest.disposed.get()) {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
                             sentRequest.notify.countDown();
@@ -345,7 +344,8 @@ public class MemcachedClientFilter extends BaseFilter {
                 case NO_REPLY:
                     // processing next internal memcached request
                     sentRequest = requestQueue.remove();
-                    sentRequest.response = Boolean.TRUE;
+                    response.setResult(sentRequest.getOriginKey());
+                    sentRequest.response = response.getResult();
                     sentRequest.responseStatus = ResponseStatus.No_Error;
                     sentRequest.notify.countDown();
                     input.reset();

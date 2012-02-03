@@ -447,6 +447,45 @@ public class BasicCommandTest {
     }
 
     // memcached server should be booted in local
+    //@Test
+    public void testMissingGetMulti() {
+        final int multiSize = 5;
+        final int missingSize = 2;
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        Set<String> keys = new HashSet<String>();
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            keys.add(key);
+            if (i < multiSize - missingSize) {
+                userCache.set(key, "foo" + i, expirationTimeoutInSec, false);
+            }
+        }
+        Map<String, String> result = userCache.getMulti(keys);
+        Assert.assertEquals(multiSize - missingSize, result.size());
+
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            if (i < multiSize - missingSize) {
+                final String value = result.get(key);
+                Assert.assertNotNull(value);
+                Assert.assertEquals("foo" + i, value);
+            } else {
+                final String value = result.get(key);
+                Assert.assertNull(value);
+            }
+
+            // clean
+            userCache.delete(key, false);
+        }
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
     @SuppressWarnings("unchecked")
     //@Test
     public void testSetMulti() {
