@@ -76,7 +76,7 @@ public interface AsyncQueueWriter<L>
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     * @param pushBackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
