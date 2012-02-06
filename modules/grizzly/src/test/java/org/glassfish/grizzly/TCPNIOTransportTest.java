@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -256,7 +257,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -481,7 +482,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -678,7 +679,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -727,6 +728,18 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         assertEquals(1, underTest.getCorePoolSize());
         assertEquals(1, underTest.getMaxPoolSize());
         assertEquals("custom", underTest.getPoolName());
+    }
+
+    public void testWorkerThreadPoolConfiguration2() throws Exception {
+        TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
+        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        config.setCorePoolSize(1);
+        config.setMaxPoolSize(1);
+        config.setPoolName("custom");
+        t.setWorkerThreadPoolConfig(config);
+        t.setIOStrategy(SameThreadIOStrategy.getInstance());
+        assertNull(t.getWorkerThreadPoolConfig());
+        assertNull(t.getWorkerThreadPool());
     }
 
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {

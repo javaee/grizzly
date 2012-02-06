@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,6 +52,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.UDPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -156,7 +157,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -205,7 +206,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -261,7 +262,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -316,7 +317,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -376,7 +377,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    new EmptyCompletionHandler<Connection>()  {
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
                         public void completed(final Connection connection) {
@@ -414,17 +415,31 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.stop();
         }
     }
+
     public void testWorkerThreadPoolConfiguration() throws Exception {
-            UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
-            ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
-            config.setCorePoolSize(1);
-            config.setMaxPoolSize(1);
-            config.setPoolName("custom");
-            t.setWorkerThreadPoolConfig(config);
-            t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
-            ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
-            assertEquals(1, underTest.getCorePoolSize());
-            assertEquals(1, underTest.getMaxPoolSize());
-            assertEquals("custom", underTest.getPoolName());
-        }
+        UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
+        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        config.setCorePoolSize(1);
+        config.setMaxPoolSize(1);
+        config.setPoolName("custom");
+        t.setWorkerThreadPoolConfig(config);
+        t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
+        ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
+        assertEquals(1, underTest.getCorePoolSize());
+        assertEquals(1, underTest.getMaxPoolSize());
+        assertEquals("custom", underTest.getPoolName());
+    }
+
+    public void testWorkerThreadPoolConfiguration2() throws Exception {
+        UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
+        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        config.setCorePoolSize(1);
+        config.setMaxPoolSize(1);
+        config.setPoolName("custom");
+        t.setWorkerThreadPoolConfig(config);
+        t.setIOStrategy(SameThreadIOStrategy.getInstance());
+        assertNull(t.getWorkerThreadPoolConfig());
+        assertNull(t.getWorkerThreadPool());
+    }
+
 }
