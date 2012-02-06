@@ -351,7 +351,8 @@ public class BasicCommandTest {
     public void testQuitCommand() {
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
         final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
-        builder.checkValidation(false);
+        builder.borrowValidation(false);
+        builder.returnValidation(false);
         builder.maxConnectionPerServer(1);
         builder.minConnectionPerServer(1);
         builder.responseTimeoutInMillis(2000);

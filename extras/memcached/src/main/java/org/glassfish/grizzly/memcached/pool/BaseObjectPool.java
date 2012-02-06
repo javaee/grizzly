@@ -63,7 +63,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
     private final PoolableObjectFactory<K, V> factory;
     private final int min;
     private final int max;
-    private final boolean validation;
+    private final boolean borrowValidation;
+    private final boolean returnValidation;
     private final boolean disposable;
     private final long keepAliveTimeoutInSecs;
 
@@ -77,7 +78,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         this.factory = builder.factory;
         this.min = builder.min;
         this.max = builder.max;
-        this.validation = builder.validation;
+        this.borrowValidation = builder.borrowValidation;
+        this.returnValidation = builder.returnValidation;
         this.disposable = builder.disposable;
         this.keepAliveTimeoutInSecs = builder.keepAliveTimeoutInSecs;
         if (keepAliveTimeoutInSecs > 0) {
@@ -107,7 +109,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             throw new IllegalStateException("pool already has destroyed. key=" + key);
         }
         for (int i = 0; i < max; i++) {
-            V result = createIfUnderSpecificSize(min, pool, key, validation);
+            V result = createIfUnderSpecificSize(min, pool, key, borrowValidation);
             if (result == null) {
                 break;
             }
@@ -187,7 +189,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             if (result == null) {
                 throw new PoolExhaustedException("pool is exhausted");
             }
-            if (validation) {
+            if (borrowValidation) {
                 boolean valid = false;
                 try {
                     valid = factory.validateObject(key, result);
@@ -209,8 +211,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             } else {
                 break; // success
             }
-        } while (validation && retryCount <= MAX_VALIDATION_RETRY_COUNT);
-        if (validation && result == null) {
+        } while (borrowValidation && retryCount <= MAX_VALIDATION_RETRY_COUNT);
+        if (borrowValidation && result == null) {
             throw new NoValidObjectException("there is no valid object");
         }
         if (result != null && pool.destroyed.get()) {
@@ -297,7 +299,7 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             }
             return;
         }
-        if (this.validation) {
+        if (this.returnValidation) {
             boolean valid = false;
             try {
                 valid = factory.validateObject(key, value);
@@ -463,8 +465,12 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return max;
     }
 
-    public boolean isValidation() {
-        return validation;
+    public boolean isBorrowValidation() {
+        return borrowValidation;
+    }
+
+    public boolean isReturnValidation() {
+        return returnValidation;
     }
 
     public boolean isDisposable() {
@@ -528,13 +534,15 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
     public static class Builder<K, V> {
         private static final int DEFAULT_MIN = 5;
         private static final int DEFAULT_MAX = Integer.MAX_VALUE;
-        private static final boolean DEFAULT_VALIDATION = false;
+        private static final boolean DEFAULT_BORROW_VALIDATION = false;
+        private static final boolean DEFAULT_RETURN_VALIDATION = false;
         private static final boolean DEFAULT_DISPOSABLE = false;
         private static final long DEFAULT_KEEP_ALIVE_TIMEOUT_IN_SEC = 30 * 60; // 30min
         private final PoolableObjectFactory<K, V> factory;
         private int min = DEFAULT_MIN;
         private int max = DEFAULT_MAX;
-        private boolean validation = DEFAULT_VALIDATION;
+        private boolean borrowValidation = DEFAULT_BORROW_VALIDATION;
+        private boolean returnValidation = DEFAULT_RETURN_VALIDATION;
         private boolean disposable = DEFAULT_DISPOSABLE;
         private long keepAliveTimeoutInSecs = DEFAULT_KEEP_ALIVE_TIMEOUT_IN_SEC;
 
@@ -556,8 +564,13 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             return this;
         }
 
-        public Builder<K, V> validation(final boolean validation) {
-            this.validation = validation;
+        public Builder<K, V> borrowValidation(final boolean borrowValidation) {
+            this.borrowValidation = borrowValidation;
+            return this;
+        }
+
+        public Builder<K, V> returnValidation(final boolean returnValidation) {
+            this.returnValidation = returnValidation;
             return this;
         }
 
@@ -584,7 +597,8 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return "BaseObjectPool{" +
                 "keepAliveTimeoutInSecs=" + keepAliveTimeoutInSecs +
                 ", disposable=" + disposable +
-                ", validation=" + validation +
+                ", borrowValidation=" + borrowValidation +
+                ", returnValidation=" + returnValidation +
                 ", max=" + max +
                 ", min=" + min +
                 ", factory=" + factory +

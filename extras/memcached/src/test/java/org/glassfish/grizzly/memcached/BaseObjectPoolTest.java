@@ -215,17 +215,14 @@ public class BaseObjectPoolTest {
         final PoolableObjectFactory<Integer, Integer> factory = new PoolableObjectFactory<Integer, Integer>() {
 
             private int id;
-            private int counts;
 
             @Override
             public Integer createObject(final Integer key) throws Exception {
-                counts++;
                 return ++id;
             }
 
             @Override
             public void destroyObject(final Integer key, final Integer value) throws Exception {
-                counts--;
             }
 
             @Override
@@ -238,7 +235,8 @@ public class BaseObjectPoolTest {
         builder.min(10);
         builder.disposable(false);
         builder.keepAliveTimeoutInSecs(-1);
-        builder.validation(true);
+        builder.borrowValidation(true);
+        builder.returnValidation(true);
         final ObjectPool<Integer, Integer> pool = builder.build();
 
         final int key = 1;
@@ -270,17 +268,14 @@ public class BaseObjectPoolTest {
         final PoolableObjectFactory<Integer, Integer> invalidFactory = new PoolableObjectFactory<Integer, Integer>() {
 
             private int id;
-            private int counts;
 
             @Override
             public Integer createObject(final Integer key) throws Exception {
-                counts++;
                 return ++id;
             }
 
             @Override
             public void destroyObject(final Integer key, final Integer value) throws Exception {
-                counts--;
             }
 
             @Override
@@ -290,7 +285,8 @@ public class BaseObjectPoolTest {
         };
 
         builder = new BaseObjectPool.Builder<Integer, Integer>(invalidFactory);
-        builder.validation(true);
+        builder.borrowValidation(true);
+        builder.returnValidation(true);
         final ObjectPool<Integer, Integer> invalidePool = builder.build();
 
         Assert.assertEquals(0, invalidePool.getPoolSize(key));

@@ -107,6 +107,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
     private final HealthMonitorTask healthMonitorTask;
     private final ScheduledExecutorService scheduledExecutor;
 
+    private final boolean failover;
+
     private final ConsistentHashStore<SocketAddress> consistentHash = new ConsistentHashStore<SocketAddress>();
 
     private MemcachedClientFilter clientFilter;
@@ -179,8 +181,11 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         connectionPoolBuilder.max(builder.maxConnectionPerServer);
         connectionPoolBuilder.keepAliveTimeoutInSecs(builder.keepAliveTimeoutInSecs);
         connectionPoolBuilder.disposable(builder.allowDisposableConnection);
-        connectionPoolBuilder.validation(builder.checkValidation);
+        connectionPoolBuilder.borrowValidation(builder.borrowValidation);
+        connectionPoolBuilder.returnValidation(builder.returnValidation);
         connectionPool = connectionPoolBuilder.build();
+
+        this.failover = builder.failover;
 
         this.initialServers = builder.servers;
 
@@ -276,6 +281,10 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
 
     @Override
     public void removeServer(final SocketAddress serverAddress) {
+        removeServer(serverAddress, true);
+    }
+
+    public void removeServer(final SocketAddress serverAddress, final boolean forcibly) {
         if (serverAddress == null) {
             return;
         }
@@ -288,8 +297,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 }
             }
         }
-        if (healthMonitorTask != null) {
-            if (healthMonitorTask.failure(serverAddress)) {
+        if (!forcibly && healthMonitorTask != null) {
+            if (failover && healthMonitorTask.failure(serverAddress)) {
                 consistentHash.remove(serverAddress);
                 if (logger.isLoggable(Level.INFO)) {
                     logger.log(Level.INFO, "removed the server from the consistent hash successfully. address={0}", serverAddress);
@@ -1668,7 +1677,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             if (logger.isLoggable(Level.FINER)) {
                 logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
             }
-            removeServer(address);
+            removeServer(address, false);
             throw nvoe;
         } catch (InterruptedException ie) {
             if (logger.isLoggable(Level.FINER)) {
@@ -1778,7 +1787,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
                 }
-                removeServer(address);
+                removeServer(address, false);
                 throw nvoe;
             } catch (InterruptedException ie) {
                 if (logger.isLoggable(Level.FINER)) {
@@ -1809,7 +1818,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             break;
         }
         if (connection == null) {
-            removeServer(address);
+            removeServer(address, false);
             return null;
         } else {
             try {
@@ -1874,7 +1883,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
                 }
-                removeServer(address);
+                removeServer(address, false);
                 throw nvoe;
             } catch (InterruptedException ie) {
                 if (logger.isLoggable(Level.FINER)) {
@@ -1905,7 +1914,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             break;
         }
         if (connection == null) {
-            removeServer(address);
+            removeServer(address, false);
             return result;
         } else {
             try {
@@ -1979,7 +1988,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
                 }
-                removeServer(address);
+                removeServer(address, false);
                 throw nvoe;
             } catch (InterruptedException ie) {
                 if (logger.isLoggable(Level.FINER)) {
@@ -2010,7 +2019,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             break;
         }
         if (connection == null) {
-            removeServer(address);
+            removeServer(address, false);
             return result;
         } else {
             try {
@@ -2140,18 +2149,20 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         private final GrizzlyMemcachedCacheManager manager;
         private final TCPNIOTransport transport;
         private Set<SocketAddress> servers;
-        private long connectTimeoutInMillis = -1;
-        private long writeTimeoutInMillis = -1;
-        private long responseTimeoutInMillis = -1;
+        private long connectTimeoutInMillis = 5000; // 5secs
+        private long writeTimeoutInMillis = 5000; // 5secs
+        private long responseTimeoutInMillis = 10000; // 10secs
 
         private long healthMonitorIntervalInSecs = 60; // 1 min
+        private boolean failover = true;
 
         // connection pool config
         private int minConnectionPerServer = 5;
         private int maxConnectionPerServer = Integer.MAX_VALUE;
         private long keepAliveTimeoutInSecs = 30 * 60; // 30 min
         private boolean allowDisposableConnection = false;
-        private boolean checkValidation = false;
+        private boolean borrowValidation = false;
+        private boolean returnValidation = false;
 
         public Builder(final String cacheName, final GrizzlyMemcachedCacheManager manager, final TCPNIOTransport transport) {
             this.cacheName = cacheName;
@@ -2210,13 +2221,23 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             return this;
         }
 
-        public Builder<K, V> checkValidation(final boolean checkValidation) {
-            this.checkValidation = checkValidation;
+        public Builder<K, V> borrowValidation(final boolean borrowValidation) {
+            this.borrowValidation = borrowValidation;
+            return this;
+        }
+
+        public Builder<K, V> returnValidation(final boolean returnValidation) {
+            this.returnValidation = returnValidation;
             return this;
         }
 
         public Builder<K, V> servers(final Set<SocketAddress> servers) {
             this.servers = new HashSet<SocketAddress>(servers);
+            return this;
+        }
+
+        public Builder<K, V> failover(final boolean failover) {
+            this.failover = failover;
             return this;
         }
     }
@@ -2230,7 +2251,10 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 ", writeTimeoutInMillis=" + writeTimeoutInMillis +
                 ", responseTimeoutInMillis=" + responseTimeoutInMillis +
                 ", connectionPool=" + connectionPool +
+                ", initialServers=" + initialServers +
                 ", healthMonitorIntervalInSecs=" + healthMonitorIntervalInSecs +
+                ", failover=" + failover +
+                ", consistentHash=" + consistentHash +
                 '}';
     }
 }

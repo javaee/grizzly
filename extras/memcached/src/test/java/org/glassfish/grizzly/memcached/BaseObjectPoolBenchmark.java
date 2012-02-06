@@ -144,7 +144,8 @@ public class BaseObjectPoolBenchmark {
         final BaseObjectPool.Builder<String, String> builder = new BaseObjectPool.Builder<String, String>(grizzlyFactory);
         builder.disposable(false);
         builder.keepAliveTimeoutInSecs(-1);
-        builder.validation(false);
+        builder.borrowValidation(false);
+        builder.returnValidation(false);
         builder.max(poolSize);
         builder.min(poolSize);
         final ObjectPool<String, String> grizzlyPool = builder.build();
@@ -300,7 +301,8 @@ public class BaseObjectPoolBenchmark {
         final BaseObjectPool.Builder<String, String> builder = new BaseObjectPool.Builder<String, String>(grizzlyFactory);
         builder.disposable(false);
         builder.keepAliveTimeoutInSecs(-1);
-        builder.validation(false);
+        builder.borrowValidation(false);
+        builder.returnValidation(false);
         builder.max(poolSize);
         builder.min(poolSize);
         final ObjectPool<String, String> grizzlyPool = builder.build();

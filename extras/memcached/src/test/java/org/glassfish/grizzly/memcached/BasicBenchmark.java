@@ -76,7 +76,8 @@ public class BasicBenchmark {
         final long timeout = 5000;
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
         final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
-        builder.checkValidation(false);
+        builder.borrowValidation(false);
+        builder.returnValidation(false);
         final MemcachedCache<String, String> userCache = builder.build();
         userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
 
@@ -160,7 +161,8 @@ public class BasicBenchmark {
 
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
         final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
-        builder.checkValidation(false);
+        builder.borrowValidation(false);
+        builder.returnValidation(false);
         final MemcachedCache<String, String> userCache = builder.build();
         userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
 
