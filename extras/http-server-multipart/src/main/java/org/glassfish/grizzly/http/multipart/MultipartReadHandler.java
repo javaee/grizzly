@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,11 +74,12 @@ public class MultipartReadHandler implements ReadHandler {
     private final NIOInputStream parentInputStream;
     
     private final MultipartEntryHandler multipartHandler;
+    private final MultipartContext multipartContext;
     private final String boundary;
 
     private final Line line = new Line();
 
-    private final MultipartEntry multipartEntry = new MultipartEntry();
+    private final MultipartEntry multipartEntry;
     
     private State state = State.PREAMBLE;
 
@@ -89,32 +90,37 @@ public class MultipartReadHandler implements ReadHandler {
     public MultipartReadHandler(final Request request,
             final MultipartEntryHandler multipartHandler,
             final CompletionHandler<Request> completionHandler,
-            final String boundary) {
+            final MultipartContext multipartContext) {
         this.request = request;
         this.multipartHandler = multipartHandler;
         this.requestCompletionHandler = completionHandler;
-        this.boundary = boundary;
-
+        this.multipartContext = multipartContext;
+        this.boundary = multipartContext.getBoundary();
         this.parentInputStream = request.getNIOInputStream();
 
         multipartMixedCompletionHandler = null;
         multipartMixedEntry = null;
+        
+        multipartEntry = new MultipartEntry(multipartContext);
     }
 
     public MultipartReadHandler(final MultipartEntry parentMultipartEntry,
             final MultipartEntryHandler multipartHandler,
             final CompletionHandler<MultipartEntry> completionHandler,
-            final String boundary) {
+            final MultipartContext multipartContext) {
         this.multipartMixedEntry = parentMultipartEntry;
         this.multipartHandler = multipartHandler;
         this.multipartMixedCompletionHandler = completionHandler;
-        this.boundary = boundary;
+        this.multipartContext = multipartContext;
+        this.boundary = multipartContext.getBoundary();
 
         this.parentInputStream = parentMultipartEntry.getNIOInputStream();
 
         request = null;
         requestCompletionHandler = null;
         isMultipartMixed = true;
+
+        multipartEntry = new MultipartEntry(multipartContext);
     }
 
     @Override

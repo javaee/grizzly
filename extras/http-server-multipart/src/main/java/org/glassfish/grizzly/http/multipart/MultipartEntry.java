@@ -71,6 +71,7 @@ public class MultipartEntry {
 
     private NIOInputStream requestInputStream;
     
+    private final MultipartContext multipartContext;
     private final MultipartEntryNIOInputStream inputStream;
     private final MultipartEntryNIOReader reader;
 
@@ -102,16 +103,17 @@ public class MultipartEntry {
     /**
      * Is this entry multipart/mixed
      */
-    private boolean isMultipartMixed;
+    private boolean isMultipart;
 
     /**
      * Have we parsed content-type and figured out whether it's multipart/mixed?
      */
-    private boolean isMultipartMixedParsed;
+    private boolean isMultipartParsed;
 
-    MultipartEntry() {
+    MultipartEntry(final MultipartContext multipartContext) {
         inputStream = new MultipartEntryNIOInputStream(this);
         reader = new MultipartEntryNIOReader(this);
+        this.multipartContext = multipartContext;
     }
 
     void initialize(final NIOInputStream parentInputStream) {
@@ -145,21 +147,31 @@ public class MultipartEntry {
     }
 
     /**
-     * Returns <tt>true</tt> if this is "multipart/mixed" multipart entry, or
+     * Get multipart processing context.
+     * 
+     * @return {@link MultipartContext}.
+     */
+    public MultipartContext getMultipartContext() {
+        return multipartContext;
+    }
+    
+    /**
+     * Returns <tt>true</tt> if this is "multipart/*" multipart entry, or
      * <tt>false</tt> otherwise.
      *
-     * @return <tt>true</tt> if this is "multipart/mixed" multipart entry, or
+     * @return <tt>true</tt> if this is "multipart/*" multipart entry, or
      * <tt>false</tt> otherwise.
      */
-    public boolean isMultipartMixed() {
-        if (!isMultipartMixedParsed) {
-            isMultipartMixedParsed = true;
+    public boolean isMultipart() {
+        if (!isMultipartParsed) {
+            isMultipartParsed = true;
 
-            isMultipartMixed = contentType != null &&
-                    contentType.startsWith(MultipartScanner.MULTIPART_MIXED_CONTENT_TYPE);
+            isMultipart = contentType != null &&
+                    contentType.toLowerCase().startsWith(
+                    MultipartScanner.MULTIPART_CONTENT_TYPE);
         }
 
-        return isMultipartMixed;
+        return isMultipart;
     }
 
     /**
@@ -258,7 +270,7 @@ public class MultipartEntry {
         usingReader = false;
         inputStream.recycle();
         reader.recycle();
-        isMultipartMixedParsed = false;
+        isMultipartParsed = false;
     }
 
     void onFinished() {

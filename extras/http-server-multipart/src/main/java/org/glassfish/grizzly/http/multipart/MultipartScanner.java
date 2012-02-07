@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.multipart;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
@@ -54,15 +56,18 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
  * @since 2.0.1
  * 
  * @author Alexey Stashok
+ * @author Heinrich Schuchardt
  */
 public class MultipartScanner {
+    public static final String START_ATTR = "start";
+    public static final String START_INFO_ATTR = "start-info";
+    public static final String TYPE_ATTR = "type";
+    public static final String BOUNDARY_ATTR = "boundary";
+    
     private static final Logger LOGGER = Grizzly.logger(MultipartScanner.class);
 
-    static final String MULTIPART_CONTENT_TYPE = "multipart/form-data";
-    static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
+    static final String MULTIPART_CONTENT_TYPE = "multipart";
     
-    private static final String BOUNDARY_ATTR = "boundary";
-
     private MultipartScanner() {
     }
     
@@ -81,28 +86,44 @@ public class MultipartScanner {
         try {
             final String contentType = request.getContentType();
             final String[] contentTypeParams = contentType.split(";");
-            if (contentTypeParams.length != 2 ||
-                    !MULTIPART_CONTENT_TYPE.equals(contentTypeParams[0])) {
+            final String[] contentSubType = contentTypeParams[0].split("/");
+
+            if (contentSubType.length != 2
+                    || !MULTIPART_CONTENT_TYPE.equalsIgnoreCase(contentSubType[0])) {
                 throw new IllegalStateException("Not multipart request");
             }
 
-            final String boundaryString = contentTypeParams[1].trim();
-            final String[] boundaryNameValue = boundaryString.split("=", 2);
-
-            if (boundaryNameValue.length != 2 ||
-                    !BOUNDARY_ATTR.equals(boundaryNameValue[0].trim())) {
-                throw new IllegalStateException("Boundary not found");
+            String boundary = null;
+            final Map<String, String> contentTypeProperties =
+                    new HashMap<String, String>();
+            
+            for (int i = 1; i < contentTypeParams.length; i++) {
+                final String param = contentTypeParams[i].trim();
+                final String[] paramValue = param.split("=", 2);
+                if (paramValue.length == 2) {
+                    String key = paramValue[0].trim();
+                    String value = paramValue[1].trim();
+                    if (value.charAt(0) == '"') {
+                        value = value.substring(1,
+                                value.length()
+                                - 1);
+                    }
+                    contentTypeProperties.put(key, value);
+                    if (BOUNDARY_ATTR.equals(key)) {
+                        boundary = value;
+                    }
+                }
             }
 
-            String boundaryValue = boundaryNameValue[1].trim();
-            if (boundaryValue.charAt(0) == '"') {
-                boundaryValue = boundaryValue.substring(1, boundaryValue.length() - 1);
+            if (boundary == null) {
+                throw new IllegalStateException("Boundary not found");
             }
 
             final NIOInputStream nioInputStream = request.getNIOInputStream();
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(request,
-                    partHandler, completionHandler, boundaryValue));
+                    partHandler, completionHandler,
+                    new MultipartContext(boundary, contentTypeProperties)));
         } catch (Exception e) {
             if (completionHandler != null) {
                 completionHandler.failed(e);
@@ -127,28 +148,44 @@ public class MultipartScanner {
         try {
             final String contentType = multipartMixedEntry.getContentType();
             final String[] contentTypeParams = contentType.split(";");
-            if (contentTypeParams.length != 2 ||
-                    !MULTIPART_MIXED_CONTENT_TYPE.equals(contentTypeParams[0])) {
-                throw new IllegalStateException("Not multipart/mixed entry");
+            final String[] contentSubType = contentTypeParams[0].split("/");
+
+            if (contentSubType.length != 2
+                    || !MULTIPART_CONTENT_TYPE.equalsIgnoreCase(contentSubType[0])) {
+                throw new IllegalStateException("Not multipart request");
             }
 
-            final String boundaryString = contentTypeParams[1].trim();
-            final String[] boundaryNameValue = boundaryString.split("=");
+            String boundary = null;
+            final Map<String, String> contentTypeProperties =
+                    new HashMap<String, String>();
+            
+            for (int i = 1; i < contentTypeParams.length; i++) {
+                final String param = contentTypeParams[i].trim();
+                final String[] paramValue = param.split("=", 2);
+                if (paramValue.length == 2) {
+                    String key = paramValue[0].trim();
+                    String value = paramValue[1].trim();
+                    if (value.charAt(0) == '"') {
+                        value = value.substring(1,
+                                value.length()
+                                - 1);
+                    }
+                    contentTypeProperties.put(key, value);
+                    if (BOUNDARY_ATTR.equals(key)) {
+                        boundary = value;
+                    }
+                }
+            }
 
-            if (boundaryNameValue.length != 2 ||
-                    !BOUNDARY_ATTR.equals(boundaryNameValue[0].trim())) {
+            if (boundary == null) {
                 throw new IllegalStateException("Boundary not found");
-            }
-
-            String boundaryValue = boundaryNameValue[1].trim();
-            if (boundaryValue.charAt(0) == '"') {
-                boundaryValue = boundaryValue.substring(1, boundaryValue.length() - 1);
             }
 
             final NIOInputStream nioInputStream = multipartMixedEntry.getNIOInputStream();
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(multipartMixedEntry,
-                    partHandler, completionHandler, boundaryValue));
+                    partHandler, completionHandler,
+                    new MultipartContext(boundary, contentTypeProperties)));
         } catch (Exception e) {
             if (completionHandler != null) {
                 completionHandler.failed(e);

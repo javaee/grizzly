@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,8 +45,13 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -133,7 +138,7 @@ public class MultipartBasicTest {
 
             httpServer.start();
 
-            final HttpPacket multipartPacket = createMultipartPacket();
+            final HttpPacket multipartPacket = createMultipartFormDataPacket();
             final Future<Connection> connectFuture = httpClient.connect("localhost", PORT);
             connectFuture.get(10, TimeUnit.SECONDS);
 
@@ -152,6 +157,77 @@ public class MultipartBasicTest {
         }
     }
 
+    @Test
+    public void multipartRelatedScannerTest() throws Exception {
+        final HttpServer httpServer = createServer("0.0.0.0", PORT);
+
+        final HttpClient httpClient = new HttpClient(
+                httpServer.getListener("Grizzly").getTransport());
+        try {
+            final MultipartCheckInfo checkInfo = getMultipartRelatedPacketCheckInfo();
+            final AtomicInteger partNum = new AtomicInteger();
+            
+            httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+                @Override
+                public void service(final Request request, final Response response)
+                        throws Exception {
+                    response.suspend();
+                    
+                    MultipartScanner.scan(request, new MultipartEntryHandler() {
+                        @Override
+                        public void handle(MultipartEntry part) throws Exception {
+                            checkInfo.checkContext(part.getMultipartContext());
+                            checkInfo.checkPart(partNum.getAndIncrement(), part);
+                            part.skip();
+                        }
+                    }, new EmptyCompletionHandler<Request>() {
+
+                        @Override
+                        public void completed(Request result) {
+                            try {
+                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                            } catch (IOException e) {
+                            } finally {
+                                response.resume();
+                            }
+                        }
+
+                        @Override
+                        public void failed(Throwable throwable) {
+                            try {
+                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
+                            } catch (IOException e) {
+                            } finally {
+                                response.resume();
+                            }
+                        }
+                        
+                    });
+                }
+            }, "/");
+
+            httpServer.start();
+
+            final HttpPacket multipartPacket = createMultipartRelatedPacket();
+            final Future<Connection> connectFuture = httpClient.connect("localhost", PORT);
+            connectFuture.get(10, TimeUnit.SECONDS);
+
+            final Future<HttpPacket> responsePacketFuture =
+                    httpClient.get(multipartPacket);
+            final HttpPacket responsePacket = 
+                    responsePacketFuture.get(10000, TimeUnit.SECONDS);
+
+            assertTrue(HttpContent.isContent(responsePacket));
+            
+            final HttpContent responseContent = (HttpContent) responsePacket;
+            assertEquals("TRUE", responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET));
+        } finally {
+            httpServer.stop();
+//            httpClient.close();
+        }
+    }
+    
     @Test
     public void multipartScannerRefuseTest() throws Exception {
         final HttpServer httpServer = createServer("0.0.0.0", PORT);
@@ -219,7 +295,7 @@ public class MultipartBasicTest {
         }
     }
     
-    private HttpPacket createMultipartPacket() {
+    private HttpPacket createMultipartFormDataPacket() {
         String boundary = "---------------------------===103832778631715===";
         MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
         mpb.preamble("preamble").epilogue("epilogue");
@@ -245,6 +321,91 @@ public class MultipartBasicTest {
                 .protocol(Protocol.HTTP_1_1)
                 .header("host", "localhost")
                 .contentType("multipart/form-data; boundary=" + boundary)
+                .contentLength(bodyBuffer.remaining())
+                .build();
+
+        final HttpContent request = HttpContent.builder(requestHeader)
+                .content(bodyBuffer)
+                .build();
+
+        return request;
+    }
+
+    private MultipartCheckInfo getMultipartRelatedPacketCheckInfo() {
+        String boundary = "example-2";
+        MultipartCheckInfo mpCheckInfo = new MultipartCheckInfo(boundary,
+                "Multipart/Related; boundary=" + boundary + ";" +
+                        "start=\"<950118.AEBH@XIson.com>\";" +
+                        "type=\"Text/x-Okie\"");
+        mpCheckInfo.addContentTypeAttribute("boundary", boundary);
+        mpCheckInfo.addContentTypeAttribute("start", "<950118.AEBH@XIson.com>");
+        mpCheckInfo.addContentTypeAttribute("type", "Text/x-Okie");
+        
+        PartCheckInfo p1 = new PartCheckInfo("Text/x-Okie; charset=iso-8859-1;" +
+                            "declaration=\"<950118.AEB0@XIson.com>\"");
+        p1.addHeader("Content-ID", "<950118.AEBH@XIson.com>");
+        p1.addHeader("Content-Description", "Document");
+        
+        PartCheckInfo p2 = new PartCheckInfo("image/jpeg");
+        p2.addHeader("Content-ID", "<950118.AFDH@XIson.com>");
+        p2.addHeader("Content-Transfer-Encoding", "BASE64");
+        p2.addHeader("Content-Description", "Picture A");
+        
+        PartCheckInfo p3 = new PartCheckInfo("image/jpeg");
+        p3.addHeader("Content-ID", "<950118.AECB@XIson.com>");
+        p3.addHeader("Content-Transfer-Encoding", "BASE64");
+        p3.addHeader("Content-Description", "Picture B");
+        
+        mpCheckInfo.addPart(p1);
+        mpCheckInfo.addPart(p2);
+        mpCheckInfo.addPart(p3);
+
+        return mpCheckInfo;
+    }
+    
+    private HttpPacket createMultipartRelatedPacket() {
+        String boundary = "example-2";
+        MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
+        mpb.preamble("preamble").epilogue("epilogue");
+
+        mpb.addMultipartEntry(MultipartEntryPacket.builder()
+                .contentType("Text/x-Okie; charset=iso-8859-1;" +
+                            "declaration=\"<950118.AEB0@XIson.com>\"")
+                .header("Content-ID", "<950118.AEBH@XIson.com>")
+                .header("Content-Description", "Document")
+                .content("{doc}"
+                        + "This picture was taken by an automatic camera mounted ..."
+                        + "{image file=cid:950118.AECB@XIson.com}"
+                        + "{para}"
+                        + "Now this is an enlargement of the area ..."
+                        + "{image file=cid:950118:AFDH@XIson.com}"
+                        + "{/doc}")
+                .build());
+        mpb.addMultipartEntry(MultipartEntryPacket.builder()
+                .contentType("image/jpeg")
+                .header("Content-ID", "<950118.AFDH@XIson.com>")
+                .header("Content-Transfer-Encoding", "BASE64")
+                .header("Content-Description", "Picture A")
+                .content("[encoded jpeg image]")
+                .build());
+        mpb.addMultipartEntry(MultipartEntryPacket.builder()
+                .contentType("image/jpeg")
+                .header("Content-ID", "<950118.AECB@XIson.com>")
+                .header("Content-Transfer-Encoding", "BASE64")
+                .header("Content-Description", "Picture B")
+                .content("[encoded jpeg image]")
+                .build());
+
+        final Buffer bodyBuffer = mpb.build();
+
+        final HttpRequestPacket requestHeader = HttpRequestPacket.builder()
+                .method(Method.POST)
+                .uri("/multipart")
+                .protocol(Protocol.HTTP_1_1)
+                .header("host", "localhost")
+                .contentType("Multipart/Related; boundary=" + boundary + ";" +
+                        "start=\"<950118.AEBH@XIson.com>\";" +
+                        "type=\"Text/x-Okie\"")
                 .contentLength(bodyBuffer.remaining())
                 .build();
 
@@ -365,4 +526,80 @@ public class MultipartBasicTest {
 
         return httpServer;
     }
+    
+    class MultipartCheckInfo {
+        final String boundary;
+        final String contentType;
+        final Map<String, String> contentTypeAttributes = new HashMap<String, String>();
+        
+        final List<PartCheckInfo> parts = new ArrayList<PartCheckInfo>();
+
+        public MultipartCheckInfo(String boundary, String contentType) {
+            this.boundary = boundary;
+            this.contentType = contentType;
+        }
+        
+        public void addContentTypeAttribute(String name, String value) {
+            contentTypeAttributes.put(name, value);
+        }
+        
+        public void addPart(PartCheckInfo part) {
+            parts.add(part);
+        }
+        
+        public boolean checkContext(MultipartContext context) {
+            assertEquals(boundary, context.getBoundary());
+            assertEquals(context.getContentTypeAttributes().get("boundary"),
+                    context.getBoundary());
+
+            assertEquals(contentTypeAttributes.size(),
+                    context.getContentTypeAttributes().size());
+            
+            for (Map.Entry<String, String> contentTypeAttrEntry : context.getContentTypeAttributes().entrySet()) {
+                assertTrue(contentTypeAttrEntry.getKey(),
+                        contentTypeAttributes.containsKey(contentTypeAttrEntry.getKey()));
+                assertEquals(contentTypeAttrEntry.getKey() + " values don't match",
+                        contentTypeAttrEntry.getValue(),
+                        contentTypeAttributes.get(contentTypeAttrEntry.getKey()));
+            }
+            return true;
+        }
+
+        private void checkPart(int partNum, MultipartEntry part) {
+            final PartCheckInfo patternPart = parts.get(partNum);
+            patternPart.check(part);
+        }
+    }
+    
+    class PartCheckInfo {
+        final String contentType;
+        final Map<String, String> headers = new HashMap<String, String>();
+
+        public PartCheckInfo(String contentType) {
+            this.contentType = contentType;
+            addHeader("Content-Type", contentType);
+        }
+        
+        public void addHeader(String name, String value) {
+            headers.put(name.toLowerCase(), value);
+        }
+
+        private boolean check(MultipartEntry part) {
+            assertEquals(contentType, part.getContentType());
+
+            assertEquals(headers.size(),
+                    part.getHeaderNames().size());
+            
+            for (String name : part.getHeaderNames()) {
+                assertTrue(name,
+                        headers.containsKey(name));
+                assertEquals(name + " values don't match",
+                        headers.get(name),
+                        part.getHeader(name));
+            }
+            
+            return true;
+        }
+    }
+    
 }
