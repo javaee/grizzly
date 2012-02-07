@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
@@ -54,8 +55,105 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
  * @author Alexey Stashok
  */
 public abstract class WebSocketApplication extends WebSocketAdapter {
-    private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
+    /*
+     * WebSockets registered with this application.
+     */
+    private final ConcurrentHashMap<WebSocket, Boolean> sockets =
+            new ConcurrentHashMap<WebSocket, Boolean>();
+    
+    
+    // ---------------------------------------------------------- Public Methods
+
+    /**
+     * Factory method to create new {@link WebSocket} instances.  Developers may
+     * wish to override this to return customized {@link WebSocket} implementations.
+     * 
+     * @param handler the {@link ProtocolHandler} to use with the newly created
+     *  {@link WebSocket}.
+     *                
+     * @param listeners the {@link WebSocketListener}s to associate with the new
+     *   {@link WebSocket}.
+     *                  
+     * @return a new {@link WebSocket} instance.
+     */
+    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
+        return new DefaultWebSocket(handler, listeners);
+    }
+
+    /**
+     * When a {@link WebSocket#onClose(DataFrame)} is invoked, the {@link WebSocket}
+     * will be unassociated with this application and closed.
+     * 
+     * @param socket the {@link WebSocket} being closed.
+     * @param frame the closing frame.
+     */
+    @Override
+    public void onClose(WebSocket socket, DataFrame frame) {
+        remove(socket);
+        socket.close();
+    }
+
+    /**
+     * When a new {@link WebSocket} connection is made to this application, the
+     * {@link WebSocket} will be associated with this application.  
+     * 
+     * @param socket the new {@link WebSocket} connection.
+     */
+    @Override
+    public void onConnect(WebSocket socket) {
+        add(socket);
+    }
+
+    /**
+     * Checks protocol specific information can and should be upgraded.
+     * 
+     * The default implementation will check for the precence of the 
+     * <code>Upgrade</code> header with a value of <code>WebSocket</code>.
+     * If present, {@link #isApplicationRequest(org.glassfish.grizzly.http.HttpRequestPacket)}
+     * will be invoked to determine if the request is a valid websocket request.
+     *
+     * @return <code>true</code> if the request should be upgraded to a 
+     *  WebSocket connection
+     */
+    public final boolean upgrade(HttpRequestPacket request) {
+        return "WebSocket".equalsIgnoreCase(request.getHeader(Header.Upgrade)) && isApplicationRequest(request);
+    }
+
+    /**
+     * Checks application specific criteria to determine if this application can 
+     * process the request as a WebSocket connection.
+     *
+     * @param request the incoming HTTP request.
+     *                
+     * @return <code>true</code> if this application can service this request
+     */
+    public abstract boolean isApplicationRequest(HttpRequestPacket request);
+
+    /**
+     * Return the websocket extensions supported by this <code>WebSocketApplication</code>.
+     * 
+     * @return the websocket extensions supported by this
+     *  <code>WebSocketApplication</code>.
+     */
+    public List<String> getSupportedExtensions() {
+        return Collections.emptyList();
+    }
+
+    /**
+     *
+     *
+     * @param subProtocol
+     * @return
+     */
+    public List<String> getSupportedProtocols(List<String> subProtocol) {
+        return Collections.emptyList();
+    }
+    
+    
+    // ------------------------------------------------------- Protected Methods
+
+    
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
      * The returned set is unmodifiable, the possible modifications may cause exceptions.
@@ -66,64 +164,39 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         return sockets.keySet();
     }
 
+    /**
+     * Associates the specified {@link WebSocket} with this application.
+     * 
+     * @param socket the {@link WebSocket} to associate with this application.
+     *
+     * @return <code>true</code> if the socket was successfully associated,
+     *  otherwise returns <code>false</code>.
+     */
     protected boolean add(WebSocket socket) {
         return sockets.put(socket, Boolean.TRUE) == null;
     }
 
+    /**
+     * Unassociates the specified {@link WebSocket} with this application.
+     * 
+     * @param socket the {@link WebSocket} to unassociate with this application.
+     *               
+     * @return <code>true</code> if the socket was successfully unassociated,
+     *  otherwise returns <code>false</code>.
+     */
     public boolean remove(WebSocket socket) {
         return sockets.remove(socket) != null;
     }
 
-    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
-        return new DefaultWebSocket(handler, listeners);
-    }
 
     /**
-     * Method is called, when initial {@link WebSocket} handshake process was completed,
-     * but <tt>WebSocketApplication</tt> may perform additional validation such as subprotocol or extension negotiation.
+     * This method will be called, when initial {@link WebSocket} handshake 
+     * process has been completed, but allows the application to perform further
+     * negotiation/validation.
      *
      * @throws HandshakeException error occurred during the handshake.
      */
     protected void handshake(HandShake handshake) throws HandshakeException {
-    }
-
-    @Override
-    public void onClose(WebSocket socket, DataFrame frame) {
-        remove(socket);
-        socket.close();
-    }
-
-    @Override
-    public void onConnect(WebSocket socket) {
-        add(socket);
-    }
-
-    /**
-     * Checks protocol specific information and queries #isApplicationRequest(Request) to see if the Request should
-     * be upgraded.
-     *
-     * @return true if the request should be upgraded to a WebSocket connection
-     */
-    public final boolean upgrade(HttpRequestPacket request) {
-        return "WebSocket".equalsIgnoreCase(request.getHeader("Upgrade")) && isApplicationRequest(request);
-    }
-
-    /**
-     * Checks application specific criteria to determine if this application can process the Request as a WebSocket
-     * connection.
-     *
-     * @param request
-     * @return true if this application can service this Request
-     */
-    public abstract boolean isApplicationRequest(HttpRequestPacket request);
-
-
-    public List<String> getSupportedExtensions() {
-        return Collections.emptyList();
-    }
-
-    public List<String> getSupportedProtocols(List<String> subProtocol) {
-        return Collections.emptyList();
-    }
+    } 
 
 }

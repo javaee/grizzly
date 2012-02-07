@@ -192,14 +192,30 @@ public class WebSocketEngine {
         register(app);
     }
 
+    /**
+     * Registers the specified {@link WebSocketApplication} with the 
+     * <code>WebSocketEngine</code>.
+     * 
+     * @param app the {@link WebSocketApplication} to register.
+     */
     public void register(WebSocketApplication app) {
         applications.add(app);
     }
 
+    /**
+     * Un-registers the specified {@link WebSocketApplication} with the
+     * <code>WebSocketEngine</code>.
+     *
+     * @param app the {@link WebSocketApplication} to un-register.
+     */
     public void unregister(WebSocketApplication app) {
         applications.remove(app);
     }
 
+    /**
+     * Un-registers all {@link WebSocketApplication} instances with the 
+     * {@link WebSocketEngine}.
+     */
     public void unregisterAll() {
         applications.clear();
     }

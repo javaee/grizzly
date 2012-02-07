@@ -82,26 +82,32 @@ public interface WebSocket {
     int ABNORMAL_CLOSE = 1006;
 
     /**
-     * Send a text frame
+     * <p>
+     * Send a text frame to the remote end-point.
+     * <p>
      *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
      */
     GrizzlyFuture<DataFrame> send(String data);
 
     /**
-     * Send a text frame
+     * <p>
+     * Send a binary frame to the remote end-point.
+     * </p>
      *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
      */
     GrizzlyFuture<DataFrame> send(byte[] data);
 
     /**
+     * <p>
      * Sends a <code>ping</code> frame with the specified payload (if any).
+     * </p>
      *
      * @param data optional payload.  Note that payload length is restricted
-     *             to 125 bytes or less.
+     *  to 125 bytes or less.
      *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
      *
      * @since 2.1.9
      */
@@ -121,42 +127,186 @@ public interface WebSocket {
      * </p>
      *
      * @param data optional payload.  Note that payload length is restricted
-     *             to 125 bytes or less.
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     *  to 125 bytes or less.
+     *
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
      *
      * @since 2.1.9
      */
     GrizzlyFuture<DataFrame> sendPong(byte[] data);
-    
+
+    /**
+     * <p>
+     * Sends a fragment of a complete message.
+     * </p>
+     * 
+     * @param last boolean indicating if this message fragment is the last.
+     * @param fragment the textual fragment to send.
+     *                 
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
+     */
     GrizzlyFuture<DataFrame> stream(boolean last, String fragment);
 
+    /**
+     * <p>
+     * Sends a fragment of a complete message.
+     * </p>
+     *
+     * @param last boolean indicating if this message fragment is the last.
+     * @param fragment the binary fragment to send.
+     * @param off the offset within the fragment to send.
+     * @param len the number of bytes of the fragment to send.
+     *            
+     * @return {@link GrizzlyFuture} which could be used to control/check the sending completion state.
+     */
     GrizzlyFuture<DataFrame> stream(boolean last, byte[] fragment, int off, int len);
-    
+
+    /**
+     * <p>
+     * Closes this {@link WebSocket}.
+     * </p>
+     */
     void close();
 
+    /**
+     * <p>
+     * Closes this {@link WebSocket} using the specified status code.
+     * </p>
+     *
+     * @param code the closing status code.
+     */
     void close(int code);
 
+    /**
+     * <p>
+     * Closes this {@link WebSocket} using the specified status code and
+     * reason.
+     * </p>
+     *
+     * @param code the closing status code.
+     * @param reason the reason, if any.
+     */
     void close(int code, String reason);
 
+    /**
+     * <p>
+     * Convenience method to determine if this {@link WebSocket} is connected.
+     * </p>
+     * 
+     * @return <code>true</code> if the {@link WebSocket} is connected, otherwise
+     *  <code>false</code>
+     */
     boolean isConnected();
 
+    /**
+     * <p>
+     * This callback will be invoked when the opening handshake between both
+     * endpoints has been completed.
+     * </p>
+     */
     void onConnect();
 
+    /**
+     * <p>
+     * This callback will be invoked when a text message has been received.
+     * </p>
+     *
+     * @param text the text received from the remote end-point.
+     */
     void onMessage(String text);
 
+    /**
+     * <p>
+     * This callback will be invoked when a binary message has been received.
+     * </p>
+     *
+     * @param data the binary data received from the remote end-point.
+     */
     void onMessage(byte[] data);
 
+    /**
+     * <p>
+     * This callback will be invoked when a fragmented textual message has
+     * been received.
+     * </p>
+     *
+     * @param last flag indicating whether or not the payload received is the
+     *  final fragment of a message.
+     * @param payload the text received from the remote end-point.
+     */
     void onFragment(boolean last, String payload);
 
+    /**
+     * <p>
+     * This callback will be invoked when a fragmented binary message has
+     * been received.
+     * </p>
+     *
+     * @param last flag indicating whether or not the payload received is the
+     *  final fragment of a message.
+     * @param payload the binary data received from the remote end-point.
+     */
     void onFragment(boolean last, byte[] payload);
 
+    /**
+     * <p>
+     * This callback will be invoked when the remote end-point sent a closing 
+     * frame.
+     * </p>
+     * 
+     * @param frame the close frame from the remote end-point.
+     *              
+     * @see DataFrame             
+     */
     void onClose(DataFrame frame);
 
+    /**
+     * <p>
+     * This callback will be invoked when the remote end-point has sent a ping
+     * frame.
+     * </p>
+     *
+     * @param frame the ping frame from the remote end-point.
+     * 
+     * @see DataFrame             
+     */
     void onPing(DataFrame frame);
 
+    /**
+     * <p>
+     * This callback will be invoked when the remote end-point has sent a pong
+     * frame.
+     * </p>
+     *
+     * @param frame the pong frame from the remote end-point.
+     * 
+     * @see DataFrame
+     */
     void onPong(DataFrame frame);
 
+    /**
+     * Adds a {@link WebSocketListener} to be notified of events of interest.
+     * 
+     * @param listener the {@link WebSocketListener} to add.
+     *                 
+     * @return <code>true</code> if the listener was added, otherwise 
+     *  <code>false</code>
+     *  
+     * @see WebSocketListener
+     */
     boolean add(WebSocketListener listener);
 
+    /**
+     * Removes the specified {@link WebSocketListener} as a target of event
+     * notification.
+     *
+     * @param listener the {@link WebSocketListener} to remote.
+     *
+     * @return <code>true</code> if the listener was removed, otherwise
+     *  <code>false</code>
+     *
+     * @see WebSocketListener
+     */
     boolean remove(WebSocketListener listener);
+
 }
