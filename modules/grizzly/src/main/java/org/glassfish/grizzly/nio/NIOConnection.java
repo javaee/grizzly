@@ -676,6 +676,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             }
         }
     }
+
+    final void onSelectionKeyUpdated(final SelectionKey newSelectionKey) {
+        this.selectionKey = newSelectionKey;
+    }
     
     /**
      * Map, which contains {@link Processor}s and their states related to this {@link Connection}.

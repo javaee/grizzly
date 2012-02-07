@@ -108,14 +108,19 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
         final Selector selector = selectorRunner.getSelector();
         final boolean hasSelectedKeys;
-        if (selectorRunner.getPostponedTasks().isEmpty()) {
+        final boolean hasPostponedTasks =
+                selectorRunner.getPostponedTasks().isEmpty();
+        
+        if (hasPostponedTasks) {
             hasSelectedKeys = selector.select(selectTimeout) > 0;
         } else {
             hasSelectedKeys = selector.selectNow() > 0;
         }
 
         if (IS_WORKAROUND_SELECTOR_SPIN) {
-            selectorRunner.checkSelectorSpin(hasSelectedKeys, SPIN_RATE_THRESHOLD);
+            selectorRunner.checkSelectorSpin(
+                    hasSelectedKeys || hasPostponedTasks,
+                    SPIN_RATE_THRESHOLD);
         }
 
         return hasSelectedKeys ? selector.selectedKeys() :

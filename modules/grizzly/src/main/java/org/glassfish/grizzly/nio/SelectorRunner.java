@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -467,10 +467,18 @@ public final class SelectorRunner implements Runnable {
         final Selector newSelector = SelectorFactory.instance().create();
 
         final Set<SelectionKey> keys = oldSelector.keys();
+        final SelectionKeyHandler selectionKeyHandler =
+                transport.getSelectionKeyHandler();
+        
         for (final SelectionKey selectionKey : keys) {
             try {
-                selectionKey.channel().register(newSelector,
+                final NIOConnection nioConnection =
+                        selectionKeyHandler.getConnectionForKey(selectionKey);
+                final SelectionKey newSelectionKey =
+                        selectionKey.channel().register(newSelector,
                         selectionKey.interestOps(), selectionKey.attachment());
+                
+                nioConnection.onSelectionKeyUpdated(newSelectionKey);
             } catch (Exception e) {
                 logger.log(Level.FINE, "Error switching channel to a new selector", e);
             }
