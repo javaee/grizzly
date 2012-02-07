@@ -754,7 +754,7 @@ public class InputBuffer {
         if (closed || isFinished()) {
             try {
                 handler.onAllDataRead();
-            } catch (Exception ioe) {
+            } catch (Throwable ioe) {
                 handler.onError(ioe);
             }
 
@@ -765,7 +765,7 @@ public class InputBuffer {
         if (shouldNotifyNow(size, available)) {
             try {
                 handler.onDataAvailable();
-            } catch (Exception ioe) {
+            } catch (Throwable ioe) {
                 handler.onError(ioe);
             }
             return;
