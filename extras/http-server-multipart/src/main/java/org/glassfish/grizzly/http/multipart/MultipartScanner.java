@@ -87,7 +87,7 @@ public class MultipartScanner {
             }
 
             final String boundaryString = contentTypeParams[1].trim();
-            final String[] boundaryNameValue = boundaryString.split("=");
+            final String[] boundaryNameValue = boundaryString.split("=", 2);
 
             if (boundaryNameValue.length != 2 ||
                     !BOUNDARY_ATTR.equals(boundaryNameValue[0].trim())) {

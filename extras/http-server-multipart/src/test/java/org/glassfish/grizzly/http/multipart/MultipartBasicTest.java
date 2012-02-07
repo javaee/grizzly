@@ -82,7 +82,7 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 @SuppressWarnings ("unchecked")
-public class MultipartBasicTests {
+public class MultipartBasicTest {
 
     private final int PORT = 18203;
 
@@ -120,7 +120,7 @@ public class MultipartBasicTests {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getNIOOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -186,7 +186,7 @@ public class MultipartBasicTests {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getNIOOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -209,9 +209,10 @@ public class MultipartBasicTests {
                     responsePacketFuture.get(10, TimeUnit.SECONDS);
 
             assertTrue(HttpContent.isContent(responsePacket));
-            
+
             final HttpContent responseContent = (HttpContent) responsePacket;
-            assertEquals("FALSE", responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET));
+            assertTrue(responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET),
+                    responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET).startsWith("FALSE"));
         } finally {
             httpServer.stop();
 //            httpClient.close();
@@ -219,7 +220,7 @@ public class MultipartBasicTests {
     }
     
     private HttpPacket createMultipartPacket() {
-        String boundary = "---------------------------103832778631715";
+        String boundary = "---------------------------===103832778631715===";
         MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
         mpb.preamble("preamble").epilogue("epilogue");
 
