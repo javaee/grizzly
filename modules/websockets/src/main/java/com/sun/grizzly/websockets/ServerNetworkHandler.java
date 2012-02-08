@@ -61,8 +61,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerNetworkHandler extends BaseNetworkHandler {
+    private static final Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Request request;
     private final Response response;
     private final InternalInputBuffer inputBuffer;
@@ -218,12 +221,15 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 MessageBytes decodedURI = req.decodedURI();
                 decodedURI.duplicate(req.requestURI());
                 HttpRequestURIDecoder.decode(decodedURI, urlDecoder, null, null);
-                mapper.map(req.remoteHost(), decodedURI, (MappingData) req.getNote(12));
-                MappingData data = (MappingData) req.getNote(12);
+                MappingData data = new MappingData();
+                mapper.map(req.remoteHost(), decodedURI, data);
                 pathInfo = data.pathInfo.getString();
-                servletPath = data.requestPath.getString();
+                servletPath = data.wrapperPath.getString();
                 contextPath = data.contextPath.getString();
             } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Unable to map request", e);
+                }
                 pathInfo = null;
                 servletPath = null;
                 contextPath = null;
