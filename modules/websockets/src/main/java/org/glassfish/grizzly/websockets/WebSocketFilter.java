@@ -307,7 +307,9 @@ public class WebSocketFilter extends BaseFilter {
         // get HTTP request headers
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         try {
-            WebSocketEngine.getEngine().upgrade(ctx, requestContent);
+            if (!WebSocketEngine.getEngine().upgrade(ctx, requestContent)) {
+                return ctx.getInvokeAction(); // not a WS request, pass to the next filter.
+            }
             setIdleTimeout(ctx);
         } catch (HandshakeException e) {
             ctx.write(composeHandshakeError(request, e));
