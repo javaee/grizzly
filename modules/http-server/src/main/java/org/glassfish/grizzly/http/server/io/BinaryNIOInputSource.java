@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,11 +52,16 @@ public interface BinaryNIOInputSource extends NIOInputSource {
 
     /**
      * <p>
-     * Returns the underlying {@link org.glassfish.grizzly.Buffer} that backs this
-     *  <code>NIOInputSource</code>.
+     * Returns the  the duplicate of the underlying
+     * {@link org.glassfish.grizzly.Buffer} that backs this
+     * <code>NIOInputSource</code>. The content of the returned buffer will be
+     * that of the underlying buffer. Changes to returned buffer's content will
+     * be visible in the underlying buffer, and vice versa; the two buffers'
+     * position, limit, and mark values will be independent.
      * </p>
      *
-     * @return the underlying {@link org.glassfish.grizzly.Buffer} that backs this
+     * @return the duplicate of the underlying
+     * {@link org.glassfish.grizzly.Buffer} that backs this
      *  <code>NIOInputSource</code>.
      */
     Buffer getBuffer();
@@ -66,11 +71,31 @@ public interface BinaryNIOInputSource extends NIOInputSource {
      * Returns the underlying {@link org.glassfish.grizzly.Buffer} that backs this
      *  <code>NIOInputSource</code>. Unlike {@link #getBuffer()}, this method
      *  detaches the returned {@link Buffer}, so user becomes responsible for
-     *  handling the {@link Buffer} life-cycle.
+     *  handling the {@link Buffer}'s life-cycle.
      * </p>
      *
      * @return the underlying {@link org.glassfish.grizzly.Buffer} that backs this
      *  <code>NIOInputSource</code>.
      */
-    Buffer readBuffer();    
+    Buffer readBuffer();
+    
+    /**
+     * <p>
+     * Returns the {@link org.glassfish.grizzly.Buffer} of a given size,
+     * which represents a chunk of the underlying
+     * {@link org.glassfish.grizzly.Buffer} that backs this
+     *  <code>NIOInputSource</code>. Unlike {@link #getBuffer()}, this method
+     *  detaches the returned {@link Buffer}, so user becomes responsible for
+     *  handling the {@link Buffer}'s life-cycle.
+     * </p>
+     * 
+     * @param size the requested size of the {@link Buffer} to be returned.
+     * 
+     * @return the {@link Buffer} of a given size, which represents a chunk
+     * of the underlying {@link Buffer} which contains incoming request
+     *  data. This method detaches the returned
+     * {@link Buffer}, so user code becomes responsible for handling its life-cycle.
+     */
+    Buffer readBuffer(int size);
+    
 }

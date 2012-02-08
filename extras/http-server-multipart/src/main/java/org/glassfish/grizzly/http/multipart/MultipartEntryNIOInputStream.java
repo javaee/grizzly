@@ -272,7 +272,10 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      */
     @Override
     public Buffer getBuffer() {
-        return parentNIOInputStream.getBuffer();
+        final int remaining = readyData();
+        final Buffer underlyingBuffer = parentNIOInputStream.getBuffer();
+        underlyingBuffer.limit(underlyingBuffer.position() + remaining);
+        return underlyingBuffer;
     }
 
     /**
@@ -280,9 +283,22 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      */
     @Override
     public Buffer readBuffer() {
-        return parentNIOInputStream.readBuffer();
+        return readBuffer(readyData());
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer readBuffer(final int size) {
+        if (size > readyData()) {
+            throw new IllegalStateException("Can not read more bytes than available");
+        }
+        multipartEntry.addAvailableBytes(-size);
+        return parentNIOInputStream.readBuffer(size);
+    }
+
+    
     protected void recycle() {
         parentNIOInputStream = null;
         handler = null;

@@ -391,15 +391,19 @@ public class InputBuffer {
 
     }
 
-
     /**
-     * @return the underlying {@link Buffer} used to buffer incoming request
-     *  data.
+     * Returns the duplicate of the underlying {@link Buffer} used to buffer
+     * incoming request data. The content of the returned buffer will be that
+     * of the underlying buffer. Changes to returned buffer's content will be
+     * visible in the underlying buffer, and vice versa; the two buffers'
+     * position, limit, and mark values will be independent.
+     * 
+     * @return the duplicate of the underlying
+     * {@link Buffer} used to buffer incoming request data.
      */
     public Buffer getBuffer() {
-        return inputContentBuffer;
+        return inputContentBuffer.duplicate();
     }
-
 
     /**
      * @return the underlying {@link Buffer} used to buffer incoming request
@@ -408,11 +412,36 @@ public class InputBuffer {
      * the {@link Buffer}.
      */
     public Buffer readBuffer() {
-        final Buffer buffer = inputContentBuffer;
-        inputContentBuffer = Buffers.EMPTY_BUFFER;
-        return buffer;
+        return readBuffer(inputContentBuffer.remaining());
     }
     
+    /**
+     * @param size the requested size of the {@link Buffer} to be returned.
+     * 
+     * @return the {@link Buffer} of a given size, which represents a chunk
+     * of the underlying {@link Buffer} which contains incoming request
+     *  data. This method detaches the returned
+     * {@link Buffer}, so user code becomes responsible for handling its life-cycle.
+     */
+    public Buffer readBuffer(final int size) {
+        final int remaining = inputContentBuffer.remaining();
+        if (size > remaining) {
+            throw new IllegalStateException("Can not read more bytes than available");
+        }
+        
+        final Buffer buffer;
+        if (size == remaining) {
+            buffer = inputContentBuffer;
+            inputContentBuffer = Buffers.EMPTY_BUFFER;
+        } else {
+            final Buffer tmpBuffer = inputContentBuffer.split(
+                    inputContentBuffer.position() + size);
+            buffer = inputContentBuffer;
+            inputContentBuffer = tmpBuffer;
+        }
+        
+        return buffer;
+    }
     
     /**
      * @return the {@link ReadHandler} current in use, if any.

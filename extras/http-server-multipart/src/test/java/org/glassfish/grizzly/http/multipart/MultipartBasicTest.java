@@ -216,7 +216,7 @@ public class MultipartBasicTest {
             final Future<HttpPacket> responsePacketFuture =
                     httpClient.get(multipartPacket);
             final HttpPacket responsePacket = 
-                    responsePacketFuture.get(10000, TimeUnit.SECONDS);
+                    responsePacketFuture.get(10, TimeUnit.SECONDS);
 
             assertTrue(HttpContent.isContent(responsePacket));
             

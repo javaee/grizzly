@@ -72,6 +72,8 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
@@ -79,6 +81,8 @@ import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * {@link MultipartEntryNIOInputStream} tests.
@@ -86,9 +90,24 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 @SuppressWarnings ("unchecked")
+@RunWith(Parameterized.class)
 public class MutlipartEntryInputStreamTest {
     private final int PORT = 18203;
 
+    final boolean isBufferEchoMode;
+    
+    public MutlipartEntryInputStreamTest(final boolean isBufferEchoMode) {
+        this.isBufferEchoMode = isBufferEchoMode;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getBufferEchoMode() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                });
+    }
+    
     @Test
     public void testSingleMessageEcho() throws Exception {
         MultipartEntryPacket entry1 = MultipartEntryPacket.builder()
@@ -206,7 +225,7 @@ public class MutlipartEntryInputStreamTest {
                 final Future<HttpPacket> responsePacketFuture =
                         httpClient.get(request);
                 final HttpPacket responsePacket =
-                        responsePacketFuture.get(1000, TimeUnit.SECONDS);
+                        responsePacketFuture.get(10, TimeUnit.SECONDS);
 
                 assertTrue(HttpContent.isContent(responsePacket));
 
@@ -414,11 +433,16 @@ public class MutlipartEntryInputStreamTest {
         }
 
         private void echo() throws IOException {
-            final int available = inputStream.readyData();
-            if (available > 0) {
-                byte[] buf = new byte[inputStream.readyData()];
-                inputStream.read(buf);
-                outputStream.write(buf);
+            if (!isBufferEchoMode) {
+                final int available = inputStream.readyData();
+                if (available > 0) {
+                    byte[] buf = new byte[inputStream.readyData()];
+                    inputStream.read(buf);
+                    outputStream.write(buf);
+                }
+            } else {
+                final Buffer buffer = inputStream.readBuffer();
+                outputStream.write(buffer);
             }
         }
     }
