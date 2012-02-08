@@ -77,6 +77,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
     private final Ssl ssl;
     protected final Holder<SSLImplementation> sslImplementation;
 
+    @SuppressWarnings("unchecked")
     public SSLConfigurator(final Habitat habitat, final Ssl ssl) {
         this.ssl = ssl;
         Holder<SSLImplementation> sslImplementationLocal =

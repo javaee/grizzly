@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -404,32 +404,69 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     @SuppressWarnings({"unchecked"})
-    private static void configureElement(Habitat habitat,
+    private static boolean configureElement(Habitat habitat,
             NetworkListener networkListener, ConfigBeanProxy configuration,
             Object instance) {
         
         if (instance instanceof ConfigAwareElement) {
             ((ConfigAwareElement) instance).configure(habitat, networkListener,
                     configuration);
+            
+            return true;
         }
+        
+        return false;
     }
 
     protected void configureThreadPool(final Habitat habitat,
             final NetworkListener networkListener,
             final ThreadPool threadPool) {
+        
+        final String classname = threadPool.getClassname();
+        if (classname != null) {
+            // Use custom thread pool
+            try {
+                final ExecutorService customThreadPool =
+                        Utils.newInstance(habitat,
+                        ExecutorService.class, classname, classname);
+                
+                if (customThreadPool != null) {
+                    if (!configureElement(habitat, networkListener,
+                            threadPool, customThreadPool)) {
+                        logger.log(Level.INFO,
+                                "The ThreadPool configuration bean can not be "
+                                + "passed to the custom thread-pool: {0}" +
+                                " instance, because it's not {1}.",
+                                new Object[] {
+                                classname, ConfigAwareElement.class.getName()});
+                    }
+                    
+                    transport.setWorkerThreadPool(customThreadPool);
+                    return;
+                }
+                
+                logger.log(Level.WARNING,
+                        "Can not initalize custom thread pool: {0}", classname);
+                
+            } catch (Throwable t) {
+                logger.log(Level.WARNING,
+                        "Can not initalize custom thread pool: " + classname, t);
+            }
+        }
+            
         try {
+            // Use standard Grizzly thread pool
             transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(
                 configureThreadPoolConfig(habitat, networkListener, threadPool)));
         } catch (NumberFormatException ex) {
-            logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
+            logger.log(Level.WARNING, "Invalid thread-pool attribute", ex);
         }
     }
 
     protected ThreadPoolConfig configureThreadPoolConfig(final Habitat habitat,
             final NetworkListener networkListener,
             final ThreadPool threadPool) {
-//            Http http = listener.findHttpProtocol().getHttp();
-//            int keepAlive = http == null ? 0 : Integer.parseInt(http.getTimeoutSeconds());
+
         final int maxQueueSize = threadPool.getMaxQueueSize() == null ? Integer.MAX_VALUE
             : Integer.parseInt(threadPool.getMaxQueueSize());
         final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
@@ -446,21 +483,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     transactionTimeoutMillis, TimeUnit.MILLISECONDS);
         }
         
-//            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
-//            boolean debugMode = false;
-//            for (String s : l) {
-//                if (s.trim().startsWith("-Xrunjdwp:")) {
-//                    debugMode = true;
-//                    break;
-//                }
-//            }
-//            if (!debugMode && timeout > 0) {
-//                // Idle Threads cannot be alive more than 15 minutes by default
-//                httpListener.setTransactionTimeout(timeout * 1000);
-//            } else {
-//                // Disable the mechanism
-//                httpListener.setTransactionTimeout(-1);
-//            }
         return poolConfig;
     }
 

@@ -2,7 +2,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -39,7 +39,6 @@
     holder.
 
 -->
-
 <network-config>
     <transports>
         <transport name="tcp"/>
@@ -51,7 +50,9 @@
     </protocols>
     <network-listeners>
         <thread-pool name="defaultThreadPool"/>
-        <network-listener name="http-listener" port="38082" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
-        <network-listener name="https-listener" port="38083" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <thread-pool name="customThreadPool" classname="org.glassfish.grizzly.config.CustomExecutorService"/>
+        <network-listener name="http-listener-1" port="38082" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <network-listener name="http-listener-2" port="38083" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <network-listener name="http-listener-3" port="38084" transport="tcp" protocol="http" thread-pool="customThreadPool"/>
     </network-listeners>
 </network-config>

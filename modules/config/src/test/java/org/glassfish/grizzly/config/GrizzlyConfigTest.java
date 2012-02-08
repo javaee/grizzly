@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,8 +71,10 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             }
             final String content = getContent(new URL("http://localhost:38082").openConnection());
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
+            final String content3 = getContent(new URL("http://localhost:38084").openConnection());
             Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", content);
             Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
+            Assert.assertEquals("<html><body>You've found the server on port 38084</body></html>", content3);
         } finally {
             grizzlyConfig.shutdown();
         }
@@ -119,7 +121,7 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
         }
     }
 
-//    @Test
+    @Test
     public void ssl() throws URISyntaxException, IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
@@ -130,18 +132,15 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
-//            Assert.assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
-//                "<html><body>You've found the server on port 38082</body></html>");
-/*
-            try {
-                System.out.println("******************** sleeping");
-                Thread.sleep(60000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e.getMessage());
-            }
-*/
+            
+            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>",
+                    getContent(new URL("https://localhost:38082").openConnection()));
             Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>",
-                getContent(new URL("https://localhost:38083").openConnection()));
+                    getContent(new URL("https://localhost:38083").openConnection()));
+            Assert.assertEquals("<html><body>You've found the server on port 38084</body></html>",
+                    getContent(new URL("https://localhost:38084").openConnection()));
+            Assert.assertEquals("<html><body>You've found the server on port 38085</body></html>",
+                    getContent(new URL("https://localhost:38085").openConnection()));
         } finally {
             grizzlyConfig.shutdown();
         }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,13 +58,12 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     int MAX_QUEUE_SIZE = 4096;
     int MAX_THREADPOOL_SIZE = 5;
     int MIN_THREADPOOL_SIZE = 2;
-    String CLASSNAME = "org.glassfish.grizzly.http.StatsThreadPool";
     String PARAMETERIZED_NUMBER_PATTERN = "\\$\\{.+\\}|\\d+";
 
     /**
      * The classname of a thread pool implementation
      */
-    @Attribute(defaultValue = CLASSNAME)
+    @Attribute()
     String getClassname();
 
     void setClassname(String value);
