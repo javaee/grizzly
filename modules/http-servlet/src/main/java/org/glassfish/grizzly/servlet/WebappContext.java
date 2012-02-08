@@ -1612,6 +1612,7 @@ public class WebappContext implements ServletContext {
      */
     private FilterConfigImpl createFilterConfig(final FilterRegistration registration) {
         final FilterConfigImpl fConfig = new FilterConfigImpl(this);
+        fConfig.setFilterName(registration.getName());
         if (!registration.initParameters.isEmpty()) {
             fConfig.setInitParameters(registration.initParameters);
         }

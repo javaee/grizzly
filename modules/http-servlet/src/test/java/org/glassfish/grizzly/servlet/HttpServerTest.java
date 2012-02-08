@@ -306,6 +306,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
         FilterRegistration reg = ctx.addFilter("filter", new Filter() {
             @Override
             public void init(final FilterConfig filterConfig) {
+                assertEquals("filter", filterConfig.getFilterName());
                 init[0] = true;
             }
 
