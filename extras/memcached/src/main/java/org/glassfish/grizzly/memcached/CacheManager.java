@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * The interface for managing caches based on JSR-107(JCache)
+ *
  * @author Bongjae Chang
  */
 public interface CacheManager {

@@ -184,10 +184,10 @@ public class BaseObjectPoolTest {
         builder.disposable(true);
         final ObjectPool<Integer, Integer> disposablePool = builder.build();
 
-        Assert.assertEquals(0, pool.getPoolSize(key));
-        Assert.assertEquals(0, pool.getActiveCount(key));
-        Assert.assertEquals(0, pool.getIdleCount(key));
-        Assert.assertEquals(0, pool.getPeakCount(key));
+        Assert.assertEquals(0, disposablePool.getPoolSize(key));
+        Assert.assertEquals(0, disposablePool.getActiveCount(key));
+        Assert.assertEquals(0, disposablePool.getIdleCount(key));
+        Assert.assertEquals(0, disposablePool.getPeakCount(key));
 
         for (int i = 0; i < 25; i++) {
             try {

@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * The builder interface based on JSR-107(JCache) for creating a {@link Cache} instance
+ *
  * @author Bongjae Chang
  */
 public interface CacheBuilder<K, V> {

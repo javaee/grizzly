@@ -41,6 +41,10 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * The result of memcached's "getKey" commands
+ * <p/>
+ * This has key and value.
+ *
  * @author Bongjae Chang
  */
 public class ValueWithKey<K, V> {

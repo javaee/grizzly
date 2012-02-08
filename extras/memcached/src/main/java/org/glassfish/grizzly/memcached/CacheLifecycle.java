@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * Lifecycle interface of a cache based on JSR-107(JCache)
+ *
  * @author Bongjae Chang
  */
 public interface CacheLifecycle {

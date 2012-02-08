@@ -54,7 +54,22 @@ import java.util.logging.Logger;
 import java.util.zip.CRC32;
 
 /**
+ * The implementation class of the Consistent Hashing algorithms
+ * <p/>
+ * Given keys and values will be hashed by MD5 and stored in sorted map.
+ * If MD5 is not supported, CRC32 will be used.
+ * Values(such as server list) can be added and removed dynamically.
+ * <p/>
+ * This store supports keys of String, byte array and ByteBuffer type
+ * <p/>
+ * Ketama's logic applied partially.
+ * <p/>
+ * This class should be thread-safe.
+ * <p/>
+ * Example of use:
+ *
  * @author Bongjae Chang
+ * @see org.glassfish.grizzly.memcached.ConsistentHashStoreTest's test codes
  */
 public class ConsistentHashStore<T> {
 
@@ -68,20 +83,39 @@ public class ConsistentHashStore<T> {
     private final ConcurrentSkipListMap<Long, T> buckets = new ConcurrentSkipListMap<Long, T>();
     private final Set<T> values = Collections.newSetFromMap(new ConcurrentHashMap<T, Boolean>());
 
+    /**
+     * Add the value such as a server name
+     *
+     * @param value value to be added
+     */
     public void add(final T value) {
         addOrRemove(value, true);
         values.add(value);
     }
 
+    /**
+     * Remove the value which already added by {@link #add}
+     *
+     * @param value value to be removed in this store
+     */
     public void remove(final T value) {
         addOrRemove(value, false);
         values.remove(value);
     }
 
+    /**
+     * Check if this store has {@code value}
+     *
+     * @param value value to be checked
+     * @return true if this store already contains {@code value}
+     */
     public boolean hasValue(final T value) {
         return value != null && values.contains(value);
     }
 
+    /**
+     * Clear all values and keys
+     */
     public void clear() {
         buckets.clear();
         values.clear();
@@ -137,6 +171,12 @@ public class ConsistentHashStore<T> {
         }
     }
 
+    /**
+     * Get the value corresponding to the given key
+     *
+     * @param key String key
+     * @return the selected value corresponding to the {@code key}
+     */
     public T get(final String key) {
         if (key == null) {
             return null;
@@ -144,6 +184,12 @@ public class ConsistentHashStore<T> {
         return get(key.getBytes());
     }
 
+    /**
+     * Get the value corresponding to the given key
+     *
+     * @param key byte array key
+     * @return the selected value corresponding to the {@code key}
+     */
     public T get(final byte[] key) {
         if (key == null) {
             return null;
@@ -165,6 +211,12 @@ public class ConsistentHashStore<T> {
         return buckets.get(hashKey);
     }
 
+    /**
+     * Get the value corresponding to the given key
+     *
+     * @param key {@link ByteBuffer} key
+     * @return the selected value corresponding to the {@code key}
+     */
     public T get(final ByteBuffer key) {
         if (key == null) {
             return null;

@@ -41,6 +41,10 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * The result of memcached's "gets" commands
+ * <p/>
+ * This has value and cas.
+ *
  * @author Bongjae Chang
  */
 public final class ValueWithCas<V> {

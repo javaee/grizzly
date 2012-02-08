@@ -80,6 +80,50 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * The implementation of the {@link MemcachedCache} based on Grizzly
+ * <p/>
+ * Basically, this class use {@link BaseObjectPool} for pooling connections of the memcached server
+ * and {@link ConsistentHashStore} for selecting the memcached server corresponding to the given key.
+ * <p/>
+ * When a Cache operation is called,
+ * 1. finding the correct server by consistent hashing
+ * 2. borrowing the connection from the connection pool
+ * 3. queueing request and sending packets to the memcached server and waiting for notification
+ * 4. being waken by Grizzly filter when the response is arrived
+ * 5. returning the connection to the pool
+ * <p/>
+ * For the failback of the memcached server, {@link HealthMonitorTask} will be scheduled by {@code healthMonitorIntervalInSecs}.
+ * If connecting and writing are failed, this cache retries failure operations by {@code RETRY_COUNT}.
+ * If retrials also failed, the server will be regarded as not valid and removed in {@link ConsistentHashStore}.
+ * Sometimes, automatical changes of the server list can cause stale cache data at runtime.
+ * So this cache provides {@code failover} flag which can turn off the failover/failback.
+ * <p/>
+ * This cache also supports bulk operations such as {@link #setMulti} as well as {@link #getMulti}.
+ * <p/>
+ * Example of use:
+ * {@code
+ * // creates a CacheManager
+ * final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+ *
+ * // creates a CacheBuilder
+ * final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("USER");
+ * // sets initial servers
+ * builder.servers(initServerSet);
+ * // creates the specific Cache
+ * final MemcachedCache<String, String> userCache = builder.build();
+ *
+ * // if you need to add another server
+ * userCache.addServer(anotherServerAddress);
+ *
+ * // cache operations
+ * boolean result = userCache.set("name", "foo", expirationTimeoutInSec, false);
+ * String value = userCache.get("name", false);
+ * // ...
+ *
+ * // shuts down
+ * manager.shutdown();
+ * }
+ *
  * @author Bongjae Chang
  */
 public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
@@ -189,7 +233,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
 
         this.initialServers = builder.servers;
 
-        if (healthMonitorIntervalInSecs > 0) {
+        if (failover && healthMonitorIntervalInSecs > 0) {
             healthMonitorTask = new HealthMonitorTask();
             scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
             scheduledFuture = scheduledExecutor.scheduleWithFixedDelay(healthMonitorTask, healthMonitorIntervalInSecs, healthMonitorIntervalInSecs, TimeUnit.SECONDS);
@@ -245,6 +289,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("unchecked")
     @Override
     public boolean addServer(final SocketAddress serverAddress) {
@@ -279,12 +326,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void removeServer(final SocketAddress serverAddress) {
         removeServer(serverAddress, true);
     }
 
-    public void removeServer(final SocketAddress serverAddress, final boolean forcibly) {
+    private void removeServer(final SocketAddress serverAddress, final boolean forcibly) {
         if (serverAddress == null) {
             return;
         }
@@ -297,8 +347,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 }
             }
         }
-        if (!forcibly && healthMonitorTask != null) {
-            if (failover && healthMonitorTask.failure(serverAddress)) {
+        if (!forcibly) {
+            if (healthMonitorTask != null && healthMonitorTask.failure(serverAddress)) {
                 consistentHash.remove(serverAddress);
                 if (logger.isLoggable(Level.INFO)) {
                     logger.log(Level.INFO, "removed the server from the consistent hash successfully. address={0}", serverAddress);
@@ -312,6 +362,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isInServerList(final SocketAddress serverAddress) {
         return consistentHash.hasValue(serverAddress);
@@ -2170,6 +2223,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             this.transport = transport;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public GrizzlyMemcachedCache<K, V> build() {
             final GrizzlyMemcachedCache<K, V> cache = new GrizzlyMemcachedCache<K, V>(this);
@@ -2181,61 +2237,165 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             return cache;
         }
 
+        /**
+         * Set global connect-timeout
+         * <p/>
+         * If the given param is negative, the timeout is infite.
+         * Default is 5000.
+         *
+         * @param connectTimeoutInMillis connect-timeout in milli-seconds
+         * @return this builder
+         */
         public Builder<K, V> connectTimeoutInMillis(final long connectTimeoutInMillis) {
             this.connectTimeoutInMillis = connectTimeoutInMillis;
             return this;
         }
 
+        /**
+         * Set global write-timeout
+         * <p/>
+         * If the given param is negative, the timeout is infite.
+         * Default is 5000.
+         *
+         * @param writeTimeoutInMillis write-timeout in milli-seconds
+         * @return this builder
+         */
         public Builder<K, V> writeTimeoutInMillis(final long writeTimeoutInMillis) {
             this.writeTimeoutInMillis = writeTimeoutInMillis;
             return this;
         }
 
+        /**
+         * Set global response-timeout
+         * <p/>
+         * If the given param is negative, the timeout is infite.
+         * Default is 10000.
+         *
+         * @param responseTimeoutInMillis response-timeout in milli-seconds
+         * @return this builder
+         */
         public Builder<K, V> responseTimeoutInMillis(final long responseTimeoutInMillis) {
             this.responseTimeoutInMillis = responseTimeoutInMillis;
             return this;
         }
 
+        /**
+         * Set connection pool's min
+         * <p/>
+         * Default is 5.
+         *
+         * @param minConnectionPerServer connection pool's min
+         * @return this builder
+         * @see BaseObjectPool.Builder#min(int)
+         */
         public Builder<K, V> minConnectionPerServer(final int minConnectionPerServer) {
             this.minConnectionPerServer = minConnectionPerServer;
             return this;
         }
 
+        /**
+         * Set connection pool's max
+         * <p/>
+         * Default is {@link Integer#MAX_VALUE}
+         *
+         * @param maxConnectionPerServer connection pool's max
+         * @return this builder
+         * @see BaseObjectPool.Builder#max(int)
+         */
         public Builder<K, V> maxConnectionPerServer(final int maxConnectionPerServer) {
             this.maxConnectionPerServer = maxConnectionPerServer;
             return this;
         }
 
+        /**
+         * Set connection pool's KeepAliveTimeout
+         * <p/>
+         * Default is 1800.
+         *
+         * @param keepAliveTimeoutInSecs connection pool's KeepAliveTimeout in seconds
+         * @return this builder
+         * @see BaseObjectPool.Builder#keepAliveTimeoutInSecs(long)
+         */
         public Builder<K, V> keepAliveTimeoutInSecs(final long keepAliveTimeoutInSecs) {
             this.keepAliveTimeoutInSecs = keepAliveTimeoutInSecs;
             return this;
         }
 
+        /**
+         * Set health monitor's interval
+         * <p/>
+         * This cache will schedule {@link HealthMonitorTask} with this interval.
+         * {@link HealthMonitorTask} will check the failure servers periodically and detect the revived server.
+         * If the given parameter is negative, this cache never schedules {@link HealthMonitorTask}
+         * so this behavior is similar to seting {@code failover} to be false.
+         * Default is 60.
+         *
+         * @param healthMonitorIntervalInSecs interval in seconds
+         * @return this builder
+         */
         public Builder<K, V> healthMonitorIntervalInSecs(final long healthMonitorIntervalInSecs) {
             this.healthMonitorIntervalInSecs = healthMonitorIntervalInSecs;
             return this;
         }
 
+        /**
+         * Allow or disallow disposable connections
+         * <p/>
+         * Default is false.
+         *
+         * @param allowDisposableConnection true if this cache allows disposable connections
+         * @return this builder
+         */
         public Builder<K, V> allowDisposableConnection(final boolean allowDisposableConnection) {
             this.allowDisposableConnection = allowDisposableConnection;
             return this;
         }
 
+        /**
+         * Enable or disable the connection validation when the connection is borrowed from the connection pool
+         * <p/>
+         * Default is false.
+         *
+         * @param borrowValidation true if this cache should make sure the borrowed connection is valid
+         * @return this builder
+         */
         public Builder<K, V> borrowValidation(final boolean borrowValidation) {
             this.borrowValidation = borrowValidation;
             return this;
         }
 
+        /**
+         * Enable or disable the connection validation when the connection is returned to the connection pool
+         * <p/>
+         * Default is false.
+         *
+         * @param returnValidation true if this cache should make sure the returned connection is valid
+         * @return this builder
+         */
         public Builder<K, V> returnValidation(final boolean returnValidation) {
             this.returnValidation = returnValidation;
             return this;
         }
 
+        /**
+         * Set initial servers
+         *
+         * @param servers server set
+         * @return this builder
+         */
         public Builder<K, V> servers(final Set<SocketAddress> servers) {
             this.servers = new HashSet<SocketAddress>(servers);
             return this;
         }
 
+        /**
+         * Enable or disable failover/failback
+         * <p/>
+         * Default is true.
+         *
+         * @param failover true if this cache should support failover/failback when the server is failed or revived
+         * @return this builder
+         */
         public Builder<K, V> failover(final boolean failover) {
             this.failover = failover;
             return this;

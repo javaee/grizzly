@@ -41,11 +41,13 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * Defines response's status of the memcached's binary protocol
+ * <p/>
+ * See http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Response_Status
+ *
  * @author Bongjae Chang
  */
 public enum ResponseStatus {
-    // See the http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Response_Status
-
     No_Error(0x0000, "No error"),
     Key_Not_Found(0x0001, "Key not found"),
     Key_Exists(0x0002, "Key exists"),

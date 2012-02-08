@@ -50,6 +50,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Memcached response
+ * <p/>
+ * Key and value will be decoded by {@link #setDecodedKey} and {@link #setDecodedValue}.
+ * {@link #setResult} sets the last result based on other fields of this response in according to memcached's command.
+ *
  * @author Bongjae Chang
  */
 public class MemcachedResponse implements Cacheable {

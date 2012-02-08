@@ -45,9 +45,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * The memcached's cache interface
+ * <p/>
+ * This interface extends {@link Commands} and {@link Cache} and has methods related to operation timeout.
+ * Additionally, this supports several bulk operations such as {@link #getMulti} and {@link #setMulti} for dramatic performance improvement.
+ * <p/>
+ * By {@link #addServer} and {@link #removeServer}, servers can be added and removed dynamically in this cache.
+ * In other words, the managed server list can be changed in runtime by APIs.
+ *
  * @author Bongjae Chang
  */
 public interface MemcachedCache<K, V> extends Commands<K, V>, Cache<K, V> {
+    // extends basic memcached commands
 
     public boolean set(final K key, final V value, final int expirationInSecs, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
@@ -105,9 +114,27 @@ public interface MemcachedCache<K, V> extends Commands<K, V>, Cache<K, V> {
 
     public String version(final SocketAddress address, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
+
+    /**
+     * Add a specific server in this cache
+     * 
+     * @param serverAddress a specific server's {@link SocketAddress} to be added
+     * @return true if the given {@code serverAddress} is added successfully
+     */
     public boolean addServer(final SocketAddress serverAddress);
 
+    /**
+     * Remove the given server in this cache
+     *
+     * @param serverAddress the specific server's {@link SocketAddress} to be removed in this cache
+     */
     public void removeServer(final SocketAddress serverAddress);
 
+    /**
+     * Check if this cache contains the given server
+     * 
+     * @param serverAddress the specific server's {@link SocketAddress} to be checked 
+     * @return true if this cache already contains the given {@code serverAddress}
+     */
     public boolean isInServerList(final SocketAddress serverAddress);
 }

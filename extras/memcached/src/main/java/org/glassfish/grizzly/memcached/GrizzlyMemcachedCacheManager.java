@@ -56,6 +56,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * The implementation of the {@link CacheManager} based on Grizzly
+ * <p/>
+ * This cache manager has a key(String cache name)/value({@link GrizzlyMemcachedCache} map for retrieving caches.
+ * If the specific {@link TCPNIOTransport GrizzlyTransport} is not set at creation time, this will create a main GrizzlyTransport.
+ * The {@link TCPNIOTransport GrizzlyTransport} must contain {@link MemcachedClientFilter}.
+ *
  * @author Bongjae Chang
  */
 public class GrizzlyMemcachedCacheManager implements CacheManager {
@@ -92,11 +98,17 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         this.transport = transportLocal;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public <K, V> GrizzlyMemcachedCache.Builder<K, V> createCacheBuilder(final String cacheName) {
         return new GrizzlyMemcachedCache.Builder<K, V>(cacheName, this, transport);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @SuppressWarnings("unchecked")
     @Override
     public <K, V> GrizzlyMemcachedCache<K, V> getCache(final String cacheName) {
@@ -106,6 +118,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         return cacheName != null ? (GrizzlyMemcachedCache<K, V>) caches.get(cacheName) : null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean removeCache(final String cacheName) {
         if (shutdown.get()) {
@@ -121,6 +136,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void shutdown() {
         if (!shutdown.compareAndSet(false, true)) {
@@ -142,7 +160,10 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
     }
 
     /**
-     * Adds a cache.
+     * Add the given {@code cache} to this cache manager
+     * <p/>
+     * If this returns false, the given {@code cache} should be stopped by caller.
+     * Currently, this method is called by only {@link org.glassfish.grizzly.memcached.GrizzlyMemcachedCache.Builder#build()}.
      *
      * @param cache a cache instance
      * @return true if the cache was added
@@ -163,31 +184,83 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         private boolean blocking = false;
         private ExecutorService workerThreadPool;
 
+        /**
+         * Set the specific {@link TCPNIOTransport GrizzlyTransport}
+         * <p/>
+         * If this is not set or set to be null, {@link GrizzlyMemcachedCacheManager} will create a default transport.
+         * The given {@code transport} must be always started state if it is not null.
+         * Default is null.
+         *
+         * @param transport the specific Grizzly's {@link TCPNIOTransport}
+         * @return this builder
+         */
         public Builder transport(final TCPNIOTransport transport) {
             this.transport = transport;
             return this;
         }
 
+        /**
+         * Set selector threads' count
+         * <p/>
+         * If this cache manager will create a default transport, the given selector counts will be passed to {@link TCPNIOTransport}.
+         * Default is processors' count * 2.
+         *
+         * @param selectorRunnersCount selector threads' count
+         * @return this builder
+         */
         public Builder selectorRunnersCount(final int selectorRunnersCount) {
             this.selectorRunnersCount = selectorRunnersCount;
             return this;
         }
 
+        /**
+         * Set the specific IO Strategy of Grizzly
+         * <p/>
+         * If this cache manager will create a default transport, the given {@link IOStrategy} will be passed to {@link TCPNIOTransport}.
+         * Default is {@link SameThreadIOStrategy}.
+         *
+         * @param ioStrategy the specific IO Strategy
+         * @return this builder
+         */
         public Builder ioStrategy(final IOStrategy ioStrategy) {
             this.ioStrategy = ioStrategy;
             return this;
         }
 
+        /**
+         * Enable or disable the blocking mode
+         * <p/>
+         * If this cache manager will create a default transport, the given mode will be passed to {@link TCPNIOTransport}.
+         * Default is false.
+         *
+         * @param blocking true means the blocking mode
+         * @return this builder
+         */
         public Builder blocking(final boolean blocking) {
             this.blocking = blocking;
             return this;
         }
 
+        /**
+         * Set the specific worker thread pool
+         * <p/>
+         * If this cache manager will create a default transport, the given {@link ExecutorService} will be passed to {@link TCPNIOTransport}.
+         * This is only effective if {@link IOStrategy} is not {@link SameThreadIOStrategy}.
+         * Default is null.
+         *
+         * @param workerThreadPool worker thread pool
+         * @return this builder
+         */
         public Builder workerThreadPool(final ExecutorService workerThreadPool) {
             this.workerThreadPool = workerThreadPool;
             return this;
         }
 
+        /**
+         * Create a {@link GrizzlyMemcachedCacheManager} instance with this builder's properties
+         *
+         * @return a cache manager
+         */
         public GrizzlyMemcachedCacheManager build() {
             return new GrizzlyMemcachedCacheManager(this);
         }

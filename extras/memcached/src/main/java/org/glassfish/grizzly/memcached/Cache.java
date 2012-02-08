@@ -41,6 +41,10 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * The basic interface of the cache based on JSR-107(JCache)
+ * <p/>
+ * a cache will have a named region based on String.
+ *
  * @author Bongjae Chang
  */
 public interface Cache<K, V> extends CacheLifecycle {

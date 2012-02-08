@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.memcached.pool;
 
 /**
+ * This exception will be thrown when the pool is exhausted and cannot or will not borrow another instance
+ *
  * @author Bongjae Chang
  */
 public class PoolExhaustedException extends Exception {

@@ -41,11 +41,13 @@
 package org.glassfish.grizzly.memcached;
 
 /**
+ * Defines opcodes of the memcached's binary protocol
+ * <p/>
+ * See http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Command_Opcodes
+ *
  * @author Bongjae Chang
  */
 public enum CommandOpcodes {
-    // See the http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Command_Opcodes
-
     Get(0x00),
     Gets(0x00),
     Set(0x01),

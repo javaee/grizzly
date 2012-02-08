@@ -54,10 +54,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * The basic implementation of {@link ObjectPool} for high performance and scalability
+ *
+ * Example of use:
+ * @see org.glassfish.grizzly.memcached.BaseObjectPoolTest's test codes
+ *
+ * This class should be thread-safe.
+ *
  * @author Bongjae Chang
  */
 public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
 
+    // retry counts for borrowing an object if it is not valid
     private static final int MAX_VALIDATION_RETRY_COUNT = 3;
 
     private final PoolableObjectFactory<K, V> factory;
@@ -91,6 +99,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void createAllMinObjects(final K key) throws NoValidObjectException {
         if (destroyed.get()) {
@@ -124,6 +135,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void removeAllObjects(final K key) {
         if (destroyed.get()) {
@@ -142,6 +156,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         clearPool(pool, key);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public V borrowObject(final K key, final long timeoutInMillis) throws PoolExhaustedException, NoValidObjectException, InterruptedException {
         if (destroyed.get()) {
@@ -279,6 +296,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void returnObject(final K key, final V value) {
         if (destroyed.get()) {
@@ -324,6 +344,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void removeObject(K key, V value) {
         if (destroyed.get()) {
@@ -353,6 +376,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         pool.poolSizeHint.decrementAndGet();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void destroy() {
         if (!destroyed.compareAndSet(false, true)) {
@@ -397,13 +423,16 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int getPoolSize(final K key) {
         if (destroyed.get()) {
-            return 0;
+            return -1;
         }
         if (key == null) {
-            throw new IllegalArgumentException("key must be not null");
+            return -1;
         }
         final QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
@@ -412,13 +441,16 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return pool.poolSizeHint.get();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int getPeakCount(final K key) {
         if (destroyed.get()) {
-            return 0;
+            return -1;
         }
         if (key == null) {
-            throw new IllegalArgumentException("key must be not null");
+            return -1;
         }
         final QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
@@ -427,13 +459,16 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return pool.peakSizeHint;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int getActiveCount(final K key) {
         if (destroyed.get()) {
-            return 0;
+            return -1;
         }
         if (key == null) {
-            throw new IllegalArgumentException("key must be not null");
+            return -1;
         }
         final QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
@@ -442,13 +477,16 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return pool.poolSizeHint.get() - pool.queue.size();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int getIdleCount(final K key) {
         if (destroyed.get()) {
-            return 0;
+            return -1;
         }
         if (key == null) {
-            throw new IllegalArgumentException("key must be not null");
+            return -1;
         }
         final QueuePool<V> pool = keyedObjectPool.get(key);
         if (pool == null) {
@@ -481,6 +519,11 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         return keepAliveTimeoutInSecs;
     }
 
+    /**
+     * For storing idle objects, {@link BlockingQueue} will be used.
+     * If this pool has max size(bounded pool), it uses {@link LinkedBlockingQueue}.
+     * Otherwise, this pool uses unbounded queue like {@link LinkedBlockingQueue} for idle objects.
+     */
     private static class QueuePool<V> {
         private final AtomicInteger poolSizeHint = new AtomicInteger();
         private volatile int peakSizeHint = 0;
@@ -496,6 +539,9 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         }
     }
 
+    /**
+     * This task which is scheduled by pool's KeepAliveTime will evict idle objects until pool'size will reach the min's.
+     */
     private class EvictionTask implements Runnable {
 
         private final AtomicBoolean running = new AtomicBoolean();
@@ -546,10 +592,23 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
         private boolean disposable = DEFAULT_DISPOSABLE;
         private long keepAliveTimeoutInSecs = DEFAULT_KEEP_ALIVE_TIMEOUT_IN_SEC;
 
+        /**
+         * BaseObjectPool's builder constructor
+         *
+         * @param factory {@link PoolableObjectFactory} which is for creating, validating and destroying an object
+         */
         public Builder(PoolableObjectFactory<K, V> factory) {
             this.factory = factory;
         }
 
+        /**
+         * Set minimum size of this pool
+         * <p/>
+         * Default is 5.
+         *
+         * @param min min size
+         * @return this builder
+         */
         public Builder<K, V> min(final int min) {
             if (min >= 0) {
                 this.min = min;
@@ -557,6 +616,14 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             return this;
         }
 
+        /**
+         * Set maximum size of this pool
+         * <p/>
+         * Default is unbounded as {@link Integer#MAX_VALUE}.
+         *
+         * @param max max size
+         * @return this builder
+         */
         public Builder<K, V> max(final int max) {
             if (max >= 1) {
                 this.max = max;
@@ -564,26 +631,68 @@ public class BaseObjectPool<K, V> implements ObjectPool<K, V> {
             return this;
         }
 
+        /**
+         * Set whether this pool should validate the object by {@link PoolableObjectFactory#validateObject} before returning a borrowed object to the user
+         * <p/>
+         * Default is false.
+         *
+         * @param borrowValidation true if validation will be needed
+         * @return this builder
+         */
         public Builder<K, V> borrowValidation(final boolean borrowValidation) {
             this.borrowValidation = borrowValidation;
             return this;
         }
 
+        /**
+         * Set whether this pool should validate the object by {@link PoolableObjectFactory#validateObject} before returning a borrowed object to the pool
+         * <p/>
+         * Default is false.
+         *
+         * @param returnValidation true if validation will be needed
+         * @return this builder
+         */
         public Builder<K, V> returnValidation(final boolean returnValidation) {
             this.returnValidation = returnValidation;
             return this;
         }
 
+        /**
+         * Set disposable property
+         * <p/>
+         * If this pool is bounded and doesn't have idle objects any more, temporary object will be returned to the user if {@code disposable} is true.
+         * The disposable object will be returned to the pool, it will be destroyed silently.
+         * Default is false.
+         *
+         * @param disposable true if the pool allows disposable objects
+         * @return this builder
+         */
         public Builder<K, V> disposable(final boolean disposable) {
             this.disposable = disposable;
             return this;
         }
 
+        /**
+         * Set the KeepAliveTimeout of this pool
+         * <p/>
+         * This pool will schedule {@link EvictionTask} with this interval.
+         * {@link EvictionTask} will evict idle objects if this pool has more than min objects.
+         * If the given parameter is negative, this pool never schedules {@link EvictionTask}.
+         * Default is 1800.
+         *
+         * @param keepAliveTimeoutInSecs KeepAliveTimeout in seconds
+         * @return this builder
+         */
         public Builder<K, V> keepAliveTimeoutInSecs(final long keepAliveTimeoutInSecs) {
             this.keepAliveTimeoutInSecs = keepAliveTimeoutInSecs;
             return this;
         }
 
+        /**
+         * Create an {@link ObjectPool} instance with this builder's properties
+         *
+         * @return an object pool
+         */
         public ObjectPool<K, V> build() {
             if (min > max) {
                 max = min;

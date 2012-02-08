@@ -44,12 +44,14 @@ import java.net.SocketAddress;
 import java.util.Map;
 
 /**
+ * Defines basic commands of the memcached
+ *
+ * See http://code.google.com/p/memcached/wiki/NewCommands and http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped
+ * And the {@code noReply} parameter means memcached's quiet command such as GetQ, SetQ and etc...
+ *
  * @author Bongjae Chang
  */
 public interface Commands<K, V> {
-    // see the http://code.google.com/p/memcached/wiki/NewCommands
-    // see the http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped
-
     // storage commands
 
     public boolean set(final K key, final V value, final int expirationInSecs, final boolean noReply);

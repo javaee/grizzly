@@ -48,6 +48,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * Memcached request
+ * <p/>
+ * {@code response} and {@code responseStatus} will be set by the filter when the response will be received.
+ * And the filter will notify {@code notify} instance after it will complete the processing for the received message.
+ *
  * @author Bongjae Chang
  */
 public class MemcachedRequest {

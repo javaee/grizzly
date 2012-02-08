@@ -63,6 +63,11 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
+ * Simple wrapper class for {@link Buffer}, which has original message {@code origin}, original object type {@link BufferType} and converted {@link Buffer}
+ * <p/>
+ * Messages which should be sent to the remote peer via network will be always converted into {@link Buffer} instance by {@link #wrap},
+ * and the received packet will be always restored to its original messages by {@link #unwrap}
+ *
  * @author Bongjae Chang
  */
 public class BufferWrapper<T> implements Cacheable {
@@ -73,6 +78,7 @@ public class BufferWrapper<T> implements Cacheable {
             ThreadCache.obtainIndex(BufferWrapper.class, 16);
     private static final String DEFAULT_CHARSET = "UTF-8";
 
+    // if the size of packets is more than 16K, packets will be compressed by GZIP
     public static final int DEFAULT_COMPRESSION_THRESHOLD = 16 * 1024; // 16K
 
     private Buffer buffer;
@@ -140,14 +146,29 @@ public class BufferWrapper<T> implements Cacheable {
         this.type = type;
     }
 
+    /**
+     * Return original object
+     *
+     * @return original object
+     */
     public T getOrigin() {
         return origin;
     }
 
+    /**
+     * Return buffer corresponding to original object
+     *
+     * @return the converted buffer
+     */
     public Buffer getBuffer() {
         return buffer;
     }
 
+    /**
+     * Return original object's type
+     *
+     * @return buffer type
+     */
     public BufferType getType() {
         return type;
     }
@@ -170,6 +191,14 @@ public class BufferWrapper<T> implements Cacheable {
         return new BufferWrapper<T>(origin, buffer, type);
     }
 
+    /**
+     * Return {@code BufferWrapper} instance from original object
+     *
+     * @param origin        original object
+     * @param memoryManager the memory manager for allocating {@link Buffer}
+     * @return the buffer wrapper which included origin, buffer type and buffer corresponding to {@code origin}
+     * @throws IllegalArgumentException if given parameters are not valid
+     */
     public static <T> BufferWrapper<T> wrap(final T origin, MemoryManager memoryManager) throws IllegalArgumentException {
         if (origin == null) {
             throw new IllegalArgumentException("object must be not null");
@@ -294,6 +323,14 @@ public class BufferWrapper<T> implements Cacheable {
         return bufferWrapper;
     }
 
+    /**
+     * Return the original instance from {@code buffer}
+     *
+     * @param buffer        the {@link Buffer} for being restored
+     * @param type          the type of original object
+     * @param memoryManager the memory manager which will be used for decompressing packets
+     * @return the restored object
+     */
     public static Object unwrap(final Buffer buffer, final BufferWrapper.BufferType type, final MemoryManager memoryManager) {
         if (buffer == null) {
             return null;
@@ -301,6 +338,16 @@ public class BufferWrapper<T> implements Cacheable {
         return unwrap(buffer, buffer.position(), buffer.limit(), type, memoryManager);
     }
 
+    /**
+     * Return the original instance from {@code buffer}
+     *
+     * @param buffer        the {@link Buffer} for being restored
+     * @param position      the position of buffer to convert {@code buffer} into origin
+     * @param limit         the limit of buffer to convert {@code buffer} into origin
+     * @param type          the type of original object
+     * @param memoryManager the memory manager which will be used for decompressing packets
+     * @return the restored object
+     */
     public static Object unwrap(final Buffer buffer, final int position, final int limit, final BufferWrapper.BufferType type, final MemoryManager memoryManager) {
         if (buffer == null || position > limit || type == null) {
             return null;
