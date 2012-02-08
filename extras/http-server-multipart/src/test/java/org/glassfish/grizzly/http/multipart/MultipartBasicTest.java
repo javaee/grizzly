@@ -551,6 +551,8 @@ public class MultipartBasicTest {
             assertEquals(boundary, context.getBoundary());
             assertEquals(context.getContentTypeAttributes().get("boundary"),
                     context.getBoundary());
+            assertEquals(contentType,
+                    context.getContentType());
 
             assertEquals(contentTypeAttributes.size(),
                     context.getContentTypeAttributes().size());

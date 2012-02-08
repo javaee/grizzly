@@ -48,11 +48,14 @@ import java.util.Map;
  * @author Alexey Stashok
  */
 public class MultipartContext {
+    private final String contentType;
     private final String boundary;
     private final Map<String, String> contentTypeAttributes;
 
     public MultipartContext(final String boundary,
+            final String contentType,
             final Map<String, String> contentTypeAttributes) {
+        this.contentType = contentType;
         this.boundary = boundary;
         this.contentTypeAttributes =
                 Collections.unmodifiableMap(contentTypeAttributes);
@@ -65,6 +68,15 @@ public class MultipartContext {
      */
     public String getBoundary() {
         return boundary;
+    }
+
+    /**
+     * Returns complete multipart's content-type.
+     * 
+     * @return complete multipart's content-type.
+     */
+    public String getContentType() {
+        return contentType;
     }
 
     /**

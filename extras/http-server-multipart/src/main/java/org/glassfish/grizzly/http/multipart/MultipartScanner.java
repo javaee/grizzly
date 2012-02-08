@@ -123,7 +123,8 @@ public class MultipartScanner {
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(request,
                     partHandler, completionHandler,
-                    new MultipartContext(boundary, contentTypeProperties)));
+                    new MultipartContext(boundary, contentType,
+                    contentTypeProperties)));
         } catch (Exception e) {
             if (completionHandler != null) {
                 completionHandler.failed(e);
@@ -185,7 +186,8 @@ public class MultipartScanner {
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(multipartMixedEntry,
                     partHandler, completionHandler,
-                    new MultipartContext(boundary, contentTypeProperties)));
+                    new MultipartContext(boundary, contentType,
+                    contentTypeProperties)));
         } catch (Exception e) {
             if (completionHandler != null) {
                 completionHandler.failed(e);
