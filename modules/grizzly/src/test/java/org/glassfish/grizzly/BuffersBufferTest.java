@@ -40,13 +40,16 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Charsets;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.InvalidMarkException;
+import java.nio.charset.Charset;
 
 public class BuffersBufferTest extends GrizzlyTestCase {
 
@@ -211,6 +214,29 @@ public class BuffersBufferTest extends GrizzlyTestCase {
         }
         assertEquals(1, buffer.getShort());
     }
+    
+    public void testBulkByteBufferGetWithEmptyBuffers() throws Exception {
+        BuffersBuffer b = BuffersBuffer.create(mm);
+        b.append(Buffers.wrap(mm, "Hello "));
+        b.append(BuffersBuffer.create(mm));
+        b.append(Buffers.wrap(mm, "world!"));
+        
+        ByteBuffer buffer = ByteBuffer.allocate(12);
+        b.get(buffer);
+        buffer.flip();
+        assertEquals("Hello world!", Charsets.getCharsetDecoder(Charsets.UTF8_CHARSET).decode(buffer).toString());
+    }
+    
+    public void testBulkArrayGetWithEmptyBuffers() throws Exception {
+            BuffersBuffer b = BuffersBuffer.create(mm);
+            b.append(Buffers.wrap(mm, "Hello "));
+            b.append(BuffersBuffer.create(mm));
+            b.append(Buffers.wrap(mm, "world!"));
+            
+            byte[] bytes = new byte[12];
+            b.get(bytes);
+            assertEquals("Hello world!", new String(bytes));
+        }
 
 
 
