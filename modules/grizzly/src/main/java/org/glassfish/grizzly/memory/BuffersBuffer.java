@@ -844,6 +844,10 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public BuffersBuffer get(final ByteBuffer dst, int offset, int length) {
+
+        if (length == 0) {
+            return this;
+        }
         checkDispose();
         checkReadOnly();
 
