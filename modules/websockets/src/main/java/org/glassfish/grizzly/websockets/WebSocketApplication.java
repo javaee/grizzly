@@ -76,9 +76,30 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      *   {@link WebSocket}.
      *                  
      * @return a new {@link WebSocket} instance.
+     * 
+     * @deprecated Use {@link WebSocketApplication#createSocket(ProtocolHandler, org.glassfish.grizzly.http.HttpRequestPacket, WebSocketListener...)}
      */
+    @Deprecated
     public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
-        return new DefaultWebSocket(handler, listeners);
+        return createSocket(handler, null, listeners);
+    }
+
+    /**
+     * Factory method to create new {@link WebSocket} instances.  Developers may
+     * wish to override this to return customized {@link WebSocket} implementations.
+     * @param handler the {@link ProtocolHandler} to use with the newly created
+     *  {@link WebSocket}.
+     * @param requestPacket the {@link HttpRequestPacket} that triggered the
+     *  creation of the {@link WebSocket} connection.
+     * @param listeners the {@link WebSocketListener}s to associate with the new
+     *  {@link WebSocket}.
+     * @return
+     */
+    public WebSocket createSocket(final ProtocolHandler handler, 
+                                  final HttpRequestPacket requestPacket,
+                                  final WebSocketListener... listeners) {
+        return new DefaultWebSocket(handler, requestPacket, listeners);
+        
     }
 
     /**

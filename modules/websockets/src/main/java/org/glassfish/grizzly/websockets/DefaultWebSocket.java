@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 import org.glassfish.grizzly.websockets.frametypes.PingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
@@ -57,6 +58,7 @@ public class DefaultWebSocket implements WebSocket {
     private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
     private final Queue<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
     protected final ProtocolHandler protocolHandler;
+    protected final HttpRequestPacket request;
 
     enum State {
         NEW, CONNECTED, CLOSING, CLOSED
@@ -64,15 +66,34 @@ public class DefaultWebSocket implements WebSocket {
 
     EnumSet<State> connected = EnumSet.<State>range(State.CONNECTED, State.CLOSING);
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
+    
+    public DefaultWebSocket(final ProtocolHandler protocolHandler,
+                            final WebSocketListener... listeners) {
+        this(protocolHandler, null, listeners);
+    }
 
-    public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+    public DefaultWebSocket(final ProtocolHandler protocolHandler,
+                            final HttpRequestPacket request,
+                            final WebSocketListener... listeners) {
         this.protocolHandler = protocolHandler;
+        this.request = request;
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
         protocolHandler.setWebSocket(this);
     }
 
+    /**
+     * Returns the upgrade request for this WebSocket.  
+     * 
+     * @return the upgrade request for this {@link WebSocket}.  This method
+     *  may return <code>null</code> depending on the context under which this
+     *  {@link WebSocket} was created.
+     */
+    public HttpRequestPacket getUpgradeRequest() {
+        return request;
+    }
+    
     public Collection<WebSocketListener> getListeners() {
         return listeners;
     }

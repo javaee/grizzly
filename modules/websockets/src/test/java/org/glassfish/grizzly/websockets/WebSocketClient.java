@@ -72,7 +72,7 @@ public class WebSocketClient extends DefaultWebSocket {
     }
 
     public WebSocketClient(String uri, Version version, WebSocketListener... listeners) {
-        super(version.createHandler(true), listeners);
+        super(version.createHandler(true), null, listeners);
         this.version = version;
         try {
             address = new URI(uri);

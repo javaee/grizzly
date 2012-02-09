@@ -153,7 +153,7 @@ public class WebSocketEngine {
                 }
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setConnection(connection);
-                socket = app.createSocket(protocolHandler, app);
+                socket = app.createSocket(protocolHandler, request, app);
                 WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
@@ -188,6 +188,10 @@ public class WebSocketEngine {
         return null;
     }
 
+    /**
+     * @deprecated use {@link #register(WebSocketApplication)}
+     */
+    @Deprecated
     public void register(String name, WebSocketApplication app) {
         register(app);
     }
