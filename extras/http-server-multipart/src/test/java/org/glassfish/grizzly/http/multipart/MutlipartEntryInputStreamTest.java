@@ -95,7 +95,7 @@ public class MutlipartEntryInputStreamTest {
     private final int PORT = 18203;
 
     final boolean isBufferEchoMode;
-    
+
     public MutlipartEntryInputStreamTest(final boolean isBufferEchoMode) {
         this.isBufferEchoMode = isBufferEchoMode;
     }
@@ -107,7 +107,7 @@ public class MutlipartEntryInputStreamTest {
                     {Boolean.TRUE}
                 });
     }
-    
+
     @Test
     public void testSingleMessageEcho() throws Exception {
         MultipartEntryPacket entry1 = MultipartEntryPacket.builder()
@@ -257,7 +257,7 @@ public class MutlipartEntryInputStreamTest {
 
     private HttpPacket createMultipartPacket(String boundary,
             String preamble, String epilogue, MultipartEntryPacket... entries) {
-        
+
         MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
         mpb.preamble(preamble).epilogue(epilogue);
 
@@ -342,16 +342,16 @@ public class MutlipartEntryInputStreamTest {
 
             final FutureImpl<Connection> future =
                     Futures.<Connection>createSafeFuture();
-            
+
             connector.connect(new InetSocketAddress(host, port),
-                    Futures.toCompletionHandler(future, 
+                    Futures.toCompletionHandler(future,
                     new EmptyCompletionHandler<Connection>() {
                 @Override
                 public void completed(Connection result) {
                     connection = result;
                 }
             }));
-            
+
             return future;
         }
 
@@ -441,8 +441,9 @@ public class MutlipartEntryInputStreamTest {
                     outputStream.write(buf);
                 }
             } else {
-                final Buffer buffer = inputStream.readBuffer();
-                outputStream.write(buffer);
+                if (inputStream.readyData() > 0) {
+                    outputStream.write(inputStream.readBuffer());
+                }
             }
         }
     }
