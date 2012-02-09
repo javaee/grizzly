@@ -71,11 +71,13 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
     private final ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>> caches =
             new ConcurrentHashMap<String, GrizzlyMemcachedCache<?, ?>>();
     private final TCPNIOTransport transport;
+    private final boolean isExternalTransport;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private GrizzlyMemcachedCacheManager(final Builder builder) {
         TCPNIOTransport transportLocal = builder.transport;
         if (transportLocal == null) {
+            isExternalTransport = false;
             final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter()).add(new MemcachedClientFilter(true, true));
             final TCPNIOTransportBuilder clientTCPNIOTransportBuilder = TCPNIOTransportBuilder.newInstance();
@@ -94,6 +96,8 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
                     logger.log(Level.SEVERE, "failed to start the transport", ie);
                 }
             }
+        } else {
+            isExternalTransport = true;
         }
         this.transport = transportLocal;
     }
@@ -148,7 +152,7 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
             cache.stop();
         }
         caches.clear();
-        if (transport != null) {
+        if (!isExternalTransport && transport != null) {
             try {
                 transport.stop();
             } catch (IOException ie) {
