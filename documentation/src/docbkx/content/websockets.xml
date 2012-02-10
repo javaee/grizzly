@@ -47,17 +47,15 @@
 
     <para>Like other protocols implemented with Grizzly 2.x, WebSocket support
     is implemented using a Filter. If you're not familiar with the concepts of
-    Filters and FilterChains, please review the documentation here (TODO LINK
-    THIS).</para>
+    Filters and FilterChains, please review the documentation in this guide.</para>
 
-    <para>(INSERT IMAGE HERE)</para>
   </section>
 
   <section>
     <title xml:id="ws-api">The Grizzly WebSocket API</title>
 
     <para>Understanding how to use the WebSocket API is very simple as there
-    are only a few core entites that developers need to be familar with. We'll
+    are only a few core entities that developers need to be familiar with. We'll
     begin by covering those first. Once the basics are understood, creating
     websocket applications should be straight forward.</para>
 
@@ -307,7 +305,7 @@
       <title>WebSocketListener</title>
 
       <para>Implementations of this interface allow the developers to listen
-      for events occuring on various WebSocket instances. This interface is
+      for events occurring on various WebSocket instances. This interface is
       relevant for both server and client side uses cases.</para>
 
       <programlisting>/**
