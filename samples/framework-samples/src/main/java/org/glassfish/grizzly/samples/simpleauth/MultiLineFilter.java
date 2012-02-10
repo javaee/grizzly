@@ -149,7 +149,7 @@ public class MultiLineFilter extends BaseFilter {
         Integer encodingLine = encoderPacketAttr.get(connection);
         if (encodingLine == null) {
             // if not state is associated - it means we're just starting MultiLinePacket encoding
-            encodingLine = new Integer(0);
+            encodingLine = 0;
             logger.log(Level.INFO, "-------Sending to network: \n" + input);
         }
 

@@ -44,13 +44,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.util.logging.Logger;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -63,7 +61,6 @@ import org.glassfish.grizzly.utils.StringFilter;
  * @author Alexey Stashok
  */
 public class EchoClient {
-    private static final Logger logger = Grizzly.logger(EchoClient.class);
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws IOException,

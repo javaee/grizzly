@@ -68,7 +68,7 @@ public class EchoClient {
     public static void main(String[] args) throws IOException,
             ExecutionException, InterruptedException, TimeoutException {
 
-        final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> future = SafeFutureImpl.create();
 
         // Create a FilterChain using FilterChainBuilder
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();

@@ -90,11 +90,8 @@ public class MultiLinePacket {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof MultiLinePacket) {
-            return lines.equals(((MultiLinePacket) obj).lines);
-        }
+        return obj instanceof MultiLinePacket && lines.equals(((MultiLinePacket) obj).lines);
 
-        return false;
     }
 
     @Override

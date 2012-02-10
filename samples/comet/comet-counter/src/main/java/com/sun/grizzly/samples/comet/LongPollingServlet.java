@@ -78,7 +78,7 @@ public class LongPollingServlet extends HttpServlet {
     throws ServletException, IOException {
         CometEngine engine = CometEngine.getEngine();
         CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
-        final int hash = context.addCometHandler(new CounterHandler(res, counter));
+        context.addCometHandler(new CounterHandler(res, counter));
     }
 
     @Override
