@@ -63,6 +63,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -318,7 +320,7 @@ public class MultipartUploadFilter implements Filter {
 
 
     /**
-     * Simple {@link org.glassfish.grizzly.http.server.io.ReadHandler} implementation, which is reading HTTP request
+     * Simple {@link org.glassfish.grizzly.ReadHandler} implementation, which is reading HTTP request
      * content (uploading file) in non-blocking mode and saves the content into
      * the specific file.
      */
@@ -327,13 +329,10 @@ public class MultipartUploadFilter implements Filter {
         // Non-blocking multipart entry input stream
         private final NIOInputStream inputStream;
 
-        // the destination file output stream, where we save the data.
-        private final FileOutputStream fileOutputStream;
+        // the destination file channel, where we save the data.
+        private final FileChannel fileOutput;
 
         private final String filename;
-
-        // temporary buffer
-        private final byte[] buf;
 
         // uploaded bytes counter
         private final AtomicInteger uploadedBytesCounter;
@@ -356,10 +355,9 @@ public class MultipartUploadFilter implements Filter {
                 throw new RuntimeException(String.format("Unable to create directory %s", uploadDir.toString()));
             }
             uploadFile = new File(uploadDir, filename);
-            fileOutputStream = new FileOutputStream(uploadFile);
+            fileOutput = new FileOutputStream(uploadFile).getChannel();
             this.inputStream = inputStream;
             this.uploadedBytesCounter = uploadedBytesCounter;
-            buf = new byte[2048];
         }
 
         /**
@@ -404,12 +402,13 @@ public class MultipartUploadFilter implements Filter {
          */
         private void readAndSaveAvail() throws IOException {
             while (inputStream.isReady()) {
-                // read the available bytes from input stream
-                final int readBytes = inputStream.read(buf);
+                final ByteBuffer buffer = inputStream.readBuffer().toByteBuffer();
+
                 // update the counter
-                uploadedBytesCounter.addAndGet(readBytes);
+                uploadedBytesCounter.addAndGet(buffer.remaining());
+
                 // save the file content to the file
-                fileOutputStream.write(buf, 0, readBytes);
+                fileOutput.write(buffer);
             }
         }
 
@@ -419,7 +418,7 @@ public class MultipartUploadFilter implements Filter {
         private void finish() {
             try {
                 // close file output stream
-                fileOutputStream.close();
+                fileOutput.close();
                 uploadedFiles.add(uploadFile);
             } catch (IOException ignored) {
             }
