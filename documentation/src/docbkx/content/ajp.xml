@@ -75,7 +75,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-filterchain.png"></imagedata>
+          <imagedata fileref="../images/ajp/httpserver-filterchain.png"/>
         </imageobject>
       </inlinemediaobject></para>
 
@@ -86,7 +86,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png"></imagedata>
+          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png"/>
         </imageobject>
       </inlinemediaobject></para>
 
@@ -173,10 +173,12 @@ listener.registerAddOn(ajpAddon);
         // Map the path, /grizzly, to the HelloWorldHandler
         config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting>
 
-    <para>The readme.txt (@TODO update after 2.1 tag created) contains setup
-    and run instructions.</para>
+    <para>The <link
+    xlink:href="http://java.net/projects/grizzly/sources/git/content/samples/http-ajp-samples/readme.txt?rev=c8ff8e24974f3c4be9a1833e58adf139b656a730">readme.txt</link>
+    contains setup and run instructions.</para>
 
-    <para>Complete sources and instructions could be found here. (@TODO update
-    after 2.1 tag created)</para>
+    <para>Complete sources and instructions could be found <link
+    xlink:href="http://java.net/projects/grizzly/sources/git/show/samples/http-ajp-samples?rev=c8ff8e24974f3c4be9a1833e58adf139b656a730">here</link>.
+    </para>
   </section>
 </chapter>
