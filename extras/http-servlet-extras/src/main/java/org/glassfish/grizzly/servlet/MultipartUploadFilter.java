@@ -418,8 +418,7 @@ public class MultipartUploadFilter implements Filter {
             // Use toByteBufferArray() as the buffer returned by
             // readBuffer() may be a CompositeBuffer - this avoids
             // an unnecessary copy.
-            final ByteBufferArray bufferArray =
-                    inputStream.readBuffer().toByteBufferArray();
+            final ByteBufferArray bufferArray = b.toByteBufferArray();
             // Obtain the underlying array, but we still need
             // bufferArray to tell us the number of elements to expect -
             // we can't rely on the length of the array itself.
