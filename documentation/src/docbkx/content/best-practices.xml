@@ -59,7 +59,7 @@
       <listitem>
         <para><emphasis role="bold">IOStrategy</emphasis></para>
 
-        <para>In the <link linkend="iostrategies">IOStrategy</link>, section
+        <para>In the <link linkend="iostrategies">IOStrategy</link> section,
         we introduced different Grizzly IOStrategies.</para>
 
         <para>By default, Grizzly Transports use the worker-thread IOStrategy,
@@ -86,7 +86,7 @@
         Depending on usecase, developers may change this value to better suit
         their needs.</para>
 
-        <para>Scott Oaks, from Glassfish performance team, <link
+        <para>Scott Oaks, from the Glassfish performance team, <link
         xlink:href="http://weblogs.java.net/blog/2007/12/03/glassfish-tuning-primer">suggests</link>
         that there should be one SelectorRunner <citation>for every 1-4 cores
         on your machine; no more than that</citation>;</para>

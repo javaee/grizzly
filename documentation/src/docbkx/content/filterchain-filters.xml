@@ -58,7 +58,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/filterchain-diagram.png"></imagedata>
+        <imagedata fileref="../images/coreframework/filterchain-diagram.png"/>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -76,7 +76,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/http-filterchain.png"></imagedata>
+        <imagedata fileref="../images/coreframework/http-filterchain.png"/>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -109,7 +109,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/https-filterchain.png"></imagedata>
+        <imagedata fileref="../images/coreframework/https-filterchain.png"/>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -213,7 +213,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/filterchaincontext.png"></imagedata>
+              <imagedata fileref="../images/coreframework/filterchaincontext.png"/>
             </imageobject>
           </inlinemediaobject></para>
 
@@ -430,18 +430,17 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
             </listitem>
 
             <listitem>
-              <para><emphasis
-              role="bold">SuspendStopAction</emphasis><programlisting
-              language="java">return ctx.getSuspendStopAction();</programlisting></para>
+              <para><emphasis role="bold">ForkAction (was
+              SuspendStopAction)</emphasis><programlisting language="java">return ctx.getForkAction();</programlisting></para>
 
               <para>This NextAction is very similar to <link
               linkend="suspend-action">SuspendAction</link>, except for one
-              important thing. After getting SuspendStopAction, Grizzly will
-              keep listening for the same I/O events on the Connection and
-              notify FilterChain if they occur.</para>
+              important thing. After getting ForkAction, Grizzly will keep
+              listening for the same I/O events on the Connection and notify
+              FilterChain if they occur.</para>
 
-              <para>Special care should be taken with this NextAction to make
-              sure two or more threads are not processing the same I/O
+              <para>Special care should be taken with this NextAction to
+              ensure that two or more threads are not processing the same I/O
               operation simultaneously.</para>
             </listitem>
           </itemizedlist></para>

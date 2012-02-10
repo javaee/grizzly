@@ -80,6 +80,14 @@
           </row>
 
           <row>
+            <entry>kernelThreadPoolConfig</entry>
+
+            <entry>This propery exposes a ThreadPoolConfig instance that
+            allows configuration of the kernel thread pool used by the
+            transport that will be constructed by this builder.</entry>
+          </row>
+
+          <row>
             <entry>IOStrategy</entry>
 
             <entry>Sets the IOStrategy that will be used by this transport.
@@ -88,8 +96,8 @@
             workerThreadPoolConfig property. If no value is explicitly set,
             the WorkerThreadIOStrategy will be employed. See the section on
             <link xlink:href="iostrategies.xml"
-            xml:id="ios001">IOStrategies</link> for specifics on each
-            concrete IOStrategy included with Grizzly @project.version@.</entry>
+            xml:id="ios001">IOStrategies</link> for specifics on each concrete
+            IOStrategy included with Grizzly @project.version@.</entry>
           </row>
 
           <row>
@@ -243,6 +251,27 @@
 
             <entry>Allows the specification of a TemporarySelectorIO instance
             to aid in the simulation of blocking IO.</entry>
+          </row>
+
+          <row>
+            <entry>optimizedForMultiplexing</entry>
+
+            <entry>Controlls the behavior of writing to a connection. If
+            enabled, then all writes regardless if the current thread can
+            write directly to the connection or not, will be passed to the
+            async write queue. When the write actually occurs, the transport
+            will attempt to write as much content from the write queue as
+            possible. This option is disabled by default.</entry>
+          </row>
+
+          <row>
+            <entry>maxAsyncWriteQueueSizeInBytes</entry>
+
+            <entry>Specifies the size, in bytes, of the async write queue on a
+            per-connection basis. If not specified, the value will be
+            configured to be four times the size of the system's socket write
+            buffer size. Setting this value to -1 will allow the queue to be
+            unbounded.</entry>
           </row>
         </tbody>
       </tgroup>
