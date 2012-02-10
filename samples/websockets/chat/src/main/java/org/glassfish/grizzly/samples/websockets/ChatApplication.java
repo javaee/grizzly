@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,8 +71,10 @@ public class ChatApplication extends WebSocketApplication {
      * @return customized {@link WebSocket} implementation - {@link ChatWebSocket}
      */
     @Override
-    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
-        return new ChatWebSocket(handler, listeners);
+    public WebSocket createSocket(ProtocolHandler handler,
+                                  HttpRequestPacket request,
+                                  WebSocketListener... listeners) {
+        return new ChatWebSocket(handler, request, listeners);
     }
 
     @Override
@@ -89,8 +91,6 @@ public class ChatApplication extends WebSocketApplication {
      */
     @Override
     public void onMessage(WebSocket websocket, String data) {
-        // Get the frame payload as text
-
         // check if it's login notification
         if (data.startsWith("login:")) {
             // process login
