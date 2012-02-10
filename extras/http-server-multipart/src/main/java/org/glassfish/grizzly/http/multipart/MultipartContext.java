@@ -48,6 +48,11 @@ import java.util.Map;
  * @author Alexey Stashok
  */
 public class MultipartContext {
+    public static final String START_ATTR = "start";
+    public static final String START_INFO_ATTR = "start-info";
+    public static final String TYPE_ATTR = "type";
+    public static final String BOUNDARY_ATTR = "boundary";
+
     private final String contentType;
     private final String boundary;
     private final Map<String, String> contentTypeAttributes;

@@ -59,9 +59,6 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
  * @author Heinrich Schuchardt
  */
 public class MultipartScanner {
-    public static final String START_ATTR = "start";
-    public static final String START_INFO_ATTR = "start-info";
-    public static final String TYPE_ATTR = "type";
     public static final String BOUNDARY_ATTR = "boundary";
     
     private static final Logger LOGGER = Grizzly.logger(MultipartScanner.class);
