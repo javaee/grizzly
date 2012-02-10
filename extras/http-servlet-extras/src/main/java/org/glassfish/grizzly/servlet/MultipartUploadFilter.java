@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.servlet;
 
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
@@ -52,6 +53,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -402,15 +404,37 @@ public class MultipartUploadFilter implements Filter {
          */
         private void readAndSaveAvail() throws IOException {
             while (inputStream.isReady()) {
-                final ByteBuffer buffer = inputStream.readBuffer().toByteBuffer();
-
-                // update the counter
-                uploadedBytesCounter.addAndGet(buffer.remaining());
-
-                // save the file content to the file
-                fileOutput.write(buffer);
+                final Buffer buffer = inputStream.readBuffer();
+                if (buffer.isComposite()) {
+                    writeCompositeBuffer(buffer);
+                } else {
+                    writeBufferToDiskAndUpdateStats(buffer.toByteBuffer());
+                }
             }
         }
+
+        private void writeCompositeBuffer(final Buffer b)
+        throws IOException {
+            // Use toByteBufferArray() as the buffer returned by
+            // readBuffer() may be a CompositeBuffer - this avoids
+            // an unnecessary copy.
+            final ByteBufferArray bufferArray =
+                    inputStream.readBuffer().toByteBufferArray();
+            // Obtain the underlying array, but we still need
+            // bufferArray to tell us the number of elements to expect -
+            // we can't rely on the length of the array itself.
+            final ByteBuffer[] buffers = bufferArray.getArray();
+            for (int i = 0, len = bufferArray.size(); i < len; i++) {
+                writeBufferToDiskAndUpdateStats(buffers[i]);
+            }
+        }
+            
+        private void writeBufferToDiskAndUpdateStats(final ByteBuffer b) 
+        throws IOException {
+            uploadedBytesCounter.addAndGet(b.remaining());
+            fileOutput.write(b);
+        }
+   
 
         /**
          * Finish the file upload
