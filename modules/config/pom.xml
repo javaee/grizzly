@@ -95,6 +95,7 @@
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>hk2-maven-plugin</artifactId>
                 <extensions>true</extensions>
+                <version>${hk2.version}</version>
                 <configuration>
                     <archive>
                         <!-- Use the manifest.mf produced by maven-bundle-plugin:manifest -->
