@@ -182,6 +182,11 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         private String contextPath;
         public WSServletRequestImpl(GrizzlyRequest r, Mapper mapper) throws IOException {
             super(r);
+            // Hold your nose....
+            GrizzlyResponse res = new GrizzlyResponse();
+            res.setResponse(new Response());
+            r.setResponse(res);
+            // Safe now...
             setContextImpl(new ServletContextImpl());
             if (mapper != null) {
                 updatePaths(r, mapper);
@@ -190,29 +195,17 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
 
         @Override
         public String getContextPath() {
-            if (contextPath != null) {
-                return contextPath;
-            } else {
-                return super.getContextPath();
-            }
+            return contextPath;
         }
 
         @Override
         public String getServletPath() {
-            if (servletPath != null) {
-                return servletPath;
-            } else {
-                return super.getServletPath();
-            }
+            return servletPath;
         }
 
         @Override
         public String getPathInfo() {
-            if (pathInfo != null) {
-                return pathInfo;
-            } else {
-                return super.getPathInfo();
-            }
+            return pathInfo;
         }
 
         private void updatePaths(GrizzlyRequest r, Mapper mapper) {
