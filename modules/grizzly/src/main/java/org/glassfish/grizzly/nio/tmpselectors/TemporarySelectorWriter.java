@@ -162,30 +162,32 @@ public abstract class TemporarySelectorWriter
         int bytesWritten = 0;
 
         try {
-            while (message.hasRemaining()) {
-                long len = writeNow0(connection, dstAddress, message,
-                        currentResult);
+            synchronized (connection) {
+                while (message.hasRemaining()) {
+                    long len = writeNow0(connection, dstAddress, message,
+                            currentResult);
 
-                if (len > 0) {
-                    attempts = 0;
-                    bytesWritten += len;
-                } else {
-                    attempts++;
-                    if (writeSelector == null) {
-                        writeSelector = transport.getTemporarySelectorIO().
-                                getSelectorPool().poll();
-
+                    if (len > 0) {
+                        attempts = 0;
+                        bytesWritten += len;
+                    } else {
+                        attempts++;
                         if (writeSelector == null) {
-                            // Continue using the main one.
-                            continue;
-                        }
-                        key = channel.register(writeSelector,
-                                SelectionKey.OP_WRITE);
-                    }
+                            writeSelector = transport.getTemporarySelectorIO().
+                                    getSelectorPool().poll();
 
-                    if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2) {
-                            throw new IOException("Client disconnected");
+                            if (writeSelector == null) {
+                                // Continue using the main one.
+                                continue;
+                            }
+                            key = channel.register(writeSelector,
+                                    SelectionKey.OP_WRITE);
+                        }
+
+                        if (writeSelector.select(writeTimeout) == 0) {
+                            if (attempts > 2) {
+                                throw new IOException("Client disconnected");
+                            }
                         }
                     }
                 }

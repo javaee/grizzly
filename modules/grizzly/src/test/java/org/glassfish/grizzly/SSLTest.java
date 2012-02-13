@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,9 @@ import java.net.InetSocketAddress;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.ClientCheckFilter;
+import org.glassfish.grizzly.utils.ParallelWriteFilter;
+import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.junit.Before;
@@ -66,7 +69,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -88,7 +90,6 @@ import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.KeyManager;
@@ -992,127 +993,4 @@ public class SSLTest {
 
     } // END Client Test Filter
 
-    private static final class RandomDelayOnWriteFilter extends BaseFilter {
-        private static final Random random = new Random();
-        @Override
-        public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-            
-            try {
-                Thread.sleep(random.nextInt(50) + 10);
-            } catch (InterruptedException ignored) {
-            }
-            
-            return ctx.getInvokeAction();
-        }        
-    }
-    
-    private static final class ParallelWriteFilter extends BaseFilter {
-        private final int packetsNumber;
-        private final int size;
-
-        private final ExecutorService executorService;
-        
-        private ParallelWriteFilter(ExecutorService executorService,
-                int packetsNumber, int size) {
-            this.executorService = executorService;
-            this.packetsNumber = packetsNumber;
-            this.size = size;
-        }
-        
-        @Override
-        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-            final Connection connection = ctx.getConnection();
-            
-            for (int i = 0; i < packetsNumber; i++) {
-                final int packetNumber = i;
-                
-                executorService.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        final char[] chars = new char[size];
-                        Arrays.fill(chars, (char) ('0' + (packetNumber % 10)));
-                        final String content = new String(chars);
-                        final FutureImpl<Boolean> completionHandlerFuture =
-                                SafeFutureImpl.<Boolean>create();
-                        try {
-                            connection.write(content, new CompletionHandler<WriteResult>() {
-                                @Override
-                                public void cancelled() {
-                                    completionHandlerFuture.failure(new IOException("cancelled"));
-                                }
-
-                                @Override
-                                public void failed(Throwable throwable) {
-                                    completionHandlerFuture.failure(throwable);
-                                }
-
-                                @Override
-                                public void completed(WriteResult result) {
-                                    completionHandlerFuture.result(true);
-                                }
-
-                                @Override
-                                public void updated(WriteResult result) {
-                                }
-                            });
-                            
-                            completionHandlerFuture.get(10, TimeUnit.SECONDS);
-                        } catch (Exception e) {
-                            logger.log(Level.SEVERE, "sending packet #" + packetNumber, e);
-                        }
-                    }
-                });
-            }
-            
-            return ctx.getInvokeAction();
-        }        
-    }
-    
-    private static final class ClientCheckFilter extends BaseFilter {
-        private final FutureImpl<Boolean> future;
-        private final int packetsNumber;
-        private final int size;
-
-        private final int[] packetsCounter = new int[10];
-        
-        private final AtomicInteger counter = new AtomicInteger();
-        private ClientCheckFilter(FutureImpl<Boolean> future, int packetsNumber, int size) {
-            this.future = future;
-            this.packetsNumber = packetsNumber;
-            this.size = size;
-        }
-
-        @Override
-        public NextAction handleRead(FilterChainContext ctx) throws IOException {
-
-            final String message = ctx.getMessage();
-            
-            try {
-                assertEquals(size, message.length());
-                
-                final char[] charsToCompare = new char[size];
-                Arrays.fill(charsToCompare, message.charAt(0));
-                final String stringToCompare = new String(charsToCompare);
-                
-                assertEquals(stringToCompare, message);
-                
-                final int index = message.charAt(0) - '0';
-                packetsCounter[index]++;
-                
-                if (counter.incrementAndGet() >= packetsNumber) {
-                    int receivedPackets = 0;
-                    for (int i = 0; i < 10; i++) {
-                        receivedPackets += packetsCounter[i];
-                    }
-                    
-                    assertEquals(packetsNumber, receivedPackets);
-                    future.result(true);
-                }
-            
-            } catch (Throwable t) {
-                future.failure(t);
-            }
-            return ctx.getStopAction();
-        }        
-    }       
 }
