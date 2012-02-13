@@ -43,13 +43,18 @@ package org.glassfish.grizzly;
 import java.nio.channels.SelectableChannel;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -64,6 +69,7 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -72,6 +78,9 @@ import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.utils.ParallelWriteFilter;
+import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -211,14 +220,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         final int startPort = PORT + 1234;
         final PortRange portRange = new PortRange(startPort, startPort + portsTest - 1);
 
-        Connection connection = null;
+        Connection connection;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
                 .setReuseAddress(false)
                 .build();
 
         try {
             for (int i = 0; i < portsTest; i++) {
-                final TCPNIOServerConnection serverConnection =
                         transport.bind("localhost", portRange, 4096);
 
 //                assertEquals(startPort + i,
@@ -741,6 +749,88 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         assertNull(t.getWorkerThreadPoolConfig());
         assertNull(t.getWorkerThreadPool());
     }
+    
+    public void testParallelWritesBlockingMode() throws Exception {
+        doTestParallelWrites(100, 100000, true);
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    protected void doTestParallelWrites(int packetsNumber,
+                                        int size,
+                                        boolean blocking) throws Exception {
+        Connection connection = null;
+
+        final ExecutorService executorService = Executors.newCachedThreadPool();
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new RandomDelayOnWriteFilter());
+        filterChainBuilder.add(new StringFilter());
+        filterChainBuilder.add(new ParallelWriteFilter(executorService, packetsNumber, size));
+
+        TCPNIOTransport transport =
+                TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+        transport.configureBlocking(blocking);
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.create();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new StringFilter());
+
+            final ClientCheckFilter clientTestFilter = new ClientCheckFilter(
+                    clientFuture, packetsNumber, size);
+
+            clientFilterChainBuilder.add(clientTestFilter);
+
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                            .processor(clientFilterChainBuilder.build())
+                            .build();
+
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            try {
+                connection.write("start");
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error occurred when sending start command");
+                throw e;
+            }
+
+            Boolean isDone = clientFuture.get(10, TimeUnit.SECONDS);
+            assertEquals(Boolean.TRUE, isDone);
+        } finally {
+            try {
+                executorService.shutdownNow();
+            } catch (Exception e) {
+            }
+
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {
+                }
+            }
+
+            try {
+                transport.stop();
+            } catch (Exception e) {
+            }
+
+        }
+    }
+    
+    
+    // ---------------------------------------------------------- Nested Classes
 
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
 

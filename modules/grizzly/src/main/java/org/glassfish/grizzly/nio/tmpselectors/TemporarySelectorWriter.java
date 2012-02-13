@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,12 +47,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractWriter;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
@@ -65,8 +63,6 @@ import org.glassfish.grizzly.nio.NIOConnection;
  */
 public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
-
-    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorWriter.class);
 
     protected final TemporarySelectorsEnabledTransport transport;
 
@@ -103,6 +99,7 @@ public abstract class TemporarySelectorWriter
      *         result
      * @throws java.io.IOException
      */
+    @SuppressWarnings("UnusedParameters")
     public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, Buffer message,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
@@ -173,30 +170,33 @@ public abstract class TemporarySelectorWriter
         int bytesWritten = 0;
 
         try {
-            while (buffer.hasRemaining()) {
-                int len = writeNow0(connection, dstAddress, buffer,
-                        currentResult);
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (connection) {
+                while (buffer.hasRemaining()) {
+                    int len = writeNow0(connection, dstAddress, buffer,
+                            currentResult);
 
-                if (len > 0) {
-                    attempts = 0;
-                    bytesWritten += len;
-                } else {
-                    attempts++;
-                    if (writeSelector == null) {
-                        writeSelector = transport.getTemporarySelectorIO().
-                                getSelectorPool().poll();
-
+                    if (len > 0) {
+                        attempts = 0;
+                        bytesWritten += len;
+                    } else {
+                        attempts++;
                         if (writeSelector == null) {
-                            // Continue using the main one.
-                            continue;
-                        }
-                        key = channel.register(writeSelector,
-                                SelectionKey.OP_WRITE);
-                    }
+                            writeSelector = transport.getTemporarySelectorIO().
+                                    getSelectorPool().poll();
 
-                    if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2) {
-                            throw new IOException("Client disconnected");
+                            if (writeSelector == null) {
+                                // Continue using the main one.
+                                continue;
+                            }
+                            key = channel.register(writeSelector,
+                                    SelectionKey.OP_WRITE);
+                        }
+
+                        if (writeSelector.select(writeTimeout) == 0) {
+                            if (attempts > 2) {
+                                throw new IOException("Client disconnected");
+                            }
                         }
                     }
                 }
@@ -225,6 +225,6 @@ public abstract class TemporarySelectorWriter
             completionHandler.failed(failure);
         }
         
-        return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
+        return ReadyFutureImpl.create(failure);
     }
 }
