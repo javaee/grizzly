@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,9 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -54,11 +56,12 @@ import java.util.ListIterator;
  * @author Alexey Stashok
  */
 public abstract class ListFacadeFilterChain extends AbstractFilterChain {
-    
+
     /**
      * The list of Filters this chain will invoke.
      */
     protected final List<Filter> filters;
+    protected boolean locked;
 
     public ListFacadeFilterChain(final List<Filter> filtersImpl) {
         this.filters = filtersImpl;
@@ -69,6 +72,10 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean add(Filter filter) {
+        if (locked) {
+            return false;
+        }
+
         if (filters.add(filter)) {
             filter.onAdded(this);
             notifyChangedExcept(filter);
@@ -82,10 +89,12 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     @Override
-    public void add(int index, Filter filter){
-        filters.add(index, filter);
-        filter.onAdded(this);
-        notifyChangedExcept(filter);
+    public void add(int index, Filter filter) {
+        if (!locked) {
+            filters.add(index, filter);
+            filter.onAdded(this);
+            notifyChangedExcept(filter);
+        }
     }
     
     /**
@@ -93,6 +102,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(Collection<? extends Filter> c) {
+        if (locked) {
+            return false;
+        }
         for(Filter filter : c) {
             filters.add(filter);
             filter.onAdded(this);
@@ -108,6 +120,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(int index, Collection<? extends Filter> c) {
+        if (locked) {
+            return false;
+        }
         int i = 0;
         for(Filter filter : c) {
             filters.add(index + (i++), filter);
@@ -124,6 +139,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter set(final int index, final Filter filter) {
+        if (locked) {
+            return null;
+        }
         final Filter oldFilter = filters.set(index, filter);
         if (oldFilter != filter) {
             filter.onAdded(this);
@@ -207,6 +225,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean remove(Object object) {
+        if (locked) {
+            return false;
+        }
         final Filter filter = (Filter) object;
 
         if (filters.remove(filter)) {
@@ -223,6 +244,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter remove(int index) {
+        if (locked) {
+            return null;
+        }
         final Filter filter = filters.remove(index);
         if (filter != null) {
             filter.onRemoved(this);
@@ -262,6 +286,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public void clear() {
+        if (locked) {
+            return;
+        }
         final Object[] localFilters = filters.toArray();
         filters.clear();
         
@@ -275,7 +302,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Iterator<Filter> iterator() {
-        return filters.iterator();
+        return Collections.unmodifiableList(filters).iterator();
     }
 
     /**
@@ -283,7 +310,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public ListIterator<Filter> listIterator() {
-        return filters.listIterator();
+        return Collections.unmodifiableList(filters).listIterator();
     }
 
     /**
@@ -291,8 +318,12 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public ListIterator<Filter> listIterator(int index) {
-        return filters.listIterator(index);
+        return Collections.unmodifiableList(filters).listIterator(index);
     }
+
+
+    // ------------------------------------------------------- Protected Methods
+
 
     protected void notifyChangedExcept(Filter filter) {
         for(Filter currentFilter : filters) {
@@ -301,4 +332,15 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
             }
         }
     }
+
+    /**
+     * Invoking this method will make this FilterChain instance immutable.
+     */
+    protected void lock() {
+        locked = true;
+        if (filters instanceof ArrayList) {
+            ((ArrayList) filters).trimToSize();
+        }
+    }
+
 }

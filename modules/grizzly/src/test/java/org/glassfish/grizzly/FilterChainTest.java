@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -58,7 +59,11 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -108,6 +113,73 @@ public class FilterChainTest extends TestCase {
         }
     };
     
+    public void testImmutability() throws Exception {
+        
+        final Filter control = new EventCounterFilter(0);
+        FilterChain chain = FilterChainBuilder.stateless().add(control).build();
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        
+        assertFalse(chain.add(new EventCounterFilter(1)));
+        assertTrue(control == chain.get(0));
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        
+        chain.add(0, new EventCounterFilter(1));
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        List<Filter> l = new ArrayList<Filter>(1);
+        l.add(new EventCounterFilter(1));
+        assertFalse(chain.addAll(l));
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        assertFalse(chain.addAll(0, l));
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        assertFalse(chain.remove(control));
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        chain.remove(0);
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        chain.clear();
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        Iterator i = chain.iterator();
+        assertTrue(i.hasNext());
+        try {
+            i.remove();
+            fail("Iterator allowed modification");
+        } catch (UnsupportedOperationException expected) {}
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+        
+        ListIterator ii = chain.listIterator();
+        assertTrue(ii.hasNext());
+        try {
+            ii.remove();
+            fail("Iterator allowed modification");
+        } catch (UnsupportedOperationException expected) {
+        }
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+
+        ii = chain.listIterator(0);
+        assertTrue(ii.hasNext());
+        try {
+            ii.remove();
+            fail("Iterator allowed modification");
+        } catch (UnsupportedOperationException expected) {
+        }
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+
+    }
+
     public void testEventUpstream() throws Exception {
         final Connection connection =
                 new TCPNIOConnection(TCPNIOTransportBuilder.newInstance().build(), null);
@@ -122,7 +194,7 @@ public class FilterChainTest extends TestCase {
                 .build();
 
         final FutureImpl<FilterChainContext> resultFuture =
-                Futures.<FilterChainContext>createSafeFuture();
+                Futures.createSafeFuture();
         
         chain.fireEventUpstream(connection, INC_EVENT,
                 Futures.toCompletionHandler(resultFuture));
@@ -144,7 +216,7 @@ public class FilterChainTest extends TestCase {
                 .build();
 
         final FutureImpl<FilterChainContext> resultFuture =
-                Futures.<FilterChainContext>createSafeFuture();
+                Futures.createSafeFuture();
         
         chain.fireEventDownstream(connection, DEC_EVENT,
                 Futures.toCompletionHandler(resultFuture));
@@ -211,7 +283,7 @@ public class FilterChainTest extends TestCase {
             }
 
             final FutureImpl<WriteResult> future =
-                    Futures.<WriteResult>createSafeFuture();
+                    Futures.createSafeFuture();
             
             clientChain.flush(connection, Futures.toCompletionHandler(future));
             future.get(10, TimeUnit.SECONDS);
