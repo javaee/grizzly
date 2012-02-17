@@ -324,10 +324,9 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.3.1</version>
+                <version>2.4.0</version>
                 <configuration>
                     <excludeFilterFile>exclude-common.xml</excludeFilterFile>
-                    <xmlOutput>true</xmlOutput>
                     <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
                 </configuration>
             </plugin>
