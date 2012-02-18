@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.compression.lzma.impl;
 
 import org.glassfish.grizzly.compression.lzma.LZMADecoder;
-import org.glassfish.grizzly.compression.lzma.LZMADecoder.LZMAInputState;
 import org.glassfish.grizzly.compression.lzma.impl.lz.OutWindow;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeDecoder;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeDecoder;
@@ -553,7 +552,7 @@ public class Decoder {
         } while (true);
     }
 
-    private boolean processState31(final LZMAInputState decoderState)
+    private boolean processState31(final LZMADecoder.LZMAInputState decoderState)
             throws IOException {
         do {
             switch (decoderState.state31) {
@@ -616,7 +615,7 @@ public class Decoder {
         } while (true);
     }
 
-    private boolean processState311(final LZMAInputState decoderState)
+    private boolean processState311(final LZMADecoder.LZMAInputState decoderState)
             throws IOException {
         do {
             switch(decoderState.state311) {
@@ -662,7 +661,7 @@ public class Decoder {
         } while (true);
     }
 
-    private State processState32(final LZMAInputState decoderState)
+    private State processState32(final LZMADecoder.LZMAInputState decoderState)
             throws IOException {
         do {
             switch (decoderState.state32) {
@@ -715,7 +714,7 @@ public class Decoder {
         } while (true);
     }
 
-    private State processState321(final LZMAInputState decoderState)
+    private State processState321(final LZMADecoder.LZMAInputState decoderState)
             throws IOException {
         do {
             switch (decoderState.state321) {
