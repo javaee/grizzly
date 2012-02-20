@@ -38,11 +38,8 @@
  * holder.
  */
 
-package org.glassfish.grizzly.memcached;
+package org.glassfish.grizzly.memcached.pool;
 
-import org.glassfish.grizzly.memcached.pool.BaseObjectPool;
-import org.glassfish.grizzly.memcached.pool.ObjectPool;
-import org.glassfish.grizzly.memcached.pool.PoolableObjectFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
