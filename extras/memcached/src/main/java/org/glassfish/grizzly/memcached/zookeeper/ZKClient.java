@@ -269,7 +269,7 @@ public class ZKClient {
      *
      * @param regionName  specific region name
      * @param listener    {@link BarrierListener} implementations
-     * @param initialData initial data. if the zookeeper server doesn't have any data, this will be set
+     * @param initialData initial data. if the zookeeper server doesn't have any data, this will be set. "null" means {@code NO_DATA} which is byte[0].
      * @return the registered data path of the zookeeper server
      */
     public String registerBarrier(final String regionName, final BarrierListener listener, final byte[] initialData) {

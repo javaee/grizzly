@@ -80,10 +80,10 @@ public class CacheServerListBarrierListener implements BarrierListener {
 
     @Override
     public void onInit(final String regionName, final String path, final byte[] remoteBytes) {
-        if (remoteBytes == null) {
+        if (remoteBytes == null || remoteBytes.length == 0) {
             return;
         }
-        // check the remote cache server list of the zookeeper server is equal to local
+        // check the remote cache server list of the zookeeper server is equal to local if the server has pre-defined server list
         try {
             final String remoteCacheServerList = new String(remoteBytes, DEFAULT_CHARSET);
             final Set<SocketAddress> remoteCacheServers = getAddressesFromStringList(remoteCacheServerList);
@@ -117,9 +117,9 @@ public class CacheServerListBarrierListener implements BarrierListener {
 
     @Override
     public void onCommit(final String regionName, final String path, byte[] remoteBytes) {
-        if (remoteBytes == null) {
+        if (remoteBytes == null || remoteBytes.length == 0) {
             if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING, "remote bytes is null. regionName={0}, path={1}", new Object[]{regionName, path});
+                logger.log(Level.WARNING, "remote bytes is null or NO_DATA(byte[0]). regionName={0}, path={1}", new Object[]{regionName, path});
             }
             return;
         }

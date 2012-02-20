@@ -44,6 +44,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memcached.zookeeper.ZKClient;
+import org.glassfish.grizzly.memcached.zookeeper.ZooKeeperConfig;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -74,6 +76,8 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
     private final boolean isExternalTransport;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
+    private ZKClient zkClient;
+
     private GrizzlyMemcachedCacheManager(final Builder builder) {
         TCPNIOTransport transportLocal = builder.transport;
         if (transportLocal == null) {
@@ -100,6 +104,31 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
             isExternalTransport = true;
         }
         this.transport = transportLocal;
+        if (builder.zooKeeperConfig != null) {
+            final ZKClient.Builder zkBuilder = new ZKClient.Builder(builder.zooKeeperConfig.getName(),
+                    builder.zooKeeperConfig.getZooKeeperServerList());
+            zkBuilder.rootPath(builder.zooKeeperConfig.getRootPath());
+            zkBuilder.connectTimeoutInMillis(builder.zooKeeperConfig.getConnectTimeoutInMillis());
+            zkBuilder.sessionTimeoutInMillis(builder.zooKeeperConfig.getSessionTimeoutInMillis());
+            zkBuilder.commitDelayTimeInSecs(builder.zooKeeperConfig.getCommitDelayTimeInSecs());
+            this.zkClient = zkBuilder.build();
+            try {
+                this.zkClient.connect();
+            } catch (IOException ie) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to connect the zookeeper server. zkClient=" + this.zkClient, ie);
+                }
+                this.zkClient = null;
+            } catch (InterruptedException ie) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to connect the zookeeper server. zkClient=" + this.zkClient, ie);
+                }
+                Thread.currentThread().interrupt();
+                this.zkClient = null;
+            }
+        } else {
+            this.zkClient = null;
+        }
     }
 
     /**
@@ -161,6 +190,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
                 }
             }
         }
+        if (zkClient != null) {
+            zkClient.shutdown();
+        }
     }
 
     /**
@@ -178,6 +210,10 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
                 !(shutdown.get() && caches.remove(cache.getName()) == cache);
     }
 
+    ZKClient getZkClient() {
+        return zkClient;
+    }
+
     public static class Builder {
 
         private TCPNIOTransport transport;
@@ -187,6 +223,9 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
         private IOStrategy ioStrategy = SameThreadIOStrategy.getInstance();
         private boolean blocking = false;
         private ExecutorService workerThreadPool;
+
+        // zookeeper config
+        private ZooKeeperConfig zooKeeperConfig;
 
         /**
          * Set the specific {@link TCPNIOTransport GrizzlyTransport}
@@ -257,6 +296,17 @@ public class GrizzlyMemcachedCacheManager implements CacheManager {
          */
         public Builder workerThreadPool(final ExecutorService workerThreadPool) {
             this.workerThreadPool = workerThreadPool;
+            return this;
+        }
+
+        /**
+         * Set the {@link ZooKeeperConfig} for synchronizing cache server list among cache clients
+         *
+         * @param zooKeeperConfig zookeeper config. if {@code zooKeeperConfig} is null, the zookeeper is never used.
+         * @return this builder
+         */
+        public Builder zooKeeperConfig(final ZooKeeperConfig zooKeeperConfig) {
+            this.zooKeeperConfig = zooKeeperConfig;
             return this;
         }
 

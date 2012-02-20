@@ -56,6 +56,8 @@ import org.glassfish.grizzly.memcached.pool.NoValidObjectException;
 import org.glassfish.grizzly.memcached.pool.ObjectPool;
 import org.glassfish.grizzly.memcached.pool.PoolExhaustedException;
 import org.glassfish.grizzly.memcached.pool.PoolableObjectFactory;
+import org.glassfish.grizzly.memcached.zookeeper.CacheServerListBarrierListener;
+import org.glassfish.grizzly.memcached.zookeeper.ZKClient;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
@@ -155,6 +157,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
 
     private final ConsistentHashStore<SocketAddress> consistentHash = new ConsistentHashStore<SocketAddress>();
 
+    private final ZKClient zkClient;
+
     private MemcachedClientFilter clientFilter;
 
     private GrizzlyMemcachedCache(Builder<K, V> builder) {
@@ -242,6 +246,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
             scheduledExecutor = null;
             scheduledFuture = null;
         }
+
+        this.zkClient = builder.zkClient;
     }
 
     /**
@@ -267,6 +273,11 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
                 addServer(address);
             }
         }
+        if (zkClient != null) {
+            // need to initialize the remote server with local initalServers if the remote server data is empty?
+            // currently, do nothing
+            zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
+        }
     }
 
     /**
@@ -286,6 +297,9 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         consistentHash.clear();
         if (connectionPool != null) {
             connectionPool.destroy();
+        }
+        if (zkClient != null) {
+            zkClient.unregisterBarrier(cacheName);
         }
     }
 
@@ -2217,10 +2231,13 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         private boolean borrowValidation = false;
         private boolean returnValidation = false;
 
+        private final ZKClient zkClient;
+
         public Builder(final String cacheName, final GrizzlyMemcachedCacheManager manager, final TCPNIOTransport transport) {
             this.cacheName = cacheName;
             this.manager = manager;
             this.transport = transport;
+            this.zkClient = manager.getZkClient();
         }
 
         /**
