@@ -50,6 +50,12 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.streams.ssl.SSLStreamReader;
+import org.glassfish.grizzly.utils.streams.ssl.SSLStreamWriter;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.junit.Before;
@@ -81,10 +87,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.ssl.SSLStreamReader;
-import org.glassfish.grizzly.ssl.SSLStreamWriter;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
@@ -537,7 +539,7 @@ public class SSLTest {
 
                             @Override
                             public void completed(final Connection connection) {
-                                connection.configureStandalone(true);
+                                StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                                 connection.setReadTimeout(10, TimeUnit.SECONDS);
                             }
                         }));

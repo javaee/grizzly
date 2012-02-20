@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,23 +43,27 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.Pair;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.transport.StandaloneTCPNIOTransport;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.transport.StandaloneTransportBuilder;
+import org.junit.Ignore;
 
 /**
  * Test how {@link CompositeBuffer} works with Streams.
  * 
  * @author Alexey Stashok
  */
+@Ignore
 public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     public static final int PORT = 7783;
@@ -68,15 +72,15 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
     @SuppressWarnings("unchecked")
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
-        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final StandaloneTCPNIOTransport transport = StandaloneTransportBuilder.newInstance().build();
 
         final Buffer portion1 = Buffers.wrap(transport.getMemoryManager(), "Hello");
         final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");
         final Buffer portion3 = Buffers.wrap(transport.getMemoryManager(), "world!");
 
-        final FutureImpl<Integer> lock1 = SafeFutureImpl.<Integer>create();
-        final FutureImpl<Integer> lock2 = SafeFutureImpl.<Integer>create();
-        final FutureImpl<Integer> lock3 = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> lock1 = SafeFutureImpl.create();
+        final FutureImpl<Integer> lock2 = SafeFutureImpl.create();
+        final FutureImpl<Integer> lock3 = SafeFutureImpl.create();
 
         final Pair<Buffer, FutureImpl<Integer>>[] portions = new Pair[] {
             new Pair<Buffer, FutureImpl<Integer>>(portion1, lock1),
@@ -86,9 +90,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
         try {
             // Start listen on specific port
-            final TCPNIOServerConnection serverConnection = transport.bind(PORT);
-
-            transport.configureStandalone(true);
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection = transport.bind(PORT);
 
             transport.start();
 
@@ -99,8 +101,8 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.configureStandalone(true);
-            
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
+
             final StreamWriter writer =
                     ((StandaloneProcessor) connection.getProcessor()).
                     getStreamWriter(connection);
@@ -128,7 +130,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
     }
 
     private void startEchoServerThread(final TCPNIOTransport transport,
-            final TCPNIOServerConnection serverConnection,
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection,
             final Pair<Buffer, FutureImpl<Integer>>[] portions) {
         new Thread(new Runnable() {
 

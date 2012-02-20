@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,18 +38,22 @@
  * holder.
  */
 
-package org.glassfish.grizzly.ssl;
+package org.glassfish.grizzly.utils.streams.ssl;
 
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.TransformerStreamWriter;
-import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.ssl.SSLEncoderTransformer;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLUtils;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.conditions.Condition;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.streams.TransformerStreamWriter;
+
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;

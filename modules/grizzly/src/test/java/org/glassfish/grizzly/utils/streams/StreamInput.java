@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,22 +38,64 @@
  * holder.
  */
 
-package org.glassfish.grizzly.streams;
+package org.glassfish.grizzly.utils.streams;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Transformer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.utils.conditions.Condition;
+import java.io.IOException;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public class TransformerStreamWriter extends AbstractStreamWriter {
+public class StreamInput implements Input {
 
-    public TransformerStreamWriter(StreamWriter underlyingStream,
-            Transformer<Buffer, Buffer> transformer) {
-        super(underlyingStream.getConnection(),
-                new TransformerOutput(transformer,
-                new StreamOutput(underlyingStream),
-                underlyingStream.getConnection()));
+    private final StreamReader streamReader;
+
+    public StreamInput(StreamReader streamReader) {
+        this.streamReader = streamReader;
+    }
+
+    @Override
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition,
+            CompletionHandler<Integer> completionHandler) {
+        return streamReader.notifyCondition(condition, completionHandler);
+    }
+
+    @Override
+    public byte read() throws IOException {
+        return streamReader.readByte();
+    }
+
+    @Override
+    public void skip(int length) {
+        streamReader.skip(length);
+    }
+
+    @Override
+    public boolean isBuffered() {
+        return streamReader.isSupportBufferWindow();
+    }
+
+    @Override
+    public Buffer getBuffer() {
+        return streamReader.getBufferWindow();
+    }
+
+    @Override
+    public Buffer takeBuffer() {
+        return streamReader.takeBufferWindow();
+    }
+
+    @Override
+    public int size() {
+        return streamReader.available();
+    }
+
+    @Override
+    public void close() throws IOException {
+        streamReader.close();
     }
 }

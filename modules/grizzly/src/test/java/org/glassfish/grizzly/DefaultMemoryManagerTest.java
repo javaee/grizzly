@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -188,7 +188,6 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
             @Override
             public void run() {
-                final int allocSize = 16384;
 
                 // Initialize memory manager
                 mm.allocate(33);
@@ -250,7 +249,6 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
             @Override
             public void run() {
-                final int allocSize = 16384;
 
                 // Initialize memory manager
                 mm.allocate(33);
@@ -418,7 +416,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     private void testInWorkerThread(final MemoryManager mm,
                                     final Runnable task) throws Exception {
-        final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> future = SafeFutureImpl.create();
 
         ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
         config.setMemoryManager(mm);

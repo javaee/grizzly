@@ -60,7 +60,7 @@ import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
  *
  * @author oleksiys
  */
-public final class TCPNIOServerConnection extends TCPNIOConnection {
+public class TCPNIOServerConnection extends TCPNIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOServerConnection.class);
     private FutureImpl<Connection> acceptListener;
@@ -79,7 +79,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 ((TCPNIOTransport) transport).selectorRegistrationHandler;
 
         final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.<RegisterChannelResult>create();
+                SafeFutureImpl.create();
         
         transport.getNIOChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this,
@@ -99,34 +99,6 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         return transport.isBlocking();
     }
 
-    @Override
-    public boolean isStandalone() {
-        return transport.isStandalone();
-    }
-
-    /**
-     * Accept a {@link Connection}. Could be used only in standalone mode.
-     * See {@link Connection#configureStandalone(boolean)}.
-     *
-     * @return {@link Future}
-     * @throws java.io.IOException
-     */
-    public GrizzlyFuture<Connection> accept() throws IOException {
-        if (!isStandalone()) {
-            throw new IllegalStateException("Accept could be used in standalone mode only");
-        }
-
-        final GrizzlyFuture<Connection> future = acceptAsync();
-
-        if (isBlocking()) {
-            try {
-                future.get();
-            } catch (Exception ignored) {
-            }
-        }
-
-        return future;
-    }
 
     /**
      * Asynchronously accept a {@link Connection}
@@ -188,7 +160,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
                 completionHandler);
-        
+
         return connection;
     }
 
@@ -217,38 +189,18 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     public void onAccept() throws IOException {
 
         final TCPNIOConnection acceptedConnection;
-        
-        if (!isStandalone()) {
-            final SocketChannel acceptedChannel = doAccept();
-            if (acceptedChannel == null) {
-                return;
-            }
 
-            configureAcceptedChannel(acceptedChannel);
-            acceptedConnection = registerAcceptedChannel(acceptedChannel,
-                    defaultCompletionHandler, SelectionKey.OP_READ);
-        } else {
-            synchronized (acceptSync) {
-                if (acceptListener == null) {
-                    TCPNIOServerConnection.this.disableIOEvent(
-                            IOEvent.SERVER_ACCEPT);
-                    return;
-                }
-
-                final SocketChannel acceptedChannel = doAccept();
-                if (acceptedChannel == null) {
-                    return;
-                }
-
-                configureAcceptedChannel(acceptedChannel);
-                acceptedConnection = registerAcceptedChannel(acceptedChannel,
-                        new RegisterAcceptedChannelCompletionHandler(acceptListener),
-                        0);
-                acceptListener = null;
-            }
+        final SocketChannel acceptedChannel = doAccept();
+        if (acceptedChannel == null) {
+            return;
         }
 
+        configureAcceptedChannel(acceptedChannel);
+        acceptedConnection = registerAcceptedChannel(acceptedChannel,
+                defaultCompletionHandler, SelectionKey.OP_READ);
+
         notifyProbesAccept(this, acceptedConnection);
+
     }
 
     @Override

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,44 +38,58 @@
  * holder.
  */
 
-package org.glassfish.grizzly.streams;
+package org.glassfish.grizzly.utils.streams;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  *
  * @author oleksiys
  */
-public interface Output {
-    public void write(byte data) throws IOException;
+public class StreamOutput implements Output {
+    private final StreamWriter streamWriter;
 
-    public void write(Buffer buffer) throws IOException;
+    public StreamOutput(StreamWriter streamWriter) {
+        this.streamWriter = streamWriter;
+    }
 
-    public boolean isBuffered();
+    @Override
+    public void write(byte data) throws IOException {
+        streamWriter.writeByte(data);
+    }
 
-    public void ensureBufferCapacity(int size) throws IOException;
-    
-    /**
-     * Return the <tt>Input</tt>'s {@link Buffer}.
-     *
-     * @return the <tt>Input</tt>'s {@link Buffer}.
-     */
-    public Buffer getBuffer();
+    @Override
+    public void write(Buffer buffer) throws IOException {
+        streamWriter.writeBuffer(buffer);
+    }
 
-    /**
-     * Make sure that all data that has been written is
-     * flushed from the stream to its destination.
-     */
+    @Override
+    public boolean isBuffered() {
+        return false;
+    }
+
+    @Override
+    public void ensureBufferCapacity(int size) throws IOException {
+    }
+
+    @Override
+    public Buffer getBuffer() {
+        throw new UnsupportedOperationException("Buffer is not available in StreamOutput");
+    }
+
+    @Override
     public GrizzlyFuture<Integer> flush(
-            CompletionHandler<Integer> completionHandler) throws IOException;
+            CompletionHandler<Integer> completionHandler) throws IOException {
+        return streamWriter.flush(completionHandler);
+    }
 
-    /**
-     * Close the {@link StreamWriter} and make sure all data was flushed.
-     */
+    @Override
     public GrizzlyFuture<Integer> close(
-            CompletionHandler<Integer> completionHandler) throws IOException;
+            CompletionHandler<Integer> completionHandler) throws IOException {
+        return streamWriter.close(completionHandler);
+    }
+
 }

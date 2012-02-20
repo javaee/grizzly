@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.nio.transport;
+package org.glassfish.grizzly.utils.transport;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
@@ -48,8 +48,8 @@ import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.streams.AbstractStreamReader;
-import org.glassfish.grizzly.streams.BufferedInput;
+import org.glassfish.grizzly.utils.streams.AbstractStreamReader;
+import org.glassfish.grizzly.utils.streams.BufferedInput;
 
 /**
  *

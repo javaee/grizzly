@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -60,7 +59,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.Pair;
 import java.io.IOException;
@@ -76,6 +74,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
 
 /**
  * Testing HTTP request parsing
@@ -249,7 +250,7 @@ public class HttpRequestParseTest extends TestCase {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             StringBuilder sb = new StringBuilder();
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,9 @@ import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import java.util.List;
 import org.glassfish.grizzly.asyncqueue.PushBackContext;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.streams.StreamReader;
 import org.junit.Test;
 import org.junit.runners.Parameterized.Parameters;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
@@ -68,8 +71,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.EchoFilter;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -191,7 +192,7 @@ public class AsyncWriteQueueTest {
                     @Override
                     public Object call() throws Exception {
                         final AtomicInteger acceptedPackets = new AtomicInteger();
-                        final FutureImpl<Boolean> f = SafeFutureImpl.<Boolean>create();
+                        final FutureImpl<Boolean> f = SafeFutureImpl.create();
                         final CompletionHandler<WriteResult> ch = new EmptyCompletionHandler<WriteResult>() {
 
                             @Override
@@ -263,8 +264,7 @@ public class AsyncWriteQueueTest {
     @Test
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
 
         final int packetNumber = 127;
         final int packetSize = 128000;
@@ -298,7 +298,7 @@ public class AsyncWriteQueueTest {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             reader = ((StandaloneProcessor) connection.getProcessor()).getStreamReader(connection);
 
@@ -306,7 +306,7 @@ public class AsyncWriteQueueTest {
             final Connection con = connection;
 
             final AtomicInteger counter = new AtomicInteger(packetNumber);
-            final FutureImpl<Boolean> sentFuture = Futures.<Boolean>createSafeFuture();
+            final FutureImpl<Boolean> sentFuture = Futures.createSafeFuture();
             
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler =
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
@@ -422,7 +422,7 @@ public class AsyncWriteQueueTest {
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-            connection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
@@ -518,7 +518,7 @@ public class AsyncWriteQueueTest {
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-            connection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
@@ -598,7 +598,7 @@ public class AsyncWriteQueueTest {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             final AsyncQueueWriter<SocketAddress> asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             
@@ -610,7 +610,7 @@ public class AsyncWriteQueueTest {
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
-            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.<Boolean>create();
+            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
             final Queue<Thread> threadsHistory = new ConcurrentLinkedQueue<Thread>();
 
             final Thread currentThread = Thread.currentThread();

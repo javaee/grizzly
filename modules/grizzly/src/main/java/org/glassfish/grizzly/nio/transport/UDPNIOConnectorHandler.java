@@ -288,10 +288,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             if (completionHandler != null) {
                 completionHandler.completed(connection);
             }
-
-            if (!connection.isStandalone()) {
-                connection.enableIOEvent(IOEvent.READ);
-            }
         }
 
         @Override

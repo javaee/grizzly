@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,46 +38,37 @@
  * holder.
  */
 
-package org.glassfish.grizzly.streams;
+package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.utils.conditions.Condition;
-import java.io.IOException;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ProcessorSelector;
 
 /**
+ * {@link org.glassfish.grizzly.ProcessorSelector}, which doesn't add any {@link org.glassfish.grizzly.Processor} to process
+ * occurred {@link org.glassfish.grizzly.IOEvent}.
+ * {@link org.glassfish.grizzly.Connection} I/O events should be processed explicitly by calling
+ * read/write/accept/connect methods.
  *
+ * Setting {@link StandaloneProcessorSelector} has the same effect as setting
+ * {@link StandaloneProcessor}, though if {@link StandaloneProcessorSelector} is
+ * set - there is still possibility to overwrite processing logic by providing
+ * custom {@link org.glassfish.grizzly.Processor}.
+ * 
  * @author Alexey Stashok
  */
-public interface Input {
-    public GrizzlyFuture<Integer> notifyCondition(
-            final Condition condition,
-            final CompletionHandler<Integer> completionHandler);
-
-    public byte read() throws IOException;
-
-    public void skip(int length);
-    
-    public boolean isBuffered();
-    
-    /**
-     * Return the <tt>Input</tt>'s {@link Buffer}.
-     *
-     * @return the <tt>Input</tt>'s {@link Buffer}.
-     */
-    public Buffer getBuffer();
+public class StandaloneProcessorSelector implements ProcessorSelector {
+    public static final StandaloneProcessorSelector INSTANCE =
+            new StandaloneProcessorSelector();
 
     /**
-     * Takes the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
-     * never try to access this {@link Buffer}.
-     *
-     * @return the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
-     * never try to access this {@link Buffer}.
+     * Always return null, which means no {@link org.glassfish.grizzly.Processor} was found to process
+     * {@link org.glassfish.grizzly.IOEvent}.
      */
-    public Buffer takeBuffer();
+    @Override
+    public Processor select(IOEvent ioEvent, Connection connection) {
+        return null;
+    }
 
-    public int size();
-
-    public void close() throws IOException;
 }

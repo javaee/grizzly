@@ -87,11 +87,11 @@ public class UDPNIOConnection extends NIOConnection {
     public void register() throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                Futures.<RegisterChannelResult>createSafeFuture();
+                Futures.createSafeFuture();
 
         transport.getNIOChannelDistributor().registerChannelAsync(
                 channel,
-                isStandalone() ? 0 : SelectionKey.OP_READ, this,
+                SelectionKey.OP_READ, this,
                 Futures.toCompletionHandler(future,
                 ((UDPNIOTransport) transport).registerChannelCompletionHandler
                 ));

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,21 +38,43 @@
  * holder.
  */
 
-package org.glassfish.grizzly.ssl;
+package org.glassfish.grizzly.utils.streams;
 
-import org.glassfish.grizzly.streams.TransformerStreamReader;
-import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
+import java.io.IOException;
 
 /**
- * SSL aware {@link StreamReader} implementation, which work like a wrapper over
- * existing {@link StreamReader}.
  *
- * @see SSLStreamWriter
- * 
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public class SSLStreamReader extends TransformerStreamReader {
-    public SSLStreamReader(StreamReader underlyingReader) {
-        super(underlyingReader, new SSLDecoderTransformer());
-    }
+public interface Output {
+    public void write(byte data) throws IOException;
+
+    public void write(Buffer buffer) throws IOException;
+
+    public boolean isBuffered();
+
+    public void ensureBufferCapacity(int size) throws IOException;
+    
+    /**
+     * Return the <tt>Input</tt>'s {@link Buffer}.
+     *
+     * @return the <tt>Input</tt>'s {@link Buffer}.
+     */
+    public Buffer getBuffer();
+
+    /**
+     * Make sure that all data that has been written is
+     * flushed from the stream to its destination.
+     */
+    public GrizzlyFuture<Integer> flush(
+            CompletionHandler<Integer> completionHandler) throws IOException;
+
+    /**
+     * Close the {@link StreamWriter} and make sure all data was flushed.
+     */
+    public GrizzlyFuture<Integer> close(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 }

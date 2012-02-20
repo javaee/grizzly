@@ -42,6 +42,9 @@ package org.glassfish.grizzly;
 
 import java.nio.channels.spi.SelectorProvider;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -106,6 +109,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setWorkerThreadPoolConfig(workerConfig);
         transport.setKernelThreadPoolConfig(selectorConfig);
         transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
+        // this block is for compatibility
+        final FilterChain chain = FilterChainBuilder.stateless().add(new TransportFilter()).build();
+        transport.setProcessor(chain);
 
     }
 

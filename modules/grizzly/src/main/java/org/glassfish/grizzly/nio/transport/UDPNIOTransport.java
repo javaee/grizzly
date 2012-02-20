@@ -274,7 +274,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                        Futures.createSafeFuture();
                 ((UDPNIOServerConnection) connection).unbind(
                         Futures.toCompletionHandler(future));
                 try {
@@ -453,7 +453,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             if (processor == null && processorSelector == null) {
-                processor = new StandaloneProcessor();
+                throw new IllegalStateException("No processor/processor selector available.");
             }
 
             if (selectorRunnersCount <= 0) {
@@ -588,20 +588,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public synchronized void configureStandalone(boolean isStandalone) {
-        if (this.isStandalone != isStandalone) {
-            this.isStandalone = isStandalone;
-            if (isStandalone) {
-                processor = StandaloneProcessor.INSTANCE;
-                processorSelector = StandaloneProcessorSelector.INSTANCE;
-            } else {
-                processor = null;
-                processorSelector = null;
-            }
-        }
-    }
-
-    @Override
     public Filter getTransportFilter() {
         return transportFilter;
     }
@@ -642,7 +628,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
         ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, ioEvent, processingHandler));
+                conProcessor, ioEvent, processingHandler));
     }
 
     /**
@@ -866,7 +852,6 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     protected void configureNIOConnection(UDPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
-        connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
         connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());

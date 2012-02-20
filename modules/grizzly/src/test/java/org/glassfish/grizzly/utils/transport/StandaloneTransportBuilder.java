@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,23 +37,38 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.utils.transport;
 
-package org.glassfish.grizzly.streams;
+import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.StandaloneProcessorSelector;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Transformer;
+public class StandaloneTransportBuilder extends TCPNIOTransportBuilder {
 
-/**
- *
- * @author oleksiys
- */
-public class TransformerStreamReader extends AbstractStreamReader {
 
-    public TransformerStreamReader(StreamReader underlyingStream,
-            Transformer<Buffer, Buffer> transformer) {
-        super(underlyingStream.getConnection(),
-                new TransformerInput(transformer,
-                new StreamInput(underlyingStream),
-                underlyingStream.getConnection()));
+    // ------------------------------------------------------------ Constructors
+
+
+    protected StandaloneTransportBuilder(Class<? extends TCPNIOTransport> transportClass, IOStrategy strategy)
+    throws IllegalAccessException, InstantiationException {
+        super(transportClass, strategy);
+    }
+
+
+    public static StandaloneTransportBuilder newInstance() {
+        try {
+            return (StandaloneTransportBuilder) new StandaloneTransportBuilder(StandaloneTCPNIOTransport.class,
+                    WorkerThreadIOStrategy.getInstance()).setProcessor(StandaloneProcessor.INSTANCE).setProcessorSelector(StandaloneProcessorSelector.INSTANCE);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public StandaloneTCPNIOTransport build() {
+        return (StandaloneTCPNIOTransport) super.build();
     }
 }

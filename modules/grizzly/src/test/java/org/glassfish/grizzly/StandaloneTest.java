@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,39 +45,40 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.transport.StandaloneTCPNIOTransport;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.transport.StandaloneTransportBuilder;
+import org.junit.Ignore;
 
 /**
  * Test standalone Grizzly implementation.
  * 
  * @author Alexey Stashok
  */
+@Ignore
 public class StandaloneTest extends GrizzlyTestCase {
     private static Logger logger = Grizzly.logger(StandaloneTest.class);
     
     public static int PORT = 7780;
-    
+
     public void testStandalone() throws Exception {
-        TCPNIOTransport transport =
-                TCPNIOTransportBuilder.newInstance().build();
+        StandaloneTCPNIOTransport transport =
+                StandaloneTransportBuilder.newInstance().build();
         transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
         
         int messageSize = 166434;
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         try {
-            // Enable standalone mode
-            transport.configureStandalone(true);
 
             // Start listen on specific port
-            final TCPNIOServerConnection serverConnection = transport.bind(PORT);
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection = transport.bind(PORT);
             // Start transport
             transport.start();
 
@@ -129,7 +130,7 @@ public class StandaloneTest extends GrizzlyTestCase {
     }
 
     private Thread startEchoServerThread(final TCPNIOTransport transport,
-            final TCPNIOServerConnection serverConnection,
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection,
             final int messageSize) {
         final Thread thread = new Thread(new Runnable() {
             @Override

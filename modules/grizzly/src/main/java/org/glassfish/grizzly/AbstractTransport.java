@@ -71,8 +71,6 @@ public abstract class AbstractTransport implements Transport {
      */
     protected volatile boolean isBlocking;
 
-    protected volatile boolean isStandalone;
-
     /**
      * Transport state controller
      */
@@ -190,11 +188,6 @@ public abstract class AbstractTransport implements Transport {
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
         notifyProbesConfigChanged(this);
-    }
-
-    @Override
-    public boolean isStandalone() {
-        return isStandalone;
     }
 
     /**

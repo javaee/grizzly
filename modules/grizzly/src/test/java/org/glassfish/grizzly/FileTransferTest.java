@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -166,11 +166,13 @@ public class FileTransferTest {
 
         f = File.createTempFile("grizzly-test-", ".tmp");
         new FileOutputStream(f).write(1);
+        //noinspection ResultOfMethodCallIgnored
         f.setReadable(false);
         try {
             new FileTransfer(f, 0, 1);
             fail("Expected IllegalArgumentException to be thrown");
         } catch (IllegalArgumentException iae) {
+            //noinspection ResultOfMethodCallIgnored
             f.setReadable(true);
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);

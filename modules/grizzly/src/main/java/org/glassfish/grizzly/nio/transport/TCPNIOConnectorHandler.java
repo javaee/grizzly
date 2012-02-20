@@ -92,7 +92,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             CompletionHandler<Connection> completionHandler) {
 
         final FutureImpl<Connection> future =
-                Futures.<Connection>createSafeFuture();
+                Futures.createSafeFuture();
         
         connectAsync(remoteAddress, localAddress,
                 Futures.<Connection>toCompletionHandler(
@@ -229,7 +229,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         } catch (TimeoutException e) {
             Futures.notifyFailure(future, completionHandler,
                     new IOException("Channel registration on Selector timeout!"));
-        } catch (Exception ingored) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -321,10 +321,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 completionHandler.completed(connection);
             }
 
-            if (!connection.isStandalone()) {
-                connection.enableIOEvent(IOEvent.READ);
-            }
+            connection.enableIOEvent(IOEvent.READ);
         }
+
 
         @Override
         public void onError(final Context context, final Object description)

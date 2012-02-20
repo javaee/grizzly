@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,15 +55,18 @@ import java.util.logging.Logger;
 import junit.framework.Assert;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
-import org.glassfish.grizzly.streams.AbstractStreamReader;
-import org.glassfish.grizzly.streams.BufferedInput;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
+import org.glassfish.grizzly.utils.transport.StandaloneTCPNIOTransport;
 import org.glassfish.grizzly.utils.conditions.Condition;
 import java.util.concurrent.BlockingQueue;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.streams.AbstractStreamReader;
+import org.glassfish.grizzly.utils.streams.BufferedInput;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.transport.StandaloneTransportBuilder;
+import org.junit.Ignore;
 
 /**
  * Basic idea:
@@ -78,16 +81,17 @@ import org.glassfish.grizzly.utils.DataStructures;
  *    @author Ken Cavanaugh
  *    @author John Vieten
  **/
+@Ignore
 public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public static final int PORT = 7778;
     private static final Logger LOGGER = Grizzly.logger(ByteBufferStreamsTest.class);
-    private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.<Boolean>create();
+    private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.create();
     private Connection clientconnection = null;
-    private TCPNIOTransport servertransport = null;
+    private StandaloneTCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
     private final BlockingQueue<Checker> checkerQueue = DataStructures.getLTQInstance(Checker.class);
-    private TCPNIOTransport clienttransport;
+    private StandaloneTCPNIOTransport clienttransport;
 
     interface Checker {
 
@@ -553,47 +557,6 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         }
     }
 
-    static class BooleanArrayChecker extends CheckerBase {
-
-        private boolean data;
-        private int size;
-
-        @Override
-        public String value() {
-            return size + ":" + data;
-        }
-
-        public BooleanArrayChecker(int size, boolean arg) {
-            this.size = size;
-            data = arg;
-        }
-
-        @Override
-        public void write(StreamWriter writer) throws IOException {
-            wmsg();
-            boolean[] value = new boolean[size];
-            for (int ctr = 0; ctr < size; ctr++) {
-                value[ctr] = data;
-            }
-            writer.writeBooleanArray(value);
-        }
-
-        @Override
-        public void readAndCheck(StreamReader reader) throws IOException {
-            rmsg();
-            boolean[] value = new boolean[size];
-            reader.readBooleanArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertTrue(value[ctr] == data);
-            }
-        }
-
-        @Override
-        public long byteSize() {
-            return size;
-        }
-    }
-
     static class ByteArrayChecker extends CheckerBase {
 
         private byte data;
@@ -1032,10 +995,6 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         return new DoubleChecker(arg);
     }
 
-    private static Checker za(int size, boolean arg) {
-        return new BooleanArrayChecker(size, arg);
-    }
-
     private static Checker ba(int size, byte arg) {
         return new ByteArrayChecker(size, arg);
     }
@@ -1116,7 +1075,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         future.get(10, TimeUnit.SECONDS);
         
         // test streaming
-        MemoryManager alloc = MemoryManager.DEFAULT_MEMORY_MANAGER;;
+        MemoryManager alloc = MemoryManager.DEFAULT_MEMORY_MANAGER;
         byte[] testdata = new byte[500];
 
 
@@ -1191,12 +1150,10 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     }
 
     public void setupServer() {
-        servertransport = TCPNIOTransportBuilder.newInstance().build();
-        // no use for default memorymanager
-        servertransport.configureStandalone(true);
+        servertransport = StandaloneTransportBuilder.newInstance().build();
 
         try {
-            final TCPNIOServerConnection serverConnection = servertransport.bind(PORT);
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection = servertransport.bind(PORT);
             servertransport.start();
 
             // Start echo server thread
@@ -1211,25 +1168,22 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     private Future<Integer> send(final Checker checker) throws IOException {
         checkerQueue.add(checker);
         checker.write(clientWriter);
-        final Future<Integer> result = clientWriter.flush();
-        return result;
+        return clientWriter.flush();
     }
 
     public void setupClient() {
 
-        clienttransport = TCPNIOTransportBuilder.newInstance().build();
+        clienttransport = StandaloneTransportBuilder.newInstance().build();
         try {
 
             clienttransport.start();
             clienttransport.configureBlocking(false);
-            clienttransport.configureStandalone(true);
-            
+
             Future<Connection> future =
                     clienttransport.connect("localhost", PORT);
             clientconnection = future.get(10, TimeUnit.SECONDS);
             assertTrue(clientconnection != null);
-
-            clientconnection.configureStandalone(true);
+            StandaloneModeTestUtils.configureConnectionAsStandalone(clientconnection);
             clientWriter =
                     ((StandaloneProcessor) clientconnection.getProcessor()).
                     getStreamWriter(clientconnection);
@@ -1240,7 +1194,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     }
 
     private void startEchoServerThread(final TCPNIOTransport transport,
-            final TCPNIOServerConnection serverConnection) {
+            final StandaloneTCPNIOTransport.StandaloneTCPNIOServerConnection serverConnection) {
         new Thread(new Runnable() {
 
             @Override
@@ -1250,7 +1204,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
                         Future<Connection> acceptFuture = serverConnection.accept();
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                         assertTrue(acceptFuture.isDone());
-                        connection.configureStandalone(true);
+                        StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
                         StreamReader reader =
                                 ((StandaloneProcessor) connection.getProcessor()).

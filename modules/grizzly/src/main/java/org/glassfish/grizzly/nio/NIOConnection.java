@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -98,7 +98,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             new AtomicReference<CloseType>();
     
     protected volatile boolean isBlocking;
-    protected volatile boolean isStandalone;
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
             DataStructures.getLTQInstance(CloseListener.class);
@@ -138,25 +137,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public boolean isBlocking() {
         return isBlocking;
-    }
-
-    @Override
-    public synchronized void configureStandalone(boolean isStandalone) {
-        if (this.isStandalone != isStandalone) {
-            this.isStandalone = isStandalone;
-            if (isStandalone) {
-                processor = StandaloneProcessor.INSTANCE;
-                processorSelector = StandaloneProcessorSelector.INSTANCE;
-            } else {
-                processor = transport.getProcessor();
-                processorSelector = transport.getProcessorSelector();
-            }
-        }
-    }
-
-    @Override
-    public boolean isStandalone() {
-        return isStandalone;
     }
 
     @Override
@@ -234,7 +214,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         
         final FutureImpl<RegisterChannelResult> future =
-                Futures.<RegisterChannelResult>createSafeFuture();
+                Futures.createSafeFuture();
         
         selectorHandler.registerChannelAsync(
             selectorRunner, channel, 0, this, Futures.toCompletionHandler(future));
@@ -342,7 +322,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read() {
         final FutureImpl<ReadResult<M, SocketAddress>> future =
-                Futures.<ReadResult<M, SocketAddress>>createSafeFuture();
+                Futures.createSafeFuture();
         read(Futures.toCompletionHandler(future));
         
         return future;
@@ -359,7 +339,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message) {
         final FutureImpl<WriteResult<M, SocketAddress>> future =
-                Futures.<WriteResult<M, SocketAddress>>createSafeFuture();
+                Futures.createSafeFuture();
         write(null, message, Futures.toCompletionHandler(future), null);
         
         return future;
@@ -400,7 +380,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public GrizzlyFuture<Connection> close() {
         
-        final FutureImpl<Connection> future = Futures.<Connection>createSafeFuture();
+        final FutureImpl<Connection> future = Futures.createSafeFuture();
         close(Futures.toCompletionHandler(future));
         
         return future;

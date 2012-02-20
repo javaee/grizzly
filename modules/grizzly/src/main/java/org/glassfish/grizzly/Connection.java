@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,10 +87,6 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * <tt>false</tt> otherwise.
      */
     boolean isBlocking();
-
-    void configureStandalone(boolean isStandalone);
-
-    boolean isStandalone();
 
     /**
      * Gets the {@link Processor}, which will process {@link Connection}

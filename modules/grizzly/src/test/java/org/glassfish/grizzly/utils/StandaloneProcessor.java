@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,27 +38,36 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.utils;
 
 import java.net.Socket;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ProcessorResult;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.nio.transport.DefaultStreamReader;
-import org.glassfish.grizzly.nio.transport.DefaultStreamWriter;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.utils.transport.DefaultStreamReader;
+import org.glassfish.grizzly.utils.transport.DefaultStreamWriter;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
 
 /**
- * {@link Processor}, which is not interested in processing I/O events.
- * {@link Connection} lifecycle should be managed explicitly,
+ * {@link org.glassfish.grizzly.Processor}, which is not interested in processing I/O events.
+ * {@link org.glassfish.grizzly.Connection} lifecycle should be managed explicitly,
  * using read/write/accept/connect methods.
  *
- * This {@link Processor} could be set on {@link Connection} to avoid it from
- * being processed by {@link FilterChain} or other {@link Processor}. In this
- * case {@link Connection} could be used like regular Java {@link Socket}.
+ * This {@link org.glassfish.grizzly.Processor} could be set on {@link org.glassfish.grizzly.Connection} to avoid it from
+ * being processed by {@link FilterChain} or other {@link org.glassfish.grizzly.Processor}. In this
+ * case {@link org.glassfish.grizzly.Connection} could be used like regular Java {@link Socket}.
  *
  * @author Alexey Stashok
  */
@@ -68,8 +77,8 @@ public class StandaloneProcessor implements Processor {
 
     /**
      * This method should never be called, because
-     * {@link StandaloneProcessor#isInterested(IOEvent)} returns false for any
-     * {@link IOEvent}.
+     * {@link StandaloneProcessor#isInterested(org.glassfish.grizzly.IOEvent)} returns false for any
+     * {@link org.glassfish.grizzly.IOEvent}.
      */
     @Override
     public ProcessorResult process(final Context context) {

@@ -82,7 +82,7 @@ import org.glassfish.grizzly.utils.Exceptions;
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
  */
-public final class TCPNIOTransport extends NIOTransport implements
+public class TCPNIOTransport extends NIOTransport implements
         SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
@@ -95,7 +95,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * The Server connections.
      */
-    final Collection<TCPNIOServerConnection> serverConnections;
+    protected final Collection<TCPNIOServerConnection> serverConnections;
     /**
      * Transport AsyncQueueIO
      */
@@ -201,7 +201,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
 
             if (processor == null && processorSelector == null) {
-                processor = new StandaloneProcessor();
+                throw new IllegalStateException("No processor/processor selector available.");
             }
 
             if (selectorRunnersCount <= 0) {
@@ -612,7 +612,6 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
-        connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
         connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
@@ -653,20 +652,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     @Override
     public AsyncQueueIO<SocketAddress> getAsyncQueueIO() {
         return asyncQueueIO;
-    }
-
-    @Override
-    public synchronized void configureStandalone(final boolean isStandalone) {
-        if (this.isStandalone != isStandalone) {
-            this.isStandalone = isStandalone;
-            if (isStandalone) {
-                processor = StandaloneProcessor.INSTANCE;
-                processorSelector = StandaloneProcessorSelector.INSTANCE;
-            } else {
-                processor = null;
-                processorSelector = null;
-            }
-        }
     }
 
     public int getLinger() {

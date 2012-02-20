@@ -68,8 +68,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.DataStructures;
@@ -85,7 +83,11 @@ import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
+import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
+import org.glassfish.grizzly.utils.StandaloneProcessor;
 import org.glassfish.grizzly.utils.StringFilter;
+import org.glassfish.grizzly.utils.streams.StreamReader;
+import org.glassfish.grizzly.utils.streams.StreamWriter;
 
 
 /**
@@ -267,7 +269,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -275,7 +277,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             
@@ -304,7 +306,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     }
 
     public void testClose() throws Exception {
-        final BlockingQueue<Connection> acceptedQueue = DataStructures.<Connection>getLTQInstance();
+        final BlockingQueue<Connection> acceptedQueue = DataStructures.getLTQInstance();
         
         Connection connectedConnection = null;
         Connection acceptedConnection = null;
@@ -388,7 +390,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -396,7 +398,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             
@@ -447,7 +449,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.configureBlocking(true);
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -455,7 +457,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             
@@ -506,7 +508,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -514,7 +516,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             
@@ -577,7 +579,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -585,7 +587,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             
@@ -691,7 +693,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -699,7 +701,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -781,7 +783,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             final FutureImpl<Connection> connectFuture =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
                     Futures.<Connection>toCompletionHandler(
@@ -789,7 +791,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
                         }
                     }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);

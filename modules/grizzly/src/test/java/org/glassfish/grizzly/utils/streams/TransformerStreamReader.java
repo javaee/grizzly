@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,48 +38,22 @@
  * holder.
  */
 
-package org.glassfish.grizzly.streams;
+package org.glassfish.grizzly.utils.streams;
 
-import org.glassfish.grizzly.TransformationException;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.TransformationResult.Status;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Transformer;
-import org.glassfish.grizzly.utils.ResultAware;
-import org.glassfish.grizzly.utils.conditions.Condition;
 
 /**
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public class StreamDecodeCondition<E> implements Condition {
+public class TransformerStreamReader extends AbstractStreamReader {
 
-    private final StreamReader streamReader;
-    
-    private final Transformer<Stream, E> decoder;
-    private final ResultAware<E> resultAware;
-
-    public StreamDecodeCondition(StreamReader streamReader,
-            Transformer<Stream, E> decoder,
-            ResultAware<E> resultAware) {
-        this.streamReader = streamReader;
-        this.decoder = decoder;
-        this.resultAware = resultAware;
-    }
-
-    @Override
-    public boolean check() {
-        final TransformationResult<Stream, E> result =
-                decoder.transform(streamReader.getConnection(), streamReader);
-
-        final Status status = result.getStatus();
-        if (status == Status.COMPLETE) {
-            resultAware.setResult(result.getMessage());
-            return true;
-        } else if (status == Status.INCOMPLETE) {
-            return false;
-        }
-
-        throw new TransformationException(result.getErrorCode() + ": " +
-                result.getErrorDescription());
+    public TransformerStreamReader(StreamReader underlyingStream,
+            Transformer<Buffer, Buffer> transformer) {
+        super(underlyingStream.getConnection(),
+                new TransformerInput(transformer,
+                new StreamInput(underlyingStream),
+                underlyingStream.getConnection()));
     }
 }

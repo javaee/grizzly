@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,32 +38,46 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.utils.streams;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.utils.conditions.Condition;
+import java.io.IOException;
 
 /**
- * {@link ProcessorSelector}, which doesn't add any {@link Processor} to process
- * occurred {@link IOEvent}.
- * {@link Connection} I/O events should be processed explicitly by calling
- * read/write/accept/connect methods.
  *
- * Setting {@link StandaloneProcessorSelector} has the same effect as setting
- * {@link StandaloneProcessor}, though if {@link StandaloneProcessorSelector} is
- * set - there is still possibility to overwrite processing logic by providing
- * custom {@link Processor}.
- * 
  * @author Alexey Stashok
  */
-public class StandaloneProcessorSelector implements ProcessorSelector {
-    public static final StandaloneProcessorSelector INSTANCE =
-            new StandaloneProcessorSelector();
+public interface Input {
+    public GrizzlyFuture<Integer> notifyCondition(
+            final Condition condition,
+            final CompletionHandler<Integer> completionHandler);
+
+    public byte read() throws IOException;
+
+    public void skip(int length);
+    
+    public boolean isBuffered();
+    
+    /**
+     * Return the <tt>Input</tt>'s {@link Buffer}.
+     *
+     * @return the <tt>Input</tt>'s {@link Buffer}.
+     */
+    public Buffer getBuffer();
 
     /**
-     * Always return null, which means no {@link Processor} was found to process
-     * {@link IOEvent}.
+     * Takes the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
+     * never try to access this {@link Buffer}.
+     *
+     * @return the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
+     * never try to access this {@link Buffer}.
      */
-    @Override
-    public Processor select(IOEvent ioEvent, Connection connection) {
-        return null;
-    }
+    public Buffer takeBuffer();
 
+    public int size();
+
+    public void close() throws IOException;
 }

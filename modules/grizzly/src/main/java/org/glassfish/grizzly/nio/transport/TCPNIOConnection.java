@@ -118,7 +118,7 @@ public class TCPNIOConnection extends NIOConnection {
         return localSocketAddress;
     }
 
-    protected final void resetProperties() {
+    protected void resetProperties() {
         if (channel != null) {
             setReadBufferSize(transport.getReadBufferSize());
             setWriteBufferSize(transport.getWriteBufferSize());
@@ -261,7 +261,7 @@ public class TCPNIOConnection extends NIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
+    protected void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
         this.monitoringConfig.addProbes(monitoringProbes);
     }
 
