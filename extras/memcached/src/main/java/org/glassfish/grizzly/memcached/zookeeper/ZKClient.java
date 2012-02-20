@@ -88,7 +88,10 @@ import java.util.logging.Logger;
  * Examples of barrier's use:
  * {@code
  * // initial
- * final ZKClient zkClient = new ZKClient("myZookeeperClient", "localhost:2181", 3000, 30000, "/myrootpath", 60);
+ * <p/>
+ * final ZKClient.Builder builder = new ZKClient.Builder("myZookeeperClient", "localhost:2181");
+ * builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(30000).commitDelayTimeInSecs(60);
+ * final ZKClient zkClient = builder.build();
  * zkClient.connect()
  * final String registeredPath = zkClient.registerBarrier( "user", myListener, initData );
  * // ...
@@ -135,32 +138,28 @@ public class ZKClient {
     private final ScheduledExecutorService scheduledExecutor;
     private ZooKeeper zooKeeper;
 
-    private final String name;
     private final String uniqueId;
     private final String uniqueIdPath;
-    private final String rootPath;
     private final String basePath;
+
+    private final String name;
     private final String zooKeeperServerList;
-    private final long connectionTimeoutInMillis;
+    private final long connectTimeoutInMillis;
     private final long sessionTimeoutInMillis;
+    private final String rootPath;
     private final long commitDelayTimeInSecs;
 
-    public ZKClient(final String name,
-                    final String zooKeeperServerList,
-                    final long connectTimeoutInMillis,
-                    final long sessionTimeoutInMillis,
-                    final String rootPath,
-                    final long commitDelayTimeInSecs) {
-        this.name = name;
-        this.uniqueId = JVM_AND_HOST_UNIQUE_ID + "_" + name;
+    private ZKClient(final Builder builder) {
+        this.name = builder.name;
+        this.uniqueId = JVM_AND_HOST_UNIQUE_ID + "_" + this.name;
         this.uniqueIdPath = normalizePath(this.uniqueId);
-        this.rootPath = normalizePath(rootPath);
+        this.rootPath = normalizePath(builder.rootPath);
         this.basePath = this.rootPath + BASE_PATH;
 
-        this.zooKeeperServerList = zooKeeperServerList;
-        this.connectionTimeoutInMillis = connectTimeoutInMillis;
-        this.sessionTimeoutInMillis = sessionTimeoutInMillis;
-        this.commitDelayTimeInSecs = commitDelayTimeInSecs;
+        this.zooKeeperServerList = builder.zooKeeperServerList;
+        this.connectTimeoutInMillis = builder.connectTimeoutInMillis;
+        this.sessionTimeoutInMillis = builder.sessionTimeoutInMillis;
+        this.commitDelayTimeInSecs = builder.commitDelayTimeInSecs;
 
         this.scheduledExecutor = Executors.newScheduledThreadPool(5);
     }
@@ -187,7 +186,7 @@ public class ZKClient {
                         public void process(WatchedEvent event) {
                         }
                     }));
-            if (!ensureConnected(connectionTimeoutInMillis)) {
+            if (!ensureConnected(connectTimeoutInMillis)) {
                 zooKeeper.close();
                 currentState = Watcher.Event.KeeperState.Disconnected;
                 connected = false;
@@ -869,7 +868,7 @@ public class ZKClient {
                 ", rootPath='" + rootPath + '\'' +
                 ", basePath='" + basePath + '\'' +
                 ", zooKeeperServerList='" + zooKeeperServerList + '\'' +
-                ", connectionTimeoutInMillis=" + connectionTimeoutInMillis +
+                ", connectTimeoutInMillis=" + connectTimeoutInMillis +
                 ", sessionTimeoutInMillis=" + sessionTimeoutInMillis +
                 ", commitDelayTimeInSecs=" + commitDelayTimeInSecs +
                 '}';
@@ -897,41 +896,86 @@ public class ZKClient {
         return builder.toString();
     }
 
-    public static void main(String[] argv) throws IOException, InterruptedException, KeeperException {
-        ZooKeeper test = new ZooKeeper("localhost:2181", 5000, new Watcher() {
-            @Override
-            public void process(WatchedEvent event) {
-                System.out.println(event.getType() + "@" + event.getState() + "-" + event.getPath());
-            }
-        });
-        try {
-            test.create("/test", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-        } catch (KeeperException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        test.setData("/test", new byte[0], -1);
-        test.setData("/test", new byte[0], -1);
-        test.exists("/test", true);
-        test.exists("/test", new Watcher() {
-            @Override
-            public void process(WatchedEvent event) {
-                System.out.println("!" + event.getType() + "@" + event.getState() + "-" + event.getPath());
-            }
-        });
-        test.setData("/test", new byte[0], -1);
-        test.setData("/test", new byte[0], -1);
-        final Stat stat = new Stat();
-        test.getData("/test", false, stat);
-        System.out.println(new Date(stat.getMtime()));
-        Thread.sleep(2000);
-        test.getData("/test", false, stat);
-        System.out.println(new Date(stat.getMtime()));
-        test.setData("/test", new byte[0], -1);
-        test.getData("/test", false, stat);
-        System.out.println(new Date(stat.getMtime()));
+    /**
+     * Builder for ZKClient
+     */
+    public static class Builder {
+        private static final String DEFAULT_ROOT_PATH = "/";
+        private static final long DEFAULT_CONNECT_TIMEOUT_IN_MILLIS = 5000; // 5secs
+        private static final long DEFAULT_SESSION_TIMEOUT_IN_MILLIS = 30000; // 30secs
+        private static final long DEFAULT_COMMIT_DELAY_TIME_IN_SECS = 60; // 60secs
 
-        System.out.println(new Date(System.currentTimeMillis()));
+        private final String name;
+        private final String zooKeeperServerList;
+
+        private String rootPath = DEFAULT_ROOT_PATH;
+        private long connectTimeoutInMillis = DEFAULT_CONNECT_TIMEOUT_IN_MILLIS;
+        private long sessionTimeoutInMillis = DEFAULT_SESSION_TIMEOUT_IN_MILLIS;
+        private long commitDelayTimeInSecs = DEFAULT_COMMIT_DELAY_TIME_IN_SECS;
+
+        /**
+         * The specific name or Id for ZKClient
+         *
+         * @param name                name or id
+         * @param zooKeeperServerList comma separated host:port pairs, each corresponding to a zookeeper server.
+         *                            e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002"
+         */
+        public Builder(final String name, final String zooKeeperServerList) {
+            this.name = name;
+            this.zooKeeperServerList = zooKeeperServerList;
+        }
+
+        /**
+         * Root path for ZKClient
+         *
+         * @param rootPath root path of the zookeeper. default is "/".
+         * @return this builder
+         */
+        public Builder rootPath(final String rootPath) {
+            this.rootPath = rootPath;
+            return this;
+        }
+
+        /**
+         * Connect timeout in milli-seconds
+         *
+         * @param connectTimeoutInMillis connect timeout. negative value means "never timed out". default is 5000(5 secs).
+         * @return this builder
+         */
+        public Builder connectTimeoutInMillis(final long connectTimeoutInMillis) {
+            this.connectTimeoutInMillis = connectTimeoutInMillis;
+            return this;
+        }
+
+        /**
+         * Session timeout in milli-seconds
+         *
+         * @param sessionTimeoutInMillis Zookeeper connection's timeout. default is 30000(30 secs).
+         * @return this builder
+         */
+        public Builder sessionTimeoutInMillis(final long sessionTimeoutInMillis) {
+            this.sessionTimeoutInMillis = sessionTimeoutInMillis;
+            return this;
+        }
+
+        /**
+         * Delay time in seconds for committing
+         *
+         * @param commitDelayTimeInSecs delay time before committing. default is 60(60secs).
+         * @return this builder
+         */
+        public Builder commitDelayTimeInSecs(final long commitDelayTimeInSecs) {
+            this.commitDelayTimeInSecs = commitDelayTimeInSecs;
+            return this;
+        }
+
+        /**
+         * Build a ZKClient
+         *
+         * @return an instance of ZKClient
+         */
+        public ZKClient build() {
+            return new ZKClient(this);
+        }
     }
 }

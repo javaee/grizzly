@@ -71,7 +71,9 @@ public class ZKClientTest {
     //@Test
     public void testNoBarrier() {
         // init
-        final ZKClient zkClient = new ZKClient("no-barrier-test", DEFAULT_ZOOKEEPER_ADDRESS, 3000, 3000, ROOT, 30);
+        final ZKClient.Builder builder = new ZKClient.Builder("no-barrier-test", DEFAULT_ZOOKEEPER_ADDRESS);
+        builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(3000).commitDelayTimeInSecs(30);
+        final ZKClient zkClient = builder.build();
         try {
             zkClient.connect();
         } catch (IOException ie) {
@@ -132,7 +134,9 @@ public class ZKClientTest {
     //@Test
     public void testOneBarrier() {
         // init
-        final ZKClient zkClient = new ZKClient("one-barrier-test", DEFAULT_ZOOKEEPER_ADDRESS, 3000, 3000, ROOT, 2);
+        final ZKClient.Builder builder = new ZKClient.Builder("one-barrier-test", DEFAULT_ZOOKEEPER_ADDRESS);
+        builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(3000).commitDelayTimeInSecs(2);
+        final ZKClient zkClient = builder.build();
         try {
             zkClient.connect();
         } catch (IOException ie) {
@@ -201,7 +205,9 @@ public class ZKClientTest {
         final int clientCount = 10;
         final ZKClient[] zkClient = new ZKClient[clientCount + 1];
         for (int i = 0; i < clientCount + 1; i++) {
-            zkClient[i] = new ZKClient("barrier-test" + i, DEFAULT_ZOOKEEPER_ADDRESS, 3000, 3000, ROOT, 3);
+            final ZKClient.Builder builder = new ZKClient.Builder("barrier-test" + i, DEFAULT_ZOOKEEPER_ADDRESS);
+            builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(3000).commitDelayTimeInSecs(3);
+            zkClient[i] = builder.build();
             try {
                 zkClient[i].connect();
             } catch (IOException ie) {
@@ -279,7 +285,9 @@ public class ZKClientTest {
         final int regionCount = 5;
         final ZKClient[] zkClient = new ZKClient[clientCount + 1];
         for (int i = 0; i < clientCount + 1; i++) {
-            zkClient[i] = new ZKClient("barrier-test" + i, DEFAULT_ZOOKEEPER_ADDRESS, 3000, 3000, ROOT, 4);
+            final ZKClient.Builder builder = new ZKClient.Builder("barrier-test" + i, DEFAULT_ZOOKEEPER_ADDRESS);
+            builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(3000).commitDelayTimeInSecs(4);
+            zkClient[i] = builder.build();
             try {
                 zkClient[i].connect();
             } catch (IOException ie) {

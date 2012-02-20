@@ -118,7 +118,9 @@ public class CacheServerListBarrierListenerTest {
         logger.info("##initial server = " + serversString);
 
         // init
-        final ZKClient zkClient = new ZKClient("cache-server-list-test", DEFAULT_ZOOKEEPER_ADDRESS, 3000, 3000, ROOT, 1);
+        final ZKClient.Builder builder = new ZKClient.Builder("cache-server-list-test", DEFAULT_ZOOKEEPER_ADDRESS);
+        builder.rootPath(ROOT).connectTimeoutInMillis(3000).sessionTimeoutInMillis(3000).commitDelayTimeInSecs(1);
+        final ZKClient zkClient = builder.build();
         try {
             zkClient.connect();
         } catch (IOException ie) {
