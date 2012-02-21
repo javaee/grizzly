@@ -160,7 +160,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
     private final ConsistentHashStore<SocketAddress> consistentHash = new ConsistentHashStore<SocketAddress>();
 
     private final ZKClient zkClient;
-    private String ZooKeeperServerListPath;
+    private String zooKeeperServerListPath;
 
     private MemcachedClientFilter clientFilter;
 
@@ -279,7 +279,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         if (zkClient != null) {
             // need to initialize the remote server with local initalServers if the remote server data is empty?
             // currently, do nothing
-            ZooKeeperServerListPath = zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
+            zooKeeperServerListPath = zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
         }
     }
 
@@ -403,7 +403,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         if (!isZooKeeperSupported()) {
             return null;
         }
-        return ZooKeeperServerListPath;
+        return zooKeeperServerListPath;
     }
 
     /**
@@ -414,7 +414,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         if (!isZooKeeperSupported()) {
             return null;
         }
-        final byte[] serverListBytes = zkClient.getData(ZooKeeperServerListPath, null);
+        final byte[] serverListBytes = zkClient.getData(zooKeeperServerListPath, null);
         if (serverListBytes == null) {
             return null;
         }
@@ -450,7 +450,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             }
             return false;
         }
-        return zkClient.setData(ZooKeeperServerListPath, serverListBytes, -1) != null;
+        return zkClient.setData(zooKeeperServerListPath, serverListBytes, -1) != null;
     }
 
     /**
