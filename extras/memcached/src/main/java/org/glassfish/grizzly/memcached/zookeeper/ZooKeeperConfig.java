@@ -44,6 +44,32 @@ import java.io.Serializable;
 
 /**
  * The configuration for ZooKeeper client
+ * <p/>
+ * Example of use:
+ * {@code
+ * final GrizzlyMemcachedCacheManager.Builder managerBuilder = new GrizzlyMemcachedCacheManager.Builder();
+ * // setup zookeeper server
+ * final ZooKeeperConfig zkConfig = ZooKeeperConfig.create("cache-manager", DEFAULT_ZOOKEEPER_ADDRESS);
+ * zkConfig.setRootPath(ROOT);
+ * zkConfig.setConnectTimeoutInMillis(3000);
+ * zkConfig.setSessionTimeoutInMillis(30000);
+ * zkConfig.setCommitDelayTimeInSecs(2);
+ * managerBuilder.zooKeeperConfig(zkConfig);
+ * // create a cache manager
+ * final GrizzlyMemcachedCacheManager manager = managerBuilder.build();
+ * final GrizzlyMemcachedCache.Builder<String, String> cacheBuilder = manager.createCacheBuilder("user");
+ * // setup memcached servers
+ * final Set<SocketAddress> memcachedServers = new HashSet<SocketAddress>();
+ * memcachedServers.add(MEMCACHED_ADDRESS1);
+ * memcachedServers.add(MEMCACHED_ADDRESS2);
+ * cacheBuilder.servers(memcachedServers);
+ * // create a user cache
+ * final GrizzlyMemcachedCache<String, String> cache = cacheBuilder.build();
+ * // ...
+ * // clean
+ * manager.removeCache("user");
+ * manager.shutdown();
+ * }
  *
  * @author Bongjae Chang
  */

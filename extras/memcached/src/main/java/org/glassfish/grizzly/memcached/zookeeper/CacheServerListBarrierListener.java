@@ -60,7 +60,7 @@ import java.util.logging.Logger;
 public class CacheServerListBarrierListener implements BarrierListener {
 
     private static final Logger logger = Grizzly.logger(CacheServerListBarrierListener.class);
-    private static final String DEFAULT_CHARSET = "UTF-8";
+    public static final String DEFAULT_SERVER_LIST_CHARSET = "UTF-8";
 
     private final String cacheName;
     private final MemcachedCache cache;
@@ -85,7 +85,7 @@ public class CacheServerListBarrierListener implements BarrierListener {
         }
         // check the remote cache server list of the zookeeper server is equal to local if the server has pre-defined server list
         try {
-            final String remoteCacheServerList = new String(remoteBytes, DEFAULT_CHARSET);
+            final String remoteCacheServerList = new String(remoteBytes, DEFAULT_SERVER_LIST_CHARSET);
             final Set<SocketAddress> remoteCacheServers = getAddressesFromStringList(remoteCacheServerList);
             boolean checked = true;
             for (final SocketAddress local : localCacheServerSet) {
@@ -124,7 +124,7 @@ public class CacheServerListBarrierListener implements BarrierListener {
             return;
         }
         try {
-            final String remoteDataString = new String(remoteBytes, DEFAULT_CHARSET);
+            final String remoteDataString = new String(remoteBytes, DEFAULT_SERVER_LIST_CHARSET);
             final Set<SocketAddress> remoteCacheServers = getAddressesFromStringList(remoteDataString);
             if (!remoteCacheServers.isEmpty()) {
                 if (cache != null) {

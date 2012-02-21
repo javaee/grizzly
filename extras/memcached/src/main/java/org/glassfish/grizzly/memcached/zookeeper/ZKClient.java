@@ -359,6 +359,12 @@ public class ZKClient {
     }
 
     public String create(final String path, final byte[] data, final List<ACL> acl, final CreateMode createMode) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this create()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<String>() {
                 @Override
@@ -375,6 +381,12 @@ public class ZKClient {
     }
 
     public Stat exists(final String path, final boolean watch) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this exists()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<Stat>() {
                 @Override
@@ -391,6 +403,12 @@ public class ZKClient {
     }
 
     public Stat exists(final String path, final Watcher watch) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this exists()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<Stat>() {
                 @Override
@@ -407,6 +425,12 @@ public class ZKClient {
     }
 
     public List<String> getChildren(final String path, final boolean watch) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this getChildren()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<List<String>>() {
                 @Override
@@ -423,6 +447,12 @@ public class ZKClient {
     }
 
     public List<String> getChildren(final String path, final Watcher watcher) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this getChildren()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<List<String>>() {
                 @Override
@@ -439,6 +469,12 @@ public class ZKClient {
     }
 
     public byte[] getData(final String path, final boolean watch, final Stat stat) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this getData()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<byte[]>() {
                 @Override
@@ -455,6 +491,12 @@ public class ZKClient {
     }
 
     public byte[] getData(final String path, final Watcher watcher) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this getData()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<byte[]>() {
                 @Override
@@ -471,6 +513,12 @@ public class ZKClient {
     }
 
     public Stat setData(final String path, final byte[] data, final int version) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this setData()");
+            }
+            return null;
+        }
         try {
             return retryUntilConnected(new Callable<Stat>() {
                 @Override
@@ -487,6 +535,12 @@ public class ZKClient {
     }
 
     public boolean delete(final String path, final int version) {
+        if( zooKeeper == null ) {
+            if( logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "this client has not been connected. please call ZKClient#connect() method before calling this delete()");
+            }
+            return false;
+        }
         try {
             retryUntilConnected(new Callable<Boolean>() {
                 @Override

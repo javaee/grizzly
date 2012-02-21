@@ -67,7 +67,7 @@ public class FailoverTest {
 
     private final static SocketAddress DEFAULT_MEMCACHED_ADDRESS = new InetSocketAddress(11211);
     private final static SocketAddress FAILOVER_MEMCACHED_ADDRESS = new InetSocketAddress(11212);
-    private final static SocketAddress MOCK_MEMCACHED_ADDRESS = new InetSocketAddress(11213);
+    private final static SocketAddress MOCK_MEMCACHED_ADDRESS = new InetSocketAddress(21212);
 
     // this is manual test
     //@Test

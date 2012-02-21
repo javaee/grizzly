@@ -58,9 +58,11 @@ import org.glassfish.grizzly.memcached.pool.PoolExhaustedException;
 import org.glassfish.grizzly.memcached.pool.PoolableObjectFactory;
 import org.glassfish.grizzly.memcached.zookeeper.CacheServerListBarrierListener;
 import org.glassfish.grizzly.memcached.zookeeper.ZKClient;
+import org.glassfish.grizzly.memcached.zookeeper.ZooKeeperSupportCache;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
+import java.io.UnsupportedEncodingException;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -128,7 +130,7 @@ import java.util.logging.Logger;
  *
  * @author Bongjae Chang
  */
-public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
+public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKeeperSupportCache {
 
     private static final Logger logger = Grizzly.logger(GrizzlyMemcachedCache.class);
 
@@ -158,6 +160,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
     private final ConsistentHashStore<SocketAddress> consistentHash = new ConsistentHashStore<SocketAddress>();
 
     private final ZKClient zkClient;
+    private String ZooKeeperServerListPath;
 
     private MemcachedClientFilter clientFilter;
 
@@ -276,7 +279,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         if (zkClient != null) {
             // need to initialize the remote server with local initalServers if the remote server data is empty?
             // currently, do nothing
-            zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
+            ZooKeeperServerListPath = zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
         }
     }
 
@@ -382,6 +385,72 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
     @Override
     public boolean isInServerList(final SocketAddress serverAddress) {
         return consistentHash.hasValue(serverAddress);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isZooKeeperSupported() {
+        return zkClient != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getZooKeeperServerListPath() {
+        if (!isZooKeeperSupported()) {
+            return null;
+        }
+        return ZooKeeperServerListPath;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getCurrentServerListFromZooKeeper() {
+        if (!isZooKeeperSupported()) {
+            return null;
+        }
+        final byte[] serverListBytes = zkClient.getData(ZooKeeperServerListPath, null);
+        if (serverListBytes == null) {
+            return null;
+        }
+        final String serverListString;
+        try {
+            serverListString = new String(serverListBytes, CacheServerListBarrierListener.DEFAULT_SERVER_LIST_CHARSET);
+        } catch (UnsupportedEncodingException e) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "failed to decode the server list bytes");
+            }
+            return null;
+        }
+        return serverListString;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean setCurrentServerListOfZooKeeper(final String cacheServerList) {
+        if (!isZooKeeperSupported()) {
+            return false;
+        }
+        if (cacheServerList == null) {
+            return false;
+        }
+        final byte[] serverListBytes;
+        try {
+            serverListBytes = cacheServerList.getBytes(CacheServerListBarrierListener.DEFAULT_SERVER_LIST_CHARSET);
+        } catch (UnsupportedEncodingException e) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "failed to eecode the server list");
+            }
+            return false;
+        }
+        return zkClient.setData(ZooKeeperServerListPath, serverListBytes, -1) != null;
     }
 
     /**
