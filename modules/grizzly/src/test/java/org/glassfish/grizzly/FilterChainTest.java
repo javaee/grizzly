@@ -119,33 +119,68 @@ public class FilterChainTest extends TestCase {
         FilterChain chain = FilterChainBuilder.stateless().add(control).build();
         assertEquals("Expected chain length of 1", 1, chain.size());
         
-        assertFalse(chain.add(new EventCounterFilter(1)));
+        try {
+            chain.add(new EventCounterFilter(1));
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+        
         assertTrue(control == chain.get(0));
         assertEquals("Expected chain length of 1", 1, chain.size());
         
-        chain.add(0, new EventCounterFilter(1));
+        try {
+            chain.add(0, new EventCounterFilter(1));
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+
         assertEquals("Expected chain length of 1", 1, chain.size());
         assertTrue(control == chain.get(0));
         
         List<Filter> l = new ArrayList<Filter>(1);
         l.add(new EventCounterFilter(1));
-        assertFalse(chain.addAll(l));
+        try {
+            chain.addAll(l);
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+        
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+
+        try {
+            assertFalse(chain.addAll(0, l));
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+        
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+
+        try {
+            assertFalse(chain.remove(control));
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+        
+        assertEquals("Expected chain length of 1", 1, chain.size());
+        assertTrue(control == chain.get(0));
+
+        try {
+            chain.remove(0);
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
+        
         assertEquals("Expected chain length of 1", 1, chain.size());
         assertTrue(control == chain.get(0));
         
-        assertFalse(chain.addAll(0, l));
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
+        try {
+            chain.clear();
+            fail("filterchain should be immutable");
+        } catch (UnsupportedOperationException e) {
+        }
         
-        assertFalse(chain.remove(control));
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        chain.remove(0);
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        chain.clear();
         assertEquals("Expected chain length of 1", 1, chain.size());
         assertTrue(control == chain.get(0));
         

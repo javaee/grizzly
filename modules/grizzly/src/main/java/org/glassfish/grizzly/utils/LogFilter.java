@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,18 +90,8 @@ public class LogFilter extends BaseFilter {
     }
 
     @Override
-    public void onAdded(FilterChain filterChain) {
-        logger.log(level, "LogFilter onAdded");
-    }
-
-    @Override
-    public void onRemoved(FilterChain filterChain) {
-        logger.log(level, "LogFilter onRemoved");
-    }
-
-    @Override
-    public void onFilterChainChanged(FilterChain filterChain) {
-        logger.log(level, "LogFilter onFilterChainChanged");
+    public void onFilterChainConstructed(FilterChain filterChain) {
+        logger.log(level, "LogFilter onFilterChainConstructed");
     }
 
     @Override

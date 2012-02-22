@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,28 +74,12 @@ import org.glassfish.grizzly.attributes.Attribute;
  */
 public interface Filter {
     /**
-     * Method is called, when the <tt>Filter</tt> has been added to the
-     * passed {@link FilterChain}.
-     *
-     * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was added to.
-     */
-    public void onAdded(FilterChain filterChain);
-    
-    /**
-     * Method is called, when the <tt>Filter</tt> has been removed from the
-     * passed {@link FilterChain}.
-     *
-     * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was removed from.
-     */
-    public void onRemoved(FilterChain filterChain);
-
-    /**
      * Method is called, when the {@link FilterChain} this <tt>Filter</tt> is part of,
-     * has been changed.
+     * has been constructed.
      *
      * @param filterChain the {@link FilterChain}.
      */
-    public void onFilterChainChanged(FilterChain filterChain);
+    public void onFilterChainConstructed(FilterChain filterChain);
     
     /**
      * Execute a unit of processing work to be performed, when channel will

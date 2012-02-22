@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,23 +54,13 @@ import java.lang.ref.WeakReference;
  */
 public class BaseFilter implements Filter {
 
-    private volatile int index;
-    private volatile WeakReference<FilterChain> filterChain;
+    private int index;
+    private WeakReference<FilterChain> filterChain;
 
     @Override
-    public void onAdded(FilterChain filterChain) {
+    public void onFilterChainConstructed(final FilterChain filterChain) {
         index = filterChain.indexOf(this);
         this.filterChain = new WeakReference<FilterChain>(filterChain);
-    }
-
-    @Override
-    public void onFilterChainChanged(FilterChain filterChain) {
-        index = filterChain.indexOf(this);
-    }
-
-    @Override
-    public void onRemoved(FilterChain filterChain) {
-        index = -1;
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,34 +49,28 @@ import org.glassfish.grizzly.*;
  * This class implement the "Chain of Responsibility" pattern (for more info, 
  * take a look at the classic "Gang of Four" design patterns book). Towards 
  * that end, the Chain API models a computation as a series of "protocol filter"
- * that can be combined into a "protocol chain". 
+ * that can be combined into a "protocol chain".
+ * 
+ * The FilterChain is <tt>unmodifiable</tt>.
+ * 
  * </p><p>
- * The API for Filter consists of a two set of methods (handleXXX() and
- * postXXX) which is passed a "protocol context" parameter containing the
+ * The API for Filter consists of methods (handleXXX()) which get a 
+ * "protocol context" parameter containing the
  * dynamic state of the computation, and whose return value is a
  * {@link NextAction} that instructs <tt>FilterChain</tt>, how it should
- * continue processing. The owning ProtocolChain  must call the
- * postXXX() method of each Filter in a FilterChain in reverse
- * order of the invocation of their handleXXX() methods.
+ * continue processing.
  * </p><p>
  * The following picture describe how it Filter(s) 
  * </p><p><pre><code>
  * -----------------------------------------------------------------------------
  * - Filter1.handleXXX() --> Filter2.handleXXX()                    |          -
- * -                                                                |          -
- * -                                                                |          -
- * -                                                                |          -
- * - Filter1.postXXX() <-- Filter2.postXXX()                        |          -
  * -----------------------------------------------------------------------------
  * </code></pre></p><p>
  * The "context" abstraction is designed to isolate Filter
  * implementations from the environment in which they are run 
  * (such as a Filter that can be used in either IIOP or HTTP parsing, 
  * without being tied directly to the API contracts of either of these 
- * environments). For Filter that need to allocate resources prior to 
- * delegation, and then release them upon return (even if a delegated-to 
- * Filter throws an exception), the "postXXX" method can be used
- * for cleanup. 
+ * environments).
  * </p>
  *
  * @see Filter

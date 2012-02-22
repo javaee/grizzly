@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -61,7 +60,6 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * The list of Filters this chain will invoke.
      */
     protected final List<Filter> filters;
-    protected boolean locked;
 
     public ListFacadeFilterChain(final List<Filter> filtersImpl) {
         this.filters = filtersImpl;
@@ -72,17 +70,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean add(Filter filter) {
-        if (locked) {
-            return false;
-        }
-
-        if (filters.add(filter)) {
-            filter.onAdded(this);
-            notifyChangedExcept(filter);
-            return true;
-        }
-
-        return false;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
         
     /**
@@ -90,11 +78,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public void add(int index, Filter filter) {
-        if (!locked) {
-            filters.add(index, filter);
-            filter.onAdded(this);
-            notifyChangedExcept(filter);
-        }
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
     
     /**
@@ -102,17 +86,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(Collection<? extends Filter> c) {
-        if (locked) {
-            return false;
-        }
-        for(Filter filter : c) {
-            filters.add(filter);
-            filter.onAdded(this);
-        }
-
-        notifyChangedExcept(null);
-        
-        return true;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -120,18 +94,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(int index, Collection<? extends Filter> c) {
-        if (locked) {
-            return false;
-        }
-        int i = 0;
-        for(Filter filter : c) {
-            filters.add(index + (i++), filter);
-            filter.onAdded(this);
-        }
-
-        notifyChangedExcept(null);
-
-        return true;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -139,20 +102,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter set(final int index, final Filter filter) {
-        if (locked) {
-            return null;
-        }
-        final Filter oldFilter = filters.set(index, filter);
-        if (oldFilter != filter) {
-            filter.onAdded(this);
-            if (oldFilter != null) {
-                oldFilter.onRemoved(this);
-            }
-
-            notifyChangedExcept(filter);
-        }
-
-        return oldFilter;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
     
     /**
@@ -217,7 +167,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean retainAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -225,18 +175,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean remove(Object object) {
-        if (locked) {
-            return false;
-        }
-        final Filter filter = (Filter) object;
-
-        if (filters.remove(filter)) {
-            filter.onRemoved(this);
-            notifyChangedExcept(filter);
-            return true;
-        }
-
-        return false;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
            
     /**
@@ -244,17 +183,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter remove(int index) {
-        if (locked) {
-            return null;
-        }
-        final Filter filter = filters.remove(index);
-        if (filter != null) {
-            filter.onRemoved(this);
-            notifyChangedExcept(filter);
-            return filter;
-        }
-
-        return null;
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -262,7 +191,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean removeAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -286,15 +215,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public void clear() {
-        if (locked) {
-            return;
-        }
-        final Object[] localFilters = filters.toArray();
-        filters.clear();
-        
-        for (Object filter : localFilters) {
-            ((Filter) filter).onRemoved(this);
-        }
+        throw new UnsupportedOperationException("Can not modify filterchain");
     }
 
     /**
@@ -320,27 +241,4 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
     public ListIterator<Filter> listIterator(int index) {
         return Collections.unmodifiableList(filters).listIterator(index);
     }
-
-
-    // ------------------------------------------------------- Protected Methods
-
-
-    protected void notifyChangedExcept(Filter filter) {
-        for(Filter currentFilter : filters) {
-            if (currentFilter != filter) {
-                currentFilter.onFilterChainChanged(this);
-            }
-        }
-    }
-
-    /**
-     * Invoking this method will make this FilterChain instance immutable.
-     */
-    protected void lock() {
-        locked = true;
-        if (filters instanceof ArrayList) {
-            ((ArrayList) filters).trimToSize();
-        }
-    }
-
 }
