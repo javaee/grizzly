@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,11 +42,15 @@ package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.utils.Utils;
 
 public class DefaultTestCometHandler extends DefaultCometHandler<String> implements Comparable<CometHandler> {
+    private static final Logger LOGGER = Grizzly.logger(DefaultTestCometHandler.class);
+
     volatile AtomicBoolean onInitializeCalled = new AtomicBoolean(false);
     volatile AtomicBoolean onInterruptCalled = new AtomicBoolean(false);
     volatile AtomicBoolean onEventCalled = new AtomicBoolean(false);
@@ -56,26 +60,30 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
         super(cometContext, response);
     }
 
+    @Override
     public void onEvent(CometEvent event) throws IOException {
-        Utils.dumpOut("     -> onEvent Handler:" + hashCode());
+        LOGGER.log(Level.FINE, "     -> onEvent Handler:{0}", hashCode());
         onEventCalled.set(true);
     }
 
+    @Override
     public void onInitialize(CometEvent event) throws IOException {
-        Utils.dumpOut("     -> onInitialize Handler:" + hashCode());
+        LOGGER.log(Level.FINE, "     -> onInitialize Handler:{0}", hashCode());
         getResponse().addHeader(BasicCometTest.onInitialize,
             event.attachment() == null ? BasicCometTest.onInitialize : event.attachment().toString());
         onInitializeCalled.set(true);
     }
 
+    @Override
     public void onTerminate(CometEvent event) throws IOException {
-        Utils.dumpOut("    -> onTerminate Handler:" + hashCode());
+        LOGGER.log(Level.FINE, "    -> onTerminate Handler:{0}", hashCode());
         onTerminateCalled.set(true);
         getResponse().getNIOWriter().write(BasicCometTest.onTerminate);
     }
 
+    @Override
     public void onInterrupt(CometEvent event) throws IOException {
-        Utils.dumpOut("    -> onInterrupt Handler:" + hashCode());
+        LOGGER.log(Level.FINE, "    -> onInterrupt Handler:{0}", hashCode());
         onInterruptCalled.set(true);
         getResponse().getNIOWriter().write(BasicCometTest.onInterrupt);
     }

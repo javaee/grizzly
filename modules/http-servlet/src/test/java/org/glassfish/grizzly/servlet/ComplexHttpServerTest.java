@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * {@link HttpServer} tests.
@@ -61,7 +60,7 @@ import org.glassfish.grizzly.utils.Utils;
 public class ComplexHttpServerTest extends HttpServerAbstractTest {
 
     public static final int PORT = 18890 + 10;
-    private static final Logger logger = Grizzly.logger(ComplexHttpServerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(ComplexHttpServerTest.class);
 
     /**
      * Want to test multiple servletMapping
@@ -79,7 +78,7 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
      * @throws IOException Error.
      */
     public void testComplexAliasMapping() throws IOException {
-        Utils.dumpOut("testComplexAliasMapping");
+        LOGGER.fine("testComplexAliasMapping");
         try {
             startHttpServer(PORT);
             String[] aliases = new String[] { "/1", "/2", "/3", "*.a" };
@@ -116,7 +115,7 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
 
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-                logger.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
+                LOGGER.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(req.getRequestURI());
             }

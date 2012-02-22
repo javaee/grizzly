@@ -57,7 +57,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.utils.Utils;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 
 /**
@@ -84,7 +83,7 @@ public class WebSocketEngine {
     public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     public static final Version DEFAULT_VERSION = Version.DRAFT17;
     public static final int INITIAL_BUFFER_SIZE = 8192;
-    public static final int DEFAULT_TIMEOUT = Utils.isDebugVM() ? 900 : 30;
+    public static final int DEFAULT_TIMEOUT = 30;
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";

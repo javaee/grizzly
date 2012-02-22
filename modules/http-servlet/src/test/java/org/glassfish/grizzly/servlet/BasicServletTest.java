@@ -50,9 +50,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.sun.jersey.server.impl.application.WebApplicationContext;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * Basic Servlet Test.
@@ -66,7 +64,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     private final String header = "text/html;charset=utf8";
 
     public void testServletName() throws IOException {
-        Utils.dumpOut("testServletName");
+        LOGGER.fine("testServletName");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/contextPath");
@@ -82,7 +80,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testSetHeaderTest() throws IOException {
-        Utils.dumpOut("testSetHeaderTest");
+        LOGGER.fine("testSetHeaderTest");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -98,7 +96,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testPathInfo() throws IOException {
-        Utils.dumpOut("testPathInfo");
+        LOGGER.fine("testPathInfo");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/contextPath");
@@ -114,7 +112,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
 //    public void testNotAllowEncodedSlash() throws IOException {
-//        Utils.dumpOut("testNotAllowEncodedSlash");
+//        LOGGER.fine("testNotAllowEncodedSlash");
 //        try {
 //            newHttpServer(PORT);
 //            String alias = "/contextPath/servletPath/";
@@ -131,7 +129,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
 //    }
 //
 //    public void testAllowEncodedSlash() throws IOException {
-//        Utils.dumpOut("testAllowEncodedSlash");
+//        LOGGER.fine("testAllowEncodedSlash");
 //        try {
 //            newHttpServer(PORT);
 //            String alias = "/contextPath/servletPath/";
@@ -149,7 +147,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
 //    }
 
     public void testDoubleSlash() throws IOException {
-        Utils.dumpOut("testDoubleSlash");
+        LOGGER.fine("testDoubleSlash");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/");
@@ -160,7 +158,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            Utils.dumpOut("s: " + s);
+            LOGGER.fine("s: " + s);
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
@@ -178,7 +176,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            Utils.dumpOut("s: " + s);
+            LOGGER.fine("s: " + s);
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
@@ -197,7 +195,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testInitParameters() throws IOException {
-        Utils.dumpOut("testContextParameters");
+        LOGGER.fine("testContextParameters");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");

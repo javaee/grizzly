@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,11 +47,13 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import junit.framework.TestCase;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * Basic Comet Test.
@@ -60,6 +62,8 @@ import org.glassfish.grizzly.utils.Utils;
  * @author Gustav Trede
  */
 public class BasicCometTest extends TestCase {
+    private static final Logger LOGGER = Grizzly.logger(BasicCometTest.class);
+
     final static String onInitialize = "onInitialize";
     final static String onTerminate = "onTerminate";
     final static String onInterrupt = "onInterrupt";
@@ -88,7 +92,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnInterruptExpirationDelay() throws Exception {
-        Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
+        LOGGER.fine("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         cometContext.setExpirationDelay(delay);
         String alias = "/OnInterrupt";
@@ -108,7 +112,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testClientCloseConnection() throws Exception {
-        Utils.dumpOut("testClientCloseConnection");
+        LOGGER.fine("testClientCloseConnection");
         cometContext.setExpirationDelay(-1);
         String alias = "/OnClientCloseConnection";
         final CometHttpHandler ga = addHttpHandler(alias, true);
@@ -117,7 +121,7 @@ public class BasicCometTest extends TestCase {
         s.setSoTimeout(500);
         OutputStream os = s.getOutputStream();
         String a = "GET " + alias + " HTTP/1.1\n" + "Host: localhost:" + PORT + "\n\n";
-        Utils.dumpOut("     " + a);
+        LOGGER.log(Level.FINE, "     {0}", a);
         os.write(a.getBytes());
         os.flush();
         try {
@@ -131,7 +135,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnTerminate() throws IOException, InterruptedException {
-        Utils.dumpOut("testOnTerminate ");
+        LOGGER.fine("testOnTerminate ");
         cometContext.setExpirationDelay(-1);
         String alias = "/OnTerminate";
         final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);
@@ -147,7 +151,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnEvent() throws Exception {
-        Utils.dumpOut("testOnEvent ");
+        LOGGER.fine("testOnEvent ");
         final String alias = "/OnEvent";
         cometContext.setExpirationDelay(-1);
         final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);

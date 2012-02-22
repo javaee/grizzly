@@ -71,7 +71,6 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * {@link HttpServer} tests.
@@ -82,10 +81,10 @@ import org.glassfish.grizzly.utils.Utils;
 public class HttpServerTest extends HttpServerAbstractTest {
 
     public static final int PORT = 18890+10;
-    private static final Logger logger = Grizzly.logger(HttpServerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(HttpServerTest.class);
 
     public void testAddHttpHandlerAfterStart() throws IOException {
-        Utils.dumpOut("testAddHttpHandlerAfterStart");
+        LOGGER.fine("testAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 1;
             startHttpServer(port);
@@ -104,7 +103,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     public void testMultipleAddHttpHandlerAfterStart() throws IOException {
-        Utils.dumpOut("testMultipleAddHttpHandlerAfterStart");
+        LOGGER.fine("testMultipleAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 2;
             startHttpServer(port);
@@ -126,7 +125,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     public void testOverlapingAddHttpHandlerAfterStart() throws IOException {
-        Utils.dumpOut("testOverlapingAddHttpHandlerAfterStart");
+        LOGGER.fine("testOverlapingAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 3;
             startHttpServer(port);
@@ -152,7 +151,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
 //    public void testAddRemoveMixAfterStart() throws IOException {
-//        Utils.dumpOut("testAddRemoveMixAfterStart");
+//        LOGGER.fine"testAddRemoveMixAfterStart");
 //        try {
 //            final int port = PORT + 4;
 //            startHttpServer(port);
@@ -184,7 +183,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
      * @throws IOException Error.
      */
     public void testStartContract() throws IOException {
-        Utils.dumpOut("testStartContract");
+        LOGGER.fine("testStartContract");
         // lock port
         Socket soc = new Socket();
         int port = PORT + 5;
@@ -194,7 +193,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
             fail("Could not bind to port: " + port + ". " + e.getMessage());
         }
 
-        Utils.dumpOut("Bound to port: " + port);
+        LOGGER.log(Level.FINE, "Bound to port: {0}", port);
 
         try {
             httpServer = HttpServer.createSimpleServer(".", port);
@@ -202,7 +201,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
             httpServer.start();
             fail("Should throw exception that can't bind to port.");
         } catch (IOException e) {
-            Utils.dumpOut("Ha got you this time.");
+            LOGGER.fine("Ha got you this time.");
         } finally {
             soc.close();
             stopHttpServer();
@@ -218,7 +217,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
      */
     public void testStartSecureWithConfiguration()
             throws IOException, URISyntaxException, GeneralSecurityException {
-        Utils.dumpOut("testStartSecureWithConfiguration");
+        LOGGER.fine("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
 
         SSLContextConfigurator sslContextConfig = new SSLContextConfigurator();
@@ -343,7 +342,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
      * @throws IOException Fail.
      */
     public void testAddHttpHandlerBeforeAndAfterStart() throws IOException {
-        Utils.dumpOut("testAddHttpHandlerBeforeAndAfterStart");
+        LOGGER.fine("testAddHttpHandlerBeforeAndAfterStart");
         try {
             final int port = PORT + 9;
             httpServer = HttpServer.createSimpleServer(".", port);
@@ -376,7 +375,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     public void testMultipleAddHttpHandlerBeforeStartAndOneAfter() throws IOException {
-        Utils.dumpOut("testMultipleAddHttpHandlerBeforeStartAndOneAfter");
+        LOGGER.fine("testMultipleAddHttpHandlerBeforeStartAndOneAfter");
         try {
             final int port = PORT + 10;
             httpServer = HttpServer.createSimpleServer(".", port);
@@ -414,7 +413,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
 
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-                logger.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
+                LOGGER.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);
             }

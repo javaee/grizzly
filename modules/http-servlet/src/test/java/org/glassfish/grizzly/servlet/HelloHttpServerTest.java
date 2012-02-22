@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,6 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * {@link HttpServer} tests.
@@ -68,11 +67,11 @@ import org.glassfish.grizzly.utils.Utils;
 public class HelloHttpServerTest extends TestCase {
 
     public static final int PORT = 18890 + 11;
-    private static final Logger logger = Grizzly.logger(HelloHttpServerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(HelloHttpServerTest.class);
     private HttpServer httpServer;
 
     public void testNPERegression() throws IOException {
-        Utils.dumpOut("testNPERegression");
+        LOGGER.fine("testNPERegression");
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -97,7 +96,7 @@ public class HelloHttpServerTest extends TestCase {
     }
 
     public void testMultiPath() throws IOException {
-        Utils.dumpOut("testMultiPath");
+        LOGGER.fine("testMultiPath");
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -130,7 +129,7 @@ public class HelloHttpServerTest extends TestCase {
     }
 
     public void testProtocolFilter() throws IOException {
-        Utils.dumpOut("testProtocolFilter");
+        LOGGER.fine("testProtocolFilter");
         try {
             String[] aliases = new String[] { "*.foo" };
             WebappContext ctx = new WebappContext("Test");
@@ -142,7 +141,7 @@ public class HelloHttpServerTest extends TestCase {
             ctx.deploy(httpServer);
 
             Processor pc = httpServer.getListener("grizzly").getTransport().getProcessor();
-            Utils.dumpOut("ProtcolChain: " + pc);
+            LOGGER.fine("ProtcolChain: " + pc);
             assertNotNull(pc);
         } finally {
             stopHttpServer();
@@ -160,7 +159,7 @@ public class HelloHttpServerTest extends TestCase {
         String line;
 
         while((line = reader.readLine())!=null){
-            logger.log(Level.INFO, "received line {0}", line);
+            LOGGER.log(Level.INFO, "received line {0}", line);
             sb.append(line).append("\n");
         }
 
@@ -168,7 +167,7 @@ public class HelloHttpServerTest extends TestCase {
     }
 
     private HttpURLConnection getConnection(String path) throws IOException {
-        logger.log(Level.INFO, "sending request to {0}", path);
+        LOGGER.log(Level.INFO, "sending request to {0}", path);
         URL url = new URL("http", "localhost", PORT, path);
         HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
         urlConn.connect();
