@@ -113,4 +113,28 @@ public interface ZooKeeperSupportCache {
      * @return true if this cache server list is set successfully
      */
     public boolean setCurrentServerListOfZooKeeper(final String cacheServerList);
+
+    /**
+     * Add the custom {@link BarrierListener}
+     *
+     * The given {@code listener} will be called after cache's default listener will be completed.
+     * {@link BarrierListener#onInit} will be called when this cache will be registered in the ZooKeeper.
+     * {@link BarrierListener#onCommit} will be called when this cache's server list will be changed in the ZooKeeper.
+     * {@link BarrierListener#onDestroy} will be called when this cache will be unregistered in the ZooKeeper.
+     * 
+     * @param listener the custom listener
+     */
+    public void addZooKeeperListener( final BarrierListener listener );
+
+    /**
+     * Remove the custom {@link BarrierListener}
+     *
+     * The given {@code listener} will be called after cache's default listener will be completed.
+     * {@link BarrierListener#onInit} will be called when this cache will be registered in the ZooKeeper.
+     * {@link BarrierListener#onCommit} will be called when this cache's server list will be changed in the ZooKeeper.
+     * {@link BarrierListener#onDestroy} will be called when this cache will be unregistered in the ZooKeeper.
+     *
+     * @param listener the custom listener which was given by {@link #addZooKeeperListener}
+     */
+    public void removeZooKeeperListener( final BarrierListener listener );
 }

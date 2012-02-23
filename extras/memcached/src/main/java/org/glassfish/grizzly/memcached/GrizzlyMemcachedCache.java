@@ -56,6 +56,7 @@ import org.glassfish.grizzly.memcached.pool.NoValidObjectException;
 import org.glassfish.grizzly.memcached.pool.ObjectPool;
 import org.glassfish.grizzly.memcached.pool.PoolExhaustedException;
 import org.glassfish.grizzly.memcached.pool.PoolableObjectFactory;
+import org.glassfish.grizzly.memcached.zookeeper.BarrierListener;
 import org.glassfish.grizzly.memcached.zookeeper.CacheServerListBarrierListener;
 import org.glassfish.grizzly.memcached.zookeeper.ZKClient;
 import org.glassfish.grizzly.memcached.zookeeper.ZooKeeperSupportCache;
@@ -160,6 +161,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
     private final ConsistentHashStore<SocketAddress> consistentHash = new ConsistentHashStore<SocketAddress>();
 
     private final ZKClient zkClient;
+    private final CacheServerListBarrierListener zkListener;
     private String zooKeeperServerListPath;
 
     private MemcachedClientFilter clientFilter;
@@ -251,6 +253,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         }
 
         this.zkClient = builder.zkClient;
+        this.zkListener = new CacheServerListBarrierListener(this, initialServers);
     }
 
     /**
@@ -279,7 +282,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         if (zkClient != null) {
             // need to initialize the remote server with local initalServers if the remote server data is empty?
             // currently, do nothing
-            zooKeeperServerListPath = zkClient.registerBarrier(cacheName, new CacheServerListBarrierListener(this, initialServers), null);
+            zooKeeperServerListPath = zkClient.registerBarrier(cacheName, zkListener, null);
         }
     }
 
@@ -451,6 +454,28 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             return false;
         }
         return zkClient.setData(zooKeeperServerListPath, serverListBytes, -1) != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addZooKeeperListener(final BarrierListener listener) {
+        if (!isZooKeeperSupported()) {
+            return;
+        }
+        zkListener.addCustomListener(listener);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeZooKeeperListener(final BarrierListener listener) {
+        if (!isZooKeeperSupported()) {
+            return;
+        }
+        zkListener.removeCustomListener(listener);
     }
 
     /**

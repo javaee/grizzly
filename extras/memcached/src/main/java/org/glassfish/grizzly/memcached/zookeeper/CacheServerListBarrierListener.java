@@ -47,7 +47,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,6 +67,7 @@ public class CacheServerListBarrierListener implements BarrierListener {
     private final String cacheName;
     private final MemcachedCache cache;
     private final Set<SocketAddress> localCacheServerSet = new CopyOnWriteArraySet<SocketAddress>();
+    private final List<BarrierListener> customListenerList = new CopyOnWriteArrayList<BarrierListener>();
 
     public CacheServerListBarrierListener(final MemcachedCache cache, final Set<SocketAddress> cacheServerSet) {
         this.cache = cache;
@@ -112,6 +115,16 @@ public class CacheServerListBarrierListener implements BarrierListener {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING, "failed to check the cache server list from the remote. cacheName=" + cacheName, uee);
             }
+        } finally {
+            for (final BarrierListener listener : customListenerList) {
+                try {
+                    listener.onInit(regionName, path, remoteBytes);
+                } catch (Exception e) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "failed to call onInit(). cacheName=" + cacheName + ", listener=" + listener, e);
+                    }
+                }
+            }
         }
     }
 
@@ -153,11 +166,44 @@ public class CacheServerListBarrierListener implements BarrierListener {
                         "failed to apply the changed server list of the remote zookeeper server. regionName=" + regionName + ", path=" + path,
                         uee);
             }
+        } finally {
+            for (final BarrierListener listener : customListenerList) {
+                try {
+                    listener.onCommit(regionName, path, remoteBytes);
+                } catch (Exception e) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "failed to call onCommit(). cacheName=" + cacheName + ", listener=" + listener, e);
+                    }
+                }
+            }
         }
     }
 
     @Override
     public void onDestroy(final String regionName) {
+        for (final BarrierListener listener : customListenerList) {
+            try {
+                listener.onDestroy(regionName);
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "failed to call onDestroy(). cacheName=" + cacheName + ", listener=" + listener, e);
+                }
+            }
+        }
+    }
+
+    public void addCustomListener(final BarrierListener listener) {
+        if (listener == null) {
+            return;
+        }
+        customListenerList.add(listener);
+    }
+
+    public void removeCustomListener(final BarrierListener listener) {
+        if (listener == null) {
+            return;
+        }
+        customListenerList.remove(listener);
     }
 
     @Override
@@ -166,6 +212,7 @@ public class CacheServerListBarrierListener implements BarrierListener {
                 "cacheName='" + cacheName + '\'' +
                 ", cache=" + cache +
                 ", localCacheServerSet=" + localCacheServerSet +
+                ", customListenerList=" + customListenerList +
                 '}';
     }
 
