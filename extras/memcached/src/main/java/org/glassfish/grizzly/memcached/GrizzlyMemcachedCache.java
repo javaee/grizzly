@@ -1928,87 +1928,16 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         if (request.isNoReply()) {
             throw new IllegalStateException("request type is no reply");
         }
-        if (connectionPool == null) {
-            throw new IllegalStateException("connection pool must be not null");
-        }
-        if (clientFilter == null) {
-            throw new IllegalStateException("client filter must be not null");
-        }
-
-        Connection<SocketAddress> connection = null;
-        for (int i = 0; i <= RETRY_COUNT; i++) {
-            try {
-                connection = connectionPool.borrowObject(address, connectTimeoutInMillis);
-            } catch (PoolExhaustedException pee) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", pee);
-                }
-                throw pee;
-            } catch (NoValidObjectException nvoe) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
-                }
-                removeServer(address, false);
-                throw nvoe;
-            } catch (InterruptedException ie) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", ie);
-                }
-                throw ie;
-            }
-            try {
-                final GrizzlyFuture<WriteResult<MemcachedRequest[], SocketAddress>> future = connection.write(new MemcachedRequest[]{request});
-                if (writeTimeoutInMillis > 0) {
-                    future.get(writeTimeoutInMillis, TimeUnit.MILLISECONDS);
-                } else {
-                    future.get();
-                }
-            } catch (ExecutionException ee) {
-                // invalid connection
-                try {
-                    connectionPool.removeObject(address, connection);
-                } catch (Exception e) {
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE, "failed to remove the connection. address=" + address + ", connection=" + connection, e);
-                    }
-                }
-                connection = null;
-                // retry
-                continue;
-            }
-            break;
-        }
-        if (connection == null) {
-            removeServer(address, false);
-            return null;
-        } else {
-            try {
-                return clientFilter.getCorrelatedResponse(connection, request, responseTimeoutInMillis);
-            } finally {
-                try {
-                    connectionPool.returnObject(address, connection);
-                } catch (Exception e) {
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE, "failed to return the connection. address=" + address + ", connection=" + connection, e);
-                    }
-                }
-            }
-        }
+        return sendInternal(address, new MemcachedRequest[]{request}, writeTimeoutInMillis, responseTimeoutInMillis, null);
     }
 
-    private Map<K, V> sendGetMulti(final SocketAddress address,
+    private void sendGetMulti(final SocketAddress address,
                                    final List<BufferWrapper<K>> keyList,
                                    final long writeTimeoutInMillis,
                                    final long responseTimeoutInMillis,
                                    final Map<K, V> result) throws ExecutionException, TimeoutException, InterruptedException, PoolExhaustedException, NoValidObjectException {
         if (address == null || keyList == null || keyList.isEmpty() || result == null) {
-            return null;
-        }
-        if (connectionPool == null) {
-            throw new IllegalStateException("connection pool must be not null");
-        }
-        if (clientFilter == null) {
-            throw new IllegalStateException("client filter must be not null");
+            return;
         }
 
         // make multi requests based on key list
@@ -2030,69 +1959,10 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             requests[i] = builder.build();
             builder.recycle();
         }
-
-        Connection<SocketAddress> connection = null;
-        for (int i = 0; i <= RETRY_COUNT; i++) {
-            try {
-                connection = connectionPool.borrowObject(address, connectTimeoutInMillis);
-            } catch (PoolExhaustedException pee) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", pee);
-                }
-                throw pee;
-            } catch (NoValidObjectException nvoe) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", nvoe);
-                }
-                removeServer(address, false);
-                throw nvoe;
-            } catch (InterruptedException ie) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get the connection. address=" + address + ", timeout=" + connectTimeoutInMillis + "ms", ie);
-                }
-                throw ie;
-            }
-            try {
-                final GrizzlyFuture<WriteResult<MemcachedRequest[], SocketAddress>> future = connection.write(requests);
-                if (writeTimeoutInMillis > 0) {
-                    future.get(writeTimeoutInMillis, TimeUnit.MILLISECONDS);
-                } else {
-                    future.get();
-                }
-            } catch (ExecutionException ee) {
-                // invalid connection
-                try {
-                    connectionPool.removeObject(address, connection);
-                } catch (Exception e) {
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE, "failed to remove the connection. address=" + address + ", connection=" + connection, e);
-                    }
-                }
-                connection = null;
-                // retry
-                continue;
-            }
-            break;
-        }
-        if (connection == null) {
-            removeServer(address, false);
-            return result;
-        } else {
-            try {
-                return clientFilter.getMultiResponse(connection, requests, responseTimeoutInMillis, result);
-            } finally {
-                try {
-                    connectionPool.returnObject(address, connection);
-                } catch (Exception e) {
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE, "failed to return the connection. address=" + address + ", connection=" + connection, e);
-                    }
-                }
-            }
-        }
+        sendInternal(address, requests, writeTimeoutInMillis, responseTimeoutInMillis, result);
     }
 
-    private Map<K, Boolean> sendSetMulti(final SocketAddress address,
+    private void sendSetMulti(final SocketAddress address,
                                          final List<BufferWrapper<K>> keyList,
                                          final Map<K, V> map,
                                          final int expirationInSecs,
@@ -2100,13 +1970,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
                                          final long responseTimeoutInMillis,
                                          final Map<K, Boolean> result) throws ExecutionException, TimeoutException, InterruptedException, PoolExhaustedException, NoValidObjectException {
         if (address == null || keyList == null || keyList.isEmpty() || result == null) {
-            return null;
-        }
-        if (connectionPool == null) {
-            throw new IllegalStateException("connection pool must be not null");
-        }
-        if (clientFilter == null) {
-            throw new IllegalStateException("client filter must be not null");
+            return;
         }
 
         // make multi requests based on key list
@@ -2135,7 +1999,25 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             requests[i] = builder.build();
             builder.recycle();
         }
+        sendInternal(address, requests, writeTimeoutInMillis, responseTimeoutInMillis, result);
+    }
 
+    private Object sendInternal(final SocketAddress address,
+                                       final MemcachedRequest[] requests,
+                                       final long writeTimeoutInMillis,
+                                       final long responseTimeoutInMillis,
+                                       final Map<K, ?> result) throws PoolExhaustedException, NoValidObjectException, InterruptedException, TimeoutException {
+        if (address == null || requests == null || requests.length == 0) {
+            return null;
+        }
+        if (connectionPool == null) {
+            throw new IllegalStateException("connection pool must be not null");
+        }
+        if (clientFilter == null) {
+            throw new IllegalStateException("client filter must be not null");
+        }
+
+        final boolean isMulti = requests.length > 1;
         Connection<SocketAddress> connection = null;
         for (int i = 0; i <= RETRY_COUNT; i++) {
             try {
@@ -2184,7 +2066,11 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             return result;
         } else {
             try {
-                return clientFilter.getMultiResponse(connection, requests, responseTimeoutInMillis, result);
+                if (!isMulti) {
+                    return clientFilter.getCorrelatedResponse(connection, requests[0], responseTimeoutInMillis);
+                } else {
+                    return clientFilter.getMultiResponse(connection, requests, responseTimeoutInMillis, result);
+                }
             } finally {
                 try {
                     connectionPool.returnObject(address, connection);
