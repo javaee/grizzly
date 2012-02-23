@@ -524,7 +524,7 @@ public class BasicCommandTest {
     @SuppressWarnings("unchecked")
     //@Test
     public void testDeleteMulti() {
-        final int multiSize = 3;
+        final int multiSize = 100;
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
         final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
         final MemcachedCache<String, String> userCache = builder.build();

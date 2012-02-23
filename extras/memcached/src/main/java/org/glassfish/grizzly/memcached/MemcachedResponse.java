@@ -252,9 +252,9 @@ public class MemcachedResponse implements Cacheable {
 
     @SuppressWarnings("unchecked")
     public <K> void setResult(final K originKey, final MemcachedClientFilter.ParsingStatus parsingStatus) {
-        if (isError()) {
+        if (isError() && parsingStatus == MemcachedClientFilter.ParsingStatus.DONE) {
             if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING, "error status code={0}, msg={1}", new Object[]{status, status.message()});
+                logger.log(Level.WARNING, "error status code={0}, status msg={1}, op={2}, key={3}", new Object[]{status, status.message(), op, originKey});
             }
         }
 
