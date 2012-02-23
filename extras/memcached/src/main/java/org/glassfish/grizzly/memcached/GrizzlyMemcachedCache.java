@@ -566,7 +566,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
             if (address == null) {
                 if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in set multi. key buffer={0}", keyBuffer);
+                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in setMulti(). key buffer={0}", keyBuffer);
                 }
                 keyWrapper.recycle();
                 continue;
@@ -917,7 +917,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
             if (address == null) {
                 if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in get multi. key buffer={0}", keyBuffer);
+                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in getMulti(). key buffer={0}", keyBuffer);
                 }
                 keyWrapper.recycle();
                 continue;
@@ -1209,6 +1209,65 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         } finally {
             builder.recycle();
         }
+    }
+
+    @Override
+    public Map<K, Boolean> deleteMulti(final Set<K> keys) {
+        return deleteMulti(keys, writeTimeoutInMillis, responseTimeoutInMillis);
+    }
+
+    @Override
+    public Map<K, Boolean> deleteMulti(final Set<K> keys, final long writeTimeoutInMillis, final long responseTimeoutInMillis) {
+        final Map<K, Boolean> result = new HashMap<K, Boolean>();
+        if (keys == null || keys.isEmpty()) {
+            return result;
+        }
+
+        // categorize keys by address
+        final Map<SocketAddress, List<BufferWrapper<K>>> categorizedMap = new HashMap<SocketAddress, List<BufferWrapper<K>>>();
+        for (K key : keys) {
+            final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(key, transport.getMemoryManager());
+            final Buffer keyBuffer = keyWrapper.getBuffer();
+            final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
+            if (address == null) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in deleteMulti(). key buffer={0}", keyBuffer);
+                }
+                keyWrapper.recycle();
+                continue;
+            }
+            List<BufferWrapper<K>> keyList = categorizedMap.get(address);
+            if (keyList == null) {
+                keyList = new ArrayList<BufferWrapper<K>>();
+                categorizedMap.put(address, keyList);
+            }
+            keyList.add(keyWrapper);
+        }
+
+        // delete multi from server
+        for (Map.Entry<SocketAddress, List<BufferWrapper<K>>> entry : categorizedMap.entrySet()) {
+            final SocketAddress address = entry.getKey();
+            final List<BufferWrapper<K>> keyList = entry.getValue();
+            try {
+                sendDeleteMulti(entry.getKey(), keyList, writeTimeoutInMillis, responseTimeoutInMillis, result);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to delete multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to delete multi. address=" + address + ", keyList=" + keyList, ie);
+                }
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to delete multi. address=" + address + ", keySize=" + keyList.size(), e);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to delete multi. address=" + address + ", keyList=" + keyList, e);
+                }
+            } finally {
+                recycleBufferWrappers(keyList);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -1996,6 +2055,39 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             builder.flags(valueWrapper.getType().flags);
             valueWrapper.recycle();
             builder.expirationInSecs(expirationInSecs);
+            requests[i] = builder.build();
+            builder.recycle();
+        }
+        sendInternal(address, requests, writeTimeoutInMillis, responseTimeoutInMillis, result);
+    }
+
+    private void sendDeleteMulti(final SocketAddress address,
+                              final List<BufferWrapper<K>> keyList,
+                              final long writeTimeoutInMillis,
+                              final long responseTimeoutInMillis,
+                              final Map<K, Boolean> result) throws ExecutionException, TimeoutException, InterruptedException, PoolExhaustedException, NoValidObjectException {
+        if (address == null || keyList == null || keyList.isEmpty() || result == null) {
+            return;
+        }
+
+        // make multi requests based on key list
+        final MemcachedRequest[] requests = new MemcachedRequest[keyList.size()];
+        final BufferWrapper.BufferType keyType = !keyList.isEmpty() ? keyList.get(0).getType() : null;
+        for (int i = 0; i < keyList.size(); i++) {
+            final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(false, true, false);
+            if (i == keyList.size() - 1) {
+                builder.op(CommandOpcodes.Delete);
+                builder.noReply(false);
+                builder.opaque(0);
+            } else {
+                builder.op(CommandOpcodes.DeleteQ);
+                builder.noReply(true);
+                builder.opaque(generateOpaque());
+            }
+            final K originKey = keyList.get(i).getOrigin();
+            builder.originKeyType(keyType);
+            builder.originKey(originKey);
+            builder.key(keyList.get(i).getBuffer());
             requests[i] = builder.build();
             builder.recycle();
         }

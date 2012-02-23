@@ -521,6 +521,51 @@ public class BasicCommandTest {
     }
 
     // memcached server should be booted in local
+    @SuppressWarnings("unchecked")
+    //@Test
+    public void testDeleteMulti() {
+        final int multiSize = 3;
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final Map<String, String> map = new HashMap<String, String>();
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = "foo" + i;
+            map.put(key, value);
+        }
+        Map<String, Boolean> result = ((GrizzlyMemcachedCache) userCache).setMulti(map, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+        // ensure all values are set correctly
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = map.get(key);
+            Assert.assertNotNull(value);
+            Assert.assertEquals("foo" + i, value);
+        }
+        // put one missing key
+        final String missingKey = "missingName";
+        map.put(missingKey, "foo");
+        result = ((GrizzlyMemcachedCache) userCache).deleteMulti(map.keySet());
+        for (Boolean success : result.values()) {
+            // always true
+            Assert.assertTrue(success);
+        }
+        Assert.assertEquals(multiSize, result.size());
+
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            Assert.assertNull(userCache.get(key, false));
+        }
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
     //@Test
     public void testIncrAndDecr() {
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();

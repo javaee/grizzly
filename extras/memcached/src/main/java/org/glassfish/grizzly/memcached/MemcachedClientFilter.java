@@ -96,7 +96,7 @@ public class MemcachedClientFilter extends BaseFilter {
     private static final byte REQUEST_MAGIC_NUMBER = (byte) (0x80 & 0xFF);
     private static final byte RESPONSE_MAGIC_NUMBER = (byte) (0x81 & 0xFF);
 
-    private enum ParsingStatus {
+    public enum ParsingStatus {
         NONE, READ_HEADER, READ_EXTRAS, READ_KEY, READ_VALUE, DONE, NO_REPLY
     }
 
@@ -317,7 +317,7 @@ public class MemcachedClientFilter extends BaseFilter {
                     final boolean complete = response.complete();
                     if (complete) {
                         sentRequest = requestQueue.remove();
-                        response.setResult(sentRequest.getOriginKey());
+                        response.setResult(sentRequest.getOriginKey(), ParsingStatus.DONE);
                         if (sentRequest.disposed.compareAndSet(false, true)) {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
@@ -325,7 +325,7 @@ public class MemcachedClientFilter extends BaseFilter {
                         }
                     } else {
                         sentRequest = requestQueue.peek();
-                        response.setResult(sentRequest.getOriginKey());
+                        response.setResult(sentRequest.getOriginKey(), ParsingStatus.DONE);
                         if (!sentRequest.disposed.get()) {
                             sentRequest.response = response.getResult();
                             sentRequest.responseStatus = response.getStatus();
@@ -364,7 +364,7 @@ public class MemcachedClientFilter extends BaseFilter {
                 case NO_REPLY:
                     // processing next internal memcached request
                     sentRequest = requestQueue.remove();
-                    response.setResult(sentRequest.getOriginKey());
+                    response.setResult(sentRequest.getOriginKey(), ParsingStatus.NO_REPLY);
                     sentRequest.response = response.getResult();
                     sentRequest.responseStatus = ResponseStatus.No_Error;
                     sentRequest.notify.countDown();

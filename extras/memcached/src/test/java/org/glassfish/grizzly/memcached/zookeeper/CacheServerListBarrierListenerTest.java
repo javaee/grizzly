@@ -374,6 +374,16 @@ public class CacheServerListBarrierListenerTest {
         }
 
         @Override
+        public Map deleteMulti(Set keys) {
+            return null;
+        }
+
+        @Override
+        public Map deleteMulti(Set keys, long writeTimeoutInMillis, long responseTimeoutInMillis) {
+            return null;
+        }
+
+        @Override
         public long incr(Object key, long delta, long initial, int expirationInSecs, boolean noReply, long writeTimeoutInMillis, long responseTimeoutInMillis) {
             return 0;
         }

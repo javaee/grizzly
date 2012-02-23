@@ -251,7 +251,7 @@ public class MemcachedResponse implements Cacheable {
     }
 
     @SuppressWarnings("unchecked")
-    public <K> void setResult(final K originKey) {
+    public <K> void setResult(final K originKey, final MemcachedClientFilter.ParsingStatus parsingStatus) {
         if (isError()) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING, "error status code={0}, msg={1}", new Object[]{status, status.message()});
@@ -292,7 +292,7 @@ public class MemcachedResponse implements Cacheable {
                 }
                 break;
 
-            // boolean and void type
+            // boolean and void type. there are no responses except for error
             case Set:
             case Add:
             case Replace:
@@ -314,7 +314,7 @@ public class MemcachedResponse implements Cacheable {
             case FlushQ:
             case AppendQ:
             case PrependQ:
-                if (!isError()) {
+                if (!isError() || parsingStatus == MemcachedClientFilter.ParsingStatus.NO_REPLY) {
                     result = Boolean.TRUE;
                 } else {
                     result = Boolean.FALSE;

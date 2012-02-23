@@ -88,6 +88,10 @@ public interface MemcachedCache<K, V> extends Commands<K, V>, Cache<K, V> {
 
     public boolean delete(final K key, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
+    public Map<K, Boolean> deleteMulti(final Set<K> keys);
+
+    public Map<K, Boolean> deleteMulti(final Set<K> keys, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
+
     public long incr(final K key, final long delta, final long initial, final int expirationInSecs, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
     public long decr(final K key, final long delta, final long initial, final int expirationInSecs, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
