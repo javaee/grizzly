@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -115,7 +115,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
         Buffer currentTargetBuffer = null;
         
         final ByteBufferArray originalByteBufferArray =
-                originalMessage.toByteBufferArray();
+                originalMessage.toViewByteBufferArray();
         boolean restore = false;
         for (int i = 0; i < originalByteBufferArray.size(); i++) {
             final int pos = originalMessage.position();
@@ -125,7 +125,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                     sslEngine.getSession().getPacketBufferSize()));
             
             final ByteBuffer currentTargetByteBuffer =
-                    currentTargetBuffer.toByteBuffer();
+                    currentTargetBuffer.toViewByteBuffer();
 
             try {
                 if (LOGGER.isLoggable(Level.FINE)) {

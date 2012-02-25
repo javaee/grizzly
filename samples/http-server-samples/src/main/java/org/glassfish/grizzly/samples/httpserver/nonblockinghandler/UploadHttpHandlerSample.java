@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -180,7 +180,7 @@ public class UploadHttpHandlerSample {
             // Get the Buffer directly from NIOInputStream
             final Buffer buffer = in.readBuffer();
             // Retrieve ByteBuffer
-            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+            final ByteBuffer byteBuffer = buffer.toViewByteBuffer();
             
             try {
                 while(byteBuffer.hasRemaining()) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,7 @@ public class ByteBufferWrapper implements Buffer {
     
     protected Exception disposeStackTrace;
 
+    @SuppressWarnings("UnusedDeclaration")
     protected ByteBufferWrapper() {
         this(null);
     }
@@ -658,17 +659,17 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public final ByteBuffer toByteBuffer() {
+    public final ByteBuffer toViewByteBuffer() {
         return visible;
     }
 
     @Override
-    public final ByteBuffer toByteBuffer(int position, int limit) {
+    public final ByteBuffer toViewByteBuffer(int position, int limit) {
         final int currentPosition = visible.position();
         final int currentLimit = visible.limit();
 
         if (position == currentPosition && limit == currentLimit) {
-            return toByteBuffer();
+            return toViewByteBuffer();
         }
 
         Buffers.setPositionLimit(visible, position, limit);
@@ -681,7 +682,7 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public final ByteBufferArray toByteBufferArray() {
+    public final ByteBufferArray toViewByteBufferArray() {
         final ByteBufferArray array = ByteBufferArray.create();
         array.add(visible);
 
@@ -689,19 +690,19 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public final ByteBufferArray toByteBufferArray(final int position,
+    public final ByteBufferArray toViewByteBufferArray(final int position,
             final int limit) {
-        return toByteBufferArray(ByteBufferArray.create(), position, limit);
+        return toViewByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
     @Override
-    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
+    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array) {
         array.add(visible);
         return array;
     }
 
     @Override
-    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
+    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
 
         final int oldPos = visible.position();
@@ -710,6 +711,45 @@ public class ByteBufferWrapper implements Buffer {
         Buffers.setPositionLimit(visible, position, limit);
         array.add(visible, oldPos, oldLim);
 
+        return array;
+    }
+
+    @Override
+    public ByteBuffer toByteBuffer() {
+        return toByteBuffer(visible.position(), visible.limit());
+    }
+
+    @Override
+    public ByteBuffer toByteBuffer(int position, int limit) {
+        final ByteBuffer b = ByteBuffer.allocate(limit - position);
+        final int oldPos = visible.position();
+        b.put(visible);
+        visible.position(oldPos);
+        b.flip();
+        return b;
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray() {
+        return toByteBufferArray(ByteBufferArray.create());
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
+        array.add(toByteBuffer());
+        return array;
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(final int position, final int limit) {
+        return toByteBufferArray(ByteBufferArray.create(), position, limit);
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(final ByteBufferArray array,
+                                             final int position,
+                                             final int limit) {
+        array.add(toByteBuffer(position, limit));
         return array;
     }
 

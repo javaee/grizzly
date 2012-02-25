@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -168,7 +168,7 @@ public class ClientDownloadFilter extends BaseFilter {
                 bytesDownloaded += buffer.remaining();
                 
                 // save Buffer to a local file, represented by FileChannel
-                ByteBuffer byteBuffer = buffer.toByteBuffer();
+                ByteBuffer byteBuffer = buffer.toViewByteBuffer();
                 do {
                     output.write(byteBuffer);
                 } while (byteBuffer.hasRemaining());

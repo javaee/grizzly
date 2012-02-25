@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -216,7 +216,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         // excess copying in deflateBytes (see Deflater.c)
         int stride = bufferSize;
         Buffer resultBuffer = null;
-        final ByteBufferArray byteBufferArray = buffer.toByteBufferArray();
+        final ByteBufferArray byteBufferArray = buffer.toViewByteBufferArray();
         final ByteBuffer[] buffers = byteBufferArray.getArray();
         final int size = byteBufferArray.size();
 
@@ -265,7 +265,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
      */
      protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
         final Buffer buffer = memoryManager.allocate(bufferSize);
-        final ByteBuffer byteBuffer = buffer.toByteBuffer();
+        final ByteBuffer byteBuffer = buffer.toViewByteBuffer();
         final byte[] array = byteBuffer.array();
         final int offset = byteBuffer.arrayOffset() + byteBuffer.position();
 
