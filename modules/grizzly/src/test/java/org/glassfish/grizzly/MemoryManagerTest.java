@@ -40,9 +40,13 @@
 
 package org.glassfish.grizzly;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.AbstractMemoryManager;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -55,17 +59,48 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
  * @author oleksiys
  */
-public class DefaultMemoryManagerTest extends GrizzlyTestCase {
+@SuppressWarnings("unchecked")
+@RunWith(Parameterized.class)
+public class MemoryManagerTest {
 
-    private static final Logger LOGGER = Grizzly.logger(DefaultMemoryManagerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(MemoryManagerTest.class);
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> getOptimizedForMultiplexing() {
+        return Arrays.asList(new Object[][]{
+                {1},
+                {2}
+        });
+    }
+
+    private AbstractMemoryManager mm;
+
+    public MemoryManagerTest(int mmtype) {
+        switch (mmtype) {
+            case 1:
+                mm = new HeapMemoryManager();
+                break;
+            case 2:
+                mm = new ByteBufferManager();
+                break;
+            case 3:
+                throw new IllegalStateException();
+        }
+    }
+
+    @Test
     public void testDispose() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
         
         Runnable r = new Runnable() {
@@ -95,8 +130,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
+    @Test
     public void testTrimDispose() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
+        mm = new HeapMemoryManager();
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
         
         Runnable r = new Runnable() {
@@ -131,8 +167,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
+    @Test
     public void testReallocate() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
+        mm = new HeapMemoryManager();
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
@@ -146,7 +183,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
-                HeapBuffer buffer = mm.allocate(allocSize);
+                Buffer buffer = mm.allocate(allocSize);
                 assertEquals(
                         initialSize - allocSize,
                         mm.getReadyThreadBufferSize());
@@ -180,69 +217,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
-    public void testSimpleAllocateHistory() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
-        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
-        Runnable r = new Runnable() {
-
-            @Override
-            public void run() {
-
-                // Initialize memory manager
-                mm.allocate(33);
-
-                final int initialSize = mm.getReadyThreadBufferSize();
-
-                final int chunkSize = 4096;
-
-                HeapBuffer buffer1 = mm.allocate(chunkSize);
-                assertEquals(
-                        initialSize - chunkSize,
-                        mm.getReadyThreadBufferSize());
-
-                HeapBuffer buffer2 = mm.allocate(chunkSize);
-                assertEquals(
-                        initialSize - chunkSize * 2,
-                        mm.getReadyThreadBufferSize());
-
-                HeapBuffer buffer3 = mm.allocate(chunkSize);
-                assertEquals(
-                        initialSize - chunkSize * 3,
-                        mm.getReadyThreadBufferSize());
-
-                HeapBuffer buffer4 = mm.allocate(chunkSize);
-                assertEquals(
-                        initialSize - chunkSize * 4,
-                        mm.getReadyThreadBufferSize());
-
-                buffer4.dispose();
-                assertEquals(
-                        initialSize - chunkSize * 3,
-                        mm.getReadyThreadBufferSize());
-
-                buffer3.dispose();
-                assertEquals(
-                        initialSize - chunkSize * 2,
-                        mm.getReadyThreadBufferSize());
-
-                buffer2.dispose();
-                assertEquals(
-                        initialSize - chunkSize,
-                        mm.getReadyThreadBufferSize());
-
-                buffer1.dispose();
-
-                assertEquals(initialSize,
-                        mm.getReadyThreadBufferSize());
-            }
-        };
-
-        testInWorkerThread(mm, r);
-    }
-
+    @Test
     public void testTrimAllocateHistory() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
@@ -257,7 +233,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 final int chunkSize = 4096;
 
-                HeapBuffer buffer1 = mm.allocate(chunkSize);
+                Buffer buffer1 = mm.allocate(chunkSize);
                 assertEquals(
                         initialSize - chunkSize,
                         mm.getReadyThreadBufferSize());
@@ -268,7 +244,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                         initialSize - chunkSize / 2,
                         mm.getReadyThreadBufferSize());
 
-                HeapBuffer buffer2 = mm.allocate(chunkSize);
+                Buffer buffer2 = mm.allocate(chunkSize);
                 assertEquals(
                         initialSize - (chunkSize + chunkSize / 2),
                         mm.getReadyThreadBufferSize());
@@ -294,8 +270,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
+    @Test
     public void testDisposeUnused() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
@@ -315,7 +291,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                     compositeBuffer.append(b);
                 }
 
-                compositeBuffer.toByteBufferArray(0, 12280);
+                compositeBuffer.toViewByteBufferArray(0, 12280);
                 compositeBuffer.limit(1228);
 
                 compositeBuffer.shrink();
@@ -334,31 +310,36 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(mm, r);
     }
 
+    @Test
     public void testBufferEquals() {
         final HeapMemoryManager hmm = new HeapMemoryManager();
         final ByteBufferManager bbm = new ByteBufferManager();
-        
+
         Buffer[] buffers = new Buffer[3];
         buffers[0] = Buffers.wrap(hmm, "Value#1");
         buffers[1] = Buffers.wrap(bbm, "Value#1");
-        
+
         Buffer b11 = Buffers.wrap(hmm, "Val");
         Buffer b12 = Buffers.wrap(bbm, "ue#1");
 
         buffers[2] = Buffers.appendBuffers(bbm, b11, b12);
-        
+
         for (int i = 0; i < buffers.length; i++) {
             for (int j = 0; j < buffers.length; j++) {
                 assertEquals(buffers[i], buffers[j]);
             }
         }
-        
-        
+
+
     }
-    
+
+    @Test
     public void testBufferPut() {
-        final HeapMemoryManager mm = new HeapMemoryManager();
         final Buffer b = mm.allocate(127);
+
+        if (!(b instanceof HeapBuffer)) {
+            return; // test is only valid if testing HeapBuffer
+        }
 
         int i = 0;
         while (b.hasRemaining()) {
@@ -369,7 +350,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
         b.put(b, 10, 127 - 10).flip();
 
-        
+
         assertEquals(127 - 10, b.remaining());
 
         i = 10;
@@ -378,8 +359,62 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         }
     }
 
-    public void testCompositeBufferDispose() throws Exception {
-        final HeapMemoryManager mm = new HeapMemoryManager();
+    @Test
+    public void testBufferSlice_001() {
+        Buffer b = mm.allocate(10);
+        b.putInt(1);
+        ByteBuffer bb = b.slice().toByteBuffer();  // detached buffer
+        bb.putInt(2);
+        assertEquals(0, b.getInt());
+    }
+
+    @Test
+    public void testBufferSlice_002() {
+        Buffer b = mm.allocate(10);
+        b.putInt(1);
+        ByteBuffer bb = b.slice().toViewByteBuffer();  // buffer/bytebuffer changes reflected buffer
+        bb.putInt(2);
+        assertEquals(2, b.getInt());
+    }
+
+    @Test
+    public void testCompositeBufferDispose_001() throws Exception {
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
+
+        Runnable r = new Runnable() {
+
+            @Override
+            public void run() {
+                // Initialize memory manager
+
+                mm.allocate(33);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                CompositeBuffer compositeBuffer = CompositeBuffer.newBuffer(mm);
+
+                for (int i = 0; i < 3; i++) {
+                    Buffer b = mm.allocate(100);
+                    b.allowBufferDispose(true);
+                    compositeBuffer.append(b);
+                }
+
+                compositeBuffer.toViewByteBuffer(0, 100);
+                compositeBuffer.position(100);
+
+                compositeBuffer.dispose();
+
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(mm, r);
+    }
+
+    @Test
+    public void testCompositeBufferDispose_002() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
@@ -405,6 +440,67 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 compositeBuffer.dispose();
 
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(mm, r);
+    }
+
+    @Test
+    public void testSimpleAllocateHistory() throws Exception {
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
+
+        Runnable r = new Runnable() {
+
+            @Override
+            public void run() {
+
+                // Initialize memory manager
+                mm.allocate(33);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                final int chunkSize = 4096;
+
+                Buffer buffer1 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                Buffer buffer2 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 2,
+                        mm.getReadyThreadBufferSize());
+
+                Buffer buffer3 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 3,
+                        mm.getReadyThreadBufferSize());
+
+                Buffer buffer4 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 4,
+                        mm.getReadyThreadBufferSize());
+
+                buffer4.dispose();
+                assertEquals(
+                        initialSize - chunkSize * 3,
+                        mm.getReadyThreadBufferSize());
+
+                buffer3.dispose();
+                assertEquals(
+                        initialSize - chunkSize * 2,
+                        mm.getReadyThreadBufferSize());
+
+                buffer2.dispose();
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                buffer1.dispose();
 
                 assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());

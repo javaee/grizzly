@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -124,15 +124,15 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             final int pos = originalMessage.position();
             final SSLEngineResult sslEngineResult;
             if (!originalMessage.isComposite()) {
-                sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
-                        targetBuffer.toByteBuffer());
+                sslEngineResult = sslEngine.unwrap(originalMessage.toViewByteBuffer(),
+                        targetBuffer.toViewByteBuffer());
             } else {
                 final ByteBuffer originalByteBuffer =
-                        originalMessage.toByteBuffer(pos,
+                        originalMessage.toViewByteBuffer(pos,
                         pos + expectedLength);
 
                 sslEngineResult = sslEngine.unwrap(originalByteBuffer,
-                        targetBuffer.toByteBuffer());
+                        targetBuffer.toViewByteBuffer());
             }
             
             originalMessage.position(pos + sslEngineResult.bytesConsumed());

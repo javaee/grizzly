@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -218,13 +218,13 @@ public class SSLUtils {
         final SSLEngineResult sslEngineResult;
 
         if (!inputBuffer.isComposite()) {
-            final ByteBuffer inputBB = inputBuffer.toByteBuffer();
+            final ByteBuffer inputBB = inputBuffer.toViewByteBuffer();
 
             final Buffer outputBuffer = memoryManager.allocate(
                     appBufferSize);
 
             sslEngineResult = sslEngine.unwrap(inputBB,
-                    outputBuffer.toByteBuffer());
+                    outputBuffer.toViewByteBuffer());
             outputBuffer.dispose();
 
             inputBuffer.position(pos + sslEngineResult.bytesConsumed());
@@ -238,14 +238,14 @@ public class SSLUtils {
 
         } else {
             final ByteBuffer inputByteBuffer =
-                    inputBuffer.toByteBuffer(pos,
+                    inputBuffer.toViewByteBuffer(pos,
                     pos + expectedLength);
 
             final Buffer outputBuffer = memoryManager.allocate(
                     appBufferSize);
 
             sslEngineResult = sslEngine.unwrap(inputByteBuffer,
-                    outputBuffer.toByteBuffer());
+                    outputBuffer.toViewByteBuffer());
 
             inputBuffer.position(pos + sslEngineResult.bytesConsumed());
 
@@ -268,7 +268,7 @@ public class SSLUtils {
         try {
             final SSLEngineResult sslEngineResult =
                     sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
-                    buffer.toByteBuffer());
+                    buffer.toViewByteBuffer());
 
             buffer.position(sslEngineResult.bytesProduced());
             buffer.trim();

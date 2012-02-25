@@ -680,7 +680,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         final int oldPos = buffer.position();
 
         if (buffer.isComposite()) {
-            final ByteBufferArray array = buffer.toByteBufferArray();
+            final ByteBufferArray array = buffer.toViewByteBufferArray();
             final ByteBuffer[] byteBuffers = array.getArray();
             final int size = array.size();
 
@@ -690,7 +690,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             array.recycle();
         } else {
             read = ((DatagramChannel) connection.getChannel()).read(
-                    buffer.toByteBuffer());
+                    buffer.toViewByteBuffer());
         }
 
         final boolean hasRead = (read > 0);
@@ -718,7 +718,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         final int oldPos = buffer.position();
 
         if (!buffer.isComposite()) {
-            final ByteBuffer underlyingBB = buffer.toByteBuffer();
+            final ByteBuffer underlyingBB = buffer.toViewByteBuffer();
             final int initialBufferPos = underlyingBB.position();
             peerAddress = ((DatagramChannel) connection.getChannel()).receive(
                     underlyingBB);
@@ -796,11 +796,11 @@ public final class UDPNIOTransport extends NIOTransport implements
 
             if (dstAddress != null) {
                 written = ((DatagramChannel) connection.getChannel()).send(
-                        buffer.toByteBuffer(), dstAddress);
+                        buffer.toViewByteBuffer(), dstAddress);
             } else {
 
                 if (buffer.isComposite()) {
-                    final ByteBufferArray array = buffer.toByteBufferArray();
+                    final ByteBufferArray array = buffer.toViewByteBufferArray();
                     final ByteBuffer[] byteBuffers = array.getArray();
                     final int size = array.size();
 
@@ -810,7 +810,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                     array.recycle();
                 } else {
                     written = ((DatagramChannel) connection.getChannel()).write(
-                            buffer.toByteBuffer());
+                            buffer.toViewByteBuffer());
                 }
             }
 

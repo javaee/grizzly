@@ -303,7 +303,7 @@ public class Buffers {
         }
 
         if (!src.isComposite()) {
-            final ByteBuffer srcByteBuffer = src.toByteBuffer();
+            final ByteBuffer srcByteBuffer = src.toViewByteBuffer();
             if (srcByteBuffer.hasArray()) {
                 dstBuffer.put(srcByteBuffer.array(),
                         srcByteBuffer.arrayOffset() + position, length);
@@ -419,7 +419,7 @@ public class Buffers {
     public static void fill(final Buffer buffer, final int position,
             final int limit, final byte b) {
         if (!buffer.isComposite()) {
-            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+            final ByteBuffer byteBuffer = buffer.toViewByteBuffer();
             fill(byteBuffer, position, limit, b);
         } else {
             final ByteBufferArray array = buffer.toByteBufferArray(position, limit);

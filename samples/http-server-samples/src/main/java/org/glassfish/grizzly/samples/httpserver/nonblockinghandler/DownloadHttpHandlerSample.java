@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -199,7 +199,7 @@ public class DownloadHttpHandlerSample {
                     buffer.allowBufferDispose(true);
                                         
                     // read file to the Buffer
-                    final int justReadBytes = fileChannel.read(buffer.toByteBuffer());
+                    final int justReadBytes = fileChannel.read(buffer.toViewByteBuffer());
                     if (justReadBytes <= 0) {
                         complete(false);
                         return false;
