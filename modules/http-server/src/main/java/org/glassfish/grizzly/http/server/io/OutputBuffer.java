@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -746,7 +746,7 @@ public class OutputBuffer {
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.notifyWritePossible(handler, length);
+            taskQueue.notifyWritePossible(asyncWriteQueueHandler, length);
         } catch (Exception ignored) {
         }
     }
