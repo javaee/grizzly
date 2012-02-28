@@ -1482,10 +1482,10 @@ public class Response {
 
                      if (System.getSecurityManager() != null ){
                         try{
-                            encodedURI = (String)AccessController.doPrivileged(
-                                new PrivilegedExceptionAction(){
+                            encodedURI = AccessController.doPrivileged(
+                                new PrivilegedExceptionAction<String>() {
                                 @Override
-                                    public Object run() throws IOException{
+                                    public String run() throws IOException{
                                         return urlEncoder.encodeURL(frelativePath);
                                     }
                            });

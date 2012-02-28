@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -204,7 +204,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         if( !parsedParams )
             parseParameters();
         if( System.getSecurityManager() != null ) {
-            return (String)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                     new GetParameterPrivilegedAction( name ) );
         } else {
             return mergedParameters.getParameter( name );
@@ -217,7 +217,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         if( !parsedParams )
             parseParameters();
         if( System.getSecurityManager() != null ) {
-            return new Enumerator( (Set)AccessController.doPrivileged(
+            return new Enumerator( AccessController.doPrivileged(
                     new GetParameterNamesPrivilegedAction() ) );
         } else {
             return new Enumerator( mergedParameters.getParameterNames() );
@@ -235,7 +235,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
          * in place, so that performance won't suffer in the nonsecure case
          */
         if( System.getSecurityManager() != null ) {
-            ret = (String[])AccessController.doPrivileged(
+            ret = AccessController.doPrivileged(
                     new GetParameterValuePrivilegedAction( name ) );
             if( ret != null ) {
                 ret = ret.clone();
@@ -252,7 +252,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         if( !parsedParams )
             parseParameters();
         if( System.getSecurityManager() != null ) {
-            return (Map)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                     new GetParameterMapPrivilegedAction() );
         } else {
             return getParameterMapInternal();
@@ -488,7 +488,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         }
     }
 
-    private final class GetParameterPrivilegedAction implements PrivilegedAction {
+    private final class GetParameterPrivilegedAction implements PrivilegedAction<String> {
         public final String name;
 
         public GetParameterPrivilegedAction( String name ) {
@@ -496,19 +496,19 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         }
 
         @Override
-        public Object run() {
+        public String run() {
             return mergedParameters.getParameter( name );
         }
     }
 
-    private final class GetParameterNamesPrivilegedAction implements PrivilegedAction {
+    private final class GetParameterNamesPrivilegedAction implements PrivilegedAction<Set<String>> {
         @Override
-        public Object run() {
+        public Set<String> run() {
             return mergedParameters.getParameterNames();
         }
     }
 
-    private final class GetParameterValuePrivilegedAction implements PrivilegedAction {
+    private final class GetParameterValuePrivilegedAction implements PrivilegedAction<String[]> {
         public final String name;
 
         public GetParameterValuePrivilegedAction( String name ) {
@@ -516,14 +516,14 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         }
 
         @Override
-        public Object run() {
+        public String[] run() {
             return mergedParameters.getParameterValues( name );
         }
     }
 
-    private final class GetParameterMapPrivilegedAction implements PrivilegedAction {
+    private final class GetParameterMapPrivilegedAction implements PrivilegedAction<ParameterMap> {
         @Override
-        public Object run() {
+        public ParameterMap run() {
             return getParameterMapInternal();
         }
     }
