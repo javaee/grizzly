@@ -2109,7 +2109,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             throw new IllegalStateException("client filter must be not null");
         }
 
-        final boolean isMulti = requests.length > 1;
+        final boolean isMulti = (result != null);
         Connection<SocketAddress> connection = null;
         for (int i = 0; i <= RETRY_COUNT; i++) {
             try {

@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class MemcachedRequest {
 
-    private static final int MAX_KEY_LENGTH = 250; // 250bytes
+    private static final int MAX_KEY_LENGTH = Short.MAX_VALUE; // 32kbytes
     private static final int MAX_VALUE_LENGTH = 1024 * 1024; // 1M
 
     private final boolean hasExtras;
@@ -370,8 +370,9 @@ public class MemcachedRequest {
 
         public Builder key(final Buffer key) throws IllegalArgumentException {
             if (key != null) {
-                if (key.remaining() > MAX_KEY_LENGTH) {
-                    throw new IllegalArgumentException("key length is in excess of " + MAX_KEY_LENGTH + "bytes");
+                final int keyLen = key.remaining();
+                if (keyLen > MAX_KEY_LENGTH) {
+                    throw new IllegalArgumentException("key length is in excess of " + MAX_KEY_LENGTH + "bytes. keyLen=" + keyLen + "bytes");
                 }
                 this.key = key;
             }
@@ -380,8 +381,9 @@ public class MemcachedRequest {
 
         public Builder value(final Buffer value) throws IllegalArgumentException {
             if (value != null) {
-                if (value.remaining() > MAX_VALUE_LENGTH) {
-                    throw new IllegalArgumentException("value length is in excess of " + MAX_VALUE_LENGTH + "bytes");
+                final int valueLen = value.remaining();
+                if (valueLen > MAX_VALUE_LENGTH) {
+                    throw new IllegalArgumentException("value length is in excess of " + MAX_VALUE_LENGTH + "bytes. valueLen=" + valueLen + "bytes");
                 }
                 this.value = value;
             }
