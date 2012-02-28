@@ -384,17 +384,17 @@ public class BufferWrapper<T> implements Cacheable {
                     return null;
                 }
             case BYTE_ARRAY:
-                return buffer.toViewByteBuffer(position, limit).array();
+                return buffer.toByteBuffer(position, limit).array();
             case BYTE_ARRAY_COMPRESSED:
-                return decompress(buffer.toViewByteBuffer(position, limit).array());
+                return decompress(buffer.toByteBuffer(position, limit).array());
             case BYTE_BUFFER:
-                return buffer.toViewByteBuffer(position, limit);
+                return buffer.toByteBuffer(position, limit);
             case BYTE_BUFFER_COMPRESSED:
                 final Buffer decompressedBuffer2 = decompressBuffer(buffer, memoryManager);
                 if (decompressedBuffer2 == null) {
                     return null;
                 }
-                final ByteBuffer result = decompressedBuffer2.toViewByteBuffer(position, limit);
+                final ByteBuffer result = decompressedBuffer2.toByteBuffer(position, limit);
                 decompressedBuffer2.tryDispose();
                 return result;
             case BYTE:
@@ -490,7 +490,7 @@ public class BufferWrapper<T> implements Cacheable {
         if (buffer == null) {
             throw new IllegalArgumentException("failed to compress the buffer. buffer should be not null");
         }
-        final byte[] compressed = compress(buffer.toViewByteBuffer().array());
+        final byte[] compressed = compress(buffer.toByteBuffer().array());
         buffer.tryDispose();
         return Buffers.wrap(memoryManager, compressed);
     }
@@ -525,7 +525,7 @@ public class BufferWrapper<T> implements Cacheable {
         if (buffer == null) {
             return null;
         }
-        final byte[] decompressed = decompress(buffer.toViewByteBuffer().array());
+        final byte[] decompressed = decompress(buffer.toByteBuffer().array());
         if (decompressed == null) {
             return null;
         }

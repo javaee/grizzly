@@ -1028,7 +1028,7 @@ public class InputBuffer {
                 isNeedMoreInput = false;
             }
 
-            final ByteBuffer bytes = inputContentBuffer.toViewByteBuffer();
+            final ByteBuffer bytes = inputContentBuffer.toByteBuffer();
 
             final int bytesPos = bytes.position();
             final int dstPos = dst.position();
@@ -1073,7 +1073,7 @@ public class InputBuffer {
     private int fillAvailableChars(final int requestedLen, final CharBuffer dst) {
         
         final CharsetDecoder decoderLocal = getDecoder();
-        final ByteBuffer bb = inputContentBuffer.toViewByteBuffer();
+        final ByteBuffer bb = inputContentBuffer.toByteBuffer();
         final int oldBBPos = bb.position();
         
         int producedChars = 0;

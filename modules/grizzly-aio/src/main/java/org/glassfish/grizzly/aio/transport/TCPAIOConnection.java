@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -268,16 +268,16 @@ public class TCPAIOConnection extends AIOConnection {
             final MemoryManager memoryManager = transport.getMemoryManager();
             buffer = memoryManager.allocateAtLeast(getReadBufferSize());
 
-            readBlockingSimple(buffer.toViewByteBuffer(),
+            readBlockingSimple(buffer.toByteBuffer(),
                     readResult.set(future, buffer, result),
                     blockingAllocatedBufferReadCompletionHandler);
         } else {        
             if (!buffer.isComposite()) {
-                readBlockingSimple(buffer.toViewByteBuffer(),
+                readBlockingSimple(buffer.toByteBuffer(),
                         readResult.set(future, buffer, result),
                         blockingReadCompletionHandler);
             } else {
-                final ByteBufferArray array = buffer.toViewByteBufferArray();
+                final ByteBufferArray array = buffer.toByteBufferArray();
 
                 final ByteBuffer[] byteBuffers = array.getArray();
                 final int size = array.size();
@@ -357,11 +357,11 @@ public class TCPAIOConnection extends AIOConnection {
         final FutureImpl<Integer> future = SafeFutureImpl.<Integer>create();
         
         if (!buffer.isComposite()) {
-            writeBlockingSimple(buffer.toViewByteBuffer(),
+            writeBlockingSimple(buffer.toByteBuffer(),
                     writeResult.set(future, buffer, result),
                     blockingWriteCompletionHandler);
         } else {
-            final ByteBufferArray array = buffer.toViewByteBufferArray();
+            final ByteBufferArray array = buffer.toByteBufferArray();
 
             final ByteBuffer[] byteBuffers = array.getArray();
             final int size = array.size();
@@ -418,13 +418,13 @@ public class TCPAIOConnection extends AIOConnection {
             final MemoryManager memoryManager = transport.getMemoryManager();
             buffer = memoryManager.allocateAtLeast(getReadBufferSize());
 
-            readSimple(buffer.toViewByteBuffer(),
+            readSimple(buffer.toByteBuffer(),
                     readResult.set(attachment, buffer, result),
                     allocatedBufferReadCompletionHandler);
         } else {
             if (buffer.hasRemaining()) {
                 if (buffer.isComposite()) {
-                    final ByteBufferArray array = buffer.toViewByteBufferArray();
+                    final ByteBufferArray array = buffer.toByteBufferArray();
 
                     final ByteBuffer[] byteBuffers = array.getArray();
                     final int size = array.size();
@@ -433,7 +433,7 @@ public class TCPAIOConnection extends AIOConnection {
                             readResult.set(attachment, buffer, result, array),
                             readCompositeCompletionHandler);
                 } else {
-                    readSimple(buffer.toViewByteBuffer(),
+                    readSimple(buffer.toByteBuffer(),
                             readResult.set(attachment, buffer, result),
                             readCompletionHandler);
                 }
@@ -464,7 +464,7 @@ public class TCPAIOConnection extends AIOConnection {
             final WriteResult result) {
         
         if (buffer.isComposite()) {
-            final ByteBufferArray array = buffer.toViewByteBufferArray();
+            final ByteBufferArray array = buffer.toByteBufferArray();
 
             final ByteBuffer[] byteBuffers = array.getArray();
             final int size = array.size();
@@ -473,7 +473,7 @@ public class TCPAIOConnection extends AIOConnection {
                     writeResult.set(attachment, buffer, result, array),
                     writeCompositeCompletionHandler);
         } else {
-            writeSimple(buffer.toViewByteBuffer(),
+            writeSimple(buffer.toByteBuffer(),
                     writeResult.set(attachment, buffer, result),
                     writeCompletionHandler);
         }
@@ -770,7 +770,7 @@ public class TCPAIOConnection extends AIOConnection {
                             0, compositeBufferArray.size(),
                             attachment, blockingWriteCompositeCompletionHandler);
                 } else {
-                    writeBlockingSimple(buffer.toViewByteBuffer(), attachment,
+                    writeBlockingSimple(buffer.toByteBuffer(), attachment,
                             blockingWriteCompletionHandler);
                 }
                 

@@ -40,58 +40,35 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.BuffersBuffer;
-import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.Charsets;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.InvalidMarkException;
-import java.util.Arrays;
-import java.util.Collection;
+import java.nio.charset.Charset;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+public class BuffersBufferTest extends GrizzlyTestCase {
 
-@RunWith(Parameterized.class)
-public class BuffersBufferTest {
+    private MemoryManager mm;
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> getOptimizedForMultiplexing() {
-        return Arrays.asList(new Object[][]{
-                {1},
-                {2}
-        });
-    }
 
-    private AbstractMemoryManager mm;
+    // -------------------------------------------------------------- Test Setup
 
-    public BuffersBufferTest(int mmtype) {
-        switch (mmtype) {
-            case 1:
-                mm = new HeapMemoryManager();
-                break;
-            case 2:
-                mm = new ByteBufferManager();
-                break;
-            case 3:
-                throw new IllegalStateException();
-        }
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
 
 
     // ------------------------------------------------------------ Test Methods
 
-    @Test
+
     public void testCharEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
@@ -107,7 +84,6 @@ public class BuffersBufferTest {
         assertEquals("little endian", 'a', buffer.getChar());
     }
 
-    @Test
     public void testShortEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
@@ -123,7 +99,6 @@ public class BuffersBufferTest {
         assertEquals("little endian", ((short) 1), buffer.getShort());
     }
 
-    @Test
     public void testIntEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
@@ -139,7 +114,6 @@ public class BuffersBufferTest {
         assertEquals("little endian", 1, buffer.getInt());
     }
 
-    @Test
     public void testLongEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
@@ -155,39 +129,36 @@ public class BuffersBufferTest {
         assertEquals("little endian", 1, buffer.getLong());
     }
 
-    @Test
     public void testFloatEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
         buffer.putFloat(1.0f);
         buffer.flip();
-        assertEquals("big endian", 1.0f, 1.0f, buffer.getFloat());
+        assertEquals("big endian", 1.0f, buffer.getFloat());
         buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         assertTrue(buffer.order() == ByteOrder.LITTLE_ENDIAN);
         buffer.putFloat(1.0f);
         buffer.flip();
-        assertEquals("little endian", 1.0f, 1.0f, buffer.getFloat());
+        assertEquals("little endian", 1.0f, buffer.getFloat());
     }
 
-    @Test
     public void testDoubleEndianess() {
         BuffersBuffer buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
         buffer.putDouble(1.0d);
         buffer.flip();
-        assertEquals("big endian", 1.0d, 1.0d, buffer.getDouble());
+        assertEquals("big endian", 1.0d, buffer.getDouble());
         buffer = createOneSevenBuffer(mm);
         assertTrue(buffer.order() == ByteOrder.BIG_ENDIAN);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         assertTrue(buffer.order() == ByteOrder.LITTLE_ENDIAN);
         buffer.putDouble(1.0d);
         buffer.flip();
-        assertEquals("little endian", 1.0d, 1.0d, buffer.getDouble());
+        assertEquals("little endian", 1.0d, buffer.getDouble());
     }
 
-    @Test
     public void testMarkAndReset() {
         final BuffersBuffer buffer = createOneSevenBuffer(mm);
 
@@ -243,8 +214,7 @@ public class BuffersBufferTest {
         }
         assertEquals(1, buffer.getShort());
     }
-
-    @Test
+    
     public void testBulkByteBufferGetWithEmptyBuffers() throws Exception {
         BuffersBuffer b = BuffersBuffer.create(mm);
         b.append(Buffers.wrap(mm, "Hello "));
@@ -256,8 +226,7 @@ public class BuffersBufferTest {
         buffer.flip();
         assertEquals("Hello world!", Charsets.getCharsetDecoder(Charsets.UTF8_CHARSET).decode(buffer).toString());
     }
-
-    @Test
+    
     public void testBulkArrayGetWithEmptyBuffers() throws Exception {
             BuffersBuffer b = BuffersBuffer.create(mm);
             b.append(Buffers.wrap(mm, "Hello "));

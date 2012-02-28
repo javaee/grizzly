@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -161,7 +161,7 @@ public class ContentTest extends TestCase {
             byte[] patternContent = new byte[0];
             for(int i = 0; i<patternContentMessages.length; i++) {
                 int oldLen = patternContent.length;
-                final ByteBuffer bb = patternContentMessages[i].getContent().toViewByteBuffer().duplicate();
+                final ByteBuffer bb = patternContentMessages[i].getContent().toByteBuffer().duplicate();
                 patternContent = Arrays.copyOf(patternContent, oldLen + bb.remaining());
                 bb.get(patternContent, oldLen, bb.remaining());
             }

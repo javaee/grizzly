@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -510,7 +510,7 @@ public class BufferChunk implements Chunk {
 //            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
             return cc;
         } else if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
-            final ByteBuffer bb = buffer.toViewByteBuffer(start, end);
+            final ByteBuffer bb = buffer.toByteBuffer(start, end);
             final char[] ccBuf = cc.getChars();
             final int ccStart = cc.getStart();
             final CharBuffer cb = CharBuffer.wrap(ccBuf, ccStart, ccBuf.length - ccStart);

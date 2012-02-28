@@ -928,7 +928,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 
                 try {
                     if (buffer.isComposite()) {
-                        final ByteBufferArray array = buffer.toViewByteBufferArray();
+                        final ByteBufferArray array = buffer.toByteBufferArray();
                         final ByteBuffer[] byteBuffers = array.getArray();
                         final int size = array.size();
 
@@ -980,9 +980,9 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         final int read;
         if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, buffer.toViewByteBuffer());
+            read = doReadInLoop(socketChannel, buffer.toByteBuffer());
         } else {
-            read = socketChannel.read(buffer.toViewByteBuffer());
+            read = socketChannel.read(buffer.toByteBuffer());
         }
 
         return read;
@@ -1123,7 +1123,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             return 0;
         }
         
-        return flushByteBuffer(socketChannel, buffer.toViewByteBuffer());
+        return flushByteBuffer(socketChannel, buffer.toByteBuffer());
     }
     
     private static int writeGathered(final TCPNIOConnection tcpConnection,
@@ -1197,7 +1197,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                         }
                     }
                 } else { // if it's direct buffer
-                    final ByteBuffer byteBuffer = buffer.toViewByteBuffer();
+                    final ByteBuffer byteBuffer = buffer.toByteBuffer();
                     written += socketChannel.write(byteBuffer);
                     if (byteBuffer.hasRemaining()) {
                         break;

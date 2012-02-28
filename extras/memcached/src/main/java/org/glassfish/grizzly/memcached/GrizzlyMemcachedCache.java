@@ -405,7 +405,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -455,7 +455,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         for (Map.Entry<K, V> entry : map.entrySet()) {
             final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(entry.getKey(), transport.getMemoryManager());
             final Buffer keyBuffer = keyWrapper.getBuffer();
-            final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+            final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
             if (address == null) {
                 if (logger.isLoggable(Level.WARNING)) {
                     logger.log(Level.WARNING, "failed to get the address from the consistent hash in set multi. key buffer={0}", keyBuffer);
@@ -523,7 +523,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -582,7 +582,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -642,7 +642,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -699,7 +699,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         valueWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -756,7 +756,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         valueWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -806,7 +806,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         for (K key : keys) {
             final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(key, transport.getMemoryManager());
             final Buffer keyBuffer = keyWrapper.getBuffer();
-            final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+            final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
             if (address == null) {
                 if (logger.isLoggable(Level.WARNING)) {
                     logger.log(Level.WARNING, "failed to get the address from the consistent hash in get multi. key buffer={0}", keyBuffer);
@@ -870,7 +870,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         keyWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return null;
@@ -920,7 +920,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         keyWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return null;
@@ -970,7 +970,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         keyWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return null;
@@ -1021,7 +1021,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return null;
@@ -1070,7 +1070,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         keyWrapper.recycle();
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;
@@ -1127,7 +1127,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return -1;
@@ -1184,7 +1184,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return -1;
@@ -1482,7 +1482,7 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V> {
         builder.expirationInSecs(expirationInSecs);
         final MemcachedRequest request = builder.build();
 
-        final SocketAddress address = consistentHash.get(keyBuffer.toViewByteBuffer());
+        final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
         if (address == null) {
             builder.recycle();
             return false;

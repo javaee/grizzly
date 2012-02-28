@@ -1316,144 +1316,6 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
         
     @Override
-    public ByteBuffer toViewByteBuffer() {
-        return toViewByteBuffer(position, limit);
-    }
-
-    @Override
-    public ByteBuffer toViewByteBuffer(int position, int limit) {
-        if (position < 0 || position > capacity || limit < 0 || limit > capacity)
-            throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
-
-        if (buffersSize == 0 || (position == limit)) {
-            return Buffers.EMPTY_BYTE_BUFFER;
-        } else if (buffersSize == 1) {
-            final Buffer buffer = buffers[0];
-            final int bufferPos = buffer.position();
-            return buffer.toViewByteBuffer(bufferPos + position, bufferPos + limit);
-        }
-
-        checkIndex(position);
-        final int pos1 = lastSegmentIndex;
-        final int bufPosition = toActiveBufferPos(position);
-
-        checkIndex(limit - 1);
-        final int pos2 = lastSegmentIndex;
-        final int bufLimit = toActiveBufferPos(limit);
-
-        if (pos1 == pos2) {
-            final Buffer buffer = buffers[pos1];
-            return buffer.toViewByteBuffer(bufPosition, bufLimit);
-        }
-
-        final ByteBuffer resultByteBuffer = MemoryUtils.allocateByteBuffer(
-                memoryManager, limit - position);
-
-        final Buffer startBuffer = buffers[pos1];
-        final ByteBufferArray array = ByteBufferArray.create();
-        
-        fillByteBuffer(resultByteBuffer,
-                startBuffer.toViewByteBufferArray(array, bufPosition, startBuffer.limit()));
-
-        for(int i = pos1 + 1; i < pos2; i++) {
-            fillByteBuffer(resultByteBuffer, buffers[i].toViewByteBufferArray(array));
-        }
-
-        final Buffer endBuffer = buffers[pos2];
-        fillByteBuffer(resultByteBuffer,
-                endBuffer.toViewByteBufferArray(array, endBuffer.position(), bufLimit));
-
-        array.restore();
-        array.recycle();
-        
-        return (ByteBuffer) resultByteBuffer.flip();
-    }
-
-    @Override
-    public final ByteBufferArray toViewByteBufferArray() {
-        return toViewByteBufferArray(position, limit);
-    }
-
-    @Override
-    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array) {
-        if (position == 0 && limit == capacity) {
-            for (int i = 0; i < buffersSize; i++) {
-                buffers[i].toViewByteBufferArray(array);
-            }
-
-            return array;
-        } else {
-            return toViewByteBufferArray(array, position, limit);
-        }
-    }
-
-    @Override
-    public final ByteBufferArray toViewByteBufferArray(final int position, final int limit) {
-        final ByteBufferArray array = ByteBufferArray.create();
-        
-        if (position == 0 && limit == capacity) {
-            for (int i = 0; i < buffersSize; i++) {
-                buffers[i].toViewByteBufferArray(array);
-            }
-
-            return array;
-        } else {
-            return toViewByteBufferArray(array, position, limit);
-        }
-    }
-    
-    @Override
-    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array,
-            final int position, final int limit) {
-        
-        if (position < 0 || position > capacity || limit < 0 || limit > capacity)
-            throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
-
-        if (buffersSize == 0 || (position == limit)) {
-            return array;
-        } else if (buffersSize == 1) {
-            final Buffer b = buffers[0];
-            final int startPos = b.position();
-            return b.toViewByteBufferArray(array, position + startPos,
-                    limit + startPos);
-        } else if (position == 0 && limit == capacity) {
-            for (int i = 0; i < buffersSize; i++) {
-                buffers[i].toViewByteBufferArray(array);
-            }
-
-            return array;
-        }
-
-        checkIndex(position);
-        final int pos1 = lastSegmentIndex;
-        final int bufPosition = toActiveBufferPos(position);
-
-        checkIndex(limit - 1);
-        final int pos2 = lastSegmentIndex;
-        final int bufLimit = toActiveBufferPos(limit);
-
-        if (pos1 == pos2) {
-            final Buffer buffer = buffers[pos1];
-            return buffer.toViewByteBufferArray(array, bufPosition, bufLimit);
-        }
-
-        final Buffer startBuffer = buffers[pos1];
-        startBuffer.toViewByteBufferArray(array,
-                bufPosition, startBuffer.limit());
-
-        for(int i = pos1 + 1; i < pos2; i++) {
-            final Buffer srcBuffer = buffers[i];
-            srcBuffer.toViewByteBufferArray(array);
-        }
-
-        final Buffer endBuffer = buffers[pos2];
-        endBuffer.toViewByteBufferArray(array,
-                endBuffer.position(), bufLimit);
-
-        return array;
-    }
-
-    @Override
     public ByteBuffer toByteBuffer() {
         return toByteBuffer(position, limit);
     }
@@ -1489,11 +1351,11 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         final Buffer startBuffer = buffers[pos1];
         final ByteBufferArray array = ByteBufferArray.create();
-
+        
         fillByteBuffer(resultByteBuffer,
                 startBuffer.toByteBufferArray(array, bufPosition, startBuffer.limit()));
 
-        for (int i = pos1 + 1; i < pos2; i++) {
+        for(int i = pos1 + 1; i < pos2; i++) {
             fillByteBuffer(resultByteBuffer, buffers[i].toByteBufferArray(array));
         }
 
@@ -1503,7 +1365,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         array.restore();
         array.recycle();
-
+        
         return (ByteBuffer) resultByteBuffer.flip();
     }
 
@@ -1528,7 +1390,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public final ByteBufferArray toByteBufferArray(final int position, final int limit) {
         final ByteBufferArray array = ByteBufferArray.create();
-
+        
         if (position == 0 && limit == capacity) {
             for (int i = 0; i < buffersSize; i++) {
                 buffers[i].toByteBufferArray(array);
@@ -1539,11 +1401,11 @@ public final class BuffersBuffer extends CompositeBuffer {
             return toByteBufferArray(array, position, limit);
         }
     }
-
+    
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
-                                                       final int position, final int limit) {
-
+            final int position, final int limit) {
+        
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
             throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
 
@@ -1579,7 +1441,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         startBuffer.toByteBufferArray(array,
                 bufPosition, startBuffer.limit());
 
-        for (int i = pos1 + 1; i < pos2; i++) {
+        for(int i = pos1 + 1; i < pos2; i++) {
             final Buffer srcBuffer = buffers[i];
             srcBuffer.toByteBufferArray(array);
         }

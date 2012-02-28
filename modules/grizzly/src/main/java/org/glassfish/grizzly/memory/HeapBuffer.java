@@ -95,7 +95,6 @@ public class HeapBuffer implements Buffer {
 
     // ------------------------------------------------------------ Constructors
 
-    @SuppressWarnings("UnusedDeclaration")
     protected HeapBuffer() {
     }
 
@@ -841,12 +840,12 @@ public class HeapBuffer implements Buffer {
         int oldLimit = 0;
         
         if (isRestoreByteBuffer) {
-            // ByteBuffer can be used by outer code - so save its state
+            // ByteBuffer can be used by outter code - so save its state
             oldPosition = byteBuffer.position();
             oldLimit = byteBuffer.limit();
         }
         
-        final ByteBuffer bb = toViewByteBuffer(position, limit);
+        final ByteBuffer bb = toByteBuffer(position, limit);
         
         try {
             return charset.decode(bb).toString();
@@ -858,12 +857,12 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public ByteBuffer toViewByteBuffer() {
-        return toViewByteBuffer(pos, lim);
+    public ByteBuffer toByteBuffer() {
+        return toByteBuffer(pos, lim);
     }
 
     @Override
-    public ByteBuffer toViewByteBuffer(final int position, final int limit) {
+    public ByteBuffer toByteBuffer(final int position, final int limit) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.wrap(heap);
         }
@@ -873,69 +872,31 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public final ByteBufferArray toViewByteBufferArray() {
+    public final ByteBufferArray toByteBufferArray() {
         final ByteBufferArray array = ByteBufferArray.create();
-        array.add(toViewByteBuffer());
+        array.add(toByteBuffer());
 
         return array;
     }
 
     @Override
-    public final ByteBufferArray toViewByteBufferArray(final int position,
+    public final ByteBufferArray toByteBufferArray(final int position,
                                                    final int limit) {
-        return toViewByteBufferArray(ByteBufferArray.create(), position, limit);
+        return toByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
     @Override
-    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array) {
-        array.add(toViewByteBuffer());
-        return array;
-    }
-
-    @Override
-    public final ByteBufferArray toViewByteBufferArray(final ByteBufferArray array,
-            final int position, final int limit) {
-
-        array.add(toViewByteBuffer(position, limit));
-
-        return array;
-    }
-
-    @Override
-    public ByteBuffer toByteBuffer() {
-        return toByteBuffer(pos, lim);
-    }
-
-    @Override
-    public ByteBuffer toByteBuffer(final int position, final int limit) {
-        final ByteBuffer b = ByteBuffer.allocate(limit - position);
-        b.put(heap, offset + position, limit);
-        b.flip();
-        return b;
-    }
-
-    @Override
-    public ByteBufferArray toByteBufferArray() {
-        return toByteBufferArray(ByteBufferArray.create());
-    }
-
-    @Override
-    public ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
+    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
         array.add(toByteBuffer());
         return array;
     }
 
     @Override
-    public ByteBufferArray toByteBufferArray(final int position,
-                                             final int limit) {
-        return toByteBufferArray(ByteBufferArray.create(), position, limit);
-    }
+    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
+            final int position, final int limit) {
 
-    @Override
-    public ByteBufferArray toByteBufferArray(final ByteBufferArray array,
-                                             final int position,
-                                             final int limit) {
         array.add(toByteBuffer(position, limit));
+
         return array;
     }
 
