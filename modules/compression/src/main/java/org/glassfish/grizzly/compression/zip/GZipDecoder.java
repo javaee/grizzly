@@ -154,7 +154,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
         final Inflater inflater = state.getInflater();
         final CRC32 inCrc32 = state.getCrc32();
 
-        final ByteBufferArray byteBufferArray = buffer.toViewByteBufferArray();
+        final ByteBufferArray byteBufferArray = buffer.toByteBufferArray();
         final ByteBuffer[] byteBuffers = byteBufferArray.getArray();
         final int size = byteBufferArray.size();
 
@@ -182,7 +182,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
             int lastInflated;
             do {
                 final Buffer decodedBuffer = memoryManager.allocate(bufferSize);
-                final ByteBuffer decodedBB = decodedBuffer.toViewByteBuffer();
+                final ByteBuffer decodedBB = decodedBuffer.toByteBuffer();
                 final byte[] decodedArray = decodedBB.array();
                 final int decodedArrayOffs = decodedBB.arrayOffset() + decodedBB.position();
 

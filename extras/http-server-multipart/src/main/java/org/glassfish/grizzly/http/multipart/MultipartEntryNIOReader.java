@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -344,7 +344,7 @@ final class MultipartEntryNIOReader extends NIOReader {
                          final CharBuffer dst) throws IOException {
 
         final int charPos = dst.position();
-        final ByteBuffer bb = requestNIOInputStream.getBuffer().toViewByteBuffer();
+        final ByteBuffer bb = requestNIOInputStream.getBuffer().toByteBuffer();
         final int bbPos = bb.position();
         final int bbLim = bb.limit();
         bb.limit(bbPos + multipartEntry.availableBytes());

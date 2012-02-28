@@ -215,7 +215,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         // excess copying in deflateBytes (see Deflater.c)
         int stride = bufferSize;
         Buffer resultBuffer = null;
-        final ByteBufferArray byteBufferArray = buffer.toViewByteBufferArray();
+        final ByteBufferArray byteBufferArray = buffer.toByteBufferArray();
         final ByteBuffer[] buffers = byteBufferArray.getArray();
         final int size = byteBufferArray.size();
 
@@ -264,7 +264,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
      */
      protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
         final Buffer buffer = memoryManager.allocate(bufferSize);
-        final ByteBuffer byteBuffer = buffer.toViewByteBuffer();
+        final ByteBuffer byteBuffer = buffer.toByteBuffer();
         final byte[] array = byteBuffer.array();
         final int offset = byteBuffer.arrayOffset() + byteBuffer.position();
 

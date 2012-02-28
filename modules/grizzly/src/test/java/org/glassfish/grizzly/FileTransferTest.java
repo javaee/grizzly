@@ -108,7 +108,7 @@ public class FileTransferTest {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
                 Buffer b = ctx.getMessage();
-                ByteBuffer bb = b.toViewByteBuffer();
+                ByteBuffer bb = b.toByteBuffer();
                 total.addAndGet(b.remaining());
                 out.getChannel().write(bb);
                 if (total.get() == f.length()) {
