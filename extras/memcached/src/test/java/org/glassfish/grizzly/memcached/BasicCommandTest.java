@@ -45,6 +45,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.HashMap;
@@ -61,11 +65,12 @@ public class BasicCommandTest {
 
     private static final int expirationTimeoutInSec = 60 * 30; // 30min
     private static final SocketAddress DEFAULT_MEMCACHED_ADDRESS = new InetSocketAddress(11211);
+    public static final String DEFAULT_CHARSET = "UTF-8";
 
     @Test
     public void emptyTest() {
     }
-    
+
     // memcached server should be booted in local
     //@Test
     public void testBasicCommand() {
@@ -600,10 +605,10 @@ public class BasicCommandTest {
         final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
         final MemcachedCache<String, String> userCache = builder.build();
         userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
-        
+
         final int valueSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10;
-        final StringBuilder stringBuilder = new StringBuilder(valueSize); 
-        for( int i=0; i< valueSize; i++) {
+        final StringBuilder stringBuilder = new StringBuilder(valueSize);
+        for (int i = 0; i < valueSize; i++) {
             stringBuilder.append("o");
         }
         final String largeValue = stringBuilder.toString();
@@ -619,7 +624,144 @@ public class BasicCommandTest {
         // clear
         result = userCache.delete("name", false);
         Assert.assertTrue(result);
-        
+
         manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    //@Test
+    public void testCompressObject() {
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, User> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, User> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final int valueSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10;
+        final StringBuilder stringBuilder = new StringBuilder(valueSize);
+        for (int i = 0; i < valueSize; i++) {
+            stringBuilder.append("o");
+        }
+        final String largeValue = stringBuilder.toString();
+
+        // ensure "name" doesn't exist
+        userCache.delete("user1", false);
+
+        final User user1 = new User(1, largeValue, largeValue, largeValue);
+        boolean result = userCache.add("user1", user1, expirationTimeoutInSec, false, -1, -1);
+        Assert.assertTrue(result);
+        User user2 = userCache.get("user1", false, -1, -1);
+        Assert.assertEquals(user1, user2);
+
+        // clear
+        result = userCache.delete("user1", false);
+        Assert.assertTrue(result);
+
+        manager.shutdown();
+    }
+
+    private static class User implements Externalizable {
+        private int id;
+        private String name;
+        private String address;
+        private String country;
+
+        public User() {
+        }
+
+        private User(final int id, final String name, final String address, final String country) {
+            if (name == null || address == null || country == null) {
+                throw new IllegalArgumentException("invalid parameters");
+            }
+            this.id = id;
+            this.name = name;
+            this.address = address;
+            this.country = country;
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (!(obj instanceof User)) {
+                return false;
+            }
+            if (this == obj) {
+                return true;
+            }
+            final User user = (User) obj;
+            return this.id == user.id &&
+                    this.name.equals(user.name) &&
+                    this.address.equals(user.address) &&
+                    this.country.equals(user.country);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = 17;
+            result = 31 * result + id;
+            result = 31 * result + name.hashCode();
+            result = 31 * result + address.hashCode();
+            result = 31 * result + country.hashCode();
+            return result;
+        }
+
+        @Override
+        public void writeExternal(final ObjectOutput out) throws IOException {
+            if (out == null) {
+                return;
+            }
+            final byte[] nameBytes = name.getBytes(DEFAULT_CHARSET);
+            final int nameBytesLen = nameBytes.length;
+            final byte[] addressBytes = address.getBytes(DEFAULT_CHARSET);
+            final int addressBytesLen = addressBytes.length;
+            final byte[] countryBytes = country.getBytes(DEFAULT_CHARSET);
+            final int countryBytesLen = countryBytes.length;
+            out.writeInt(id);
+            out.writeInt(nameBytesLen);
+            out.write(nameBytes);
+            out.writeInt(addressBytesLen);
+            out.write(addressBytes);
+            out.writeInt(countryBytesLen);
+            out.write(countryBytes);
+        }
+
+        @Override
+        public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+            final int id = in.readInt();
+            final int nameBytesLen = in.readInt();
+            final byte[] nameBytes = new byte[nameBytesLen];
+            int read = 0;
+            do {
+                read += in.read(nameBytes, read, nameBytesLen - read);
+            } while (read < nameBytesLen);
+            final String name = new String(nameBytes, DEFAULT_CHARSET);
+            final int addressBytesLen = in.readInt();
+            final byte[] addressBytes = new byte[addressBytesLen];
+            read = 0;
+            do {
+                read += in.read(addressBytes, read, addressBytesLen - read);
+            } while (read < addressBytesLen);
+            final String address = new String(addressBytes, DEFAULT_CHARSET);
+            final int countryBytesLen = in.readInt();
+            final byte[] countryBytes = new byte[countryBytesLen];
+            read = 0;
+            do {
+                read += in.read(countryBytes, read, countryBytesLen - read);
+            } while (read < countryBytesLen);
+            final String country = new String(countryBytes, DEFAULT_CHARSET);
+
+            this.id = id;
+            this.name = name;
+            this.address = address;
+            this.country = country;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    ", address='" + address + '\'' +
+                    ", country='" + country + '\'' +
+                    '}';
+        }
     }
 }

@@ -384,17 +384,20 @@ public class BufferWrapper<T> implements Cacheable {
                     return null;
                 }
             case BYTE_ARRAY:
-                return buffer.toByteBuffer(position, limit).array();
+                final int length3 = limit - position;
+                final byte[] bytes3 = new byte[length3];
+                buffer.get(bytes3, 0, length3);
+                return bytes3;
             case BYTE_ARRAY_COMPRESSED:
-                return decompress(buffer.toByteBuffer(position, limit).array());
+                return decompress(buffer.toByteBuffer().array(), position, limit);
             case BYTE_BUFFER:
                 return buffer.toByteBuffer(position, limit);
             case BYTE_BUFFER_COMPRESSED:
-                final Buffer decompressedBuffer2 = decompressBuffer(buffer, memoryManager);
+                final Buffer decompressedBuffer2 = decompressBuffer(buffer, position, limit, memoryManager);
                 if (decompressedBuffer2 == null) {
                     return null;
                 }
-                final ByteBuffer result = decompressedBuffer2.toByteBuffer(position, limit);
+                final ByteBuffer result = decompressedBuffer2.toByteBuffer();
                 decompressedBuffer2.tryDispose();
                 return result;
             case BYTE:
@@ -446,7 +449,7 @@ public class BufferWrapper<T> implements Cacheable {
                 }
                 return obj;
             case OBJECT_COMPRESSED:
-                final Buffer decompressedBuffer3 = decompressBuffer(buffer, memoryManager);
+                final Buffer decompressedBuffer3 = decompressBuffer(buffer, position, limit, memoryManager);
                 if (decompressedBuffer3 == null) {
                     return null;
                 }
@@ -454,7 +457,7 @@ public class BufferWrapper<T> implements Cacheable {
                 ObjectInputStream ois2 = null;
                 Object obj2 = null;
                 try {
-                    bis2 = new BufferInputStream(decompressedBuffer3, position, limit);
+                    bis2 = new BufferInputStream(decompressedBuffer3);
                     ois2 = new ObjectInputStream(bis2);
                     obj2 = ois2.readObject();
                 } catch (IOException ie) {
@@ -521,11 +524,11 @@ public class BufferWrapper<T> implements Cacheable {
         return bos.toByteArray();
     }
 
-    private static Buffer decompressBuffer(final Buffer buffer, final MemoryManager memoryManager) {
-        if (buffer == null) {
+    private static Buffer decompressBuffer(final Buffer buffer, final int position, final int limit, final MemoryManager memoryManager) {
+        if (buffer == null || position > limit) {
             return null;
         }
-        final byte[] decompressed = decompress(buffer.toByteBuffer().array());
+        final byte[] decompressed = decompress(buffer.toByteBuffer().array(), position, limit - position);
         if (decompressed == null) {
             return null;
         }
@@ -533,10 +536,17 @@ public class BufferWrapper<T> implements Cacheable {
     }
 
     private static byte[] decompress(final byte[] in) {
+        if (in == null) {
+            return null;
+        }
+        return decompress(in, 0, in.length);
+    }
+
+    private static byte[] decompress(final byte[] in, final int offset, final int length) {
         ByteArrayOutputStream bos;
         byte[] result = null;
         if (in != null) {
-            ByteArrayInputStream bis = new ByteArrayInputStream(in);
+            ByteArrayInputStream bis = new ByteArrayInputStream(in, offset, length);
             bos = new ByteArrayOutputStream();
             GZIPInputStream gis = null;
             try {
