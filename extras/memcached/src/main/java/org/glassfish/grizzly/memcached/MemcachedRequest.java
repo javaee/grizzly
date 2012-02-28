@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class MemcachedRequest {
 
-    private static final int MAX_KEY_LENGTH = Short.MAX_VALUE; // 32kbytes
+    private static final int MAX_KEY_LENGTH = 250; // 250bytes
     private static final int MAX_VALUE_LENGTH = 1024 * 1024; // 1M
 
     private final boolean hasExtras;
