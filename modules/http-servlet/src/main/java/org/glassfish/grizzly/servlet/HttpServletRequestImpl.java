@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -199,7 +199,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Enumeration)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetAttributePrivilegedAction());        
         } else {
             return new Enumerator(request.getAttributeNames());
@@ -220,7 +220,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (String)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetCharacterEncodingPrivilegedAction());
         } else {
             return request.getCharacterEncoding();
@@ -310,7 +310,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (String)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetParameterPrivilegedAction(name));
         } else {
             return request.getParameter(name);
@@ -331,7 +331,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return new Enumerator((Set) AccessController.doPrivileged(
+            return new Enumerator(AccessController.doPrivileged(
                 new GetParameterNamesPrivilegedAction()));
         } else {
             return new Enumerator(request.getParameterNames());
@@ -358,7 +358,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
          * in place, so that performance won't suffer in the nonsecure case
          */
         if (System.getSecurityManager() != null){
-            ret = (String[]) AccessController.doPrivileged(
+            ret = AccessController.doPrivileged(
                 new GetParameterValuePrivilegedAction(name));
             if (ret != null) {
                 ret = ret.clone();
@@ -384,7 +384,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Map)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetParameterMapPrivilegedAction());        
         } else {
             return request.getParameterMap();
@@ -600,7 +600,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Locale)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetLocalePrivilegedAction());
         } else {
             return request.getLocale();
@@ -620,8 +620,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             throw new IllegalStateException("Null request object");
         }
 
-        if (System.getSecurityManager() != null){
-            return (Enumeration)AccessController.doPrivileged(
+        if (System.getSecurityManager() != null) {
+            return AccessController.doPrivileged(
                 new GetLocalesPrivilegedAction());
         } else {
             return new Enumerator(request.getLocales());
@@ -655,7 +655,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if( System.getSecurityManager() != null ) {
-            return (RequestDispatcher)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                     new GetRequestDispatcherPrivilegedAction( path ) );
         } else {
             return getRequestDispatcherInternal( path );
@@ -742,7 +742,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
          * in place, so that performance won't suffer in the nonsecure case
          */
         if (System.getSecurityManager() != null){
-            ret = (Cookie[])AccessController.doPrivileged(
+            ret = AccessController.doPrivileged(
                 new GetCookiesPrivilegedAction());
             if (ret != null) {
                 ret = ret.clone();
@@ -798,7 +798,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Enumeration)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetHeadersPrivilegedAction(name));
         } else {
             return new Enumerator(request.getHeaders(name).iterator());
@@ -819,7 +819,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Enumeration)AccessController.doPrivileged(
+            return AccessController.doPrivileged(
                 new GetHeaderNamesPrivilegedAction());
         } else {
             return new Enumerator(request.getHeaderNames().iterator());
@@ -1218,27 +1218,27 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     // ----------------------------------------------------------- DoPrivileged
     
     private final class GetAttributePrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Enumeration<String>> {
         
         @Override
-        public Object run() {
-            return request.getAttributeNames();
+        public Enumeration<String> run() {
+            return new Enumerator<String>(request.getAttributeNames());
         }            
     }
      
     
     private final class GetParameterMapPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Map<String, String[]>> {
         
         @Override
-        public Object run() {
+        public Map<String, String[]> run() {
             return request.getParameterMap();
         }        
     }    
     
     
     private final class GetRequestDispatcherPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<RequestDispatcher> {
 
         private final String path;
 
@@ -1247,14 +1247,14 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
         
         @Override
-        public Object run() {   
+        public RequestDispatcher run() {   
             return getRequestDispatcherInternal(path);
         }           
     }    
     
     
     private final class GetParameterPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<String> {
 
         public final String name;
 
@@ -1263,24 +1263,24 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         @Override
-        public Object run() {       
+        public String run() {       
             return request.getParameter(name);
         }           
     }    
     
      
     private final class GetParameterNamesPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Set<String>> {
         
         @Override
-        public Object run() {          
+        public Set<String> run() {          
             return request.getParameterNames();
         }           
     } 
     
     
     private final class GetParameterValuePrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<String[]> {
 
         public final String name;
 
@@ -1289,34 +1289,34 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         @Override
-        public Object run() {       
+        public String[] run() {       
             return request.getParameterValues(name);
         }           
     }    
   
     
     private final class GetCookiesPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Cookie[]> {
         
         @Override
-        public Object run() {       
+        public Cookie[] run() {       
             return request.getCookies();
         }           
     }      
     
     
     private final class GetCharacterEncodingPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<String> {
         
         @Override
-        public Object run() {       
+        public String run() {       
             return request.getCharacterEncoding();
         }           
     }   
         
     
     private final class GetHeadersPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Enumeration<String>> {
 
         private final String name;
 
@@ -1325,38 +1325,38 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
         
         @Override
-        public Object run() {       
-            return request.getHeaders(name);
+        public Enumeration<String> run() {       
+            return new Enumerator<String>(request.getHeaders(name));
         }           
     }    
         
     
     private final class GetHeaderNamesPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Enumeration<String>> {
 
         @Override
-        public Object run() {       
-            return request.getHeaderNames();
+        public Enumeration<String> run() {
+            return new Enumerator<String>(request.getHeaderNames());
         }           
     }  
             
     
     private final class GetLocalePrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Locale> {
 
         @Override
-        public Object run() {       
+        public Locale run() {       
             return request.getLocale();
         }           
     }    
             
     
     private final class GetLocalesPrivilegedAction
-            implements PrivilegedAction {
+            implements PrivilegedAction<Enumeration<Locale>> {
 
         @Override
-        public Object run() {       
-            return request.getLocales();
+        public Enumeration<Locale> run() {       
+            return new Enumerator<Locale>(request.getLocales());
         }           
     }    
     
