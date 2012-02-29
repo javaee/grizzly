@@ -45,12 +45,14 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.EOFException;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -609,7 +611,7 @@ public class BasicCommandTest {
         final int valueSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10;
         final StringBuilder stringBuilder = new StringBuilder(valueSize);
         for (int i = 0; i < valueSize; i++) {
-            stringBuilder.append("o");
+            stringBuilder.append('o');
         }
         final String largeValue = stringBuilder.toString();
 
@@ -618,7 +620,7 @@ public class BasicCommandTest {
 
         boolean result = userCache.add("name", largeValue, expirationTimeoutInSec, false);
         Assert.assertTrue(result);
-        String value = userCache.get("name", false);
+        final String value = userCache.get("name", false);
         Assert.assertEquals(largeValue, value);
 
         // clear
@@ -630,30 +632,125 @@ public class BasicCommandTest {
 
     // memcached server should be booted in local
     //@Test
-    public void testCompressObject() {
+    public void testObjectCache() {
         final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
-        final GrizzlyMemcachedCache.Builder<String, User> builder = manager.createCacheBuilder("user");
+        final GrizzlyMemcachedCache.Builder<String, User> builder = manager.createCacheBuilder("userCache");
         final MemcachedCache<String, User> userCache = builder.build();
         userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
 
-        final int valueSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10;
-        final StringBuilder stringBuilder = new StringBuilder(valueSize);
-        for (int i = 0; i < valueSize; i++) {
-            stringBuilder.append("o");
+        final String keyName = "userKey";
+        final int smallSize = 10;
+        final int largeSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10; // will be compressed
+        StringBuilder stringBuilder = new StringBuilder(smallSize);
+        for (int i = 0; i < smallSize; i++) {
+            stringBuilder.append('S');
+        }
+        final String smallValue = stringBuilder.toString();
+        stringBuilder = new StringBuilder(largeSize);
+        for (int i = 0; i < largeSize; i++) {
+            stringBuilder.append('L');
         }
         final String largeValue = stringBuilder.toString();
 
-        // ensure "name" doesn't exist
-        userCache.delete("user1", false);
+        // ensure the key doesn't exist
+        userCache.delete(keyName, false);
 
-        final User user1 = new User(1, largeValue, largeValue, largeValue);
-        boolean result = userCache.add("user1", user1, expirationTimeoutInSec, false, -1, -1);
+        final User user1 = new User(1, smallValue, "", "");
+        boolean result = userCache.add(keyName, user1, expirationTimeoutInSec, false);
         Assert.assertTrue(result);
-        User user2 = userCache.get("user1", false, -1, -1);
-        Assert.assertEquals(user1, user2);
+        final User receivedUser1 = userCache.get(keyName, false);
+        Assert.assertEquals(user1, receivedUser1);
+
+        final User user2 = new User(2, largeValue, largeValue, largeValue);
+        result = userCache.set(keyName, user2, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        final User receivedUser2 = userCache.get(keyName, false);
+        Assert.assertEquals(user2, receivedUser2);
 
         // clear
-        result = userCache.delete("user1", false);
+        result = userCache.delete(keyName, false);
+        Assert.assertTrue(result);
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    //@Test
+    public void testByteArrayCache() {
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, Object> builder = manager.createCacheBuilder("byteArrayCache");
+        final MemcachedCache<String, Object> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final String keyName = "dataKey";
+        final int smallSize = 10;
+        final int largeSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10; // will be compressed
+        final byte[] smallBytes = new byte[smallSize];
+        final byte[] largeBytes = new byte[largeSize];
+        for (int i = 0; i < smallSize; i++) {
+            smallBytes[i] = 'S';
+        }
+        for (int i = 0; i < largeSize; i++) {
+            largeBytes[i] = 'L';
+        }
+
+        // ensure the key doesn't exist
+        userCache.delete(keyName, false);
+
+        boolean result = userCache.add(keyName, smallBytes, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        byte[] receivedBytes = (byte[]) userCache.get(keyName, false);
+        Assert.assertArrayEquals(smallBytes, receivedBytes);
+
+        result = userCache.set(keyName, largeBytes, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        receivedBytes = (byte[]) userCache.get(keyName, false);
+        Assert.assertArrayEquals(largeBytes, receivedBytes);
+
+        // clear
+        result = userCache.delete(keyName, false);
+        Assert.assertTrue(result);
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    //@Test
+    public void testByteBufferCache() {
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, ByteBuffer> builder = manager.createCacheBuilder("byteBufferCache");
+        final MemcachedCache<String, ByteBuffer> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final String keyName = "dataKey";
+        final int smallSize = 10;
+        final int largeSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10; // will be compressed
+        final ByteBuffer smallByteBuffer = ByteBuffer.allocate(smallSize);
+        final ByteBuffer largeByteBuffer = ByteBuffer.allocate(largeSize); 
+        for (int i = 0; i < smallSize; i++) {
+            smallByteBuffer.put((byte)'S');
+        }
+        smallByteBuffer.flip();
+        for (int i = 0; i < largeSize; i++) {
+            largeByteBuffer.put((byte)'L');
+        }
+        largeByteBuffer.flip();
+
+        // ensure the key doesn't exist
+        userCache.delete(keyName, false);
+
+        boolean result = userCache.add(keyName, smallByteBuffer, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        ByteBuffer receivedByteBuffer = userCache.get(keyName, false);
+        Assert.assertEquals(smallByteBuffer, receivedByteBuffer);
+
+        result = userCache.set(keyName, largeByteBuffer, expirationTimeoutInSec, false);
+        Assert.assertTrue(result);
+        receivedByteBuffer = userCache.get(keyName, false);
+        Assert.assertEquals(largeByteBuffer, receivedByteBuffer);
+
+        // clear
+        result = userCache.delete(keyName, false);
         Assert.assertTrue(result);
 
         manager.shutdown();
@@ -730,21 +827,36 @@ public class BasicCommandTest {
             final byte[] nameBytes = new byte[nameBytesLen];
             int read = 0;
             do {
-                read += in.read(nameBytes, read, nameBytesLen - read);
+                int num = in.read(nameBytes, read, nameBytesLen - read);
+                if (num < 0) {
+                    throw new EOFException("the end of the stream is reached");
+                } else {
+                    read += num;
+                }
             } while (read < nameBytesLen);
             final String name = new String(nameBytes, DEFAULT_CHARSET);
             final int addressBytesLen = in.readInt();
             final byte[] addressBytes = new byte[addressBytesLen];
             read = 0;
             do {
-                read += in.read(addressBytes, read, addressBytesLen - read);
+                int num = in.read(addressBytes, read, addressBytesLen - read);
+                if (num < 0) {
+                    throw new EOFException("the end of the stream is reached");
+                } else {
+                    read += num;
+                }
             } while (read < addressBytesLen);
             final String address = new String(addressBytes, DEFAULT_CHARSET);
             final int countryBytesLen = in.readInt();
             final byte[] countryBytes = new byte[countryBytesLen];
             read = 0;
             do {
-                read += in.read(countryBytes, read, countryBytesLen - read);
+                int num = in.read(countryBytes, read, countryBytesLen - read);
+                if (num < 0) {
+                    throw new EOFException("the end of the stream is reached");
+                } else {
+                    read += num;
+                }
             } while (read < countryBytesLen);
             final String country = new String(countryBytes, DEFAULT_CHARSET);
 
