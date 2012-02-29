@@ -389,8 +389,9 @@ public class BufferWrapper<T> implements Cacheable {
                 buffer.get(bytes3, 0, length3);
                 return bytes3;
             case BYTE_ARRAY_COMPRESSED:
-                final ByteBuffer byteBuffer = buffer.toByteBuffer();
-                return decompress(byteBuffer.array(), byteBuffer.arrayOffset() + position, limit - position);
+                final int length4 = limit - position;
+                final ByteBuffer byteBuffer = buffer.toByteBuffer(position, limit);
+                return decompress(byteBuffer.array(), byteBuffer.arrayOffset() + byteBuffer.position(), length4);
             case BYTE_BUFFER:
                 return buffer.toByteBuffer(position, limit);
             case BYTE_BUFFER_COMPRESSED:
@@ -536,8 +537,9 @@ public class BufferWrapper<T> implements Cacheable {
         if (buffer == null || position > limit) {
             return null;
         }
-        final ByteBuffer byteBuffer = buffer.toByteBuffer();
-        final byte[] decompressed = decompress(byteBuffer.array(), byteBuffer.arrayOffset() + position, limit - position);
+        final int length = limit - position;
+        final ByteBuffer byteBuffer = buffer.toByteBuffer(position, limit);
+        final byte[] decompressed = decompress(byteBuffer.array(), byteBuffer.arrayOffset() + byteBuffer.position(), length);
         if (decompressed == null) {
             return null;
         }
