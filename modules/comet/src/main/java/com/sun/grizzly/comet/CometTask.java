@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import com.sun.grizzly.http.Task;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -78,6 +79,12 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      * The {@link AsyncProcessorTask}
      */
     protected AsyncProcessorTask asyncProcessorTask;
+    
+    /**
+     * The {@link InputStream}
+     */
+    protected InputStream inputStream;
+    
     /**
      * true if comet handler is registered for async IO in comet context.
      * used to optimize:
@@ -168,7 +175,9 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
             }
             asyncProcessorTask.getThreadPool().execute(this);
         } else {
-            return !checkIfClientClosedConnection(selectionKey);
+            if (selectionKey.isReadable()) {
+                return !checkIfClientClosedConnection(selectionKey);
+            }
         }
 
         return false;
@@ -183,8 +192,11 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
     private boolean checkIfClientClosedConnection(SelectionKey mainKey) {
         boolean isClosed = true;
         try {
-            isClosed = ((SocketChannel) mainKey.channel()).read(ByteBuffer.allocate(1)) == -1;
+            final int read = inputStream.read();
+//            final int read = ((SocketChannel) mainKey.channel()).read(ByteBuffer.allocate(1));
+            isClosed = (read == -1);
         } catch (IOException ignored) {
+            isClosed = true;
         } finally {
             if (isClosed) {
                 CometEngine.getEngine().interrupt(this, true);
@@ -358,6 +370,9 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      */
     public void setAsyncProcessorTask(AsyncProcessorTask asyncProcessorTask) {
         this.asyncProcessorTask = asyncProcessorTask;
+        if (asyncProcessorTask != null) {
+            inputStream = asyncProcessorTask.getProcessorTask().getInputStream();
+        }
     }
 
     /**
