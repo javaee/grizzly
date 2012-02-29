@@ -163,7 +163,8 @@ public class WebSocketEngine {
                             } catch (IOException ignored) {
                             }
                         }
-                        final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse(), mapper);
+                        final ServerNetworkHandler handler = new ServerNetworkHandler(
+                                request, request.getResponse(), protocolHandler, mapper);
                         protocolHandler.setNetworkHandler(handler);
                         protocolHandler.setKey(key);
                         protocolHandler.setProcessorTask(task);

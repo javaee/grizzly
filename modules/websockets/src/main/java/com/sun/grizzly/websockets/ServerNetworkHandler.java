@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.arp.AsyncProcessorTask;
+import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
@@ -72,10 +74,15 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final InternalOutputBuffer outputBuffer;
     private final Mapper mapper;
     private UDecoder urlDecoder = new UDecoder();
-
-    public ServerNetworkHandler(Request req, Response resp, Mapper mapper) {
+    
+    private final ProtocolHandler protocolHandler;
+    private boolean isClosed;
+    
+    public ServerNetworkHandler(Request req, Response resp,
+            ProtocolHandler protocolHandler, Mapper mapper) {
         request = req;
         response = resp;
+        this.protocolHandler = protocolHandler;
         this.mapper = mapper;
         inputBuffer = (InternalInputBuffer) req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
@@ -86,23 +93,26 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     protected int read() {
         int read = 0;
         ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        
+        Throwable error = null;
+        
         try {
-            ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            ByteChunk bytes = new ByteChunk();
             if (chunk.getLength() > 0) {
                 newChunk.append(chunk);
             }
-            int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
-            while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-                count = inputBuffer.doRead(bytes, request);
+
+            read = inputBuffer.doRead(bytes, request);
+            if (read > 0) {
                 newChunk.append(bytes);
-                read += count;
             }
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
+        } catch (Throwable e) {
+            error = e;
+            read = -1;
         }
 
         if(read == -1) {
-            throw new WebSocketException("Read -1 bytes.  Connection closed?");
+            throw new WebSocketException("Connection closed", error);
         }
         chunk.setBytes(newChunk.getBytes(), 0, newChunk.getEnd());
         return read;
@@ -176,6 +186,25 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         return new HttpServletResponseImpl(r);
     }
 
+    public synchronized void close() {
+        if (!isClosed) {
+            isClosed = true;
+            //            key.cancel();
+            protocolHandler.getProcessorTask().setAptCancelKey(true);
+//            protocolHandler.getProcessorTask().terminateProcess();
+            final AsyncProcessorTask asyncProcessorTask =
+                    protocolHandler.getAsyncTask();
+            asyncProcessorTask.setStage(AsyncTask.FINISH);
+            try {
+                asyncProcessorTask.doTask();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            protocolHandler.getWebSocket().onClose(null);
+        }
+    }
+    
     private class WSServletRequestImpl extends HttpServletRequestImpl {
         private String pathInfo;
         private String servletPath;

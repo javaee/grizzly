@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,22 +57,16 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
     }
 
     private static void doClose(final SelectionKey key) {
-        final Object o = key.attachment();
-        if (o instanceof WebSocketSelectionKeyAttachment) {
-            final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
-            final ProtocolHandler handler = attachment.getHandler();
+        final Object attachment = key.attachment();
+        if (attachment instanceof WebSocketSelectionKeyAttachment) {
+            final WebSocketSelectionKeyAttachment websocketAttachment =
+                    (WebSocketSelectionKeyAttachment) key.attachment();
+            
+            final ProtocolHandler handler = websocketAttachment.getHandler();
             final WebSocket webSocket = handler.getWebSocket();
             webSocket.onClose(null);
-            //if (!webSocket.isConnected()) {
-            //    key.cancel();
-            //}
-            AsyncProcessorTask task = attachment.getAsyncProcessorTask();
-            task.setStage(AsyncTask.FINISH);
-            try {
-                task.doTask();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
+            websocketAttachment.getHandler().getNetworkHandler().close();
         }
     }
 }

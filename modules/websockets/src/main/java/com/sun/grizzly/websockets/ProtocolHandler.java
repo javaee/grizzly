@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,6 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncProcessorTask;
-import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.LoggerUtils;
@@ -183,10 +182,7 @@ public abstract class ProtocolHandler {
 
     public void close(int code, String reason) {
         send(new ClosingFrame(code, reason));
-        if (processorTask != null) {
-            processorTask.setAptCancelKey(true);
-            processorTask.terminateProcess();
-        }
+        handler.close();
     }
 
     public void close(DataFrame frame) {
