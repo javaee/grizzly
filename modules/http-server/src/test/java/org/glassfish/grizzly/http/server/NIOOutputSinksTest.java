@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,7 +99,7 @@ public class NIOOutputSinksTest extends TestCase {
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
 
-            private final StringBuilder sb = new StringBuilder();
+            private int bytesRead;
             
             @Override
             public NextAction handleConnect(FilterChainContext ctx) throws IOException {
@@ -120,20 +120,25 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-
                 HttpContent message = (HttpContent) ctx.getMessage();
                 Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                StringBuilder sb = new StringBuilder(remaining);
+                
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
                     try {
-                        check(sb, b.remaining());
+                        check(sb, bytesRead % LENGTH, remaining);
                     } catch (Exception e) {
                         parseResult.failure(e);
                     }
+                    
+                    bytesRead += remaining;
                 }
-
+                
                 if (message.isLast()) {
-                    parseResult.result(sb.length());
+                    parseResult.result(bytesRead);
                 }
                 return ctx.getStopAction();
             }
@@ -257,7 +262,7 @@ public class NIOOutputSinksTest extends TestCase {
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
 
-            private final StringBuilder sb = new StringBuilder();
+            private int bytesRead;
 
             @Override
             public NextAction handleConnect(FilterChainContext ctx) throws IOException {
@@ -278,20 +283,25 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-
                 HttpContent message = (HttpContent) ctx.getMessage();
                 Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                StringBuilder sb = new StringBuilder(remaining);
+                
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
                     try {
-                        check(sb, b.remaining());
+                        check(sb, bytesRead % LENGTH, remaining);
                     } catch (Exception e) {
                         parseResult.failure(e);
                     }
+                    
+                    bytesRead += remaining;
                 }
                 
                 if (message.isLast()) {
-                    parseResult.result(sb.length());
+                    parseResult.result(bytesRead);
                 }
                 return ctx.getStopAction();
             }
@@ -738,6 +748,148 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
     
+    public void testWritePossibleNotification() throws Exception {
+        final int NOTIFICATIONS_NUM = 5;
+        final int LENGTH = 8192;
+        
+        final AtomicInteger sentBytesCount = new AtomicInteger();
+        final AtomicInteger notificationsCount = new AtomicInteger();
+        
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        server.addListener(listener);
+        
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+            private int bytesRead;
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpContent message = (HttpContent) ctx.getMessage();
+                Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                StringBuilder sb = new StringBuilder(remaining);
+                
+                if (b.hasRemaining()) {
+                    sb.append(b.toStringContent());
+                    try {
+                        check(sb, bytesRead % LENGTH, remaining);
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                    
+                    bytesRead += remaining;
+                }
+                
+                if (message.isLast()) {
+                    parseResult.result(bytesRead);
+                }
+                return ctx.getStopAction();
+            }
+        });
+        
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final HttpHandler ga = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.suspend();
+                
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
+                outputStream.notifyCanWrite(new WriteHandler() {
+
+                    @Override
+                    public void onWritePossible() throws Exception {
+                        clientTransport.pause();
+                        
+                        try {
+                            while (outputStream.canWrite(LENGTH)) {
+                                byte[] b = new byte[LENGTH];
+                                fill(b);
+                                outputStream.write(b);
+                                outputStream.flush();
+                                sentBytesCount.addAndGet(LENGTH);
+                            }
+
+                            if (notificationsCount.incrementAndGet() < NOTIFICATIONS_NUM) {
+                                outputStream.notifyCanWrite(this, LENGTH);
+                            } else {
+                                finish(200);
+                            }
+                        } finally {
+                            clientTransport.resume();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        finish(500);
+                    }
+                    
+                    private void finish(int code) {
+                        response.setStatus(code);
+                        response.resume();
+                    }
+                }, LENGTH);
+            }
+        };
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final int responseContentLength =
+                        parseResult.get(10, TimeUnit.SECONDS);
+                
+                assertEquals(NOTIFICATIONS_NUM, notificationsCount.get());
+                assertEquals(sentBytesCount.get(), responseContentLength);
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+
     private static void fill(byte[] array) {
         for (int i=0; i<array.length; i++) {
             array[i] = (byte) ('a' + i % ('z' - 'a'));
@@ -751,11 +903,15 @@ public class NIOOutputSinksTest extends TestCase {
     }
 
     private static void check(StringBuilder sb, int lastCameSize) {
+        check(sb, 0, lastCameSize);
+    }
+
+    private static void check(StringBuilder sb, int offset, int lastCameSize) {
         final int start = sb.length() - lastCameSize;
 
         for (int i=0; i<lastCameSize; i++) {
             final char c = sb.charAt(start + i);
-            final char expect = (char) ('a' + (i + start) % ('z' - 'a'));
+            final char expect = (char) ('a' + (i + start + offset) % ('z' - 'a'));
             if (c != expect) {
                 throw new IllegalStateException("Result at [" + (i + start) + "] don't match. Expected=" + expect + " got=" + c);
             }
