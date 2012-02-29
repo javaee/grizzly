@@ -389,7 +389,8 @@ public class BufferWrapper<T> implements Cacheable {
                 buffer.get(bytes3, 0, length3);
                 return bytes3;
             case BYTE_ARRAY_COMPRESSED:
-                return decompress(buffer.toByteBuffer().array(), position, limit);
+                final ByteBuffer byteBuffer = buffer.toByteBuffer();
+                return decompress(byteBuffer.array(), byteBuffer.arrayOffset() + position, limit - position);
             case BYTE_BUFFER:
                 return buffer.toByteBuffer(position, limit);
             case BYTE_BUFFER_COMPRESSED:
@@ -493,12 +494,19 @@ public class BufferWrapper<T> implements Cacheable {
         if (buffer == null) {
             throw new IllegalArgumentException("failed to compress the buffer. buffer should be not null");
         }
-        final byte[] compressed = compress(buffer.toByteBuffer().array());
+        final ByteBuffer byteBuffer = buffer.toByteBuffer();
+        final byte[] compressed = compress(byteBuffer.array(),
+                byteBuffer.arrayOffset() + byteBuffer.position(),
+                byteBuffer.remaining());
         buffer.tryDispose();
         return Buffers.wrap(memoryManager, compressed);
     }
 
     private static byte[] compress(final byte[] in) {
+        return compress(in, 0, in.length);
+    }
+
+    private static byte[] compress(final byte[] in, final int offset, final int length) {
         if (in == null) {
             throw new IllegalArgumentException("Can't compress null");
         }
@@ -506,7 +514,7 @@ public class BufferWrapper<T> implements Cacheable {
         GZIPOutputStream gz = null;
         try {
             gz = new GZIPOutputStream(bos);
-            gz.write(in);
+            gz.write(in, offset, length);
         } catch (IOException ie) {
             throw new RuntimeException("IO exception compressing data", ie);
         } finally {
@@ -528,7 +536,8 @@ public class BufferWrapper<T> implements Cacheable {
         if (buffer == null || position > limit) {
             return null;
         }
-        final byte[] decompressed = decompress(buffer.toByteBuffer().array(), position, limit - position);
+        final ByteBuffer byteBuffer = buffer.toByteBuffer();
+        final byte[] decompressed = decompress(byteBuffer.array(), byteBuffer.arrayOffset() + position, limit - position);
         if (decompressed == null) {
             return null;
         }
