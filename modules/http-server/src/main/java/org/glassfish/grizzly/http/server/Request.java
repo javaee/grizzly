@@ -76,6 +76,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -157,7 +158,7 @@ public class Request {
      * TODO: Move Session Management out of here
      */
     private static Map<String, Session> sessions = new
-            HashMap<String, Session>();
+            ConcurrentHashMap<String, Session>();
 
 
     /**
