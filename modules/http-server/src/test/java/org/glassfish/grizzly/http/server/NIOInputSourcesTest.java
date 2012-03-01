@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -488,7 +488,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void service(final Request request,
                     final Response response) throws Exception {
                 response.suspend();
-                final NIOInputStream inputStream = request.getNIOInputStream();
+                final NIOInputStream inputStream = request.getInputStream();
 
                 inputStream.notifyAvailable(new ReadHandler() {
 
@@ -764,8 +764,8 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getNIOInputStream();
-                final NIOOutputStream writer = res.getNIOOutputStream();                
+                final NIOInputStream reader = req.getInputStream();
+                final NIOOutputStream writer = res.getOutputStream();                
 
                 res.suspend();
 
@@ -859,8 +859,8 @@ public class NIOInputSourcesTest extends TestCase {
 
                     @Override
                     public void run() {
-                        final NIOInputStream reader = req.getNIOInputStream();
-                        final NIOOutputStream writer = res.getNIOOutputStream();
+                        final NIOInputStream reader = req.getInputStream();
+                        final NIOOutputStream writer = res.getOutputStream();
                         
                         reader.notifyAvailable(new ReadHandler() {
 
@@ -946,8 +946,8 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getNIOInputStream();
-                final NIOOutputStream writer = res.getNIOOutputStream();                
+                final NIOInputStream reader = req.getInputStream();
+                final NIOOutputStream writer = res.getOutputStream();                
 
                 res.suspend();
 
@@ -1042,12 +1042,12 @@ public class NIOInputSourcesTest extends TestCase {
                 if (encoding != null) {
                     res.setContentType("text/plain;charset=" + encoding);
                 }
-                final NIOReader reader = req.getNIOReader();
+                final NIOReader reader = req.getReader();
                 int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
                     int read = reader.read(b);
-                    res.getNIOWriter().write(b, 0, read);
+                    res.getWriter().write(b, 0, read);
                 }
                 if (reader.isFinished()) {
                     return;
@@ -1075,7 +1075,7 @@ public class NIOInputSourcesTest extends TestCase {
                             testResult.failure(ioe);
                         }
                         try {
-                            res.getNIOWriter().write(sb.toString());
+                            res.getWriter().write(sb.toString());
                         } catch (Exception e) {
                             testResult.failure(e);
                         }

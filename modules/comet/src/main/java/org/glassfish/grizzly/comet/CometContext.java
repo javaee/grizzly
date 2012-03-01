@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -234,7 +234,7 @@ public class CometContext<E> {
             c.addCloseListener(ccHandler);
             response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, ccHandler, new CometTimeoutHandler(handler));
             // Register asynchronous read-event listener
-            final NIOInputStream nioInputStream = response.getRequest().getNIOInputStream();
+            final NIOInputStream nioInputStream = response.getRequest().getInputStream();
             if (!nioInputStream.isFinished()) {
                 nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler));
                 notifyOnAsyncRead(handler);

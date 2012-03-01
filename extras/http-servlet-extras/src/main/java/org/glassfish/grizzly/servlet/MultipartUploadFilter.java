@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -280,7 +280,7 @@ public class MultipartUploadFilter implements Filter {
             if (filename != null && filename.length() > 0) {
                 formParams.addParameterValues(paramName, new String[] { filename });
                 // Get the NIOInputStream to read the multipart entry content
-                final NIOInputStream inputStream = multipartEntry.getNIOInputStream();
+                final NIOInputStream inputStream = multipartEntry.getInputStream();
 
                 LOGGER.log(Level.FINE, "Uploading file {0}",
                         new Object[]{filename});
@@ -294,7 +294,7 @@ public class MultipartUploadFilter implements Filter {
                                 uploadedBytesCounter));
             } else {
                 // standard param value
-                final NIOReader nioReader = multipartEntry.getNIOReader();
+                final NIOReader nioReader = multipartEntry.getReader();
                 nioReader.notifyAvailable(new ReadHandler() {
                     @Override
                     public void onDataAvailable() throws Exception {

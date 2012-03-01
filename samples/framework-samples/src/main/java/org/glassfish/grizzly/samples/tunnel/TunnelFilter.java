@@ -57,7 +57,7 @@ import java.net.SocketAddress;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 
 /**
  * Simple tunneling filter, which maps input of one connection to the output of
@@ -172,7 +172,7 @@ public class TunnelFilter extends BaseFilter {
                     }
                 },
                 
-                new PushBackHandler() {
+                new LifeCycleHandler.Adapter() {
                     @Override
                     public void onAccept(Connection connection, WritableMessage message) {
                         context.resume();

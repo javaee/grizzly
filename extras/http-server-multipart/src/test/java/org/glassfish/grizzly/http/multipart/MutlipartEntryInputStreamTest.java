@@ -210,7 +210,7 @@ public class MutlipartEntryInputStreamTest {
                     response.suspend();
 
                     MultipartScanner.scan(request, new TestMultipartEntryHandler(
-                            response.getNIOOutputStream()),
+                            response.getOutputStream()),
                             new ResumeCompletionHandler(response));
                 }
             }, "/");
@@ -295,7 +295,7 @@ public class MutlipartEntryInputStreamTest {
         @Override
         public void handle(MultipartEntry part) throws Exception {
             if (!part.isMultipart()) {
-                final NIOInputStream nioInputStream = part.getNIOInputStream();
+                final NIOInputStream nioInputStream = part.getInputStream();
                 nioInputStream.notifyAvailable(
                         new EchoReadHandler(nioInputStream,
                         outputStream));

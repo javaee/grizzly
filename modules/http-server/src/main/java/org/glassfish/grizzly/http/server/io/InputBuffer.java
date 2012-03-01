@@ -173,7 +173,7 @@ public class InputBuffer {
      * Flag indicating whether or not async operations are being used on the
      * input streams.
      */
-    private boolean asyncEnabled;
+//    private boolean asyncEnabled;
 
     /**
      * {@link CharBuffer} for converting a single character at a time.
@@ -260,7 +260,7 @@ public class InputBuffer {
         processingChars = false;
         closed = false;
         contentRead = false;
-        asyncEnabled = false;
+//        asyncEnabled = false;
 
         markPos = -1;
         readAheadLimit = -1;
@@ -313,13 +313,13 @@ public class InputBuffer {
             throw new IOException();
         }
         if (!inputContentBuffer.hasRemaining()) {
-            if (!asyncEnabled) {
-                if (fill(1) == -1) {
-                    return -1;
-                }
-            } else {
-                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+//            if (!asyncEnabled) {
+            if (fill(1) == -1) {
+                return -1;
             }
+//            } else {
+//                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+//            }
         }
         
         if (readAheadLimit != -1) {
@@ -346,13 +346,13 @@ public class InputBuffer {
             return 0;
         }
         if (!inputContentBuffer.hasRemaining()) {
-            if (!asyncEnabled) {
-                if (fill(1) == -1) {
-                    return -1;
-                }
-            } else {
-                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+//            if (!asyncEnabled) {
+            if (fill(1) == -1) {
+                return -1;
             }
+//            } else {
+//                throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+//            }
         }
 
         int nlen = Math.min(inputContentBuffer.remaining(), len);
@@ -468,7 +468,7 @@ public class InputBuffer {
         if (target == null) {
             throw new IllegalArgumentException("target cannot be null.");
         }
-        final int read = fillChars(1, target, !asyncEnabled);
+        final int read = fillChars(1, target/*, !asyncEnabled*/);
         if (readAheadLimit != -1) {
             readCount += read;
             if (readCount > readAheadLimit) {
@@ -651,32 +651,33 @@ public class InputBuffer {
      *  is configured for asynchronous communication and the number of bytes/characters
      *  being skipped exceeds the number of bytes available in the buffer.
      */
-    public long skip(final long n, final boolean block) throws IOException {
+    public long skip(final long n/*, final boolean block*/) throws IOException {
 
         if (closed) {
             throw new IOException();
         }
 
-        if (!block) {
-            if (n > inputContentBuffer.remaining()) {
-                throw new IllegalStateException("Can not skip more bytes than available");
-            }
-        }
+//        if (!block) {
+//            if (n > inputContentBuffer.remaining()) {
+//                throw new IllegalStateException("Can not skip more bytes than available");
+//            }
+//        }
 
         if (!processingChars) {
             if (n <= 0) {
                 return 0L;
             }
-            if (block) {
-                if (!inputContentBuffer.hasRemaining()) {
-                    if (fill((int) n) == -1) {
-                        return -1;
-                    }
-                }
-                if (inputContentBuffer.remaining() < n) {
-                    fill((int) n);
+            
+//            if (block) {
+            if (!inputContentBuffer.hasRemaining()) {
+                if (fill((int) n) == -1) {
+                    return -1;
                 }
             }
+            if (inputContentBuffer.remaining() < n) {
+                fill((int) n);
+            }
+//            }
             long nlen = Math.min(inputContentBuffer.remaining(), n);
             inputContentBuffer.position(inputContentBuffer.position() + (int) nlen);
             inputContentBuffer.shrink();
@@ -690,7 +691,7 @@ public class InputBuffer {
                 return 0L;
             }
             final CharBuffer skipBuffer = CharBuffer.allocate((int) n);
-            if (fillChars((int) n, skipBuffer, block) == -1) {
+            if (fillChars((int) n, skipBuffer/*, block*/) == -1) {
                 return 0;
             }
             return Math.min(skipBuffer.remaining(), n);
@@ -896,20 +897,20 @@ public class InputBuffer {
     /**
      * @return if this buffer is being used to process asynchronous data.
      */
-    public boolean isAsyncEnabled() {
-        return asyncEnabled;
-    }
-
-
-    /**
-     * Sets the asynchronous processing state of this <code>InputBuffer</code>.
-     *
-     * @param asyncEnabled <code>true</code> if this <code>InputBuffer<code>
-     *  is to be used to process asynchronous request data.
-     */
-    public void setAsyncEnabled(boolean asyncEnabled) {
-        this.asyncEnabled = asyncEnabled;
-    }
+//    public boolean isAsyncEnabled() {
+//        return asyncEnabled;
+//    }
+//
+//
+//    /**
+//     * Sets the asynchronous processing state of this <code>InputBuffer</code>.
+//     *
+//     * @param asyncEnabled <code>true</code> if this <code>InputBuffer<code>
+//     *  is to be used to process asynchronous request data.
+//     */
+//    public void setAsyncEnabled(boolean asyncEnabled) {
+//        this.asyncEnabled = asyncEnabled;
+//    }
 
 
     /**
@@ -989,8 +990,8 @@ public class InputBuffer {
      *              but has to block in order to fill CharBuffer with the requested size.
      */
     private int fillChars(final int requestedLen,
-                         final CharBuffer dst,
-                         final boolean block) throws IOException {
+                         final CharBuffer dst
+                         /*final boolean block*/) throws IOException {
 
         int read = 0;
         
@@ -998,9 +999,10 @@ public class InputBuffer {
             read = fillAvailableChars(requestedLen, dst);
         }
         
-        if (!block && read < requestedLen) {
-            throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
-        } else if (read >= requestedLen) {
+//        if (!block && read < requestedLen) {
+//            throw new IllegalStateException("Can't block and wait for data in non-blocking mode");
+//        } else 
+        if (read >= requestedLen) {
             dst.flip();
             return read;
         }

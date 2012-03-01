@@ -229,7 +229,7 @@ public class MutlipartEntryReaderTest {
                     response.setCharacterEncoding("UTF-8");
                     
                     MultipartScanner.scan(request,
-                            new TestMultipartEntryHandler(response.getNIOWriter()),
+                            new TestMultipartEntryHandler(response.getWriter()),
                             new ResumeCompletionHandler(response));
                 }
             }, "/");
@@ -312,7 +312,7 @@ public class MutlipartEntryReaderTest {
         @Override
         public void handle(MultipartEntry part) throws Exception {
             if (!part.isMultipart()) {
-                final NIOReader nioReader = part.getNIOReader();
+                final NIOReader nioReader = part.getReader();
                 nioReader.notifyAvailable(
                         new EchoReadHandler(nioReader, writer));
             } else {

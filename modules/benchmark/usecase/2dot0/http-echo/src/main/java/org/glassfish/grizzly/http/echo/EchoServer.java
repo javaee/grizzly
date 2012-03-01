@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -230,8 +230,8 @@ final class EchoServer {
                 response.setContentLength(request.getContentLength());
             }
             if (settings.isBinary()) {
-                final NIOInputStream in = request.getNIOInputStream();
-                final NIOOutputStream out = response.getNIOOutputStream();
+                final NIOInputStream in = request.getInputStream();
+                final NIOOutputStream out = response.getOutputStream();
                 final byte[] buf = new byte[1024];
 
                 if (in.isFinished()) {
@@ -273,8 +273,8 @@ final class EchoServer {
                     }
                 });
             } else {
-                final NIOReader in = request.getNIOReader();
-                final NIOWriter out = response.getNIOWriter();
+                final NIOReader in = request.getReader();
+                final NIOWriter out = response.getWriter();
                 final char[] buf = new char[1024];
 
                 if (in.isFinished()) {

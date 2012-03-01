@@ -169,34 +169,34 @@ public class OutputBuffer {
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
     }
 
-    /**
-     * <p>
-     * Returns <code>true</code> if content will be written in a non-blocking
-     * fashion, otherwise returns <code>false</code>.
-     * </p>
-     *
-     * @return <code>true</code> if content will be written in a non-blocking
-     * fashion, otherwise returns <code>false</code>.
-     *
-     * @since 2.1.2
-     */
-    @SuppressWarnings({"UnusedDeclaration"})
-    public boolean isAsyncEnabled() {
-        return asyncEnabled;
-    }
-
-
-    /**
-     * Sets the asynchronous processing state of this <code>OutputBuffer</code>.
-     *
-     * @param asyncEnabled <code>true</code> if this <code>OutputBuffer<code>
-     *  will write content without blocking.
-     *
-     *  @since 2.1.2
-     */
-    public void setAsyncEnabled(boolean asyncEnabled) {
-        this.asyncEnabled = asyncEnabled;
-    }
+//    /**
+//     * <p>
+//     * Returns <code>true</code> if content will be written in a non-blocking
+//     * fashion, otherwise returns <code>false</code>.
+//     * </p>
+//     *
+//     * @return <code>true</code> if content will be written in a non-blocking
+//     * fashion, otherwise returns <code>false</code>.
+//     *
+//     * @since 2.1.2
+//     */
+//    @SuppressWarnings({"UnusedDeclaration"})
+//    public boolean isAsyncEnabled() {
+//        return asyncEnabled;
+//    }
+//
+//
+//    /**
+//     * Sets the asynchronous processing state of this <code>OutputBuffer</code>.
+//     *
+//     * @param asyncEnabled <code>true</code> if this <code>OutputBuffer<code>
+//     *  will write content without blocking.
+//     *
+//     *  @since 2.1.2
+//     */
+//    public void setAsyncEnabled(boolean asyncEnabled) {
+//        this.asyncEnabled = asyncEnabled;
+//    }
 
 
     public void prepareCharacterEncoder() {

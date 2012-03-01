@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -114,7 +114,7 @@ public class UploaderHttpHandler extends HttpHandler {
                 // Compose a server response.
                 try {
                     response.setContentType("text/plain");
-                    final Writer writer = response.getNIOWriter();
+                    final Writer writer = response.getWriter();
                     writer.write("Completed. " + bytesUploaded + " bytes uploaded.");
                 } catch (IOException ignored) {
                 }
@@ -170,7 +170,7 @@ public class UploaderHttpHandler extends HttpHandler {
                         contentDisposition.getDispositionParamUnquoted("filename");
 
                 // Get the NIOInputStream to read the multipart entry content
-                final NIOInputStream inputStream = multipartEntry.getNIOInputStream();
+                final NIOInputStream inputStream = multipartEntry.getInputStream();
 
                 LOGGER.log(Level.INFO, "Upload #{0}: uploading file {1}",
                         new Object[]{uploadNumber, filename});

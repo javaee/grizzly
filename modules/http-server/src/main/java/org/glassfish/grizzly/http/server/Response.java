@@ -59,8 +59,6 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.AccessController;
@@ -585,6 +583,8 @@ public class Response {
     }
 
     /**
+     * @deprecated use {@link #getInputStream()}
+     * 
      * <p>
      * Return the {@link NIOOutputStream} associated with this {@link Response}.
      * This {@link NIOOutputStream} will write content in a non-blocking manner.
@@ -594,33 +594,32 @@ public class Response {
      *  were already invoked.
      */
     public NIOOutputStream getNIOOutputStream() {
-        return getOutputStream0(false);
+        return getOutputStream0(/*false*/);
     }
 
     /**
      * <p>
-     * Return the {@link OutputStream} associated with this {@link Response}.
-     * This {@link OutputStream} will write content in a blocking manner.
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
      * </p>
      *
      * @return the {@link NIOOutputStream} associated with this {@link Response}.
      *
-     * @throws IllegalStateException if {@link #getWriter()} or {@link #getNIOWriter()}
-     *  were already invoked.
+     * @throws IllegalStateException if {@link #getWriter()}
+     *  has been already invoked.
      *
      * @since 2.1.2
      */
-    public OutputStream getOutputStream() {
-        return getOutputStream0(true);
+    public NIOOutputStream getOutputStream() {
+        return getOutputStream0(/*true*/);
     }
 
-    private NIOOutputStream getOutputStream0(final boolean blocking) {
+    private NIOOutputStream getOutputStream0(/*final boolean blocking*/) {
 
         if (usingWriter)
             throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
-        outputBuffer.setAsyncEnabled(!blocking);
+//        outputBuffer.setAsyncEnabled(!blocking);
         outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
 
@@ -642,21 +641,22 @@ public class Response {
 
     /**
      * <p>
-     * Return the {@link Writer} associated with this {@link Response}.
-     * The {@link Writer} will write content in a blocking manner.
+     * Return the {@link NIOWriter} associated with this {@link Response}.
      * </p>
      *
-     * @throws IllegalStateException if {@link #getOutputStream()} or
-     *  {@link #getNIOOutputStream()} were already invoked.
+     * @throws IllegalStateException if {@link #getOutputStream()} has been
+     *              already invoked.
      */
-    public Writer getWriter() {
+    public NIOWriter getWriter() {
 
-        return getWriter0(true);
+        return getWriter0(/*true*/);
 
     }
 
 
     /**
+     * @deprecated use {@link #getWriter()}
+     * 
      * <p>
      * Return the {@link NIOWriter} associated with this {@link Response}.
      * The {@link NIOWriter} will write content in a non-blocking manner.
@@ -664,16 +664,16 @@ public class Response {
      *
      * @return the {@link NIOWriter} associated with this {@link Response}.
      *
-     * @throws IllegalStateException if {@link #getOutputStream()} or
-     *  {@link #getNIOOutputStream()} were already invoked.
+     * @throws IllegalStateException if {@link #getOutputStream()}
+     *   has been already invoked.
      *
      * @since 2.1.2
      */
     public NIOWriter getNIOWriter() {
-        return getWriter0(false);
+        return getWriter0(/*false*/);
     }
 
-    private NIOWriter getWriter0(final boolean blocking) {
+    private NIOWriter getWriter0(/*final boolean blocking*/) {
         if (usingOutputStream)
             throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 
@@ -693,7 +693,7 @@ public class Response {
 
         usingWriter = true;
         outputBuffer.prepareCharacterEncoder();
-        outputBuffer.setAsyncEnabled(!blocking);
+//        outputBuffer.setAsyncEnabled(!blocking);
         writer.setOutputBuffer(outputBuffer);
         return writer;
 
