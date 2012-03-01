@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -123,7 +123,7 @@ public class Client {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 // Wait until download will be completed
                 String filename = completeFuture.get();
-                logger.log(Level.INFO, "File " + filename + " was successfully downloaded");
+                logger.log(Level.INFO, "File {0} was successfully downloaded", filename);
             } catch (Exception e) {
                 if (connection == null) {
                     logger.log(Level.WARNING, "Can not connect to the target resource");
