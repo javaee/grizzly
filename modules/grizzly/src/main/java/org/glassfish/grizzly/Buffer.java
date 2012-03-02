@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -282,6 +282,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      *
      * @return  <tt>true</tt> if, and only if, this buffer is read-only
      */
+    @SuppressWarnings("UnusedDeclaration")
     boolean isReadOnly();
 
     /**
@@ -358,6 +359,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      *
      * @return  The new, read-only <code>Buffer</code>
      */
+    @SuppressWarnings("UnusedDeclaration")
     Buffer asReadOnlyBuffer();
     
     // -- Singleton get/put methods --
@@ -866,6 +868,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * @throws ReadOnlyBufferException
      *          If this buffer is read-only
      */
+    @SuppressWarnings("UnusedDeclaration")
     Buffer put8BitString(String s);
     
     /**
@@ -1440,25 +1443,154 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      *
      * @return {@link String} representation of part of this {@link Buffer}.
      */
-    String toStringContent(Charset charset, int position, int limit);      
+    String toStringContent(Charset charset, int position, int limit);
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} whose content
+     * is a shared subsequence of this buffer's content. The content of the new
+     * buffer will start at this buffer's current position. Changes to this
+     * buffer's content will be visible in the new buffer, and vice versa;
+     * the two buffers' position, limit, and mark values will be independent.
+     * <p/>
+     *
+     * <p>
+     * The new {@link ByteBuffer}'s position will be zero, its capacity and
+     * its limit will be the number of bytes remaining in this buffer, and its
+     * mark will be undefined.
+     * </p>
+     *
+     * @return this <code>Buffer</code> as a {@link ByteBuffer}.
+     */
     ByteBuffer toByteBuffer();
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} whose content
+     * is a shared subsequence of this buffer's content. The content of the new
+     * buffer will start at this buffer's current position. Changes to this
+     * buffer's content will be visible in the new buffer, and vice versa;
+     * the two buffers' position, limit, and mark values will be independent.
+     * <p/>
+     *
+     * <p>
+     * The new {@link ByteBuffer}'s position will be zero, its capacity and
+     * its limit based on the provided <code>limit</code> argument (effectively
+     * the number of bytes available in the returned {@link ByteBuffer}).
+     * </p>
+     *
+     * @param position the position for the starting subsequence for the
+     *                 returned {@link ByteBuffer}.
+     * @param limit the limit for the ending of the subsequence of the
+     *              returned {@link ByteBuffer}.
+     *
+     * @return this <code>Buffer</code> as a {@link ByteBuffer}.
+     */
     ByteBuffer toByteBuffer(int position, int limit);
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
+     * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     * </p>
+     *
+     * @return Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
+     * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     *
+     * @see {@link #toByteBuffer()}
+     */
+    @SuppressWarnings("UnusedDeclaration")
     ByteBufferArray toByteBufferArray();
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
+     * and adds the result to the provided {@link ByteBufferArray}.
+     * </p>
+     *
+     * @return returns the provided {@link ByteBufferArray} with the converted
+     *  {@link ByteBuffer} added to provided <code>array</code>.
+     *
+     * @see {@link #toByteBuffer()}
+     */
     ByteBufferArray toByteBufferArray(ByteBufferArray array);
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
+     * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     * </p>
+     *
+     * @param position the start position within the source <code>buffer</code>
+     * @param limit the limit, or number, of bytes to include in the resulting
+     *              {@link ByteBuffer}
+     *
+     * @return Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
+     *         and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     *
+     * @see {@link #toByteBuffer(int, int)}
+     */
     ByteBufferArray toByteBufferArray(int position, int limit);
 
+    /**
+     * <p>
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
+     * and adds the result to the provided {@link ByteBufferArray}.
+     * </p>
+     *
+     * @return returns the provided {@link ByteBufferArray} with the converted
+     *         {@link ByteBuffer} added to provided <code>array</code>.
+     *
+     * @see {@link #toByteBuffer(int, int)}
+     */
     ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit);
 
+    /**
+     * <p>
+     * Returns a new {@link BufferArray} instance with this <code>Buffer</code>
+     * added as an element to the {@link BufferArray}.
+     * </p>
+     *
+     * @return Returns a new {@link BufferArray} instance with this <code>Buffer</code>
+     *         added as an element to the {@link BufferArray}.
+     */
     BufferArray toBufferArray();
 
+    /**
+     * <p>
+     * Returns the specified {@link BufferArray} after adding this <code>Buffer</code>.
+     * </p>
+     *
+     * @return Returns the specified {@link BufferArray} after adding this <code>Buffer</code>.
+     */
     BufferArray toBufferArray(BufferArray array);
 
+    /**
+     * <p>
+     * Updates this <code>Buffer</code>'s <code>position</code> and <code>limit</code>
+     * and adds it to a new {@link BufferArray} instance.
+     * </p>
+     *
+     * @param position the new position for this <code>Buffer</code>
+     * @param limit the new limit for this <code>Buffer</code>
+     *
+     * @return adds this <code>Buffer</code> and returns the specified
+     *         {@link BufferArray}.
+     */
     BufferArray toBufferArray(int position, int limit);
 
+    /**
+     * <p>
+     * Updates this <code>Buffer</code>'s <code>position</code> and <code>limit</code>
+     * and adds it to the specified {@link BufferArray}.
+     * </p>
+     *
+     * @param position the new position for this <code>Buffer</code>
+     * @param limit the new limit for this <code>Buffer</code>
+     *
+     * @return adds this <code>Buffer</code> and returns the specified
+     *         {@link BufferArray}.
+     */
     BufferArray toBufferArray(BufferArray array, int position, int limit);
+
 }

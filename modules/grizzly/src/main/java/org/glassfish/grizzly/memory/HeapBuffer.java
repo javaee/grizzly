@@ -838,15 +838,15 @@ public class HeapBuffer implements Buffer {
         final boolean isRestoreByteBuffer = byteBuffer != null;
         int oldPosition = 0;
         int oldLimit = 0;
-        
+
         if (isRestoreByteBuffer) {
-            // ByteBuffer can be used by outter code - so save its state
+            // ByteBuffer can be used by outer code - so save its state
             oldPosition = byteBuffer.position();
             oldLimit = byteBuffer.limit();
         }
         
-        final ByteBuffer bb = toByteBuffer(position, limit);
-        
+        final ByteBuffer bb = toByteBuffer0(position, limit, false);
+
         try {
             return charset.decode(bb).toString();
         } finally {
@@ -863,12 +863,10 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public ByteBuffer toByteBuffer(final int position, final int limit) {
-        if (byteBuffer == null) {
-            byteBuffer = ByteBuffer.wrap(heap);
-        }
-
-        Buffers.setPositionLimit(byteBuffer, offset + position, offset + limit);
-        return byteBuffer;
+        // we have to slice the buffer after setting the proper pos/lim in
+        // order to allow the full range of methods offered by ByteBuffer to
+        // be useful (rewind() for instance which will always set the pos to 0).
+        return toByteBuffer0(position, limit, true);
     }
 
     @Override
@@ -946,7 +944,11 @@ public class HeapBuffer implements Buffer {
     public boolean isExternal() {
         return false;
     }
-    
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
     protected byte[] array() {
         return heap;
     }
@@ -958,6 +960,22 @@ public class HeapBuffer implements Buffer {
                 offset,
                 capacity);
     }
+
+    protected ByteBuffer toByteBuffer0(final int pos,
+                                       final int len,
+                                       final boolean slice) {
+        if (byteBuffer == null) {
+            byteBuffer = ByteBuffer.wrap(heap);
+        }
+
+        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + len);
+
+        return ((slice) ? byteBuffer.slice() : byteBuffer);
+
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
 
     private static class DebugLogic {
         static void doDebug(HeapBuffer heapBuffer) {
