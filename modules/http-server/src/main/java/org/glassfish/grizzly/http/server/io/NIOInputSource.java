@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,12 +59,12 @@ public interface NIOInputSource {
 
     /**
      * <p>
-     * Notify the specified {@link ReadHandler} when any number of bytes
-     * can be read without blocking.
+     * Notify the specified {@link ReadHandler} when any number of bytes or
+     * characters can be read without blocking.
      * </p>
      *
      * <p>
-     * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
+     * Invoking this method is equivalent to calling: notifyAvailable(handler, 1).
      * </p>
      *
      * @param handler the {@link ReadHandler} to notify.
@@ -90,12 +90,10 @@ public interface NIOInputSource {
      *
      * @param handler the {@link ReadHandler} to notify.
      * @param size the least number of bytes that must be available before
-     *  the {@link ReadHandler} is invoked.  If size is <code>0</code>, the
-     *  handler will be notified as soon as data is available no matter the
-     *  size.
+     *  the {@link ReadHandler} is invoked.
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
-     *  or if <code>size</code> is less than zero.
+     *  or if <code>size</code> is less or equal to zero.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
@@ -116,7 +114,7 @@ public interface NIOInputSource {
     /**
      * @return the number of bytes (or characters) that may be obtained
      *  without blocking.  Note when dealing with characters, this method
-     *  will return an estimate on the number of characters available. 
+     *  may return an estimate on the number of characters available. 
      */
     int readyData();
 

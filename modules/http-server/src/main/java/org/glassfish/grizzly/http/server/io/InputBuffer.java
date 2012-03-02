@@ -178,7 +178,8 @@ public class InputBuffer {
     /**
      * {@link CharBuffer} for converting a single character at a time.
      */
-    private final CharBuffer singleCharBuf = CharBuffer.allocate(1);
+    private final CharBuffer singleCharBuf =
+            (CharBuffer) CharBuffer.allocate(1).position(1); // create CharBuffer w/ 0 chars remaining
 
     /**
      * Used to estimate how many characters can be produced from a variable
@@ -252,6 +253,8 @@ public class InputBuffer {
         inputContentBuffer.tryDispose();
         inputContentBuffer = null;
 
+        singleCharBuf.position(singleCharBuf.limit());
+        
         connection = null;
         decoder = null;
         ctx = null;
@@ -492,14 +495,15 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
 
-        singleCharBuf.position(0);
-        int read = read(singleCharBuf);
-        if (read == -1) {
-            return -1;
+        if (!singleCharBuf.hasRemaining()) {
+            singleCharBuf.clear();
+            int read = read(singleCharBuf);
+            if (read == -1) {
+                return -1;
+            }
         }
-        final char c = singleCharBuf.get(0);
-
-        singleCharBuf.position(0);
+        
+        final char c = singleCharBuf.get();
         return c;
 
     }
@@ -526,24 +530,7 @@ public class InputBuffer {
         return read(buf);
 
     }
-
-
-    /**
-     * @see java.io.Reader#ready()
-     */
-    public boolean ready() {
-
-        if (closed) {
-            return false;
-        }
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
-        return (inputContentBuffer.hasRemaining()
-                   || request.isExpectContent());
-
-    }
-
+    
     /**
      * Fill the buffer (blocking) up to the requested length.
      * 
@@ -560,7 +547,19 @@ public class InputBuffer {
 
     public int availableChar() {
 
-        return ((int) (inputContentBuffer.remaining() * averageCharsPerByte));
+        if (!singleCharBuf.hasRemaining()) {
+            // fill the singleCharBuf to make sure we have at least one char
+            singleCharBuf.clear();
+            if (fillAvailableChars(1, singleCharBuf) == 0) {
+                singleCharBuf.position(singleCharBuf.limit());
+                return 0;
+            }
+            
+            singleCharBuf.flip();
+        }
+        
+        // we have 1 char pre-decoded + estimation for the rest byte[]->char[] count.
+        return 1 + ((int) (inputContentBuffer.remaining() * averageCharsPerByte));
 
     }
 
@@ -995,8 +994,15 @@ public class InputBuffer {
 
         int read = 0;
         
+        // 1) Check pre-decoded singleCharBuf
+        if (dst != singleCharBuf && singleCharBuf.hasRemaining()) {
+            dst.put(singleCharBuf.get());
+            read = 1;
+        }
+        
+        // 2) Decode available byte[] -> char[]
         if (inputContentBuffer.hasRemaining()) {
-            read = fillAvailableChars(requestedLen, dst);
+            read += fillAvailableChars(requestedLen - read, dst);
         }
         
 //        if (!block && read < requestedLen) {
@@ -1007,11 +1013,13 @@ public class InputBuffer {
             return read;
         }
         
+        // 3) If we don't expect more data - return what we've read so far
         if (!request.isExpectContent()) {
             dst.flip();
             return read > 0 ? read : -1;
         }
         
+        // 4) Try to read more data (we may block)
         CharsetDecoder decoderLocal = getDecoder();
 
         boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char

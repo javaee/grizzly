@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,8 @@ package org.glassfish.grizzly.http.server.io;
 
 
 import java.io.Reader;
+import java.nio.charset.CharsetDecoder;
+import org.glassfish.grizzly.ReadHandler;
 
 /**
  * Character stream implementation used to read character-based request
@@ -50,4 +52,52 @@ import java.io.Reader;
  * @since 2.0
  */
 public abstract class NIOReader extends Reader implements NIOInputSource {
+
+    /**
+     * <p>
+     * Notify the specified {@link ReadHandler} when the <tt>estimate</tt>
+     * ({@link CharsetDecoder#averageCharsPerByte()}) on number of characters
+     * that can be read without blocking is greater or equal to the specified
+     * <code>size</code>.
+     * </p>
+     * 
+     * <tt>Important note</tt>: this method guarantees to notify passed
+     * {@link ReadHandler} only if there is at least one character available.
+     *
+     * @param handler the {@link ReadHandler} to notify.
+     * @param size the least number of bytes that must be available before
+     *  the {@link ReadHandler} is invoked.
+     *
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
+     *  or if <code>size</code> is less or equal to zero.
+     * @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
+     *
+     * @see ReadHandler#onDataAvailable()
+     * @see ReadHandler#onAllDataRead()
+     */
+    @Override
+    public abstract void notifyAvailable(ReadHandler handler, int size);
+
+    /**
+     * The same as {@link #ready()}.
+     * 
+     * @see #ready()
+     */
+    @Override
+    public abstract boolean isReady();
+
+    /**
+     * Returns an estimate ({@link CharsetDecoder#averageCharsPerByte()}) on the
+     * number of characters that may be read without blocking.
+     * 
+     * <tt>Important note</tt>: this method guarantees to return a value
+     * greater than 0 if and only if there is at least one character available.
+     * 
+     * @return the estimate on number of characters that may be obtained without
+     * blocking.
+     */
+    @Override
+    public abstract int readyData();    
 }
