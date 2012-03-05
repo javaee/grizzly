@@ -560,8 +560,8 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
 
         // categorize keys by address
         final Map<SocketAddress, List<BufferWrapper<K>>> categorizedMap = new HashMap<SocketAddress, List<BufferWrapper<K>>>();
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(entry.getKey(), transport.getMemoryManager());
+        for (K key : map.keySet()) {
+            final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(key, transport.getMemoryManager());
             final Buffer keyBuffer = keyWrapper.getBuffer();
             final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
             if (address == null) {
@@ -781,6 +781,65 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
         } finally {
             builder.recycle();
         }
+    }
+
+    @Override
+    public Map<K, Boolean> casMulti(final Map<K, ValueWithCas<V>> map, final int expirationInSecs) {
+        return casMulti(map, expirationInSecs, writeTimeoutInMillis, responseTimeoutInMillis);
+    }
+
+    @Override
+    public Map<K, Boolean> casMulti(final Map<K, ValueWithCas<V>> map, final int expirationInSecs, final long writeTimeoutInMillis, final long responseTimeoutInMillis) {
+        final Map<K, Boolean> result = new HashMap<K, Boolean>();
+        if (map == null || map.isEmpty()) {
+            return result;
+        }
+
+        // categorize keys by address
+        final Map<SocketAddress, List<BufferWrapper<K>>> categorizedMap = new HashMap<SocketAddress, List<BufferWrapper<K>>>();
+        for (K key : map.keySet()) {
+            final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(key, transport.getMemoryManager());
+            final Buffer keyBuffer = keyWrapper.getBuffer();
+            final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
+            if (address == null) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in casMulti(). key buffer={0}", keyBuffer);
+                }
+                keyWrapper.recycle();
+                continue;
+            }
+            List<BufferWrapper<K>> keyList = categorizedMap.get(address);
+            if (keyList == null) {
+                keyList = new ArrayList<BufferWrapper<K>>();
+                categorizedMap.put(address, keyList);
+            }
+            keyList.add(keyWrapper);
+        }
+
+        // cas multi from server
+        for (Map.Entry<SocketAddress, List<BufferWrapper<K>>> entry : categorizedMap.entrySet()) {
+            final SocketAddress address = entry.getKey();
+            final List<BufferWrapper<K>> keyList = entry.getValue();
+            try {
+                sendCasMulti(entry.getKey(), keyList, map, expirationInSecs, writeTimeoutInMillis, responseTimeoutInMillis, result);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to execute casMulti(). address=" + address + ", keySize=" + keyList.size(), ie);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to execute casMulti(). address=" + address + ", keyList=" + keyList, ie);
+                }
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to execute casMulti(). address=" + address + ", keySize=" + keyList.size(), e);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to execute casMulti(). address=" + address + ", keyList=" + keyList, e);
+                }
+            } finally {
+                recycleBufferWrappers(keyList);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -2144,6 +2203,50 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             builder.value(valueWrapper.getBuffer());
             builder.flags(valueWrapper.getType().flags);
             valueWrapper.recycle();
+            builder.expirationInSecs(expirationInSecs);
+            requests[i] = builder.build();
+            builder.recycle();
+        }
+        sendInternal(address, requests, writeTimeoutInMillis, responseTimeoutInMillis, result);
+    }
+
+    private void sendCasMulti(final SocketAddress address,
+                              final List<BufferWrapper<K>> keyList,
+                              final Map<K, ValueWithCas<V>> map,
+                              final int expirationInSecs,
+                              final long writeTimeoutInMillis,
+                              final long responseTimeoutInMillis,
+                              final Map<K, Boolean> result) throws ExecutionException, TimeoutException, InterruptedException, PoolExhaustedException, NoValidObjectException {
+        if (address == null || keyList == null || keyList.isEmpty() || result == null) {
+            return;
+        }
+
+        // make multi requests based on key list
+        final MemcachedRequest[] requests = new MemcachedRequest[keyList.size()];
+        final BufferWrapper.BufferType keyType = !keyList.isEmpty() ? keyList.get(0).getType() : null;
+        for (int i = 0; i < keyList.size(); i++) {
+            final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(true, true, true);
+            if (i == keyList.size() - 1) {
+                builder.op(CommandOpcodes.Set);
+                builder.noReply(false);
+                builder.opaque(0);
+            } else {
+                builder.op(CommandOpcodes.SetQ);
+                builder.noReply(true);
+                builder.opaque(generateOpaque());
+            }
+            final K originKey = keyList.get(i).getOrigin();
+            builder.originKeyType(keyType);
+            builder.originKey(originKey);
+            builder.key(keyList.get(i).getBuffer());
+            final ValueWithCas<V> vwc = map.get(originKey);
+            if (vwc != null) {
+                final BufferWrapper valueWrapper = BufferWrapper.wrap(vwc.getValue(), transport.getMemoryManager());
+                builder.value(valueWrapper.getBuffer());
+                builder.flags(valueWrapper.getType().flags);
+                valueWrapper.recycle();
+                builder.cas(vwc.getCas());
+            }
             builder.expirationInSecs(expirationInSecs);
             requests[i] = builder.build();
             builder.recycle();

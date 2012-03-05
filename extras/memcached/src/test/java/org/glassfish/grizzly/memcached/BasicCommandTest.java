@@ -516,7 +516,7 @@ public class BasicCommandTest {
 
         for (int i = 0; i < multiSize; i++) {
             final String key = "name" + i;
-            final String value = map.get(key);
+            final String value = userCache.get(key, false);
             Assert.assertNotNull(value);
             Assert.assertEquals("foo" + i, value);
 
@@ -550,7 +550,7 @@ public class BasicCommandTest {
         // ensure all values are set correctly
         for (int i = 0; i < multiSize; i++) {
             final String key = "name" + i;
-            final String value = map.get(key);
+            final String value = userCache.get(key, false);
             Assert.assertNotNull(value);
             Assert.assertEquals("foo" + i, value);
         }
@@ -630,10 +630,11 @@ public class BasicCommandTest {
         // ensure all values are set correctly
         for (int i = 0; i < multiSize; i++) {
             final String key = "name" + i;
-            final String value = map.get(key);
+            final String value = userCache.get(key, false);
             Assert.assertNotNull(value);
             Assert.assertEquals("foo" + i, value);
         }
+
         // put one missing key
         final String missingKey = "missingName";
         map.put(missingKey, "foo");
@@ -651,6 +652,76 @@ public class BasicCommandTest {
             // clean
             userCache.delete(key, false);
         }
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    @SuppressWarnings("unchecked")
+    //@Test
+    public void testCasMulti() {
+        final int multiSize = 100;
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final Map<String, String> map = new HashMap<String, String>();
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = "foo" + i;
+            map.put(key, value);
+        }
+        Map<String, Boolean> result = userCache.setMulti(map, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+
+        // get ValueWithCas map
+        Map<String, ValueWithCas<String>> getsResult = userCache.getsMulti(map.keySet());
+        // test casMulti
+        result = userCache.casMulti(getsResult, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+        // ensure all values are set correctly
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = userCache.get(key, false);
+            Assert.assertNotNull(value);
+            Assert.assertEquals("foo" + i, value);
+        }
+
+        // get ValueWithCas map again for next test
+        getsResult = userCache.getsMulti(map.keySet());
+        // update half
+        final Map<String, String> map2 = new HashMap<String, String>();
+        for (int i = 0; i < multiSize / 2; i++) {
+            final String key = "name" + i;
+            final String value = "foo_updated" + i;
+            map2.put(key, value);
+        }
+        result = userCache.setMulti(map2, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+
+        // put one missing key
+        getsResult.put("missingName", new ValueWithCas("foo", 0));
+        // test casMulti again
+        result = userCache.casMulti(getsResult, expirationTimeoutInSec);
+        // the half of keys and a missing key should be set
+        Assert.assertEquals(map.size() - multiSize / 2 + 1, result.size());
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+
+        // clean
+        result = userCache.deleteMulti(getsResult.keySet());
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+        Assert.assertEquals(getsResult.size(), result.size());
 
         manager.shutdown();
     }

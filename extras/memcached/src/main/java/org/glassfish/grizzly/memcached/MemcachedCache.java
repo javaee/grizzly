@@ -74,6 +74,10 @@ public interface MemcachedCache<K, V> extends Commands<K, V>, Cache<K, V> {
 
     public boolean cas(final K key, final V value, final int expirationInSecs, final long cas, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
+    public Map<K, Boolean> casMulti(final Map<K, ValueWithCas<V>> map, final int expirationInSecs);
+
+    public Map<K, Boolean> casMulti(final Map<K, ValueWithCas<V>> map, final int expirationInSecs, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
+
     public V get(final K key, final boolean noReply, final long writeTimeoutInMillis, final long responseTimeoutInMillis);
 
     public Map<K, V> getMulti(final Set<K> keys);
