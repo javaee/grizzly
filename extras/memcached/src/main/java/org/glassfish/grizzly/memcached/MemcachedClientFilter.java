@@ -631,6 +631,11 @@ public class MemcachedClientFilter extends BaseFilter {
         }
         if (!ResponseStatus.isError(responseStatus)) {
             result.put((K) requests[lastIndex].getOriginKey(), (V) response);
+        } else {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "error status code={0}, status msg={1}, op={2}, key={3}",
+                        new Object[]{responseStatus, responseStatus.message(), requests[lastIndex].getOp(), requests[lastIndex].getOriginKey()});
+            }
         }
         // collect previous packets
         for (int i = 0; i < requestLen - 1; i++) {
@@ -639,6 +644,11 @@ public class MemcachedClientFilter extends BaseFilter {
             if (response != null) {
                 if (!ResponseStatus.isError(responseStatus)) {
                     result.put((K) requests[i].getOriginKey(), (V) response);
+                } else {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE, "error status code={0}, status msg={1}, op={2}, key={3}",
+                                new Object[]{responseStatus, responseStatus.message(), requests[i].getOp(), requests[i].getOriginKey()});
+                    }
                 }
             }
         }
@@ -679,8 +689,8 @@ public class MemcachedClientFilter extends BaseFilter {
             result = (V) response;
         } else {
             result = null;
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.log(Level.SEVERE, "error status code={0}, status msg={1}, op={2}, key={3}", new Object[]{responseStatus, responseStatus.message(), request.getOp(), request.getOriginKey()});
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "error status code={0}, status msg={1}, op={2}, key={3}", new Object[]{responseStatus, responseStatus.message(), request.getOp(), request.getOriginKey()});
             }
         }
         return result;

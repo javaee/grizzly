@@ -588,15 +588,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                    logger.log(Level.SEVERE, "failed to execute setMulti(). address=" + address + ", keySize=" + keyList.size(), ie);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to set multi. address=" + address + ", keyList=" + keyList, ie);
+                    logger.log(Level.FINER, "failed to execute setMulti(). address=" + address + ", keyList=" + keyList, ie);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to set multi. address=" + address + ", keySize=" + keyList.size(), e);
+                    logger.log(Level.SEVERE, "failed to execute setMulti(). address=" + address + ", keySize=" + keyList.size(), e);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to set multi. address=" + address + ", keyList=" + keyList, e);
+                    logger.log(Level.FINER, "failed to execute setMulti(). address=" + address + ", keyList=" + keyList, e);
                 }
             } finally {
                 recycleBufferWrappers(keyList);
@@ -939,15 +939,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                    logger.log(Level.SEVERE, "failed to execute getMulti(). address=" + address + ", keySize=" + keyList.size(), ie);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get multi. address=" + address + ", keyList=" + keyList, ie);
+                    logger.log(Level.FINER, "failed to execute getMulti(). address=" + address + ", keyList=" + keyList, ie);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to get multi. address=" + address + ", keySize=" + keyList.size(), e);
+                    logger.log(Level.SEVERE, "failed to execute getMulti(). address=" + address + ", keySize=" + keyList.size(), e);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to get multi. address=" + address + ", keyList=" + keyList, e);
+                    logger.log(Level.FINER, "failed to execute getMulti(). address=" + address + ", keyList=" + keyList, e);
                 }
             } finally {
                 recycleBufferWrappers(keyList);
@@ -1107,6 +1107,65 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
     }
 
     @Override
+    public Map<K, ValueWithCas<V>> getsMulti(final Set<K> keys) {
+        return getsMulti(keys, writeTimeoutInMillis, responseTimeoutInMillis);
+    }
+
+    @Override
+    public Map<K, ValueWithCas<V>> getsMulti(final Set<K> keys, final long writeTimeoutInMillis, final long responseTimeoutInMillis) {
+        final Map<K, ValueWithCas<V>> result = new HashMap<K, ValueWithCas<V>>();
+        if (keys == null || keys.isEmpty()) {
+            return result;
+        }
+
+        // categorize keys by address
+        final Map<SocketAddress, List<BufferWrapper<K>>> categorizedMap = new HashMap<SocketAddress, List<BufferWrapper<K>>>();
+        for (K key : keys) {
+            final BufferWrapper<K> keyWrapper = BufferWrapper.wrap(key, transport.getMemoryManager());
+            final Buffer keyBuffer = keyWrapper.getBuffer();
+            final SocketAddress address = consistentHash.get(keyBuffer.toByteBuffer());
+            if (address == null) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "failed to get the address from the consistent hash in getsMulti(). key buffer={0}", keyBuffer);
+                }
+                keyWrapper.recycle();
+                continue;
+            }
+            List<BufferWrapper<K>> keyList = categorizedMap.get(address);
+            if (keyList == null) {
+                keyList = new ArrayList<BufferWrapper<K>>();
+                categorizedMap.put(address, keyList);
+            }
+            keyList.add(keyWrapper);
+        }
+
+        // get multi from server
+        for (Map.Entry<SocketAddress, List<BufferWrapper<K>>> entry : categorizedMap.entrySet()) {
+            final SocketAddress address = entry.getKey();
+            final List<BufferWrapper<K>> keyList = entry.getValue();
+            try {
+                sendGetsMulti(entry.getKey(), keyList, writeTimeoutInMillis, responseTimeoutInMillis, result);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to execute getsMulti(). address=" + address + ", keySize=" + keyList.size(), ie);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to execute getsMulti(). address=" + address + ", keyList=" + keyList, ie);
+                }
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, "failed to execute getsMulti(). address=" + address + ", keySize=" + keyList.size(), e);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "failed to execute getsMulti(). address=" + address + ", keyList=" + keyList, e);
+                }
+            } finally {
+                recycleBufferWrappers(keyList);
+            }
+        }
+        return result;
+    }
+
+    @Override
     public V gat(final K key, final int expirationInSecs, final boolean noReply) {
         return gat(key, expirationInSecs, noReply, writeTimeoutInMillis, responseTimeoutInMillis);
     }
@@ -1253,15 +1312,15 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to delete multi. address=" + address + ", keySize=" + keyList.size(), ie);
+                    logger.log(Level.SEVERE, "failed to execute deleteMulti(). address=" + address + ", keySize=" + keyList.size(), ie);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to delete multi. address=" + address + ", keyList=" + keyList, ie);
+                    logger.log(Level.FINER, "failed to execute deleteMulti(). address=" + address + ", keyList=" + keyList, ie);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, "failed to delete multi. address=" + address + ", keySize=" + keyList.size(), e);
+                    logger.log(Level.SEVERE, "failed to execute deleteMulti(). address=" + address + ", keySize=" + keyList.size(), e);
                 } else if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "failed to delete multi. address=" + address + ", keyList=" + keyList, e);
+                    logger.log(Level.FINER, "failed to execute deleteMulti(). address=" + address + ", keyList=" + keyList, e);
                 }
             } finally {
                 recycleBufferWrappers(keyList);
@@ -2013,6 +2072,37 @@ public class GrizzlyMemcachedCache<K, V> implements MemcachedCache<K, V>, ZooKee
             } else {
                 builder.noReply(true);
                 builder.op(CommandOpcodes.GetQ);
+                builder.opaque(generateOpaque());
+            }
+            requests[i] = builder.build();
+            builder.recycle();
+        }
+        sendInternal(address, requests, writeTimeoutInMillis, responseTimeoutInMillis, result);
+    }
+
+    private void sendGetsMulti(final SocketAddress address,
+                               final List<BufferWrapper<K>> keyList,
+                               final long writeTimeoutInMillis,
+                               final long responseTimeoutInMillis,
+                               final Map<K, ValueWithCas<V>> result) throws ExecutionException, TimeoutException, InterruptedException, PoolExhaustedException, NoValidObjectException {
+        if (address == null || keyList == null || keyList.isEmpty() || result == null) {
+            return;
+        }
+
+        // make multi requests based on key list
+        final MemcachedRequest[] requests = new MemcachedRequest[keyList.size()];
+        final BufferWrapper.BufferType keyType = !keyList.isEmpty() ? keyList.get(0).getType() : null;
+        for (int i = 0; i < keyList.size(); i++) {
+            final MemcachedRequest.Builder builder = MemcachedRequest.Builder.create(false, true, false);
+            builder.originKeyType(keyType);
+            builder.originKey(keyList.get(i).getOrigin());
+            builder.key(keyList.get(i).getBuffer());
+            if (i == keyList.size() - 1) {
+                builder.noReply(false);
+                builder.op(CommandOpcodes.Gets);
+            } else {
+                builder.noReply(true);
+                builder.op(CommandOpcodes.GetsQ);
                 builder.opaque(generateOpaque());
             }
             requests[i] = builder.build();

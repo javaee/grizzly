@@ -509,7 +509,7 @@ public class BasicCommandTest {
             final String value = "foo" + i;
             map.put(key, value);
         }
-        final Map<String, Boolean> result = ((GrizzlyMemcachedCache) userCache).setMulti(map, expirationTimeoutInSec);
+        final Map<String, Boolean> result = userCache.setMulti(map, expirationTimeoutInSec);
         for (Boolean success : result.values()) {
             Assert.assertTrue(success);
         }
@@ -543,7 +543,7 @@ public class BasicCommandTest {
             final String value = "foo" + i;
             map.put(key, value);
         }
-        Map<String, Boolean> result = ((GrizzlyMemcachedCache) userCache).setMulti(map, expirationTimeoutInSec);
+        Map<String, Boolean> result = userCache.setMulti(map, expirationTimeoutInSec);
         for (Boolean success : result.values()) {
             Assert.assertTrue(success);
         }
@@ -557,7 +557,7 @@ public class BasicCommandTest {
         // put one missing key
         final String missingKey = "missingName";
         map.put(missingKey, "foo");
-        result = ((GrizzlyMemcachedCache) userCache).deleteMulti(map.keySet());
+        result = userCache.deleteMulti(map.keySet());
         for (Boolean success : result.values()) {
             // always true
             Assert.assertTrue(success);
@@ -567,6 +567,89 @@ public class BasicCommandTest {
         for (int i = 0; i < multiSize; i++) {
             final String key = "name" + i;
             Assert.assertNull(userCache.get(key, false));
+        }
+
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    //@Test
+    public void testCompareAndSet() {
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        userCache.set("name1", "foo", expirationTimeoutInSec, false);
+        final ValueWithCas<String> nameCas = userCache.gets("name1", false);
+        Assert.assertNotNull(nameCas);
+        Assert.assertEquals("foo", nameCas.getValue());
+        final long cas = nameCas.getCas();
+
+        userCache.set("name1", "bar", expirationTimeoutInSec, false);
+        final ValueWithCas<String> nameCas2 = userCache.gets("name1", false);
+        Assert.assertNotNull(nameCas2);
+        Assert.assertEquals("bar", nameCas2.getValue());
+        final long cas2 = nameCas2.getCas();
+
+        Assert.assertNotSame(cas, cas2);
+
+        Assert.assertFalse(userCache.cas("name1", "foo1", expirationTimeoutInSec, cas, false));
+        Assert.assertTrue(userCache.cas("name1", "bar1", expirationTimeoutInSec, cas2, false));
+
+        userCache.delete("name1", false);
+        manager.shutdown();
+    }
+
+    // memcached server should be booted in local
+    @SuppressWarnings("unchecked")
+    //@Test
+    public void testGetsMulti() {
+        final int multiSize = 100;
+        final GrizzlyMemcachedCacheManager manager = new GrizzlyMemcachedCacheManager.Builder().build();
+        final GrizzlyMemcachedCache.Builder<String, String> builder = manager.createCacheBuilder("user");
+        final MemcachedCache<String, String> userCache = builder.build();
+        userCache.addServer(DEFAULT_MEMCACHED_ADDRESS);
+
+        final Map<String, String> map = new HashMap<String, String>();
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = "foo" + i;
+            map.put(key, value);
+        }
+        Map<String, Boolean> result = userCache.setMulti(map, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+
+        // set them again for increasing cas
+        result = userCache.setMulti(map, expirationTimeoutInSec);
+        for (Boolean success : result.values()) {
+            Assert.assertTrue(success);
+        }
+        // ensure all values are set correctly
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final String value = map.get(key);
+            Assert.assertNotNull(value);
+            Assert.assertEquals("foo" + i, value);
+        }
+        // put one missing key
+        final String missingKey = "missingName";
+        map.put(missingKey, "foo");
+        final Map<String, ValueWithCas<String>> result2 = userCache.getsMulti(map.keySet());
+        Assert.assertEquals(multiSize, result2.size());
+        Assert.assertNull(result2.get(missingKey));
+
+        for (int i = 0; i < multiSize; i++) {
+            final String key = "name" + i;
+            final ValueWithCas<String> value = result2.get(key);
+            Assert.assertNotNull(value);
+            Assert.assertEquals("foo" + i, value.getValue());
+            Assert.assertNotSame(0, value.getCas());
+
+            // clean
+            userCache.delete(key, false);
         }
 
         manager.shutdown();
@@ -726,13 +809,13 @@ public class BasicCommandTest {
         final int smallSize = 10;
         final int largeSize = BufferWrapper.DEFAULT_COMPRESSION_THRESHOLD * 10; // will be compressed
         final ByteBuffer smallByteBuffer = ByteBuffer.allocate(smallSize);
-        final ByteBuffer largeByteBuffer = ByteBuffer.allocate(largeSize); 
+        final ByteBuffer largeByteBuffer = ByteBuffer.allocate(largeSize);
         for (int i = 0; i < smallSize; i++) {
-            smallByteBuffer.put((byte)'S');
+            smallByteBuffer.put((byte) 'S');
         }
         smallByteBuffer.flip();
         for (int i = 0; i < largeSize; i++) {
-            largeByteBuffer.put((byte)'L');
+            largeByteBuffer.put((byte) 'L');
         }
         largeByteBuffer.flip();
 

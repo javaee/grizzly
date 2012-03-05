@@ -364,6 +364,16 @@ public class CacheServerListBarrierListenerTest {
         }
 
         @Override
+        public Map getsMulti(Set keys) {
+            return null;
+        }
+
+        @Override
+        public Map getsMulti(Set keys, long writeTimeoutInMillis, long responseTimeoutInMillis) {
+            return null;
+        }
+
+        @Override
         public Object gat(Object key, int expirationInSecs, boolean noReply, long writeTimeoutInMillis, long responseTimeoutInMillis) {
             return null;
         }
