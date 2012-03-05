@@ -117,7 +117,5 @@
         <module>grizzly-httpservice</module>
         <module>bundles</module>
         <module>http-servlet-extras</module>
-        <module>thrift</module>
-        <module>memcached</module>
     </modules>
 </project>
