@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -361,17 +361,26 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     @Override
     public void realWriteBytes(byte cbuf[], int off, int len)
         throws IOException {
+        realWriteBytes0( cbuf, off, len);
+    }
         
-        if (discardBytes) return;
+    /**
+     * Introduce private realWriteBytes0 method to avoid undesirable effect
+     * coming for recursion call.
+     */
+    private void realWriteBytes0(byte cbuf[], int off, int len) throws IOException {
+        if (discardBytes) {
+            return;
+        }
         
         if (len > 0) {
-            if (!useSocketBuffer){
+            if (!useSocketBuffer) {
                 int remaining = outputByteBuffer.remaining();
-                if (len > remaining){                
-                    if (outputByteBuffer.capacity() >= maxBufferedBytes){
+                if (len > remaining) {
+                    if (outputByteBuffer.capacity() >= maxBufferedBytes) {
                         outputByteBuffer.put(cbuf,off,remaining);
                         flushBuffer();
-                        realWriteBytes(cbuf,off+remaining,len-remaining);
+                        realWriteBytes0(cbuf,off+remaining,len-remaining);
                         return;
                     } else {                
                         int size = Math.max(outputByteBuffer.capacity() * 2,
