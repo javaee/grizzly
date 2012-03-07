@@ -746,7 +746,7 @@ public class OutputBuffer {
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.notifyWritePossible(asyncWriteQueueHandler, length);
+            taskQueue.notifyWritePossible(asyncWriteQueueHandler, totalLength);
         } catch (Exception ignored) {
         }
     }
