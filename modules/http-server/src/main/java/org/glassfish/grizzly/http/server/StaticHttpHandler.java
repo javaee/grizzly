@@ -41,18 +41,24 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.ArraySet;
 
 /**
@@ -175,37 +181,45 @@ public class StaticHttpHandler extends HttpHandler {
 
     public static void sendFile(final Response response, final File file)
     throws IOException {
-        FileInputStream fis = null;
+        response.setStatus(HttpStatus.OK_200);
 
-        try {
-            response.setStatus(HttpStatus.OK_200);
-            
-            // In case this sendFile(...) is called directly by user - pickup the content-type
-            pickupContentType(response, file);
-            
-            final long length = file.length();
-            response.setContentLengthLong(length);
-            final OutputBuffer outputBuffer = response.getOutputBuffer();
-            if (!response.isSendFileEnabled() || response.getRequest().isSecure()) {
-                fis = new FileInputStream(file);
+        // In case this sendFile(...) is called directly by user - pickup the content-type
+        pickupContentType(response, file);
 
-                byte b[] = new byte[8192];
-                int rd;
-                while ((rd = fis.read(b)) > 0) {
-                    //chunk.setBytes(b, 0, rd);
-                    outputBuffer.write(b, 0, rd);
-                }
-            } else {
-                outputBuffer.sendfile(file, null);
-            }
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ignore) {
-                }
-            }
+        final long length = file.length();
+        response.setContentLengthLong(length);
+        if (!response.isSendFileEnabled() || response.getRequest().isSecure()) {
+            sendUsingBuffers(response, file);
+        } else {
+            sendZeroCopy(response, file);
         }
+    }
+
+    private static void sendUsingBuffers(final Response response, final File file)
+            throws FileNotFoundException, IOException {
+        final int chunkSize = 8192;
+        
+        response.suspend();
+        
+        final NIOOutputStream outputStream = response.getOutputStream();
+        
+        outputStream.notifyCanWrite(
+                new NonBlockingDownloadHandler(response, outputStream,
+                        file, chunkSize),
+                chunkSize * 3 / 2);
+//        byte b[] = new byte[8192];
+//        int rd;
+//        while ((rd = fis.read(b)) > 0) {
+//            //chunk.setBytes(b, 0, rd);
+//            outputStream.write(b, 0, rd);
+//        }
+//        return fis;
+    }
+
+    private static void sendZeroCopy(final Response response, final File file)
+            throws IOException {
+        final OutputBuffer outputBuffer = response.getOutputBuffer();
+        outputBuffer.sendfile(file, null);
     }
 
     public final boolean addToFileCache(Request req, File resource) {
@@ -392,4 +406,111 @@ public class StaticHttpHandler extends HttpHandler {
         }
     }
     
+    private static class NonBlockingDownloadHandler implements WriteHandler {
+        // keep the remaining size
+        private volatile long size;
+        
+        private final Response response;
+        private final NIOOutputStream outputStream;
+        private final FileChannel fileChannel;
+        private final MemoryManager mm;
+        private final int chunkSize;
+        
+        NonBlockingDownloadHandler(final Response response,
+                final NIOOutputStream outputStream, final File file,
+                final int chunkSize) {
+            
+            try {
+                fileChannel = new FileInputStream(file).getChannel();
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException("File should have existed", e);
+            }
+            
+            size = file.length();
+            
+            this.response = response;
+            this.outputStream = outputStream;
+            mm = response.getRequest().getContext().getMemoryManager();
+            this.chunkSize = chunkSize;
+        }
+        
+        @Override
+        public void onWritePossible() throws Exception {
+            LOGGER.log(Level.FINE, "[onWritePossible]");
+            // send CHUNK of data
+            final boolean isWriteMore = sendChunk();
+
+            if (isWriteMore) {
+                // if there are more bytes to be sent - reregister this WriteHandler
+                outputStream.notifyCanWrite(this, chunkSize * 3 /2);
+            }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            LOGGER.log(Level.WARNING, "[onError] ", t);
+            response.setStatus(500, t.getMessage());
+            complete(true);
+        }
+
+        /**
+         * Send next CHUNK_SIZE of file
+         */
+        private boolean sendChunk() throws IOException {
+            // allocate Buffer
+            final Buffer buffer = mm.allocate(chunkSize);
+            // mark it available for disposal after content is written
+            buffer.allowBufferDispose(true);
+
+            // read file to the Buffer
+            final int justReadBytes = fileChannel.read(buffer.toByteBuffer());
+            if (justReadBytes <= 0) {
+                complete(false);
+                return false;
+            }
+
+            // prepare buffer to be written
+            buffer.position(justReadBytes);
+            buffer.trim();
+
+            // write the Buffer
+            outputStream.write(buffer);
+            size -= justReadBytes;
+
+            // check the remaining size here to avoid extra onWritePossible() invocation
+            if (size <= 0) {
+                complete(false);
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * Complete the download
+         */
+        private void complete(final boolean isError) {
+            try {
+                fileChannel.close();
+            } catch (IOException e) {
+                if (!isError) {
+                    response.setStatus(500, e.getMessage());
+                }
+            }
+
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                if (!isError) {
+                    response.setStatus(500, e.getMessage());
+                }
+            }
+
+            if (response.isSuspended()) {
+                response.resume();
+            } else {
+                response.finish();
+            }
+        }
+    }
 }
