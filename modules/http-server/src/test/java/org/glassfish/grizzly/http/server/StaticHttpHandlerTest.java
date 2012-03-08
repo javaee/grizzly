@@ -118,13 +118,14 @@ public class StaticHttpHandlerTest {
     }
     
     @Test
+    @SuppressWarnings("unchecked")
     public void testSlowClient() throws Exception {
         final int fileSize = 16 * 1024 * 1024;
         File control = generateTempFile(fileSize);
         
         final FutureImpl<File> result = Futures.<File>createSafeFuture();
 
-        TCPNIOTransport client = createClient(result, new ResponseValidator() {
+        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
             @Override
             public void validate(HttpResponsePacket response) {
                 assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
@@ -173,6 +174,7 @@ public class StaticHttpHandlerTest {
         
         builder.add(new HttpClientFilter());
         builder.add(new BaseFilter() {
+            int total;
             FileChannel out;
             File f;
             long start;
@@ -181,21 +183,26 @@ public class StaticHttpHandlerTest {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
                 HttpContent content = ctx.getMessage();
+                final int remaining = content.getContent().remaining();
+                total += remaining;
+//                System.out.println(new Date() + "size=" + remaining + " total=" + total);
                 out.write(content.getContent().toByteBuffer());
                 if (content.isLast()) {
+                    total = 0;
                     stop = System.currentTimeMillis();
-                    if (validator != null) {
-                        validator.validate((HttpResponsePacket) content.getHttpHeader());
-                    }
                     try {
+                        if (validator != null) {
+                            validator.validate((HttpResponsePacket) content.getHttpHeader());
+                        }
+                        
                         out.close();
                         LOGGER.log(Level.INFO, "Client received file ({0} bytes) in {1}ms.",
                                 new Object[]{f.length(), stop - start});
                         // result.result(f) should be the last operation in handleRead
                         // otherwise NPE may occur in handleWrite asynchronously
                         result.result(f);
-                    } catch (IOException ioe) {
-                        ioe.printStackTrace();
+                    } catch (Throwable e) {
+                        result.failure(e);
                     }
                 }
                 return ctx.getStopAction();
@@ -259,7 +266,7 @@ public class StaticHttpHandlerTest {
 
 
     private static File generateTempFile(final int size) throws IOException {
-        final File f = File.createTempFile("grizzly-temp-" + size, ".tmp");
+        final File f = File.createTempFile("grizzly-temp-" + size, ".tmp2");
         Random r = new Random();
         byte[] data = new byte[8192];
         r.nextBytes(data);
