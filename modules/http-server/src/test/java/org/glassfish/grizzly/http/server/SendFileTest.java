@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -206,7 +206,7 @@ public class SendFileTest extends TestCase {
     public void testSimpleSendFileViaAPIClearBuffer() throws Exception {
         File control = generateTempFile(1024);
         SendFileApiHandler h = new SendFileApiHandler(control, null);
-        h.setSendExtraContext(true);
+        h.setSendExtraContent(true);
         HttpServer server = createServer(h, false, false);
         MimeType.add("tmp", "text/temp");
         TestFuture result = new TestFuture();
@@ -470,7 +470,7 @@ public class SendFileTest extends TestCase {
         private final long pos;
         private final long len;
         private final String contentType;
-        private boolean sendExtraContext;
+        private boolean sendExtraContent;
 
 
         // -------------------------------------------------------- Constructors
@@ -500,7 +500,7 @@ public class SendFileTest extends TestCase {
             if (contentType != null) {
                 response.setContentType(contentType);
             }
-            if (sendExtraContext) {
+            if (sendExtraContent) {
                 response.getOutputBuffer().write("Surprise!");
             }
             response.getOutputBuffer().sendfile(toSend, pos, len, new CompletionHandler<WriteResult>() {
@@ -528,8 +528,8 @@ public class SendFileTest extends TestCase {
         
         // ------------------------------------------------------ Public Methods
 
-        public void setSendExtraContext(boolean sendExtraContext) {
-            this.sendExtraContext = sendExtraContext;
+        public void setSendExtraContent(boolean sendExtraContent) {
+            this.sendExtraContent = sendExtraContent;
         }
 
     } // END SendFileApiHandler
