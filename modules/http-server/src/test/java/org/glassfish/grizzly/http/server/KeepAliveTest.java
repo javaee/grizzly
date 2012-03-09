@@ -257,6 +257,71 @@ public class KeepAliveTest extends TestCase {
             server.stop();
         }
     }
+
+    public void testHttp11KeepAliveUnlimitedMaxRequests() throws Exception {
+            final String msg = "Hello world #";
+
+            final int maxKeepAliveRequests = 150;
+
+            HttpServer server = createServer(new HttpHandler() {
+                private final AtomicInteger ai = new AtomicInteger();
+
+                @Override
+                public void service(Request request,
+                        Response response) throws Exception {
+                    response.setContentType("text/plain");
+                    response.getWriter().write(msg + ai.getAndIncrement());
+                }
+
+            }, "/path");
+            server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(-1);
+
+            final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+            final HttpClient client = new HttpClient(clientTransport);
+
+            try {
+                server.start();
+                clientTransport.start();
+
+                Future<Connection> connectFuture = client.connect("localhost", PORT);
+                connectFuture.get(10, TimeUnit.SECONDS);
+
+                for (int i=0; i <= maxKeepAliveRequests; i++) {
+                    final Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder()
+                            .method("GET")
+                                .uri("/path").protocol(Protocol.HTTP_1_1)
+                                .header("Host", "localhost:" + PORT)
+                                .build());
+
+                    final Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
+
+                    assertEquals("Hello world #" + i, buffer.toStringContent());
+                }
+
+                try {
+                    final Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder()
+                            .method("GET")
+                            .uri("/path")
+                            .protocol(Protocol.HTTP_1_1)
+                            .header("Host", "localhost:" + PORT)
+                            .build());
+
+                    resultFuture.get(10, TimeUnit.SECONDS);
+
+                } catch (ExecutionException ee) {
+                    final Throwable cause = ee.getCause();
+                    cause.printStackTrace();
+                    fail("Unexpected exception: " + cause);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                fail();
+            } finally {
+                client.close();
+                clientTransport.stop();
+                server.stop();
+            }
+        }
     
     public void testIdleTimeoutAfterConnect() throws Exception {
         final int idleTimeoutSeconds = 2;
