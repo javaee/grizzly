@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.ajp;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.logging.Level;
@@ -104,7 +106,7 @@ public final class AjpHttpRequest extends HttpRequestPacket {
                         bc.getStart(), bc.getEnd());
 
                 // Fill the first element.
-                X509Certificate jsseCerts[] = null;
+                X509Certificate jsseCerts[];
                 try {
                     CertificateFactory cf =
                             CertificateFactory.getInstance("X.509");
@@ -124,6 +126,66 @@ public final class AjpHttpRequest extends HttpRequestPacket {
         return result;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getLocalPort() {
+        return localPort;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getRemotePort() {
+        return remotePort;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DataChunk localAddr() {
+        return localAddressC;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DataChunk localName() {
+        return localNameC;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DataChunk remoteAddr() {
+        return remoteAddressC;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DataChunk remoteHost() {
+        if (remoteHostC.isNull()) {
+            try {
+                remoteHostC.setString(InetAddress.getByName(
+                        remoteAddr().toString()).
+                        getHostName());
+            } catch (IOException iex) {
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, "Unable to resolve {0}", remoteAddr());
+                }
+            }
+        }
+        
+        return remoteHostC;
+    }
+    
     /**
      * Get the instance id (or JVM route). Curently Ajp is sending it with each
      * request. In future this should be fixed, and sent only once ( or
