@@ -946,11 +946,15 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     private boolean checkKeepAliveRequestsCount(final Connection connection) {
-        final KeepAliveContext keepAliveContext;
-        
-        return !(processKeepAlive && (keepAliveContext =
-            keepAliveContextAttr.get(connection)) != null) ||
-            ++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount();
+        final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(connection);
+
+        boolean firstCheck = (processKeepAlive && keepAliveContext != null);
+        if (!firstCheck) {
+            return true;
+        }
+        keepAliveContext.requestsProcessed++;
+        final int maxRequestCount = keepAlive.getMaxRequestsCount();
+        return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
 
     }
 
