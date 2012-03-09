@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -84,35 +84,6 @@ public final class AjpHttpRequest extends Request {
     public AjpHttpRequest() {
         response.setRequest(this);
         setResponse(response);
-    }
-
-    @Override
-    public Object getAttribute(final String name) {
-        Object result = super.getAttribute(name);
-
-        // If it's CERTIFICATE_KEY request - lazy initialize it, if required
-        if (result == null && SSLSupport.CERTIFICATE_KEY.equals(name)) {
-            // Extract SSL certificate information (if requested)
-            if (!sslCert.isNull()) {
-                final ByteChunk bc = sslCert.getByteChunk();
-                InputStream stream = new ByteArrayInputStream(bc.getBytes(), bc.getStart(), bc.getEnd());
-
-                // Fill the first element.
-                X509Certificate jsseCerts[];
-                try {
-                    CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                    jsseCerts = new X509Certificate[]{(X509Certificate) cf.generateCertificate(stream)};
-                } catch (CertificateException e) {
-                    LOGGER.log(Level.SEVERE, "Certificate conversion failed", e);
-                    return null;
-                }
-
-                setAttribute(SSLSupport.CERTIFICATE_KEY, jsseCerts);
-                result = jsseCerts;
-            }
-        }
-
-        return result;
     }
 
     public MessageBytes sslCert() {
