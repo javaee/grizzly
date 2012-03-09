@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,14 +39,24 @@
  */
 package com.sun.grizzly.http.ajp;
 
+import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
+import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
+import com.sun.grizzly.tcp.http11.OutputFilter;
+import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.net.SSLSupport;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -152,6 +162,147 @@ public class AjpProcessorTask extends ProcessorTask {
         }
     }
 
+    @Override
+    public void action(ActionCode actionCode, Object param) {
+        if (actionCode == ActionCode.ACTION_REQ_SSL_ATTRIBUTE) {
+            AjpHttpRequest req = (AjpHttpRequest) param;
+
+            // Extract SSL certificate information (if requested)
+            MessageBytes certString = req.sslCert();
+            if (certString != null && !certString.isNull()) {
+                ByteChunk certData = certString.getByteChunk();
+                ByteArrayInputStream bais =
+                        new ByteArrayInputStream(certData.getBytes(),
+                        certData.getStart(),
+                        certData.getLength());
+
+                // Fill the first element.
+                X509Certificate jsseCerts[] = null;
+                try {
+                    CertificateFactory cf =
+                            CertificateFactory.getInstance("X.509");
+                    while (bais.available() > 0) {
+                        X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);
+                        if (jsseCerts == null) {
+                            jsseCerts = new X509Certificate[1];
+                            jsseCerts[0] = cert;
+                        } else {
+                            X509Certificate[] temp = new X509Certificate[jsseCerts.length + 1];
+                            System.arraycopy(jsseCerts, 0, temp, 0, jsseCerts.length);
+                            temp[jsseCerts.length] = cert;
+                            jsseCerts = temp;
+                        }
+                    }
+                } catch (java.security.cert.CertificateException e) {
+                    logger.log(Level.SEVERE, "Certificate convertion failed", e);
+                    return;
+                }
+
+                req.setAttribute(SSLSupport.CERTIFICATE_KEY,
+                        jsseCerts);
+            }
+
+        } else if (actionCode == ActionCode.ACTION_REQ_HOST_ATTRIBUTE) {
+            Request req = (Request) param;
+
+            // If remoteHost not set by JK, get it's name from it's remoteAddr
+            if(req.remoteHost().isNull()) {
+                try {
+                    req.remoteHost().setString(InetAddress.getByName(
+                                               req.remoteAddr().toString()).
+                                               getHostName());
+                } catch(IOException iex) {
+                    if(logger.isLoggable(Level.FINEST)) {
+                        logger.log(Level.FINEST, "Unable to resolve {0}", req.remoteAddr());
+                    }
+                }
+            }
+        } else if (actionCode == ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE) {
+            // Has been set
+        } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE) {
+            // Has been set
+        } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE) {
+            // Has been set
+        } else if (actionCode == ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE) {
+            // Has been set
+        } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
+            // Has been set
+        } else {
+            super.action(actionCode, param);
+        }
+    }
+
+    
+    /**
+     * When committing the response, we have to validate the set of headers, as
+     * well as setup the response filters.
+     */
+    @Override
+    protected void prepareResponse() {
+
+        contentDelimitation = false;
+        MimeHeaders headers = response.getMimeHeaders();
+
+        boolean entityBody = true;
+        
+        OutputFilter[] outputFilters = outputBuffer.getFilters();
+        if (http09) {
+            // HTTP/0.9
+            outputBuffer.addActiveFilter(outputFilters[Constants.IDENTITY_FILTER]);
+            return;
+        }
+
+        int statusCode = response.getStatus();
+        if (statusCode == 204 || statusCode == 205 || statusCode == 304) {
+            // No entity body
+            outputBuffer.addActiveFilter(outputFilters[Constants.VOID_FILTER]);
+            entityBody = false;
+            contentDelimitation = true;
+        }
+
+        if (request.method().equals("HEAD")) {
+            // No entity body
+            outputBuffer.addActiveFilter(outputFilters[Constants.VOID_FILTER]);
+            contentDelimitation = true;
+        }
+
+        if (!entityBody) {
+            response.setContentLength(-1);
+        } else {
+            String contentType = response.getContentType();
+            if (contentType != null) {
+                headers.setValue("Content-Type").setString(contentType);
+            } /* else if (defaultResponseType != null) {
+                headers.setValue("Content-Type").setString(defaultResponseType);
+            }*/
+
+            String contentLanguage = response.getContentLanguage();
+            if (contentLanguage != null && !"".equals(contentLanguage)) {
+                headers.setValue("Content-Language").setString(contentLanguage);
+            }
+        }
+
+        contentDelimitation = true;
+
+        int contentLength = response.getContentLength();
+        if (contentLength != -1) {
+            headers.setValue("Content-Length").setInt(contentLength);
+            outputBuffer.addActiveFilter(outputFilters[Constants.IDENTITY_FILTER]);
+        }
+
+        // If we know that the request is bad this early, add the
+        // Connection: close header.
+        keepAlive = keepAlive && !statusDropsConnection(statusCode)
+                && !dropConnection;
+        if (!keepAlive) {
+            headers.setValue("Connection").setString("close");
+            connectionHeaderValueSet = false;
+        } else if (!http11 && !error) {
+            headers.setValue("Connection").setString("Keep-Alive");
+        }
+        sendHeaders();
+    }
+    
     private void processShutdown() {
         if (!ajpConfiguration.isShutdownEnabled()) {
             throw new IllegalStateException("Shutdown is disabled");
