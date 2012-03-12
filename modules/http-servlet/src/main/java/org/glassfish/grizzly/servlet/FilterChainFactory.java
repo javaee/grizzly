@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -141,7 +141,7 @@ public class FilterChainFactory {
            }
 
            // Create and initialize a filter chain object
-           FilterChainImpl filterChain = null;
+           FilterChainImpl filterChain = new FilterChainImpl(servlet, ctx);
 
 
            // If there are no filter mappings, we are done
@@ -158,9 +158,6 @@ public class FilterChainFactory {
                    if (!matchFiltersURL(entry.getKey(), requestPath)) {
                        continue;
                    }
-                   if (filterChain == null) {
-                       filterChain = new FilterChainImpl(servlet, ctx);
-                   }
                 filterChain.addFilter(registration);
                }
            }
@@ -176,9 +173,7 @@ public class FilterChainFactory {
                 if (!matchFiltersServlet(entry.getKey(), servletName)) {
                     continue;
                 }
-                if (filterChain == null) {
-                    filterChain = new FilterChainImpl(servlet, ctx);
-                }
+
                 filterChain.addFilter(registration);
             }
 
