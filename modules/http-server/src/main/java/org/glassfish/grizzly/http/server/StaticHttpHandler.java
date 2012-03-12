@@ -77,6 +77,8 @@ public class StaticHttpHandler extends HttpHandler {
 
     private volatile int fileCacheFilterIdx = -1;
     
+    private volatile boolean isFileCacheEnabled = true;
+    
     /**
      * Create <tt>HttpHandler</tt>, which, by default, will handle requests
      * to the static resources located in the current directory.
@@ -179,8 +181,43 @@ public class StaticHttpHandler extends HttpHandler {
         docRoots.remove(docRoot);
     }
 
+    /**
+     * Returns <tt>true</tt> if this <tt>StaticHttpHandler</tt> has been
+     * configured to use file cache to serve static resources,
+     * or <tt>false</tt> otherwise.
+     * 
+     * Please note, even though this StaticHttpHandler might be configured
+     * to use file cache, file cache itself might be disabled
+     * {@link FileCache#isEnabled()}. In this case StaticHttpHandler will operate
+     * as if file cache was disabled.
+     * 
+     * @return <tt>true</tt> if this <tt>StaticHttpHandler</tt> has been
+     * configured to use file cache to serve static resources,
+     * or <tt>false</tt> otherwise.
+     */
+    public boolean isFileCacheEnabled() {
+        return isFileCacheEnabled;
+    }
+
+    /**
+     * Set <tt>true</tt> to configure this <tt>StaticHttpHandler</tt> 
+     * to use file cache to serve static resources, or <tt>false</tt> otherwise.
+     * 
+     * Please note, even though this StaticHttpHandler might be configured
+     * to use file cache, file cache itself might be disabled
+     * {@link FileCache#isEnabled()}. In this case StaticHttpHandler will operate
+     * as if file cache was disabled.
+     * 
+     * @param isFileCacheEnabled <tt>true</tt> to configure this
+     * <tt>StaticHttpHandler</tt> to use file cache to serve static resources,
+     * or <tt>false</tt> otherwise.
+     */
+    public void setFileCacheEnabled(boolean isFileCacheEnabled) {
+        this.isFileCacheEnabled = isFileCacheEnabled;
+    }
+    
     public static void sendFile(final Response response, final File file)
-    throws IOException {
+            throws IOException {
         response.setStatus(HttpStatus.OK_200);
 
         // In case this sendFile(...) is called directly by user - pickup the content-type
@@ -223,15 +260,18 @@ public class StaticHttpHandler extends HttpHandler {
     }
 
     public final boolean addToFileCache(Request req, File resource) {
-        final FilterChainContext fcContext = req.getContext();
-        final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
-        if (fileCacheFilter != null) {
-            final FileCache fileCache = fileCacheFilter.getFileCache();
-            fileCache.add(req.getRequest(), resource);
-            return true;
+        if (isFileCacheEnabled) {
+            final FilterChainContext fcContext = req.getContext();
+            final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
+            if (fileCacheFilter != null) {
+                final FileCache fileCache = fileCacheFilter.getFileCache();
+                fileCache.add(req.getRequest(), resource);
+                return true;
+            }
         }
 
         return false;
+
     }
     
     
