@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -183,7 +183,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
         final FileCacheKey key = new FileCacheKey(host, requestURI);
         if (requestURI == null || fileCacheMap.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
-            //@TODO return key and entry to the thread cache object pool
+            key.recycle();
             return;
         }
 
@@ -191,8 +191,13 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         // cache is full.
         if (size > getMaxCacheEntries()) {
             cacheSize.decrementAndGet();
-            fileCacheMap.remove(key);
-            //@TODO return key and entry to the thread cache object pool
+            final FileCacheEntry entry = fileCacheMap.remove(key);
+            if (entry != null) {
+                // key will be recycled if the entry is recycled
+                entry.recycle();
+            } else {
+                key.recycle();
+            }
             return;
         }
 
@@ -236,9 +241,9 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         // It should be faster than calculating the key hash code
         if (cacheSize.get() == 0) return null;
 
-        final FileCacheKey key = new LazyFileCacheKey(request);
+        final LazyFileCacheKey key = LazyFileCacheKey.create(request);
         final FileCacheEntry entry = fileCacheMap.get(key);
-
+        key.recycle();
         try {
             if (entry != null && entry != NULL_CACHE_ENTRY) {
                 notifyProbesEntryHit(this, entry);
@@ -262,6 +267,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
     protected void remove(final FileCacheEntry entry) {
         if (fileCacheMap.remove(entry.key) != null) {
+            entry.recycle();
             cacheSize.decrementAndGet();
         }
 
@@ -342,7 +348,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             }
         }
 
-        final FileCacheEntry entry = new FileCacheEntry(this);
+        final FileCacheEntry entry = FileCacheEntry.create(this);
         entry.type = type;
         entry.fileSize = size;
         entry.bb = bb;

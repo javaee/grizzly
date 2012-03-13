@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server.filecache;
 
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -49,12 +50,24 @@ import org.glassfish.grizzly.http.util.Header;
  * @author Alexey Stashok
  */
 public class LazyFileCacheKey extends FileCacheKey {
-    private final HttpRequestPacket request;
+
+    private static final ThreadCache.CachedTypeIndex<LazyFileCacheKey> CACHE_IDX =
+                ThreadCache.obtainIndex(LazyFileCacheKey.class, 16);
+
+    private HttpRequestPacket request;
     private boolean isInitialized;
+
+
+    // ------------------------------------------------------------ Constructors
+
     
-    public LazyFileCacheKey(final HttpRequestPacket request) {
+    private LazyFileCacheKey(final HttpRequestPacket request) {
         this.request = request;
     }
+
+
+    // ----------------------------------------------- Methods from FileCacheKey
+
 
     @Override
     protected String getHost() {
@@ -72,6 +85,34 @@ public class LazyFileCacheKey extends FileCacheKey {
         }
         
         return super.getUri();
+    }
+
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    @Override
+    public void recycle() {
+        host = null;
+        uri = null;
+        isInitialized = false;
+        request = null;
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static LazyFileCacheKey create(final HttpRequestPacket request) {
+        final LazyFileCacheKey key =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (key != null) {
+            key.request = request;
+            return key;
+        }
+
+        return new LazyFileCacheKey(request);
     }
 
     @Override
@@ -108,8 +149,13 @@ public class LazyFileCacheKey extends FileCacheKey {
         hash = 23 * hash + (uriDC != null ? uriDC.hashCode() : 0);
         return hash;
     }
+
+
+    // --------------------------------------------------------- Private Methods
+
     
     private void initialize() {
+        isInitialized = true;
         host = request.getHeader(Header.Host);
         uri = request.getRequestURI();
     }

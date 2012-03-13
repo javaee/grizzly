@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,31 +40,59 @@
 
 package org.glassfish.grizzly.http.server.filecache;
 
+import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ThreadCache;
+
 /**
  * The entry key in the file cache map.
  * 
  * @author Alexey Stashok
  */
-public class FileCacheKey {
+public class FileCacheKey implements Cacheable {
+
+    private static final ThreadCache.CachedTypeIndex<FileCacheKey> CACHE_IDX =
+                    ThreadCache.obtainIndex(FileCacheKey.class, 16);
+
     protected String host;
     protected String uri;
 
-    protected FileCacheKey() {
-    }
-    
-    public FileCacheKey(final String host, final String uri) {
+
+    // ------------------------------------------------------------ Constructors
+
+
+    protected FileCacheKey() { }
+
+    protected FileCacheKey(final String host, final String uri) {
         this.host = host;
         this.uri = uri;
     }
 
-    protected String getHost() {
-        return host;
+
+    // -------------------------------------------------- Methods from Cacheable
+
+    @Override
+    public void recycle() {
+        host = null;
+        uri = null;
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
-    protected String getUri() {
-        return uri;
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static FileCacheKey create(final String host, final String uri) {
+        final FileCacheKey key =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (key != null) {
+            key.host = host;
+            key.uri = uri;
+            return key;
+        }
+
+        return new FileCacheKey(host, uri);
     }
-    
+
     @Override
     public boolean equals(final Object obj) {
         if (obj == null) {
@@ -95,4 +123,17 @@ public class FileCacheKey {
         hash = 23 * hash + (this.uri != null ? this.uri.hashCode() : 0);
         return hash;
     }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected String getHost() {
+        return host;
+    }
+
+    protected String getUri() {
+        return uri;
+    }
+
 }
