@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,9 @@
 
 package org.glassfish.grizzly.http.server.filecache;
 
+import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ThreadCache;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -47,7 +50,10 @@ import java.nio.ByteBuffer;
  *
  * @author Alexey Stashok
  */
-public final class FileCacheEntry implements Runnable {
+public final class FileCacheEntry implements Runnable, Cacheable {
+
+    private static final ThreadCache.CachedTypeIndex<FileCacheEntry> CACHE_IDX =
+                    ThreadCache.obtainIndex(FileCacheEntry.class, 16);
 
     public FileCacheKey key;
     public String host;
@@ -65,14 +71,65 @@ public final class FileCacheEntry implements Runnable {
     
     public volatile long timeoutMillis;
 
-    private final FileCache fileCache;
+    protected FileCache fileCache;
 
-    public FileCacheEntry(FileCache fileCache) {
+
+    // ------------------------------------------------------------ Constructors
+
+
+    protected FileCacheEntry(final FileCache fileCache) {
         this.fileCache = fileCache;
     }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static FileCacheEntry create(final FileCache fileCache) {
+        final FileCacheEntry entry =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (entry != null) {
+            entry.fileCache = fileCache;
+            return entry;
+        }
+
+        return new FileCacheEntry(fileCache);
+    }
+
+
+    // --------------------------------------------------- Methods from Runnable
+
 
     @Override
     public void run() {
         fileCache.remove(this);
     }
+
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Override
+    public void recycle() {
+        if (key != null) {
+            key.recycle();
+        }
+        FileCacheKey key = null;
+        String host = null;
+        String requestURI = null;
+        String lastModified = "";
+        String contentType = null;
+        ByteBuffer bb = null;
+        String xPoweredBy = null;
+        FileCache.CacheType type = null;
+        String date = null;
+        String Etag = null;
+        long contentLength = -1;
+        long fileSize = -1;
+        String keepAlive = null;
+        long timeoutMillis = 0;
+        FileCache fileCache = null;
+    }
+
 }
