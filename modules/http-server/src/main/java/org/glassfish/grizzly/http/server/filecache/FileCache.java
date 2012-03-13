@@ -191,13 +191,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         // cache is full.
         if (size > getMaxCacheEntries()) {
             cacheSize.decrementAndGet();
-            final FileCacheEntry entry = fileCacheMap.remove(key);
-            if (entry != null) {
-                // key will be recycled if the entry is recycled
-                entry.recycle();
-            } else {
-                key.recycle();
-            }
+            fileCacheMap.remove(key);
+            key.recycle();
             return;
         }
 
@@ -267,7 +262,6 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
     protected void remove(final FileCacheEntry entry) {
         if (fileCacheMap.remove(entry.key) != null) {
-            entry.recycle();
             cacheSize.decrementAndGet();
         }
 
@@ -348,7 +342,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             }
         }
 
-        final FileCacheEntry entry = FileCacheEntry.create(this);
+        final FileCacheEntry entry = new FileCacheEntry(this);
         entry.type = type;
         entry.fileSize = size;
         entry.bb = bb;

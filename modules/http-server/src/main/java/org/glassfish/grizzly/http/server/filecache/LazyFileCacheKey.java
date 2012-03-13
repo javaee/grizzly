@@ -56,6 +56,7 @@ public class LazyFileCacheKey extends FileCacheKey {
 
     private HttpRequestPacket request;
     private boolean isInitialized;
+    private int hashCode;
 
 
     // ------------------------------------------------------------ Constructors
@@ -141,13 +142,16 @@ public class LazyFileCacheKey extends FileCacheKey {
 
     @Override
     public int hashCode() {
-        int hash = 3;
-        final DataChunk hostDC = getHostLazy();
-        final DataChunk uriDC = getUriLazy();
+        if (hashCode == 0) {
+            int hash = 3;
+            final DataChunk hostDC = getHostLazy();
+            final DataChunk uriDC = getUriLazy();
         
-        hash = 23 * hash + (hostDC != null ? hostDC.hashCode() : 0);
-        hash = 23 * hash + (uriDC != null ? uriDC.hashCode() : 0);
-        return hash;
+            hash = 23 * hash + (hostDC != null ? hostDC.hashCode() : 0);
+            hash = 23 * hash + (uriDC != null ? uriDC.hashCode() : 0);
+            hashCode = hash;
+        }
+        return hashCode;
     }
 
 
