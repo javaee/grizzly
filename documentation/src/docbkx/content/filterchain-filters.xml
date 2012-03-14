@@ -58,7 +58,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/filterchain-diagram.png"/>
+        <imagedata fileref="../images/coreframework/filterchain-diagram.png"></imagedata>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -76,7 +76,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/http-filterchain.png"/>
+        <imagedata fileref="../images/coreframework/http-filterchain.png"></imagedata>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -109,7 +109,7 @@
 
   <para><inlinemediaobject>
       <imageobject>
-        <imagedata fileref="../images/coreframework/https-filterchain.png"/>
+        <imagedata fileref="../images/coreframework/https-filterchain.png"></imagedata>
       </imageobject>
     </inlinemediaobject></para>
 
@@ -213,7 +213,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/filterchaincontext.png"/>
+              <imagedata fileref="../images/coreframework/filterchaincontext.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 
