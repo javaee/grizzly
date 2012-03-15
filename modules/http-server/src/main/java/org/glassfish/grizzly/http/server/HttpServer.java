@@ -259,11 +259,11 @@ public class HttpServer {
             try {
                 listener.start();
             } catch (IOException ioe) {
-                if (LOGGER.isLoggable(Level.SEVERE)) {
-                    LOGGER.log(Level.SEVERE,
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST,
                             "Failed to start listener [{0}] : {1}",
                             new Object[]{listener.toString(), ioe.toString()});
-                    LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
+                    LOGGER.log(Level.FINEST, ioe.toString(), ioe);
                 }
 
                 throw ioe;
