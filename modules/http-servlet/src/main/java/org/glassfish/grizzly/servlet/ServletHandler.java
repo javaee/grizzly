@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -257,7 +257,10 @@ public class ServletHandler extends HttpHandler {
     }
 
     protected FilterChainInvoker getFilterChain(Request request) {
-        return filterChainFactory.createFilterChain(request, servletInstance, REQUEST);
+        if (filterChainFactory != null) {
+            return filterChainFactory.createFilterChain(request, servletInstance, REQUEST);
+        }
+        return null;
     }
 
     private void setDispatcherPath(final Request request, final String path) {
