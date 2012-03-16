@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,9 @@ package com.sun.grizzly.config;
 import com.sun.grizzly.config.dom.Http;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.ThreadPool;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -189,6 +192,32 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
         System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
+    }
+
+    public void schemeOverride() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-scheme-override.xml");
+            grizzlyConfig.setupNetwork();
+            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+                setGrizzlyAdapter(listener, new GrizzlyAdapter() {
+
+                    @Override
+                    public void service(GrizzlyRequest request,
+                            GrizzlyResponse response) throws Exception {
+                        response.getWriter().write(request.getScheme());
+                    }
+                });
+            }
+            
+            final String content = getContent(new URL("http://localhost:38082").openConnection());
+            final String content2 = getContent(new URL("http://localhost:38083").openConnection());
+            
+            Assert.assertEquals("http", content);
+            Assert.assertEquals("https", content2);
+        } finally {
+            grizzlyConfig.shutdown();
+        }
     }
 
     public void badConfig() {

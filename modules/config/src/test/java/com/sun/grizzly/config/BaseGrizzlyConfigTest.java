@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.tcp.Adapter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -102,4 +103,9 @@ public class BaseGrizzlyConfigTest {
         }
         adapter.addRootFolder(name);
     }
+
+    protected void setGrizzlyAdapter(GrizzlyServiceListener listener, Adapter grizzlyAdapter) {
+        listener.getEmbeddedHttp().setAdapter(grizzlyAdapter);
+    }
+
 }
