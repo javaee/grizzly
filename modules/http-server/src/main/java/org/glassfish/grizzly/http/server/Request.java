@@ -2269,7 +2269,7 @@ public class Request {
             return session.isValid();
         }
 
-        Session localSession = sessions.put(requestedSessionId, session);
+        Session localSession = sessions.get(requestedSessionId);
         return ((localSession != null) && localSession.isValid());
 
     }
