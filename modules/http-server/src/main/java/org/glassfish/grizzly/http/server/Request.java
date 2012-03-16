@@ -296,6 +296,11 @@ public class Request {
 
     private Session session;
 
+    /**
+     * The HTTP request scheme.
+     */
+    private String scheme;
+
     private String contextPath = "";
 
     private MappingData cachedMappingData;
@@ -499,7 +504,20 @@ public class Request {
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
-        sendFileEnabled = ((httpServerFilter != null) && httpServerFilter.getConfiguration().isSendFileEnabled());
+        
+        if (httpServerFilter != null) {
+            final ServerFilterConfiguration configuration =
+                    httpServerFilter.getConfiguration();
+            
+            sendFileEnabled = configuration.isSendFileEnabled();
+            final String overridingScheme = configuration.getScheme();
+            
+            scheme = overridingScheme != null ? overridingScheme
+                    : request.isSecure() ? "https" : "http";
+        } else {
+            sendFileEnabled = false;
+            scheme = request.isSecure() ? "https" : "http";
+        }
     }
 
     final HttpServerFilter getServerFilter() {
@@ -558,6 +576,7 @@ public class Request {
      * preparation for reuse of this object.
      */
     protected final void recycle() {
+        scheme = null;
         contextPath = "";
         dispatcherType = null;
         requestDispatcherPath = null;
@@ -1121,7 +1140,7 @@ public class Request {
      * Return the scheme used to make this Request.
      */
     public String getScheme() {
-        return request.isSecure() ? "https" : "http";
+        return scheme;
     }
 
 

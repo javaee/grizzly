@@ -649,7 +649,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     protected ServerFilterConfiguration getHttpServerFilterConfiguration(Http http) {
-        return new ServerFilterConfiguration();
+        final ServerFilterConfiguration serverFilterConfiguration =
+                new ServerFilterConfiguration();
+        serverFilterConfiguration.setScheme(http.getScheme());
+        return serverFilterConfiguration;
     }
 
     protected HttpHandler getHttpHandler(Http http) {

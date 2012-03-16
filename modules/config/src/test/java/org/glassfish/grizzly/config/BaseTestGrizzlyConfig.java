@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import org.glassfish.grizzly.http.server.HttpHandler;
 
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
@@ -111,6 +112,14 @@ public class BaseTestGrizzlyConfig {
 
         for (HttpServerFilter httpServerFilter : httpServerFilters) {
             httpServerFilter.setHttpHandler(new StaticHttpHandler(name));
+        }
+    }
+
+    protected void setHttpHandler(GenericGrizzlyListener listener, HttpHandler handler) {
+        final List<HttpServerFilter> httpServerFilters = listener.getFilters(HttpServerFilter.class);
+
+        for (HttpServerFilter httpServerFilter : httpServerFilters) {
+            httpServerFilter.setHttpHandler(handler);
         }
     }
 

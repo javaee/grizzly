@@ -599,10 +599,18 @@ public class HttpServer {
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
 
-            final HttpServerFilter webServerFilter = new HttpServerFilter(serverConfig, delayedExecutor);
+            final HttpServerFilter webServerFilter = new HttpServerFilter(
+                    new ServerFilterConfiguration(serverConfig),
+                    delayedExecutor);
+            
             if (listener.isSendFileExplicitlyConfigured()) {
                 webServerFilter.getConfiguration().setSendFileEnabled(listener.isSendFileEnabled());
             }
+            
+            if (listener.getScheme() != null) {
+                webServerFilter.getConfiguration().setScheme(listener.getScheme());
+            }
+            
             webServerFilter.setHttpHandler(httpHandlerChain);
             
             webServerFilter.getMonitoringConfig().addProbes(
