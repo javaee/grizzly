@@ -339,9 +339,10 @@ public class BasicSelectorThreadTest extends TestCase {
         os.flush();
 
         InputStream is = new DataInputStream(connection.getInputStream());
-        byte[] response = new byte[testData.length * 2];
-        final int responseLen = is.read(response);
-        response = Arrays.copyOf(response, responseLen);
+        byte[] tmpResponse = new byte[testData.length * 2];
+        final int responseLen = is.read(tmpResponse);
+        byte[] response = new byte[responseLen];
+        System.arraycopy(tmpResponse, 0, response, 0, responseLen);
 
 
         String r = new String(response);
