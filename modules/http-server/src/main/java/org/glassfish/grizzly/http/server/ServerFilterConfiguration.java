@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.Grizzly;
+
 /**
  * {@link HttpServerFilter} configuration.
  *
@@ -51,9 +53,15 @@ public class ServerFilterConfiguration {
     private String httpServerName;
     private String httpServerVersion;
     private boolean sendFileEnabled;
+    
+    /**
+     * The HTTP request scheme, which if non-null overrides default one picked
+     * up by framework during runtime.
+     */
+    private String scheme;
 
     public ServerFilterConfiguration() {
-        this("Grizzly", "2.1");
+        this("Grizzly", Grizzly.getDotedVersion());
     }
 
     public ServerFilterConfiguration(final String serverName, final String serverVersion) {
@@ -62,6 +70,13 @@ public class ServerFilterConfiguration {
         configureSendFileSupport();
     }
 
+    public ServerFilterConfiguration(ServerFilterConfiguration configuration) {
+        this.httpServerName = configuration.httpServerName;
+        this.httpServerVersion = configuration.httpServerVersion;
+        this.sendFileEnabled = configuration.sendFileEnabled;
+        this.scheme = configuration.scheme;
+    }
+    
     /**
      * @return the server name used for headers and default error pages.
      */
@@ -144,6 +159,30 @@ public class ServerFilterConfiguration {
         this.sendFileEnabled = sendFileEnabled;
     }
 
+    /**
+     * Get the HTTP request scheme, which if non-null overrides default one
+     * picked up by framework during runtime.
+     *
+     * @return the HTTP request scheme
+     * 
+     * @since 2.2.4
+     */
+    public String getScheme() {
+        return scheme;
+    }
+
+    /**
+     * Set the HTTP request scheme, which if non-null overrides default one
+     * picked up by framework during runtime.
+     *
+     * @param scheme the HTTP request scheme
+     * 
+     * @since 2.2.4
+     */
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
+    }
+    
     // --------------------------------------------------------- Private Methods
 
 

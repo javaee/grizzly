@@ -47,6 +47,9 @@ import java.util.List;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
@@ -198,6 +201,32 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
         }
     }
     
+    @Test
+    public void schemeOverride() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-scheme-override.xml");
+            grizzlyConfig.setupNetwork();
+            for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
+                setHttpHandler((GenericGrizzlyListener) listener, new HttpHandler() {
+
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        response.getWriter().write(request.getScheme());
+                    }
+                });
+            }
+            
+            final String content = getContent(new URL("http://localhost:38082").openConnection());
+            final String content2 = getContent(new URL("http://localhost:38083").openConnection());
+            
+            Assert.assertEquals("http", content);
+            Assert.assertEquals("https", content2);
+        } finally {
+            grizzlyConfig.shutdown();
+        }
+    }
+
     private static GrizzlyListener getListener(GrizzlyConfig grizzlyConfig,
             String listenerName) {
         for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
