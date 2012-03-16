@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,6 +85,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String DEFAULT_ADAPTER = "com.sun.grizzly.tcp.StaticResourcesAdapter";
     String URI_ENCODING = "UTF-8";
     String VERSION = "HTTP/1.1";
+    String SCHEME_PATTERN = "http|https";
 
     @Attribute(defaultValue = DEFAULT_ADAPTER)
     String getAdapter();
@@ -292,6 +293,16 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getVersion();
 
     void setVersion(final String version);
+
+    /**
+     * The HTTP schema (http or https) to override HTTP request scheme picked
+     * up by Grizzly or web-container during runtime.
+     */
+    @Attribute
+    @Pattern(regexp = SCHEME_PATTERN)
+    String getScheme();
+
+    void setScheme(final String scheme);
 
     @Attribute(defaultValue = "" + WEBSOCKET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getWebsocketsSupportEnabled();

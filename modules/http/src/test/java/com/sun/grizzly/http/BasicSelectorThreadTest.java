@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,6 +56,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
@@ -271,6 +272,33 @@ public class BasicSelectorThreadTest extends TestCase {
         }
     }
 
+    public void testSchemeOverride() throws Exception {
+        Utils.dumpOut("Test: testSchemeOverride");
+        final String testString = "https";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            st.setScheme("https");
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    response.getWriter().write(request.getScheme());
+                }
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+
+            sendRequest(testData, testString, PORT);
+
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+    
     public class NotFoundAdapter extends GrizzlyAdapter {
 
         @Override
@@ -284,7 +312,7 @@ public class BasicSelectorThreadTest extends TestCase {
         @Override
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
-                response.getWriter().println("HelloWorld");
+                response.getWriter().print("HelloWorld");
             } catch (IOException ex) {
                 ex.printStackTrace();
                 fail(ex.getMessage());
@@ -311,8 +339,9 @@ public class BasicSelectorThreadTest extends TestCase {
         os.flush();
 
         InputStream is = new DataInputStream(connection.getInputStream());
-        byte[] response = new byte[testData.length];
-        is.read(response);
+        byte[] response = new byte[testData.length * 2];
+        final int responseLen = is.read(response);
+        response = Arrays.copyOf(response, responseLen);
 
 
         String r = new String(response);

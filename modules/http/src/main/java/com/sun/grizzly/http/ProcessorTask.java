@@ -1340,9 +1340,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         http11 = true;
         http09 = false;
         contentDelimitation = false;
-        if (sslSupport != null) {
-            request.scheme().setString("https");
-        }
         MessageBytes protocolMB = request.protocol();
         if (protocolMB.equals(Constants.HTTP_11)) {
             http11 = true;
@@ -1422,6 +1419,14 @@ public class ProcessorTask extends TaskBase implements Processor,
         } else if (methodMB.equals(Constants.POST)) {
             methodMB.setString(Constants.POST);
         }
+
+        final String hardcodedScheme = selectorThread.getScheme();
+        if (hardcodedScheme != null) {
+            request.scheme().setString(hardcodedScheme);
+        } else if (sslSupport != null) {
+            request.scheme().setString("https");
+        }
+        
         MimeHeaders headers = request.getMimeHeaders();
 
         keepAlive(headers);
