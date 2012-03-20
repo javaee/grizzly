@@ -163,8 +163,8 @@ public class FilterChainFactory {
            }
 
 
-           // Add filters that match on servlet name second
-           String servletName = servlet.getServletConfig().getServletName();
+        // Add filters that match on servlet name second
+        String servletName = servlet.getServletConfig().getServletName();
         for (final FilterRegistration registration : registrations) {
             for (final Map.Entry<String[], Byte> entry : registration.urlPatterns.entrySet()) {
                 if (!registration.isDispatcherSet(entry.getValue(), dispatcherType)) {
@@ -179,8 +179,8 @@ public class FilterChainFactory {
 
         }
 
-           // Return the completed filter chain
-           return (filterChain);
+        // Return the completed filter chain
+        return (filterChain);
        }
 
 

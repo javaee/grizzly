@@ -104,7 +104,8 @@ public class HelloHttpServerTest extends TestCase {
             WebappContext ctx = new WebappContext("Test");
 
             ServletRegistration servlet =
-                    ctx.addServlet("TestServlet", HelloServlet.class);
+                    ctx.addServlet("TestServlet", HelloServlet.class.getName());
+            servlet.setLoadOnStartup(1);
             servlet.addMapping(aliases);
             ctx.deploy(httpServer);
             httpServer.start();
