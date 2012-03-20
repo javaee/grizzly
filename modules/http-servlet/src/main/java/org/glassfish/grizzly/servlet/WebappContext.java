@@ -1414,7 +1414,7 @@ public class WebappContext implements ServletContext {
      * @param server
      */
     private void destoryServlets(HttpServer server) {
-        if (!servletHandlers.isEmpty()) {
+        if (servletHandlers != null && !servletHandlers.isEmpty()) {
             ServerConfiguration config = server.getServerConfiguration();
             for (final ServletHandler handler : servletHandlers) {
                 config.removeHttpHandler(handler);
@@ -1449,8 +1449,7 @@ public class WebappContext implements ServletContext {
      */
     private void initServlets(final HttpServer server) {
 
-        // add the default servlet
-        registerDefaultServlet(server);
+        boolean defaultMappingAdded = false;
         if (!servletRegistrations.isEmpty()) {
             final ServerConfiguration serverConfig = server.getServerConfiguration();
             servletHandlers = new LinkedHashSet<ServletHandler>(servletRegistrations.size(), 1.0f);
@@ -1469,19 +1468,23 @@ public class WebappContext implements ServletContext {
                         throw new RuntimeException(e);
                     }
                 } else if (registration.loadOnStartup >= 0) {
+                    Servlet servletInstance;
+                    String servletClassName = registration.className;
                     Class<? extends Servlet> servletClass = registration.servletClass;
-                    Servlet servlet = registration.servlet;
-                    if (servletClass == null) {
-                        continue;
-                    }
-                    if (servlet == null) {
+                    if (servletClassName != null) {
+                        servletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
+                    } else {
                         try {
-                            servlet = servletClass.newInstance();
-                            servlet.init(sConfig);
-                            registration.servlet = servlet;
+                            servletInstance = servletClass.newInstance();
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
+                    }
+                    try {
+                        LOGGER.log(Level.INFO, "Loading Servlet: {0}", servletInstance.getClass().getName());
+                        servletInstance.init(sConfig);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
                 }
                 servletHandler = new ServletHandler(sConfig);
@@ -1495,6 +1498,9 @@ public class WebappContext implements ServletContext {
                 final String[] patterns = registration.urlPatterns.getArray();
                 if (patterns != null && patterns.length > 0) {
                     for (final String spath : patterns) {
+                        if (spath.length() == 0 || "/".equals(spath)) {
+                            defaultMappingAdded = true;
+                        }
                         serverConfig.addHttpHandler(servletHandler,
                                 updateMappings(servletHandler,
                                         spath));
@@ -1517,10 +1523,15 @@ public class WebappContext implements ServletContext {
                 }
             }
         }
+        if (!defaultMappingAdded) {
+            // add the default servlet
+            registerDefaultServlet(server);
+        }
     }
 
     private void registerDefaultServlet(HttpServer server) {
-        Map<HttpHandler,String[]> handlers = server.getServerConfiguration().getHttpHandlers();
+        final ServerConfiguration serverConfig = server.getServerConfiguration();
+        Map<HttpHandler,String[]> handlers = serverConfig.getHttpHandlers();
         for (final Map.Entry<HttpHandler,String[]> entry : handlers.entrySet()) {
             final HttpHandler h = entry.getKey();
             if (!(h instanceof StaticHttpHandler)) {
@@ -1533,6 +1544,27 @@ public class WebappContext implements ServletContext {
                     final ServletRegistration registration =
                             addServlet("DefaultServlet", s);
                     registration.addMapping("/");
+                    final ServletConfigImpl sConfig =
+                                            createServletConfig(registration);
+                    try {
+                        s.init(sConfig);
+                    } catch (ServletException ignored) {
+                        // shouldn't happen
+                    }
+                    final ServletHandler servletHandler = new ServletHandler(sConfig);
+                    servletHandler.setServletInstance(registration.servlet);
+                    servletHandler.setServletClass(registration.servletClass);
+                    servletHandler.setServletClassName(registration.className);
+                    servletHandler.setContextPath(contextPath);
+                    servletHandler.setFilterChainFactory(filterChainFactory);
+                    servletHandler.setExpectationHandler(registration.expectationHandler);
+                    serverConfig.addHttpHandler(servletHandler,
+                                                    updateMappings(servletHandler,
+                                                            "/"));
+                    if (servletHandlers == null) {
+                        servletHandlers = new LinkedHashSet<ServletHandler>(1, 1.0f);
+                    }
+                    servletHandlers.add(servletHandler);
                 }
             }
         }
@@ -1560,7 +1592,6 @@ public class WebappContext implements ServletContext {
                     final FilterConfigImpl filterConfig =
                             createFilterConfig(registration);
                     registration.filter = f;
-                    registration.filterConfig = filterConfig;
                     f.init(filterConfig);
                     if (LOGGER.isLoggable(Level.INFO)) {
                         LOGGER.log(Level.INFO,

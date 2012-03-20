@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.servlet;
 
 import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -60,7 +59,6 @@ public class FilterRegistration extends Registration {
     protected final Map<String[],Byte> servletNames;
     protected final Map<String[],Byte> urlPatterns;
     protected Filter filter;
-    protected FilterConfig filterConfig;
 
 
     // ------------------------------------------------------------ Constructors
