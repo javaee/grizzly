@@ -64,7 +64,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -74,7 +73,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -101,6 +99,7 @@ import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.RequestUtils;
+import org.glassfish.grizzly.http.server.util.SimpleDateFormats;
 import org.glassfish.grizzly.http.server.util.StringParser;
 import org.glassfish.grizzly.http.util.Chunk;
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
@@ -138,9 +137,9 @@ public class Request {
     }
 
     /**
-     * Request attribute will be associated with a boolean value indicating 
+     * Request attribute will be associated with a boolean value indicating
      * whether or not it's possible to transfer a {@link java.io.File} using sendfile.
-     * 
+     *
      * @since 2.2
      */
     public static final String SEND_FILE_ENABLED_ATTR = "org.glassfish.grizzly.http.SEND_FILE_ENABLED";
@@ -470,7 +469,7 @@ public class Request {
     // START SJSAS 6346226
     private String jrouteId;
     // END SJSAS 6346226
-    
+
     private boolean sendFileEnabled;
     private boolean sendFileAttributeInitialized;
 
@@ -504,14 +503,14 @@ public class Request {
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
-        
+
         if (httpServerFilter != null) {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
-            
+
             sendFileEnabled = configuration.isSendFileEnabled();
             final String overridingScheme = configuration.getScheme();
-            
+
             scheme = overridingScheme != null ? overridingScheme
                     : request.isSecure() ? "https" : "http";
         } else {
@@ -770,7 +769,7 @@ public class Request {
      * @param name Name of the request attribute to return
      */
     public Object getAttribute(String name) {
-        if (name.charAt(0) == 'o' 
+        if (name.charAt(0) == 'o'
                 && name.charAt(name.length() - 1) == 'D'
                 && SEND_FILE_ENABLED_ATTR.equals(name)) {
             if (!sendFileAttributeInitialized) {
@@ -885,7 +884,7 @@ public class Request {
     public NIOInputStream getNIOInputStream() {
         return getInputStream0(/*false*/);
     }
-    
+
     private NIOInputStream getInputStream0(/*final boolean blocking*/) {
 
         if (usingReader)
@@ -1072,7 +1071,7 @@ public class Request {
     public NIOReader getNIOReader() {
         return getReader0(/*false*/);
     }
-    
+
     private NIOReader getReader0(/*final boolean blocking*/) {
 
         if (usingInputStream)
@@ -1842,7 +1841,7 @@ public class Request {
 
     /**
      * @return the {@link InputBuffer} associated with this request, which is the
-     * source for {@link #getInputStream()}, {@link #getReader()}, 
+     * source for {@link #getInputStream()}, {@link #getReader()},
      * {@link #getNIOInputStream()}, and {@link #getNIOReader()}
      */
     public InputBuffer getInputBuffer() {
@@ -1882,7 +1881,7 @@ public class Request {
         if (!rawCookies.initialized()) {
             rawCookies.setHeaders(request.getHeaders());
         }
-        
+
         return rawCookies;
     }
 
@@ -1914,7 +1913,7 @@ public class Request {
         } else {
             charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
         }
-        
+
         parameters.setEncoding(charset);
         parameters.setQueryStringEncoding(charset);
 
@@ -1931,7 +1930,7 @@ public class Request {
         final int len = getContentLength();
 
         if (len > 0) {
-            
+
             if (!checkPostContentType(getContentType())) return;
 
             try {
@@ -2273,7 +2272,7 @@ public class Request {
         return ((localSession != null) && localSession.isValid());
 
     }
-    
+
     /**
      * Configures the given JSESSIONID cookie.
      *
@@ -2293,7 +2292,7 @@ public class Request {
      */
     protected void parseSessionId() {
         if (sessionParsed) return;
-        
+
         sessionParsed = true;
         final DataChunk uriDC = request.getRequestURIRef().getRequestURIBC();
 
@@ -2323,7 +2322,7 @@ public class Request {
             final int end = semicolon2 >= 0 ? semicolon2 : uriChunk.getLength();
 
             final String sessionId = uriChunk.toString(sessionIdStart, end);
-            
+
             final int jrouteIndex = sessionId.lastIndexOf(':');
             if (jrouteIndex > 0) {
                 setRequestedSessionId(sessionId.substring(0, jrouteIndex));
@@ -2346,7 +2345,7 @@ public class Request {
             setRequestedSessionURL(false);
         }
 
-    }   
+    }
 
     /**
      * Set a flag indicating whether or not the requested session ID for this
@@ -2390,7 +2389,7 @@ public class Request {
 
     /**
      * Initiates asynchronous data receiving.
-     * 
+     *
      * This is service method, usually users don't have to call it explicitly.
      */
     public void initiateAsyncronousDataReceiving() {
@@ -2400,42 +2399,4 @@ public class Request {
         ctx.resume();
     }
 
-    private final static class SimpleDateFormats {
-        private static final ThreadCache.CachedTypeIndex<SimpleDateFormats> CACHE_IDX =
-                ThreadCache.obtainIndex(SimpleDateFormats.class, 1);
-
-        public static SimpleDateFormats create() {
-            final SimpleDateFormats formats =
-                    ThreadCache.takeFromCache(CACHE_IDX);
-            if (formats != null) {
-                return formats;
-            }
-
-            return new SimpleDateFormats();
-        }
-
-        private final SimpleDateFormat[] f;
-        public SimpleDateFormats() {
-            f = new SimpleDateFormat[3];
-            f[0] = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
-                                        Locale.US);
-            f[1] = new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz",
-                                        Locale.US);
-            f[2] = new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US);
-
-            f[0].setTimeZone(TimeZone.getTimeZone("GMT"));
-
-            f[1].setTimeZone(TimeZone.getTimeZone("GMT"));
-
-            f[2].setTimeZone(TimeZone.getTimeZone("GMT"));
-        }
-
-        public SimpleDateFormat[] getFormats() {
-            return f;
-        }
-
-        public void recycle() {
-            ThreadCache.putToCache(CACHE_IDX, this);
-        }
-    }
 }

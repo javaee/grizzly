@@ -72,11 +72,18 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Random;
+import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -129,9 +136,10 @@ public class FileCacheTest {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testSimpleFile() throws Exception {
-        final String fileName = "./pom.xml";
+        final File file = createTempFile();
 
         final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
         final StatsHttpProbe httpProbe = new StatsHttpProbe();
@@ -147,8 +155,8 @@ public class FileCacheTest {
                 try {
                     String error = null;
                     try {
-                        res.setHeader("Content-Type", "text/xml");
-                        addToFileCache(req, new File(fileName));
+                        res.setHeader("Content-Type", "text/plain");
+                        addToFileCache(req, null, file);
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -181,23 +189,23 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+            ContentFuture responseFuture = new ContentFuture();
+            final Connection c = getConnection("localhost", PORT, responseFuture);
+            c.write(request1);
+            final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
 
             assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response1.getContent().toStringContent());
 
-
-            final File file = new File(fileName);
             InputStream fis = new FileInputStream(file);
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
             fis.close();
 
             final String pattern = new String(data);
-
-            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-            assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/xml", response2.getHttpHeader().getContentType());
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/plain", response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
             isOk = true;
         } finally {
@@ -213,9 +221,12 @@ public class FileCacheTest {
      * http://java.net/jira/browse/GRIZZLY-1014
      * "Content-type for files cached in the file cache is incorrect"
      */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testContentType() throws Exception {
-        final String fileName = "./pom.xml";
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
 
         final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
         final StatsHttpProbe httpProbe = new StatsHttpProbe();
@@ -224,39 +235,40 @@ public class FileCacheTest {
         httpServer.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
         httpServer.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
 
-        startHttpServer(new StaticHttpHandler());
+        startHttpServer(new StaticHttpHandler(file.getParent()));
 
         final HttpRequestPacket request1 = HttpRequestPacket.builder()
                 .method("GET")
-                .uri("/pom.xml")
+                .uri(requestPath)
                 .protocol("HTTP/1.1")
                 .header("Host", "localhost")
                 .build();
 
         final HttpRequestPacket request2 = HttpRequestPacket.builder()
                 .method("GET")
-                .uri("/pom.xml")
+                .uri(requestPath)
                 .protocol("HTTP/1.1")
                 .header("Host", "localhost")
                 .build();
 
         boolean isOk = false;
         try {
-            final File file = new File(fileName);
             InputStream fis = new FileInputStream(file);
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
             fis.close();
-
+            ContentFuture responseFuture = new ContentFuture();
             final String pattern = new String(data);
-            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+            final Connection c = getConnection("localhost", PORT, responseFuture);
+            c.write(request1);
+            final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
 
             assertEquals("ContentType is wrong " + response1.getHttpHeader().getContentType(), MimeType.getByFilename(fileName), response1.getHttpHeader().getContentType());
             assertEquals("Direct data mismatch\n" + cacheProbe, pattern, response1.getContent().toStringContent());
 
-            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
             assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), MimeType.getByFilename(fileName), response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
             isOk = true;
@@ -269,9 +281,10 @@ public class FileCacheTest {
         }
     }
     
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testGZip() throws Exception {
-        final String fileName = "./pom.xml";
+        final File file = createTempFile();
 
         final StatsCacheProbe probe = new StatsCacheProbe();
         httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
@@ -283,7 +296,7 @@ public class FileCacheTest {
                 try {
                     String error = null;
                     try {
-                        addToFileCache(req, new File(fileName));
+                        addToFileCache(req, null, file);
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -318,23 +331,24 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+            ContentFuture responseFuture = new ContentFuture();
+            final Connection c = getConnection("localhost", PORT, responseFuture);
+            c.write(request1);
+            final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
 
             assertEquals(probe.toString(), "gzip", response1.getHttpHeader().getHeader("Content-Encoding"));
             assertEquals("Not cached data mismatch\n" + probe, "Hello not cached data", response1.getContent().toStringContent());
 
 
-            final File file = new File(fileName);
             InputStream fis = new FileInputStream(file);
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
             fis.close();
 
             final String pattern = new String(data);
-
-            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
             assertEquals(probe.toString(), "gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
             assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
             isOk = true;
@@ -345,47 +359,373 @@ public class FileCacheTest {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
-    public void testIfModified() throws Exception {
-        final String fileName = "./pom.xml";
-        startHttpServer(new StaticHttpHandler(".") {
+    public void testIfModifiedSince() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
         });
 
         final HttpRequestPacket request1 = HttpRequestPacket.builder()
                 .method("GET")
-                .uri("/pom.xml")
+                .uri(requestPath)
                 .protocol("HTTP/1.1")
                 .header("Host", "localhost")
                 .build();
 
-        final File file = new File(fileName);
         InputStream fis = new FileInputStream(file);
         byte[] data = new byte[(int) file.length()];
         fis.read(data);
         fis.close();
 
         final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
 
-        final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-        final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+        final String ifModifiedSinceValue = convertToDate(file.lastModified());
+        for (int i = 0; i < 1000; i++) {
+            final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri(requestPath)
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost")
+                    .header("If-Modified-Since", ifModifiedSinceValue)
+                    .build();
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        }
+
+    }
+
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfModifiedSinceDateChanges() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+        final Date date = new Date(file.lastModified());
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
+        cal.setTime(date);
+        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 1);
+        String ifModifiedSinceValue = convertToDate(cal.getTime().getTime());
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Modified-Since", ifModifiedSinceValue)
+                .build();
+        responseFuture.reset();
+        c.write(request2);
+        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+
+        cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
+        cal.setTime(date);
+        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 2);
+        ifModifiedSinceValue = convertToDate(cal.getTime().getTime());
+        final HttpRequestPacket request3 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Modified-Since", ifModifiedSinceValue)
+                .build();
+        responseFuture.reset();
+        c.write(request3);
+        final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("200 is expected", 200, ((HttpResponsePacket) response3.getHttpHeader()).getStatus());
+        assertTrue("non-empty body is expected", response3.getContent().hasRemaining());
+    }
+
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfNoneMatch() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        String ifNonMatchValue =
+                "\"" + file.length() + '-' + file.lastModified() + '"';
+        for (int i = 0; i < 1000; i++) {
+            final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri(requestPath)
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost")
+                    .header("If-None-Match", ifNonMatchValue)
+                    .build();
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfUnmodifiedSince() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        String ifUnmodifiedSinceValue = convertToDate(file.lastModified());
+        for (int i = 0; i < 1000; i++) {
+            final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri(requestPath)
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost")
+                    .header("If-Unmodified-Since", ifUnmodifiedSinceValue)
+                    .build();
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("412 is expected", 412, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfUnModifiedSinceDateChanges() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+        final Date date = new Date(file.lastModified());
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
+        cal.setTime(date);
+        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 1);
+        String inUnmodifiedSinceValue = convertToDate(cal.getTime().getTime());
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Unmodified-Since", inUnmodifiedSinceValue)
+                .build();
+        responseFuture.reset();
+        c.write(request2);
+        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("412 is expected", 412, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+
+        cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
+        cal.setTime(date);
+        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 10);
+        inUnmodifiedSinceValue = convertToDate(cal.getTime().getTime());
+        final HttpRequestPacket request3 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Unmodified-Since", inUnmodifiedSinceValue)
+                .build();
+        responseFuture.reset();
+        c.write(request3);
+        final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("200 is expected", 200, ((HttpResponsePacket) response3.getHttpHeader()).getStatus());
+        assertTrue("non-empty body is expected", response3.getContent().hasRemaining());
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfMatch() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        String ifMatchValue =
+                "\"" + file.length() + '-' + (file.lastModified() + 1) + '"';
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Match", ifMatchValue)
+                .build();
+        responseFuture.reset();
+        c.write(request2);
+        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("412 is expected", 412, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfMatchStar() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
         assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
                 pattern, response1.getContent().toStringContent());
 
         final HttpRequestPacket request2 = HttpRequestPacket.builder()
                 .method("GET")
-                .uri("/pom.xml")
+                .uri(requestPath)
                 .protocol("HTTP/1.1")
                 .header("Host", "localhost")
-                .header("If-Match", "W/\"" + file.length() + "-" + file.lastModified() + "\"")
-                .header("If-Modified-Since", "" + file.lastModified())
+                .header("If-Match", "*")
                 .build();
+        responseFuture.reset();
+        c.write(request2);
+        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
 
-        final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-        final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-
-        assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
-        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        assertEquals("200 is expected", 200, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("non-empty body is expected", response2.getContent().hasRemaining());
     }
+
 
     private void configureHttpServer() throws Exception {
         httpServer = new HttpServer();
@@ -407,8 +747,10 @@ public class FileCacheTest {
         httpServer.start();
     }
 
-    private Future<HttpContent> send(String host, int port, HttpPacket request) throws Exception {
-        final FutureImpl<HttpContent> future = SafeFutureImpl.create();
+    private Connection getConnection(String host,
+                                     int port,
+                                     FutureImpl<HttpContent> future)
+    throws Exception {
 
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
@@ -421,16 +763,16 @@ public class FileCacheTest {
 
         GZipContentEncoding gzipClientContentEncoding =
                 new GZipContentEncoding(512, 512, new EncodingFilter() {
-            @Override
-            public boolean applyEncoding(HttpHeader httpPacket) {
-                return false;
-            }
+                    @Override
+                    public boolean applyEncoding(HttpHeader httpPacket) {
+                        return false;
+                    }
 
-            @Override
-            public boolean applyDecoding(HttpHeader httpPacket) {
-                return true;
-            }
-        });
+                    @Override
+                    public boolean applyDecoding(HttpHeader httpPacket) {
+                        return true;
+                    }
+                });
 
         final HttpClientFilter httpClientFilter = new HttpClientFilter();
         httpClientFilter.addContentEncoding(gzipClientContentEncoding);
@@ -444,11 +786,40 @@ public class FileCacheTest {
                 .build();
 
         Future<Connection> connectFuture = connectorHandler.connect(host, port);
-        final Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
+        return connectFuture.get(10, TimeUnit.SECONDS);
 
-        connection.write(request);
+    }
 
-        return future;
+    private static String convertToDate(final long date) {
+
+        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
+                                                  Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return format.format(new Date(date));
+
+    }
+
+    private static File createTempFile() throws IOException {
+        final File f = File.createTempFile("grizzly-file-cache", ".txt");
+        f.deleteOnExit();
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(f);
+            Random r = new Random(System.currentTimeMillis());
+            for (int i = 0; i < 100; i++) {
+                out.write(Long.toString(r.nextLong()).getBytes());
+            }
+        } finally {
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException ignored) {
+                }
+
+            }
+        }
+        return f;
     }
 
     private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
@@ -681,5 +1052,14 @@ public class FileCacheTest {
 
             return sb.toString();
         }
+    }
+    
+    public static final class ContentFuture extends SafeFutureImpl<HttpContent> {
+
+        @Override
+        protected void reset() {
+            super.reset();   
+        }
+        
     }
 }
