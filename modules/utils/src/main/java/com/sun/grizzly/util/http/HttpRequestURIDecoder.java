@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,8 +62,10 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class HttpRequestURIDecoder {
-
-    protected static final boolean ALLOW_BACKSLASH = false;
+    private static final String ALLOW_ENCODED_BACKSLASH_NAME = "com.sun.grizzly.util.http.HttpRequestURIDecoder.ALLOW_ENCODED_BACKSLASH";
+    protected static final boolean ALLOW_BACKSLASH =
+            Boolean.valueOf(System.getProperty(ALLOW_ENCODED_BACKSLASH_NAME, "false"));
+            
     private static final boolean COLLAPSE_ADJACENT_SLASHES = 
             Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes"
             , "true")).booleanValue();
