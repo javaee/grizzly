@@ -57,6 +57,7 @@ import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.ArraySet;
@@ -225,6 +226,7 @@ public class StaticHttpHandler extends HttpHandler {
 
         final long length = file.length();
         response.setContentLengthLong(length);
+        response.addDateHeader(Header.Date, System.currentTimeMillis());
         if (!response.isSendFileEnabled() || response.getRequest().isSecure()) {
             sendUsingBuffers(response, file);
         } else {
@@ -244,13 +246,7 @@ public class StaticHttpHandler extends HttpHandler {
                 new NonBlockingDownloadHandler(response, outputStream,
                         file, chunkSize),
                 chunkSize * 3 / 2);
-//        byte b[] = new byte[8192];
-//        int rd;
-//        while ((rd = fis.read(b)) > 0) {
-//            //chunk.setBytes(b, 0, rd);
-//            outputStream.write(b, 0, rd);
-//        }
-//        return fis;
+
     }
 
     private static void sendZeroCopy(final Response response, final File file)
@@ -259,12 +255,17 @@ public class StaticHttpHandler extends HttpHandler {
         outputBuffer.sendfile(file, null);
     }
 
-    public final boolean addToFileCache(Request req, File resource) {
+    public final boolean addToFileCache(final Request req,
+                                        final Response res,
+                                        final File resource) {
         if (isFileCacheEnabled) {
             final FilterChainContext fcContext = req.getContext();
             final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
             if (fileCacheFilter != null) {
                 final FileCache fileCache = fileCacheFilter.getFileCache();
+                if (res != null) {
+                    addCachingHeaders(res, resource);
+                }
                 fileCache.add(req.getRequest(), resource);
                 return true;
             }
@@ -386,7 +387,7 @@ public class StaticHttpHandler extends HttpHandler {
 
         pickupContentType(res, resource);
         
-        addToFileCache(req, resource);
+        addToFileCache(req, res, resource);
         sendFile(res, resource);
 
         return true;
@@ -444,6 +445,21 @@ public class StaticHttpHandler extends HttpHandler {
                 response.setContentType(MimeType.get("html"));
             }
         }
+    }
+
+    private static void addCachingHeaders(final Response response,
+                                          final File file) {
+        final StringBuilder sb = new StringBuilder();
+
+        long contentLength = file.length();
+        long lastModified = file.lastModified();
+        if ((contentLength >= 0) || (lastModified >= 0)) {
+            sb.append('"').append(contentLength).append('-').
+                    append(lastModified).append('"');
+            response.setHeader(Header.ETag, sb.toString());
+        }
+        response.addDateHeader(Header.LastModified, lastModified);
+
     }
     
     private static class NonBlockingDownloadHandler implements WriteHandler {

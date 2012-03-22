@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,43 +37,49 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.server.util;
 
-package org.glassfish.grizzly.http.server.filecache;
+import org.glassfish.grizzly.ThreadCache;
 
-import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.TimeZone;
 
-/**
- * The entry value in the file cache map.
- *
- * @author Alexey Stashok
- */
-public final class FileCacheEntry implements Runnable {
+public final class SimpleDateFormats {
+    private static final ThreadCache.CachedTypeIndex<SimpleDateFormats> CACHE_IDX =
+            ThreadCache.obtainIndex(SimpleDateFormats.class, 1);
 
-    public FileCacheKey key;
-    public String host;
-    public String requestURI;
-    public long lastModified = -1;
-    public String contentType;
-    public ByteBuffer bb;
-    public String xPoweredBy;
-    public FileCache.CacheType type;
-    public String date;
-    public String Etag;
-    public String lastModifiedHeader;
-    public long contentLength = -1;
-    public long fileSize = -1;
-    public String keepAlive;
-    
-    public volatile long timeoutMillis;
+    public static SimpleDateFormats create() {
+        final SimpleDateFormats formats =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (formats != null) {
+            return formats;
+        }
 
-    private final FileCache fileCache;
-
-    public FileCacheEntry(FileCache fileCache) {
-        this.fileCache = fileCache;
+        return new SimpleDateFormats();
     }
 
-    @Override
-    public void run() {
-        fileCache.remove(this);
+    private final SimpleDateFormat[] f;
+    public SimpleDateFormats() {
+        f = new SimpleDateFormat[3];
+        f[0] = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
+                                    Locale.US);
+        f[1] = new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz",
+                                    Locale.US);
+        f[2] = new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US);
+
+        f[0].setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        f[1].setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        f[2].setTimeZone(TimeZone.getTimeZone("GMT"));
+    }
+
+    public SimpleDateFormat[] getFormats() {
+        return f;
+    }
+
+    public void recycle() {
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }
