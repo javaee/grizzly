@@ -263,11 +263,13 @@ public class StaticHttpHandler extends HttpHandler {
             final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
             if (fileCacheFilter != null) {
                 final FileCache fileCache = fileCacheFilter.getFileCache();
-                if (res != null) {
-                    addCachingHeaders(res, resource);
+                if (fileCache.isEnabled()) {
+                    if (res != null) {
+                        addCachingHeaders(res, resource);
+                    }
+                    fileCache.add(req.getRequest(), resource);
+                    return true;
                 }
-                fileCache.add(req.getRequest(), resource);
-                return true;
             }
         }
 
