@@ -98,6 +98,7 @@ public class LazyFileCacheKey extends FileCacheKey {
         uri = null;
         isInitialized = false;
         request = null;
+        hashCode = 0;
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 

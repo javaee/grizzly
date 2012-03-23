@@ -407,6 +407,70 @@ public class FileCacheTest {
 
     }
 
+    /**
+     * Added for http://java.net/jira/browse/GRIZZLY-1234
+     */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testLazyKeyRecycle() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        // introduce a cache miss situation.  If the lazy key is recycled
+        // properly, this won't have any negative impact on the cache
+        final HttpRequestPacket requestCacheMiss = HttpRequestPacket.builder()
+                                .method("GET")
+                                .uri("/nonexist")
+                                .protocol("HTTP/1.1")
+                                .header("Host", "localhost")
+                                .build();
+        responseFuture.reset();
+        c.write(requestCacheMiss);
+        responseFuture.get(10, TimeUnit.SECONDS);
+        responseFuture.reset();
+        final String ifModifiedSinceValue = convertToDate(file.lastModified());
+        for (int i = 0; i < 1000; i++) {
+            System.out.println(i);
+            final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri(requestPath)
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost")
+                    .header("If-Modified-Since", ifModifiedSinceValue)
+                    .build();
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        }
+
+    }
+
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
