@@ -42,18 +42,11 @@ package org.glassfish.grizzly.utils;
 
 import java.net.Socket;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorResult;
-import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.utils.transport.DefaultStreamReader;
 import org.glassfish.grizzly.utils.transport.DefaultStreamWriter;
@@ -82,15 +75,15 @@ public class StandaloneProcessor implements Processor {
      */
     @Override
     public ProcessorResult process(final Context context) {
-        final IOEvent iOEvent = context.getIoEvent();
-        if (iOEvent == IOEvent.READ) {
+        final Event event = context.getEvent();
+        if (event == ServiceEvent.READ) {
             final Connection connection = context.getConnection();
             final AsyncQueueReader reader =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getReader();
 
             return reader.processAsync(context).toProcessorResult();
-        } else if (iOEvent == IOEvent.WRITE) {
+        } else if (event == ServiceEvent.WRITE) {
             final Connection connection = context.getConnection();
             final AsyncQueueWriter writer =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
@@ -99,22 +92,7 @@ public class StandaloneProcessor implements Processor {
             return writer.processAsync(context).toProcessorResult();
         }
         
-        throw new IllegalStateException("Unexpected IOEvent=" + iOEvent);
-    }
-
-    /**
-     * {@link StandaloneProcessor} is not interested in any {@link IOEvent}.
-     */
-    @Override
-    public boolean isInterested(IOEvent ioEvent) {
-        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE;
-    }
-
-    /**
-     * Method does nothing.
-     */
-    @Override
-    public void setInterested(IOEvent ioEvent, boolean isInterested) {
+        return ProcessorResult.createComplete();
     }
 
     @Override
@@ -159,11 +137,11 @@ public class StandaloneProcessor implements Processor {
     @Override
     public void write(Connection connection, Object dstAddress,
             Object message, CompletionHandler completionHandler,
-            PushBackHandler pushBackHandler) {
+            LifeCycleHandler lifeCycleHandler) {
         
         final Transport transport = connection.getTransport();
         
         transport.getWriter(connection).write(connection, dstAddress,
-                (Buffer) message, completionHandler, pushBackHandler);
+                (Buffer) message, completionHandler, lifeCycleHandler);
     }
 }

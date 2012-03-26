@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 
 /**
  * Processor implementations are responsible for processing I/O events, which
@@ -73,23 +73,5 @@ public interface Processor<E extends Context> {
     void write(Connection connection,
             Object dstAddress, Object message,
             CompletionHandler<WriteResult> completionHandler,
-            PushBackHandler pushBackHandler);
-    
-    /**
-     * Is this {@link Processor} interested in processing the i/o event
-     * 
-     * @param ioEvent
-     * @return true, if this {@link Processor} is interested and execution
-     * process will start, false otherwise.
-     */
-    boolean isInterested(IOEvent ioEvent);
-
-    /**
-     * Set the the i/o event, this {@link Processor} is interested in
-     * 
-     * @param ioEvent {@link IOEvent}
-     * @param isInterested true, if {@link Processor} is interested in
-     *                     processing of the I/O event, or false otherwise.
-     */
-    void setInterested(IOEvent ioEvent, boolean isInterested);
+            LifeCycleHandler lifeCycleHandler);
 }

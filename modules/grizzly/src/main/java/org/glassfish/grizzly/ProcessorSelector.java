@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,7 @@ package org.glassfish.grizzly;
 
 /**
  * Implementations of the interface will be responsible to find correct
- * {@link Processor}, which will process {@link IOEvent}, occurred on the
+ * {@link Processor}, which will process {@link Event}, occurred on the
  * {@link Connection}
  * 
  * @author Alexey Stashok
@@ -51,10 +51,10 @@ public interface ProcessorSelector {
     /**
      * Selects {@link Processor}, which will process connection event.
      * 
-     * @param ioEvent connection event to be processed
+     * @param event connection event to be processed
      * @param connection where event occurred
      * 
      * @return the {@link Processor}, which will process connection event.
      */
-    public Processor select(IOEvent ioEvent, Connection connection);
+    public Processor select(Event event, Connection connection);
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,10 +43,7 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
@@ -82,30 +79,34 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
     // ------------------------------------------------- Methods from IOStrategy
 
     @Override
-    public boolean executeIoEvent(final Connection connection,
-            final IOEvent ioEvent, final boolean isIoEventEnabled) throws IOException {
+    public boolean executeServiceEvent(final Connection connection,
+            final ServiceEvent serviceEvent, final boolean isServiceEventInterestEnabled) throws IOException {
 
         final NIOConnection nioConnection = (NIOConnection) connection;
-        IOEventProcessingHandler ph = null;
-        if (isReadWrite(ioEvent)) {
-            if (isIoEventEnabled) {
-                connection.disableIOEvent(ioEvent);
+        ServiceEventProcessingHandler ph = null;
+        if (isReadWrite(serviceEvent)) {
+            if (isServiceEventInterestEnabled) {
+                connection.disableServiceEventInterest(serviceEvent);
             }
             
             ph = ENABLE_INTEREST_PROCESSING_HANDLER;
         }
 
-        if (isExecuteInWorkerThread(ioEvent)) {
+        if (isExecuteInWorkerThread(serviceEvent)) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             getWorkerThreadPool(connection).execute(runner);
-            fireIOEvent(connection, ioEvent, ph, logger);
+            fireEvent(connection, serviceEvent, ph, logger);
 
             return false;
         } else {
-            fireIOEvent(connection, ioEvent, ph, logger);
+            fireEvent(connection, serviceEvent, ph, logger);
             return true;
         }
     }
 
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }    
 }

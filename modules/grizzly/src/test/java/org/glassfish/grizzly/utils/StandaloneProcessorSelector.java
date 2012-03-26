@@ -40,10 +40,7 @@
 
 package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorSelector;
+import org.glassfish.grizzly.*;
 
 /**
  * {@link org.glassfish.grizzly.ProcessorSelector}, which doesn't add any {@link org.glassfish.grizzly.Processor} to process
@@ -67,7 +64,7 @@ public class StandaloneProcessorSelector implements ProcessorSelector {
      * {@link org.glassfish.grizzly.IOEvent}.
      */
     @Override
-    public Processor select(IOEvent ioEvent, Connection connection) {
+    public Processor select(Event event, Connection connection) {
         return null;
     }
 

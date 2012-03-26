@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,10 +42,11 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.ServiceEvent;
+import org.glassfish.grizzly.ServiceEventProcessingHandler;
 import org.glassfish.grizzly.Processor;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.*;
 
 /**
  * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link Processor}s in worker thread.
@@ -77,16 +78,17 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
 
     @Override
-    public boolean executeIoEvent(final Connection connection,
-            final IOEvent ioEvent, final boolean isIoEventEnabled)
+    public boolean executeServiceEvent(final Connection connection,
+            final ServiceEvent serviceEvent,
+            final boolean isServiceEventInterestEnabled)
             throws IOException {
 
-        final boolean isReadOrWriteEvent = isReadWrite(ioEvent);
+        final boolean isReadOrWriteEvent = isReadWrite(serviceEvent);
 
-        final IOEventProcessingHandler pp;
+        final ServiceEventProcessingHandler pp;
         if (isReadOrWriteEvent) {
-            if (isIoEventEnabled) {
-                connection.disableIOEvent(ioEvent);
+            if (isServiceEventInterestEnabled) {
+                connection.disableServiceEventInterest(serviceEvent);
             }
             
             pp = ENABLE_INTEREST_PROCESSING_HANDLER;
@@ -94,45 +96,49 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
             pp = null;
         }
 
-        if (isExecuteInWorkerThread(ioEvent)) {
+        if (isExecuteInWorkerThread(serviceEvent)) {
             getWorkerThreadPool(connection).execute(
-                    new WorkerThreadRunnable(connection, ioEvent, pp));
+                    new WorkerThreadRunnable(connection, serviceEvent, pp));
         } else {
-            run0(connection, ioEvent, pp);
+            run0(connection, serviceEvent, pp);
         }
 
         return true;
     }
 
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 
     // --------------------------------------------------------- Private Methods
 
 
     private static void run0(final Connection connection,
-                             final IOEvent ioEvent,
-                             final IOEventProcessingHandler processingHandler) {
+                             final ServiceEvent event,
+                             final ServiceEventProcessingHandler processingHandler) {
 
-        fireIOEvent(connection, ioEvent, processingHandler, logger);
+        fireEvent(connection, event, processingHandler, logger);
 
     }
     
     private static final class WorkerThreadRunnable implements Runnable {
         final Connection connection;
-        final IOEvent ioEvent;
-        final IOEventProcessingHandler processingHandler;
+        final ServiceEvent serviceEvent;
+        final ServiceEventProcessingHandler processingHandler;
         
         private WorkerThreadRunnable(final Connection connection,
-                final IOEvent ioEvent,
-                final IOEventProcessingHandler processingHandler) {
+                final ServiceEvent serviceEvent,
+                final ServiceEventProcessingHandler processingHandler) {
             this.connection = connection;
-            this.ioEvent = ioEvent;
+            this.serviceEvent = serviceEvent;
             this.processingHandler = processingHandler;
             
         }
 
         @Override
         public void run() {
-            run0(connection, ioEvent, processingHandler);
+            run0(connection, serviceEvent, processingHandler);
         }        
     }
 

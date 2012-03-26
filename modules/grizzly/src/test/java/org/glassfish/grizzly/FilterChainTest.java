@@ -392,7 +392,7 @@ public class FilterChainTest extends TestCase {
         }
 
         @Override
-        public NextAction handleEvent(final FilterChainContext ctx, final FilterChainEvent event) throws IOException {
+        public NextAction handleEvent(final FilterChainContext ctx, final Event event) throws IOException {
             if (event.type() == TransportFilter.FlushEvent.TYPE) {
                 final Connection c = ctx.getConnection();
                 final Buffer buffer = bufferAttr.remove(c);
@@ -401,8 +401,7 @@ public class FilterChainTest extends TestCase {
 
                     @Override
                     public void completed(WriteResult result) {
-                        ctx.setFilterIdx(ctx.getFilterIdx() - 1);
-                        ctx.resume();
+                        ctx.resumeNext();
                     }
 
                     @Override
@@ -537,7 +536,7 @@ public class FilterChainTest extends TestCase {
         }
         
         @Override
-        public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event)
+        public NextAction handleEvent(FilterChainContext ctx, Event event)
                 throws IOException {
             final Connection c = ctx.getConnection();
             AtomicInteger ai = counterAttr.get(c);

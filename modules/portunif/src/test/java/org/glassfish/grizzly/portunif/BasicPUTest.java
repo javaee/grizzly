@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.nio.charset.Charset;
 
 import org.glassfish.grizzly.filterchain.FilterChain;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -54,12 +55,15 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
+import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -273,12 +277,89 @@ public class BasicPUTest {
 
     }
 
+    @Test
+    public void notifyUpstream() throws Exception {
+        final String[] protocols = {"X", "Y", "Z"};
+        final CountDownLatch[] counters = {new CountDownLatch(1),
+            new CountDownLatch(1), new CountDownLatch(1)};
+        final FutureImpl[] serverConnectionFutures = {Futures.<Connection>createSafeFuture(),
+            Futures.<Connection>createSafeFuture(), Futures.<Connection>createSafeFuture()};
+        
+        Connection connection = null;
+
+        final PUFilter puFilter = new PUFilter();
+        for (int i = 0; i < protocols.length; i++) {
+            final String protocol = protocols[i];
+            puFilter.register(createProtocol(puFilter, protocol,
+                    new EventCounterFilter(counters[i], CustomEvent.TYPE, serverConnectionFutures[i])));
+        }
+
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(puFilter);
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(puFilterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            for (int i = 0; i < protocols.length; i++) {
+                
+                final String protocol = protocols[i];
+                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
+                
+                final FilterChain clientFilterChain =
+                        FilterChainBuilder.stateless()
+                        .add(new TransportFilter())
+                        .add(new StringFilter(CHARSET))
+                        .add(new ClientResultFilter(protocol, resultFuture))
+                        .build();
+
+                final SocketConnectorHandler connectorHandler =
+                        TCPNIOConnectorHandler.builder(transport)
+                        .processor(clientFilterChain)
+                        .build();
+
+                Future<Connection> future = connectorHandler.connect("localhost", PORT);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
+
+                connection.write(protocol);
+
+                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+                
+                final Connection serverSideConnection =
+                        (Connection) serverConnectionFutures[i].get(10, TimeUnit.SECONDS);
+                
+                transport.fireEvent(new CustomEvent(), serverSideConnection);
+                assertTrue("Event haven't come", counters[i].await(10, TimeUnit.SECONDS));
+            }
+
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
 
     // --------------------------------------------------------- Private Methods
 
 
-    private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
-        final FilterChain chain = puFilter.getPUFilterChainBuilder()
+    private PUProtocol createProtocol(final PUFilter puFilter, final String name,
+            Filter... additionalFilters) {
+        final FilterChainBuilder puFilterChainBuilder = 
+                puFilter.getPUFilterChainBuilder();
+        
+        for (Filter additionalFilter : additionalFilters) {
+            puFilterChainBuilder.add(additionalFilter);
+        }
+        
+        final FilterChain chain = puFilterChainBuilder
                 .add(new SimpleResponseFilter(name))
                 .build();
         
@@ -363,6 +444,46 @@ public class BasicPUTest {
 
         int invocationCount = 0;
 
+    }
+    
+    private static final class CustomEvent implements Event {
+        private static final Object TYPE = new Object();
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+        
+    }
+    
+    private static final class EventCounterFilter extends BaseFilter {
+
+        private final CountDownLatch counter;
+        private final Object eventType;
+        private final FutureImpl<Connection> serverSideConnectionFuture;
+        
+        private EventCounterFilter(CountDownLatch countDownLatch,
+                Object eventType, FutureImpl<Connection> serverSideConnectionFuture) {
+            this.counter = countDownLatch;
+            this.eventType = eventType;
+            this.serverSideConnectionFuture = serverSideConnectionFuture;
+        }
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            serverSideConnectionFuture.result(ctx.getConnection());
+            return ctx.getInvokeAction();
+        }
+
+        @Override
+        public NextAction handleEvent(FilterChainContext ctx, Event event)
+                throws IOException {
+            
+            if (eventType.equals(event.type())) {
+                counter.countDown();
+            }
+            
+            return ctx.getInvokeAction();
+        }
     }
 
 }

@@ -105,14 +105,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
         final Selector selector = selectorRunner.getSelector();
         final boolean hasSelectedKeys;
         final boolean hasPostponedTasks =
-                selectorRunner.getPostponedTasks().isEmpty();
-        
-        if (hasPostponedTasks) {
+                !selectorRunner.getPostponedTasks().isEmpty();
+      
+        final long t1 = System.currentTimeMillis();
+        if (!hasPostponedTasks) {
             hasSelectedKeys = selector.select(selectTimeout) > 0;
         } else {
             hasSelectedKeys = selector.selectNow() > 0;
         }
-
+        
         if (IS_WORKAROUND_SELECTOR_SPIN) {
             selectorRunner.checkSelectorSpin(
                     hasSelectedKeys || hasPostponedTasks,

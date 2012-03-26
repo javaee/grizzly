@@ -50,7 +50,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
@@ -115,7 +115,7 @@ public class UDPNIOConnection extends NIOConnection {
 
     @Override
     protected void preClose() {
-        transport.fireIOEvent(IOEvent.CLOSED, this, null);
+        transport.fireEvent(ServiceEvent.CLOSED, this, null);
     }
 
     /**

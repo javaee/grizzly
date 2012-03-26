@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,10 +41,7 @@
 package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
@@ -74,11 +71,11 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 public class TransportFilter extends BaseFilter {
 
     @SuppressWarnings("UnusedDeclaration")
-    public static FilterChainEvent createFlushEvent() {
+    Event createFlushEvent() {
         return FLUSH_EVENT;
     }
 
-    public static FilterChainEvent createFlushEvent(
+    public static Event createFlushEvent(
             final CompletionHandler completionHandler) {
         if (completionHandler == null) {
             return FLUSH_EVENT;
@@ -87,7 +84,7 @@ public class TransportFilter extends BaseFilter {
         return new FlushEvent(completionHandler);
     }
 
-    public static final class FlushEvent implements FilterChainEvent {
+    public static final class FlushEvent implements Event {
         public static final Object TYPE = FlushEvent.class;
 
         final CompletionHandler completionHandler;
@@ -137,7 +134,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleAccept(ctx);
         }
 
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**
@@ -155,7 +152,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleConnect(ctx);
         }
 
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**
@@ -173,7 +170,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleRead(ctx);
         }
         
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**
@@ -191,7 +188,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleWrite(ctx);
         }
 
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**
@@ -200,7 +197,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
         
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -209,7 +206,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleEvent(ctx, event);
         }
 
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**
@@ -227,7 +224,7 @@ public class TransportFilter extends BaseFilter {
             return transportFilter0.handleClose(ctx);
         }
 
-        return null;
+        throw new IllegalStateException("Underlying transport Filter is not found");
     }
 
     /**

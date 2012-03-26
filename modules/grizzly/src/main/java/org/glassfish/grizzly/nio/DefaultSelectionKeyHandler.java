@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 package org.glassfish.grizzly.nio;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Arrays;
@@ -57,34 +57,34 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
 
 // Comment the mapping array and use if instead (appear to be faster)
 //
-//    private static final int[] ioEvent2SelectionKeyInterest = {
+//    private static final int[] serviceEvent2SelectionKeyInterest = {
 //        0, SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, 0,
 //        SelectionKey.OP_READ, SelectionKey.OP_WRITE, 0};
 
-    private final static IOEvent[][] ioEventMap;
+    private final static ServiceEvent[][] serviceEventMap;
 
     static {
-        ioEventMap = new IOEvent[32][];
-        for (int i = 0; i < ioEventMap.length; i++) {
+        serviceEventMap = new ServiceEvent[32][];
+        for (int i = 0; i < serviceEventMap.length; i++) {
             int idx = 0;
-            IOEvent[] tmpArray = new IOEvent[4];
+            ServiceEvent[] tmpArray = new ServiceEvent[4];
             if ((i & SelectionKey.OP_READ) != 0) {
-                tmpArray[idx++] = IOEvent.READ;
+                tmpArray[idx++] = ServiceEvent.READ;
             }
 
             if ((i & SelectionKey.OP_WRITE) != 0) {
-                tmpArray[idx++] = IOEvent.WRITE;
+                tmpArray[idx++] = ServiceEvent.WRITE;
             }
 
             if ((i & SelectionKey.OP_CONNECT) != 0) {
-                tmpArray[idx++] = IOEvent.CLIENT_CONNECTED;
+                tmpArray[idx++] = ServiceEvent.CLIENT_CONNECTED;
             }
 
             if ((i & SelectionKey.OP_ACCEPT) != 0) {
-                tmpArray[idx++] = IOEvent.SERVER_ACCEPT;
+                tmpArray[idx++] = ServiceEvent.SERVER_ACCEPT;
             }
 
-            ioEventMap[i] = Arrays.copyOf(tmpArray, idx);
+            serviceEventMap[i] = Arrays.copyOf(tmpArray, idx);
         }
     }
 
@@ -109,8 +109,8 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     }
 
     @Override
-    public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
-        switch (ioEvent) {
+    public int serviceEvent2SelectionKeyInterest(ServiceEvent serviceEvent) {
+        switch (serviceEvent) {
             case READ: return SelectionKey.OP_READ;
             case WRITE: return SelectionKey.OP_WRITE;
             case SERVER_ACCEPT: return SelectionKey.OP_ACCEPT;
@@ -120,23 +120,23 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     }
 
     @Override
-    public IOEvent[] getIOEvents(int interest) {
-        return ioEventMap[interest];
+    public ServiceEvent[] getServiceEvents(int interest) {
+        return serviceEventMap[interest];
     }
 
     @Override
-    public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
+    public ServiceEvent selectionKeyInterest2ServiceEvent(int selectionKeyInterest) {
         if ((selectionKeyInterest & SelectionKey.OP_READ) != 0) {
-            return IOEvent.READ;
+            return ServiceEvent.READ;
         } else if ((selectionKeyInterest & SelectionKey.OP_WRITE) != 0) {
-            return IOEvent.WRITE;
+            return ServiceEvent.WRITE;
         } else if ((selectionKeyInterest & SelectionKey.OP_ACCEPT) != 0) {
-            return IOEvent.SERVER_ACCEPT;
+            return ServiceEvent.SERVER_ACCEPT;
         } else if ((selectionKeyInterest & SelectionKey.OP_CONNECT) != 0) {
-            return IOEvent.CLIENT_CONNECTED;
+            return ServiceEvent.CLIENT_CONNECTED;
         }
 
-        return IOEvent.NONE;
+        return ServiceEvent.NONE;
     }
 
     @Override

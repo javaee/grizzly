@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,11 +63,11 @@ public class DefaultProcessorSelector implements ProcessorSelector {
      * {@inheritDoc}
      */
     @Override
-    public Processor select(IOEvent ioEvent, Connection connection) {
+    public Processor select(Event event, Connection connection) {
 
         Processor eventProcessor = connection.getProcessor();
 
-        if (eventProcessor != null && eventProcessor.isInterested(ioEvent)) {
+        if (eventProcessor != null) {
             return eventProcessor;
         }
 
@@ -75,7 +75,7 @@ public class DefaultProcessorSelector implements ProcessorSelector {
                 connection.getProcessorSelector();
 
         if (processorSelector != null) {
-            return processorSelector.select(ioEvent, connection);
+            return processorSelector.select(event, connection);
         }
 
         return null;

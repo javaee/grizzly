@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,9 +47,8 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -58,7 +57,8 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.CopyListener;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.ServiceEventProcessingHandler;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -239,8 +239,7 @@ public class PUFilter extends BaseFilter {
         final FilterChainContext filterChainContext =
                 filterChain.obtainFilterChainContext(connection);
         final Context context = filterChainContext.getInternalContext();
-        context.setIoEvent(IOEvent.READ);
-        context.setProcessingHandler(new InternalProcessingHandler(ctx));
+        context.setEvent(ServiceEvent.READ, new InternalProcessingHandler(ctx));
         filterChainContext.setAddress(ctx.getAddress());
         filterChainContext.setMessage(ctx.getMessage());
         return filterChainContext;
@@ -248,7 +247,7 @@ public class PUFilter extends BaseFilter {
 
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
 
         // if upstream event - pass it to the puFilter
         if (isUpstream(ctx)) {
@@ -260,10 +259,9 @@ public class PUFilter extends BaseFilter {
                 terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
                 final FilterChain filterChain = protocol.getFilterChain();
-                final FilterChainContext context = filterChain.obtainFilterChainContext(connection);
-                context.setStartIdx(-1);
-                context.setFilterIdx(-1);
-                context.setEndIdx(filterChain.size());
+                final FilterChainContext context =
+                        filterChain.obtainFilterChainContext(connection,
+                        -1, filterChain.size(), -1);
 
                 suspendedContextAttribute.set(context, ctx);
                 ctx.suspend();
@@ -316,7 +314,7 @@ public class PUFilter extends BaseFilter {
     }
 
 
-    private class InternalProcessingHandler extends EmptyIOEventProcessingHandler {
+    private class InternalProcessingHandler extends ServiceEventProcessingHandler.Adapter {
         private final FilterChainContext parentContext;
         
         private InternalProcessingHandler(final FilterChainContext parentContext) {

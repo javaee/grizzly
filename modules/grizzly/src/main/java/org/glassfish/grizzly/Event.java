@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,86 +37,20 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
-import java.io.IOException;
-
 /**
- * Empty {@link IOEventProcessingHandler} implementation.
+ * Abstraction represents any type of Event occurred on a Connection.
  * 
  * @author Alexey Stashok
  */
-public class EmptyIOEventProcessingHandler implements IOEventProcessingHandler {
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onContextSuspend(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onContextResume(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onContextManualIOEventControl(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onReregister(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onComplete(Context context, Object data) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onLeave(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onTerminate(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onRerun(Context context, Context newContext) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onError(Context context, Object description) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onNotRun(Context context) throws IOException {
-    }
-
+public interface Event {
+    public static final Event NULL = new Event() {
+        @Override
+        public Object type() {
+            return null;
+        }
+    };
+    
+    public Object type();
 }

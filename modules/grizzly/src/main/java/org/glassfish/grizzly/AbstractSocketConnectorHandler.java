@@ -100,10 +100,10 @@ public abstract class AbstractSocketConnectorHandler
             CompletionHandler<Connection> completionHandler);
 
     /**
-     * Get the default {@link Processor} to process {@link IOEvent}, occurring
+     * Get the default {@link Processor} to process {@link Event}, occurring
      * on connection phase.
      *
-     * @return the default {@link Processor} to process {@link IOEvent},
+     * @return the default {@link Processor} to process {@link Event},
      * occurring on connection phase.
      */
     public Processor getProcessor() {
@@ -111,11 +111,11 @@ public abstract class AbstractSocketConnectorHandler
     }
 
     /**
-     * Set the default {@link Processor} to process {@link IOEvent}, occurring
+     * Set the default {@link Processor} to process {@link Event}, occurring
      * on connection phase.
      *
      * @param processor the default {@link Processor} to process
-     * {@link IOEvent}, occurring on connection phase.
+     * {@link Event}, occurring on connection phase.
      */
     public void setProcessor(Processor processor) {
         this.processor = processor;

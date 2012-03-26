@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,7 +46,7 @@ import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -76,6 +76,6 @@ public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     protected final void onReadyToWrite(final NIOConnection connection) throws IOException {
-        connection.enableIOEvent(IOEvent.WRITE);
+        connection.enableServiceEventInterest(ServiceEvent.WRITE);
     }
 }

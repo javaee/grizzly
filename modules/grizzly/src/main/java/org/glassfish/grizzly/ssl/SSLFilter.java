@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -148,7 +148,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
 
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
+    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
         if (event.type() == CertificateEvent.TYPE) {
             final CertificateEvent ce = (CertificateEvent) event;
             ce.certs = getPeerCertificateChain(getSSLEngine(ctx.getConnection()),
@@ -589,7 +589,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         
         ctx.write(address, message,
                 transportContext.getCompletionHandler(),
-                transportContext.getPushBackHandler(),
+                transportContext.getLifeCycleHandler(),
                 transportContext.getMessageCloner(),
                 transportContext.isBlocking());
 

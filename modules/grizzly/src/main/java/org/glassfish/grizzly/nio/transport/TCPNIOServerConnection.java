@@ -121,7 +121,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                         0);
             } else {
                 acceptListener = future;
-                enableIOEvent(IOEvent.SERVER_ACCEPT);
+                enableServiceEventInterest(ServiceEvent.SERVER_ACCEPT);
             }
 
             return future;
@@ -261,7 +261,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                     listener.result(connection);
                 }
 
-                transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
+                transport.fireEvent(ServiceEvent.ACCEPTED, connection, null);
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);

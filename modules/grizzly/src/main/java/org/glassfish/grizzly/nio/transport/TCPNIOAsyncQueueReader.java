@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,6 +91,6 @@ public final class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     @Override
     protected final void onReadyToRead(Connection connection) throws IOException {
         final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.READ);
+        nioConnection.enableServiceEventInterest(ServiceEvent.READ);
     }
 }

@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -180,7 +179,7 @@ public class NIOOutputSinksTest extends TestCase {
                             ioe.printStackTrace();
                         }
 
-                        assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
+                        assertTrue(MAX_LENGTH > tqueue.size());
 
                         try {
                             clientTransport.resume();
@@ -350,7 +349,7 @@ public class NIOOutputSinksTest extends TestCase {
                         } catch (IOException ioe) {
                             ioe.printStackTrace();
                         }
-                        assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
+                        assertTrue(MAX_LENGTH > tqueue.size());
                         try {
                             clientTransport.resume();
                         } catch (IOException ioe) {
@@ -412,15 +411,35 @@ public class NIOOutputSinksTest extends TestCase {
 
 
     public void testWriteExceptionPropagation() throws Exception {
-
+        final int LENGTH = 1024;
+        
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("Grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
-        final int LENGTH = 256000;
-        final int MAX_LENGTH = LENGTH * 2;
-        listener.setMaxPendingBytes(MAX_LENGTH);
+        listener.registerAddOn(new AddOn() {
+
+            @Override
+            public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                final int idx = builder.indexOfType(TransportFilter.class);
+                builder.add(idx + 1, new BaseFilter() {
+                    final AtomicInteger counter = new AtomicInteger();
+                    @Override
+                    public NextAction handleWrite(FilterChainContext ctx)
+                            throws IOException {
+                        final Buffer buffer = ctx.getMessage();
+                        if (counter.addAndGet(buffer.remaining()) > LENGTH * 8) {
+                            throw new CustomException();
+                        }
+                        
+                        return ctx.getInvokeAction();
+                    }
+                });
+            }
+            
+        });
+        
         server.addListener(listener);
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -469,10 +488,11 @@ public class NIOOutputSinksTest extends TestCase {
                     try {
                         out.write(c);
                         out.flush();
-                    } catch (PendingWriteQueueLimitExceededException p) {
+                    } catch (CustomException e) {
                         parseResult.result(Boolean.TRUE);
                         break;
                     } catch (Exception e) {
+                        System.out.println("NOT CUSTOM");
                         parseResult.failure(e);
                         break;
                     }
@@ -928,5 +948,9 @@ public class NIOOutputSinksTest extends TestCase {
                 }
             }
         }
+    }
+    
+    private static final class CustomException extends IOException {
+        private static final long serialVersionUID = 1L;
     }
 }

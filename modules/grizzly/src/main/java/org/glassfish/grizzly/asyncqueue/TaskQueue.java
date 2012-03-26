@@ -45,7 +45,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -63,20 +63,13 @@ public final class TaskQueue<E> {
     private final AtomicReference<E> currentElement;
     private final AtomicInteger spaceInBytes = new AtomicInteger();
     
-    // refused/(pushed back) bytes counter
-    private final AtomicInteger refusedBytes = new AtomicInteger();
-    
-    private final MutableMaxQueueSize maxQueueSizeHolder;
-    
-    private final AtomicInteger writeHandlersCounter = new AtomicInteger();
-    protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
-            new ConcurrentLinkedQueue<WriteHandlerQueueRecord>();
-    
+   private final AtomicInteger handlersCounter = new AtomicInteger();
+   protected final Queue<HandlerRecord> handlersQueue =
+            new ConcurrentLinkedQueue<HandlerRecord>();    
     // ------------------------------------------------------------ Constructors
 
 
-    protected TaskQueue(final MutableMaxQueueSize maxQueueSizeHolder) {
-        this.maxQueueSizeHolder = maxQueueSizeHolder;
+    protected TaskQueue() {
         currentElement = new AtomicReference<E>();
         queue = new ConcurrentLinkedQueue<E>();
     }
@@ -84,9 +77,8 @@ public final class TaskQueue<E> {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createTaskQueue(
-            final MutableMaxQueueSize maxQueueSizeHolder) {
-        return new TaskQueue<E>(maxQueueSizeHolder);
+    public static <E> TaskQueue<E> createTaskQueue() {
+        return new TaskQueue<E>();
     }
 
     /**
@@ -108,31 +100,12 @@ public final class TaskQueue<E> {
     }
 
     /**
-     * Releases memory space in the queue and notifies registered
-     * {@link QueueMonitor}s about the update.
-     *
-     * @return the new memory (in bytes) consumed by the queue.
-     */
-    public int releaseSpaceAndNotify(final int amount) {
-        final int space = releaseSpace(amount);
-        doNotify();
-        return space;
-    }
-    
-    /**
      * Returns the number of queued bytes.
      * 
      * @return the number of queued bytes.
      */
-    public int spaceInBytes() {
+    public int size() {
         return spaceInBytes.get();
-    }
-
-    /**
-     * Get refused bytes counter.
-     */
-    public AtomicInteger getRefusedBytes() {
-        return refusedBytes;
     }
 
     /**
@@ -141,7 +114,7 @@ public final class TaskQueue<E> {
      * 
      * @return the current processing task
      */
-    public E obtainCurrentElement() {
+    public E peek() {
         final E current = currentElement.get();
         return current != null ? current : queue.poll();
     }
@@ -151,7 +124,7 @@ public final class TaskQueue<E> {
      * 
      * @return the current processing task
      */
-    public E obtainCurrentElementAndReserve() {
+    public E poll() {
         E current = currentElement.getAndSet(null);
         return current != null ? current : queue.poll();
     }
@@ -164,83 +137,69 @@ public final class TaskQueue<E> {
         return queue;
     }
 
-    public void notifyWritePossible(final WriteHandler writeHandler,
-            final int size) {
+    public void notifyWhenLE(final int size,
+            final CompletionHandler<Integer> completionHandler) {
         
-        if (writeHandler == null) {
+        if (completionHandler == null) {
             return;
+        }
+        
+        if (size < 0) {
+            throw new IllegalArgumentException("size argument can't be less than 0");
         }
         
         if (isClosed) {
-            writeHandler.onError(new IOException("Connection is closed"));
+            completionHandler.failed(new IOException("Connection is closed"));
             return;
         }
         
-        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
+        int currentQueueSize = size();
         
-        int reservedBytes;
-        
-        if (maxSize < 0 || (reservedBytes = spaceInBytes()) == 0 ||
-                (maxSize - reservedBytes >= size)) {
+        if (currentQueueSize <= size) {
             try {
-                writeHandler.onWritePossible();
-            } catch (Exception e) {
-                writeHandler.onError(e);
+                completionHandler.completed(currentQueueSize);
+            } catch (Exception ignored) {
             }
             
             return;
         }
         
-        final WriteHandlerQueueRecord record =
-                new WriteHandlerQueueRecord(writeHandler, size);
-        offerWriteHandler(record);
+        final HandlerRecord record =
+                new HandlerRecord(completionHandler, size);
+        offerHandler(record);
         
-        reservedBytes = spaceInBytes();
+        currentQueueSize = size();
         
-        if (reservedBytes == 0 && removeWriteHandler(record)) {
+        if (currentQueueSize <= size && removeHandler(record)) {
             try {
-                writeHandler.onWritePossible();
+                completionHandler.completed(currentQueueSize);
             } catch (Exception e) {
-                writeHandler.onError(e);
+                completionHandler.failed(e);
             }
         } else {
-            checkWriteHandlerOnClose(record);
-        }
-    }
-
-    public final boolean forgetWritePossible(final WriteHandler writeHandler) {
-        return removeWriteHandler(new WriteHandlerQueueRecord(writeHandler, 0));
-    }
-    
-    private void checkWriteHandlerOnClose(final WriteHandlerQueueRecord record) {
-        if (isClosed && removeWriteHandler(record)) {
-            record.writeHandler.onError(new IOException("Connection is closed"));
+            checkHandlerOnClose(record);
         }
     }
     // ------------------------------------------------------- Protected Methods
 
 
-    public void doNotify() {
-        if (maxQueueSizeHolder == null ||
-                writeHandlersCounter.get() == 0) {
+    public void onSizeDecreased(final int maxQueueSize) {
+        if (maxQueueSize < 0 ||
+                handlersCounter.get() == 0) {
             return;
         }
         
-        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
-        
-        WriteHandlerQueueRecord record;
-        while((record = pollWriteHandler()) != null) {
-            final int reservedBytes = spaceInBytes();
-            if ((reservedBytes == 0 || (maxSize - reservedBytes >= record.size))) {
-                try {
-                    record.writeHandler.onWritePossible();
-                } catch (Exception e) {
-                    record.writeHandler.onError(e);
-                }
-            } else {
-                offerWriteHandler(record);
-                checkWriteHandlerOnClose(record);
+        int size;
+        while((size = size()) <= maxQueueSize) {
+            HandlerRecord record = pollHandler();
+            if (record == null) {
                 return;
+            }
+            
+            try {
+                record.completionHandler.completed(size);
+            } catch (Exception e) {
+                record.completionHandler.failed(e);
             }
         }
     }
@@ -284,86 +243,63 @@ public final class TaskQueue<E> {
                 error = new IOException("Connection closed");
             }
             
-            AsyncWriteQueueRecord record;
-            while ((record = (AsyncWriteQueueRecord) obtainCurrentElementAndReserve()) != null) {
+            AsyncQueueRecord record;
+            while ((record = (AsyncQueueRecord) poll()) != null) {
                 record.notifyFailure(error);
             }
         }
         
-        WriteHandlerQueueRecord record;
-        while ((record = pollWriteHandler()) != null) {
+        HandlerRecord record;
+        while ((record = pollHandler()) != null) {
             if (error == null) {
                 error = new IOException("Connection closed");
             }
-            record.writeHandler.onError(error);
+            record.completionHandler.failed(error);
         }
         
     }
-    
-    private void offerWriteHandler(final WriteHandlerQueueRecord record) {
-        writeHandlersCounter.incrementAndGet();
-        writeHandlersQueue.offer(record);
+   
+
+    private void offerHandler(final HandlerRecord record) {
+        handlersCounter.incrementAndGet();
+        handlersQueue.offer(record);
     }
-    
-    private boolean removeWriteHandler(final WriteHandlerQueueRecord record) {
-        if (writeHandlersQueue.remove(record)) {
-            writeHandlersCounter.decrementAndGet();
+
+    private boolean removeHandler(final HandlerRecord record) {
+        if (handlersQueue.remove(record)) {
+            handlersCounter.decrementAndGet();
             return true;
         }
         
         return false;
     }
 
-    private WriteHandlerQueueRecord pollWriteHandler() {
-        final WriteHandlerQueueRecord record = writeHandlersQueue.poll();
+    private HandlerRecord pollHandler() {
+        final HandlerRecord record = handlersQueue.poll();
         if (record != null) {
-            writeHandlersCounter.decrementAndGet();
+            handlersCounter.decrementAndGet();
             return record;
         }
         
         return null;
     }
     
+    private void checkHandlerOnClose(final HandlerRecord record) {
+        if (isClosed && removeHandler(record)) {
+            record.completionHandler.failed(new IOException("Connection is closed"));
+        }
+    }    
+    
     //----------------------------------------------------------- Nested Classes
     
-    private static final class WriteHandlerQueueRecord {
+    private static final class HandlerRecord {
         private final int size;
-        private final WriteHandler writeHandler;
+        private final CompletionHandler<Integer> completionHandler;
 
-        public WriteHandlerQueueRecord(final WriteHandler writeHandler,
+        public HandlerRecord(final CompletionHandler<Integer> completionHandler,
                 final int size) {
-            this.writeHandler = writeHandler;
+            this.completionHandler = completionHandler;
             this.size = size;
         }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final WriteHandlerQueueRecord other = (WriteHandlerQueueRecord) obj;
-            if (this.writeHandler != other.writeHandler &&
-                    (this.writeHandler == null || !this.writeHandler.equals(other.writeHandler))) {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 31 * hash + 
-                    (this.writeHandler != null ?
-                    this.writeHandler.hashCode() :
-                    0);
-            return hash;
-        }
-    }
-    
-    public interface MutableMaxQueueSize {
-        public int getMaxQueueSize();
     }
 }

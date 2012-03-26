@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -69,8 +69,7 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     public static Context create(final Connection connection,
-            final Processor processor, final IOEvent ioEvent,
-            final IOEventProcessingHandler processingHandler) {
+            final Processor processor, final Event event) {
         final Context context;
 
         if (processor != null) {
@@ -79,9 +78,17 @@ public class Context implements AttributeStorage, Cacheable {
             context = NULL_PROCESSOR.obtainContext(connection);
         }
 
-        context.setIoEvent(ioEvent);
-        context.setProcessingHandler(processingHandler);
+        context.setEvent(event);
 
+        return context;
+    }
+
+    public static Context create(final Connection connection,
+            final Processor processor, final ServiceEvent event,
+            final ServiceEventProcessingHandler processingHandler) {
+        
+        final Context context = create(connection, processor, event);
+        context.setProcessingHandler(processingHandler);
         return context;
     }
     /**
@@ -89,9 +96,9 @@ public class Context implements AttributeStorage, Cacheable {
      */
     private Connection connection;
     /**
-     * Processing IOEvent
+     * Processing Event
      */
-    protected IOEvent ioEvent = IOEvent.NONE;
+    protected Event event = Event.NULL;
     /**
      * Processor, responsible for I/O event processing
      */
@@ -101,17 +108,17 @@ public class Context implements AttributeStorage, Cacheable {
      */
     private final AttributeHolder attributes;
     /**
-     * IOEventProcessingHandler is called to notify about IOEvent processing
+     * ServiceEventProcessingHandler is called to notify about ServiceEvent processing
      * life-cycle events like suspend, resume, complete.
      */
-    protected IOEventProcessingHandler processingHandler;
+    protected ServiceEventProcessingHandler serviceEventProcessingHandler;
     /**
-     * <tt>true</tt> if this IOEvent processing was suspended during its processing,
+     * <tt>true</tt> if this ServiceEvent processing was suspended during its processing,
      * or <tt>false</tt> otherwise.
      */
     protected boolean wasSuspended;
 
-    protected boolean isManualIOEventControl;
+    protected boolean isManualServiceEventControl;
 
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
@@ -122,7 +129,7 @@ public class Context implements AttributeStorage, Cacheable {
      */
     public void suspend() {
         wasSuspended = true;
-        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
                 processingHandlerLocal.onContextSuspend(this);
@@ -136,7 +143,7 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be resumed in the current thread.
      */
     public void resume() {
-        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
                 processingHandlerLocal.onContextResume(this);
@@ -147,7 +154,7 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * @return  <tt>true</tt> if this IOEvent processing was suspended during
+     * @return  <tt>true</tt> if this ServiceEvent processing was suspended during
      * its processing, or <tt>false</tt> otherwise.
      */
     public boolean wasSuspended() {
@@ -155,17 +162,17 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * Switches processing to the manual IOEvent control.
-     * {@link Connection#enableIOEvent(org.glassfish.grizzly.IOEvent)} or
-     * {@link Connection#disableIOEvent(org.glassfish.grizzly.IOEvent)} might be
+     * Switches processing to the manual ServiceEvent control.
+     * {@link Connection#enableServiceEvent(org.glassfish.grizzly.ServiceEvent)} or
+     * {@link Connection#disableServiceEvent(org.glassfish.grizzly.ServiceEvent)} might be
      * explicitly called.
      */
-    public void setManualIOEventControl() {
-        isManualIOEventControl = true;
-        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+    public void setManualServiceEventControl() {
+        isManualServiceEventControl = true;
+        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
-                processingHandlerLocal.onContextManualIOEventControl(this);
+                processingHandlerLocal.onContextManualServiceEventControl(this);
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -173,28 +180,40 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * @return <tt>true</tt>, if processing was switched to the manual IOEvent
+     * @return <tt>true</tt>, if processing was switched to the manual ServiceEvent
      * control, or <tt>false</tt> otherwise.
      */
-    public boolean isManualIOEventControl() {
-        return isManualIOEventControl;
+    public boolean isManualServiceEventControl() {
+        return isManualServiceEventControl;
     }
     /**
-     * Get the processing {@link IOEvent}.
+     * Get the processing {@link Event}.
      *
-     * @return the processing {@link IOEvent}.
+     * @return the processing {@link Event}.
      */
-    public IOEvent getIoEvent() {
-        return ioEvent;
+    public Event getEvent() {
+        return event;
     }
 
     /**
-     * Set the processing {@link IOEvent}.
+     * Set the processing {@link Event}.
      *
-     * @param ioEvent the processing {@link IOEvent}.
+     * @param event the processing {@link Event}.
      */
-    public void setIoEvent(IOEvent ioEvent) {
-        this.ioEvent = ioEvent;
+    public void setEvent(Event event) {
+        this.event = event;
+        this.serviceEventProcessingHandler = null;
+    }
+
+    /**
+     * Set the processing {@link ServiceEvent}.
+     *
+     * @param event the processing {@link ServiceEvent}.
+     */
+    public void setEvent(final ServiceEvent event,
+            final ServiceEventProcessingHandler handler) {
+        this.event = event;
+        this.serviceEventProcessingHandler = handler;
     }
 
     /**
@@ -211,16 +230,16 @@ public class Context implements AttributeStorage, Cacheable {
      *
      * @param connection the processing {@link Connection}.
      */
-    public void setConnection(Connection connection) {
+    protected void setConnection(Connection connection) {
         this.connection = connection;
     }
 
     /**
      * Get the {@link Processor}, which is responsible to process
-     * the {@link IOEvent}.
+     * the {@link Event}.
      * 
      * @return the {@link Processor}, which is responsible to process
-     * the {@link IOEvent}.
+     * the {@link Event}.
      */
     public Processor getProcessor() {
         return processor;
@@ -228,21 +247,21 @@ public class Context implements AttributeStorage, Cacheable {
 
     /**
      * Set the {@link Processor}, which is responsible to process
-     * the {@link IOEvent}.
+     * the {@link Event}.
      *
      * @param processor the {@link Processor}, which is responsible to process
-     * the {@link IOEvent}.
+     * the {@link Event}.
      */
     public void setProcessor(final Processor processor) {
         this.processor = processor;
     }
 
-    public IOEventProcessingHandler getProcessingHandler() {
-        return processingHandler;
+    protected ServiceEventProcessingHandler getProcessingHandler() {
+        return serviceEventProcessingHandler;
     }
 
-    public void setProcessingHandler(final IOEventProcessingHandler processingHandler) {
-        this.processingHandler = processingHandler;
+    protected void setProcessingHandler(final ServiceEventProcessingHandler processingHandler) {
+        this.serviceEventProcessingHandler = processingHandler;
     }
 
     /**
@@ -268,11 +287,11 @@ public class Context implements AttributeStorage, Cacheable {
         attributes.recycle();
 
         processor = null;
-        processingHandler = null;
+        serviceEventProcessingHandler = null;
         connection = null;
-        ioEvent = IOEvent.NONE;
+        event = Event.NULL;
         wasSuspended = false;
-        isManualIOEventControl = false;
+        isManualServiceEventControl = false;
     }
 
     /**
@@ -308,17 +327,8 @@ public class Context implements AttributeStorage, Cacheable {
         @Override
         public void write(Connection connection, Object dstAddress,
                 Object message, CompletionHandler completionHandler,
-                PushBackHandler pushBackHandler) {
+                LifeCycleHandler lifeCycleHandler) {
             throw new UnsupportedOperationException("Not supported.");
-        }
-
-        @Override
-        public boolean isInterested(IOEvent ioEvent) {
-            return true;
-        }
-
-        @Override
-        public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }
 }

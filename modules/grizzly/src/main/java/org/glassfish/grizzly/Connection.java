@@ -93,22 +93,22 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * I/O event.
      * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
      * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
-     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * {@link ProcessorSelector#select(Event, Connection)}. If
+     * {@link ProcessorSelector}, associated with the {@link Connection} is also
      * <tt>null</tt> - will ask {@link Transport} for a {@link Processor}.
      *
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events.
      */
-    Processor obtainProcessor(IOEvent ioEvent);
+    Processor obtainProcessor(Event event);
     
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
      * I/O events.
      * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
      * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
-     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * {@link ProcessorSelector#select(Event, Connection)}. If
+     * {@link ProcessorSelector}, associated with the {@link Connection} is also
      * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
      * using own settings.
      *
@@ -122,8 +122,8 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * I/O events.
      * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
      * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
-     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * {@link ProcessorSelector#select(Event, Connection)}. If
+     * {@link ProcessorSelector}, associated with the {@link Connection} is also
      * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
      * using own settings.
      *
@@ -268,11 +268,11 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
 
     void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
-    public void simulateIOEvent(final IOEvent ioEvent) throws IOException;
+    public void simulateServiceEvent(final ServiceEvent serviceEvent) throws IOException;
 
-    public void enableIOEvent(final IOEvent ioEvent) throws IOException;
+    public void enableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException;
 
-    public void disableIOEvent(final IOEvent ioEvent) throws IOException;
+    public void disableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException;
     
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.

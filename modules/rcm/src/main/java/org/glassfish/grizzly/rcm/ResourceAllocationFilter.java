@@ -149,7 +149,7 @@ public class ResourceAllocationFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final Buffer inputMessage = (Buffer) ctx.getMessage();
 
         StringBuilder sb = new StringBuilder(256);
@@ -189,10 +189,16 @@ public class ResourceAllocationFilter extends BaseFilter {
             threadPools.put(token, threadPool);
         }
 
-        ctx.nextFilterIdx();
-        Runnable runnable = ctx.suspend();
+        ctx.suspend();
         
-        threadPool.execute(runnable);
+        threadPool.execute(new Runnable() {
+
+            @Override
+            public void run() {
+                ctx.resumeNext();
+            }
+            
+        });
         return ctx.getSuspendAction();
     }
 

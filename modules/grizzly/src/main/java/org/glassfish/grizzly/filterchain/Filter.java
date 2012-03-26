@@ -42,6 +42,7 @@ package org.glassfish.grizzly.filterchain;
 
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.attributes.Attribute;
 
 /**
@@ -150,7 +151,7 @@ public interface Filter {
      * @throws {@link java.io.IOException}
      */
     public NextAction handleEvent(FilterChainContext ctx,
-            FilterChainEvent event) throws IOException;
+            Event event) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when connection

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,14 +40,11 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorSelector;
+import org.glassfish.grizzly.*;
 
 /**
  * {@link ProcessorSelector} implementation, which delegates processing
- * of {@link IOEvent} to the {@link FilterChain}.
+ * of {@link Event} to the {@link FilterChain}.
  *
  * @see ProcessorSelector
  * 
@@ -67,22 +64,17 @@ public class FilterChainProcessorSelector implements ProcessorSelector {
 
     /**
      * Returns {@link FilterChain} instance, if it's interested in processing
-     * passed {@link IOEvent}, or <tt>null</tt> otherwise.
+     * passed {@link Event}, or <tt>null</tt> otherwise.
      * 
-     * @param ioEvent {@link IOEvent} to process.
-     * @param connection {@link Connection}, where {@link IOEvent} occured.
+     * @param event {@link Event} to process.
+     * @param connection {@link Connection}, where {@link Event} occurred.
      *
      * @return {@link FilterChain} instance, if it's interested in processing
-     * passed {@link IOEvent}, or <tt>null</tt> otherwise.
+     * passed {@link Event}, or <tt>null</tt> otherwise.
      */
     @Override
-    public Processor select(IOEvent ioEvent, Connection connection) {
-
+    public Processor select(Event event, Connection connection) {
         FilterChain chain = builder.build();
-        if (chain.isInterested(ioEvent)) {
-            return chain;
-        }
-
-        return null;
+        return chain;
     }
 }

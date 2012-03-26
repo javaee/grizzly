@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,10 +41,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -94,27 +91,38 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
 
     }
 
-    @Override
-    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
-        return executeIoEvent(connection, ioEvent, true);
-    }
-
-
     // ------------------------------------------------- Methods from IOStrategy
 
+    /**
+     * Execute custom {@link Event}s in the same thread.
+     */
+    @Override
+    public boolean executeEvent(final Connection connection, final Event event)
+            throws IOException {
+        if (ServiceEvent.isServiceEvent(event)) {
+            return executeServiceEvent(connection, (ServiceEvent) event);
+        }
+        
+        return sameThreadStrategy.executeEvent(connection, event);
+    }
 
     @Override
-    public boolean executeIoEvent(final Connection connection,
-            final IOEvent ioEvent, final boolean isIoEventEnabled)
+    public boolean executeServiceEvent(Connection connection, ServiceEvent serviceEvent) throws IOException {
+        return executeServiceEvent(connection, serviceEvent, true);
+    }
+
+    @Override
+    public boolean executeServiceEvent(final Connection connection,
+            final ServiceEvent serviceEvent, final boolean isServiceEventInterestEnabled)
             throws IOException {
         
         final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
 
         return ((lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD)
-                     ? sameThreadStrategy.executeIoEvent(connection, ioEvent, isIoEventEnabled)
-                     : workerThreadStrategy.executeIoEvent(connection, ioEvent, isIoEventEnabled));
+                     ? sameThreadStrategy.executeServiceEvent(connection, serviceEvent, isServiceEventInterestEnabled)
+                     : workerThreadStrategy.executeServiceEvent(connection, serviceEvent, isServiceEventInterestEnabled));
     }
-
+    
     @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 

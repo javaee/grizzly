@@ -182,7 +182,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             dispose();
             return true;
         } else if (allowInternalBuffersDispose) {
-            removeAndDisposeBuffers(true);
+            removeAndDisposeBuffers();
         }
 
         return false;
@@ -192,7 +192,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     public void dispose() {
         checkDispose();
         isDisposed = true;
-        removeAndDisposeBuffers(true);
+        removeAndDisposeBuffers();
 
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -471,7 +471,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         checkDispose();
 
         if (position == limit) {
-            removeAndDisposeBuffers(false);
+            removeAndDisposeBuffers();
             return;
         }
 
@@ -1618,10 +1618,10 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
     }
 
-    private void removeAndDisposeBuffers(boolean force) {
+    private void removeAndDisposeBuffers() {
         boolean isNulled = false;
 
-        if (force || allowInternalBuffersDispose) {
+        if (allowInternalBuffersDispose) {
             for (int i = buffersSize - 1; i >= 0; i--) {
                 final Buffer buffer = buffers[i];
                 buffer.tryDispose();

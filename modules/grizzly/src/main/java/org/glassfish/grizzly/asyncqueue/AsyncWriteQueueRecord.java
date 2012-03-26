@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
-            final PushBackHandler pushbackHandler,
+            final LifeCycleHandler lifeCycleHandler,
             final boolean isEmptyRecord) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
@@ -66,51 +66,50 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
+            asyncWriteQueueRecord.isStarted = false;
             asyncWriteQueueRecord.set(connection, message, currentResult,
-                    completionHandler, dstAddress, pushbackHandler, isEmptyRecord);
+                    completionHandler, dstAddress, lifeCycleHandler, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message,
-                currentResult, completionHandler, dstAddress, pushbackHandler,
+                currentResult, completionHandler, dstAddress, lifeCycleHandler,
                 isEmptyRecord);
     }
     
     private long initialMessageSize;
-    private int momentumQueueSize = -1;
     private boolean isEmptyRecord;
     private Object dstAddress;
-    private PushBackHandler pushBackHandler;
+    private LifeCycleHandler lifeCycleHandler;
+    private boolean isStarted;
 
     protected AsyncWriteQueueRecord(final Connection connection,
             final WritableMessage message,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
-            final PushBackHandler pushBackHandler,
+            final LifeCycleHandler lifeCycleHandler,
             final boolean isEmptyRecord) {
 
         super(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
-        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
-        this.pushBackHandler = pushBackHandler;
+        this.lifeCycleHandler = lifeCycleHandler;
     }
 
     protected void set(final Connection connection, final WritableMessage message,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
-            final PushBackHandler pushBackHandler,
+            final LifeCycleHandler lifeCycleHandler,
             final boolean isEmptyRecord) {
         super.set(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
-        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
-        this.pushBackHandler = pushBackHandler;
+        this.lifeCycleHandler = lifeCycleHandler;
     }
 
     public final Object getDstAddress() {
@@ -138,20 +137,8 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return getWritableMessage().remaining();
     }
 
-    public int getMomentumQueueSize() {
-        return momentumQueueSize;
-    }
-
-    public void setMomentumQueueSize(final int momentumQueueSize) {
-        this.momentumQueueSize = momentumQueueSize;
-    }
-
-    public boolean isChecked() {
-        return momentumQueueSize < 0;
-    }
-
-    public PushBackHandler getPushBackHandler() {
-        return pushBackHandler;
+    public LifeCycleHandler getLifeCycleHandler() {
+        return lifeCycleHandler;
     }
     
     public boolean canBeAggregated() {
@@ -179,7 +166,24 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         messageLocal.release();
 
     }
-    
+
+    public void notifyBeforeWrite() {
+        if (!isStarted) {
+            isStarted = true;
+            if (lifeCycleHandler != null) {
+                lifeCycleHandler.onBeforeWrite(connection, getWritableMessage());
+            }
+        }
+    }
+     
+    public void setStarted() {
+        isStarted = true;
+    }
+
+    public void setInitialMessageSize(long initialMessageSize) {
+        this.initialMessageSize = initialMessageSize;
+    }
+        
     public boolean isFinished() {
         return !getWritableMessage().hasRemaining();
     }

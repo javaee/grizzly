@@ -203,7 +203,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final UDPNIOTransport udpTransport =
                     (UDPNIOTransport) connection.getTransport();
 
-            udpTransport.fireIOEvent(IOEvent.CONNECTED, connection,
+            udpTransport.fireEvent(ServiceEvent.CONNECTED, connection,
                     new EnableReadHandler(completionHandler));
 
         } catch (Exception e) {
@@ -261,7 +261,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadHandler extends EmptyIOEventProcessingHandler {
+    private static class EnableReadHandler extends ServiceEventProcessingHandler.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 

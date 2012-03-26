@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,8 +45,8 @@ import java.net.SocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.memory.Buffers;
@@ -117,18 +117,18 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final MessageCloner cloner = transportContext.getMessageCloner();
-            final PushBackHandler pushBackHandler = transportContext.getPushBackHandler();
+            final LifeCycleHandler lifeCycleHandler = transportContext.getLifeCycleHandler();
             
             transportContext.setCompletionHandler(null);
             transportContext.setMessageCloner(null);
-            transportContext.setPushBackHandler(null);
+            transportContext.setLifeCycleHandler(null);
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueIO().getWriter().write(connection, null,
-                        message, completionHandler, pushBackHandler, cloner);
+                        message, completionHandler, lifeCycleHandler, cloner);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
-                        null, message, completionHandler, pushBackHandler);
+                        null, message, completionHandler, lifeCycleHandler);
             }
         }
 
@@ -139,7 +139,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     @Override
     @SuppressWarnings("unchecked")
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
         if (event.type() == TransportFilter.FlushEvent.TYPE) {
             final Connection connection = ctx.getConnection();
             final FilterChainContext.TransportContext transportContext =

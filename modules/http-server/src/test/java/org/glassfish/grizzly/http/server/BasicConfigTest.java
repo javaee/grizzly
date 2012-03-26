@@ -107,6 +107,7 @@ public class BasicConfigTest {
         }
     }
     
+    @SuppressWarnings("unchecked")
     private HttpContent doTest(
             final HttpPacket request,
             final int timeout)

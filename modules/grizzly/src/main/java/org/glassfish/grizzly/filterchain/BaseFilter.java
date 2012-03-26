@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Connection;
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import java.lang.ref.WeakReference;
+import org.glassfish.grizzly.Event;
 
 /**
  * Provides empty implementation for {@link Filter} processing methods.
@@ -100,7 +101,7 @@ public class BaseFilter implements Filter {
      */
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
         return ctx.getInvokeAction();
     }
 

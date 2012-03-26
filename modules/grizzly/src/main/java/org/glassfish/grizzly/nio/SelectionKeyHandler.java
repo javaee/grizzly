@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 
@@ -79,9 +79,9 @@ public interface SelectionKeyHandler {
     void setConnectionForKey(NIOConnection connection,
             SelectionKey selectionKey);
 
-    int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
+    int serviceEvent2SelectionKeyInterest(ServiceEvent serviceEvent);
     
-    IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
+    ServiceEvent selectionKeyInterest2ServiceEvent(int selectionKeyInterest);
 
-    IOEvent[] getIOEvents(int interest);
+    ServiceEvent[] getServiceEvents(int interest);
 }

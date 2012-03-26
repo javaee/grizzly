@@ -117,13 +117,13 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
      * and {@link Connection} doesn't have any preferred {@link Processor} -
      * then {@link Transport} will try to get {@link Processor} using
-     * {@link ProcessorSelector#select(IOEvent, Connection)}.
+     * {@link ProcessorSelector#select(Event, Connection)}.
      *
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events, if one doesn't have
      * own {@link Processor} preferences.
      */
-    Processor obtainProcessor(IOEvent ioEvent, Connection connection);
+    Processor obtainProcessor(Event event, Connection connection);
 
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
@@ -132,7 +132,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
      * and {@link Connection} doesn't have any preferred {@link Processor} -
      * then {@link Transport} will try to get {@link Processor} using
-     * {@link ProcessorSelector#select(IOEvent, Connection)}.
+     * {@link ProcessorSelector#select(Event, Connection)}.
      * 
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events, if one doesn't have
@@ -216,25 +216,25 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
 
     /**
      * Get the {@link IOStrategy} implementation, which will be used by
-     * {@link Transport} to process {@link IOEvent}.
+     * {@link Transport} to process {@link Event}.
      * {@link IOStrategy} is responsible for choosing the way, how I/O event
      * will be processed: using current {@link Thread}, worker {@link Thread};
      * or make any other decisions.
      * 
      * @return the {@link IOStrategy} implementation, which will be used by
-     * {@link Transport} to process {@link IOEvent}.
+     * {@link Transport} to process {@link Event}.
      */
     IOStrategy getIOStrategy();
 
     /**
      * Set the {@link IOStrategy} implementation, which will be used by
-     * {@link Transport} to process {@link IOEvent}.
+     * {@link Transport} to process {@link Event}.
      * {@link IOStrategy} is responsible for choosing the way, how I/O event
      * will be processed: using current {@link Thread}, worker {@link Thread};
      * or make any other decisions.
      *
      * @param IOStrategy the {@link IOStrategy} implementation, which will be used
-     * by {@link Transport} to process {@link IOEvent}.
+     * by {@link Transport} to process {@link Event}.
      */
     void setIOStrategy(IOStrategy IOStrategy);
 
@@ -285,7 +285,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void setWriteBufferSize(int writeBufferSize);
 
     /**
-     * Get a thread pool, which will run IOEvent processing
+     * Get a thread pool, which will run Event processing
      * (depending on Transport {@link IOStrategy}) to let kernel threads continue
      * their job.
      *
@@ -302,7 +302,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     ExecutorService getKernelThreadPool();
 
     /**
-     * Set a thread pool, which will run IOEvent processing
+     * Set a thread pool, which will run Event processing
      * (depending on Transport {@link IOStrategy}) to let kernel threads continue
      * their job.
      *
@@ -403,14 +403,22 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void resume() throws IOException;
     
     /**
-     * Fires specific {@link IOEvent} on the {@link Connection}
+     * Fires the {@link Event} on the {@link Connection}
      *
-     * @param ioEvent I/O event
+     * @param event event
+     * @param connection {@link Connection}, on which we fire the event.
+     */
+    void fireEvent(Event event, Connection connection);
+
+    /**
+     * Fires the {@link ServiceEvent} on the {@link Connection}
+     *
+     * @param event service event
      * @param connection {@link Connection}, on which we fire the event.
      * @param processingHandler I/O event processing handler.
      */
-    void fireIOEvent(IOEvent ioEvent, Connection connection,
-            IOEventProcessingHandler processingHandler);
+    void fireEvent(ServiceEvent event, Connection connection,
+            ServiceEventProcessingHandler processingHandler);
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

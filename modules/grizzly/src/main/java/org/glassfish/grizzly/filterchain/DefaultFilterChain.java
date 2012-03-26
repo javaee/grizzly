@@ -49,10 +49,11 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.Futures;
 
@@ -78,10 +79,6 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     private static final Logger LOGGER = Grizzly.logger(DefaultFilterChain.class);
 
-    public DefaultFilterChain() {
-        this(new ArrayList<Filter>());
-    }
-
     public DefaultFilterChain(Collection<Filter> initialFilters) {
         super(new ArrayList<Filter>(initialFilters));
     }
@@ -94,10 +91,16 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         final FilterChainContext filterChainContext = internalContext.filterChainContext;
 
         if (filterChainContext.getOperation() == Operation.NONE) {
-            final IOEvent ioEvent = internalContext.getIoEvent();
+            final Event event = internalContext.getEvent();
 
-            if (ioEvent != IOEvent.WRITE) {
-                filterChainContext.setOperation(FilterChainContext.ioEvent2Operation(ioEvent));
+            if (event != ServiceEvent.WRITE) {
+                if (ServiceEvent.isServiceEvent(event)) {
+                    filterChainContext.setOperation(
+                            FilterChainContext.serviceEvent2Operation((ServiceEvent) event));
+                } else {
+                    filterChainContext.setOperation(Operation.EVENT);
+                    filterChainContext.event = event;
+                }
             } else {
                 // On OP_WRITE - call the async write queue
                 final Connection connection = context.getConnection();
@@ -158,7 +161,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                     ctx.getStartIdx(), end));
         } catch (Exception e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
-                    "Exception during FilterChain execution", e);
+                    LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
             throwChain(ctx, executor, e);
             ctx.getConnection().closeSilently();
 
@@ -169,11 +172,11 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     /**
-     * Sequentially lets each {@link Filter} in chain to process {@link IOEvent}.
+     * Sequentially lets each {@link Filter} in chain to process {@link ServiceEvent}.
      * 
      * @param ctx {@link FilterChainContext} processing context
      * @param executor {@link FilterExecutor}, which will call appropriate
-     *          filter operation to process {@link IOEvent}.
+     *          filter operation to process {@link ServiceEvent}.
      * @return TODO: Update
      */
     @SuppressWarnings("unchecked")
@@ -379,11 +382,11 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     public void write(final Connection connection,
             final Object dstAddress, final Object message,
             final CompletionHandler completionHandler,
-            final PushBackHandler pushBackHandler) {
+            final LifeCycleHandler lifeCycleHandler) {
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.transportFilterContext.completionHandler = completionHandler;
-        context.transportFilterContext.pushBackHandler = pushBackHandler;
+        context.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
         context.setAddress(dstAddress);
         context.setMessage(message);
         context.setOperation(Operation.WRITE);
@@ -608,7 +611,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return -1;
         }
 
-        public int lastIndexOf(final IOEvent event,
+        public int lastIndexOf(final ServiceEvent event,
                 final FILTER_STATE_TYPE type, final int end) {
             final int eventIdx = event.ordinal();
 
@@ -623,7 +626,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return -1;
         }
 
-        public int lastIndexOf(final IOEvent event,
+        public int lastIndexOf(final ServiceEvent event,
                 final FILTER_STATE_TYPE type) {
             return lastIndexOf(event, type, state[event.ordinal()].length);
         }

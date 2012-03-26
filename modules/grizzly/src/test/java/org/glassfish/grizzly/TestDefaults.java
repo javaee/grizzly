@@ -110,18 +110,18 @@ public class TestDefaults {
         }
 
         @Override
-        public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
+        public int serviceEvent2SelectionKeyInterest(ServiceEvent ioEvent) {
             return 0; 
         }
 
         @Override
-        public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
+        public ServiceEvent selectionKeyInterest2ServiceEvent(int selectionKeyInterest) {
             return null;
         }
 
         @Override
-        public IOEvent[] getIOEvents(int interest) {
-            return new IOEvent[0]; 
+        public ServiceEvent[] getServiceEvents(int interest) {
+            return new ServiceEvent[0]; 
         }
     } // END TestHandler
     

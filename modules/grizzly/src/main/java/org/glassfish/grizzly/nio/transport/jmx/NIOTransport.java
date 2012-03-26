@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ package org.glassfish.grizzly.nio.transport.jmx;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -371,15 +371,15 @@ public class NIOTransport extends JmxObject {
         }
 
         @Override
-        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {
+        public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent) {
         }
 
         @Override
-        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {
+        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {
         }
 
         @Override
-        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {
+        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {
         }
     }
 }

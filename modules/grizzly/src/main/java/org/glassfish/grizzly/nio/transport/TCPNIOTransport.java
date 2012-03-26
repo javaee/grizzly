@@ -42,12 +42,10 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.lang.ref.SoftReference;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -62,8 +60,8 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
-import org.glassfish.grizzly.memory.BufferArray;
-import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
@@ -73,11 +71,10 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.WorkerThread;
 import org.glassfish.grizzly.utils.Exceptions;
 
 /**
- * TCP Transport NIO implementation
+ * TCP NIO Transport implementation
  * 
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
@@ -86,7 +83,7 @@ public class TCPNIOTransport extends NIOTransport implements
         SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
-    private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
+    static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
     private static final int DEFAULT_READ_BUFFER_SIZE = -1;
     private static final int DEFAULT_WRITE_BUFFER_SIZE = -1;
@@ -140,8 +137,6 @@ public class TCPNIOTransport extends NIOTransport implements
     int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
-    private final int maxReadAttempts = 3;
-    
     private boolean isOptimizedForMultiplexing;
     
     private final Filter defaultTransportFilter;
@@ -185,7 +180,7 @@ public class TCPNIOTransport extends NIOTransport implements
             State currentState = state.getState();
             if (currentState != State.STOP) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in STOP or BOUND state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_OR_BOUND_STATE_EXCEPTION());
             }
 
             state.setState(State.STARTING);
@@ -265,8 +260,8 @@ public class TCPNIOTransport extends NIOTransport implements
                 listenServerConnection(serverConnection);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                        "Exception occurred when starting server connection: " +
-                        serverConnection, e);
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(serverConnection),
+                        e);
             }
         }
     }
@@ -315,7 +310,7 @@ public class TCPNIOTransport extends NIOTransport implements
         try {
             if (state.getState() != State.START) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in START state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_START_STATE_EXCEPTION());
             }
             state.setState(State.PAUSE);
             notifyProbesPause(this);
@@ -331,7 +326,7 @@ public class TCPNIOTransport extends NIOTransport implements
         try {
             if (state.getState() != State.PAUSE) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in PAUSE state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_PAUSE_STATE_EXCEPTION());
             }
             state.setState(State.START);
             notifyProbesResume(this);
@@ -389,8 +384,21 @@ public class TCPNIOTransport extends NIOTransport implements
                 selectorProvider.openServerSocketChannel();
         try {
             final ServerSocket serverSocket = serverSocketChannel.socket();
-            serverSocket.setReuseAddress(reuseAddress);
-            serverSocket.setSoTimeout(serverSocketSoTimeout);
+            
+            try {
+                serverSocket.setReuseAddress(reuseAddress);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
+            }
+
+            try {
+                serverSocket.setSoTimeout(serverSocketSoTimeout);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
+            }
+            
 
             serverSocket.bind(socketAddress, backlog);
 
@@ -457,7 +465,7 @@ public class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public void unbind(Connection connection) throws IOException {
+    public void unbind(final Connection connection) throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
@@ -467,7 +475,9 @@ public class TCPNIOTransport extends NIOTransport implements
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_TRANSPORT_UNBINDING_CONNECTION_EXCEPTION(connection),
+                            e);
                 } finally {
                     future.markForRecycle(true);
                 }
@@ -632,21 +642,30 @@ public class TCPNIOTransport extends NIOTransport implements
                 socket.setSoLinger(true, linger);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set linger to " + linger, e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_SOCKET_LINGER_EXCEPTION(linger), e);
         }
 
         try {
             socket.setKeepAlive(isKeepAlive);
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive, e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_SOCKET_KEEPALIVE_EXCEPTION(isKeepAlive), e);
         }
         
         try {
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay, e);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(tcpNoDelay), e);
         }
-        socket.setReuseAddress(reuseAddress);
+        
+        try {
+            socket.setReuseAddress(reuseAddress);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
+        }
     }
 
     @Override
@@ -772,34 +791,44 @@ public class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public void fireIOEvent(final IOEvent ioEvent,
-            final Connection connection,
-            final IOEventProcessingHandler processingHandler) {
+    public void fireEvent(final Event event,
+            final Connection connection) {
 
-            if (ioEvent == IOEvent.SERVER_ACCEPT) {
+        final Processor conProcessor = connection.obtainProcessor(event);
+
+        ProcessorExecutor.execute(Context.create(connection,
+                conProcessor, event));
+    }
+
+    @Override
+    public void fireEvent(final ServiceEvent event,
+            final Connection connection,
+            final ServiceEventProcessingHandler processingHandler) {
+
+            if (event == ServiceEvent.SERVER_ACCEPT) {
                 try {
                     ((TCPNIOServerConnection) connection).onAccept();
                 } catch (IOException e) {
-                    failProcessingHandler(ioEvent, connection,
+                    failProcessingHandler(event, connection,
                             processingHandler, e);
                 }
                 
                 return;
-            } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
+            } else if (event == ServiceEvent.CLIENT_CONNECTED) {
                 try {
                     ((TCPNIOConnection) connection).onConnect();
                 } catch (IOException e) {
-                    failProcessingHandler(ioEvent, connection,
+                    failProcessingHandler(event, connection,
                             processingHandler, e);
                 }
                 
                 return;
             }
             
-            final Processor conProcessor = connection.obtainProcessor(ioEvent);
+            final Processor conProcessor = connection.obtainProcessor(event);
 
             ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, ioEvent, processingHandler));
+                    conProcessor, event, processingHandler));
     }
     
     /**
@@ -845,88 +874,38 @@ public class TCPNIOTransport extends NIOTransport implements
     public Buffer read(final Connection connection, Buffer buffer)
             throws IOException {
 
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread = (currentThread instanceof WorkerThread) &&
-                ((WorkerThread) currentThread).isSelectorThread();
-        
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         int read;
 
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
-
             try {
-                final int receiveBufferSize = connection.getReadBufferSize();
-                if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
-                    final DirectByteBufferRecord directByteBufferRecord =
-                            obtainDirectByteBuffer(receiveBufferSize);
-                    try {
-                        final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-                        read = readSimpleByteBuffer(tcpConnection,
-                                directByteBuffer, isSelectorThread);
-
-                        directByteBuffer.flip();
-
-                        buffer = memoryManager.allocate(read);
-                        buffer.put(directByteBuffer);
-                    } finally {
-                        releaseDirectByteBuffer(directByteBufferRecord);
-                    }
-                } else {
-                    buffer = memoryManager.allocateAtLeast(receiveBufferSize);
-                    read = readSimple(tcpConnection, buffer, isSelectorThread);
-                }
-                
+                buffer = TCPNIOUtils.allocateAndReadBuffer(tcpConnection);
+                read = buffer.position();
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
                 }
+                
                 read = -1;
             }
 
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (allocated) read {1} bytes",
-                        new Object[]{connection, read});
-            }
-            
-            if (read > 0) {
-                buffer.position(read);
-            } else {
-                if (buffer != null) {
-                    buffer.dispose();
-                    buffer = null;
-                }
-
-                if (read < 0) {
-                    // Mark connection as closed remotely.
-                    tcpConnection.close0(null, false);
-                    throw new EOFException();
-                }                
+            if (read == 0) {
+                buffer = null;
+            } else if (read < 0) {
+                // Mark connection as closed remotely.
+                tcpConnection.close0(null, false);
+                throw new EOFException();
             }
         } else {
             if (buffer.hasRemaining()) {
-                final int oldPos = buffer.position();
-                
-                final SocketChannel socketChannel =
-                        (SocketChannel) tcpConnection.getChannel();
-                
                 try {
                     if (buffer.isComposite()) {
-                        final ByteBufferArray array = buffer.toByteBufferArray();
-                        final ByteBuffer[] byteBuffers = array.getArray();
-                        final int size = array.size();
-
-                        if (!isSelectorThread) {
-                            read = doReadInLoop(socketChannel, byteBuffers, 0, size);
-                        } else {
-                            read = (int) socketChannel.read(byteBuffers, 0, size);
-                        }
-
-                        array.restore();
-                        array.recycle();
+                        read = TCPNIOUtils.readCompositeBuffer(tcpConnection,
+                                (CompositeBuffer) buffer);
                     } else {
-                        read = readSimple(tcpConnection, buffer, isSelectorThread);
+                        read = TCPNIOUtils.readSimpleBuffer(tcpConnection, buffer);
                     }
 
                 } catch (Exception e) {
@@ -936,16 +915,7 @@ public class TCPNIOTransport extends NIOTransport implements
                     read = -1;
                 }
                 
-                if (read > 0) {
-                    buffer.position(oldPos + read);
-                }
-
-
                 tcpConnection.onRead(buffer, read);
-                
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (nonallocated) read {1} bytes", new Object[] {connection, read});
-                }
                 
                 if (read < 0) {
                     // Mark connection as closed remotely.
@@ -958,81 +928,6 @@ public class TCPNIOTransport extends NIOTransport implements
         return buffer;
     }
 
-    private int readSimple(final TCPNIOConnection tcpConnection,
-            final Buffer buffer, final boolean isSelectorThread) throws IOException {
-
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, buffer.toByteBuffer());
-        } else {
-            read = socketChannel.read(buffer.toByteBuffer());
-        }
-
-        return read;
-    }
-    
-    private int readSimpleByteBuffer(final TCPNIOConnection tcpConnection,
-            final ByteBuffer byteBuffer, final boolean isSelectorThread) throws IOException {
-
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, byteBuffer);
-        } else {
-            read = socketChannel.read(byteBuffer);
-        }
-
-        return read;
-    }
-    
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer byteBuffer) throws IOException {
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
-            read += readNow;
-            if (!byteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
-                return read;
-            }
-        }
-
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
-
-        return read;
-    }
-    
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer[] byteBuffers, final int offset, final int length) throws IOException {
-        
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
-        
-        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) > 0) {
-            read += readNow;
-            if (!lastByteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
-                return read;
-            }
-        }
-
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
-        
-        return read;
-    }
-
     public int write(final Connection connection, final WritableMessage message)
             throws IOException {
         return write(connection, message, null);
@@ -1042,37 +937,23 @@ public class TCPNIOTransport extends NIOTransport implements
     public int write(final Connection connection, final WritableMessage message,
             final WriteResult currentResult) throws IOException {
 
-        int written;
-        if (message instanceof Buffer) {
+        final int written;
+        if (message.remaining() == 0) {
+            written = 0;
+        } else if (message instanceof Buffer) {
             final Buffer buffer = (Buffer) message;
             final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-            final int oldPos = buffer.position();
 
             try {
                 if (buffer.isComposite()) {
-                    final BufferArray array = buffer.toBufferArray();
-
-                    written = writeGathered(tcpConnection, array);
-
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
-                                new Object[]{connection, written});
-                    }
-
-                    array.restore();
-                    array.recycle();
+                    written = TCPNIOUtils.writeCompositeBuffer(tcpConnection,
+                            (CompositeBuffer) buffer);
                 } else {
-                    written = writeSimple(tcpConnection, buffer);
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
-                                new Object[]{connection, written});
-                    }
+                    written = TCPNIOUtils.writeSimpleBuffer(tcpConnection,
+                            buffer);
                 }
 
                 final boolean hasWritten = (written >= 0);
-                if (hasWritten) {
-                    buffer.position(oldPos + written);
-                }
 
                 tcpConnection.onWrite(buffer, written);
 
@@ -1099,185 +980,15 @@ public class TCPNIOTransport extends NIOTransport implements
 
         return written;
     }
-
-    private static int writeSimple(final TCPNIOConnection tcpConnection,
-            final Buffer buffer) throws IOException {
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        if (!buffer.hasRemaining()) {
-            return 0;
-        }
-        
-        return flushByteBuffer(socketChannel, buffer.toByteBuffer());
-    }
     
-    private static int writeGathered(final TCPNIOConnection tcpConnection,
-            final BufferArray bufferArray)
-            throws IOException {
-
-        final Buffer[] buffers = bufferArray.getArray();
-        final int length = bufferArray.size();
-        
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        int written = 0;
-        DirectByteBufferRecord record = null;
-        ByteBuffer directByteBuffer = null;
-
-        try {
-            int next;
-
-            for (int i = findNextAvailBuffer(buffers, -1, length); i < length; i = next) {
-
-                final Buffer buffer = buffers[i];
-                next = findNextAvailBuffer(buffers, i, length);
-
-                final boolean isFlush = next == length || buffers[next].isDirect();
-
-                // If Buffer is not direct - copy it to the direct buffer and write
-                if (!buffer.isDirect()) {
-                    if (record == null) {
-                        record = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
-                        directByteBuffer = record.strongRef;
-                    }
-
-                    final int currentBufferRemaining = buffer.remaining();
-
-                    final boolean isAdaptByteBuffer =
-                            currentBufferRemaining < directByteBuffer.remaining();
-
-
-                    if (isAdaptByteBuffer) {
-                        directByteBuffer.limit(directByteBuffer.position() + currentBufferRemaining);
-                    }
-
-                    buffer.get(directByteBuffer);
-
-                    if (isAdaptByteBuffer) {
-                        directByteBuffer.limit(directByteBuffer.capacity());
-                    }
-
-                    if (!directByteBuffer.hasRemaining() || isFlush) {
-                        directByteBuffer.flip();
-                        written += flushByteBuffer(socketChannel, directByteBuffer);
-                        int remaining = directByteBuffer.remaining();
-                        if (remaining > 0) {
-                            while (remaining > 0) {
-                                final Buffer revertBuffer = buffers[i];
-                                final int shift = Math.min(remaining,
-                                        revertBuffer.position() - bufferArray.getInitialPosition(i));
-                                revertBuffer.position(revertBuffer.position() - shift);
-                                i--;
-                                remaining -= shift;
-                            }
-
-                            break;
-                        }
-
-                        directByteBuffer.clear();
-
-                        if (buffer.hasRemaining()) {
-                            // continue the same buffer
-                            next = i;
-                        }
-                    }
-                } else { // if it's direct buffer
-                    final ByteBuffer byteBuffer = buffer.toByteBuffer();
-                    written += socketChannel.write(byteBuffer);
-                    if (byteBuffer.hasRemaining()) {
-                        break;
-                    }
-
-                }
-            }
-        } finally {
-            if (record != null) {
-                directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
-            }
-        }
-
-        return written;
-    }
-
-    private static int findNextAvailBuffer(final Buffer[] buffers, final int start, final int end) {
-        for (int i = start + 1; i < end; i++) {
-            if (buffers[i].hasRemaining()) {
-                return i;
-            }
-        }
-
-        return end;
-    }
-
-
-    static int flushByteBuffer(final SocketChannel channel,
-            final ByteBuffer byteBuffer) throws IOException {
-        
-        return channel.write(byteBuffer);
-    }
-
-    private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =
-            ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 4);
-    
-    static DirectByteBufferRecord obtainDirectByteBuffer(final int size) {
-        DirectByteBufferRecord record = ThreadCache.takeFromCache(CACHE_IDX);
-        final ByteBuffer byteBuffer;
-        if (record != null) {
-            if ((byteBuffer = record.switchToStrong()) != null) {
-                if (byteBuffer.remaining() >= size) {
-                    return record;
-                }
-            }
-        } else {
-            record = new DirectByteBufferRecord();
-        }
-
-        record.reset(ByteBuffer.allocateDirect(size));
-        return record;
-    }
-
-    static void releaseDirectByteBuffer(
-            final DirectByteBufferRecord directByteBufferRecord) {
-        directByteBufferRecord.strongRef.clear();
-        directByteBufferRecord.switchToSoft();
-        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
-    }
-
-    static final class DirectByteBufferRecord {
-        ByteBuffer strongRef;
-        private SoftReference<ByteBuffer> softRef;
-
-        void reset(final ByteBuffer byteBuffer) {
-            strongRef = byteBuffer;
-            softRef = null;
-        }
-
-        ByteBuffer switchToStrong() {
-            if (strongRef == null && softRef != null) {
-                strongRef = softRef.get();
-            }
-
-            return strongRef;
-        }
-
-        void switchToSoft() {
-            if (strongRef != null && softRef == null) {
-                softRef = new SoftReference<ByteBuffer>(strongRef);
-            }
-
-            strongRef = null;
-        }
-    }
-
-    private static void failProcessingHandler(final IOEvent ioEvent,
+    private static void failProcessingHandler(final ServiceEvent event,
             final Connection connection,
-            final IOEventProcessingHandler processingHandler,
+            final ServiceEventProcessingHandler processingHandler,
             final IOException e) {
         if (processingHandler != null) {
             try {
                 processingHandler.onError(Context.create(connection, null,
-                        ioEvent, processingHandler), e);
+                        event, processingHandler), e);
             } catch (IOException ignored) {
             }
         }

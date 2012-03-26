@@ -93,7 +93,7 @@ public class TCPNIOConnection extends NIOConnection {
     @Override
     protected void preClose() {
         checkConnectFailed(null);
-        transport.fireIOEvent(IOEvent.CLOSED, this, null);
+        transport.fireEvent(ServiceEvent.CLOSED, this, null);
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,14 +42,13 @@ package org.glassfish.grizzly;
 import java.nio.channels.SelectionKey;
 
 /**
- * Enumeration represents the I/O events, occurred on a {@link Connection}.
+ * Enumeration represents the service events, occurred on a {@link Connection}.
  *
  * @see Connection
  * 
  * @author Alexey Stashok
  */
-public enum IOEvent {
-
+public enum ServiceEvent implements Event {
     /**
      * no event
      */
@@ -64,6 +63,11 @@ public enum IOEvent {
      * Event occurs on a {@link Connection}, once it  gets available for write.
      */
     WRITE(SelectionKey.OP_WRITE),
+
+    /**
+     * Event occurs on a {@link Connection}, once user wants to write a message.
+     */
+    USER_WRITE(0),
 
     /**
      * Event occurs on a server {@link Connection}, when it becomes ready
@@ -84,7 +88,7 @@ public enum IOEvent {
     /**
      * Event occurs on a {@link Connection}, once it was connected to server.
      * 
-     * (this is service IOEvent, which is not getting propagated to a {@link Processor}
+     * (this is the ServiceEvent, which is not getting propagated to a {@link Processor}
      */
     CLIENT_CONNECTED(SelectionKey.OP_CONNECT),
 
@@ -98,13 +102,24 @@ public enum IOEvent {
      */
     CLOSED(0);
     
+    private static final Object serviceType = new Object();
+    
+    public static boolean isServiceEvent(final Event event) {
+        return event.type() == serviceType;
+    }
+    
     private final int selectionKeyInterest;
 
-    private IOEvent(int selectionKeyInterest) {
+    private ServiceEvent(int selectionKeyInterest) {
         this.selectionKeyInterest = selectionKeyInterest;
     }
     
     public int getSelectionKeyInterest() {
         return selectionKeyInterest;
+    }
+
+    @Override
+    public Object type() {
+        return serviceType;
     }
 }

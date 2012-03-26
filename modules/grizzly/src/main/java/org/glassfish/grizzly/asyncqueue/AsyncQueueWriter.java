@@ -76,8 +76,8 @@ public interface AsyncQueueWriter<L>
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushBackHandler {@link PushBackHandler}, which will be notified
-     *        if message was accepted by transport write queue or refused
+     * @param lifeCycleHandler {@link LifeCycleHandler}, which gives developer
+     *        finer control over message write process.
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
      *        channel directly and has to be put on a asynchronous queue    
@@ -85,37 +85,9 @@ public interface AsyncQueueWriter<L>
     public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            PushBackHandler pushBackHandler,
+            LifeCycleHandler lifeCycleHandler,
             MessageCloner<WritableMessage> cloner);
 
-    /**
-     * @param connection the {@link Connection} to test whether or not the
-     *  specified number of bytes can be written to.
-     * @param size number of bytes to write.
-     * @return <code>true</code> if the queue has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>
-     */
-    boolean canWrite(final Connection connection, int size);
-
-    /**
-     * Registers {@link WriteHandler}, which will be notified ones {@link Buffer}
-     * of "size"-bytes can be written.
-     * Note: using this method from different threads simultaneously may lead
-     * to quick situation changes, so at time {@link WriteHandler} is called -
-     * the queue may become busy again. It's recommended to use this method
-     * together with {@link PushBackHandler} to have a chance to handle
-     * such a situations properly.
-     * 
-     * @param connection {@link Connection}
-     * @param writeHandler {@link WriteHandler} to be notified.
-     * @param size number of bytes queue has to be able to accept before notifying
-     *             {@link WriteHandler}.
-     * 
-     * @since 2.2
-     */
-    void notifyWritePossible(final Connection connection,
-            final WriteHandler writeHandler, final int size);
-    
     /**
      * Configures the maximum number of bytes pending to be written
      * for a particular {@link Connection}.
@@ -131,68 +103,5 @@ public interface AsyncQueueWriter<L>
      *  to a particular {@link Connection}.  By default, this will be four
      *  times the size of the {@link java.net.Socket} send buffer size.
      */
-    int getMaxPendingBytesPerConnection();
-    
-    /**
-     * Returns the maximum number of write() method reentrants a thread
-     * is allowed to made.
-     * This is related to possible write()->onComplete()->write()->...
-     * chain, which may grow infinitely and cause StackOverflow.
-     * Using maxWriteReentrants value it's possible to limit such a chain.
-     *
-     * @return the maximum number of write() method reentrants a thread
-     * is allowed to make.
-     */
-    int getMaxWriteReentrants();
-
-    /**
-     * Sets the maximum number of write() method reentrants a thread
-     * is allowed to made.
-     * This is related to possible write()->onComplete()->write()->...
-     * chain, which may grow infinitely and cause StackOverflow.
-     * Using maxWriteReentrants value it's possible to limit such a chain.
-     *
-     * @param maxWriteReentrants  the maximum number of write() method calls
-     *  a thread is allowed to make.
-     */
-    void setMaxWriteReentrants(int maxWriteReentrants);
-    
-    /**
-     * Returns the current write reentrants counter.
-     * Might be useful, if developer wants to use custom notification mechanism,
-     * based on on {@link #canWrite(org.glassfish.grizzly.Connection, int)} and
-     * various write methods.
-     */
-    Reentrant getWriteReentrant();
-
-    /**
-     * Returns <tt>true</tt>, if max number of write->completion-handler reentrants
-     * has been reached for the passed {@link Reentrant} object, and next write
-     * will happen in the separate thread.
-     * 
-     * @param reentrant {@link Reentrant} object.
-     * @return <tt>true</tt>, if max number of write->completion-handler reentrants
-     * has been reached for the passed {@link Reentrant} object, and next write
-     * will happen in the separate thread.
-     */
-    boolean isMaxReentrantsReached(Reentrant reentrant);
-
-    /**
-     * Write reentrants counter
-     */
-    public static final class Reentrant {
-        private int counter;
-        
-        public int get() {
-            return counter;
-        }
-        
-        public int incAndGet() {
-            return ++counter;
-        }
-
-        public int decAndGet() {
-            return --counter;
-        }
-    }    
+    int getMaxPendingBytesPerConnection();    
 }

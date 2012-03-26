@@ -190,11 +190,11 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             connection.resetProperties();
 
             // Deregister OP_CONNECT interest
-            connection.disableIOEvent(IOEvent.CLIENT_CONNECTED);
+            connection.disableServiceEventInterest(ServiceEvent.CLIENT_CONNECTED);
 
             tcpTransport.configureChannel(channel);
 
-            tcpTransport.fireIOEvent(IOEvent.CONNECTED, connection,
+            tcpTransport.fireEvent(ServiceEvent.CONNECTED, connection,
                     new EnableReadHandler(completionHandler));
 
         } catch (Exception e) {
@@ -293,7 +293,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static final class EnableReadHandler extends EmptyIOEventProcessingHandler {
+    private static final class EnableReadHandler extends ServiceEventProcessingHandler.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 
@@ -321,7 +321,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 completionHandler.completed(connection);
             }
 
-            connection.enableIOEvent(IOEvent.READ);
+            connection.enableServiceEventInterest(ServiceEvent.READ);
         }
 
 

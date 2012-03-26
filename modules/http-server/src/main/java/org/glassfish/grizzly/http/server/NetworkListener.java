@@ -41,8 +41,6 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -52,7 +50,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;

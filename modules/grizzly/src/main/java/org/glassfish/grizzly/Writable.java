@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 package org.glassfish.grizzly;
 
 import java.util.concurrent.Future;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 
 /**
  * Implementations of this interface are able to write data from a {@link Buffer}.
@@ -76,12 +76,12 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
-     *        if message was accepted by transport write queue or refused
+     * @param lifeCycleHandler {@link LifeCycleHandler}, which gives developer
+     *        finer control over message write process.
      */
      <M> void write(M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler);
+            LifeCycleHandler lifeCycleHandler);
 
     /**
      * Method writes the <tt>buffer</tt> to the specific address.
@@ -91,11 +91,70 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
-     *        if message was accepted by transport write queue or refused
+     * @param lifeCycleHandler {@link LifeCycleHandler}, which gives developer
+     *        finer control over message write process.
      */
      <M> void write(L dstAddress,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler);
+            LifeCycleHandler lifeCycleHandler);
+     
+    /**
+     * Return <code>true</code> if the connection has not exceeded it's maximum
+     *  size in bytes of pending writes, otherwise <code>false</code>.
+     * 
+     * This method call is equivalent to call canWrite(<tt>1</tt>);
+     * 
+     * @param size number of bytes to write.
+     * @return <code>true</code> if the connection has not exceeded it's maximum
+     *  size in bytes of pending writes, otherwise <code>false</code>
+     * 
+     * @since 2.3
+     */
+    boolean canWrite();
+
+    /**
+     * Return <code>true</code> if the connection has not exceeded it's maximum
+     *  size in bytes of pending writes and is ready to accept another "size" bytes,
+     *  otherwise <code>false</code>.
+     * 
+     * @param size number of bytes to write.
+     * @return <code>true</code> if the connection has not exceeded it's maximum
+     *  size in bytes of pending writes and is ready to accept another "size" bytes,
+     *  otherwise <code>false</code>
+     * 
+     * @since 2.3
+     */
+    boolean canWrite(int size);
+
+    /**
+     * Registers {@link WriteHandler}, which will be notified ones at least one
+     * byte can be written.
+     * 
+     * This method call is equivalent to call notifyWritePossible(writeHandler, <tt>1</tt>);
+     * 
+     * Note: using this method from different threads simultaneously may lead
+     * to quick situation changes, so at time {@link WriteHandler} is called -
+     * the queue may become busy again.
+     * 
+     * @param writeHandler {@link WriteHandler} to be notified.
+     * 
+     * @since 2.3
+     */
+    void notifyWritePossible(final WriteHandler writeHandler);
+    
+    /**
+     * Registers {@link WriteHandler}, which will be notified ones {@link Buffer}
+     * of "size"-bytes can be written.
+     * Note: using this method from different threads simultaneously may lead
+     * to quick situation changes, so at time {@link WriteHandler} is called -
+     * the queue may become busy again.
+     * 
+     * @param writeHandler {@link WriteHandler} to be notified.
+     * @param size number of bytes queue has to be able to accept before notifying
+     *             {@link WriteHandler}.
+     * 
+     * @since 2.3
+     */
+    void notifyWritePossible(final WriteHandler writeHandler, final int size);
 }

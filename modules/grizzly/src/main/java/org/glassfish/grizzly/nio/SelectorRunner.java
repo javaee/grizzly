@@ -42,7 +42,7 @@ package org.glassfish.grizzly.nio;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport.State;
 import org.glassfish.grizzly.threadpool.WorkerThread;
@@ -61,7 +61,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -85,7 +87,7 @@ public final class SelectorRunner implements Runnable {
     private Thread selectorRunnerThread;
 
     // State fields
-    private boolean isResume;
+    private boolean isPostponed;
 
     private int lastSelectedKeysCount;
     private Set<SelectionKey> readyKeySet;
@@ -161,7 +163,7 @@ public final class SelectorRunner implements Runnable {
         
         runnerThreadActivityCounter.compareAndSet(1, 0);
         selectorRunnerThread = null;
-        isResume = true;
+        isPostponed = true;
         dumbVolatile++;
     }
 
@@ -240,7 +242,7 @@ public final class SelectorRunner implements Runnable {
         }
 
         final Thread currentThread = Thread.currentThread();
-        if (!isResume) {
+        if (!isPostponed) {
             if (!stateHolder.compareAndSet(State.STARTING, State.START)) {
                 return;
             }
@@ -264,9 +266,13 @@ public final class SelectorRunner implements Runnable {
                     isSkipping = !doSelect();
                 } else {
                     try {
+                        final FutureImpl<State> future =
+                                Futures.createSafeFuture();
+                        
                         transportStateHolder
-                                .notifyWhenStateIsNotEqual(State.PAUSE, null)
-                                .get(5000, TimeUnit.MILLISECONDS);
+                                .notifyWhenStateIsNotEqual(State.PAUSE,
+                                Futures.toCompletionHandler(future));
+                        future.get(5000, TimeUnit.MILLISECONDS);
                     } catch (Exception ignored) {
                     }
                 }
@@ -301,9 +307,9 @@ public final class SelectorRunner implements Runnable {
         
         try {
             
-            if (isResume) {
+            if (isPostponed) {
                 // If resume SelectorRunner - finish postponed keys
-                isResume = false;
+                isPostponed = false;
                 
                 // readyKeySet==null means execution was suspended on preSelect(..)
                 if (readyKeySet != null) {
@@ -385,17 +391,17 @@ public final class SelectorRunner implements Runnable {
 
         final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
         final IOStrategy ioStrategy = transport.getIOStrategy();
-        final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
+        final ServiceEvent[] serviceEvents = selectionKeyHandler.getServiceEvents(keyReadyOps);
         final NIOConnection connection =
                 selectionKeyHandler.getConnectionForKey(key);
 
-        for (IOEvent ioEvent : ioEvents) {
-            NIOConnection.notifyIOEventReady(connection, ioEvent);
+        for (ServiceEvent serviceEvent : serviceEvents) {
+            NIOConnection.notifyServiceEventReady(connection, serviceEvent);
             
-            final int interest = ioEvent.getSelectionKeyInterest();
+            final int interest = serviceEvent.getSelectionKeyInterest();
             keyReadyOps &= (~interest);
             if (selectionKeyHandler.onProcessInterest(key, interest)) {
-                if (!ioStrategy.executeIoEvent(connection, ioEvent)) {
+                if (!ioStrategy.executeEvent(connection, serviceEvent)) {
                     return false;
                 }
             }

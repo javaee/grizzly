@@ -55,19 +55,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.FileTransfer;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
+import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -79,7 +70,6 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.utils.Exceptions;
 
 /**
@@ -130,9 +120,9 @@ public class OutputBuffer {
 
     private final AtomicReference<Throwable> asyncError = new AtomicReference<Throwable>();
 
-    private WriteHandler asyncWriteQueueHandler;
+    private InternalWriteHandler asyncWriteQueueHandler;
 
-    private AsyncQueueWriter asyncWriter;
+    private Writer writer;
     
     private boolean fileTransferRequested;
 
@@ -166,7 +156,7 @@ public class OutputBuffer {
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
-        asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
+        writer = c.getTransport().getWriter(c);
     }
 
 //    /**
@@ -298,7 +288,7 @@ public class OutputBuffer {
         handler = null;
         asyncError.set(null);
         asyncWriteQueueHandler = null;
-        asyncWriter = null;
+        writer = null;
 
         committed = false;
         finished = false;
@@ -317,12 +307,10 @@ public class OutputBuffer {
             return;
         }
 
-        final WriteHandler asyncWriteQueueHandlerLocal = asyncWriteQueueHandler;
+        final InternalWriteHandler asyncWriteQueueHandlerLocal = asyncWriteQueueHandler;
         if (asyncWriteQueueHandlerLocal != null) {
             asyncWriteQueueHandler = null;
-            final Connection c = ctx.getConnection();
-            final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
-            tqueue.forgetWritePossible(asyncWriteQueueHandlerLocal);
+            asyncWriteQueueHandlerLocal.done = true;
         }
 
         if (!closed) {
@@ -683,7 +671,7 @@ public class OutputBuffer {
         }
         
         final Connection c = ctx.getConnection();
-        return asyncWriter.canWrite(c, length + getBufferedDataSize());
+        return c.canWrite(length + getBufferedDataSize());
     }
 
 
@@ -713,8 +701,8 @@ public class OutputBuffer {
         final int totalLength = length + getBufferedDataSize();
         
         if (canWrite(totalLength)) {
-            final Reentrant reentrant = asyncWriter.getWriteReentrant();
-            if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
+            final Reentrant reentrant = writer.getWriteReentrant();
+            if (!writer.isMaxReentrantsReached(reentrant)) {
                 notifyWritePossible();
             } else {
                 notifyWritePossibleAsync(c);
@@ -723,30 +711,14 @@ public class OutputBuffer {
             return;
         }
         
-        final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
-
-        asyncWriteQueueHandler = new WriteHandler() {
-            @Override
-            public void onWritePossible() throws Exception {
-                final Reentrant reentrant = asyncWriter.getWriteReentrant();
-                if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
-                    notifyWritePossible();
-                } else {
-                    notifyWritePossibleAsync(c);
-                }
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                // If exception occurs here - it's from WriteHandler, so it must
-                // have been processed by WriteHandler.onError().
-            }
-        };
+        if (asyncWriteQueueHandler == null) {
+            asyncWriteQueueHandler = new InternalWriteHandler();
+        }
 
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.notifyWritePossible(asyncWriteQueueHandler, totalLength);
+            c.notifyWritePossible(asyncWriteQueueHandler, totalLength);
         } catch (Exception ignored) {
         }
     }
@@ -760,7 +732,7 @@ public class OutputBuffer {
      */
     @SuppressWarnings("unchecked")
     private void notifyWritePossibleAsync(final Connection c) {
-        asyncWriter.write(c, Buffers.EMPTY_BUFFER,
+        c.write(Buffers.EMPTY_BUFFER,
                 onWritePossibleCompletionHandler);
     }
 
@@ -768,7 +740,7 @@ public class OutputBuffer {
      * Notify WriteHandler
      */
     private void notifyWritePossible() {
-        final Reentrant reentrant = asyncWriter.getWriteReentrant();
+        final Reentrant reentrant = writer.getWriteReentrant();
         final WriteHandler localHandler = handler;
         
         if (localHandler != null) {
@@ -1103,4 +1075,38 @@ public class OutputBuffer {
             notifyWritePossible();
         }
     }    
+    
+    private final class InternalWriteHandler implements WriteHandler {
+        private volatile boolean done;
+        
+        @Override
+        public void onWritePossible() throws Exception {
+            if (!done) {
+                try {
+                    final Reentrant reentrant = writer.getWriteReentrant();
+                    if (!writer.isMaxReentrantsReached(reentrant)) {
+                        notifyWritePossible();
+                    } else {
+                        notifyWritePossibleAsync(ctx.getConnection());
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            if (!done) {
+                final WriteHandler localHandler = handler;
+
+                if (localHandler != null) {
+                    try {
+                        handler = null;
+                        localHandler.onError(t);
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        }
+    }
 }

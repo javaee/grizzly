@@ -47,7 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -73,9 +73,9 @@ public abstract class TemporarySelectorWriter
             Connection connection, SocketAddress dstAddress,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final PushBackHandler pushBackHandler) {
+            final LifeCycleHandler lifeCycleHandler) {
         write(connection, dstAddress, message, completionHandler,
-                pushBackHandler,
+                lifeCycleHandler,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
@@ -93,7 +93,7 @@ public abstract class TemporarySelectorWriter
     public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final PushBackHandler pushBackHandler,
+            final LifeCycleHandler lifeCycleHandler,
             long timeout, TimeUnit timeunit) {
 
         if (message == null) {
@@ -115,15 +115,14 @@ public abstract class TemporarySelectorWriter
                         message, dstAddress, 0);
 
         try {
+            if (lifeCycleHandler != null) {
+//                lifeCycleHandler.onAccept(connection, message);
+                lifeCycleHandler.onBeforeWrite(connection, message);
+            }
+            
             write0(nioConnection, dstAddress, message, writeResult,
                     timeout, timeunit);
 
-            // Call PushBackHandler after data is written.
-            // IMO It has more sense for blocking case 
-            if (pushBackHandler != null) {
-                pushBackHandler.onAccept(connection, message);
-            }
-            
             if (completionHandler != null) {
                 completionHandler.completed(writeResult);
             }
@@ -204,6 +203,45 @@ public abstract class TemporarySelectorWriter
         return transport;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite(final Connection connection) {
+        return canWrite(connection, 1);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite(final Connection connection, final int size) {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyWritePossible(final Connection connection,
+            final WriteHandler writeHandler) {
+        notifyWritePossible(connection, writeHandler, 1);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyWritePossible(final Connection connection,
+            final WriteHandler writeHandler, final int size) {
+        try {
+            writeHandler.onWritePossible();
+        } catch (Throwable t) {
+            writeHandler.onError(t);
+        }
+    }
+
+    
     protected abstract long writeNow0(NIOConnection connection,
             SocketAddress dstAddress, WritableMessage message,
             WriteResult<WritableMessage, SocketAddress> currentResult)

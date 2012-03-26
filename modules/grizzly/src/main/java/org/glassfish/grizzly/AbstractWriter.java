@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,13 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.threadpool.WorkerThread;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -51,6 +56,28 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public abstract class AbstractWriter<L> implements Writer<L> {
+    private final ThreadLocal<AsyncQueueWriter.Reentrant> REENTRANTS_COUNTER =
+            new ThreadLocal<AsyncQueueWriter.Reentrant>() {
+
+        @Override
+        protected Reentrant initialValue() {
+            return new AsyncQueueWriter.Reentrant();
+        }
+    };
+
+    private final Attribute<AsyncQueueWriter.Reentrant> reentrantsAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            AbstractNIOAsyncQueueWriter.class.getName() + hashCode() + ".reentrant",
+            new NullaryFunction<AsyncQueueWriter.Reentrant>() {
+
+                @Override
+                public AsyncQueueWriter.Reentrant evaluate() {
+                    return new AsyncQueueWriter.Reentrant();
+                }
+            });
+
+
+    protected volatile int maxWriteReentrants = 10;    
 
     /**
      * {@inheritDoc}
@@ -99,4 +126,44 @@ public abstract class AbstractWriter<L> implements Writer<L> {
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
         write(connection, dstAddress, message, completionHandler, null);
     }
+    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AsyncQueueWriter.Reentrant getWriteReentrant() {
+        final Thread t = Thread.currentThread();
+        // If it's a Grizzly WorkerThread - use GrizzlyAttribute
+        if (WorkerThread.class.isAssignableFrom(t.getClass())) {
+            return reentrantsAttribute.get((WorkerThread) t);
+        }
+
+        // ThreadLocal otherwise
+        return REENTRANTS_COUNTER.get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isMaxReentrantsReached(final AsyncQueueWriter.Reentrant reentrant) {
+        return reentrant.get() >= getMaxWriteReentrants();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getMaxWriteReentrants() {
+        return maxWriteReentrants;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMaxWriteReentrants(int maxWriteReentrants) {
+        this.maxWriteReentrants = maxWriteReentrants;
+    }    
 }

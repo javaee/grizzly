@@ -767,7 +767,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 final NIOConnection connection = (NIOConnection) ctx.getConnection();
 
                 connection.attachToSelectorRunner(distributor.getSelectorRunner());
-                connection.enableIOEvent(IOEvent.READ);
+                connection.enableServiceEventInterest(ServiceEvent.READ);
                 
                 return ctx.getInvokeAction();
             }
@@ -858,6 +858,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     // --------------------------------------------------------- Private Methods
 
 
+    @SuppressWarnings("unchecked")
     protected void doTestParallelWrites(int packetsNumber,
                                         int size,
                                         boolean blocking) throws Exception {

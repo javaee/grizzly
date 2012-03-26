@@ -106,31 +106,31 @@ public interface ConnectionProbe {
     public void onCloseEvent(Connection connection);
 
     /**
-     * Method will be called, when {@link IOEvent} for the specific
+     * Method will be called, when {@link ServiceEvent} for the specific
      * {@link Connection} gets ready.
      *
      * @param connection {@link Connection}, the event belongs to.
-     * @param ioEvent {@link IOEvent}.
+     * @param serviceEvent {@link ServiceEvent}.
      */
-    public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent);
+    public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent);
 
     /**
-     * Method will be called, when {@link IOEvent} for the specific
+     * Method will be called, when {@link ServiceEvent} for the specific
      * {@link Connection} gets enabled.
      *
      * @param connection {@link Connection}, the event belongs to.
-     * @param ioEvent {@link IOEvent}.
+     * @param serviceEvent {@link ServiceEvent}.
      */
-    public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent);
+    public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent);
 
     /**
-     * Method will be called, when {@link IOEvent} for the specific
+     * Method will be called, when {@link ServiceEvent} for the specific
      * {@link Connection} gets disabled.
      *
      * @param connection {@link Connection}, the event belongs to.
-     * @param ioEvent {@link IOEvent}.
+     * @param serviceEvent {@link ServiceEvent}.
      */
-    public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent);
+    public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -193,19 +193,19 @@ public interface ConnectionProbe {
          * {@inheritDoc}
          */
         @Override
-        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {}
+        public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {}
+        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {}
+        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {}
 
     } // END Adapter
 

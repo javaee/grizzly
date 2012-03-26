@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,7 +105,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             ctx.setAddress(address);
 
             if (!connection.isConnected()) {
-                connection.enableIOEvent(IOEvent.READ);
+                connection.enableServiceEventInterest(ServiceEvent.READ);
             }
         } else {
             readResult.recycle();
@@ -140,7 +140,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
 
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
         
         if (event.type() == TransportFilter.FlushEvent.TYPE) {
             final Connection connection = ctx.getConnection();

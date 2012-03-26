@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,38 +43,51 @@ import org.glassfish.grizzly.Connection;
 
 /**
  * Callback handler, which will be called by Grizzly {@link org.glassfish.grizzly.Writer}
- * implementation, if message can not be neither written nor added to write queue
- * at the moment due to I/O or memory limitations.
- * User may perform one of the actions proposed by {@link PushBackContext} or
- * implement any other custom processing logic.
+ * implementation, during the message write process execution.
  * 
- * @since 2.2
+ * @since 2.3
  * 
  * @author Alexey Stashok
  */
-public interface PushBackHandler {
-
-    /**
-     * The method is invoked once message is accepted by
-     * {@link org.glassfish.grizzly.Writer}. It means either message was written
-     * or scheduled to be written asynchronously.
-     * 
-     * @param connection {@link Connection}
-     * @param message {@link WritableMessage}
-     */
-    public void onAccept(Connection connection, WritableMessage message);
-
-    /**
-     * The method is invoked if message was refused by {@link org.glassfish.grizzly.Writer}
-     * due to I/O or memory limitations.
-     * At this point user can perform one of the actions proposed by {@link PushBackContext},
-     * or implement any custom processing logic.
-     * 
-     * @param connection {@link Connection}
-     * @param message {@link WritableMessage}
-     * @param pushBackContext {@link PushBackContext}
-     */
-    public void onPushBack(Connection connection, WritableMessage message,
-            PushBackContext pushBackContext);
+public interface LifeCycleHandler {
     
+    /**
+     * This method is invoked, when message write process can not be completed
+     * in this thread (thread which initialized write process).
+     * 
+     * @param connection {@link Connection}
+     * @param message {@link WritableMessage}
+     */
+    public void onThreadContextSwitch(Connection connection, WritableMessage message);
+
+    /**
+     * This method is invoked, when message is about to be written to the channel.
+     * 
+     * @param connection {@link Connection}
+     * @param message {@link WritableMessage}
+     */
+    public void onBeforeWrite(Connection connection, WritableMessage message);
+    
+    /**
+     * Empty {@link LifeCycleHandler} implementation.
+     */
+    public static class Adapter
+            implements LifeCycleHandler {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onThreadContextSwitch(final Connection connection,
+                final WritableMessage message) {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onBeforeWrite(final Connection connection,
+                final WritableMessage message) {
+        }
+    }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,15 +43,13 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * Thrown when an attempt is made to add a {@link org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord} that exceeds
+ * Thrown when an attempt is made to add a record that exceeds
  * the configured maximum queue size.
- *
- * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
- * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
  *
  * @since 2.0
  */
 public final class PendingWriteQueueLimitExceededException extends IOException {
+    private static final long serialVersionUID = -7713985866708297095L;
 
     public PendingWriteQueueLimitExceededException() {
         super();

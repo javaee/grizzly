@@ -43,7 +43,6 @@ import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.HttpProbe;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
@@ -88,6 +87,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.glassfish.grizzly.*;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.server.util.MimeType;
@@ -934,22 +934,9 @@ public class FileCacheTest {
         }
     }
 
-    private static class StatsConnectionProbe implements ConnectionProbe {
+    private static class StatsConnectionProbe extends ConnectionProbe.Adapter {
         final AtomicLong sentBytesCounter = new AtomicLong();
         final AtomicInteger receivedCounter = new AtomicInteger();
-
-        @Override
-        public void onBindEvent(Connection connection) {
-        }
-
-        @Override
-        public void onAcceptEvent(Connection serverConnection,
-                Connection clientConnection) {
-        }
-
-        @Override
-        public void onConnectEvent(Connection connection) {
-        }
 
         @Override
         public void onReadEvent(Connection connection, Buffer data, int size) {
@@ -962,26 +949,6 @@ public class FileCacheTest {
         }
 
         @Override
-        public void onErrorEvent(Connection connection, Throwable error) {
-        }
-
-        @Override
-        public void onCloseEvent(Connection connection) {
-        }
-
-        @Override
-        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
-        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
-        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
         public String toString() {
             final StringBuilder sb = new StringBuilder("connection-stats[received=")
             .append(receivedCounter.get())
@@ -990,10 +957,9 @@ public class FileCacheTest {
 
             return sb.toString();
         }
-
     }
 
-    private static class StatsHttpProbe implements HttpProbe {
+    private static class StatsHttpProbe extends HttpProbe.Adapter {
         final AtomicInteger sentBytesCounter = new AtomicInteger();
         final AtomicInteger receivedCounter = new AtomicInteger();
 
@@ -1005,42 +971,6 @@ public class FileCacheTest {
         @Override
         public void onDataSentEvent(Connection connection, Buffer buffer) {
             sentBytesCounter.addAndGet(buffer.remaining());
-        }
-
-        @Override
-        public void onHeaderParseEvent(Connection connection, HttpHeader header, int size) {
-        }
-
-        @Override
-        public void onHeaderSerializeEvent(Connection connection, HttpHeader header, Buffer buffer) {
-        }
-
-        @Override
-        public void onContentChunkParseEvent(Connection connection, HttpContent content) {
-        }
-
-        @Override
-        public void onContentChunkSerializeEvent(Connection connection, HttpContent content) {
-        }
-
-        @Override
-        public void onContentEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
-        }
-
-        @Override
-        public void onContentEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
-        }
-
-        @Override
-        public void onTransferEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
-        }
-
-        @Override
-        public void onTransferEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
-        }
-
-        @Override
-        public void onErrorEvent(Connection connection, HttpPacket packet, Throwable error) {
         }
 
         @Override

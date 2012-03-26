@@ -50,7 +50,7 @@ import java.util.ListIterator;
 /**
  * {@link ProcessorSelector} implementation, which acts like wrapper for chain
  * of {@link ProcessorSelector}s.
- * So, when {@link ProcessorSelector#select(IOEvent, Connection)} operation is
+ * So, when {@link ProcessorSelector#select(Event, Connection)} operation is
  * called - it delegates selecting to the first {@link ProcessorSelector} from
  * chain. If first {@link ProcessorSelector} returns not <tt>null</tt>
  * {@link Processor} - {@link ChainProcessorSelector} returns it as result,
@@ -79,10 +79,10 @@ public class ChainProcessorSelector implements ProcessorSelector,
      * {@inheritDoc}
      */
     @Override
-    public Processor select(IOEvent ioEvent,
+    public Processor select(Event event,
             Connection connection) {
         for(ProcessorSelector processorSelector : selectorChain) {
-            Processor processor = processorSelector.select(ioEvent, connection);
+            Processor processor = processorSelector.select(event, connection);
             if (processor != null) {
                 return processor;
             }

@@ -53,10 +53,10 @@ public final class ProcessorExecutor {
     private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 
     public static void execute(final Connection connection,
-            final IOEvent ioEvent, final Processor processor,
-            final IOEventProcessingHandler processingHandler) {
+            final ServiceEvent serviceEvent, final Processor processor,
+            final ServiceEventProcessingHandler processingHandler) {
 
-        execute(Context.create(connection, processor, ioEvent,
+        execute(Context.create(connection, processor, serviceEvent,
                 processingHandler));
     }
    
@@ -64,8 +64,8 @@ public final class ProcessorExecutor {
     public static void execute(Context context) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST,
-                    "executing connection ({0}). IOEvent={1} processor={2}",
-                    new Object[]{context.getConnection(), context.getIoEvent(),
+                    "executing connection ({0}). ServiceEvent={1} processor={2}",
+                    new Object[]{context.getConnection(), context.getEvent(),
                     context.getProcessor()});
         }
 
@@ -127,7 +127,7 @@ public final class ProcessorExecutor {
     private static void complete(final Context context, final Object data)
             throws IOException {
 
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
         try {
@@ -140,7 +140,7 @@ public final class ProcessorExecutor {
     }
 
     private static void leave(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         try {
@@ -158,7 +158,7 @@ public final class ProcessorExecutor {
         // "Context context" was suspended, so we reregister with its copy
         // which is passed as "Object data"
         final Context realContext = (Context) data;
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         try {
@@ -171,7 +171,7 @@ public final class ProcessorExecutor {
     }
 
     private static void terminate(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         if (processingHandler != null) {
@@ -182,7 +182,7 @@ public final class ProcessorExecutor {
     private static void rerun(final Context context, final Context newContext)
             throws IOException {
         
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         if (processingHandler != null) {
@@ -192,7 +192,7 @@ public final class ProcessorExecutor {
 
     private static void error(final Context context, final Object description)
             throws IOException {
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
         try {
@@ -206,7 +206,7 @@ public final class ProcessorExecutor {
     }
 
     private static void notRun(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
+        final ServiceEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         try {
             if (processingHandler != null) {

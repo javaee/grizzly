@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,8 +47,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
@@ -132,8 +132,6 @@ public final class FilterChainContext implements AttributeStorage {
      */
     protected CompletionHandler<FilterChainContext> operationCompletionHandler;
     
-    private final Runnable contextRunnable;
-
     /**
      * Context associated message
      */
@@ -142,7 +140,7 @@ public final class FilterChainContext implements AttributeStorage {
     /**
      * Context associated event, if EVENT operation
      */
-    protected FilterChainEvent event;
+    protected Event event;
     
     /**
      * Context associated source address
@@ -170,43 +168,43 @@ public final class FilterChainContext implements AttributeStorage {
     
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
-
-        contextRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (state == State.SUSPEND) {
-                        state = State.RUNNING;
-                    }
-
-                    ProcessorExecutor.execute(FilterChainContext.this.internalContext);
-                } catch (Exception e) {
-                    logger.log(Level.FINE, "Exception during running Processor", e);
-                }
-            }
-        };
     }
 
     /**
      * Suspend processing of the current task
      */
-    public Runnable suspend() {
+    public void suspend() {
         internalContext.suspend();
         
         this.state = State.SUSPEND;
-        return getRunnable();
     }
 
     /**
-     * Resume processing of the current task
+     * Resume processing of the current task starting from the Filter, which
+     * suspend the processing
      */
     public void resume() {
         internalContext.resume();
-        
-        getRunnable().run();
+        try {
+            if (state == State.SUSPEND) {
+                state = State.RUNNING;
+            }
+
+            ProcessorExecutor.execute(FilterChainContext.this.internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
     }
 
-
+    /**
+     * Resume processing of the current task starting from the Filter, which
+     * follows the Filter, which suspend the processing.
+     */
+    public void resumeNext() {
+        setFilterIdx(ExecutorResolver.resolve(this).getNextFilter(this));
+        resume();
+    }
+    
     /**
      * Get the current processing task state.
      * @return the current processing task state.
@@ -215,19 +213,11 @@ public final class FilterChainContext implements AttributeStorage {
         return state;
     }
 
-    public int nextFilterIdx() {
-        return ++filterIdx;
-    }
-
-    public int previousFilterIdx() {
-        return --filterIdx;
-    }
-
     public int getFilterIdx() {
         return filterIdx;
     }
 
-    public void setFilterIdx(int index) {
+    protected void setFilterIdx(int index) {
         this.filterIdx = index;
     }
 
@@ -235,7 +225,7 @@ public final class FilterChainContext implements AttributeStorage {
         return startIdx;
     }
 
-    public void setStartIdx(int startIdx) {
+    protected void setStartIdx(int startIdx) {
         this.startIdx = startIdx;
     }
 
@@ -243,7 +233,7 @@ public final class FilterChainContext implements AttributeStorage {
         return endIdx;
     }
 
-    public void setEndIdx(int endIdx) {
+    protected void setEndIdx(int endIdx) {
         this.endIdx = endIdx;
     }
 
@@ -302,29 +292,25 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
-     * Get address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
-     * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * Get address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
+     * When we process {@link org.glassfish.grizzly.ServiceEvent#READ} event - it represents sender address,
+     * or when process {@link org.glassfish.grizzly.ServiceEvent#WRITE} - address of receiver.
      * 
-     * @return address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
+     * @return address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
      */
     public Object getAddress() {
         return address;
     }
 
     /**
-     * Set address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
-     * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * Set address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
+     * When we process {@link org.glassfish.grizzly.ServiceEvent#READ} event - it represents sender address,
+     * or when process {@link org.glassfish.grizzly.ServiceEvent#WRITE} - address of receiver.
      *
-     * @param address address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
+     * @param address address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
      */
     public void setAddress(Object address) {
         this.address = address;
-    }
-
-    protected final Runnable getRunnable() {
-        return contextRunnable;
     }
 
     /**
@@ -402,7 +388,7 @@ public final class FilterChainContext implements AttributeStorage {
     /**
      * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
      * to suspend the current {@link FilterChainContext}, but does not disable
-     * correspondent {@link IOEvent}, so if the same {@link IOEvent} occurs on
+     * correspondent {@link ServiceEvent}, so if the same {@link ServiceEvent} occurs on
      * the {@link Connection} - it will be processed using new
      * {@link FilterChainContext}.
      */
@@ -513,13 +499,11 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public ReadResult read() throws IOException {
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection());
+                getFilterChain().obtainFilterChainContext(getConnection(),
+                0, filterIdx, 0);
         
         newContext.setOperation(Operation.READ);
         newContext.getTransportContext().configureBlocking(true);
-        newContext.setStartIdx(0);
-        newContext.setFilterIdx(0);
-        newContext.setEndIdx(filterIdx);
         newContext.customAttributes = getAttributes();
 
         final ReadResult rr = getFilterChain().read(newContext);
@@ -587,12 +571,12 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler) {
+                      final LifeCycleHandler lifeCycleHandler) {
         
         write(address,
               message,
               completionHandler,
-              pushBackHandler,
+              lifeCycleHandler,
               transportFilterContext.isBlocking());
     }
 
@@ -600,12 +584,12 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final LifeCycleHandler lifeCycleHandler,
                       final boolean blocking) {
         write(address,
               message,
               completionHandler,
-              pushBackHandler,
+              lifeCycleHandler,
               null,
               transportFilterContext.isBlocking());
         
@@ -614,13 +598,13 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final LifeCycleHandler lifeCycleHandler,
                       final MessageCloner cloner) {
         
         write(address,
               message,
               completionHandler,
-              pushBackHandler,
+              lifeCycleHandler,
               cloner,
               transportFilterContext.isBlocking());
     }
@@ -629,23 +613,21 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final LifeCycleHandler lifeCycleHandler,
                       final MessageCloner cloner,
                       final boolean blocking) {
 
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection());
+                getFilterChain().obtainFilterChainContext(getConnection(),
+                filterIdx - 1, -1, filterIdx - 1);
 
         newContext.setOperation(Operation.WRITE);
         newContext.getTransportContext().configureBlocking(blocking);
         newContext.setMessage(message);
         newContext.setAddress(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
-        newContext.transportFilterContext.pushBackHandler = pushBackHandler;
+        newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
         newContext.transportFilterContext.cloner = cloner;
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
         newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -653,57 +635,60 @@ public final class FilterChainContext implements AttributeStorage {
 
     public void flush(final CompletionHandler completionHandler) {
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection());
+                getFilterChain().obtainFilterChainContext(getConnection(),
+                filterIdx - 1, -1, filterIdx - 1);
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = TransportFilter.createFlushEvent(completionHandler);
         newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
         newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
         newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
-    public void notifyUpstream(final FilterChainEvent event) {
+    public void notifyUpstream(final Event event) {
         notifyUpstream(event, null);
     }
 
-    public void notifyUpstream(final FilterChainEvent event,
+    public void notifyUpstream(final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
         
+        if (ServiceEvent.isServiceEvent(event)) {
+            throw new IllegalArgumentException("Event argument can not be ServiceEvent");
+        }
+        
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection());
+                getFilterChain().obtainFilterChainContext(getConnection(),
+                filterIdx + 1, endIdx, filterIdx + 1);
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
         newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx + 1);
-        newContext.setFilterIdx(filterIdx + 1);
-        newContext.setEndIdx(endIdx);
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
-    public void notifyDownstream(final FilterChainEvent event) {
+    public void notifyDownstream(final Event event) {
         notifyDownstream(event, null);
     }
 
-    public void notifyDownstream(final FilterChainEvent event,
+    public void notifyDownstream(final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
+        
+        if (ServiceEvent.isServiceEvent(event)) {
+            throw new IllegalArgumentException("Event argument can not be ServiceEvent");
+        }
+        
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection());
+                getFilterChain().obtainFilterChainContext(getConnection(),
+                filterIdx - 1, -1, filterIdx - 1);
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
         newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
 
@@ -783,15 +768,12 @@ public final class FilterChainContext implements AttributeStorage {
     public FilterChainContext copy() {
         final FilterChain p = getFilterChain();
         final FilterChainContext newContext =
-                p.obtainFilterChainContext(getConnection());
+                p.obtainFilterChainContext(getConnection(),
+                getStartIdx(), getEndIdx(), getFilterIdx());
         newContext.setOperation(getOperation());
         
         internalContext.softCopyTo(newContext.internalContext);
         
-        newContext.setStartIdx(getStartIdx());
-        newContext.setEndIdx(getEndIdx());
-        newContext.setFilterIdx(getFilterIdx());
-
         notifyCopy(this, newContext, copyListeners);
         return newContext;        
     }
@@ -834,10 +816,10 @@ public final class FilterChainContext implements AttributeStorage {
         return sb.toString();
     }
 
-    static Operation ioEvent2Operation(final IOEvent ioEvent) {
-        switch(ioEvent) {
+    static Operation serviceEvent2Operation(final ServiceEvent serviceEvent) {
+        switch(serviceEvent) {
             case READ: return Operation.READ;
-            case WRITE: return Operation.WRITE;
+            case USER_WRITE: return Operation.WRITE;
             case ACCEPTED: return Operation.ACCEPT;
             case CONNECTED: return Operation.CONNECT;
             case CLOSED: return Operation.CLOSE;
@@ -848,7 +830,7 @@ public final class FilterChainContext implements AttributeStorage {
     public static final class TransportContext {
         private boolean isBlocking;
         CompletionHandler completionHandler;
-        PushBackHandler pushBackHandler;
+        LifeCycleHandler lifeCycleHandler;
         MessageCloner cloner;
 
         public void configureBlocking(boolean isBlocking) {
@@ -867,12 +849,12 @@ public final class FilterChainContext implements AttributeStorage {
             this.completionHandler = completionHandler;
         }
 
-        public PushBackHandler getPushBackHandler() {
-            return pushBackHandler;
+        public LifeCycleHandler getLifeCycleHandler() {
+            return lifeCycleHandler;
         }
 
-        public void setPushBackHandler(PushBackHandler pushBackHandler) {
-            this.pushBackHandler = pushBackHandler;
+        public void setLifeCycleHandler(final LifeCycleHandler lifeCycleHandler) {
+            this.lifeCycleHandler = lifeCycleHandler;
         }
         
         public MessageCloner getMessageCloner() {
@@ -886,7 +868,7 @@ public final class FilterChainContext implements AttributeStorage {
         void reset() {
             isBlocking = false;
             completionHandler = null;
-            pushBackHandler = null;
+            lifeCycleHandler = null;
             cloner = null;
         }
     }

@@ -61,6 +61,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
@@ -261,7 +262,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
+            final Event event) throws IOException {
 
         final Connection c = ctx.getConnection();
         

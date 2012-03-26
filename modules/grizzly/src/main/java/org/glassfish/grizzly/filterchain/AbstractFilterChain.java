@@ -40,10 +40,8 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.util.EnumSet;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -55,9 +53,6 @@ import org.glassfish.grizzly.IOEvent;
  * @author Alexey Stashok
  */
 public abstract class AbstractFilterChain implements FilterChain {
-    // By default interested in all client connection related events
-    protected final EnumSet<IOEvent> interestedIoEventsMask = EnumSet.allOf(IOEvent.class);
-
     /**
      * {@inheritDoc}
      */
@@ -74,26 +69,6 @@ public abstract class AbstractFilterChain implements FilterChain {
         return -1;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isInterested(final IOEvent ioEvent) {
-        return interestedIoEventsMask.contains(ioEvent);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setInterested(final IOEvent ioEvent, final boolean isInterested) {
-        if (isInterested) {
-            interestedIoEventsMask.add(ioEvent);
-        } else {
-            interestedIoEventsMask.remove(ioEvent);
-        }
-    }
-
     @Override
     public final FilterChainContext obtainFilterChainContext(
             final Connection connection) {
@@ -102,6 +77,20 @@ public abstract class AbstractFilterChain implements FilterChain {
         context.internalContext.setProcessor(this);
         return context;
     }
+
+    @Override
+    public FilterChainContext obtainFilterChainContext(
+            final Connection connection, final int startIdx, final int endIdx,
+            final int currentIdx) {
+        final FilterChainContext ctx = obtainFilterChainContext(connection);
+        
+        ctx.setStartIdx(startIdx);
+        ctx.setEndIdx(endIdx);
+        ctx.setFilterIdx(currentIdx);
+        
+        return ctx;
+    }
+
 
     /**
      * {@inheritDoc}
