@@ -82,15 +82,7 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     public enum CacheType {
-        HEAP, MAPPED, TIMESTAMP
-    }
-
-    public enum CacheResult {
-        OK_CACHED,
-        OK_CACHED_TIMESTAMP,
-        FAILED_CACHE_FULL,
-        FAILED_ENTRY_EXISTS,
-        FAILED
+        HEAP, MAPPED
     }
 
     private static final Logger logger = Grizzly.logger(FileCache.class);
@@ -184,19 +176,17 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      * Add a resource to the cache. Currently, only static resources served
      * by the DefaultServlet can be cached.
      */
-    public CacheResult add(final HttpRequestPacket request, File cacheFile) {
+    public void add(final HttpRequestPacket request, File cacheFile) {
 
         final String requestURI = request.getRequestURI();
-
-        if (requestURI == null) {
-            return CacheResult.FAILED;
-        }
-
         final String host = request.getHeader(Header.Host);
+        final HttpResponsePacket response = request.getResponse();
+        final MimeHeaders headers = response.getHeaders();
+
         final FileCacheKey key = new FileCacheKey(host, requestURI);
-        if(fileCacheMap.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
+        if (requestURI == null || fileCacheMap.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
             key.recycle();
-            return CacheResult.FAILED_ENTRY_EXISTS;
+            return;
         }
 
         final int size = cacheSize.incrementAndGet();
@@ -205,18 +195,17 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             cacheSize.decrementAndGet();
             fileCacheMap.remove(key);
             key.recycle();
-            return CacheResult.FAILED_CACHE_FULL;
+            return;
         }
 
-        FileCacheEntry entry = mapFile(cacheFile);
+        final FileCacheEntry entry = mapFile(cacheFile);
 
+        // Always put the answer into the map. If it's null, then
+        // we know that it doesn't fit into the cache, so there's no
+        // reason to go through this code again.
         if (entry == null) {
-            entry = new FileCacheEntry(this);
-            entry.type = CacheType.TIMESTAMP;
+            return;
         }
-
-        final HttpResponsePacket response = request.getResponse();
-        final MimeHeaders headers = response.getHeaders();
 
         entry.key = key;
         entry.requestURI = requestURI;
@@ -238,10 +227,6 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         if (secondsMaxAgeLocal > 0) {
             delayQueue.add(entry, secondsMaxAgeLocal, TimeUnit.SECONDS);
         }
-
-        return ((entry.type == CacheType.TIMESTAMP)
-                    ? CacheResult.OK_CACHED_TIMESTAMP
-                    : CacheResult.OK_CACHED);
     }
 
 
@@ -379,7 +364,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
         response.setContentType(entry.contentType);
 
-        if (entry.type != CacheType.TIMESTAMP && flushBody) {
+        if (flushBody) {
             addCachingHeaders(entry, response);
             response.setContentLengthLong(entry.contentLength);
 
@@ -600,6 +585,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 // client's If-Modified-Since header is the same as what
                 // was originally sent
                 if (reqModified.equals(entry.lastModifiedHeader)) {
+                    //System.out.println("String comp pass - 304");
                     HttpStatus.NOT_MODIFIED_304.setValues(response);
                     return false;
                 }
@@ -608,6 +594,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                     long lastModified = entry.lastModified;
                     // If an If-None-Match header has been specified,
                     // If-Modified-Since is ignored.
+                    //System.out.println("long date check: " + (headerValue - lastModified));
                     if ((request.getHeader(Header.IfNoneMatch) == null)
                             && (headerValue - lastModified <= 1000)) {
                         // The entity has not been modified since the date
