@@ -453,7 +453,7 @@ public class FileCacheTest {
         responseFuture.reset();
         final String ifModifiedSinceValue = convertToDate(file.lastModified());
         for (int i = 0; i < 1000; i++) {
-            System.out.println(i);
+//            System.out.println(i);
             final HttpRequestPacket request2 = HttpRequestPacket.builder()
                     .method("GET")
                     .uri(requestPath)

@@ -76,6 +76,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.utils.DelayFilter;
 
 public class NIOOutputSinksTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
@@ -123,12 +124,9 @@ public class NIOOutputSinksTest extends TestCase {
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
-                StringBuilder sb = new StringBuilder(remaining);
-                
                 if (b.hasRemaining()) {
-                    sb.append(b.toStringContent());
                     try {
-                        check(sb, bytesRead % LENGTH, remaining);
+                        check(b.toStringContent(), bytesRead % LENGTH, remaining, LENGTH);
                     } catch (Exception e) {
                         parseResult.failure(e);
                     }
@@ -243,6 +241,122 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
     
+    public void testBlockingBinaryOutputSink() throws Exception {
+
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        final int bufferSize = 4096;
+        final int maxPendingWriteQueueSize = bufferSize * 3 / 4;
+        final int bytesToSend = bufferSize * 1024 * 4;
+        
+        listener.setMaxPendingBytes(maxPendingWriteQueueSize);
+        server.addListener(listener);
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new DelayFilter(5, 0));
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            private int bytesRead;
+            
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpContent message = (HttpContent) ctx.getMessage();
+                Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                if (b.hasRemaining()) {
+                    try {
+                        check(b.toStringContent(), bytesRead % bufferSize, remaining, bufferSize);
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                    
+                    bytesRead += remaining;
+                }
+                
+                if (message.isLast()) {
+                    parseResult.result(bytesRead);
+                }
+                return ctx.getStopAction();
+            }
+        });
+
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final AtomicInteger writeCounter = new AtomicInteger();
+        final HttpHandler ga = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setContentType("text/plain");
+                final NIOOutputStream out = response.getOutputStream();
+
+                int sent = 0;
+                
+                byte[] b = new byte[bufferSize];
+                fill(b);
+                while (sent < bytesToSend) {
+                    out.write(b);
+                    sent += bufferSize;
+                    writeCounter.addAndGet(bufferSize);
+                    assertTrue(request.getContext().getConnection().canWrite());
+                }
+            }
+        };
+
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                int length = parseResult.get(10000, TimeUnit.SECONDS);
+                System.out.println("l=" + bytesToSend + " length=" + length);
+                assertEquals("Received " + length + " bytes", bytesToSend, length);
+            } finally {
+                LOGGER.log(Level.INFO, "Written {0}", writeCounter);
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
     
     public void testCharacterOutputSink() throws Exception {
 
@@ -286,12 +400,9 @@ public class NIOOutputSinksTest extends TestCase {
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
-                StringBuilder sb = new StringBuilder(remaining);
-                
                 if (b.hasRemaining()) {
-                    sb.append(b.toStringContent());
                     try {
-                        check(sb, bytesRead % LENGTH, remaining);
+                        check(b.toStringContent(), bytesRead % LENGTH, remaining, LENGTH);
                     } catch (Exception e) {
                         parseResult.failure(e);
                     }
@@ -410,6 +521,123 @@ public class NIOOutputSinksTest extends TestCase {
     }
 
 
+    public void testBlockingCharacterOutputSink() throws Exception {
+
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        final int bufferSize = 4096;
+        final int maxPendingWriteQueueSize = bufferSize * 3 / 4;
+        final int bytesToSend = bufferSize * 1024 * 4;
+        
+        listener.setMaxPendingBytes(maxPendingWriteQueueSize);
+        server.addListener(listener);
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new DelayFilter(5, 0));
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            private int bytesRead;
+            
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpContent message = (HttpContent) ctx.getMessage();
+                Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                if (b.hasRemaining()) {
+                    try {
+                        check(b.toStringContent(), bytesRead % bufferSize, remaining, bufferSize);
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                    
+                    bytesRead += remaining;
+                }
+                
+                if (message.isLast()) {
+                    parseResult.result(bytesRead);
+                }
+                return ctx.getStopAction();
+            }
+        });
+
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final AtomicInteger writeCounter = new AtomicInteger();
+        final HttpHandler ga = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setContentType("text/plain");
+                final NIOWriter out = response.getWriter();
+
+                int sent = 0;
+                
+                char[] b = new char[bufferSize];
+                fill(b);
+                while (sent < bytesToSend) {
+                    out.write(b);
+                    sent += bufferSize;
+                    writeCounter.addAndGet(bufferSize);
+                    assertTrue(request.getContext().getConnection().canWrite());
+                }
+            }
+        };
+
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                int length = parseResult.get(10000, TimeUnit.SECONDS);
+                System.out.println("l=" + bytesToSend + " length=" + length);
+                assertEquals("Received " + length + " bytes", bytesToSend, length);
+            } finally {
+                LOGGER.log(Level.INFO, "Written {0}", writeCounter);
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
     public void testWriteExceptionPropagation() throws Exception {
         final int LENGTH = 1024;
         
@@ -812,12 +1040,9 @@ public class NIOOutputSinksTest extends TestCase {
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
-                StringBuilder sb = new StringBuilder(remaining);
-                
                 if (b.hasRemaining()) {
-                    sb.append(b.toStringContent());
                     try {
-                        check(sb, bytesRead % LENGTH, remaining);
+                        check(b.toStringContent(), bytesRead % LENGTH, remaining, LENGTH);
                     } catch (Exception e) {
                         parseResult.failure(e);
                     }
@@ -922,16 +1147,16 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
 
-    private static void check(StringBuilder sb, int lastCameSize) {
-        check(sb, 0, lastCameSize);
-    }
+//    private static void check(String s, int lastCameSize, int bufferSize) {
+//        check(s, 0, lastCameSize, bufferSize);
+//    }
 
-    private static void check(StringBuilder sb, int offset, int lastCameSize) {
-        final int start = sb.length() - lastCameSize;
+    private static void check(String s, int offset, int lastCameSize, int bufferSize) {
+        final int start = s.length() - lastCameSize;
 
         for (int i=0; i<lastCameSize; i++) {
-            final char c = sb.charAt(start + i);
-            final char expect = (char) ('a' + (i + start + offset) % ('z' - 'a'));
+            final char c = s.charAt(start + i);
+            final char expect = (char) ('a' + ((i + start + offset) % bufferSize) % ('z' - 'a'));
             if (c != expect) {
                 throw new IllegalStateException("Result at [" + (i + start) + "] don't match. Expected=" + expect + " got=" + c);
             }
