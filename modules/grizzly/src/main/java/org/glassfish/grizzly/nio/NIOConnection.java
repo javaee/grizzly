@@ -175,22 +175,38 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public long getReadTimeout(TimeUnit timeUnit) {
+        if (readTimeoutMillis <= 0) {
+            return readTimeoutMillis;
+        }
+        
         return timeUnit.convert(readTimeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void setReadTimeout(long timeout, TimeUnit timeUnit) {
-        readTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        if (timeout < 0) {
+            readTimeoutMillis = -1;
+        } else {
+            readTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
     }
 
     @Override
     public long getWriteTimeout(TimeUnit timeUnit) {
+        if (writeTimeoutMillis <= 0) {
+            return writeTimeoutMillis;
+        }
+        
         return timeUnit.convert(writeTimeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void setWriteTimeout(long timeout, TimeUnit timeUnit) {
-        writeTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        if (timeout < 0) {
+            writeTimeoutMillis = -1;
+        } else {
+            writeTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
     }
 
     public SelectorRunner getSelectorRunner() {
