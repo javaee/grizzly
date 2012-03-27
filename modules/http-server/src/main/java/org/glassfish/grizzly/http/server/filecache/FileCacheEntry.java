@@ -62,7 +62,8 @@ public final class FileCacheEntry implements Runnable {
     public String lastModifiedHeader;
     public long contentLength = -1;
     public long fileSize = -1;
-
+    public String keepAlive;
+    
     public volatile long timeoutMillis;
 
     private final FileCache fileCache;
@@ -74,22 +75,5 @@ public final class FileCacheEntry implements Runnable {
     @Override
     public void run() {
         fileCache.remove(this);
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("FileCacheEntry");
-        sb.append("{host='").append(host).append('\'');
-        sb.append(", requestURI='").append(requestURI).append('\'');
-        sb.append(", lastModified=").append(lastModified);
-        sb.append(", contentType='").append(contentType).append('\'');
-        sb.append(", type=").append(type);
-        sb.append(", contentLength=").append(contentLength);
-        sb.append(", fileSize=").append(fileSize);
-        sb.append(", timeoutMillis=").append(timeoutMillis);
-        sb.append(", fileCache=").append(fileCache);
-        sb.append('}');
-        return sb.toString();
     }
 }
