@@ -338,8 +338,7 @@ public class NIOOutputSinksTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                int length = parseResult.get(10000, TimeUnit.SECONDS);
-                System.out.println("l=" + bytesToSend + " length=" + length);
+                int length = parseResult.get(10, TimeUnit.SECONDS);
                 assertEquals("Received " + length + " bytes", bytesToSend, length);
             } finally {
                 LOGGER.log(Level.INFO, "Written {0}", writeCounter);
@@ -618,8 +617,7 @@ public class NIOOutputSinksTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                int length = parseResult.get(10000, TimeUnit.SECONDS);
-                System.out.println("l=" + bytesToSend + " length=" + length);
+                int length = parseResult.get(10, TimeUnit.SECONDS);
                 assertEquals("Received " + length + " bytes", bytesToSend, length);
             } finally {
                 LOGGER.log(Level.INFO, "Written {0}", writeCounter);
