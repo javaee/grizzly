@@ -790,6 +790,53 @@ public class FileCacheTest {
         assertTrue("non-empty body is expected", response2.getContent().hasRemaining());
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void test304NonCachedFile() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+        httpServer.getListener("grizzly").getFileCache().setMaxEntrySize(100);
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ContentFuture responseFuture = new ContentFuture();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        String lastModified = convertToDate(file.lastModified());
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Modified-Since", lastModified)
+                .build();
+        responseFuture.reset();
+        c.write(request2);
+        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+        assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+
+    }
+
 
     private void configureHttpServer() throws Exception {
         httpServer = new HttpServer();
