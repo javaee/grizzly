@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,10 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 
 import java.io.IOException;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.Writer;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 
 /**
  *
@@ -69,7 +73,7 @@ public class FileCacheFilter extends BaseFilter {
 
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
 
         if (fileCache.isEnabled()) {
             final HttpContent requestContent = (HttpContent) ctx.getMessage();
@@ -77,6 +81,42 @@ public class FileCacheFilter extends BaseFilter {
             final HttpPacket response = fileCache.get(request);
             if (response != null) {
                 ctx.write(response);
+
+                
+                final Connection connection = ctx.getConnection();
+                final Writer writer = connection.getTransport().getWriter(connection);
+                if (writer instanceof AsyncQueueWriter) {
+                    final AsyncQueueWriter asyncQueueWriter =
+                            (AsyncQueueWriter) writer;
+                    
+                    if (!asyncQueueWriter.canWrite(connection, 1)) {  // if connection write queue is overloaded
+                        // prepare context for suspend
+                        final NextAction suspendAction = ctx.getSuspendAction();
+                        ctx.suspend();
+
+                        // notify when connection becomes writable, so we can resume it
+                        asyncQueueWriter.notifyWritePossible(connection,
+                                new WriteHandler() {
+
+                            @Override
+                            public void onWritePossible() throws Exception {
+                                finish();
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                                finish();
+                            }
+
+                            private void finish() {
+                                ctx.resume();
+                            }
+                        }, 1);
+
+                        return suspendAction;
+                    }
+                }
+                
                 return ctx.getStopAction();
             }
         }
