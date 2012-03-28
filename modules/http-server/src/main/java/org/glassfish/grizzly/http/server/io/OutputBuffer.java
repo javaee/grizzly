@@ -685,7 +685,7 @@ public class OutputBuffer {
      */
     public boolean canWrite(final int length) {
         if (length <= 0 || getMaxAsyncWriteQueueSize() < 0 ||
-                length <= guaranteedNonBlockingUnits) {
+                (length + getBufferedDataSize()) <= guaranteedNonBlockingUnits) {
             return true;
         }
         

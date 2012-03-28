@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,7 +63,7 @@ import java.util.Set;
 
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.UEncoder;
+import org.glassfish.grizzly.http.util.URLEncoder;
 
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -318,7 +318,7 @@ public class ParametersTest {
     private static class Parameter {
         private final String name;
         private final String[] values;
-        private final UEncoder uencoder = new UEncoder();
+        private final URLEncoder uencoder = new URLEncoder();
 
         public Parameter(String name, String... values) {
             this.name = name;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -78,6 +78,10 @@ public abstract class HttpHandler {
      */
     private boolean allowEncodedSlash = false;
 
+    /**
+     * Allow request that uses encoded backslash.
+     */
+    private boolean allowEncodedBackSlash = false;
 
     /**
      * Is the URL decoded
@@ -148,7 +152,8 @@ public abstract class HttpHandler {
             if (decodeURL) {
                 // URI decoding
                 try {
-                    requestURIRef.getDecodedRequestURIBC(allowEncodedSlash);
+                    requestURIRef.getDecodedRequestURIBC(allowEncodedSlash,
+                            allowEncodedBackSlash);
                 } catch (CharConversionException e) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     response.setDetailMessage("Invalid URI: " + e.getMessage());
@@ -232,12 +237,29 @@ public abstract class HttpHandler {
     /**
      * When true, URL that contains encoded slash will be allowed. When false,
      * the URL will be rejected and considered as an invalid one.
-     * @param allowEncodedSlash true
+     * @param allowEncodedSlash
      */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
         this.allowEncodedSlash = allowEncodedSlash;
     }
 
+    /**
+     * Is HTTP URL request allowed to contains encoded backslash.
+     * @return Is HTTP URL request allowed to contains encoded backslash.
+     */
+    public boolean isAllowEncodedBackSlash() {
+        return allowEncodedSlash;
+    }
+
+    /**
+     * When true, URL that contains encoded backslash will be allowed. When false,
+     * the URL will be rejected and considered as an invalid one.
+     * @param allowEncodedBackSlash
+     */
+    public void setAllowEncodedBackSlash(boolean allowEncodedBackSlash) {
+        this.allowEncodedBackSlash = allowEncodedBackSlash;
+    }
+    
     /**
      * Get the request URI encoding used by this <tt>HttpHandler</tt>.
      * @return the request URI encoding used by this <tt>HttpHandler</tt>.

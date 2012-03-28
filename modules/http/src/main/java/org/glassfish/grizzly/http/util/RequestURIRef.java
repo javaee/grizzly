@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,7 @@ public class RequestURIRef {
     private boolean isDecoded;
     private Charset decodedURIEncoding;
     private boolean wasSlashAllowed = true;
+    private boolean wasBackSlashAllowed = true;
 
     private Charset defaultURIEncoding = UTF8_CHARSET;
 
@@ -102,18 +103,22 @@ public class RequestURIRef {
     }
 
     public final DataChunk getDecodedRequestURIBC() throws CharConversionException {
-        return getDecodedRequestURIBC(wasSlashAllowed, defaultURIEncoding);
-    }
-
-    public DataChunk getDecodedRequestURIBC(boolean isSlashAllowed)
-            throws CharConversionException {
-        return getDecodedRequestURIBC(isSlashAllowed, defaultURIEncoding);
+        return getDecodedRequestURIBC(wasSlashAllowed, wasBackSlashAllowed,
+                defaultURIEncoding);
     }
 
     public DataChunk getDecodedRequestURIBC(final boolean isSlashAllowed,
+            final boolean isBackSlashAllowed) throws CharConversionException {
+        return getDecodedRequestURIBC(isSlashAllowed, isBackSlashAllowed,
+                defaultURIEncoding);
+    }
+
+    public DataChunk getDecodedRequestURIBC(final boolean isSlashAllowed,
+            final boolean isBackSlashAllowed,
             final Charset charset) throws CharConversionException {
 
         if (isDecoded && isSlashAllowed == wasSlashAllowed
+                && isBackSlashAllowed == wasBackSlashAllowed
                 && charset == decodedURIEncoding) {
             return decodedRequestURIDC;
         }
@@ -123,10 +128,11 @@ public class RequestURIRef {
                 preallocatedDecodedURIBuffer.limit());
 
         HttpRequestURIDecoder.decode(requestURIDC, decodedRequestURIDC,
-                isSlashAllowed, charset);
+                isSlashAllowed, isBackSlashAllowed, charset);
         
         isDecoded = true;
         wasSlashAllowed = isSlashAllowed;
+        wasBackSlashAllowed = isBackSlashAllowed;
 
         decodedURIEncoding = charset;
         return decodedRequestURIDC;
@@ -145,17 +151,19 @@ public class RequestURIRef {
     }
 
     public final String getDecodedURI() throws CharConversionException {
-        return getDecodedURI(wasSlashAllowed);
+        return getDecodedURI(wasSlashAllowed, wasBackSlashAllowed);
     }
 
-    public final String getDecodedURI(final boolean isSlashAllowed) throws CharConversionException {
-        return getDecodedURI(isSlashAllowed, null);
+    public final String getDecodedURI(final boolean isSlashAllowed,
+            final boolean isBackSlashAllowed) throws CharConversionException {
+        return getDecodedURI(isSlashAllowed, isBackSlashAllowed, null);
     }
 
-    public String getDecodedURI(final boolean isSlashAllowed, Charset encoding)
+    public String getDecodedURI(final boolean isSlashAllowed,
+            final boolean isBackSlashAllowed, Charset encoding)
             throws CharConversionException {
         
-        getDecodedRequestURIBC(isSlashAllowed, encoding);
+        getDecodedRequestURIBC(isSlashAllowed, isBackSlashAllowed, encoding);
 
         return decodedRequestURIDC.toString();
     }
@@ -184,6 +192,7 @@ public class RequestURIRef {
 
         isDecoded = false;
         wasSlashAllowed = true;
+        wasBackSlashAllowed = true;
         decodedURIEncoding = null;
         defaultURIEncoding = UTF8_CHARSET;
     }

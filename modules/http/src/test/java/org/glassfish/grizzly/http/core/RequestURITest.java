@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,25 +57,19 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class RequestURITest extends TestCase {
     private final String rus = "\u043F\u0440\u0438\u0432\u0435\u0442\u043C\u0438\u0440";
+    
     private final String rusEncoded;
-    private final String url;
-    private Buffer buffer;
 
     public RequestURITest() throws Exception {
         rusEncoded = URLEncoder.encode(rus, "UTF-8");
-        url = "http://localhost:4848/management/domain/resources/jdbc-resource/" +
-                rusEncoded + "/jdbc%2F__TimerPool.xml";
     }
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-
-        buffer = Buffers.wrap(null, url);
-    }
-
 
     public void testBufferChunk() throws Exception {
+        final String url = "http://localhost:4848/management/domain/resources/jdbc-resource/" +
+                rusEncoded + "/jdbc%2F__TimerPool.xml";
+        
+        Buffer buffer = Buffers.wrap(null, url);
+        
         RequestURIRef rur = new RequestURIRef();
         DataChunk originalURIDataChunk = rur.getOriginalRequestURIBC();
         assertTrue(originalURIDataChunk.isNull());
@@ -83,26 +77,26 @@ public class RequestURITest extends TestCase {
         rur.init(buffer, 0, buffer.capacity());
 
         try {
-            rur.getDecodedRequestURIBC(false);
+            rur.getDecodedRequestURIBC(false, false);
             fail("Exception must be thrown");
         } catch (CharConversionException e) {
         }
 
         // Try wrong charset
-        DataChunk decodedDC = rur.getDecodedRequestURIBC(true,
+        DataChunk decodedDC = rur.getDecodedRequestURIBC(true, false,
                 Constants.DEFAULT_HTTP_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there shouldn't be our decoded word
         assertEquals(-1, decodedDC.toString().indexOf(rus));
 
         // Try correct charset
-        decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
+        decodedDC = rur.getDecodedRequestURIBC(true, false, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
         assertTrue(decodedDC.toString().indexOf(rus) >= 0);
 
         // One more time the same
-        decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
+        decodedDC = rur.getDecodedRequestURIBC(true, false, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
         assertTrue(decodedDC.toString().indexOf(rus) >= 0);
@@ -115,6 +109,11 @@ public class RequestURITest extends TestCase {
     }
 
     public void testURIChangeTrigger() {
+        final String url = "http://localhost:4848/management/domain/resources/jdbc-resource/" +
+                rusEncoded + "/jdbc%2F__TimerPool.xml";
+        
+        Buffer buffer = Buffers.wrap(null, url);
+
         RequestURIRef rur = new RequestURIRef();
         rur.init(buffer, 0, buffer.capacity());
 
@@ -134,4 +133,27 @@ public class RequestURITest extends TestCase {
         assertEquals(url, originalRequestURIBC.toString());
         assertEquals(url.substring(7), actualRequestURIBC.toString());
     }
+    
+    public void testBackSlashes() throws Exception {
+        final String windowsPath = "giveme\\windows\\file";
+        final String url = "http://localhost:4848/" + windowsPath;
+        final String normalizedWindowsPath = "giveme/windows/file";
+        
+        final Buffer buffer = Buffers.wrap(null, url);
+
+        RequestURIRef rur = new RequestURIRef();
+
+        rur.init(buffer, 0, buffer.capacity());
+
+        try {
+            rur.getDecodedRequestURIBC(false, false);
+            fail("Exception must be thrown");
+        } catch (CharConversionException e) {
+        }
+
+        DataChunk decodedDC = rur.getDecodedRequestURIBC(false, true);
+        // there should be our decoded word
+        assertTrue(decodedDC.toString().indexOf(normalizedWindowsPath) >= 0);
+        
+    }    
 }

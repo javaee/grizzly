@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,54 +61,10 @@ import static org.glassfish.grizzly.utils.Charsets.*;
  */
 public class HttpRequestURIDecoder {
 
-    protected static final boolean ALLOW_BACKSLASH = false;
+//    protected static final boolean ALLOW_BACKSLASH = false;
     private static final boolean COLLAPSE_ADJACENT_SLASHES =
             Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes", "true"));
     private static final Logger LOGGER = Grizzly.logger(HttpRequestURIDecoder.class);
-
-    /**
-     * Decode the http request represented by the bytes inside {@link MessageBytes}
-     * using an {@link UDecoder}.
-     * @param decodedURI - The bytes to decode
-     * @param urlDecoder - The urlDecoder to use to decode.
-     * @throws java.lang.Exception
-     */
-    public static void decode(final MessageBytes decodedURI, final UDecoder urlDecoder)
-            throws Exception {
-        decode(decodedURI, urlDecoder, null, null);
-    }
-
-    /**
-     * Decode the HTTP request represented by the bytes inside {@link MessageBytes}
-     * using an {@link UDecoder}, using the specified encoding, using the specified
-     * [@link B2CConverter} to decode the request.
-     * @param decodedURI - The bytes to decode
-     * @param urlDecoder - The urlDecoder to use to decode.
-     * @param encoding the encoding value, default is UTF-8.
-     * @param b2cConverter the Bytes to Char Converter.
-     * @throws java.lang.Exception
-     */
-    public static void decode(final MessageBytes decodedURI,
-            final UDecoder urlDecoder, String encoding,
-            final B2CConverter b2cConverter) throws Exception {
-        // %xx decoding of the URL
-        urlDecoder.convert(decodedURI, false);
-
-        if (!normalize(decodedURI)) {
-            throw new IOException("Invalid URI character encoding");
-        }
-
-        if (encoding == null) {
-            encoding = "utf-8";
-        }
-
-        convertURI(decodedURI, encoding, b2cConverter);
-
-        // Check that the URI is still normalized
-        if (!checkNormalize(decodedURI.getCharChunk())) {
-            throw new IOException("Invalid URI character encoding");
-        }
-    }
 
     /**
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
@@ -118,18 +73,20 @@ public class HttpRequestURIDecoder {
      */
     public static void decode(final DataChunk decodedURI)
             throws CharConversionException {
-        decode(decodedURI, false, UTF8_CHARSET);
+        decode(decodedURI, false, false, UTF8_CHARSET);
     }
 
     /**
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
      * @param decodedURI - The bytes to decode
      * @param isSlashAllowed allow encoded slashes
+     * @param isSlashAllowed allow encoded backslashes
      * @throws java.lang.Exception
      */
     public static void decode(final DataChunk decodedURI,
-            final boolean isSlashAllowed) throws CharConversionException {
-        decode(decodedURI, isSlashAllowed, UTF8_CHARSET);
+            final boolean isSlashAllowed, final boolean isBackSlashAllowed)
+            throws CharConversionException {
+        decode(decodedURI, isSlashAllowed, isBackSlashAllowed, UTF8_CHARSET);
     }
 
     /**
@@ -139,9 +96,11 @@ public class HttpRequestURIDecoder {
      * @throws java.lang.Exception
      */
     public static void decode(final DataChunk decodedURI,
-            final boolean isSlashAllowed, final Charset encoding)
+            final boolean isSlashAllowed, final boolean isBackSlashAllowed,
+            final Charset encoding)
             throws CharConversionException {
-        decode(decodedURI, decodedURI, isSlashAllowed, encoding);
+        decode(decodedURI, decodedURI, isSlashAllowed, isBackSlashAllowed,
+                encoding);
     }
 
     /**
@@ -154,12 +113,13 @@ public class HttpRequestURIDecoder {
      */
     public static void decode(final DataChunk originalURI,
             final DataChunk targetDecodedURI, final boolean isSlashAllowed,
-            final Charset encoding) throws CharConversionException {
+            final boolean isBackSlashAllowed, final Charset encoding)
+            throws CharConversionException {
 
         // %xx decoding of the URL
         URLDecoder.decode(originalURI, targetDecodedURI, isSlashAllowed);
 
-        if (!normalize(targetDecodedURI)) {
+        if (!normalize(targetDecodedURI, isBackSlashAllowed)) {
             throw new CharConversionException("Invalid URI character encoding");
         }
 
@@ -186,74 +146,6 @@ public class HttpRequestURIDecoder {
             throw new CharConversionException("Invalid URI character encoding");
         }
     }
-    
-    /**
-     * Convert a URI using the specified encoding, using the specified
-     * [@link B2CConverter} to decode the request.
-     * @param uri - The bytes to decode
-     * @param encoding the encoding value
-     * @param b2cConverter the Bytes to Char Converter.
-     * @throws java.lang.Exception
-     */
-    private static void convertURI(final MessageBytes uri, final String encoding,
-            B2CConverter b2cConverter) throws Exception {
-
-        final ByteChunk bc = uri.getByteChunk();
-        final CharChunk cc = uri.getCharChunk();
-        cc.allocate(bc.getLength(), -1);
-
-        if (encoding != null && encoding.trim().length() != 0
-                && !"ISO-8859-1".equalsIgnoreCase(encoding)) {
-            try {
-                if (b2cConverter == null) {
-                    b2cConverter = new B2CConverter(encoding);
-                }
-            } catch (IOException e) {
-                // Ignore
-                LOGGER.severe("Invalid URI encoding; using HTTP default");
-            }
-            if (b2cConverter != null) {
-                try {
-                    b2cConverter.convert(bc, cc);
-                    uri.setChars(cc.getBuffer(), cc.getStart(),
-                            cc.getLength());
-                    return;
-                } catch (IOException e) {
-                    LOGGER.severe("Invalid URI character encoding; trying ascii");
-                    cc.recycle();
-                }
-            }
-        }
-
-        // Default encoding: fast conversion
-        final byte[] bbuf = bc.getBuffer();
-        final char[] cbuf = cc.getBuffer();
-        int start = bc.getStart();
-        for (int i = 0; i < bc.getLength(); i++) {
-            cbuf[i] = (char) (bbuf[i + start] & 0xff);
-        }
-        uri.setChars(cbuf, 0, bc.getLength());
-
-    }
-
-    /**
-     * Normalize URI.
-     * <p>
-     * This method normalizes "\", "//", "/./" and "/../". This method will
-     * return false when trying to go above the root, or if the URI contains
-     * a null byte.
-     *
-     * @param uriMB URI to be normalized
-     */
-    public static boolean normalize(MessageBytes uriMB) {
-
-        int type = uriMB.getType();
-        if (type == MessageBytes.T_CHARS) {
-            return normalizeChars(uriMB.getCharChunk());
-        } else {
-            return normalizeBytes(uriMB.getByteChunk());
-        }
-    }
 
     /**
      * Normalize URI.
@@ -264,13 +156,14 @@ public class HttpRequestURIDecoder {
      *
      * @param dataChunk URI to be normalized
      */
-    public static boolean normalize(final DataChunk dataChunk) {
+    public static boolean normalize(final DataChunk dataChunk,
+            final boolean isBackSlashAllowed) {
 
         switch (dataChunk.getType()) {
             case Buffer:
-                return normalizeBuffer(dataChunk.getBufferChunk());
+                return normalizeBuffer(dataChunk.getBufferChunk(), isBackSlashAllowed);
             case Chars:
-                return normalizeChars(dataChunk.getCharChunk());
+                return normalizeChars(dataChunk.getCharChunk(), isBackSlashAllowed);
             case String:
                 throw new IllegalStateException("Can't normalize the string representation");
             default:
@@ -330,7 +223,8 @@ public class HttpRequestURIDecoder {
 
     }
 
-    public static boolean normalizeChars(final CharChunk uriCC) {
+    public static boolean normalizeChars(final CharChunk uriCC,
+            final boolean isBackSlashAllowed) {
         char[] c = uriCC.getChars();
         int start = uriCC.getStart();
         int end = uriCC.getEnd();
@@ -340,6 +234,8 @@ public class HttpRequestURIDecoder {
             return true;
         }
 
+        uriCC.resetStringCache();
+        
         int pos;
         int index;
 
@@ -347,7 +243,7 @@ public class HttpRequestURIDecoder {
         // Check for null char
         for (pos = start; pos < end; pos++) {
             if (c[pos] == '\\') {
-                if (ALLOW_BACKSLASH) {
+                if (isBackSlashAllowed) {
                     c[pos] = '/';
                 } else {
                     return false;
@@ -498,7 +394,8 @@ public class HttpRequestURIDecoder {
     private static final int STATE_SLASHDOT = 3;
     private static final int STATE_SLASHDOTDOT = 4;
 
-    public static boolean normalizeBytes(final ByteChunk bc) {
+    public static boolean normalizeBytes(final ByteChunk bc,
+            final boolean isBackSlashAllowed) {
         byte[] bs = bc.getBytes();
         int start = bc.getStart();
         int end = bc.getEnd();
@@ -534,7 +431,7 @@ public class HttpRequestURIDecoder {
                 return false;
             }
             if (bs[pos] == (byte) '\\') {
-                if (ALLOW_BACKSLASH) {
+                if (isBackSlashAllowed) {
                     bs[pos] = (byte) '/';
                 } else {
                     return false;
@@ -598,7 +495,8 @@ public class HttpRequestURIDecoder {
         return true;
     }
 
-    public static boolean normalizeBuffer(final BufferChunk bc) {
+    public static boolean normalizeBuffer(final BufferChunk bc,
+            final boolean isBackSlashAllowed) {
         final Buffer bs = bc.getBuffer();
         final int start = bc.getStart();
         int end = bc.getEnd();
@@ -633,18 +531,20 @@ public class HttpRequestURIDecoder {
         int parentSlash = -1;
 
         for (int pos = start; pos < end; pos++) {
-            final byte b = bs.get(pos);
+            byte b = bs.get(pos);
             if (b == (byte) 0) {
                 return false;
             }
+            
             if (b == (byte) '\\') {
-                if (ALLOW_BACKSLASH) {
+                if (isBackSlashAllowed) {
                     bs.put(pos, (byte) '/');
+                    b = '/';
                 } else {
                     return false;
                 }
             }
-
+            
             if (b == '/') {
                 if (state == STATE_CHAR) {
                     state = STATE_SLASH;

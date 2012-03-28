@@ -95,9 +95,8 @@ import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.UEncoder;
+import org.glassfish.grizzly.http.util.URLEncoder;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
@@ -242,13 +241,13 @@ public class Response {
     /**
      * URL encoder.
      */
-    protected final UEncoder urlEncoder = new UEncoder();
+    protected final URLEncoder urlEncoder = new URLEncoder();
 
 
     /**
      * Recyclable buffer to hold the redirect URL.
      */
-    protected final MessageBytes redirectURLCC = MessageBytes.newInstance();
+    protected final CharChunk redirectURLCC = new CharChunk();
 
 
     protected DelayedExecutor.DelayQueue<Response> delayQueue;
@@ -1455,13 +1454,14 @@ public class Response {
         if (leadingSlash
             || (!leadingSlash && (location.indexOf("://") == -1))) {
 
-            redirectURLCC.recycle();
-
             String scheme = request.getScheme();
 
             String name = request.getServerName();
             int port = request.getServerPort();
-            CharChunk cc = redirectURLCC.getCharChunk();
+            
+            redirectURLCC.recycle();
+            final CharChunk cc = redirectURLCC;
+            
             try {
                 cc.append(scheme, 0, scheme.length());
                 cc.append("://", 0, 3);
@@ -1505,7 +1505,7 @@ public class Response {
             }
 
             if (normalize){
-                HttpRequestURIDecoder.normalize(redirectURLCC);
+                HttpRequestURIDecoder.normalizeChars(cc, false);
             }
 
             return cc.toString();
@@ -1801,7 +1801,8 @@ public class Response {
          */
         public void markResumed() {
             if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
-                throw new IllegalStateException("Not Suspended");
+                throw new IllegalStateException("Unexpected state. Expected: " +
+                        SuspendState.SUSPENDED + " but was: " + suspendState.get());
             }
 
             final Connection connection = ctx.getConnection();
@@ -1826,7 +1827,8 @@ public class Response {
          */
         public void markCancelled() {
             if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
-                throw new IllegalStateException("Not Suspended");
+                throw new IllegalStateException("Unexpected state. Expected: " +
+                        SuspendState.SUSPENDED + " but was: " + suspendState.get());
             }
 
             final Connection connection = ctx.getConnection();

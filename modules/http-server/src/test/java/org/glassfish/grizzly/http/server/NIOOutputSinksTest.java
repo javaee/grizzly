@@ -318,11 +318,16 @@ public class NIOOutputSinksTest extends TestCase {
                 
                 byte[] b = new byte[bufferSize];
                 fill(b);
-                while (sent < bytesToSend) {
-                    out.write(b);
-                    sent += bufferSize;
-                    writeCounter.addAndGet(bufferSize);
-                    assertTrue(request.getContext().getConnection().canWrite());
+                try {
+                    while (sent < bytesToSend) {
+                        out.write(b);
+                        sent += bufferSize;
+                        writeCounter.addAndGet(bufferSize);
+                        assertTrue(request.getContext().getConnection().canWrite());
+                    }
+                } catch (Throwable e) {
+                    LOGGER.log(Level.SEVERE, "Unexpected error", e);
+                    parseResult.failure(new IllegalStateException("Error", e));
                 }
             }
         };

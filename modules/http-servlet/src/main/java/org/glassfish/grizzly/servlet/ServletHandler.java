@@ -376,7 +376,7 @@ public class ServletHandler extends HttpHandler {
             final CharChunk cc = new CharChunk();
             char[] ch = contextPath.toCharArray();
             cc.setChars(ch, 0, ch.length);
-            HttpRequestURIDecoder.normalizeChars(cc);
+            HttpRequestURIDecoder.normalizeChars(cc, false);
             contextPath = cc.toString();
         }
 

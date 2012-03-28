@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -158,7 +158,7 @@ public class CookieSerializerUtils {
         if (path != null) {
             buf.append("; Path=");
 
-            UEncoder encoder = new UEncoder();
+            URLEncoder encoder = new URLEncoder();
             encoder.addSafeCharacter('/');
             encoder.addSafeCharacter('"');
             path = encoder.encodeURL(path, true);
@@ -268,7 +268,7 @@ public class CookieSerializerUtils {
         if (path != null) {
             put(buf, "; Path=");
 
-            UEncoder encoder = new UEncoder();
+            URLEncoder encoder = new URLEncoder();
             encoder.addSafeCharacter('/');
             encoder.addSafeCharacter('"');
             path = encoder.encodeURL(path, true);
@@ -335,7 +335,7 @@ public class CookieSerializerUtils {
                 if (path != null) {
                     buf.append("; $Path=");
 
-                    UEncoder encoder = new UEncoder();
+                    URLEncoder encoder = new URLEncoder();
                     encoder.addSafeCharacter('/');
                     encoder.addSafeCharacter('"');
                     path = encoder.encodeURL(path, true);
@@ -394,7 +394,7 @@ public class CookieSerializerUtils {
                 if (path != null) {
                     put(buf, "; $Path=");
 
-                    UEncoder encoder = new UEncoder();
+                    URLEncoder encoder = new URLEncoder();
                     encoder.addSafeCharacter('/');
                     encoder.addSafeCharacter('"');
                     path = encoder.encodeURL(path, true);
