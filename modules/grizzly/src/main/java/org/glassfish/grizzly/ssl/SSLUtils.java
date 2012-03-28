@@ -228,14 +228,6 @@ public class SSLUtils {
             outputBuffer.dispose();
 
             inputBuffer.position(pos + sslEngineResult.bytesConsumed());
-
-            if (inputBuffer.hasRemaining()) {
-                // shift remainder to the buffer position 0
-                inputBuffer.compact();
-                // trim
-                inputBuffer.trim();
-            }
-
         } else {
             final ByteBuffer inputByteBuffer =
                     inputBuffer.toByteBuffer(pos,

@@ -327,6 +327,8 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                             final SSLEngineResult sslEngineResult =
                                     handshakeUnwrap(connection, sslEngine, inputBuffer);
 
+                            inputBuffer.shrink();
+                            
                             if (sslEngineResult == null) {
                                 return inputBuffer;
                             }
