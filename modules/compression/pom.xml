@@ -90,7 +90,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*</Export-Package>
+                        <Export-Package>org.glassfish.grizzly.compression.*</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>   
