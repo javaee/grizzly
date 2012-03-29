@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -312,6 +312,53 @@ public class BasicAjpTest {
                 listener.getTransport().getMemoryManager();
         final Buffer request = Buffers.wrap(mm,
                 Utils.loadResourceFile("get-secured.dat"));
+        
+        Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
+
+        // Successful response length is 37 bytes.  This includes the status
+        // line and a content-length
+        boolean isFailure = responseBuffer.remaining() != 37;
+
+        if (isFailure) {
+            byte[] response = new byte[responseBuffer.remaining()];
+            responseBuffer.get(response);
+            String hex = toHexString(response);
+            fail("unexpected response length=" + response.length + " content=[" + hex + "]");
+        }
+    }
+    
+    @Test
+    public void testRemoteAddress() throws Exception {
+        final String expectedAddr = "10.163.27.8";
+        final NetworkListener listener = httpServer.getListener("grizzly");
+
+        startHttpServer(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                boolean isOk = false;
+                String result;
+                try {
+                    result = request.getRemoteAddr();
+                    isOk = expectedAddr.equals(result);
+                } catch (Exception e) {
+                    result = e.toString();
+                }
+                
+                if (isOk) {
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.setStatus(500, "Remote host don't match. Expected " +
+                            expectedAddr + " but was " + result);
+                }
+            }
+
+        });
+        
+        final MemoryManager mm =
+                listener.getTransport().getMemoryManager();
+        final Buffer request = Buffers.wrap(mm,
+                Utils.loadResourceFile("peer-addr-check.dat"));
         
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
