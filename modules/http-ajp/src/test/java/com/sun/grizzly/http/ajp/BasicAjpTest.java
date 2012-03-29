@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http.ajp;
 
+import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
@@ -49,16 +50,11 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.net.SSLSupport;
-import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.nio.channels.Channel;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,17 +73,60 @@ public class BasicAjpTest extends AjpTestBase {
 
     @Test
     public void testStaticRequests() throws IOException, InstantiationException {
-        StaticResourcesAdapter a = new StaticResourcesAdapter("src/test/resources");
-        a.setUseSendFile(false);   // TODO Re-enable once sendFile is implemented.
-        configureHttpServer(a);
+        final int oldMaxBufferedBytes = SocketChannelOutputBuffer.getMaxBufferedBytes();
+        
+        try {
+            SocketChannelOutputBuffer.setMaxBufferedBytes(4096);
+            final String docroot = "src/test/resources";
+            GrizzlyAdapter a = new GrizzlyAdapter() {
 
-        final String[] files = {/*"/ajpindex.html", */"/ajplarge.html"};
-        for (String file : files) {
-            try {
-                requestFile(file);
-            } catch (Exception e) {
-                throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response)
+                        throws Exception {
+                    response.setBufferSize(65536);
+
+                    final File file = new File(docroot, request.getRequestURI());
+                    if (!file.exists()) {
+                        response.setStatus(404, request.getRequestURI() + " doesn't exist");
+                        return;
+                    }
+
+                    final OutputStream os = response.getOutputStream();
+                    final InputStream fis = new FileInputStream(file);
+
+                    try {
+                        byte[] buf = new byte[9000];
+
+                        int len;
+                        while ((len = fis.read(buf)) != -1) {
+                            os.write(buf, 0, len);
+                            os.flush();
+                        }
+                    } finally {
+                        try {
+                            fis.close();
+                        } catch (IOException e) {
+                        }
+                    }
+                }
+
+            };
+
+            a.setHandleStaticResources(false);
+            a.setUseSendFile(false);   // TODO Re-enable once sendFile is implemented.
+            configureHttpServer(a);
+
+            final String[] files = {/*"/ajpindex.html", */"/ajplarge.html"};
+            for (String file : files) {
+                try {
+                    requestFile(file);
+                } catch (Exception e) {
+                    throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
+                }
             }
+        
+        } finally {
+            SocketChannelOutputBuffer.setMaxBufferedBytes(oldMaxBufferedBytes);
         }
     }
 
@@ -226,7 +265,6 @@ public class BasicAjpTest extends AjpTestBase {
             }
 
             public void afterService(Request req, Response res) throws Exception {
-                throw new UnsupportedOperationException("Not supported yet.");
             }
         });
 
@@ -320,4 +358,37 @@ public class BasicAjpTest extends AjpTestBase {
         Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
         Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
     }
+    
+    @Test
+    public void testRemoteAddress() throws Exception {
+        final String expectedAddr = "10.163.27.8";
+        configureHttpServer(new GrizzlyAdapter() {
+
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                boolean isOk = false;
+                String result;
+                try {
+                    result = request.getRemoteAddr();
+                    isOk = expectedAddr.equals(result);
+                } catch (Exception e) {
+                    result = e.toString();
+                }
+                
+                if (isOk) {
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.setStatus(500, "Remote host don't match. Expected " +
+                            expectedAddr + " but was " + result);
+                }
+            }
+        });
+
+        send(Utils.loadResourceFile("peer-addr-check.dat"));
+
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+        Assert.assertEquals(200, ajpResponse.getResponseCode());
+    }    
 }
