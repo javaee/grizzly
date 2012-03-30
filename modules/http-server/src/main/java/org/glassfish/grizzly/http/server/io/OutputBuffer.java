@@ -86,6 +86,13 @@ public class OutputBuffer {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
     
+    /**
+     * Flag indicating whether or not async operations are being used on the
+     * input streams.
+     */
+    private final static boolean IS_BLOCKING =
+            Boolean.getBoolean(OutputBuffer.class.getName() + ".isBlocking");
+
     private HttpResponsePacket response;
 
     private FilterChainContext ctx;
@@ -132,12 +139,6 @@ public class OutputBuffer {
     private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
-
-    /**
-     * Flag indicating whether or not async operations are being used on the
-     * input streams.
-     */
-    private boolean asyncEnabled = true;
     
     private boolean sendfileEnabled;
     
@@ -164,7 +165,7 @@ public class OutputBuffer {
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
-        writer = c.getTransport().getWriter(c);
+        writer = c.getTransport().getWriter(IS_BLOCKING);
     }
 
     public void prepareCharacterEncoder() {
@@ -314,7 +315,7 @@ public class OutputBuffer {
      */
     public void acknowledge() throws IOException {
 
-        ctx.write(response, !asyncEnabled);
+        ctx.write(response, IS_BLOCKING);
         
     }
 
@@ -887,7 +888,7 @@ public class OutputBuffer {
                   onAsyncErrorCompletionHandler,
                   null,
                   messageCloner,
-                  !asyncEnabled);
+                  IS_BLOCKING);
     }
 
     private void checkCurrentBuffer() {
@@ -948,10 +949,10 @@ public class OutputBuffer {
             if (response != null) {
                 final HttpContent.Builder builder = response.httpContentBuilder();
                 builder.last(true);
-                ctx.write(builder.build(), !asyncEnabled);
+                ctx.write(builder.build(), IS_BLOCKING);
             }
         } else {
-            ctx.write(response, !asyncEnabled);
+            ctx.write(response, IS_BLOCKING);
         }
     }
 
