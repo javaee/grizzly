@@ -272,6 +272,40 @@ public class BasicSelectorThreadTest extends TestCase {
         }
     }
 
+    public void testTcpKeepSetting() throws Exception {
+        final String testString = "true";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            st.setSocketKeepAlive(true);
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(final GrizzlyRequest request,
+                        final GrizzlyResponse response) throws Exception {
+                    boolean socketKeepAlive = true;
+                    try {
+                        socketKeepAlive = response.getResponse().getChannel().socket().getKeepAlive();
+                    } catch (IOException e) {
+                        // Exception may occur on the OS level, we don't want our test to fail because of that
+                    }
+                    response.getWriter().write("" + socketKeepAlive);
+                }
+                
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+
+            sendRequest(testData, testString, PORT);
+
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+    
     public void testSchemeOverride() throws Exception {
         Utils.dumpOut("Test: testSchemeOverride");
         final String testString = "https";

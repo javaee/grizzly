@@ -169,6 +169,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     protected int linger=-1;
     
+    protected boolean socketKeepAlive = false;
     
     protected int socketTimeout=-1;
     
@@ -750,6 +751,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         selectorHandler.setSocketTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000);
         selectorHandler.setSsBackLog(ssBackLog);
         selectorHandler.setTcpNoDelay(tcpNoDelay);
+        selectorHandler.setKeepAlive(socketKeepAlive);
     }
     
     /**
@@ -1420,6 +1422,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     public void setLinger( int i ) {
         linger=i;
+    }
+
+    public boolean getSocketKeepAlive() {
+        return socketKeepAlive;
+    }
+    
+    public void setSocketKeepAlive( boolean b ) {
+        socketKeepAlive=b;
     }
 
     public int getServerTimeout() {

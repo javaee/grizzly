@@ -70,7 +70,6 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
-import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.mapper.Mapper;
@@ -326,6 +325,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setSelectorTimeout(Integer.parseInt(transport.getSelectorPollTimeoutMillis()));
         setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
         setLinger(Integer.parseInt(transport.getLinger()));
+        setSocketKeepAlive(GrizzlyConfig.toBoolean(transport.getKeepAlive()));
         setEnableNioLogging(GrizzlyConfig.toBoolean(transport.getEnableSnoop()));
     }
 
