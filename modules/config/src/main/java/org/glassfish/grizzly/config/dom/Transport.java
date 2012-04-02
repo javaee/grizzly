@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean DISPLAY_CONFIGURATION = false;
     boolean ENABLE_SNOOP = false;
     boolean TCP_NO_DELAY = true;
+    boolean KEEPALIVE = false;
     int ACCEPTOR_THREADS = 1;
     int BUFFER_SIZE = 8192;
     int IDLE_KEY_TIMEOUT = 30;
@@ -189,6 +190,11 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     String getLinger();
 
     void setLinger(String linger);
+
+    @Attribute(defaultValue = "" + KEEPALIVE, dataType = Boolean.class)
+    String getKeepAlive();
+
+    void setKeepAlive(String keepAlive);
 
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
