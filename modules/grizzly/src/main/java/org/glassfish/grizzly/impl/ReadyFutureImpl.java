@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,7 +56,7 @@ import java.util.concurrent.TimeoutException;
  * 
  * @author Alexey Stashok
  */
-public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
+public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     private static final ThreadCache.CachedTypeIndex<ReadyFutureImpl> CACHE_IDX =
             ThreadCache.obtainIndex(ReadyFutureImpl.class, 4);
 
@@ -212,10 +212,16 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
     /**
      * Should not be called for <tt>ReadyFutureImpl</tt>
      */
+    @Override
     public void failure(Throwable failure) {
         throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
     }
 
+    @Override
+    public void result(R result) {
+        throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
+    }
+    
     private void reset() {
         result = null;
         failure = null;
@@ -228,6 +234,11 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
     }
 
     @Override
+    public void recycle() {
+        recycle(false);
+    }
+
+    @Override
     public void recycle(boolean recycleResult) {
         if (recycleResult && result != null && result instanceof Cacheable) {
             ((Cacheable) result).recycle();
@@ -235,10 +246,5 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
 
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
-    }
-
-    @Override
-    public void recycle() {
-        recycle(false);
     }
 }

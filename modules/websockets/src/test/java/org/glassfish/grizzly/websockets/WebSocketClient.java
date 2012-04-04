@@ -52,6 +52,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
@@ -132,7 +133,7 @@ public class WebSocketClient extends DefaultWebSocket {
             connectorHandler.setProcessor(createFilterChain());
             // start connect
             connectorHandler.connect(new InetSocketAddress(
-                    address.getHost(), address.getPort())).markForRecycle(false);
+                    address.getHost(), address.getPort()), (CompletionHandler<Connection>) null);
             latch.await(timeout, unit);
 
             return this;
