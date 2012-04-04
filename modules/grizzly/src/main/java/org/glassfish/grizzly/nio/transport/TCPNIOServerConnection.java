@@ -91,6 +91,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             throw new IOException("Error registering server channel key", e);
         }
 
+        notifyReady();
         notifyProbesBind(this);
     }
 
@@ -309,7 +310,9 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                     listener.result(connection);
                 }
 
-                transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
+                if (connection.notifyReady()) {
+                    transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
+                }
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);

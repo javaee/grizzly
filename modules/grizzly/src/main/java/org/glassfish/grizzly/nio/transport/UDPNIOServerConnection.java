@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,9 +42,14 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Server {@link org.glassfish.grizzly.Connection} implementation
@@ -77,6 +82,27 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         return processorSelector;
     }
 
+    public void register() throws IOException {
+
+        final FutureImpl<RegisterChannelResult> future =
+                Futures.createSafeFuture();
+
+        transport.getNIOChannelDistributor().registerChannelAsync(
+                channel,
+                SelectionKey.OP_READ, this,
+                Futures.toCompletionHandler(future,
+                ((UDPNIOTransport) transport).registerChannelCompletionHandler
+                ));
+
+        try {
+            future.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IOException("Error registering server channel key", e);
+        }
+        
+        notifyReady();
+    }
+    
     @Override
     public void close(
             final CompletionHandler<Connection> completionHandler) {

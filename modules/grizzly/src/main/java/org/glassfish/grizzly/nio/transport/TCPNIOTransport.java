@@ -466,10 +466,9 @@ public final class TCPNIOTransport extends NIOTransport implements
                 final GrizzlyFuture future = connection.close();
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
+                    future.recycle(false);
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
-                } finally {
-                    future.markForRecycle(true);
                 }
             }
         } finally {

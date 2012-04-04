@@ -93,9 +93,14 @@ public class TCPNIOConnection extends NIOConnection {
     @Override
     protected void preClose() {
         checkConnectFailed(null);
-        transport.fireIOEvent(IOEvent.CLOSED, this, null);
+        super.preClose();
     }
-
+    
+    protected boolean notifyReady() {
+        return connectCloseSemaphor.compareAndSet(null,
+                NOTIFICATION_INITIALIZED);
+    }
+    
     /**
      * Returns the address of the endpoint this <tt>Connection</tt> is
      * connected to, or <tt>null</tt> if it is unconnected.

@@ -44,20 +44,13 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.utils.Futures;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -84,25 +77,6 @@ public class UDPNIOConnection extends NIOConnection {
         return channel != null && ((DatagramChannel) channel).isConnected();
     }
 
-    public void register() throws IOException {
-
-        final FutureImpl<RegisterChannelResult> future =
-                Futures.<RegisterChannelResult>createSafeFuture();
-
-        transport.getNIOChannelDistributor().registerChannelAsync(
-                channel,
-                isStandalone() ? 0 : SelectionKey.OP_READ, this,
-                Futures.toCompletionHandler(future,
-                ((UDPNIOTransport) transport).registerChannelCompletionHandler
-                ));
-
-        try {
-            future.get(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            throw new IOException("Error registering server channel key", e);
-        }
-    }
-
     @Override
     protected void setSelectionKey(SelectionKey selectionKey) {
         super.setSelectionKey(selectionKey);
@@ -113,9 +87,8 @@ public class UDPNIOConnection extends NIOConnection {
         super.setSelectorRunner(selectorRunner);
     }
 
-    @Override
-    protected void preClose() {
-        transport.fireIOEvent(IOEvent.CLOSED, this, null);
+    protected boolean notifyReady() {
+        return connectCloseSemaphor.compareAndSet(null, NOTIFICATION_INITIALIZED);
     }
 
     /**
