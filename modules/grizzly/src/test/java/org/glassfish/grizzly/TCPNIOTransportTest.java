@@ -155,7 +155,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             future = transport.connect("localhost", PORT);
             try {
-                connection = future.get(10, TimeUnit.SECONDS);
+                future.get(10, TimeUnit.SECONDS);
                 assertTrue("Server connection should be closed!", false);
             } catch (ExecutionException e) {
                 assertTrue(e.getCause() instanceof IOException);
@@ -614,7 +614,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
                     @Override
                     public void failed(Throwable throwable) {
-                        throwable.printStackTrace();
+                        logger.log(Level.WARNING, "failure", throwable);
                     }
                 });
             }
@@ -820,6 +820,67 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
+            transport.stop();
+        }
+    }
+    
+    public void testConnectFutureCancel() throws Exception {
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+
+        final AtomicInteger connectCounter = new AtomicInteger();
+        final AtomicInteger closeCounter = new AtomicInteger();
+        
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+            .add(new TransportFilter());
+
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+            .add(new TransportFilter())
+            .add(new BaseFilter() {
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                connectCounter.incrementAndGet();
+                return ctx.getInvokeAction();
+            }
+
+            @Override
+            public NextAction handleClose(FilterChainContext ctx) throws IOException {
+                closeCounter.incrementAndGet();
+                return ctx.getInvokeAction();
+            }
+        });
+
+        transport.setProcessor(serverFilterChainBuilder.build());
+        
+        SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
+                .builder(transport)
+                .processor(clientFilterChainBuilder.build())
+                .build();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            int numberOfCancelledConnections = 0;
+            final int connectionsNum = 100;
+            
+            for (int i = 0; i < connectionsNum; i++) {
+                final Future<Connection> connectFuture = connectorHandler.connect(
+                        new InetSocketAddress("localhost", PORT));
+                if (connectFuture.cancel(false)) {
+                    numberOfCancelledConnections++;
+                } else {
+                    assertTrue("Future is not done", connectFuture.isDone());
+                    final Connection c = connectFuture.get();
+                    assertNotNull("Connection is null?", c);
+                    assertTrue("Connection is not connected", c.isOpen());
+                    c.closeSilently();
+                }
+            }
+            
+            Thread.sleep(50);
+            
+            assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
+        } finally {
             transport.stop();
         }
     }

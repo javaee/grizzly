@@ -46,9 +46,11 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.filterchain.TransportFilter;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -456,4 +458,64 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         assertNull(t.getWorkerThreadPool());
     }
 
+    public void testConnectFutureCancel() throws Exception {
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+
+        final AtomicInteger connectCounter = new AtomicInteger();
+        final AtomicInteger closeCounter = new AtomicInteger();
+        
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+            .add(new TransportFilter());
+
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+            .add(new TransportFilter())
+            .add(new BaseFilter() {
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                connectCounter.incrementAndGet();
+                return ctx.getInvokeAction();
+            }
+
+            @Override
+            public NextAction handleClose(FilterChainContext ctx) throws IOException {
+                closeCounter.incrementAndGet();
+                return ctx.getInvokeAction();
+            }
+        });
+
+        transport.setProcessor(serverFilterChainBuilder.build());
+        
+        SocketConnectorHandler connectorHandler = UDPNIOConnectorHandler
+                .builder(transport)
+                .processor(clientFilterChainBuilder.build())
+                .build();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            int numberOfCancelledConnections = 0;
+            final int connectionsNum = 100;
+            
+            for (int i = 0; i < connectionsNum; i++) {
+                final Future<Connection> connectFuture = connectorHandler.connect(
+                        new InetSocketAddress("localhost", PORT));
+                if (connectFuture.cancel(false)) {
+                    numberOfCancelledConnections++;
+                } else {
+                    assertTrue("Future is not done", connectFuture.isDone());
+                    final Connection c = connectFuture.get();
+                    assertNotNull("Connection is null?", c);
+                    assertTrue("Connection is not connected", c.isOpen());
+                    c.closeSilently();
+                }
+            }
+            
+            Thread.sleep(50);
+            
+            assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
+        } finally {
+            transport.stop();
+        }
+    }    
 }

@@ -73,6 +73,9 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public abstract class NIOConnection implements Connection<SocketAddress> {
+    protected static final Object NOTIFICATION_INITIALIZED = Boolean.TRUE;
+    protected static final Object NOTIFICATION_CLOSED_COMPLETE = Boolean.FALSE;
+    
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger logger = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
@@ -93,8 +96,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
-    // closeFlag, "null" value means the connection is open.
-    protected final AtomicReference<CloseType> closeFlag =
+    // Semaphor responsible for connect/close notification
+    protected final AtomicReference<Object> connectCloseSemaphor =
+            new AtomicReference<Object>();
+    
+    // closeTypeFlag, "null" value means the connection is open.
+    protected final AtomicReference<CloseType> closeTypeFlag =
             new AtomicReference<CloseType>();
     
     protected volatile boolean isBlocking;
@@ -415,7 +422,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public boolean isOpen() {
-        return channel != null && channel.isOpen() && closeFlag.get() == null;
+        return channel != null && channel.isOpen() && closeTypeFlag.get() == null;
     }
 
     @Override
@@ -443,7 +450,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final CompletionHandler<Connection> completionHandler,
             final boolean isClosedLocally) {
         
-        if (closeFlag.compareAndSet(null,
+        if (closeTypeFlag.compareAndSet(null,
                 isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
             
             preClose();
@@ -491,14 +498,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     @Override
     public void addCloseListener(final CloseListener closeListener) {
-        CloseType closeType = closeFlag.get();
+        CloseType closeType = closeTypeFlag.get();
         
         // check if connection is still open
         if (closeType == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            closeType = closeFlag.get();
+            closeType = closeTypeFlag.get();
             if (closeType != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 try {
@@ -698,7 +705,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners() {
-        final CloseType closeType = closeFlag.get();
+        final CloseType closeType = closeTypeFlag.get();
         
         CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
@@ -709,7 +716,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
 
-    protected abstract void preClose();
+    protected void preClose() {
+        // Check if connection init event (like CONNECT or ACCEPT) has been sent
+        if (connectCloseSemaphor.getAndSet(NOTIFICATION_CLOSED_COMPLETE) ==
+                NOTIFICATION_INITIALIZED) {
+            transport.fireEvent(ServiceEvent.CLOSED, this, null);
+        }
+    }
 
     @Override
     public void simulateServiceEvent(final ServiceEvent serviceEvent) throws IOException {

@@ -44,7 +44,7 @@ import java.net.SocketAddress;
 import java.util.LinkedList;
 import java.util.List;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 
 /**
  * Abstract class simplifies the implementation of
@@ -88,16 +88,21 @@ public abstract class AbstractSocketConnectorHandler
     @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) {
-        final FutureImpl<Connection> future =
-                Futures.<Connection>createSafeFuture();
-        connect(remoteAddress, localAddress, Futures.toCompletionHandler(future));
-        return future;
+        return connectAsync(remoteAddress, localAddress, null, true);
     }
 
     @Override
-    public abstract void connect(SocketAddress remoteAddress,
+    public void connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler);
+            CompletionHandler<Connection> completionHandler) {
+        connectAsync(remoteAddress, localAddress, completionHandler, false);
+    }
+
+    protected abstract FutureImpl<Connection> connectAsync(
+            final SocketAddress remoteAddress,
+            final SocketAddress localAddress,
+            final CompletionHandler<Connection> completionHandler,
+            final boolean needFuture);
 
     /**
      * Get the default {@link Processor} to process {@link Event}, occurring
@@ -184,6 +189,28 @@ public abstract class AbstractSocketConnectorHandler
     protected void preConfigure(Connection connection) {
     }
 
+    protected FutureImpl<Connection> makeCancellableFuture(final Connection connection) {
+        return new SafeFutureImpl<Connection>() {
+
+            @Override
+            protected void onCancel(boolean mayInterruptIfRunning) {
+                close();
+            }
+
+            @Override
+            protected void onError(Throwable t) {
+                close();
+            }
+
+            private void close() {
+                try {
+                    connection.closeSilently();
+                } catch (Exception ignored) {
+                }
+            }
+        };
+    }
+    
     /**
      * Builder
      *

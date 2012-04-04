@@ -274,17 +274,16 @@ public final class UDPNIOTransport extends NIOTransport implements
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final FutureImpl<Connection> future =
-                        Futures.createSafeFuture();
+                        Futures.<Connection>createSafeFuture();
                 ((UDPNIOServerConnection) connection).unbind(
                         Futures.toCompletionHandler(future));
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
+                    future.recycle(false);
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING,
                             LogMessages.WARNING_GRIZZLY_TRANSPORT_UNBINDING_CONNECTION_EXCEPTION(connection),
                             e);
-                } finally {
-                    future.markForRecycle(true);
                 }
             }
         } finally {
