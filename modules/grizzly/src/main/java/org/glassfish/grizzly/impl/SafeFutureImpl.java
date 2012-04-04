@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.impl;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ThreadCache;
@@ -71,17 +70,17 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         return new SafeFutureImpl<R>();
     }
 
-    private final static int LIFE_COUNTER_INC = 5;
-    private final static int MARK_DONT_RECYCLE_RESULT = 1;
-    private final static int MARK_RECYCLE_RESULT = 2;
-    private final static int MARK_RECYCLED = 3;
+//    private final static int LIFE_COUNTER_INC = 5;
+//    private final static int MARK_DONT_RECYCLE_RESULT = 1;
+//    private final static int MARK_RECYCLE_RESULT = 2;
+//    private final static int MARK_RECYCLED = 3;
 
-    private final AtomicInteger recycleMark = new AtomicInteger();
+//    private final AtomicInteger recycleMark = new AtomicInteger();
 
     /** Synchronization control for FutureTask */
     private final Sync sync;
 
-    private volatile int lifeCounter;
+//    private volatile int lifeCounter;
 
     /**
      * Creates <tt>SafeFutureImpl</tt> 
@@ -155,27 +154,27 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 
     @Override
     public void markForRecycle(boolean recycleResult) {
-        final int localLifeCounter = lifeCounter;
-        final int mark = recycleResult ? MARK_RECYCLE_RESULT : MARK_DONT_RECYCLE_RESULT;
-        final int absMark = localLifeCounter + mark;
-
-        if (recycleMark.compareAndSet(0, absMark)) {
-            if (sync.innerIsDone()) {
-                if (recycleMark.compareAndSet(absMark, localLifeCounter + MARK_RECYCLED)) {
-                    recycle(recycleResult);
-                }
-            }
-        }
+//        final int localLifeCounter = lifeCounter;
+//        final int mark = recycleResult ? MARK_RECYCLE_RESULT : MARK_DONT_RECYCLE_RESULT;
+//        final int absMark = localLifeCounter + mark;
+//
+//        if (recycleMark.compareAndSet(0, absMark)) {
+//            if (sync.innerIsDone()) {
+//                if (recycleMark.compareAndSet(absMark, localLifeCounter + MARK_RECYCLED)) {
+//                    recycle(recycleResult);
+//                }
+//            }
+//        }
     }
 
     protected void reset() {
         sync.innerReset();
-        recycleMark.set(0);
+//        recycleMark.set(0);
     }
 
     @Override
     public void recycle(boolean recycleResult) {
-        lifeCounter += LIFE_COUNTER_INC;
+//        lifeCounter += LIFE_COUNTER_INC;
         
         final R result;
         if (recycleResult && (result = sync.innerWeakGet()) != null && result instanceof Cacheable) {
@@ -195,16 +194,24 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      * Protected method invoked when this task transitions to state
      * <tt>isDone</tt> (whether normally or via cancellation).
      */
-    protected void done(final int lifeCounter) {
-        final int absRecycleValue = recycleMark.get();
-        final int recycleValue = absRecycleValue - lifeCounter;
-        if ((recycleValue == MARK_DONT_RECYCLE_RESULT ||
-                recycleValue == MARK_RECYCLE_RESULT) &&
-                recycleMark.compareAndSet(absRecycleValue, MARK_RECYCLED + lifeCounter)) {
-
-            recycle(recycleValue == MARK_RECYCLE_RESULT);
-        }
+    protected void onResult(R result) {
     }
+    
+    protected void onError(Throwable t) {
+    }
+    
+    protected void onCancel(boolean mayInterruptIfRunning) {
+    }
+    
+//        final int absRecycleValue = recycleMark.get();
+//        final int recycleValue = absRecycleValue - lifeCounter;
+//        if ((recycleValue == MARK_DONT_RECYCLE_RESULT ||
+//                recycleValue == MARK_RECYCLE_RESULT) &&
+//                recycleMark.compareAndSet(absRecycleValue, MARK_RECYCLED + lifeCounter)) {
+//
+//            recycle(recycleValue == MARK_RECYCLE_RESULT);
+//        }
+//    }
 
     // The following (duplicated) doc comment can be removed once
     //
@@ -317,7 +324,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         }
 
         void innerSet(R result) {
-            final int localLifeCounter = lifeCounter;
+//            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (s == RAN)
@@ -332,14 +339,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 		if (compareAndSetState(s, RAN)) {
                     this.result = result;
                     releaseShared(0);
-                    done(localLifeCounter);
+                    onResult(result);
 		    return;
                 }
             }
         }
 
         void innerSetException(Throwable t) {
-            final int localLifeCounter = lifeCounter;
+//            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (s == RAN)
@@ -355,14 +362,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
                     exception = t;
                     result = null;
                     releaseShared(0);
-                    done(localLifeCounter);
+                    onError(t);
 		    return;
                 }
 	    }
         }
 
         boolean innerCancel(boolean mayInterruptIfRunning) {
-            final int localLifeCounter = lifeCounter;
+//            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (ranOrCancelled(s))
@@ -376,7 +383,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 //                    r.interrupt();
 //            }
             releaseShared(0);
-            done(localLifeCounter);
+            onCancel(mayInterruptIfRunning);
             return true;
         }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,8 @@ package org.glassfish.grizzly;
 import java.util.concurrent.Future;
 
 /**
- *
+ * Grizzly {@link Future} implementation, which might be recycled and reused.
+ * 
  * @author Alexey Stashok
  */
 public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
@@ -57,6 +58,8 @@ public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
      * @param recycleResult if <tt>true</tt> - the <tt>GrizzlyFuture</tt> result,
      * if it support recycleable mechanism, will be also recycled together
      * with this <tt>GrizzlyFuture</tt> object.
+     * 
+     * @deprecated
      */
     public void markForRecycle(boolean recycleResult);
 
