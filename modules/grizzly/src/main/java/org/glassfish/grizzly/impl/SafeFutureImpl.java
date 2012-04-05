@@ -67,7 +67,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
             return future;
         }
 
-        return new SafeFutureImpl<R>();
+        return new SafeFutureImpl<R>(true);
     }
 
 //    private final static int LIFE_COUNTER_INC = 5;
@@ -78,6 +78,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 //    private final AtomicInteger recycleMark = new AtomicInteger();
 
     /** Synchronization control for FutureTask */
+    private final boolean isRecyclable;
     private final Sync sync;
 
 //    private volatile int lifeCounter;
@@ -86,9 +87,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      * Creates <tt>SafeFutureImpl</tt> 
      */
     public SafeFutureImpl() {
-        sync = new Sync();
+        this(false);
     }
 
+    private SafeFutureImpl(final boolean isRecyclable) {
+        sync = new Sync();
+        this.isRecyclable = isRecyclable;
+    }
+    
     @Override
     public boolean isCancelled() {
         return sync.innerIsCancelled();
@@ -175,14 +181,15 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
     @Override
     public void recycle(boolean recycleResult) {
 //        lifeCounter += LIFE_COUNTER_INC;
-        
         final R result;
         if (recycleResult && (result = sync.innerWeakGet()) != null && result instanceof Cacheable) {
             ((Cacheable) result).recycle();
         }
 
-        reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
+        if (isRecyclable) {
+            reset();
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
     }
 
     @Override

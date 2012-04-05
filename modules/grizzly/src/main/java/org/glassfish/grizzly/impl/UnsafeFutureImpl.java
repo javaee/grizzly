@@ -51,7 +51,7 @@ import org.glassfish.grizzly.ThreadCache;
  * 
  * @author Alexey Stashok
  */
-public class UnsafeFutureImpl<R> implements FutureImpl<R> {
+public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
 
     private static final ThreadCache.CachedTypeIndex<UnsafeFutureImpl> CACHE_IDX =
             ThreadCache.obtainIndex(UnsafeFutureImpl.class, 4);
