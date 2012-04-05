@@ -64,22 +64,41 @@ import org.glassfish.grizzly.localization.LogMessages;
 public class Buffers {
     private static final Logger LOGGER = Grizzly.logger(Buffers.class);
 
-    public static final Appender<Buffer> BUFFER_APPENDER = new Appender<Buffer>() {
+    private static final Appender<Buffer> APPENDER_DISPOSABLE = new BuffersAppender(true);
+    private static final Appender<Buffer> APPENDER_NOT_DISPOSABLE = new BuffersAppender(false);
+
+
+    /**
+     * Get the {@link Appender} which knows how to append {@link Buffer}s.
+     * Returned {@link Appender} uses the same {@link Buffer} appending rules as
+     * described here {@link Buffers#appendBuffers(org.glassfish.grizzly.memory.MemoryManager, org.glassfish.grizzly.Buffer, org.glassfish.grizzly.Buffer, boolean)}.
+     * 
+     * @param isCompositeBufferDisposable if as the result of {@link Buffer}s
+     *      appending a new {@link CompositeBuffer} will be created - its
+     *      {@link CompositeBuffer#allowBufferDispose(boolean)} value will be set
+     *      according to this parameter.
+     * @return the {@link Buffer} {@link Appender}.
+     */
+    public static Appender<Buffer> getBufferAppender(
+            final boolean isCompositeBufferDisposable) {
+        return isCompositeBufferDisposable ?
+                APPENDER_DISPOSABLE : APPENDER_NOT_DISPOSABLE;
+    }
+    
+    private static class BuffersAppender implements Appender<Buffer> {
+        private final boolean isCompositeBufferDisposable;
+
+        public BuffersAppender(boolean isCompositeBufferDisposable) {
+            this.isCompositeBufferDisposable = isCompositeBufferDisposable;
+        }
+        
         @Override
         public Buffer append(final Buffer element1, final Buffer element2) {
-            if (element1.isComposite()) {
-                ((CompositeBuffer) element1).append(element2);
-                return element1;
-            }
-
-            final CompositeBuffer compositeBuffer =
-                    CompositeBuffer.newBuffer(null,
-                    element1);
-            compositeBuffer.append(element2);
-            return compositeBuffer;
+            return Buffers.appendBuffers(null, element1, element2,
+                    isCompositeBufferDisposable);
         }
-
-    };
+    }
+    
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
 
@@ -370,8 +389,58 @@ public class Buffers {
         }
     }
 
+    /**
+     * Append two {@link Buffer}s.
+     * If one of the {@link Buffer}s is null - then another {@link Buffer} will
+     * be returned as result.
+     * If the first {@link Buffer} is {@link CompositeBuffer} then the second
+     * {@link Buffer} will be appended to it via
+     * {@link CompositeBuffer#append(java.lang.Object)}, else if the second
+     * {@link Buffer} is {@link CompositeBuffer} then the first {@link Buffer}
+     * will be prepended to it via
+     * {@link CompositeBuffer#prepend(org.glassfish.grizzly.Buffer)}.
+     * If none of the {@link Buffer} parameters is null nor
+     * {@link CompositeBuffer}s - then new {@link CompositeBuffer} will be created
+     * and both {@link Buffer}s will be added there. The resulting
+     * {@link CompositeBuffer} will be disallowed for disposal.
+     * 
+     * @param memoryManager
+     * @param buffer1
+     * @param buffer2
+     * 
+     * @return the result of appending of two {@link Buffer}s.
+     */
     public static Buffer appendBuffers(final MemoryManager memoryManager,
             final Buffer buffer1, final Buffer buffer2) {
+        return appendBuffers(memoryManager, buffer1, buffer2, false);
+    }
+    
+    /**
+     * Append two {@link Buffer}s.
+     * If one of the {@link Buffer}s is null - then another {@link Buffer} will
+     * be returned as result.
+     * If the first {@link Buffer} is {@link CompositeBuffer} then the second
+     * {@link Buffer} will be appended to it via
+     * {@link CompositeBuffer#append(java.lang.Object)}, else if the second
+     * {@link Buffer} is {@link CompositeBuffer} then the first {@link Buffer}
+     * will be prepended to it via
+     * {@link CompositeBuffer#prepend(org.glassfish.grizzly.Buffer)}.
+     * If none of the {@link Buffer} parameters is null nor
+     * {@link CompositeBuffer}s - then new {@link CompositeBuffer} will be created
+     * and both {@link Buffer}s will be added there. The resulting
+     * {@link CompositeBuffer} will be assigned according to the
+     * <code>isCompositeBufferDisposable</code> parameter.
+     * 
+     * @param memoryManager
+     * @param buffer1
+     * @param buffer2
+     * @param isCompositeBufferDisposable
+     * 
+     * @return the result of appending of two {@link Buffer}s.
+     */
+    public static Buffer appendBuffers(final MemoryManager memoryManager,
+            final Buffer buffer1, final Buffer buffer2,
+            final boolean isCompositeBufferDisposable) {
 
         if (buffer1 == null) {
             return buffer2;
@@ -391,7 +460,8 @@ public class Buffers {
 
             compositeBuffer.append(buffer1);
             compositeBuffer.append(buffer2);
-
+            compositeBuffer.allowBufferDispose(isCompositeBufferDisposable);
+            
             return compositeBuffer;
         }
     }

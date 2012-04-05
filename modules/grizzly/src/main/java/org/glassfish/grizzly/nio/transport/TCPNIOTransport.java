@@ -905,6 +905,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
             
             if (read > 0) {
+                buffer.allowBufferDispose(true);
                 buffer.position(read);
             } else {
                 if (buffer != null) {
