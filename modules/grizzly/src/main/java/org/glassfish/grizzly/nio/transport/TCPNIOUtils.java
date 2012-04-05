@@ -263,6 +263,7 @@ public class TCPNIOUtils {
         
         if (read > 0) {
             buffer.position(read);
+            buffer.allowBufferDispose(true);
         } else {
             if (buffer != null) {
                 buffer.dispose();

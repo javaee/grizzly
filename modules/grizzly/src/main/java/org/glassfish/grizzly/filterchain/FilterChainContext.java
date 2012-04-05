@@ -460,7 +460,8 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public NextAction getStopAction(Object unknownObject) {
         if (unknownObject instanceof Buffer) {
-            return getStopAction((Buffer) unknownObject, Buffers.BUFFER_APPENDER);
+            return getStopAction((Buffer) unknownObject,
+                    Buffers.getBufferAppender(true));
         }
 
         return getStopAction((Appendable) unknownObject);

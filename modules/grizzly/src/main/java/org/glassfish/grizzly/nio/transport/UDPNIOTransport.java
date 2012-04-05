@@ -780,8 +780,12 @@ public final class UDPNIOTransport extends NIOTransport implements
         } catch (Exception e) {
             read = -1;
         } finally {
-            if (isAllocate && read <= 0) {
-                buffer.dispose();
+            if (isAllocate) {
+                if (read <= 0) {
+                    buffer.dispose();
+                } else {
+                    buffer.allowBufferDispose(true);
+                }
             }
         }
 

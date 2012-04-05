@@ -379,6 +379,78 @@ public class FilterChainTest extends TestCase {
         }
     }
     
+    public void testBufferDisposable() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final MemoryManager mm = transport.getMemoryManager();
+        
+        FutureImpl<Boolean> part1Future = Futures.<Boolean>createSafeFuture();
+        FutureImpl<Boolean> part2Future = Futures.<Boolean>createSafeFuture();
+        
+        final Buffer msg1 = Buffers.wrap(mm, "part1");
+        final Buffer msg2 = Buffers.wrap(mm, "part2");
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new BufferStateFilter(part1Future, part2Future));
+        transport.setProcessor(filterChainBuilder.build());
+
+        Connection connection = null;
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            final FilterChain clientChain = clientFilterChainBuilder.build();
+
+            final SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport).processor(clientChain).build();
+
+            Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+            connection.write(msg1);
+            assertTrue("simple buffer is not disposable", part1Future.get(5, TimeUnit.SECONDS));
+            
+            connection.write(msg2);
+            assertTrue("composite buffer is not disposable", part2Future.get(5, TimeUnit.SECONDS));
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+        }
+    }
+
+    private static class BufferStateFilter extends BaseFilter {
+
+        private final FutureImpl<Boolean> part1Future;
+        private final FutureImpl<Boolean> part2Future;
+        
+        public BufferStateFilter(FutureImpl<Boolean> part1Future,
+                FutureImpl<Boolean> part2Future) {
+            this.part1Future = part1Future;
+            this.part2Future = part2Future;
+        }
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            Buffer b = ctx.getMessage();
+            
+            if (!part1Future.isDone()) {
+                part1Future.result(b.allowBufferDispose());
+            } else if (!part2Future.isDone()) {
+                part2Future.result(b.isComposite() && b.allowBufferDispose());
+            }
+            
+            return ctx.getStopAction(b);
+        }
+    }
+
     private static class BufferWriteFilter extends BaseFilter {
         @Override
         public NextAction handleWrite(FilterChainContext ctx) throws IOException {

@@ -639,7 +639,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 final Object remainder) {
             if (remainder instanceof Buffer) {
                 return create(type, (Buffer) remainder,
-                        Buffers.BUFFER_APPENDER);
+                        Buffers.getBufferAppender(true));
             } else {
                 return create(type, (Appendable) remainder);
             }
