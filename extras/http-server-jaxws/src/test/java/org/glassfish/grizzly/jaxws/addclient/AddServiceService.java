@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ import javax.xml.ws.WebServiceFeature;
  * Generated source version: 2.2
  * 
  */
-@WebServiceClient(name = "AddServiceService", targetNamespace = "http://jaxws.grizzly.glassfish.org/", wsdlLocation = "http://localhost:19881/add?wsdl")
+@WebServiceClient(name = "AddServiceService", targetNamespace = "http://jaxws.grizzly.glassfish.org/", wsdlLocation = "http://localhost:19881/add/a/b?wsdl")
 public class AddServiceService
     extends Service
 {
@@ -68,7 +68,7 @@ public class AddServiceService
         URL url = null;
         WebServiceException e = null;
         try {
-            url = new URL("http://localhost:19881/add?wsdl");
+            url = new URL("http://localhost:19881/add/a/b?wsdl");
         } catch (MalformedURLException ex) {
             e = new WebServiceException(ex);
         }

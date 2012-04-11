@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.util.Random;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.jaxws.addclient.AddServiceService;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -85,7 +86,8 @@ public class JaxwsTest {
         httpServer = new HttpServer();
         NetworkListener networkListener = new NetworkListener("jaxws-listener", "0.0.0.0", PORT);
         
-        httpServer.getServerConfiguration().addHttpHandler(httpHandler, "/add");
+        httpServer.getServerConfiguration().addHttpHandler(new StaticHttpHandler(), "/add"); // make sure JAX-WS Handler is not default
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, "/add/a/b");
         httpServer.addListener(networkListener);
         
         httpServer.start();        
