@@ -54,6 +54,7 @@ import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
+import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -329,14 +330,16 @@ public abstract class HttpHandler {
     }
 
     /**
-     * Utility method to update {@link Request} context-path value.
+     * Utility method to update {@link Request} path values.
      * 
      * @param request
-     * @param contextPath
+     * @param mappingData
      */
-    protected static void updateContextPath(final Request request,
-            final String contextPath) {
-        request.setContextPath(contextPath);
+    protected static void updatePaths(final Request request,
+            final MappingData mappingData) {
+        request.setContextPath(mappingData.contextPath.toString());
+        request.setPathInfo(mappingData.pathInfo.toString());
+        request.setHttpHandlerPath(mappingData.wrapperPath.toString());
     }
 
     protected void setDispatcherHelper(final DispatcherHelper dispatcherHelper) {
