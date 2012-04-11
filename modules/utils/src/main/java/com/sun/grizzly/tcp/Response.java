@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -975,10 +975,10 @@ public class Response<A> {
         
         protected ResponseAttachment(long idleTimeoutDelay, A attachment,
                 CompletionHandler<? super A> completionHandler, Response response) {
-            this.idleTimeoutDelay = idleTimeoutDelay;
             this.attachment = attachment;
             this.completionHandler = completionHandler;
             this.response = response;
+            this.idleTimeoutDelay = validateIdleTimeoutDelay(idleTimeoutDelay);
         }
 
         public A getAttachment() {
@@ -1010,7 +1010,7 @@ public class Response<A> {
         }
 
         public void setIdleTimeoutDelay(long idleTimeoutDelay) {
-            this.idleTimeoutDelay = idleTimeoutDelay;
+            this.idleTimeoutDelay = validateIdleTimeoutDelay(idleTimeoutDelay);
             SuspendResponseUtils.updateIdleTimeOutDelay(response.selectionKey,
                                                         response.getResponseAttachment());
         }
@@ -1096,8 +1096,16 @@ public class Response<A> {
         public void cancel() {
             completionHandler.cancelled(attachment);
         }
+        
+        private static long validateIdleTimeoutDelay(final long idleTimeoutDelay) {
+            if (idleTimeoutDelay <= 0) {
+                return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
     
+            return idleTimeoutDelay;
+        }
+    }
+        
         
     /**
      * Add a {@link ResponseFilter}, which will be called every bytes are
