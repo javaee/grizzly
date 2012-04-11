@@ -301,6 +301,8 @@ public class Request {
     private String scheme;
 
     private String contextPath = "";
+    private String httpHandlerPath;
+    private String pathInfo;
 
     private MappingData cachedMappingData;
 
@@ -577,6 +579,8 @@ public class Request {
     protected final void recycle() {
         scheme = null;
         contextPath = "";
+        httpHandlerPath = null;
+        pathInfo = null;
         dispatcherType = null;
         requestDispatcherPath = null;
 
@@ -760,6 +764,42 @@ public class Request {
         this.contextPath = contextPath;
     }
 
+    /**
+     * Returns the part of this request's URL that calls the HttpHandler.
+     * This includes either the HttpHandler name or a path to the HttpHandler,
+     * but does not include any extra path information or a query string.
+     * 
+     * @return a String containing the name or path of the HttpHandler being
+     * called, as specified in the request URL
+     */
+    public String getHttpHandlerPath() {
+        return httpHandlerPath;
+    }
+
+    protected void setHttpHandlerPath(String httpHandlerPath) {
+        this.httpHandlerPath = httpHandlerPath;
+    }
+
+    /**
+     * Returns any extra path information associated with the URL the client
+     * sent when it made this request.
+     * The extra path information follows the HttpHandler path but precedes
+     * the query string. This method returns null if there was no extra path
+     * information.
+     * 
+     * @return a String specifying extra path information that comes after the
+     * HttpHandler path but before the query string in the request URL;
+     * or null if the URL does not have any extra path information
+     */
+    public String getPathInfo() {
+        return pathInfo;
+    }
+
+    protected void setPathInfo(String pathInfo) {
+        this.pathInfo = pathInfo;
+    }
+
+    
     // ------------------------------------------------- ServletRequest Methods
 
     /**
