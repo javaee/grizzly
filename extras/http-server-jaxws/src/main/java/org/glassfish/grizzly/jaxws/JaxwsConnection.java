@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,8 +52,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.xml.ws.WebServiceException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
@@ -61,7 +60,7 @@ import org.glassfish.grizzly.http.server.Response;
 /**
  * JAX-WS WSHTTPConnection implementation for grizzly transport
  * 
- * @author Alexeey Stashok
+ * @author Alexey Stashok
  * @author JAX-WS team
  */
 final class JaxwsConnection extends WSHTTPConnection implements WebServiceContextDelegate {
@@ -74,6 +73,9 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     private final boolean isAsync;
     final HttpAdapter httpAdapter;
 
+    private Map<String, List<String>> requestHeaders;
+    private Map<String, List<String>> responseHeaders;
+    
     public JaxwsConnection(final HttpAdapter httpAdapter,
             final Request request, final Response response,
             final boolean isSecure, final boolean isAsync) {
@@ -88,7 +90,11 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @Property({MessageContext.HTTP_REQUEST_HEADERS, Packet.INBOUND_TRANSPORT_HEADERS})
     public @NotNull
     Map<String, List<String>> getRequestHeaders() {
-        throw new UnsupportedOperationException("TODO");
+        if (requestHeaders == null) {
+            requestHeaders = initializeRequestHeaders();
+        }
+        
+        return requestHeaders;
     }
 
     @Override
@@ -98,25 +104,24 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
 
     @Override
     public void setResponseHeaders(Map<String, List<String>> headers) {
-        if (headers != null) {
-            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-                String key = entry.getKey();
-                List<String> values = entry.getValue();
-                if (values.size() == 1) {
-                    response.setHeader(key, values.get(1));
-                } else {
-                    // If the header has multiple values, comma separte them
-                    StringBuilder concat = new StringBuilder();
-                    boolean firstTime = true;
-                    for (String aValue : values) {
-                        if (!firstTime) {
-                            concat.append(',');
-                        }
-                        concat.append(aValue);
-                        firstTime = false;
-                    }
-                    response.setHeader(key, concat.toString());
-                }
+        this.responseHeaders = headers;
+        if (headers == null) {
+            return;
+
+        }
+        if (status != 0) {
+            response.setStatus(status);
+        }
+        
+        response.reset();   // clear all the headers
+
+        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            String name = entry.getKey();
+            if (name.equalsIgnoreCase("Content-Type") || name.equalsIgnoreCase("Content-Length")) {
+                continue;   // ignore headers that interfere with the operation
+            }
+            for (String value : entry.getValue()) {
+                response.addHeader(name, value);
             }
         }
     }
@@ -124,7 +129,7 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @Override
     @Property(MessageContext.HTTP_RESPONSE_HEADERS)
     public Map<String, List<String>> getResponseHeaders() {
-        throw new UnsupportedOperationException("TODO");
+        return responseHeaders;
     }
 
     @Override
@@ -207,6 +212,11 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
         buf.append(':');
         buf.append(request.getServerPort());
         buf.append(request.getContextPath());
+        
+        final String httpHandlerPath = request.getHttpHandlerPath();
+        if (httpHandlerPath != null) {
+            buf.append(httpHandlerPath);
+        }
 
         return buf.toString();
     }
@@ -232,17 +242,7 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @Override
     @Property(MessageContext.PATH_INFO)
     public String getPathInfo() {
-        String path = request.getRequestURI();
-        StringBuilder pathToRemove = new StringBuilder();
-        pathToRemove.append(request.getContextPath());
-//        pathToRemove.append(getServletPath());
-        String s = pathToRemove.toString();
-        if (path.startsWith(s)) {
-            String pathInfo = path.substring(s.length());
-            return "".equals(pathInfo) ? null : pathInfo;
-        } else {
-            throw new IllegalStateException("Request path not in servlet context.");
-        }
+        return request.getPathInfo();
     }
 
     /**
@@ -268,5 +268,19 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
 
     static {
         model = parse(JaxwsConnection.class);
+    }
+
+    private Map<String, List<String>> initializeRequestHeaders() {
+        final Map<String, List<String>> headers = new HashMap<String, List<String>>();
+        for (String name : request.getHeaderNames()) {
+            final List<String> values = new ArrayList<String>(2);
+            for (String value : request.getHeaders(name)) {
+                values.add(value);
+            }
+            
+            headers.put(name, values);
+        }
+        
+        return headers;
     }
 }
