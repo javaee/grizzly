@@ -82,20 +82,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler) {
 
-        if (!transport.isBlocking()) {
-            connectAsync(remoteAddress, localAddress, completionHandler, false);
-        } else {
-            connectSync(remoteAddress, localAddress, completionHandler);
-        }
-    }
-
-    protected void connectSync(SocketAddress remoteAddress, SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler) {
-
-        final FutureImpl<Connection> future = connectAsync(remoteAddress,
-                localAddress, completionHandler, true);
-
-        waitNIOFuture(future, completionHandler);
+        connectAsync(remoteAddress, localAddress, completionHandler, false);
     }
 
     @Override

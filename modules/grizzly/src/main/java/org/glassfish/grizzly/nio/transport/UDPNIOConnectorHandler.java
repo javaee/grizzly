@@ -48,7 +48,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
@@ -87,21 +86,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler) {
 
-        if (!transport.isBlocking()) {
-            connectAsync(remoteAddress, localAddress, completionHandler, false);
-        } else {
-            connectSync(remoteAddress, localAddress, completionHandler);
-        }
-    }
-
-    protected void connectSync(final SocketAddress remoteAddress,
-            final SocketAddress localAddress,
-            final CompletionHandler<Connection> completionHandler) {
-        
-        final FutureImpl<Connection> future = connectAsync(remoteAddress,
-                localAddress, completionHandler, true);
-        
-        waitNIOFuture(future, completionHandler);
+        connectAsync(remoteAddress, localAddress, completionHandler, false);
     }
 
     @Override
