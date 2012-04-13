@@ -39,10 +39,16 @@
  */
 package org.glassfish.grizzly.websockets.draft17;
 
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.draft08.HandShake08;
 
 import java.net.URI;
+
+import static org.glassfish.grizzly.websockets.WebSocketEngine.ORIGIN_HEADER;
+import static org.glassfish.grizzly.websockets.WebSocketEngine.SEC_WS_ORIGIN_HEADER;
 
 public class HandShake17 extends HandShake08 {
 
@@ -64,5 +70,15 @@ public class HandShake17 extends HandShake08 {
     @Override
     protected int getVersion() {
         return 13;
+    }
+
+    @Override
+    public HttpContent composeHeaders() {
+        HttpContent content = super.composeHeaders();
+        HttpHeader header = content.getHttpHeader();
+        final String headerValue = header.getHeaders().getHeader(SEC_WS_ORIGIN_HEADER);
+        header.getHeaders().removeHeader(SEC_WS_ORIGIN_HEADER);
+        header.addHeader(ORIGIN_HEADER, headerValue);
+        return content;
     }
 }
