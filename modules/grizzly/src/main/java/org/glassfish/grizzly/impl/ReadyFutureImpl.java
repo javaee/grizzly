@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.impl;
 
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.ThreadCache;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -141,6 +140,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
      *
      * @return current result value without any blocking.
      */
+    @Override
     public R getResult() {
         return result;
     }
@@ -159,7 +159,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
      */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        return isCancelled;
+        return false;
     }
 
     /**
