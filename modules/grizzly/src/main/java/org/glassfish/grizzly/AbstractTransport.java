@@ -473,6 +473,11 @@ public abstract class AbstractTransport implements Transport {
         return threadPoolMonitoringConfig;
     }
 
+    @Override
+    public void notifyTransportError(final Throwable error) {
+        notifyProbesError(this, error);
+    }
+
     /**
      * Notify registered {@link TransportProbe}s about the config changed event.
      *
@@ -488,6 +493,81 @@ public abstract class AbstractTransport implements Transport {
         }
     }
     
+    /**
+     * Notify registered {@link TransportProbe}s about the error.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesError(final AbstractTransport transport,
+            final Throwable error) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onErrorEvent(transport, error);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the start event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStart(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onStartEvent(transport);
+            }
+        }
+    }
+    
+    /**
+     * Notify registered {@link TransportProbe}s about the stop event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStop(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onStopEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the pause event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesPause(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onPauseEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the resume event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesResume(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onResumeEvent(transport);
+            }
+        }
+    }
     /**
      * Starts the transport
      * 

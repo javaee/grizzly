@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,29 @@ import java.util.concurrent.Future;
  * @author Alexey Stashok
  */
 public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> {
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     */
+    public Future<Connection> connect(SocketAddress remoteAddress, SocketAddress localAddress);
+
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @param completionHandler {@link CompletionHandler}.
+     */
+    public void connect(SocketAddress remoteAddress,
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler);
+
     /**
      * Creates, initializes and connects socket to the specific remote host
      * and port and returns {@link Connection}, representing socket.

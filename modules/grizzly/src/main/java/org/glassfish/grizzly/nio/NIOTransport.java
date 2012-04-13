@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio;
 
 import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.TransportProbe;
 import java.io.IOException;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Random;
@@ -165,89 +164,8 @@ public abstract class NIOTransport extends AbstractTransport {
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void notifyTransportError(final Throwable error) {
-        notifyProbesError(this, error);
-    }
-
     protected SelectorRunner[] getSelectorRunners() {
         return selectorRunners;
-    }
-
-    /**
-     * Notify registered {@link TransportProbe}s about the error.
-     *
-     * @param transport the <tt>Transport</tt> event occurred on.
-     */
-    protected static void notifyProbesError(final NIOTransport transport,
-            final Throwable error) {
-        final TransportProbe[] probes =
-                transport.transportMonitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (TransportProbe probe : probes) {
-                probe.onErrorEvent(transport, error);
-            }
-        }
-    }
-
-    /**
-     * Notify registered {@link TransportProbe}s about the start event.
-     *
-     * @param transport the <tt>Transport</tt> event occurred on.
-     */
-    protected static void notifyProbesStart(final NIOTransport transport) {
-        final TransportProbe[] probes =
-                transport.transportMonitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (TransportProbe probe : probes) {
-                probe.onStartEvent(transport);
-            }
-        }
-    }
-    
-    /**
-     * Notify registered {@link TransportProbe}s about the stop event.
-     *
-     * @param transport the <tt>Transport</tt> event occurred on.
-     */
-    protected static void notifyProbesStop(final NIOTransport transport) {
-        final TransportProbe[] probes =
-                transport.transportMonitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (TransportProbe probe : probes) {
-                probe.onStopEvent(transport);
-            }
-        }
-    }
-
-    /**
-     * Notify registered {@link TransportProbe}s about the pause event.
-     *
-     * @param transport the <tt>Transport</tt> event occurred on.
-     */
-    protected static void notifyProbesPause(final NIOTransport transport) {
-        final TransportProbe[] probes =
-                transport.transportMonitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (TransportProbe probe : probes) {
-                probe.onPauseEvent(transport);
-            }
-        }
-    }
-
-    /**
-     * Notify registered {@link TransportProbe}s about the resume event.
-     *
-     * @param transport the <tt>Transport</tt> event occurred on.
-     */
-    protected static void notifyProbesResume(final NIOTransport transport) {
-        final TransportProbe[] probes =
-                transport.transportMonitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (TransportProbe probe : probes) {
-                probe.onResumeEvent(transport);
-            }
-        }
     }
 
     @Override

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 /**
  * Client side connector handler API.
  * <tt>ConnectorHandler</tt> is responsible for creating and initializing
- * {@link Connection}, and optionally connect is to a specific local/remote
+ * {@link Connection}, and optionally connect is to a specific remote
  * address.
  *
  * @author Alexey Stashok
@@ -54,7 +54,7 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes and connects socket to the specific
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * <code>remoteAddress</code>.
      *
      * @param remoteAddress remote address to connect to.
      * @return {@link Future} of connect operation, which could be used to get
@@ -64,34 +64,11 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes and connects socket to the specific
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * <code>remoteAddress</code>.
      *
      * @param remoteAddress remote address to connect to.
      * @param completionHandler {@link CompletionHandler}.
      */
     public void connect(E remoteAddress,
-            CompletionHandler<Connection> completionHandler);
-
-    /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
-     *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
-     * @return {@link Future} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     */
-    public Future<Connection> connect(E remoteAddress, E localAddress);
-
-    /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
-     *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
-     * @param completionHandler {@link CompletionHandler}.
-     */
-    public void connect(E remoteAddress,
-            E localAddress,
             CompletionHandler<Connection> completionHandler);
 }
