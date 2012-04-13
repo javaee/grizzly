@@ -86,7 +86,6 @@ public abstract class HandShake {
         if (url.getQuery() != null) {
             resourcePath += "?" + url.getQuery();
         }
-        origin = url.getHost();
         serverHostName = url.getHost();
         secure = "wss://".equals(url.getScheme());
         port = url.getPort();
