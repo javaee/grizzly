@@ -90,6 +90,7 @@ public abstract class HandShake {
         serverHostName = url.getHost();
         secure = "wss://".equals(url.getScheme());
         port = url.getPort();
+        origin = appendPort(new StringBuilder(url.getHost())).toString();
         buildLocation();
     }
 
@@ -99,7 +100,7 @@ public abstract class HandShake {
         checkForHeader(request, "Connection", "Upgrade");
         origin = readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER);
         if (origin == null) {
-            origin = readHeader(mimeHeaders, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
+            origin = readHeader(mimeHeaders, WebSocketEngine.ORIGIN_HEADER);
         }
         determineHostAndPort(mimeHeaders);
         subProtocol = split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
@@ -124,15 +125,15 @@ public abstract class HandShake {
 
     protected final void buildLocation() {
         StringBuilder builder = new StringBuilder((isSecure() ? "wss" : "ws") + "://" + serverHostName);
-        if (port != 80) {
-            builder.append(":" + port);
-        }
+        appendPort(builder);
         if (resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
             builder.append("/");
         }
         builder.append(resourcePath);
         location = builder.toString();
     }
+
+
 
     public String getLocation() {
         return location;
@@ -317,5 +318,18 @@ public abstract class HandShake {
 
     public void initiate(FilterChainContext ctx) throws IOException {
         ctx.write(composeHeaders());
+    }
+
+    private StringBuilder appendPort(StringBuilder builder) {
+        if (isSecure()) {
+            if (port != 443) {
+                builder.append(':').append(port);
+            }
+        } else {
+            if (port != 80) {
+                builder.append(':').append(port);
+            }
+        }
+        return builder;
     }
 }

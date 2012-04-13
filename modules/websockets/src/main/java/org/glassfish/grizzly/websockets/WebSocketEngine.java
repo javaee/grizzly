@@ -71,6 +71,7 @@ public class WebSocketEngine {
     public static final String SEC_WS_ACCEPT = "Sec-WebSocket-Accept";
     public static final String SEC_WS_KEY_HEADER = "Sec-WebSocket-Key";
     public static final String SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String ORIGIN_HEADER = "Origin";
     public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
     public static final String SEC_WS_EXTENSIONS_HEADER = "Sec-WebSocket-Extensions";
     public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
