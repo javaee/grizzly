@@ -314,23 +314,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
-     * @see Transport#getProcessorSelector() ()
-     */
-    public ProcessorSelector getProcessorSelector() {
-        return transport.getProcessorSelector();
-    }
-
-    /**
-     * @see Transport#setProcessorSelector(ProcessorSelector)
-     *
-     * @return this <code>NIOTransportBuilder</code>
-     */
-    public T setProcessorSelector(ProcessorSelector processorSelector) {
-        transport.setProcessorSelector(processorSelector);
-        return getThis();
-    }
-
-    /**
      * @see Transport#getReadBufferSize() ()
      */
     public int getReadBufferSize() {

@@ -58,7 +58,6 @@ public abstract class AbstractSocketConnectorHandler
 
     protected final Transport transport;
     private Processor processor;
-    private ProcessorSelector processorSelector;
 
     protected final List<ConnectionProbe> probes =
             new LinkedList<ConnectionProbe>();
@@ -66,7 +65,6 @@ public abstract class AbstractSocketConnectorHandler
     public AbstractSocketConnectorHandler(Transport transport) {
         this.transport = transport;
         this.processor = transport.getProcessor();
-        this.processorSelector = transport.getProcessorSelector();
     }
 
     @Override
@@ -124,29 +122,6 @@ public abstract class AbstractSocketConnectorHandler
      */
     public void setProcessor(Processor processor) {
         this.processor = processor;
-    }
-
-    /**
-     * Gets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     *
-     * @return the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     */
-    public ProcessorSelector getProcessorSelector() {
-        return processorSelector;
-    }
-
-    /**
-     * Sets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     *
-     * @param processorSelector the default {@link ProcessorSelector},
-     * which will be used to get {@link Processor} to process I/O events,
-     * occurring on connection phase.
-     */
-    public void setProcessorSelector(ProcessorSelector processorSelector) {
-        this.processorSelector = processorSelector;
     }
 
     /**
@@ -226,11 +201,6 @@ public abstract class AbstractSocketConnectorHandler
 
         public E processor(final Processor processor) {
             connectorHandler.setProcessor(processor);
-            return (E) this;
-        }
-
-        public E processorSelector(final ProcessorSelector processorSelector) {
-            connectorHandler.setProcessorSelector(processorSelector);
             return (E) this;
         }
 

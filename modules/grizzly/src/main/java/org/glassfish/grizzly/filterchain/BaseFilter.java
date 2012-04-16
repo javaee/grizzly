@@ -40,10 +40,7 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Connection;
 import java.io.IOException;
-import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import java.lang.ref.WeakReference;
 import org.glassfish.grizzly.Event;
 
 /**
@@ -54,14 +51,8 @@ import org.glassfish.grizzly.Event;
  * @author Alexey Stashok
  */
 public class BaseFilter implements Filter {
-
-    private int index;
-    private WeakReference<FilterChain> filterChain;
-
     @Override
     public void onFilterChainConstructed(final FilterChain filterChain) {
-        index = filterChain.indexOf(this);
-        this.filterChain = new WeakReference<FilterChain>(filterChain);
     }
 
     /**
@@ -121,36 +112,5 @@ public class BaseFilter implements Filter {
      */
     @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-    }
-    
-    /**
-     * Returns the {@link FilterChain}, which is executing this {@link Filter}
-     * on the current thread.
-     * 
-     * @return the {@link FilterChain}, which is currently 
-     *         executing this {@link Filter}
-     */
-    public FilterChain getFilterChain() {
-        final WeakReference<FilterChain> localRef = filterChain;
-        return localRef != null ? localRef.get() : null;
-    }
-
-    /**
-     * @return the index of this filter within the {@link FilterChain}.
-     */
-    public int getIndex() {
-        return index;
-    }
-
-    public FilterChainContext createContext(final Connection connection,
-            final Operation operation) {
-        final FilterChainContext ctx =
-                getFilterChain().obtainFilterChainContext(connection);
-
-        ctx.setOperation(operation);
-        ctx.setFilterIdx(index);
-        ctx.setStartIdx(index);
-
-        return ctx;
     }
 }

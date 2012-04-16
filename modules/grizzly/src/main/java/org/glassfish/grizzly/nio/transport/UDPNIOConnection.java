@@ -200,7 +200,7 @@ public class UDPNIOConnection extends NIOConnection {
     protected final void onWrite(Buffer data, int size) {
         notifyProbesWrite(this, data, size);
     }
-
+    
     /**
      * Set the monitoringProbes array directly.
      * @param monitoringProbes

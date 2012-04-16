@@ -60,7 +60,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
             ThreadCache.obtainIndex(ReadyFutureImpl.class, 4);
 
     /**
-     * Construct cancelled {@link Future}.
+     * Construct canceled {@link Future}.
      */
     public static <R> ReadyFutureImpl<R> create() {
         final ReadyFutureImpl<R> future = takeFromCache();

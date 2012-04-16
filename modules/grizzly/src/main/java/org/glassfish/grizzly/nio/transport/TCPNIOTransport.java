@@ -195,8 +195,8 @@ public class TCPNIOTransport extends NIOTransport implements
                 selectionKeyHandler = new DefaultSelectionKeyHandler();
             }
 
-            if (processor == null && processorSelector == null) {
-                throw new IllegalStateException("No processor/processor selector available.");
+            if (processor == null) {
+                throw new IllegalStateException("No processor available.");
             }
 
             if (selectorRunnersCount <= 0) {
@@ -579,8 +579,10 @@ public class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    protected void closeConnection(final Connection connection) throws IOException {
-        final SelectableChannel nioChannel = ((NIOConnection) connection).getChannel();
+    protected void closeConnection(final NIOConnection connection)
+            throws IOException {
+        
+        final SelectableChannel nioChannel = connection.getChannel();
 
         if (nioChannel != null) {
             try {
@@ -622,7 +624,6 @@ public class TCPNIOTransport extends NIOTransport implements
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
         connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
     }
     
@@ -790,44 +791,31 @@ public class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public void fireEvent(final Event event,
-            final Connection connection) {
-
-        final Processor conProcessor = connection.obtainProcessor(event);
-
-        ProcessorExecutor.execute(Context.create(connection,
-                conProcessor, event));
-    }
-
-    @Override
     public void fireEvent(final ServiceEvent event,
             final Connection connection,
             final ServiceEventProcessingHandler processingHandler) {
 
-            if (event == ServiceEvent.SERVER_ACCEPT) {
-                try {
-                    ((TCPNIOServerConnection) connection).onAccept();
-                } catch (IOException e) {
-                    failProcessingHandler(event, connection,
-                            processingHandler, e);
-                }
-                
-                return;
-            } else if (event == ServiceEvent.CLIENT_CONNECTED) {
-                try {
-                    ((TCPNIOConnection) connection).onConnect();
-                } catch (IOException e) {
-                    failProcessingHandler(event, connection,
-                            processingHandler, e);
-                }
-                
-                return;
+        if (event == ServiceEvent.SERVER_ACCEPT) {
+            try {
+                ((TCPNIOServerConnection) connection).onAccept();
+            } catch (IOException e) {
+                failProcessingHandler(event, connection,
+                        processingHandler, e);
             }
-            
-            final Processor conProcessor = connection.obtainProcessor(event);
 
-            ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, event, processingHandler));
+            return;
+        } else if (event == ServiceEvent.CLIENT_CONNECTED) {
+            try {
+                ((TCPNIOConnection) connection).onConnect();
+            } catch (IOException e) {
+                failProcessingHandler(event, connection,
+                        processingHandler, e);
+            }
+
+            return;
+        }
+
+        super.fireEvent(event, connection, processingHandler);
     }
     
     /**
@@ -894,7 +882,7 @@ public class TCPNIOTransport extends NIOTransport implements
                 buffer = null;
             } else if (read < 0) {
                 // Mark connection as closed remotely.
-                tcpConnection.close0(null, false);
+                tcpConnection.close(null, false);
                 throw new EOFException();
             }
         } else {
@@ -918,7 +906,7 @@ public class TCPNIOTransport extends NIOTransport implements
                 
                 if (read < 0) {
                     // Mark connection as closed remotely.
-                    tcpConnection.close0(null, false);
+                    tcpConnection.close(null, false);
                     throw new EOFException();
                 }
             }
@@ -967,7 +955,7 @@ public class TCPNIOTransport extends NIOTransport implements
                 }
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                tcpConnection.close0(null, false);
+                tcpConnection.close(null, false);
                 throw e;
             }
         } else if (message instanceof FileTransfer) {
@@ -1031,11 +1019,6 @@ public class TCPNIOTransport extends NIOTransport implements
         @Override
         public Processor getProcessor() {
             return TCPNIOTransport.this.getProcessor();
-        }
-
-        @Override
-        public ProcessorSelector getProcessorSelector() {
-            return TCPNIOTransport.this.getProcessorSelector();
         }
     }
 }

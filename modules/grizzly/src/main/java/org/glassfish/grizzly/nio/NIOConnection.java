@@ -46,6 +46,7 @@ import java.nio.channels.SelectionKey;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -64,7 +65,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -91,7 +91,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile SelectorRunner selectorRunner;
     
     protected volatile Processor processor;
-    protected volatile ProcessorSelector processorSelector;
     protected final AttributeHolder attributes;
     protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
@@ -107,7 +106,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
-            DataStructures.getLTQInstance(CloseListener.class);
+            new ConcurrentLinkedQueue<CloseListener>();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -278,42 +277,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public Processor obtainProcessor(Event event) {
-        if (processor == null && processorSelector == null) {
-            return transport.obtainProcessor(event, this);
-        }
-        if (processor != null) {
-            return processor;
-        } else if (processorSelector != null) {
-            final Processor selectedProcessor =
-                processorSelector.select(event, this);
-            if (selectedProcessor != null) {
-                return selectedProcessor;
-            }
-        }
-        return null;
-    }
-
-    @Override
     public Processor getProcessor() {
-        return processor;
+        final Processor localProcessor = processor;
+        return localProcessor != null ? localProcessor :
+                transport.getProcessor();
     }
 
     @Override
     public void setProcessor(
         Processor preferableProcessor) {
         this.processor = preferableProcessor;
-    }
-
-    @Override
-    public ProcessorSelector getProcessorSelector() {
-        return processorSelector;
-    }
-
-    @Override
-    public void setProcessorSelector(
-            final ProcessorSelector preferableProcessorSelector) {
-        this.processorSelector = preferableProcessorSelector;
     }
 
     @Override
@@ -348,7 +321,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> void read(
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler) {
-        final Processor obtainedProcessor = obtainProcessor(ServiceEvent.READ);
+        final Processor obtainedProcessor = getProcessor();
         obtainedProcessor.read(this, completionHandler);
     }
 
@@ -382,7 +355,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final SocketAddress dstAddress, final M message,
             final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler) {
-        final Processor obtainedProcessor = obtainProcessor(ServiceEvent.WRITE);
+        final Processor obtainedProcessor = getProcessor();
         obtainedProcessor.write(this, dstAddress, message,
                 completionHandler, lifeCycleHandler);
     }
@@ -437,7 +410,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public void close(
             final CompletionHandler<Connection> completionHandler) {
-        close0(completionHandler, true);
+        close(completionHandler, true);
     }
         
     @Override
@@ -446,7 +419,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         close(null);
     }
     
-    protected void close0(
+    protected void close(
             final CompletionHandler<Connection> completionHandler,
             final boolean isClosedLocally) {
         
@@ -463,7 +436,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public boolean run() {
                     try {
-                        transport.closeConnection(NIOConnection.this);
+                        close0();
                     } catch (IOException e) {
                         logger.log(Level.FINE, "Error during connection close", e);
                     }
@@ -481,7 +454,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public void failed(final Throwable throwable) {
                     try {
-                        transport.closeConnection(NIOConnection.this);
+                        close0();
                     } catch (Exception ignored) {
                     }
 
@@ -493,6 +466,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
 
+    /**
+     * Do the actual connection close.
+     */
+    protected void close0() throws IOException {
+        ((NIOTransport) transport).closeConnection(this);
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -530,9 +510,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     /**
-     * {@inheritDoc}
+     * Method gets invoked, when error occur during the <tt>Connection</tt> lifecycle.
+     *
+     * @param error {@link Throwable}.
      */
-    @Override
     public void notifyConnectionError(Throwable error) {
         notifyProbesError(this, error);
     }

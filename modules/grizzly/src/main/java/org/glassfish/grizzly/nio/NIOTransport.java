@@ -167,8 +167,8 @@ public abstract class NIOTransport extends AbstractTransport {
     protected SelectorRunner[] getSelectorRunners() {
         return selectorRunners;
     }
-
-    @Override
-    protected abstract void closeConnection(Connection connection)
+    
+    protected abstract void closeConnection(final NIOConnection connection)
             throws IOException;
+    
 }

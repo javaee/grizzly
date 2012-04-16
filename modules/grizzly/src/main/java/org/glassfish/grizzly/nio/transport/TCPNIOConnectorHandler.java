@@ -114,7 +114,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             preConfigure(finalConnection);
 
             finalConnection.setProcessor(getProcessor());
-            finalConnection.setProcessorSelector(getProcessorSelector());
 
             final boolean isConnected = socketChannel.connect(remoteAddress);
 

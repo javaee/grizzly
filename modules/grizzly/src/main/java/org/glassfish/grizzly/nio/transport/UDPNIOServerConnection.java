@@ -73,15 +73,6 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         return processor;
     }
 
-    @Override
-    public ProcessorSelector getProcessorSelector() {
-        if (processorSelector == null) {
-            return transport.getProcessorSelector();
-        }
-
-        return processorSelector;
-    }
-
     public void register() throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =

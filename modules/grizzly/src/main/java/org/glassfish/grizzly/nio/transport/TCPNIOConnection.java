@@ -238,13 +238,12 @@ public class TCPNIOConnection extends NIOConnection {
      * {@inheritDoc}
      */
     @Override
-    protected void close0(
+    protected void close(
             final CompletionHandler<Connection> completionHandler,
             final boolean isClosedLocally) {
-        super.close0(completionHandler, isClosedLocally);
+        super.close(completionHandler, isClosedLocally);
     }
 
-    
     /**
      * Method will be called, when some data was read on the connection
      */
