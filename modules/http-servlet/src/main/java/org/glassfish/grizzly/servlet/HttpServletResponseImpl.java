@@ -718,9 +718,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     }
 
 
-    // ------------------------------------------------------- Protected Methods
-
-    protected Response getResponse() {
+    public Response getResponse() {
         return response;
     }
 }
