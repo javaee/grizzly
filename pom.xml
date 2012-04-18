@@ -422,7 +422,7 @@
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
-        <felix-version>2.1.0</felix-version>
+        <felix-version>2.3.6</felix-version>
         <cobertura.version>2.4</cobertura.version>
         <gmbal.version>3.0.0-b023</gmbal.version>
         <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>

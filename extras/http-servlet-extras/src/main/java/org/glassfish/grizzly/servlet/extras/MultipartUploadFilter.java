@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.servlet;
+package org.glassfish.grizzly.servlet.extras;
 
 
 import org.glassfish.grizzly.Buffer;
@@ -72,6 +72,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
+import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
 
 /**
  * <p>

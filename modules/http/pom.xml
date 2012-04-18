@@ -80,8 +80,12 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
                         <Export-Package>
-                            org.glassfish.grizzly.http.*
+                            org.glassfish.grizzly.http.*;version=${project.version},
                         </Export-Package>
                     </instructions>
                 </configuration>

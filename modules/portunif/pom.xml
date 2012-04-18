@@ -78,7 +78,13 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.glassfish.grizzly.portunif.*</Export-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.portunif.*;version=${project.version},
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
