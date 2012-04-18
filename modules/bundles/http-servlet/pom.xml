@@ -72,10 +72,12 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            org.glassfish.grizzly*;version=${project.version},
                             *,
                         </Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first,version=${project.version},javax.servlet.*</Export-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.*;version=${project.version};-split-package:=merge-first,
+                            javax.servlet.*;version=${servlet-version}
+                        </Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>

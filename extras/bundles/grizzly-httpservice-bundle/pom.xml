@@ -100,13 +100,11 @@
                         </Bundle-Activator>
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
                         <Import-Package>
-                            org.glassfish.grizzly*;version=${project.version},
-                            org.glassfish.gmbal*;version=${gmbal.version},
                             *,
                         </Import-Package>
                         <Export-Package>
                             org.glassfish.grizzly.*;version=${project.version};-split-package:=merge-first,
-                            javax.servlet.*;-split-package:=merge-first;version=2.5,
+                            javax.servlet.*;-split-package:=merge-first;version=${servlet-version},
                             org.glassfish.gmbal*;version=${gmbal.version}
                         </Export-Package>
                         <Export-Service>
