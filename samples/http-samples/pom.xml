@@ -74,8 +74,11 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.samples.http.*</Export-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>org.glassfish.grizzly.samples.http.*;version=${project.version},</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>

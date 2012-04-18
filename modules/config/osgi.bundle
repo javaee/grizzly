@@ -45,4 +45,5 @@
                         org.glassfish.grizzly.config.ssl; version=${project.version}
 
 Import-Package: \
+                        org.glassfish.grizzly*; version=${project.version}, \
                         *

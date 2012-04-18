@@ -71,8 +71,11 @@
                 <version>${felix-version}</version>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first,javax.servlet.*</Export-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first,version=${project.version},javax.servlet.*</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
