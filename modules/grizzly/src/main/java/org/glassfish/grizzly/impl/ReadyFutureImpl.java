@@ -229,11 +229,6 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     }
 
     @Override
-    public void markForRecycle(boolean recycleResult) {
-        recycle(recycleResult);
-    }
-
-    @Override
     public void recycle() {
         recycle(false);
     }

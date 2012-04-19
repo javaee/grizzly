@@ -158,21 +158,6 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         sync.innerSetException(failure);
     }
 
-    @Override
-    public void markForRecycle(boolean recycleResult) {
-//        final int localLifeCounter = lifeCounter;
-//        final int mark = recycleResult ? MARK_RECYCLE_RESULT : MARK_DONT_RECYCLE_RESULT;
-//        final int absMark = localLifeCounter + mark;
-//
-//        if (recycleMark.compareAndSet(0, absMark)) {
-//            if (sync.innerIsDone()) {
-//                if (recycleMark.compareAndSet(absMark, localLifeCounter + MARK_RECYCLED)) {
-//                    recycle(recycleResult);
-//                }
-//            }
-//        }
-    }
-
     protected void reset() {
         sync.innerReset();
 //        recycleMark.set(0);

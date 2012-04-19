@@ -177,15 +177,6 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
         }
     }
 
-    @Override
-    public void markForRecycle(boolean recycleResult) {
-        if (isDone) {
-            recycle(recycleResult);
-        } else {
-            recycleMark = 1 + (recycleResult ? 1 : 0);
-        }
-    }
-
     protected void reset() {
         result = null;
         failure = null;
