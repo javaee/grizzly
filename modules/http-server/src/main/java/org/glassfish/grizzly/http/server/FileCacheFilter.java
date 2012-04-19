@@ -53,6 +53,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.http.Method;
 
 /**
  *
@@ -75,9 +76,10 @@ public class FileCacheFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
 
-        if (fileCache.isEnabled()) {
-            final HttpContent requestContent = (HttpContent) ctx.getMessage();
-            final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        final HttpContent requestContent = (HttpContent) ctx.getMessage();
+        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        
+        if (fileCache.isEnabled() && Method.GET.equals(request.getMethod())) {
             final HttpPacket response = fileCache.get(request);
             if (response != null) {
                 ctx.write(response);
