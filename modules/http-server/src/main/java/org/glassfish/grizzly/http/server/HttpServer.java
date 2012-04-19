@@ -598,18 +598,22 @@ public class HttpServer {
             fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
+            
+            final ServerFilterConfiguration config = new ServerFilterConfiguration(serverConfig);
 
             final HttpServerFilter webServerFilter = new HttpServerFilter(
-                    new ServerFilterConfiguration(serverConfig),
+                    config,
                     delayedExecutor);
             
             if (listener.isSendFileExplicitlyConfigured()) {
-                webServerFilter.getConfiguration().setSendFileEnabled(listener.isSendFileEnabled());
+                config.setSendFileEnabled(listener.isSendFileEnabled());
             }
             
             if (listener.getScheme() != null) {
-                webServerFilter.getConfiguration().setScheme(listener.getScheme());
+                config.setScheme(listener.getScheme());
             }
+            
+            config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());
             
             webServerFilter.setHttpHandler(httpHandlerChain);
             

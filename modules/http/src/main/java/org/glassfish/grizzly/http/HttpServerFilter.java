@@ -125,8 +125,6 @@ public class HttpServerFilter extends HttpCodecFilter {
     private final KeepAlive keepAlive;
 
     private final boolean processKeepAlive;
-    private boolean authPassthroughEnabled;
-    private boolean traceEnabled;
     private String defaultResponseContentType;
 
     /**
@@ -956,22 +954,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         final int maxRequestCount = keepAlive.getMaxRequestsCount();
         return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
 
-    }
-
-    public boolean isAuthPassthroughEnabled() {
-        return authPassthroughEnabled;
-    }
-
-    public void setAuthPassthroughEnabled(final boolean enabled) {
-        authPassthroughEnabled = enabled;
-    }
-
-    public boolean isTraceEnabled() {
-        return traceEnabled;
-    }
-
-    public void setTraceEnabled(final boolean enabled) {
-        traceEnabled = enabled;
     }
 
     public String getDefaultResponseContentType() {

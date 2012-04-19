@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,6 +64,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.*;
 
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -144,7 +145,7 @@ public class HttpServerFilter extends BaseFilter
             if (handlerRequest == null) {
                 // It's a new HTTP request
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-                final HttpResponsePacket response = request.getResponse();
+                final HttpResponsePacket response = request.getResponse();                
                 handlerRequest = Request.create();
                 httpRequestInProcessAttr.set(connection, handlerRequest);
                 final Response handlerResponse = Response.create();
@@ -159,9 +160,13 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    final HttpHandler httpHandlerLocal = httpHandler;
-                    if (httpHandlerLocal != null) {
-                        httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
+                    if (request.getMethod() == Method.TRACE) {
+                        onTraceRequest(handlerRequest, handlerResponse);
+                    } else {
+                        final HttpHandler httpHandlerLocal = httpHandler;
+                        if (httpHandlerLocal != null) {
+                            httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
+                        }
                     }
                 } catch (Throwable t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);
@@ -186,28 +191,19 @@ public class HttpServerFilter extends BaseFilter
                 }
             } else {
                 // We're working with suspended HTTP request
-//                if (handlerRequest.asyncInput()) {
-                    try {
-//                        if (!handlerRequest.getInputBuffer().isFinished()) {
+                try {
+                    if (!handlerRequest.getInputBuffer().append(httpContent)) {
+                        // we don't want this thread/context to reset
+                        // OP_READ on Connection
 
-//                            final boolean isLast = httpContent.isLast();
-
-                        if (!handlerRequest.getInputBuffer().append(httpContent)) {
-                            // we don't want this thread/context to reset
-                            // OP_READ on Connection
-                            
-//                            if (isLast) {
-                                // we have enough data? - terminate filter chain execution
-                                final NextAction action = ctx.getSuspendAction();
-                                ctx.completeAndRecycle();
-                                return action;
-//                            }
-//                        }
-                        }
-                    } finally {
-                        httpContent.recycle();
+                        // we have enough data? - terminate filter chain execution
+                        final NextAction action = ctx.getSuspendAction();
+                        ctx.completeAndRecycle();
+                        return action;
                     }
-//                }
+                } finally {
+                    httpContent.recycle();
+                }
             }
         } else { // this code will be run, when we resume the context
             if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
@@ -269,7 +265,16 @@ public class HttpServerFilter extends BaseFilter
         return new org.glassfish.grizzly.http.server.jmx.HttpServerFilter(this);
     }
 
+    protected void onTraceRequest(final Request request,
+            final Response response) throws IOException {
+        if (config.isTraceEnabled()) {
+            HtmlHelper.writeTraceMessage(request, response);
+        } else {
+            response.setStatus(HttpStatus.METHOD_NOT_ALLOWED_405);
+        }
+    }
 
+    
     // --------------------------------------------------------- Private Methods
 
 
@@ -310,5 +315,4 @@ public class HttpServerFilter extends BaseFilter
         
         return ctx.getStopAction();
     }
-
 }

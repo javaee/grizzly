@@ -54,6 +54,8 @@ public class ServerFilterConfiguration {
     private String httpServerVersion;
     private boolean sendFileEnabled;
     
+    private boolean traceEnabled;
+    
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
      * up by framework during runtime.
@@ -75,6 +77,7 @@ public class ServerFilterConfiguration {
         this.httpServerVersion = configuration.httpServerVersion;
         this.sendFileEnabled = configuration.sendFileEnabled;
         this.scheme = configuration.scheme;
+        this.traceEnabled = configuration.traceEnabled;
     }
     
     /**
@@ -181,6 +184,14 @@ public class ServerFilterConfiguration {
      */
     public void setScheme(String scheme) {
         this.scheme = scheme;
+    }
+    
+    public boolean isTraceEnabled() {
+        return traceEnabled;
+    }
+
+    public void setTraceEnabled(final boolean enabled) {
+        traceEnabled = enabled;
     }
     
     // --------------------------------------------------------- Private Methods
