@@ -41,7 +41,6 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
@@ -54,6 +53,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.http.*;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -67,6 +67,7 @@ import static org.junit.Assert.*;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class TraceMethodTest {
     private static final int PORT = 18902;
     
@@ -82,6 +83,9 @@ public class TraceMethodTest {
 
             assertEquals(405,
                     ((HttpResponsePacket) response.getHttpHeader()).getStatus());
+            assertEquals("POST, GET, DELETE, OPTIONS, PUT, HEAD",
+                    response.getHttpHeader().getHeader(Header.Allow));
+            
         } finally {
             server.stop();
         }
@@ -132,8 +136,7 @@ public class TraceMethodTest {
 
     private HttpContent doTest(
             final HttpPacket request,
-            final int timeout,
-            final HttpHandler... httpHandlers)
+            final int timeout)
             throws Exception {
 
         final TCPNIOTransport clientTransport =
