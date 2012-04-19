@@ -220,7 +220,7 @@ public class FileCacheTest {
             c.write(request3);
             final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
 
-            assertEquals(405, ((HttpResponsePacket) response3.getHttpHeader()).getStatus());
+            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response3.getContent().toStringContent());
             
             isOk = true;
         } finally {

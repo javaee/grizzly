@@ -157,6 +157,40 @@ public class StaticHttpHandlerTest {
         }        
     }
     
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testPostMethod() throws Exception {
+        final int fileSize = 16 * 1024 * 1024;
+        File control = generateTempFile(fileSize);
+        
+        final FutureImpl<File> result = Futures.<File>createSafeFuture();
+
+        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals(405, response.getStatus());
+                assertEquals("GET", response.getHeader(Header.Allow));
+            }
+        }, isSslEnabled);
+        try {
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/" + control.getName())
+                        .method(Method.POST)
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            assertEquals(0, fResult.length());
+            
+            c.close();
+        } finally {
+            client.stop();
+        }        
+    }
+    
     private static TCPNIOTransport createClient(final FutureImpl<File> result,
             final ResponseValidator validator,
             final boolean isSslEnabled) throws Exception {
