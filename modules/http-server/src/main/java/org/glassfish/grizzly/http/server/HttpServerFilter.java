@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.*;
+import org.glassfish.grizzly.http.util.Header;
 
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -271,6 +272,7 @@ public class HttpServerFilter extends BaseFilter
             HtmlHelper.writeTraceMessage(request, response);
         } else {
             response.setStatus(HttpStatus.METHOD_NOT_ALLOWED_405);
+            response.setHeader(Header.Allow, "POST, GET, DELETE, OPTIONS, PUT, HEAD");
         }
     }
 
