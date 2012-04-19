@@ -74,7 +74,7 @@
                         <Import-Package>
                             *,
                         </Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version},javax.servlet.*</Export-Package>
+                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version}</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
