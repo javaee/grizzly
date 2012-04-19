@@ -39,12 +39,10 @@
  */
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.HttpProbe;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
 import org.glassfish.grizzly.http.EncodingFilter;
@@ -58,7 +56,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
@@ -87,7 +84,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.glassfish.grizzly.*;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.server.util.MimeType;
@@ -187,6 +183,14 @@ public class FileCacheTest {
                 .header("Host", "localhost")
                 .build();
 
+        final HttpRequestPacket request3 = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .contentLength(0)
+                .build();
+
         boolean isOk = false;
         try {
             ContentFuture responseFuture = new ContentFuture();
@@ -207,6 +211,15 @@ public class FileCacheTest {
             final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
             assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/plain", response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
+
+            // Make sure cache is bypassed on POST request
+            // and 405 status returned from StaticHttpHandler
+            responseFuture.reset();
+            c.write(request3);
+            final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals(405, ((HttpResponsePacket) response3.getHttpHeader()).getStatus());
+            
             isOk = true;
         } finally {
             if (!isOk) {

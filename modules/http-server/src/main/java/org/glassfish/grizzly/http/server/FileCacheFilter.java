@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.server.filecache.FileCache;
 import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.http.Method;
 
 /**
  *
@@ -73,9 +74,10 @@ public class FileCacheFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
 
-        if (fileCache.isEnabled()) {
-            final HttpContent requestContent = (HttpContent) ctx.getMessage();
-            final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        final HttpContent requestContent = (HttpContent) ctx.getMessage();
+        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        
+        if (fileCache.isEnabled() && Method.GET.equals(request.getMethod())) {
             final HttpPacket response = fileCache.get(request);
             if (response != null) {
                 ctx.write(response);
@@ -83,11 +85,11 @@ public class FileCacheFilter extends BaseFilter {
                 if (connection.canWrite()) {  // if connection write queue is not overloaded
                     return ctx.getStopAction();
                 } else { // if connection write queue is overloaded
-                    
+
                     // prepare context for suspend
                     final NextAction suspendAction = ctx.getSuspendAction();
                     ctx.suspend();
-                    
+
                     // notify when connection becomes writable, so we can resume it
                     connection.notifyWritePossible(new WriteHandler() {
 
@@ -100,12 +102,12 @@ public class FileCacheFilter extends BaseFilter {
                         public void onError(Throwable t) {
                             finish();
                         }
-                        
+
                         private void finish() {
                             ctx.resume();
                         }
                     });
-                    
+
                     return suspendAction;
                 }
             }
