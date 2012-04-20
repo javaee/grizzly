@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,6 +60,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.glassfish.grizzly.servlet.ServletRegistration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -71,7 +72,6 @@ public class CounterTest {
 
     @Before
     public void setUp() throws Exception {
-        stopHttpServer();
         httpServer = HttpServer.createSimpleServer("./", PORT);
         final WebappContext ctx =
                 new WebappContext("Counter", "/grizzly-comet-counter");
@@ -88,11 +88,17 @@ public class CounterTest {
         httpServer.start();
     }
 
+    @After
+    public void tearDown() {
+        stopHttpServer();
+    }
+    
     @Test
     public void testCounter() throws IOException, ExecutionException, TimeoutException, InterruptedException {
         int attempt = 0;
         while (attempt++ < 20) {
             Future request = request(attempt);
+            Thread.sleep(500);
             executorService.submit(new HttpRequest("POST")).get(10, TimeUnit.SECONDS);
             request.get(30, TimeUnit.SECONDS);
         }
@@ -123,12 +129,12 @@ public class CounterTest {
         @Override
         public void run() {
             try {
-                Thread.sleep(500);
                 Socket socket = new Socket("localhost", PORT);
                 try {
                     os = socket.getOutputStream();
                     write(method + " " + QUERY_PATH + " HTTP/1.1");
                     write("Host: localhost:" + PORT);
+                    write("Connection: close");
                     write("");
                     connected.countDown();
                     readResponse(socket.getInputStream());
@@ -137,17 +143,13 @@ public class CounterTest {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e.getMessage(), e);
             }
         }
 
         public void readResponse(InputStream inputStream) throws IOException {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             try {
-                do {
-                    reader.readLine();
-                } while (reader.ready());
+                while(reader.readLine() != null);
             } finally {
                 try {
                     reader.close();
