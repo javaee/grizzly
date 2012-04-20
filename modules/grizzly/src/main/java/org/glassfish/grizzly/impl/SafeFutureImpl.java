@@ -54,9 +54,10 @@ import java.util.concurrent.*;
 public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
 
     private static final Callable DUMMY_CALLABLE = new Callable() {
+        private final Object result = new Object();
         @Override
         public Object call() throws Exception {
-            return null;
+            return result;
         }
     };
 
