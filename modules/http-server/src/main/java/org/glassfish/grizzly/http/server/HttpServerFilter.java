@@ -169,7 +169,7 @@ public class HttpServerFilter extends BaseFilter
                             httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
                         }
                     }
-                } catch (Throwable t) {
+                } catch (Exception t) {
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
@@ -182,13 +182,13 @@ public class HttpServerFilter extends BaseFilter
                         final Buffer buf = Buffers.wrap(mm, b);
                         handlerResponse.getOutputBuffer().writeBuffer(buf);
                     }
-                } finally {
-                    if (!suspendStatus.get()) {
-                        return afterService(ctx, connection,
-                                handlerRequest, handlerResponse);
-                    } else {
-                        return ctx.getSuspendAction();
-                    }
+                }
+                
+                if (!suspendStatus.get()) {
+                    return afterService(ctx, connection,
+                            handlerRequest, handlerResponse);
+                } else {
+                    return ctx.getSuspendAction();
                 }
             } else {
                 // We're working with suspended HTTP request
