@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,85 +37,81 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.server;
 
-package org.glassfish.grizzly.impl;
-
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
- * Safe {@link FutureImpl} implementation.
  *
- * (Based on the JDK {@link java.util.concurrent.FutureTask})
- *
- * @see Future
- * 
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
+public final class ReusableFuture<V> implements FutureImpl<V> {
+    private FutureImpl<V> innerFuture;
 
-    private static final Callable DUMMY_CALLABLE = new Callable() {
-        @Override
-        public Object call() throws Exception {
-            return null;
-        }
-    };
+    public ReusableFuture() {
+        reset();
+    }
 
-    /**
-     * Construct {@link SafeFutureImpl}.
-     */
-    @SuppressWarnings("unchecked")
-    public static <R> SafeFutureImpl<R> create() {
-        return new SafeFutureImpl<R>();
+    protected void reset() {
+        innerFuture = Futures.<V>createSafeFuture();
     }
-    
-    /**
-     * Creates <tt>SafeFutureImpl</tt> 
-     */
-    public SafeFutureImpl() {
-        super(DUMMY_CALLABLE);
-    }
-    
-    /**
-     * Set the result value and notify about operation completion.
-     *
-     * @param result the result value
-     */
+
     @Override
-    public void result(R result) {
-        set(result);
+    public void result(V result) {
+        innerFuture.result(result);
     }
 
-    /**
-     * Notify about the failure, occurred during asynchronous operation execution.
-     *
-     * @param failure
-     */
     @Override
     public void failure(Throwable failure) {
-        setException(failure);
-    }
-
-    @Override
-    public void markForRecycle(boolean recycleResult) {
+        innerFuture.failure(failure);
     }
 
     @Override
     public void recycle(boolean recycleResult) {
+        innerFuture.recycle(recycleResult);
+    }
+
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        return innerFuture.cancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return innerFuture.isCancelled();
+    }
+
+    @Override
+    public boolean isDone() {
+        return innerFuture.isDone();
+    }
+
+    @Override
+    public V get() throws InterruptedException, ExecutionException {
+        return innerFuture.get();
+    }
+
+    @Override
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return innerFuture.get(timeout, unit);
     }
 
     @Override
     public void recycle() {
+        innerFuture = null;
     }
 
     @Override
-    public R getResult() {
-        if (isDone()) {
-            try {
-                return get();
-            } catch (Throwable ignored) {
-            }
-        }
-        
-        return null;
+    public V getResult() {
+        return innerFuture.getResult();
+    }
+
+    @Override
+    public void markForRecycle(boolean recycleResult) {
+        innerFuture.markForRecycle(recycleResult);
     }
 }

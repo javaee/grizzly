@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.http.HttpProbe;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
@@ -61,7 +60,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
@@ -81,14 +79,16 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.glassfish.grizzly.http.*;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -195,7 +195,8 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
             final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -272,7 +273,8 @@ public class FileCacheTest {
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
             fis.close();
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final String pattern = new String(data);
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
@@ -346,7 +348,8 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
             final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -396,7 +399,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -447,7 +451,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -468,7 +473,7 @@ public class FileCacheTest {
         responseFuture.reset();
         final String ifModifiedSinceValue = convertToDate(file.lastModified());
         for (int i = 0; i < 1000; i++) {
-            System.out.println(i);
+//            System.out.println(i);
             final HttpRequestPacket request2 = HttpRequestPacket.builder()
                     .method("GET")
                     .uri(requestPath)
@@ -509,7 +514,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -576,7 +582,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -624,7 +631,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -671,7 +679,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -737,7 +746,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -783,7 +793,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -828,7 +839,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -996,22 +1008,9 @@ public class FileCacheTest {
         }
     }
 
-    private static class StatsConnectionProbe implements ConnectionProbe {
+    private static class StatsConnectionProbe extends ConnectionProbe.Adapter {
         final AtomicLong sentBytesCounter = new AtomicLong();
         final AtomicInteger receivedCounter = new AtomicInteger();
-
-        @Override
-        public void onBindEvent(Connection connection) {
-        }
-
-        @Override
-        public void onAcceptEvent(Connection serverConnection,
-                Connection clientConnection) {
-        }
-
-        @Override
-        public void onConnectEvent(Connection connection) {
-        }
 
         @Override
         public void onReadEvent(Connection connection, Buffer data, int size) {
@@ -1024,26 +1023,6 @@ public class FileCacheTest {
         }
 
         @Override
-        public void onErrorEvent(Connection connection, Throwable error) {
-        }
-
-        @Override
-        public void onCloseEvent(Connection connection) {
-        }
-
-        @Override
-        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
-        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
-        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {
-        }
-
-        @Override
         public String toString() {
             final StringBuilder sb = new StringBuilder("connection-stats[received=")
             .append(receivedCounter.get())
@@ -1052,10 +1031,9 @@ public class FileCacheTest {
 
             return sb.toString();
         }
-
     }
 
-    private static class StatsHttpProbe implements HttpProbe {
+    private static class StatsHttpProbe extends HttpProbe.Adapter {
         final AtomicInteger sentBytesCounter = new AtomicInteger();
         final AtomicInteger receivedCounter = new AtomicInteger();
 
@@ -1067,42 +1045,6 @@ public class FileCacheTest {
         @Override
         public void onDataSentEvent(Connection connection, Buffer buffer) {
             sentBytesCounter.addAndGet(buffer.remaining());
-        }
-
-        @Override
-        public void onHeaderParseEvent(Connection connection, HttpHeader header, int size) {
-        }
-
-        @Override
-        public void onHeaderSerializeEvent(Connection connection, HttpHeader header, Buffer buffer) {
-        }
-
-        @Override
-        public void onContentChunkParseEvent(Connection connection, HttpContent content) {
-        }
-
-        @Override
-        public void onContentChunkSerializeEvent(Connection connection, HttpContent content) {
-        }
-
-        @Override
-        public void onContentEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
-        }
-
-        @Override
-        public void onContentEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
-        }
-
-        @Override
-        public void onTransferEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
-        }
-
-        @Override
-        public void onTransferEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
-        }
-
-        @Override
-        public void onErrorEvent(Connection connection, HttpPacket packet, Throwable error) {
         }
 
         @Override
@@ -1178,14 +1120,5 @@ public class FileCacheTest {
 
             return sb.toString();
         }
-    }
-    
-    public static final class ContentFuture extends SafeFutureImpl<HttpContent> {
-
-        @Override
-        protected void reset() {
-            super.reset();   
-        }
-        
     }
 }

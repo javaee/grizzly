@@ -58,6 +58,7 @@ import org.junit.Before;
 import org.junit.runners.Parameterized.Parameters;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,6 +69,7 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.SimpleDynamicNIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.runners.Parameterized;
 import org.junit.runner.RunWith;
@@ -89,9 +91,9 @@ public class IOStrategyTest {
     @Parameters
     public static Collection<Object[]> getIOStrategy() {
         return Arrays.asList(new Object[][]{
-                    {WorkerThreadIOStrategy.getInstance()},
-                    {LeaderFollowerNIOStrategy.getInstance()},
-                    {SameThreadIOStrategy.getInstance()},
+//                    {WorkerThreadIOStrategy.getInstance()},
+//                    {LeaderFollowerNIOStrategy.getInstance()},
+//                    {SameThreadIOStrategy.getInstance()},
                     {SimpleDynamicNIOStrategy.getInstance()}
         }
                 );
@@ -109,7 +111,7 @@ public class IOStrategyTest {
     @Test
     public void testSimplePackets() throws Exception {
         final Integer msgNum = 200;
-        final String pattern = "Message #";
+        final String pattern = generateString(16384);
         final int clientsNum = Runtime.getRuntime().availableProcessors() * 16;
         final EchoFilter serverEchoFilter = new EchoFilter(pattern);
         
@@ -117,6 +119,7 @@ public class IOStrategyTest {
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new DelayFilter(2, 0));
         filterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
         filterChainBuilder.add(serverEchoFilter);
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
@@ -155,6 +158,7 @@ public class IOStrategyTest {
                 assertTrue(connection != null);
 
                 for (int j = 0; j < msgNum; j++) {
+                    System.out.println("msg#" + j);
                     final int num = j;
                     
                     connection.write(pattern + j, new EmptyCompletionHandler<WriteResult>() {
@@ -187,6 +191,16 @@ public class IOStrategyTest {
             transport.stop();
         }
     }
+
+    private String generateString(int size) {
+        final Random r = new Random();
+        StringBuilder sb = new StringBuilder(size);
+        for (int i = 0; i < size; i++) {
+            sb.append('A' + r.nextInt('Z' - 'A'));
+        }
+        
+        return sb.toString();
+    }
     
     private static final class EchoResultFilter extends BaseFilter {
         // handleReads should be executed synchronously, so plain "int" is ok
@@ -208,6 +222,7 @@ public class IOStrategyTest {
             final int count = counter.getAndIncrement();
             final String check = pattern + count;
             
+            System.out.println("rcvd#" + count);
             if (!check.equals(msg)) {
                 resultFuture.failure(new IllegalStateException(
                         "Client ResultFilter: unexpected echo came: " + msg +
