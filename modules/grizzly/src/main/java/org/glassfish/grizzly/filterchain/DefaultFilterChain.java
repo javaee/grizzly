@@ -156,7 +156,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 }
             } while (prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     "Exception during FilterChain execution", e);
             throwChain(ctx, executor, e);

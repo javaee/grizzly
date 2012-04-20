@@ -170,21 +170,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      */
     @Override
     public void service(final Request request, final Response response) throws Exception {
-        // For backward compatibility.
-        //Request req = request.getRequest();
-//        MappingData mappingData = null;
         try {
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
-            //MessageBytes decodedURI = req.decodedURI();
-            //decodedURI.duplicate(req.requestURI());
-            // TODO: cleanup notes (int version/string version)
-//            mappingData = request.getNote(MAPPING_DATA_NOTE);
-//            if (mappingData == null) {
               final MappingData mappingData = request.obtainMappingData();
-//            } else {
-//                mappingData.recycle();
-//            }
 
             mapper.mapUriWithSemicolon(request.getRequest().serverName(),
                     decodedURI,
@@ -209,13 +198,12 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 response.setStatus(HttpStatus.NOT_FOUND_404);
                 customizedErrorPage(request, response);
             }
-        } catch (Throwable t) {
+        } catch (Exception t) {
             try {
-                response.setStatus(HttpStatus.NOT_FOUND_404);
+                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
+                    LOGGER.log(Level.FINE, "Internal server error", t);
                 }
-                customizedErrorPage(request, response);
             } catch (Exception ex2) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING, "Unable to error page", ex2);
