@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,31 +37,72 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.server;
 
-package org.glassfish.grizzly.impl;
-
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.GrizzlyFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
- * {@link Future} interface, which has full control over the state.
  *
- * @see Future
- * 
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public interface FutureImpl<R> extends GrizzlyFuture<R> {
-    /**
-     * Set the result value and notify about operation completion.
-     * 
-     * @param result the result value
-     */
-    public abstract void result(R result);
+public final class ReusableFuture<V> implements FutureImpl<V> {
+    private FutureImpl<V> innerFuture;
 
-    /**
-     * Notify about the failure, occurred during asynchronous operation execution.
-     * 
-     * @param failure
-     */
-    public abstract void failure(Throwable failure);
+    public ReusableFuture() {
+        reset();
+    }
+
+    protected void reset() {
+        innerFuture = Futures.<V>createSafeFuture();
+    }
+
+    @Override
+    public void result(V result) {
+        innerFuture.result(result);
+    }
+
+    @Override
+    public void failure(Throwable failure) {
+        innerFuture.failure(failure);
+    }
+
+    @Override
+    public void recycle(boolean recycleResult) {
+        innerFuture.recycle(recycleResult);
+    }
+
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        return innerFuture.cancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return innerFuture.isCancelled();
+    }
+
+    @Override
+    public boolean isDone() {
+        return innerFuture.isDone();
+    }
+
+    @Override
+    public V get() throws InterruptedException, ExecutionException {
+        return innerFuture.get();
+    }
+
+    @Override
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return innerFuture.get(timeout, unit);
+    }
+
+    @Override
+    public void recycle() {
+        innerFuture = null;
+    }
+    
 }

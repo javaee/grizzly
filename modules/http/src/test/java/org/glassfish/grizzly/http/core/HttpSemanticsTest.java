@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,8 +86,6 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
-
 
     // ------------------------------------------------------------ Test Methods
 
@@ -422,13 +420,6 @@ public class HttpSemanticsTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
     
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
     private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
     throws Throwable {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
@@ -471,7 +462,6 @@ public class HttpSemanticsTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -579,8 +569,7 @@ public class HttpSemanticsTest extends TestCase {
                 }
                 testResult.result(Boolean.TRUE);
             } catch (Throwable t) {
-                testResult.result(Boolean.FALSE);
-                exception.result(t);
+                testResult.failure(t);
             }
         }
 

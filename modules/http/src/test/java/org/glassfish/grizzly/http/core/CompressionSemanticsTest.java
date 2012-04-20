@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -303,13 +303,6 @@ public class CompressionSemanticsTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
     private void doTest(HttpPacket request, ExpectedResult expectedResults,
             List<ContentEncoding> serverContentEncoding,
             List<ContentEncoding> clientContentEncoding,
@@ -373,7 +366,6 @@ public class CompressionSemanticsTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -463,8 +455,7 @@ public class CompressionSemanticsTest extends TestCase {
                     
                     testResult.result(Boolean.TRUE);
                 } catch (Throwable t) {
-                    testResult.result(Boolean.FALSE);
-                    exception.result(t);
+                    testResult.failure(t);
                 }
             }
 

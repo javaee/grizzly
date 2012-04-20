@@ -89,7 +89,7 @@ public class SendFileTest extends TestCase {
     public void testSimpleSendFileViaStaticResourceAdapter() throws Exception {
         HttpServer server = createServer(null, false, false);
         File control = generateTempFile(1024);
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -130,7 +130,7 @@ public class SendFileTest extends TestCase {
         File control = generateTempFile(1024);
         HttpServer server = createServer(new SendFileApiHandler(control, null), false, false);
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -170,7 +170,7 @@ public class SendFileTest extends TestCase {
         File control = generateTempFile(1024);
         HttpServer server = createServer(new SendFileApiHandler(511, 512, "application/tmp"), false, false); // send half
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -209,7 +209,7 @@ public class SendFileTest extends TestCase {
         h.setSendExtraContent(true);
         HttpServer server = createServer(h, false, false);
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
         BigInteger controlSum = getMDSum(control);
         
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
@@ -250,7 +250,7 @@ public class SendFileTest extends TestCase {
         HttpHandler h = new SendFileRequestAttributeHandler(control);
         HttpServer server = createServer(h, false, false);
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
         BigInteger controlSum = getMDSum(control);
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
@@ -285,46 +285,46 @@ public class SendFileTest extends TestCase {
     
     
     @SuppressWarnings("unchecked")
-        public void testSimpleSendFileViaRequestAttributeCustomThread() throws Exception {
-            File control = generateTempFile(1024);
-            SendFileRequestAttributeHandler h = new SendFileRequestAttributeHandler(control);
-            ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
-            h.setExecutor(e);
-            HttpServer server = createServer(h, false, false);
-            MimeType.add("tmp", "text/temp");
-            TestFuture result = new TestFuture();
-            BigInteger controlSum = getMDSum(control);
-    
-            TCPNIOTransport client = createClient(result, new ResponseValidator() {
-                @Override
-                public void validate(HttpResponsePacket response) {
-                    assertEquals("1024", response.getHeader(Header.ContentLength));
-                    // explicit mime type set
-                    assertEquals("text/temp", response.getHeader(Header.ContentType));
-                }
-            });
-            try {
-                server.start();
-                client.start();
-                Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
-                HttpRequestPacket request =
-                        HttpRequestPacket.builder().uri("/" + control.getName())
-                                .method(Method.GET)
-                                .protocol(Protocol.HTTP_1_1)
-                                .header("Host", "localhost:" + PORT).build();
-                c.write(request);
-                File fResult = result.get(20, TimeUnit.SECONDS);
-                BigInteger resultSum = getMDSum(fResult);
-                assertTrue("MD5Sum between control and test files differ.",
-                        controlSum.equals(resultSum));
-                result.reset();
-                c.close();
-            } finally {
-                client.stop();
-                server.stop();
-                e.shutdownNow();
+    public void testSimpleSendFileViaRequestAttributeCustomThread() throws Exception {
+        File control = generateTempFile(1024);
+        SendFileRequestAttributeHandler h = new SendFileRequestAttributeHandler(control);
+        ScheduledExecutorService e = Executors.newScheduledThreadPool(1);
+        h.setExecutor(e);
+        HttpServer server = createServer(h, false, false);
+        MimeType.add("tmp", "text/temp");
+        final ReusableFuture<File> result = new ReusableFuture<File>();
+        BigInteger controlSum = getMDSum(control);
+
+        TCPNIOTransport client = createClient(result, new ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals("1024", response.getHeader(Header.ContentLength));
+                // explicit mime type set
+                assertEquals("text/temp", response.getHeader(Header.ContentType));
             }
+        });
+        try {
+            server.start();
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/" + control.getName())
+                            .method(Method.GET)
+                            .protocol(Protocol.HTTP_1_1)
+                            .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            BigInteger resultSum = getMDSum(fResult);
+            assertTrue("MD5Sum between control and test files differ.",
+                    controlSum.equals(resultSum));
+            result.reset();
+            c.close();
+        } finally {
+            client.stop();
+            server.stop();
+            e.shutdownNow();
         }
+    }
 
     @SuppressWarnings("unchecked")
     public void testSimpleSendFileViaRequestAttributeCustomPosLen() throws Exception {
@@ -332,7 +332,7 @@ public class SendFileTest extends TestCase {
         HttpHandler h = new SendFileRequestAttributeHandler(511, 512);
         HttpServer server = createServer(h, false, false);
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -369,7 +369,7 @@ public class SendFileTest extends TestCase {
         HttpHandler h = new SendFileRequestAttributeHandler(control);
         HttpServer server = createServer(h, true, false);
         MimeType.add("tmp", "text/temp");
-        TestFuture result = new TestFuture();
+        final ReusableFuture<File> result = new ReusableFuture<File>();
         BigInteger controlSum = getMDSum(control);
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -535,7 +535,7 @@ public class SendFileTest extends TestCase {
     } // END SendFileApiHandler
     
     
-    private static TCPNIOTransport createClient(final TestFuture result,
+    private static TCPNIOTransport createClient(final ReusableFuture<File> result,
                                                 final ResponseValidator validator) {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         FilterChainBuilder builder = FilterChainBuilder.stateless();
@@ -650,15 +650,6 @@ public class SendFileTest extends TestCase {
     // ---------------------------------------------------------- Nested Classes
     
     
-    private static final class TestFuture extends SafeFutureImpl<File> {
-
-        @Override
-        protected void reset() {
-            super.reset();  
-        }
-    }
-
-
     private static interface ResponseValidator {
         
         void validate(HttpResponsePacket response);

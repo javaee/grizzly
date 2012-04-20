@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,8 +91,6 @@ public class GZipEncodingTest extends TestCase {
     private static final Logger logger = Grizzly.logger(GZipEncodingTest.class);
 
     public static int PORT = 19006;
-
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
     public void testGZipResponse() throws Throwable {
         GZipContentEncoding gzipServerContentEncoding =
@@ -343,14 +341,6 @@ public class GZipEncodingTest extends TestCase {
     
     // --------------------------------------------------------- Private Methods
 
-
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
     private void doTest(HttpPacket request, ExpectedResult expectedResults,
             ContentEncoding serverContentEncoding, ContentEncoding clientContentEncoding)
     throws Throwable {
@@ -408,7 +398,6 @@ public class GZipEncodingTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -498,8 +487,7 @@ public class GZipEncodingTest extends TestCase {
                     
                     testResult.result(Boolean.TRUE);
                 } catch (Throwable t) {
-                    testResult.result(Boolean.FALSE);
-                    exception.result(t);
+                    testResult.failure(t);
                 }
             }
 

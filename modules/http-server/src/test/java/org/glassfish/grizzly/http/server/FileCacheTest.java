@@ -80,13 +80,16 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -193,7 +196,8 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
             final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -270,7 +274,8 @@ public class FileCacheTest {
             byte[] data = new byte[(int) file.length()];
             fis.read(data);
             fis.close();
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final String pattern = new String(data);
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
@@ -344,7 +349,8 @@ public class FileCacheTest {
 
         boolean isOk = false;
         try {
-            ContentFuture responseFuture = new ContentFuture();
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
             final Connection c = getConnection("localhost", PORT, responseFuture);
             c.write(request1);
             final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -394,7 +400,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -445,7 +452,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -507,7 +515,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -574,7 +583,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -622,7 +632,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -669,7 +680,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -735,7 +747,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -781,7 +794,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -826,7 +840,8 @@ public class FileCacheTest {
         fis.close();
 
         final String pattern = new String(data);
-        final ContentFuture responseFuture = new ContentFuture();
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
         final Connection c = getConnection("localhost", PORT, responseFuture);
         c.write(request1);
         final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
@@ -1106,14 +1121,5 @@ public class FileCacheTest {
 
             return sb.toString();
         }
-    }
-    
-    public static final class ContentFuture extends SafeFutureImpl<HttpContent> {
-
-        @Override
-        protected void reset() {
-            super.reset();   
-        }
-        
     }
 }

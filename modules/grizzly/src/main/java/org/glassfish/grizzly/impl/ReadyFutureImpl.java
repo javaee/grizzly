@@ -136,16 +136,6 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Get current result value without any blocking.
-     *
-     * @return current result value without any blocking.
-     */
-    @Override
-    public R getResult() {
-        return result;
-    }
-
-    /**
      * Should not be called for <tt>ReadyFutureImpl</tt>
      */
     public void setResult(R result) {
@@ -221,7 +211,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     public void result(R result) {
         throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
     }
-    
+
     private void reset() {
         result = null;
         failure = null;

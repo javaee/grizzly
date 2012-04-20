@@ -168,16 +168,15 @@ public abstract class AbstractSocketConnectorHandler
         return new SafeFutureImpl<Connection>() {
 
             @Override
-            protected void onCancel(boolean mayInterruptIfRunning) {
-                close();
-            }
-
-            @Override
-            protected void onError(Throwable t) {
-                close();
-            }
-
-            private void close() {
+            protected void done() {
+                try {
+                    if (!isCancelled()) {
+                        get();
+                        return;
+                    }
+                } catch(Throwable ignored) {
+                }
+                
                 try {
                     connection.closeSilently();
                 } catch (Exception ignored) {
