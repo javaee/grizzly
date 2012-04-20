@@ -252,6 +252,12 @@ public class PUFilter extends BaseFilter {
 
         // if upstream event - pass it to the puFilter
         if (isUpstream(ctx)) {
+            final NextAction terminateNextAction;
+            if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
+                // We get here, when context is resumed after
+                // child protocol chain execution is complete.
+                return terminateNextAction;
+            }
 
             final Connection connection = ctx.getConnection();
             final PUContext puContext = puContextAttribute.get(connection);
