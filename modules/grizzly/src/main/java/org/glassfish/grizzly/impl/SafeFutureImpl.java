@@ -71,6 +71,7 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
     /**
      * Creates <tt>SafeFutureImpl</tt> 
      */
+    @SuppressWarnings("unchecked")
     public SafeFutureImpl() {
         super(DUMMY_CALLABLE);
     }
