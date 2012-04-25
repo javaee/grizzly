@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
@@ -104,9 +105,14 @@ public class BackChannelFilter extends BaseFilter {
                 puFilter.suspendedContextAttribute.get(ctx);
 
         assert suspendedParentContext != null;
+        
+        final TransportContext transportContext = ctx.getTransportContext();
 
         suspendedParentContext.write(ctx.getAddress(), ctx.getMessage(),
-                ctx.getTransportContext().getCompletionHandler());
+                transportContext.getCompletionHandler(),
+                transportContext.getPushBackHandler(),
+                transportContext.getMessageCloner(),
+                transportContext.isBlocking());
 
         return ctx.getStopAction();
     }
