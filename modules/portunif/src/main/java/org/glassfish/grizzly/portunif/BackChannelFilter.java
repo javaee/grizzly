@@ -46,6 +46,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
@@ -104,9 +105,14 @@ public class BackChannelFilter extends BaseFilter {
                 puFilter.suspendedContextAttribute.get(ctx);
 
         assert suspendedParentContext != null;
+        
+        final TransportContext transportContext = ctx.getTransportContext();
 
         suspendedParentContext.write(ctx.getAddress(), ctx.getMessage(),
-                ctx.getTransportContext().getCompletionHandler());
+                transportContext.getCompletionHandler(),
+                transportContext.getLifeCycleHandler(),
+                transportContext.getMessageCloner(),
+                transportContext.isBlocking());
 
         return ctx.getStopAction();
     }
