@@ -115,6 +115,17 @@ public class AjpTestBase {
         socket.getOutputStream().write(request);
     }
 
+    protected void closeClient() {
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException e) {
+            }
+            
+            socket = null;
+        }
+    }
+    
     @SuppressWarnings({"unchecked"})
     protected byte[] readAjpMessage() throws IOException {
         final byte[] tmpHeaderBuffer = new byte[4];

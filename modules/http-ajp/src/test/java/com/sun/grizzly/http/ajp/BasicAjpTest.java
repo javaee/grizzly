@@ -204,6 +204,144 @@ public class BasicAjpTest extends AjpTestBase {
         }
     }
 
+    @Test
+    public void testPost() throws IOException, InstantiationException {
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                final int length = request.getContentLength();
+                final InputStream is = request.getInputStream();
+
+                for (int i = 0; i < length; i++) {
+                    final int c = is.read();
+                    final int expected = (i % 'Z' - 'A') + 'A';
+                    if (c != expected) {
+                        response.sendError(400, "Unexpected char[" + i + "]. Expected: " + ((char) expected) + " but was: " + ((char) c) + "(" + c + ")");
+                        return;
+                    }
+                }
+                
+                response.setStatus(200, "FINE");
+            }
+
+        };
+
+        final int postHalfSize = 512;
+        
+        configureHttpServer(a);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/myresource", 80, PORT);
+        headersPacket.addHeader("Content-Length", String.valueOf(postHalfSize * 2));
+        headersPacket.addHeader("Host", "localhost:80");
+        
+        send(headersPacket.toByteArray());
+        
+        byte[] postBody = new byte[postHalfSize * 2];
+        for (int i = 0; i < postBody.length; i++) {
+            postBody[i] = (byte) ((i % 'Z' - 'A') + 'A');
+        }
+        
+        final byte[] postBody1 = new byte[postHalfSize];
+        System.arraycopy(postBody, 0, postBody1, 0, postHalfSize);
+        final AjpDataPacket dataPacket1 = new AjpDataPacket(postBody1);
+        send(dataPacket1.toByteArray());
+
+        AjpResponse ajpAskMoreDataPacket = Utils.parseResponse(readAjpMessage());
+        Assert.assertTrue(AjpMessageUtils.getShort(ajpAskMoreDataPacket.getBody(), 0) <= AjpConstants.MAX_READ_SIZE);
+        
+        final byte[] postBody2 = new byte[postHalfSize];
+        System.arraycopy(postBody, postHalfSize, postBody2, 0, postHalfSize);
+        final AjpDataPacket dataPacket2 = new AjpDataPacket(postBody2);
+        send(dataPacket2.toByteArray());
+        
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+    }
+    
+    @Test
+    public void testStabilityAfterFailure() throws Exception {
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                final int length = request.getContentLength();
+                final InputStream is = request.getInputStream();
+
+                for (int i = 0; i < length; i++) {
+                    final int c;
+                    try {
+                        c = is.read();
+                    } catch (IOException e) {
+                        //swallow the exception
+                        return;
+                    }
+                    
+                    final int expected = (i % 'Z' - 'A') + 'A';
+                    if (c != expected) {
+                        response.sendError(400, "Unexpected char[" + i + "]. Expected: " + ((char) expected) + " but was: " + ((char) c) + "(" + c + ")");
+                        return;
+                    }
+                }
+                
+                response.setStatus(200, "FINE");
+            }
+
+        };
+
+        final int postHalfSize = 512;
+        
+        configureHttpServer(a);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/TestServlet/normal", 80, PORT);
+        headersPacket.addHeader("Content-Length", String.valueOf(postHalfSize * 2));
+        headersPacket.addHeader("Host", "localhost:80");
+        final byte[] headersPacketArray = headersPacket.toByteArray();
+        
+        byte[] postBody = new byte[postHalfSize * 2];
+        for (int i = 0; i < postBody.length; i++) {
+            postBody[i] = (byte) ((i % 'Z' - 'A') + 'A');
+        }
+        
+        final byte[] postBody1 = new byte[postHalfSize];
+        System.arraycopy(postBody, 0, postBody1, 0, postHalfSize);
+        final AjpDataPacket dataPacket1 = new AjpDataPacket(postBody1);
+        final byte[] dataPacket1Array = dataPacket1.toByteArray();
+        
+        final byte[] postBody2 = new byte[postHalfSize];
+        System.arraycopy(postBody, postHalfSize, postBody2, 0, postHalfSize);
+        final AjpDataPacket dataPacket2 = new AjpDataPacket(postBody2);
+        final byte[] dataPacket2Array = dataPacket2.toByteArray();
+        
+        byte[] incompleteData = new byte[headersPacketArray.length + dataPacket1Array.length];
+        System.arraycopy(headersPacketArray, 0, incompleteData, 0, headersPacketArray.length);
+        System.arraycopy(dataPacket1Array, 0, incompleteData, headersPacketArray.length, incompleteData.length - headersPacketArray.length);
+        
+        send(incompleteData);
+        Thread.sleep(1000);
+        
+        // Cause failure on server
+        closeClient();
+        
+        for (int i = 0; i < 1024; i++) {
+            send(headersPacketArray);
+            send(dataPacket1Array);
+
+            AjpResponse ajpAskMoreDataPacket = Utils.parseResponse(readAjpMessage());
+            Assert.assertTrue(AjpMessageUtils.getShort(ajpAskMoreDataPacket.getBody(), 0) <= AjpConstants.MAX_READ_SIZE);
+
+            send(dataPacket2Array);
+
+            AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+            Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+            closeClient();
+        }
+    }
+    
     public void testPingPong() throws Exception {
         configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
         

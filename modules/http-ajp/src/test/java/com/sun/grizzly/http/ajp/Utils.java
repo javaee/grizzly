@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -115,6 +115,14 @@ public class Utils {
             {
                 body = new byte[1];
                 body[0] = buffer[pos++];
+                ajpResponse.setBody(body);
+                break;
+            }
+            case AjpConstants.JK_AJP13_GET_BODY_CHUNK:
+            {
+                body = new byte[2];
+                body[0] = buffer[pos++];
+                body[1] = buffer[pos++];
                 ajpResponse.setBody(body);
                 break;
             }

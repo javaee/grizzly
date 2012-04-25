@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -176,7 +176,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
         if (available >= length) {
             return true;
         }
-        
+
         if (pos == lastValid) {
             pos = lastValid = end;
         }
@@ -206,13 +206,22 @@ public class AjpInputBuffer extends InternalInputBuffer {
             lastValid = pos + available;
         }
 
-        while (lastValid - pos < length) {
-            final int readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
-            if (readNow < 0) {
-                return false;
+        boolean error = false;
+        try {
+            while (lastValid - pos < length) {
+                error = true;
+                final int readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
+                if (readNow < 0) {
+                    return false;
+                }
+                
+                error = false;
+                lastValid += readNow;
             }
-            
-            lastValid += readNow;
+        } finally {
+            if (error) {
+                pos = lastValid = thisPacketEnd = end;
+            }
         }
         
         return true;
