@@ -279,8 +279,8 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper asReadOnlyBuffer() {
-        visible.asReadOnlyBuffer();
-        return this;
+        checkDispose();
+        return wrapByteBuffer(visible.asReadOnlyBuffer());
     }
 
     @Override
