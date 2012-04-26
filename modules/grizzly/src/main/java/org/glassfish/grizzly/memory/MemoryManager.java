@@ -67,7 +67,7 @@ public interface MemoryManager<E extends Buffer>
      * be public and have a public no-arg constructor.
      * </p>
      */
-    public static final MemoryManager DEFAULT_MEMORY_MANAGER =
+    static final MemoryManager DEFAULT_MEMORY_MANAGER =
             MemoryManagerInitializer.initManager();
 
     /**
@@ -76,7 +76,7 @@ public interface MemoryManager<E extends Buffer>
      * @param size {@link Buffer} size to be allocated.
      * @return allocated {@link Buffer}.
      */
-    public E allocate(int size);
+    E allocate(int size);
 
     /**
      * Allocated {@link Buffer} at least of the provided size.
@@ -87,7 +87,7 @@ public interface MemoryManager<E extends Buffer>
      * @param size the min {@link Buffer} size to be allocated.
      * @return allocated {@link Buffer}.
      */
-    public E allocateAtLeast(int size);
+    E allocateAtLeast(int size);
 
     /**
      * Reallocate {@link Buffer} to a required size.
@@ -100,7 +100,7 @@ public interface MemoryManager<E extends Buffer>
      * @param newSize new {@link Buffer} required size.
      * @return reallocated {@link Buffer}.
      */
-    public E reallocate(E oldBuffer, int newSize);
+    E reallocate(E oldBuffer, int newSize);
 
     /**
      * Release {@link Buffer}.
@@ -110,7 +110,7 @@ public interface MemoryManager<E extends Buffer>
      *
      * @param buffer {@link Buffer} to be released.
      */
-    public void release(E buffer);
+    void release(E buffer);
     
     /**
      * Return <tt>true</tt> if next {@link #allocate(int)} or {@link #allocateAtLeast(int)} call,
@@ -120,5 +120,5 @@ public interface MemoryManager<E extends Buffer>
      * @param size
      * @return 
      */
-    public boolean willAllocateDirect(int size);
+    boolean willAllocateDirect(int size);
 }

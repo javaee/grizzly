@@ -52,6 +52,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
@@ -514,7 +515,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                final ThreadLocalPoolProvider mm = (ThreadLocalPoolProvider) config.getMemoryManager();
+                final MemoryManager m = config.getMemoryManager();
+                ThreadLocalPoolProvider mm = null;
+                if (m instanceof ThreadLocalPoolProvider) {
+                    mm = (ThreadLocalPoolProvider) m;
+                }
                 return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                                                config.getPoolName()
                                                        + "-WorkerThread("

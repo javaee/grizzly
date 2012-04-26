@@ -48,11 +48,11 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
 import javax.net.ssl.SSLException;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
@@ -65,7 +65,6 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  */
 public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buffer> {
     public static final int NEED_HANDSHAKE_ERROR = 1;
-    public static final int BUFFER_UNDERFLOW_ERROR = 2;
     public static final int BUFFER_OVERFLOW_ERROR = 3;
 
     private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
@@ -124,15 +123,31 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             final int pos = originalMessage.position();
             final SSLEngineResult sslEngineResult;
             if (!originalMessage.isComposite()) {
-                sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
-                        targetBuffer.toByteBuffer());
+                if (targetBuffer.isComposite()) {
+                    ByteBufferArray ba = targetBuffer.toByteBufferArray();
+                    sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
+                                            ba.getArray(), 0, ba.size());
+
+                    ba.restore();
+                    ba.recycle();
+                } else {
+                    sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
+                                                       targetBuffer.toByteBuffer());
+                }
             } else {
                 final ByteBuffer originalByteBuffer =
                         originalMessage.toByteBuffer(pos,
                         pos + expectedLength);
-
-                sslEngineResult = sslEngine.unwrap(originalByteBuffer,
-                        targetBuffer.toByteBuffer());
+                if (targetBuffer.isComposite()) {
+                    ByteBufferArray ba = targetBuffer.toByteBufferArray();
+                    sslEngineResult = sslEngine.unwrap(originalByteBuffer,
+                            ba.getArray(), 0, ba.size());
+                    ba.restore();
+                    ba.recycle();
+                } else {
+                    sslEngineResult = sslEngine.unwrap(originalByteBuffer,
+                            targetBuffer.toByteBuffer());
+                }
             }
             
             originalMessage.position(pos + sslEngineResult.bytesConsumed());

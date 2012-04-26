@@ -62,7 +62,7 @@ import static org.junit.Assert.assertTrue;
  * @author Alexey Stashok
  */
 @RunWith(Parameterized.class)
-public class CompositeBufferTest extends AbstractMemoryTest {
+public class CompositeBufferTest extends AbstractMemoryManagerTest {
 
     public CompositeBufferTest(int mmType) {
         super(mmType);

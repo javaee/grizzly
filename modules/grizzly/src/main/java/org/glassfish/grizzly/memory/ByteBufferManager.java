@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,7 @@ import java.util.Arrays;
  * @author Jean-Francois Arcand
  * @author Alexey Stashok
  */
-public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> implements
+public class ByteBufferManager extends AbstractThreadLocalMemoryManager<ByteBufferWrapper> implements
         WrapperAware, ByteBufferAware {
 
     /**
@@ -84,7 +84,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
     public ByteBufferManager() {
         this(false,
-             AbstractMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+             AbstractThreadLocalMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
              DEFAULT_SMALL_BUFFER_SIZE);
     }
 

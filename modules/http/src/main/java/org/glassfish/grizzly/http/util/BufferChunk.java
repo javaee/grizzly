@@ -168,7 +168,11 @@ public class BufferChunk implements Chunk {
 
             try {
                 Buffers.setPositionLimit(buffer, absDeleteStart, absDeleteStart + diff);
-                buffer.put(buffer, absDeleteEnd, diff);
+                // we have to duplicate the buffer as, depending on the memory
+                // manager, it may be an error to pass a buffer back to itself.
+                final Buffer duplicate = buffer.duplicate();
+                buffer.put(duplicate, absDeleteEnd, diff);
+                duplicate.tryDispose();
                 this.end = absDeleteStart + diff;
             } finally {
                 Buffers.setPositionLimit(buffer, oldPos, oldLim);

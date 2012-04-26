@@ -56,7 +56,7 @@ import org.glassfish.grizzly.utils.ArrayUtils;
  *
  * @author Alexey Stashok
  */
-public final class BuffersBuffer extends CompositeBuffer {
+public class BuffersBuffer extends CompositeBuffer {
     private static final ThreadCache.CachedTypeIndex<BuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(BuffersBuffer.class, 5);
 
@@ -111,6 +111,8 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private boolean isReadOnly;
 
+    private boolean appendable = true;
+
     private int mark = -1;
 
     // absolute position
@@ -124,8 +126,8 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     // List of wrapped buffers
     private int[] bufferBounds;
-    private Buffer[] buffers;
-    private int buffersSize;
+    protected Buffer[] buffers;
+    protected int buffersSize;
 
     private int lastSegmentIndex;
     private int lowerBound;
@@ -192,6 +194,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     public void dispose() {
         checkDispose();
         isDisposed = true;
+        appendable = true;
         removeAndDisposeBuffers();
 
         ThreadCache.putToCache(CACHE_IDX, this);
@@ -203,7 +206,20 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
+    public boolean isAppendable() {
+        return appendable;
+    }
+
+    @Override
+    public void setAppendable(boolean appendable) {
+        this.appendable = appendable;
+    }
+
+    @Override
     public BuffersBuffer append(final Buffer buffer) {
+        if (!appendable) {
+            throw new IllegalStateException("Buffer does not allow appending");
+        }
         if (buffer == this) {
             throw new IllegalArgumentException("CompositeBuffer can not append itself");
         }
@@ -226,6 +242,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public BuffersBuffer prepend(final Buffer buffer) {
+        if (!appendable) {
+            throw new IllegalStateException("Buffer does not allow prepending");
+        }
         if (buffer == this) {
             throw new IllegalArgumentException("CompositeBuffer can not append itself");
         }
@@ -340,7 +359,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public boolean isDirect() {
-        throw new UnsupportedOperationException("Not supported in CompositeBuffers.");
+        return buffers[0].isDirect();
     }
 
     @Override
@@ -585,6 +604,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int limitBufferIndex = lastSegmentIndex;
         final int limitBufferPosition = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (posBufferIndex == limitBufferIndex) {
             return buffers[posBufferIndex].slice(
                     posBufferPosition, limitBufferPosition);
@@ -1341,6 +1361,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toByteBuffer(bufPosition, bufLimit);
@@ -1432,6 +1453,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toByteBufferArray(array, bufPosition, bufLimit);
@@ -1516,6 +1538,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toBufferArray(array, bufPosition, bufLimit);
@@ -1664,7 +1687,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (isReadOnly) throw new IllegalStateException("Buffer is in read-only mode");
     }
 
-    private void calcCapacity() {
+    protected final void calcCapacity() {
         int currentCapacity = 0;
         for(int i = 0; i < buffersSize; i++) {
             currentCapacity += buffers[i].remaining();

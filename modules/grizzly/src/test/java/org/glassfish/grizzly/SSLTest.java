@@ -46,6 +46,7 @@ import java.net.InetSocketAddress;
 
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
@@ -56,6 +57,7 @@ import org.glassfish.grizzly.utils.streams.StreamReader;
 import org.glassfish.grizzly.utils.streams.StreamWriter;
 import org.glassfish.grizzly.utils.streams.ssl.SSLStreamReader;
 import org.glassfish.grizzly.utils.streams.ssl.SSLStreamWriter;
+import org.junit.After;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.junit.Before;
@@ -158,10 +160,12 @@ public class SSLTest {
     @Parameters
     public static Collection<Object[]> getLazySslInit() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE, new HeapMemoryManager()},
-                    {Boolean.FALSE, new ByteBufferManager()},
-                    {Boolean.TRUE, new HeapMemoryManager()},
-                    {Boolean.TRUE, new ByteBufferManager()}
+                   {Boolean.FALSE, new HeapMemoryManager()},
+                   {Boolean.FALSE, new ByteBufferManager()},
+                   {Boolean.FALSE, new PooledMemoryManager()},
+                   {Boolean.TRUE, new HeapMemoryManager()},
+                   {Boolean.TRUE, new ByteBufferManager()},
+                   {Boolean.TRUE, new PooledMemoryManager()},
                 });
     }
 
@@ -169,6 +173,16 @@ public class SSLTest {
     public void before() throws Exception {
         Grizzly.setTrackingThreadCache(true);
         ByteBufferWrapper.DEBUG_MODE = true;
+    }
+
+    @After
+    public void after() throws Exception {
+        if (manager instanceof PooledMemoryManager) {
+            PooledMemoryManager.BufferPool[] pools = ((PooledMemoryManager) manager).getBufferPools();
+            for (int i = 0; i < pools.length; i++) {
+                pools[i].clear();
+            }
+        }
     }
 
     @Test
@@ -411,8 +425,6 @@ public class SSLTest {
             int turnAroundsNum, int filterIndex, Filter... filters)
             throws Exception {
 
-        final Integer pingPongTurnArounds = turnAroundsNum;
-
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
@@ -430,7 +442,7 @@ public class SSLTest {
         final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator,
                 clientSSLEngineConfigurator);
         final SSLPingPongFilter pingPongFilter = new SSLPingPongFilter(
-                sslFilter, pingPongTurnArounds);
+                sslFilter, turnAroundsNum);
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -461,12 +473,12 @@ public class SSLTest {
                 if (get instanceof Connection) {
                     System.out.println("unexpected future=" + pingPongFilter.getServerCompletedFeature() + " object=" + get);
                 }
-                assertEquals(pingPongTurnArounds, get);
+                assertEquals(turnAroundsNum, get);
             } catch (TimeoutException e) {
                 logger.severe("Server timeout");
             }
 
-            assertEquals(pingPongTurnArounds,
+            assertEquals((Object) turnAroundsNum,
                     pingPongFilter.getClientCompletedFeature().get(
                     10, TimeUnit.SECONDS));
             
@@ -530,7 +542,7 @@ public class SSLTest {
 
             for (int i = 0; i < connectionsNum; i++) {
                 final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                        Futures.createSafeFuture();
                 transport.connect(
                         new InetSocketAddress("localhost", PORT),
                         Futures.<Connection>toCompletionHandler(
@@ -565,7 +577,7 @@ public class SSLTest {
                     try {
                         byte[] sentMessage = ("Hello world! Connection#" + i + " Packet#" + j).getBytes();
 
-                        // aquire read lock to not allow incoming data to be processed by Processor
+                        // acquire read lock to not allow incoming data to be processed by Processor
                         writer.writeByteArray(sentMessage);
                         Future writeFuture = writer.flush();
 
@@ -735,13 +747,11 @@ public class SSLTest {
         transport.setProcessor(filterChainBuilder.build());
         transport.setMemoryManager(manager);
 
-        final MemoryManager mm = transport.getMemoryManager();
-
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.<Boolean>create();
+            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.create();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
@@ -942,8 +952,6 @@ public class SSLTest {
     private static class ClientTestFilter extends BaseFilter {
 
         private final FutureImpl<Integer> clientFuture;
-        private final String messagePattern;
-        private final int packetsNumber;
 
         private volatile int bytesReceived = 0;
 
@@ -951,8 +959,6 @@ public class SSLTest {
 
         private ClientTestFilter(FutureImpl<Integer> clientFuture, String messagePattern, int packetsNumber) {
             this.clientFuture = clientFuture;
-            this.messagePattern = messagePattern;
-            this.packetsNumber = packetsNumber;
 
             final StringBuilder sb = new StringBuilder(packetsNumber * (messagePattern.length() + 5));
             for (int i=0; i<packetsNumber; i++) {

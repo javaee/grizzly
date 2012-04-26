@@ -271,10 +271,11 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            //noinspection SuspiciousMethodCalls
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                        Futures.createSafeFuture();
                 ((UDPNIOServerConnection) connection).unbind(
                         Futures.toCompletionHandler(future));
                 try {
@@ -726,16 +727,17 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         final int oldPos = buffer.position();
 
-        if (!buffer.isComposite()) {
-            final ByteBuffer underlyingBB = buffer.toByteBuffer();
-            final int initialBufferPos = underlyingBB.position();
-            peerAddress = ((DatagramChannel) connection.getChannel()).receive(
-                    underlyingBB);
-            read = underlyingBB.position() - initialBufferPos;
-        } else {
-            throw new IllegalStateException("Cannot read from "
-                    + "non-connection UDP connection into CompositeBuffer");
+        final ByteBuffer underlyingBB = buffer.toByteBuffer();
+        final int initialBufferPos = underlyingBB.position();
+        peerAddress = ((DatagramChannel) connection.getChannel()).receive(
+                underlyingBB);
+        read = underlyingBB.position() - initialBufferPos;
+        if (buffer.isComposite()) {
+            // take it on the chin here with regards to composite buffers -
+            // we have to do another copy
+            buffer.put(underlyingBB);
         }
+
 
         final boolean hasRead = (read > 0);
 

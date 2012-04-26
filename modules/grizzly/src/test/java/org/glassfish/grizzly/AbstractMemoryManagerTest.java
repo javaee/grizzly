@@ -39,37 +39,55 @@
  */
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
+import org.glassfish.grizzly.memory.AbstractThreadLocalMemoryManager;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public class AbstractMemoryTest {
+public class AbstractMemoryManagerTest {
 
-    protected final AbstractMemoryManager mm;
+    protected final MemoryManager mm;
 
     @Parameterized.Parameters
     public static Collection<Object[]> getOptimizedForMultiplexing() {
         return Arrays.asList(new Object[][]{
                 {0},
-                {1}
+                {1},
+                {2}
         });
     }
 
-    public AbstractMemoryTest(final int mmType) {
+    public AbstractMemoryManagerTest(final int mmType) {
         switch (mmType) {
             case 0:
-                mm = new HeapMemoryManager();
+                mm = createHeapMemoryManager();
                 break;
             case 1:
-                mm = new ByteBufferManager();
+                mm = createByteBufferManager();
+                break;
+            case 2:
+                mm = createPooledMemoryManager();
                 break;
             default:
                 throw new IllegalStateException("Unknown memory manager type");
         }
+    }
+
+    protected PooledMemoryManager createPooledMemoryManager() {
+        return new PooledMemoryManager();
+    }
+
+    protected ByteBufferManager createByteBufferManager() {
+        return new ByteBufferManager();
+    }
+
+    protected HeapMemoryManager createHeapMemoryManager() {
+        return new HeapMemoryManager();
     }
 
 }

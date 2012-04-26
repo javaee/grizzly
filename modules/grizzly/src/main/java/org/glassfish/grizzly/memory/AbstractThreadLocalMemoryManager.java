@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,7 +52,7 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
  *
  * @since 2.0
  */
-public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryManager<E>, ThreadLocalPoolProvider {
+public abstract class AbstractThreadLocalMemoryManager<E extends Buffer> implements MemoryManager<E>, ThreadLocalPoolProvider {
 
 
     /**
@@ -84,22 +84,22 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * Creates a new <code>AbstractMemoryManager</code> using a max buffer size
+     * Creates a new <code>AbstractThreadLocalMemoryManager</code> using a max buffer size
      * of {@value #DEFAULT_MAX_BUFFER_SIZE}.
      */
-    public AbstractMemoryManager() {
+    public AbstractThreadLocalMemoryManager() {
 
         this(DEFAULT_MAX_BUFFER_SIZE);
 
     }
 
     /**
-     * Creates a new <code>AbstractMemoryManager</code> using the specified
+     * Creates a new <code>AbstractThreadLocalMemoryManager</code> using the specified
      * buffer size.
      *
      * @param maxBufferSize max size of the maintained buffer.
      */
-    public AbstractMemoryManager(final int maxBufferSize) {
+    public AbstractThreadLocalMemoryManager(final int maxBufferSize) {
 
         this.maxBufferSize = maxBufferSize;
 
@@ -126,12 +126,11 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
     /**
      * @return the max size of the buffer maintained by this
-     * <code>AbstractMemoryManager</code>.
+     * <code>AbstractThreadLocalMemoryManager</code>.
      */
     public int getMaxBufferSize() {
         return maxBufferSize;
     }
-
 
     // ------------------------------------------------------- Protected Methods
 

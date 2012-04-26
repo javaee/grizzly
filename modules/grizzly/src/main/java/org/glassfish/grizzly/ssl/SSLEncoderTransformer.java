@@ -136,7 +136,11 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 final SSLEngineResult sslEngineResult =
                         sslEngine.wrap(originalByteBuffer,
                         currentTargetByteBuffer);
-
+                if (currentTargetBuffer.isComposite()) {
+                    // TODO: REVISIT
+                    currentTargetByteBuffer.flip();
+                    currentTargetBuffer.put(currentTargetByteBuffer);  // TODO: COPY
+                }
                 // If the position of the original message hasn't changed,
                 // update the position now.
                 if (pos == originalMessage.position()) {

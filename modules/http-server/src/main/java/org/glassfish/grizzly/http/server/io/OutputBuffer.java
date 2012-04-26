@@ -526,6 +526,7 @@ public class OutputBuffer {
                 (currentBuffer == null || currentBuffer.remaining() >= len)) {
             checkCurrentBuffer();
 
+            //noinspection ConstantConditions
             currentBuffer.put(b, off, len);
         } else {  // If b[] is too big - try to send it to wire right away.
             
@@ -681,9 +682,7 @@ public class OutputBuffer {
         return false;
     }
 
-    /**
-     * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
-     */
+
     public boolean canWrite(final int length) {
         if (length <= 0 || getMaxAsyncWriteQueueSize() < 0 ||
                 (length + getBufferedDataSize()) <= guaranteedNonBlockingUnits) {
@@ -812,7 +811,7 @@ public class OutputBuffer {
             return;
         }
         
-        final FutureImpl<Boolean> future = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> future = Futures.createSafeFuture();
         
         connection.notifyWritePossible(new WriteHandler() {
 
@@ -980,9 +979,13 @@ public class OutputBuffer {
         CoderResult res = enc.encode(charBuf,
                                      currentByteBuffer,
                                      true);
-
+        if (currentBuffer.isComposite()) {
+            final ByteBuffer duplicate = currentByteBuffer.duplicate();
+            duplicate.flip();
+            currentBuffer.put(duplicate);  // TODO: COPY
+        }
         currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-        
+        currentByteBuffer.position(byteBufferPos);
         while (res == CoderResult.OVERFLOW) {
             finishCurrentBuffer();
             checkCurrentBuffer();
@@ -991,8 +994,13 @@ public class OutputBuffer {
             byteBufferPos = currentByteBuffer.position();
             
             res = enc.encode(charBuf, currentByteBuffer, true);
-
+            if (currentBuffer.isComposite()) {
+                final ByteBuffer duplicate = currentByteBuffer.duplicate();
+                duplicate.flip();
+                currentBuffer.put(duplicate);  // TODO: COPY
+            }
             currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
+            currentByteBuffer.position(byteBufferPos);
         }
 
         if (res != CoderResult.UNDERFLOW) {

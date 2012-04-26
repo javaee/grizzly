@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,7 +48,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.config.dom.NetworkConfig;
 import org.glassfish.grizzly.config.dom.NetworkListener;
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
+import org.glassfish.grizzly.memory.AbstractThreadLocalMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.jvnet.hk2.component.Habitat;
@@ -75,13 +75,13 @@ public class GrizzlyConfig {
     public void setupNetwork() throws IOException {
         validateConfig(config);
         synchronized (listeners) {
-            AbstractMemoryManager amm = null;
+            AbstractThreadLocalMemoryManager amm = null;
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GenericGrizzlyListener grizzlyListener = new GenericGrizzlyListener();
                 grizzlyListener.configure(habitat, listener);
                 final MemoryManager mm = grizzlyListener.transport.getMemoryManager();
-                if (mm instanceof AbstractMemoryManager) {
-                    amm = (AbstractMemoryManager) mm;
+                if (mm instanceof AbstractThreadLocalMemoryManager) {
+                    amm = (AbstractThreadLocalMemoryManager) mm;
                 }
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,

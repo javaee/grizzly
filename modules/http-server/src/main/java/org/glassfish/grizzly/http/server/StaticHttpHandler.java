@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Set;
 import java.util.logging.Level;
@@ -196,6 +197,7 @@ public class StaticHttpHandler extends HttpHandler {
      * configured to use file cache to serve static resources,
      * or <tt>false</tt> otherwise.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isFileCacheEnabled() {
         return isFileCacheEnabled;
     }
@@ -213,6 +215,7 @@ public class StaticHttpHandler extends HttpHandler {
      * <tt>StaticHttpHandler</tt> to use file cache to serve static resources,
      * or <tt>false</tt> otherwise.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void setFileCacheEnabled(boolean isFileCacheEnabled) {
         this.isFileCacheEnabled = isFileCacheEnabled;
     }
@@ -235,7 +238,7 @@ public class StaticHttpHandler extends HttpHandler {
     }
 
     private static void sendUsingBuffers(final Response response, final File file)
-            throws FileNotFoundException, IOException {
+            throws IOException {
         final int chunkSize = 8192;
         
         response.suspend();
@@ -520,11 +523,17 @@ public class StaticHttpHandler extends HttpHandler {
             // mark it available for disposal after content is written
             buffer.allowBufferDispose(true);
 
+            final ByteBuffer dest = buffer.toByteBuffer();
             // read file to the Buffer
-            final int justReadBytes = fileChannel.read(buffer.toByteBuffer());
+            final int justReadBytes = fileChannel.read(dest);
             if (justReadBytes <= 0) {
                 complete(false);
                 return false;
+            }
+
+            if (buffer.isComposite()) {
+                dest.flip();
+                buffer.put(dest); // TODO COPY
             }
 
             // prepare buffer to be written

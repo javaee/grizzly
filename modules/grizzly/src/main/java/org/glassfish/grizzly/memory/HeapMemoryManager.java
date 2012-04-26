@@ -56,7 +56,7 @@ import org.glassfish.grizzly.Cacheable;
  *
  * @since 2.0
  */
-public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> implements WrapperAware {
+public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuffer> implements WrapperAware {
 
     private static final ThreadCache.CachedTypeIndex<TrimmableHeapBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(TrimmableHeapBuffer.class, 8);

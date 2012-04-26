@@ -383,8 +383,8 @@ public class FilterChainTest extends TestCase {
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         final MemoryManager mm = transport.getMemoryManager();
         
-        FutureImpl<Boolean> part1Future = Futures.<Boolean>createSafeFuture();
-        FutureImpl<Boolean> part2Future = Futures.<Boolean>createSafeFuture();
+        FutureImpl<Boolean> part1Future = Futures.createSafeFuture();
+        FutureImpl<Boolean> part2Future = Futures.createSafeFuture();
         
         final Buffer msg1 = Buffers.wrap(mm, "part1");
         final Buffer msg2 = Buffers.wrap(mm, "part2");

@@ -95,6 +95,7 @@ public abstract class BufferedOutput implements Output {
     public void write(Buffer bufferToWrite) throws IOException {
         if (multiBufferWindow == null) {
             multiBufferWindow = CompositeBuffer.newBuffer();
+            multiBufferWindow.allowBufferDispose(false);
         }
 
         final boolean isInternalBufferEmpty = buffer == null ||

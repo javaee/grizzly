@@ -42,8 +42,8 @@ package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.BuffersBuffer;
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +58,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
-public class BuffersBufferTest extends AbstractMemoryTest {
+public class BuffersBufferTest extends AbstractMemoryManagerTest {
 
     public BuffersBufferTest(int mmType) {
         super(mmType);
@@ -235,16 +235,24 @@ public class BuffersBufferTest extends AbstractMemoryTest {
 
     @Test
     public void testBulkArrayGetWithEmptyBuffers() throws Exception {
-            BuffersBuffer b = BuffersBuffer.create(mm);
-            b.append(Buffers.wrap(mm, "Hello "));
-            b.append(BuffersBuffer.create(mm));
-            b.append(Buffers.wrap(mm, "world!"));
-            
-            byte[] bytes = new byte[12];
-            b.get(bytes);
-            assertEquals("Hello world!", new String(bytes));
-        }
+        BuffersBuffer b = BuffersBuffer.create(mm);
+        b.append(Buffers.wrap(mm, "Hello "));
+        b.append(BuffersBuffer.create(mm));
+        b.append(Buffers.wrap(mm, "world!"));
 
+        byte[] bytes = new byte[12];
+        b.get(bytes);
+        assertEquals("Hello world!", new String(bytes));
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    @Override
+    protected PooledMemoryManager createPooledMemoryManager() {
+        return new PooledMemoryManager(4, 1, .00001f, false);
+    }
 
 
     // --------------------------------------------------------- Private Methods
@@ -252,8 +260,8 @@ public class BuffersBufferTest extends AbstractMemoryTest {
 
     private static BuffersBuffer createOneSevenBuffer(final MemoryManager mm) {
         final BuffersBuffer b = BuffersBuffer.create(mm);
-        b.append(new ByteBufferWrapper(ByteBuffer.allocate(1)));
-        b.append(new ByteBufferWrapper(ByteBuffer.allocate(7)));
+        b.append(mm.allocate(7).limit(1));
+        b.append(mm.allocate(7));
         return b;
     }
 }

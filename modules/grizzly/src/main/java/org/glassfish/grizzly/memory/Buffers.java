@@ -100,7 +100,6 @@ public class Buffers {
     }
     
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
-    public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
 
     public static final Buffer EMPTY_BUFFER;
 
@@ -448,10 +447,10 @@ public class Buffers {
             return buffer1;
         }
 
-        if (buffer1.isComposite()) {
+        if (buffer1.isComposite() && ((CompositeBuffer) buffer1).isAppendable()) {
             ((CompositeBuffer) buffer1).append(buffer2);
             return buffer1;
-        } if (buffer2.isComposite()) {
+        } if (buffer2.isComposite() && ((CompositeBuffer) buffer2).isAppendable()) {
             ((CompositeBuffer) buffer2).prepend(buffer1);
             return buffer2;
         } else {

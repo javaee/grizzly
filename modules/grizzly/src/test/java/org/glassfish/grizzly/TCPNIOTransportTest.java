@@ -860,15 +860,12 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            int numberOfCancelledConnections = 0;
             final int connectionsNum = 100;
             
             for (int i = 0; i < connectionsNum; i++) {
                 final Future<Connection> connectFuture = connectorHandler.connect(
                         new InetSocketAddress("localhost", PORT));
-                if (connectFuture.cancel(false)) {
-                    numberOfCancelledConnections++;
-                } else {
+                if (!connectFuture.cancel(false)) {
                     assertTrue("Future is not done", connectFuture.isDone());
                     final Connection c = connectFuture.get();
                     assertNotNull("Connection is null?", c);
@@ -968,8 +965,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 throw e;
             }
 
-            Boolean isDone = clientFuture.get(10, TimeUnit.SECONDS);
+            Boolean isDone = clientFuture.get(1000, TimeUnit.SECONDS);
             assertEquals(Boolean.TRUE, isDone);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         } finally {
             try {
                 executorService.shutdownNow();

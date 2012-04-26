@@ -130,6 +130,8 @@ public class ByteBufferWrapper implements Buffer {
         visible = null;
     }
 
+
+
     protected final void prepareDispose() {
         checkDispose();
         if (DEBUG_MODE) { // if debug is on - clear the buffer content
@@ -177,51 +179,60 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final ByteBufferWrapper mark() {
+        checkDispose();
         visible.mark();
         return this;
     }
 
     @Override
     public final ByteBufferWrapper reset() {
+        checkDispose();
         visible.reset();
         return this;
     }
 
     @Override
     public final ByteBufferWrapper clear() {
+        checkDispose();
         visible.clear();
         return this;
     }
 
     @Override
     public final ByteBufferWrapper flip() {
+        checkDispose();
         visible.flip();
         return this;
     }
 
     @Override
     public final ByteBufferWrapper rewind() {
+        checkDispose();
         visible.rewind();
         return this;
     }
 
     @Override
     public final int remaining() {
+        checkDispose();
         return visible.remaining();
     }
 
     @Override
     public final boolean hasRemaining() {
+        checkDispose();
         return visible.hasRemaining();
     }
 
     @Override
     public boolean isReadOnly() {
+        checkDispose();
         return visible.isReadOnly();
     }
 
     @Override
     public Buffer split(int splitPosition) {
+        checkDispose();
         final int oldPosition = position();
         final int oldLimit = limit();
 
@@ -257,6 +268,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper slice(int position, int limit) {
+        checkDispose();
         final int oldPosition = position();
         final int oldLimit = limit();
 
@@ -273,34 +285,39 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper duplicate() {
+        checkDispose();
         final ByteBuffer duplicate = visible.duplicate();
         return wrapByteBuffer(duplicate);
     }
 
     @Override
     public ByteBufferWrapper asReadOnlyBuffer() {
-        visible.asReadOnlyBuffer();
-        return this;
+        checkDispose();
+        return wrapByteBuffer(visible.asReadOnlyBuffer());
     }
 
     @Override
     public byte get() {
+        checkDispose();
         return visible.get();
     }
 
     @Override
     public byte get(int index) {
+        checkDispose();
         return visible.get(index);
     }
 
     @Override
     public ByteBufferWrapper put(byte b) {
+        checkDispose();
         visible.put(b);
         return this;
     }
 
     @Override
     public ByteBufferWrapper put(int index, byte b) {
+        checkDispose();
         visible.put(index, b);
         return this;
     }
@@ -312,6 +329,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper get(final byte[] dst, final int offset, final int length) {
+        checkDispose();
         Buffers.get(visible, dst, offset, length);
         return this;
     }
@@ -327,10 +345,10 @@ public class ByteBufferWrapper implements Buffer {
     public ByteBufferWrapper put(final Buffer src, final int position, final int length) {
         final int oldPos = src.position();
         final int oldLim = limit();
-        
+
         src.position(position);
         limit(position() + length);
-        
+
         try {
             src.get(visible);
         } finally {
@@ -343,6 +361,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer get(final ByteBuffer dst) {
+        checkDispose();
         final int length = dst.remaining();
         
         if (visible.remaining() < length) {
@@ -363,6 +382,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer get(final ByteBuffer dst, final int position, final int length) {
+        checkDispose();
         if (visible.remaining() < length) {
             throw new BufferUnderflowException();
         }
@@ -387,12 +407,14 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer put(final ByteBuffer src) {
+        checkDispose();
         visible.put(src);
         return this;
     }
 
     @Override
     public Buffer put(final ByteBuffer src, final int position, final int length) {
+        checkDispose();
         final int oldPos = src.position();
         final int oldLim = src.limit();
 
@@ -413,6 +435,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper put(byte[] src, int offset, int length) {
+        checkDispose();
         Buffers.put(src, offset, length, visible);
         return this;
     }
@@ -420,6 +443,7 @@ public class ByteBufferWrapper implements Buffer {
     @SuppressWarnings("deprecation")
     @Override
     public Buffer put8BitString(final String s) {
+        checkDispose();
         final int len = s.length();
         if (remaining() < len) {
             throw new BufferOverflowException();
@@ -434,149 +458,176 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper compact() {
+        checkDispose();
         visible.compact();
         return this;
     }
 
     @Override
     public ByteOrder order() {
+        checkDispose();
         return visible.order();
     }
 
     @Override
     public ByteBufferWrapper order(ByteOrder bo) {
+        checkDispose();
         visible.order(bo);
         return this;
     }
 
     @Override
     public char getChar() {
+        checkDispose();
         return visible.getChar();
     }
 
     @Override
     public char getChar(int index) {
+        checkDispose();
         return visible.getChar(index);
     }
 
     @Override
     public ByteBufferWrapper putChar(char value) {
+        checkDispose();
         visible.putChar(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putChar(int index, char value) {
+        checkDispose();
         visible.putChar(index, value);
         return this;
     }
 
     @Override
     public short getShort() {
+        checkDispose();
         return visible.getShort();
     }
 
     @Override
     public short getShort(int index) {
+        checkDispose();
         return visible.getShort(index);
     }
 
     @Override
     public ByteBufferWrapper putShort(short value) {
+        checkDispose();
         visible.putShort(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putShort(int index, short value) {
+        checkDispose();
         visible.putShort(index, value);
         return this;
     }
 
     @Override
     public int getInt() {
+        checkDispose();
         return visible.getInt();
     }
 
     @Override
     public int getInt(int index) {
+        checkDispose();
         return visible.getInt(index);
     }
 
     @Override
     public ByteBufferWrapper putInt(int value) {
+        checkDispose();
         visible.putInt(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putInt(int index, int value) {
+        checkDispose();
         visible.putInt(index, value);
         return this;
     }
 
     @Override
     public long getLong() {
+        checkDispose();
         return visible.getLong();
     }
 
     @Override
     public long getLong(int index) {
+        checkDispose();
         return visible.getLong(index);
     }
 
     @Override
     public ByteBufferWrapper putLong(long value) {
+        checkDispose();
         visible.putLong(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putLong(int index, long value) {
+        checkDispose();
         visible.putLong(index, value);
         return this;
     }
 
     @Override
     public float getFloat() {
+        checkDispose();
         return visible.getFloat();
     }
 
     @Override
     public float getFloat(int index) {
+        checkDispose();
         return visible.getFloat(index);
     }
 
     @Override
     public ByteBufferWrapper putFloat(float value) {
+        checkDispose();
         visible.putFloat(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putFloat(int index, float value) {
+        checkDispose();
         visible.putFloat(index, value);
         return this;
     }
 
     @Override
     public double getDouble() {
+        checkDispose();
         return visible.getDouble();
     }
 
     @Override
     public double getDouble(int index) {
+        checkDispose();
         return visible.getDouble(index);
     }
 
     @Override
     public ByteBufferWrapper putDouble(double value) {
+        checkDispose();
         visible.putDouble(value);
         return this;
     }
 
     @Override
     public ByteBufferWrapper putDouble(int index, double value) {
+        checkDispose();
         visible.putDouble(index, value);
         return this;
     }
@@ -610,21 +661,21 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public int compareTo(Buffer o) {
         // taken from ByteBuffer#compareTo(...)
-	int n = position() + Math.min(remaining(), o.remaining());
-	for (int i = this.position(), j = o.position(); i < n; i++, j++) {
-	    byte v1 = this.get(i);
-	    byte v2 = o.get(j);
-	    if (v1 == v2)
-		continue;
-	    if (v1 < v2)
-		return -1;
-	    return +1;
-	}
+        int n = position() + Math.min(remaining(), o.remaining());
+        for (int i = this.position(), j = o.position(); i < n; i++, j++) {
+            byte v1 = this.get(i);
+            byte v2 = o.get(j);
+            if (v1 == v2)
+                continue;
+            if (v1 < v2)
+                return -1;
+            return +1;
+        }
 
         return remaining() - o.remaining();
     }
 
-    private void checkDispose() {
+    protected void checkDispose() {
         if (visible == null) {
             throw new IllegalStateException(
                     "BufferWrapper has already been disposed",
@@ -659,11 +710,13 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final ByteBuffer toByteBuffer() {
+        checkDispose();
         return visible;
     }
 
     @Override
     public final ByteBuffer toByteBuffer(int position, int limit) {
+        checkDispose();
         final int currentPosition = visible.position();
         final int currentLimit = visible.limit();
 
@@ -682,6 +735,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final ByteBufferArray toByteBufferArray() {
+        checkDispose();
         final ByteBufferArray array = ByteBufferArray.create();
         array.add(visible);
 
@@ -696,6 +750,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
+        checkDispose();
         array.add(visible);
         return array;
     }
@@ -703,6 +758,7 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
+        checkDispose();
 
         final int oldPos = visible.position();
         final int oldLim = visible.limit();
@@ -715,6 +771,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final BufferArray toBufferArray() {
+        checkDispose();
         final BufferArray array = BufferArray.create();
         array.add(this);
 
@@ -729,6 +786,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final BufferArray toBufferArray(final BufferArray array) {
+        checkDispose();
         array.add(this);
         return array;
     }
@@ -736,6 +794,7 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {
+        checkDispose();
 
         final int oldPos = visible.position();
         final int oldLim = visible.limit();

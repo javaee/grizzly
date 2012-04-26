@@ -51,6 +51,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -65,8 +66,6 @@ public class SSLUtils {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(SSL_ENGINE_ATTR_NAME);
 
     private static final byte CHANGE_CIPHER_SPECT_CONTENT_TYPE = 20;
-    private static final byte ALERT_CONTENT_TYPE = 21;
-    private static final byte HANDSHAKE_CONTENT_TYPE = 22;
     private static final byte APPLICATION_DATA_CONTENT_TYPE = 23;
     private static final int SSLV3_RECORD_HEADER_SIZE = 5; // SSLv3 record header
     private static final int SSL20_HELLO_VERSION = 0x0002;
@@ -166,9 +165,8 @@ public class SSLUtils {
                 /*
                  * Client or Server Hello
                  */
-                int mask = (isShort ? 0x7f : 0x3f);
-                len = ((byteZero & mask) << 8)
-                        + (buf.get(pos + 1) & 0xff) + (isShort ? 2 : 3);
+                int mask = (0x7f);
+                len = ((byteZero & mask) << 8) + (buf.get(pos + 1) & 0xff) + (2);
 
             } else {
                 // Gobblygook!
@@ -222,9 +220,15 @@ public class SSLUtils {
 
             final Buffer outputBuffer = memoryManager.allocate(
                     appBufferSize);
+            if (outputBuffer.isComposite()) {
+                ByteBufferArray ba = outputBuffer.toByteBufferArray();
+                sslEngineResult = sslEngine.unwrap(inputBB,
+                                                   ba.getArray(), 0, ba.size());
+            } else {
+                sslEngineResult = sslEngine.unwrap(inputBB,
+                                                   outputBuffer.toByteBuffer());
 
-            sslEngineResult = sslEngine.unwrap(inputBB,
-                    outputBuffer.toByteBuffer());
+            }
             outputBuffer.dispose();
 
             inputBuffer.position(pos + sslEngineResult.bytesConsumed());
@@ -236,8 +240,15 @@ public class SSLUtils {
             final Buffer outputBuffer = memoryManager.allocate(
                     appBufferSize);
 
-            sslEngineResult = sslEngine.unwrap(inputByteBuffer,
-                    outputBuffer.toByteBuffer());
+            if (outputBuffer.isComposite()) {
+                ByteBufferArray ba = outputBuffer.toByteBufferArray();
+                sslEngineResult = sslEngine.unwrap(inputByteBuffer,
+                        ba.getArray(), 0, ba.size());
+            } else {
+                sslEngineResult = sslEngine.unwrap(inputByteBuffer,
+                        outputBuffer.toByteBuffer());
+
+            }
 
             inputBuffer.position(pos + sslEngineResult.bytesConsumed());
 
@@ -258,11 +269,21 @@ public class SSLUtils {
         buffer.allowBufferDispose(true);
 
         try {
+            final ByteBuffer dest = buffer.toByteBuffer();
             final SSLEngineResult sslEngineResult =
                     sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
-                    buffer.toByteBuffer());
-
-            buffer.position(sslEngineResult.bytesProduced());
+                    dest);
+            if (buffer.isComposite()) {
+                // Due to limitations in SSLEngine, we have to perform
+                // two copies.  The first is calling toByteBuffer() on
+                // a composite buffer.  The second is putting the
+                // wrapped bytes back into the allocated buffer.
+                buffer.put(dest);
+            }
+            final int produced = sslEngineResult.bytesProduced();
+            if (buffer.position() != produced) {
+                buffer.position(produced);
+            }
             buffer.trim();
 
             return buffer;
@@ -272,15 +293,4 @@ public class SSLUtils {
         }
     }
 
-    static void clearOrCompact(Buffer buffer) {
-        if (buffer == null) {
-            return;
-        }
-
-        if (!buffer.hasRemaining()) {
-            buffer.clear();
-        } else if (buffer.position() > 0) {
-            buffer.compact();
-        }
-    }
 }

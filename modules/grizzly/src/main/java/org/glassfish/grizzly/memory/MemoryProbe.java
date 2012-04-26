@@ -61,7 +61,7 @@ public interface MemoryProbe {
     public void onBufferAllocateFromPoolEvent(int size);
 
     /**
-     * Called by {@link MemoryManager}, when buffer gets releaed into a buffer pool
+     * Called by {@link MemoryManager}, when buffer gets released into a buffer pool
      *
      * @param size buffer size
      */

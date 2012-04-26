@@ -74,7 +74,7 @@ public class RequestURITest extends TestCase {
         DataChunk originalURIDataChunk = rur.getOriginalRequestURIBC();
         assertTrue(originalURIDataChunk.isNull());
 
-        rur.init(buffer, 0, buffer.capacity());
+        rur.init(buffer, 0, buffer.limit());
 
         try {
             rur.getDecodedRequestURIBC(false, false);
@@ -93,16 +93,16 @@ public class RequestURITest extends TestCase {
         decodedDC = rur.getDecodedRequestURIBC(true, false, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
-        assertTrue(decodedDC.toString().indexOf(rus) >= 0);
+        assertTrue(decodedDC.toString().contains(rus));
 
         // One more time the same
         decodedDC = rur.getDecodedRequestURIBC(true, false, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
-        assertTrue(decodedDC.toString().indexOf(rus) >= 0);
+        assertTrue(decodedDC.toString().contains(rus));
 
         // there shouldn't be our decoded word
-        assertTrue(rur.getURI().indexOf(rus) < 0);
+        assertTrue(!rur.getURI().contains(rus));
 
         // Original should be the same
         assertEquals(url, rur.getOriginalRequestURIBC().toString());
@@ -115,7 +115,7 @@ public class RequestURITest extends TestCase {
         Buffer buffer = Buffers.wrap(null, url);
 
         RequestURIRef rur = new RequestURIRef();
-        rur.init(buffer, 0, buffer.capacity());
+        rur.init(buffer, 0, buffer.limit());
 
         final DataChunk originalRequestURIBC = rur.getOriginalRequestURIBC();
         final DataChunk actualRequestURIBC = rur.getRequestURIBC();
@@ -143,7 +143,7 @@ public class RequestURITest extends TestCase {
 
         RequestURIRef rur = new RequestURIRef();
 
-        rur.init(buffer, 0, buffer.capacity());
+        rur.init(buffer, 0, buffer.limit());
 
         try {
             rur.getDecodedRequestURIBC(false, false);
@@ -153,7 +153,7 @@ public class RequestURITest extends TestCase {
 
         DataChunk decodedDC = rur.getDecodedRequestURIBC(false, true);
         // there should be our decoded word
-        assertTrue(decodedDC.toString().indexOf(normalizedWindowsPath) >= 0);
+        assertTrue(decodedDC.toString().contains(normalizedWindowsPath));
         
     }    
 }
