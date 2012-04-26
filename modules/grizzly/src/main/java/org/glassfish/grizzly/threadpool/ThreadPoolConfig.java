@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,10 +49,23 @@ import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
+ * Grizzly thread-pool configuration, which might be used to create and initialize
+ * a thread-pool via {@link GrizzlyExecutorService#createInstance(org.glassfish.grizzly.threadpool.ThreadPoolConfig)}.
+ * One can get a default Grizzly <tt>ThreadPoolConfig</tt> using
+ * {@link ThreadPoolConfig#newConfig()} and customize it according to the
+ * application specific requirements.
+ * 
+ * A <tt>ThreadPoolConfig</tt> object might be customized in a "Builder"-like fashion:
+ * <code>
+ *      ThreadPoolConfig.newConfig()
+ *               .setPoolName("App1Pool")
+ *               .setCorePoolSize(5)
+ *               .setMaxPoolSize(10);
+ * </code>
  * @author Oleksiy Stashok
  * @author gustav trede
  */
-public class ThreadPoolConfig {
+public final class ThreadPoolConfig {
     private static final ThreadPoolConfig DEFAULT = new ThreadPoolConfig(
             "Grizzly", AbstractThreadPool.DEFAULT_MIN_THREAD_COUNT,
             AbstractThreadPool.DEFAULT_MAX_THREAD_COUNT,
@@ -61,7 +74,14 @@ public class ThreadPoolConfig {
             TimeUnit.MILLISECONDS,
             null, Thread.NORM_PRIORITY, null, null, -1);
 
-    public static ThreadPoolConfig defaultConfig() {
+    /**
+     * Create new Grizzly thread-pool configuration instance.
+     * The returned <tt>ThreadPoolConfig</tt> instance will be pre-configured
+     * with a default values.
+     * 
+     * @return the Grizzly thread-pool configuration instance.
+     */
+    public static ThreadPoolConfig newConfig() {
         return DEFAULT.copy();
     }
 
@@ -81,9 +101,9 @@ public class ThreadPoolConfig {
      * Thread pool probes
      */
     protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
-            
     
-    public ThreadPoolConfig(
+    
+    private ThreadPoolConfig(
             String poolName,
             int corePoolSize,
             int maxPoolSize,
@@ -118,7 +138,7 @@ public class ThreadPoolConfig {
                 ThreadPoolProbe.class);
     }
 
-    public ThreadPoolConfig(ThreadPoolConfig cfg) {
+    private ThreadPoolConfig(ThreadPoolConfig cfg) {
         this.queue           = cfg.queue;
         this.threadFactory   = cfg.threadFactory;
         this.poolName        = cfg.poolName;
@@ -240,14 +260,16 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @return the queuelimit
+     * @return the thread-pool queue limit. The queue limit
+     *      value less than 0 means unlimited queue.
      */
     public int getQueueLimit() {
         return queueLimit;
     }
 
     /**
-     * @param queueLimit the queue limit
+     * @param queueLimit the thread-pool queue limit. The <tt>queueLimit</tt>
+     *      value less than 0 means unlimited queue.
      * @return the {@link ThreadPoolConfig} with the new queue limite
      */
     public ThreadPoolConfig setQueueLimit(int queueLimit) {

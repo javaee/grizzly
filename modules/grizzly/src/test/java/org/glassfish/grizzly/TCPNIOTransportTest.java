@@ -887,7 +887,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     
     public void testWorkerThreadPoolConfiguration() throws Exception {
         TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
         config.setPoolName("custom");
@@ -901,7 +901,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testWorkerThreadPoolConfiguration2() throws Exception {
         TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
         config.setPoolName("custom");

@@ -473,7 +473,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
         final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
         final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-        final ThreadPoolConfig poolConfig = ThreadPoolConfig.defaultConfig();
+        final ThreadPoolConfig poolConfig = ThreadPoolConfig.newConfig();
         poolConfig.setPoolName(networkListener.getName());
         poolConfig.setCorePoolSize(minThreads);
         poolConfig.setMaxPoolSize(maxThreads);
