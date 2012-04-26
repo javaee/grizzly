@@ -40,13 +40,11 @@
 package org.glassfish.grizzly.utils;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Transport;
 
 public class StandaloneModeTestUtils {
 
     public static void configureConnectionAsStandalone(final Connection c) {
         c.setProcessor(StandaloneProcessor.INSTANCE);
-        c.setProcessorSelector(StandaloneProcessorSelector.INSTANCE);
     }
 
 }

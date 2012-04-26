@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.servlet;
+package org.glassfish.grizzly.servlet.extras;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -63,8 +63,8 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.servlet.util.MultipartEntryPacket;
-import org.glassfish.grizzly.servlet.util.MultipartPacketBuilder;
+import org.glassfish.grizzly.servlet.extras.util.MultipartEntryPacket;
+import org.glassfish.grizzly.servlet.extras.util.MultipartPacketBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 
 import javax.servlet.ServletException;
@@ -80,6 +80,9 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.servlet.FilterRegistration;
+import org.glassfish.grizzly.servlet.ServletRegistration;
+import org.glassfish.grizzly.servlet.WebappContext;
 import org.glassfish.grizzly.utils.Futures;
 
 public class MultipartUploadFilterTest extends TestCase {

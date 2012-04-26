@@ -82,11 +82,6 @@ public abstract class AbstractTransport implements Transport {
     protected Processor processor;
 
     /**
-     * Transport default ProcessorSelector
-     */
-    protected ProcessorSelector processorSelector;
-
-    /**
      * Transport strategy
      */
     protected IOStrategy strategy;
@@ -254,20 +249,6 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public Processor obtainProcessor(Event event, Connection connection) {
-        if (processor != null) {
-            return processor;
-        } else if (processorSelector != null) {
-            return processorSelector.select(event, connection);
-        }
-
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public Processor getProcessor() {
         return processor;
     }
@@ -278,23 +259,6 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setProcessor(Processor processor) {
         this.processor = processor;
-        notifyProbesConfigChanged(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ProcessorSelector getProcessorSelector() {
-        return processorSelector;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setProcessorSelector(ProcessorSelector selector) {
-        processorSelector = selector;
         notifyProbesConfigChanged(this);
     }
 
@@ -440,14 +404,6 @@ public abstract class AbstractTransport implements Transport {
         this.attributeBuilder = attributeBuilder;
         notifyProbesConfigChanged(this);
     }
-    
-    /**
-     * Close the connection, managed by Transport
-     * 
-     * @param connection
-     * @throws IOException
-     */
-    protected abstract void closeConnection(Connection connection) throws IOException;
 
     /**
      * {@inheritDoc}
@@ -473,6 +429,33 @@ public abstract class AbstractTransport implements Transport {
         return threadPoolMonitoringConfig;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void fireEvent(final Event event,
+            final Connection connection) {
+
+        final Processor conProcessor = connection.getProcessor();
+
+        ProcessorExecutor.execute(Context.create(connection,
+                conProcessor, event));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void fireEvent(final ServiceEvent event,
+            final Connection connection,
+            final ServiceEventProcessingHandler processingHandler) {
+
+        final Processor conProcessor = connection.getProcessor();
+
+        ProcessorExecutor.execute(Context.create(connection,
+                conProcessor, event, processingHandler));
+    }
+    
     @Override
     public void notifyTransportError(final Throwable error) {
         notifyProbesError(this, error);

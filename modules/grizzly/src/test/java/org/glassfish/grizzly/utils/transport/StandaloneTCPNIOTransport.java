@@ -209,7 +209,6 @@ public class StandaloneTCPNIOTransport extends TCPNIOTransport {
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
         ((StandaloneTCPNIOServerConnection) connection).setMonitoringProbes(connectionMonitoringConfig.getProbes());
     }
 

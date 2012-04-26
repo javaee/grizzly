@@ -42,6 +42,7 @@ package org.glassfish.grizzly.ssl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -61,11 +62,7 @@ import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
-import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.*;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
@@ -87,7 +84,8 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     // Max bytes SSLFilter may enqueue
     protected volatile int maxPendingBytes = Integer.MAX_VALUE;
 
-
+    protected WeakReference<FilterChain> filterChainRef;
+    
     // ------------------------------------------------------------ Constructors
 
 
@@ -143,6 +141,12 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 );
     }
 
+    @Override
+    public void onFilterChainConstructed(final FilterChain filterChain) {
+        super.onFilterChainConstructed(filterChain);
+        filterChainRef = new WeakReference<FilterChain>(filterChain);
+    }
+
 
     // ----------------------------------------------------- Methods from Filter
 
@@ -174,7 +178,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 setSSLEngine(connection, sslEngine);
             }
 
-            final Buffer buffer = doHandshakeStep(sslEngine, ctx);
+            final Buffer buffer = doHandshakeStep(sslEngine, ctx, (Buffer) ctx.getMessage());
 
             final boolean hasRemaining = buffer.hasRemaining();
             
@@ -193,7 +197,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
 
         if (ctx.getMessage() instanceof FileTransfer) {
@@ -201,16 +205,15 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
 
         synchronized (connection) {
-            SSLEngine sslEngine = getSSLEngine(connection);
+            final SSLEngine sslEngine = getSSLEngine(connection);
             if (sslEngine != null && !isHandshaking(sslEngine)) {
                 return accurateWrite(ctx, true);
             } else {
-                sslEngine = getSSLEngine(connection);
                 if (sslEngine == null) {
-                    initiatingContextAttr.set(ctx.getConnection(), ctx);
+                    initiatingContextAttr.set(connection, ctx);
                     handshake(connection,
                             new PendingWriteCompletionHandler(connection),
-                            null, clientSSLEngineConfigurator);
+                            null, clientSSLEngineConfigurator, ctx);
                 }
 
                 return accurateWrite(ctx, false);
@@ -266,7 +269,40 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                           final Object dstAddress,
                           final SSLEngineConfigurator sslEngineConfigurator)
     throws IOException {
+        // Try to find corresponding FilterChain
+        
+        // 1) Check the connection processor
+        FilterChain filterChain = null;
+        int idx = -1;
+        if (connection.getProcessor() instanceof FilterChain) {
+            filterChain = (FilterChain) connection.getProcessor();
+            idx = filterChain.indexOf(this);
+        }
+        
+        
+        if (idx == -1 && filterChainRef != null) {
+            filterChain = filterChainRef.get();
+            if (filterChain != null) {
+                idx = filterChain.indexOf(this);
+            }
+        }
+        
+        if (idx == -1) {
+            throw new IllegalStateException("Can't construct FilterChainContext");
+        }
+        
+        final FilterChainContext context = filterChain.obtainFilterChainContext(
+                connection, idx, 0, idx);
+        handshake(connection, completionHandler, dstAddress,
+                sslEngineConfigurator, context);
+    }
 
+    protected void handshake(final Connection connection,
+                          final CompletionHandler<SSLEngine> completionHandler,
+                          final Object dstAddress,
+                          final SSLEngineConfigurator sslEngineConfigurator,
+                          final FilterChainContext context)
+    throws IOException {
         SSLEngine sslEngine = getSSLEngine(connection);
 
         if (sslEngine == null) {
@@ -283,22 +319,19 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             connection.addCloseListener(closeListener);
         }
 
-        final FilterChainContext ctx = createContext(connection, Operation.WRITE);
-
-        doHandshakeStep(sslEngine, ctx);
+        doHandshakeStep(sslEngine, context, null);
     }
-
 
     // ------------------------------------------------------- Protected Methods
 
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
-                                     FilterChainContext context)
+                                     final FilterChainContext context,
+                                     final Buffer inputBuffer)
     throws IOException {
 
         final Connection connection = context.getConnection();
         final Object dstAddress = context.getAddress();
-        final Buffer inputBuffer = context.getMessage();
 
         final boolean isLoggingFinest = LOGGER.isLoggable(Level.FINEST);
         try {
@@ -466,9 +499,9 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             // read the bytes returned by the client
             ReadResult result = context.read();
             Buffer m = (Buffer) result.getMessage();
-            context.setMessage(m);
+//            context.setMessage(m);
             while (isHandshaking(sslEngine)) {
-                doHandshakeStep(sslEngine, context);
+                doHandshakeStep(sslEngine, context, m);
                 // if the current buffer's content has been consumed by the
                 // SSLEngine, then we need to issue another read to continue
                 // the handshake.  Continue doing so until handshaking is
@@ -476,7 +509,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 if (!m.hasRemaining() && isHandshaking(sslEngine)) {
                     result = context.read();
                     m = (Buffer) result.getMessage();
-                    context.setMessage(m);
+//                    context.setMessage(m);
                 }
             }
 

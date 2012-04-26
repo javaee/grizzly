@@ -82,16 +82,6 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Get current result value without any blocking.
-     * 
-     * @return current result value without any blocking.
-     */
-    @Override
-    public R getResult() {
-        return result;
-    }
-
-    /**
      * Set the result value and notify about operation completion.
      * 
      * @param result the result value
@@ -156,7 +146,7 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Notify about the failure, occured during asynchronous operation execution.
+     * Notify about the failure, occurred during asynchronous operation execution.
      * 
      * @param failure
      */
@@ -174,17 +164,8 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
             isDone = true;
         } else {
             recycle(recycleMark == 2);
-        }
     }
-
-    @Override
-    public void markForRecycle(boolean recycleResult) {
-        if (isDone) {
-            recycle(recycleResult);
-        } else {
-            recycleMark = 1 + (recycleResult ? 1 : 0);
-        }
-    }
+}
 
     protected void reset() {
         result = null;

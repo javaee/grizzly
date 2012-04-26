@@ -50,6 +50,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -84,13 +85,30 @@ public class BasicPUTest {
 
         Connection connection = null;
 
+        final AtomicInteger blockingWritesCounter = new AtomicInteger();
+        final AtomicInteger nonBlockingWritesCounter = new AtomicInteger();
+        
+        int i = 0;
         final PUFilter puFilter = new PUFilter();
         for (final String protocol : protocols) {
-            puFilter.register(createProtocol(puFilter, protocol));
+            final boolean isBlocking = (i++ % 2) == 0;
+            puFilter.register(createProtocol(puFilter, protocol, isBlocking));
         }
 
         FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
+                .add(new BaseFilter() {
+                    @Override
+                    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+                        if (ctx.getTransportContext().isBlocking()) {
+                            blockingWritesCounter.incrementAndGet();
+                        } else {
+                            nonBlockingWritesCounter.incrementAndGet();
+                        }
+                        
+                        return super.handleWrite(ctx);
+                    }
+                })
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
 
@@ -124,6 +142,11 @@ public class BasicPUTest {
 
                 assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
             }
+            
+            final int expectedBlockingWrites = protocols.length / 2 + (protocols.length % 2);
+            assertEquals("Number of blocking writes doesn't match", expectedBlockingWrites, blockingWritesCounter.get());
+            assertEquals("Number of non-blocking writes doesn't match", protocols.length - expectedBlockingWrites, nonBlockingWritesCounter.get());
+            
 
         } finally {
             if (connection != null) {
@@ -349,9 +372,13 @@ public class BasicPUTest {
 
     // --------------------------------------------------------- Private Methods
 
-
     private PUProtocol createProtocol(final PUFilter puFilter, final String name,
             Filter... additionalFilters) {
+        return createProtocol(puFilter, name, false, additionalFilters);
+    }
+
+    private PUProtocol createProtocol(final PUFilter puFilter, final String name,
+            final boolean isBlocking, Filter... additionalFilters) {
         final FilterChainBuilder puFilterChainBuilder = 
                 puFilter.getPUFilterChainBuilder();
         
@@ -360,7 +387,7 @@ public class BasicPUTest {
         }
         
         final FilterChain chain = puFilterChainBuilder
-                .add(new SimpleResponseFilter(name))
+                .add(new SimpleResponseFilter(name, isBlocking))
                 .build();
         
         return new PUProtocol(new SimpleProtocolFinder(name), chain);
@@ -384,15 +411,16 @@ public class BasicPUTest {
 
     private static final class SimpleResponseFilter extends BaseFilter {
         private final String name;
-
-        public SimpleResponseFilter(String name) {
+        private final boolean isBlocking;
+        
+        public SimpleResponseFilter(String name, boolean isBlocking) {
             this.name = name;
+            this.isBlocking = isBlocking;
         }
         
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-            ctx.write(makeResponseMessage(name));
-
+            ctx.write(makeResponseMessage(name), isBlocking);
             return ctx.getStopAction();
         }
 

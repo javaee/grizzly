@@ -44,7 +44,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.utils.StandaloneProcessor;
-import org.glassfish.grizzly.utils.StandaloneProcessorSelector;
 
 public class StandaloneTransportBuilder extends TCPNIOTransportBuilder {
 
@@ -61,7 +60,7 @@ public class StandaloneTransportBuilder extends TCPNIOTransportBuilder {
     public static StandaloneTransportBuilder newInstance() {
         try {
             return (StandaloneTransportBuilder) new StandaloneTransportBuilder(StandaloneTCPNIOTransport.class,
-                    WorkerThreadIOStrategy.getInstance()).setProcessor(StandaloneProcessor.INSTANCE).setProcessorSelector(StandaloneProcessorSelector.INSTANCE);
+                    WorkerThreadIOStrategy.getInstance()).setProcessor(StandaloneProcessor.INSTANCE);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

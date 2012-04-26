@@ -386,7 +386,7 @@ public class ThreadLocalMemoryManagerTest extends AbstractThreadLocalMemoryManag
                                     final Runnable task) throws Exception {
         final FutureImpl<Boolean> future = SafeFutureImpl.create();
 
-        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setMemoryManager(mm);
         ExecutorService threadPool = GrizzlyExecutorService.createInstance(config);
 

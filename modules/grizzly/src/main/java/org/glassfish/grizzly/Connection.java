@@ -89,31 +89,13 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
     boolean isBlocking();
 
     /**
-     * Gets the {@link Processor}, which will process {@link Connection}
-     * I/O event.
-     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
-     * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(Event, Connection)}. If
-     * {@link ProcessorSelector}, associated with the {@link Connection} is also
-     * <tt>null</tt> - will ask {@link Transport} for a {@link Processor}.
+     * Gets the {@link Processor}, which will process I/O events occurred on the
+     * {@link Connection}.
+     * If the {@link Connection} haven't been assigned specific {@link Processor} -
+     * then {@link Transport}'s default {@link Processor} will be returned.
      *
-     * @return the default {@link Processor}, which will process
-     * {@link Connection} I/O events.
-     */
-    Processor obtainProcessor(Event event);
-    
-    /**
-     * Gets the default {@link Processor}, which will process {@link Connection}
-     * I/O events.
-     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
-     * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(Event, Connection)}. If
-     * {@link ProcessorSelector}, associated with the {@link Connection} is also
-     * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
-     * using own settings.
-     *
-     * @return the default {@link Processor}, which will process
-     * {@link Connection} I/O events.
+     * @return the {@link Processor}, which will process I/O events occurred on the
+     * {@link Connection}.
      */
     Processor getProcessor();
 
@@ -132,30 +114,6 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      */
     void setProcessor(
         Processor preferableProcessor);
-
-    /**
-     * Gets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process {@link Connection} I/O events, in case if
-     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
-     *
-     * @return the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process {@link Connection} I/O events, in case if
-     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
-     */
-    ProcessorSelector getProcessorSelector();
-    
-    /**
-     * Sets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process {@link Connection} I/O events, in case if
-     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
-     *
-     * @param preferableProcessorSelector the default {@link ProcessorSelector},
-     * which will be used to get {@link Processor} to process {@link Connection}
-     * I/O events, in case if this {@link Connection}'s {@link Processor}
-     * is <tt>null</tt>.
-     */
-    void setProcessorSelector(
-        ProcessorSelector preferableProcessorSelector);
 
     /**
      * Returns the {@link Processor} state associated with this <tt>Connection</tt>.
@@ -294,13 +252,6 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * @param closeListener {@link CloseListener}.
      */
     boolean removeCloseListener(CloseListener closeListener);
-    
-    /**
-     * Method gets invoked, when error occur during the <tt>Connection</tt> lifecycle.
-     *
-     * @param error {@link Throwable}.
-     */
-    void notifyConnectionError(Throwable error);
     
     public static enum CloseType {
         LOCALLY, REMOTELY

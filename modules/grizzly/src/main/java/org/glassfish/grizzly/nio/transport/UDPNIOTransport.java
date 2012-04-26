@@ -402,10 +402,9 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    protected void closeConnection(final Connection connection)
+    protected void closeConnection(final NIOConnection connection)
             throws IOException {
-        final SelectableChannel nioChannel =
-                ((NIOConnection) connection).getChannel();
+        final SelectableChannel nioChannel = connection.getChannel();
 
         if (nioChannel != null) {
             try {
@@ -452,8 +451,8 @@ public final class UDPNIOTransport extends NIOTransport implements
                 selectionKeyHandler = new DefaultSelectionKeyHandler();
             }
 
-            if (processor == null && processorSelector == null) {
-                throw new IllegalStateException("No processor/processor selector available.");
+            if (processor == null) {
+                throw new IllegalStateException("No processor available.");
             }
 
             if (selectorRunnersCount <= 0) {
@@ -618,27 +617,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     public void setReuseAddress(boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
         notifyProbesConfigChanged(this);
-    }
-
-    @Override
-    public void fireEvent(final Event event,
-            final Connection connection) {
-
-        final Processor conProcessor = connection.obtainProcessor(event);
-
-        ProcessorExecutor.execute(Context.create(connection,
-                conProcessor, event));
-    }
-
-    @Override
-    public void fireEvent(final ServiceEvent event,
-            final Connection connection,
-            final ServiceEventProcessingHandler processingHandler) {
-
-        final Processor conProcessor = connection.obtainProcessor(event);
-
-        ProcessorExecutor.execute(Context.create(connection,
-                conProcessor, event, processingHandler));
     }
 
     /**
@@ -868,7 +846,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     protected void configureNIOConnection(UDPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
         connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
     }
 
@@ -911,11 +888,6 @@ public final class UDPNIOTransport extends NIOTransport implements
         @Override
         public Processor getProcessor() {
             return UDPNIOTransport.this.getProcessor();
-        }
-
-        @Override
-        public ProcessorSelector getProcessorSelector() {
-            return UDPNIOTransport.this.getProcessorSelector();
         }
     }
 }

@@ -121,7 +121,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             preConfigure(newConnection);
 
             newConnection.setProcessor(getProcessor());
-            newConnection.setProcessorSelector(getProcessorSelector());
 
             final NIOChannelDistributor nioChannelDistributor =
                     nioTransport.getNIOChannelDistributor();

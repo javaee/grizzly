@@ -64,8 +64,13 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.servlet.*</Export-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.servlet.extras.*;version=${project.version},
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -110,7 +115,6 @@
          <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
-            <version>${servlet-version}</version>
         </dependency>
     </dependencies>
 </project>

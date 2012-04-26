@@ -54,6 +54,7 @@ import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
@@ -292,7 +293,8 @@ public class StaticHttpHandler extends HttpHandler {
      * @throws Exception
      */
     @Override
-    public void service(final Request request, final Response response) throws Exception {
+    public void service(final Request request, final Response response)
+            throws Exception {
         final String uri = getRelativeURI(request);
 
         if (uri == null || !handle(uri, request, response)) {
@@ -342,13 +344,13 @@ public class StaticHttpHandler extends HttpHandler {
      * Lookup a resource based on the request URI, and send it using send file.
      *
      * @param uri The request URI
-     * @param req the {@link Request}
-     * @param res the {@link Response}
+     * @param request the {@link Request}
+     * @param response the {@link Response}
      * @throws Exception
      */
     protected boolean handle(final String uri,
-            final Request req,
-            final Response res) throws Exception {
+            final Request request,
+            final Response response) throws Exception {
 
         boolean found = false;
 
@@ -385,15 +387,26 @@ public class StaticHttpHandler extends HttpHandler {
 
         if (!found) {
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "File not found  {0}", resource);
+                LOGGER.log(Level.FINE, "File not found {0}", resource);
             }
             return false;
         }
 
-        pickupContentType(res, resource);
+        // If it's not HTTP GET - return method is not supported status
+        if (!Method.GET.equals(request.getMethod())) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "File found {0}, but HTTP method {1} is not allowed",
+                        new Object[] {resource, request.getMethod()});
+            }
+            response.setStatus(HttpStatus.METHOD_NOT_ALLOWED_405);
+            response.setHeader(Header.Allow, "GET");
+            return true;
+        }
         
-        addToFileCache(req, res, resource);
-        sendFile(res, resource);
+        pickupContentType(response, resource);
+        
+        addToFileCache(request, response, resource);
+        sendFile(response, resource);
 
         return true;
     }

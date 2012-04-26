@@ -119,7 +119,10 @@
               org.glassfish.grizzly.osgi.httpservice.Activator
                         </Bundle-Activator>
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
-                        <Import-Package>*</Import-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
                         <Export-Package>
               javax.servlet;javax.servlet.http;version=2.5,org.osgi.service.http
                         </Export-Package>

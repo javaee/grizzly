@@ -254,10 +254,10 @@ public class ResourceAllocationFilter extends BaseFilter {
      * Creates a new {@link ExecutorService}
      */
     protected ExecutorService newThreadPool(int threadCount) {
-        if (threadCount == 0){
+        if (threadCount == 0) {
             return null;
         }
-        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
+        final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig()
                 .setPoolName("RCM_" + threadCount)
                 .setCorePoolSize(1)
                 .setMaxPoolSize(threadCount);

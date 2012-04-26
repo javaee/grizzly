@@ -109,7 +109,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 ((TCPNIOConnection) connection).onWrite(buffer, written);
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                ((TCPNIOConnection) connection).close0(null, false);
+                ((TCPNIOConnection) connection).close(null, false);
                 throw e;
             }
         } else if (message instanceof FileTransfer) {
@@ -159,7 +159,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return update(queueRecord, written);
         } catch (IOException e) {
             // Mark connection as closed remotely.
-            ((TCPNIOConnection) connection).close0(null, false);
+            ((TCPNIOConnection) connection).close(null, false);
             throw e;
         } finally {
             ioRecord.release();

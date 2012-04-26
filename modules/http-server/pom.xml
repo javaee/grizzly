@@ -90,8 +90,12 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
                         <Export-Package>
-                            org.glassfish.grizzly.http.server.*
+                            org.glassfish.grizzly.http.server.*;version=${project.version},
                         </Export-Package>
                     </instructions>
                 </configuration>

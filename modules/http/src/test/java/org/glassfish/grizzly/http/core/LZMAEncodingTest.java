@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,8 +91,6 @@ import static org.junit.Assert.assertTrue;
 public class LZMAEncodingTest {
 
     public static int PORT = 19200;
-
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
     @Test
     public void testLZMAResponse() throws Throwable {
@@ -358,13 +356,6 @@ public class LZMAEncodingTest {
     // --------------------------------------------------------- Private Methods
 
 
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
     private void doTest(HttpPacket request,
                         ExpectedResult expectedResults,
                         ContentEncoding serverContentEncoding,
@@ -425,7 +416,6 @@ public class LZMAEncodingTest {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -515,8 +505,7 @@ public class LZMAEncodingTest {
                     
                     testResult.result(Boolean.TRUE);
                 } catch (Throwable t) {
-                    testResult.result(Boolean.FALSE);
-                    exception.result(t);
+                    testResult.failure(t);
                 }
             }
 

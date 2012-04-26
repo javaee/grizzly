@@ -154,10 +154,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
             connection.setProcessor(processor);
         }
 
-        if (processorSelector != null) {
-            connection.setProcessorSelector(processorSelector);
-        }
-
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
                 completionHandler);

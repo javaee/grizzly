@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.impl;
 
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.ThreadCache;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -61,7 +60,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
             ThreadCache.obtainIndex(ReadyFutureImpl.class, 4);
 
     /**
-     * Construct cancelled {@link Future}.
+     * Construct canceled {@link Future}.
      */
     public static <R> ReadyFutureImpl<R> create() {
         final ReadyFutureImpl<R> future = takeFromCache();
@@ -137,15 +136,6 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Get current result value without any blocking.
-     *
-     * @return current result value without any blocking.
-     */
-    public R getResult() {
-        return result;
-    }
-
-    /**
      * Should not be called for <tt>ReadyFutureImpl</tt>
      */
     public void setResult(R result) {
@@ -159,7 +149,7 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
      */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        return isCancelled;
+        return false;
     }
 
     /**
@@ -221,16 +211,11 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     public void result(R result) {
         throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
     }
-    
+
     private void reset() {
         result = null;
         failure = null;
         isCancelled = false;
-    }
-
-    @Override
-    public void markForRecycle(boolean recycleResult) {
-        recycle(recycleResult);
     }
 
     @Override

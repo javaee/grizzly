@@ -434,7 +434,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testWorkerThreadPoolConfiguration() throws Exception {
         UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
         config.setPoolName("custom");
@@ -448,7 +448,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testWorkerThreadPoolConfiguration2() throws Exception {
         UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
         config.setPoolName("custom");

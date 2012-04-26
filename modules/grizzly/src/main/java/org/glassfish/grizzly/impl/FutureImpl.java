@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,13 +51,6 @@ import org.glassfish.grizzly.GrizzlyFuture;
  * @author Alexey Stashok
  */
 public interface FutureImpl<R> extends GrizzlyFuture<R> {
-    /**
-     * Get current result value without any blocking.
-     * 
-     * @return current result value without any blocking.
-     */
-    public abstract R getResult();
-
     /**
      * Set the result value and notify about operation completion.
      * 

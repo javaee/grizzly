@@ -61,8 +61,14 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
 
     public void testCreateInstance() throws Exception {
         int threads = 100;
-        ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
+        ThreadPoolConfig cfg = ThreadPoolConfig.newConfig()
+                .setPoolName("test")
+                .setCorePoolSize(-1).setMaxPoolSize(threads)
+                .setQueue(null).setQueueLimit(-1)
+                .setKeepAliveTime(-1, TimeUnit.MILLISECONDS)
+                .setPriority(Thread.NORM_PRIORITY)
+                .setTransactionTimeout(-1, TimeUnit.MILLISECONDS);
+        
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000000;
         doTest(r,tasks);
@@ -105,7 +111,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
             final long transactionTimeoutMillis = 5000;
 
             final CountDownLatch cdl = new CountDownLatch(tasksNum);
-            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy()
+            final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig()
                     .setTransactionTimeout(delayedExecutor, transactionTimeoutMillis, TimeUnit.MILLISECONDS)
                     .setCorePoolSize(tasksNum / 2).setMaxPoolSize(tasksNum / 2);
 
@@ -133,8 +139,14 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
 
     public void testAwaitTermination() throws Exception {
         int threads = 100;
-        ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
+        ThreadPoolConfig cfg = ThreadPoolConfig.newConfig()
+                .setPoolName("test")
+                .setCorePoolSize(-1).setMaxPoolSize(threads)
+                .setQueue(null).setQueueLimit(-1)
+                .setKeepAliveTime(-1, TimeUnit.MILLISECONDS)
+                .setPriority(Thread.NORM_PRIORITY)
+                .setTransactionTimeout(-1, TimeUnit.MILLISECONDS);
+
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000;
         runTasks(r,tasks);
@@ -164,7 +176,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
     public void testMonitoringProbesCopying() {
         final ThreadPoolProbe probe = new ThreadPoolProbe.Adapter();
         
-        final ThreadPoolConfig tpc1 = ThreadPoolConfig.defaultConfig().copy();
+        final ThreadPoolConfig tpc1 = ThreadPoolConfig.newConfig();
         tpc1.getInitialMonitoringConfig().addProbes(probe);
 
         final ThreadPoolConfig tpc2 = tpc1.copy();

@@ -58,7 +58,6 @@ public abstract class AbstractSocketConnectorHandler
 
     protected final Transport transport;
     private Processor processor;
-    private ProcessorSelector processorSelector;
 
     protected final List<ConnectionProbe> probes =
             new LinkedList<ConnectionProbe>();
@@ -66,7 +65,6 @@ public abstract class AbstractSocketConnectorHandler
     public AbstractSocketConnectorHandler(Transport transport) {
         this.transport = transport;
         this.processor = transport.getProcessor();
-        this.processorSelector = transport.getProcessorSelector();
     }
 
     @Override
@@ -127,29 +125,6 @@ public abstract class AbstractSocketConnectorHandler
     }
 
     /**
-     * Gets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     *
-     * @return the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     */
-    public ProcessorSelector getProcessorSelector() {
-        return processorSelector;
-    }
-
-    /**
-     * Sets the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process I/O events, occurring on connection phase.
-     *
-     * @param processorSelector the default {@link ProcessorSelector},
-     * which will be used to get {@link Processor} to process I/O events,
-     * occurring on connection phase.
-     */
-    public void setProcessorSelector(ProcessorSelector processorSelector) {
-        this.processorSelector = processorSelector;
-    }
-
-    /**
      * Add the {@link ConnectionProbe}, which will be notified about
      * <tt>Connection</tt> life-cycle events.
      *
@@ -193,16 +168,15 @@ public abstract class AbstractSocketConnectorHandler
         return new SafeFutureImpl<Connection>() {
 
             @Override
-            protected void onCancel(boolean mayInterruptIfRunning) {
-                close();
-            }
-
-            @Override
-            protected void onError(Throwable t) {
-                close();
-            }
-
-            private void close() {
+            protected void done() {
+                try {
+                    if (!isCancelled()) {
+                        get();
+                        return;
+                    }
+                } catch(Throwable ignored) {
+                }
+                
                 try {
                     connection.closeSilently();
                 } catch (Exception ignored) {
@@ -226,11 +200,6 @@ public abstract class AbstractSocketConnectorHandler
 
         public E processor(final Processor processor) {
             connectorHandler.setProcessor(processor);
-            return (E) this;
-        }
-
-        public E processorSelector(final ProcessorSelector processorSelector) {
-            connectorHandler.setProcessorSelector(processorSelector);
             return (E) this;
         }
 

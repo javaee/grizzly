@@ -1218,7 +1218,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         this.pathInfo = pathInfo;
     }
 
-    protected Request getRequest() {
+    public Request getRequest() {
         return request;
     }
     // ----------------------------------------------------------- DoPrivileged

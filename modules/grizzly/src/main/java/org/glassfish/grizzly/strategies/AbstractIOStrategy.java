@@ -72,7 +72,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 
-        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().copy();
+        final ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         final int coresCount = Runtime.getRuntime().availableProcessors();
         config.setCorePoolSize(coresCount * 2);
         config.setMaxPoolSize(coresCount * 2);
