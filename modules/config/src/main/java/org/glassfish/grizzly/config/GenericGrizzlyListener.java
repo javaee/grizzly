@@ -84,6 +84,8 @@ import org.glassfish.grizzly.http.server.CompressionLevel;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
@@ -551,7 +553,12 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 //                serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
         filterChainBuilder.add(fileCacheFilter);
         final HttpServerFilter webServerFilter = new HttpServerFilter(getHttpServerFilterConfiguration(http),
-            delayedExecutor);
+            delayedExecutor) {
+            @Override
+            protected boolean onTraceRequest(Request request, Response response) throws IOException {
+                return false;
+            }
+        };
 
         final HttpHandler httpHandler = getHttpHandler(http);
         httpHandler.setAllowEncodedSlash(GrizzlyConfig.toBoolean(http.getEncodedSlashEnabled()));
