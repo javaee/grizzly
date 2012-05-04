@@ -119,9 +119,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
      */
     public void startServlet() throws ServletException {
         configureServletEnv();
-//        setResourcesContextPath(getContextPath() + getServletPath());
-        // always load servlet
-        loadServlet();
+        servletInstance.init(getServletConfig());
     }
 
     /**
