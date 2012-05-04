@@ -553,12 +553,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 //                serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
         filterChainBuilder.add(fileCacheFilter);
         final HttpServerFilter webServerFilter = new HttpServerFilter(getHttpServerFilterConfiguration(http),
-            delayedExecutor) {
-            @Override
-            protected boolean onTraceRequest(Request request, Response response) throws IOException {
-                return false;
-            }
-        };
+            delayedExecutor);
 
         final HttpHandler httpHandler = getHttpHandler(http);
         httpHandler.setAllowEncodedSlash(GrizzlyConfig.toBoolean(http.getEncodedSlashEnabled()));
@@ -659,7 +654,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final ServerFilterConfiguration serverFilterConfiguration =
                 new ServerFilterConfiguration();
         serverFilterConfiguration.setScheme(http.getScheme());
-        serverFilterConfiguration.setTraceEnabled(Boolean.valueOf(http.getTraceEnabled()));
+        serverFilterConfiguration.setPassTraceRequest(true);
         return serverFilterConfiguration;
     }
 

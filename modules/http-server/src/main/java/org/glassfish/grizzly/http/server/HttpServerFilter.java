@@ -161,11 +161,10 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    boolean traceHandled = false;
-                    if (request.getMethod() == Method.TRACE) {
-                        traceHandled = onTraceRequest(handlerRequest, handlerResponse);
-                    }
-                    if (!traceHandled) {
+                    if (!config.isPassTraceRequest()
+                            && request.getMethod() == Method.TRACE) {
+                        onTraceRequest(handlerRequest, handlerResponse);
+                    } else {
                         final HttpHandler httpHandlerLocal = httpHandler;
                         if (httpHandlerLocal != null) {
                             httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
@@ -268,7 +267,7 @@ public class HttpServerFilter extends BaseFilter
         return new org.glassfish.grizzly.http.server.jmx.HttpServerFilter(this);
     }
 
-    protected boolean onTraceRequest(final Request request,
+    protected void onTraceRequest(final Request request,
             final Response response) throws IOException {
         if (config.isTraceEnabled()) {
             HtmlHelper.writeTraceMessage(request, response);
@@ -276,7 +275,6 @@ public class HttpServerFilter extends BaseFilter
             response.setStatus(HttpStatus.METHOD_NOT_ALLOWED_405);
             response.setHeader(Header.Allow, "POST, GET, DELETE, OPTIONS, PUT, HEAD");
         }
-        return true;
     }
 
     
