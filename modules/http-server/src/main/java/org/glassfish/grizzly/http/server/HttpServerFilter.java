@@ -161,7 +161,8 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    if (request.getMethod() == Method.TRACE) {
+                    if (!config.isPassTraceRequest()
+                            && request.getMethod() == Method.TRACE) {
                         onTraceRequest(handlerRequest, handlerResponse);
                     } else {
                         final HttpHandler httpHandlerLocal = httpHandler;
