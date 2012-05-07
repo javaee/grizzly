@@ -106,6 +106,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
         transport.setAttributeBuilder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
+        transport.setReadBufferSize(Transport.DEFAULT_READ_BUFFER_SIZE);
         transport.setWorkerThreadPoolConfig(workerConfig);
         transport.setKernelThreadPoolConfig(selectorConfig);
         transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
