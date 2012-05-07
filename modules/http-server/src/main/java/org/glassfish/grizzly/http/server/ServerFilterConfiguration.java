@@ -55,6 +55,7 @@ public class ServerFilterConfiguration {
     private boolean sendFileEnabled;
     
     private boolean traceEnabled;
+    private boolean passTraceRequest;
     
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
@@ -78,6 +79,7 @@ public class ServerFilterConfiguration {
         this.sendFileEnabled = configuration.sendFileEnabled;
         this.scheme = configuration.scheme;
         this.traceEnabled = configuration.traceEnabled;
+        this.passTraceRequest = configuration.passTraceRequest;
     }
     
     /**
@@ -185,11 +187,50 @@ public class ServerFilterConfiguration {
     public void setScheme(String scheme) {
         this.scheme = scheme;
     }
-    
+
+    /**
+     * @return <tt>true</tt> if the <tt>TRACE</tt> request will be passed
+     *  to the registered {@link HttpHandler}s, otherwise <tt>false</tt> if the
+     *  <tt>TRACE</tt> request will be handled by Grizzly.
+     */
+    public boolean isPassTraceRequest() {
+        return passTraceRequest;
+    }
+
+    /**
+     * If <tt>passTraceRequest</tt> is <tt>true</tt>, the <tt>TRACE</tt> request
+     * will be passed to the registered {@link HttpHandler}s. Otherwise,
+     * <tt>TRACE</tt> will be handled by Grizzly.
+     *
+     * By default, <tt>TRACE</tt> requests will be handled by Grizzly.
+     *
+     * @param passTraceRequest boolean to configure if trace requests will
+     *                         be handled by Grizzly or by a configured
+     *                         {@link HttpHandler}.
+     */
+    public void setPassTraceRequest(boolean passTraceRequest) {
+        this.passTraceRequest = passTraceRequest;
+    }
+
+    /**
+     *
+     * @return <tt>true</tt> if a proper response to HTTP <tt>TRACE</tt> is to
+     *  be generated, or <tt>false</tt> if a 405 is to be returned instead.
+     */
     public boolean isTraceEnabled() {
         return traceEnabled;
     }
 
+    /**
+     * If <tt>enabled</tt> is <tt>true</tt> the <tt>TRACE</tt> method will be
+     * respected and a proper response will be generated.  Otherwise, the
+     * method will be considered as not allowed and an HTTP 405 will be returned.
+     *
+     * This method only comes into effect when <code>setPassTraceRequest(false)</code>
+     * has been called.
+     *
+     * @param enabled boolean to configure how grizzly
+     */
     public void setTraceEnabled(final boolean enabled) {
         traceEnabled = enabled;
     }

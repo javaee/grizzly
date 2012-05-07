@@ -653,7 +653,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final ServerFilterConfiguration serverFilterConfiguration =
                 new ServerFilterConfiguration();
         serverFilterConfiguration.setScheme(http.getScheme());
-        serverFilterConfiguration.setTraceEnabled(Boolean.valueOf(http.getTraceEnabled()));
+        serverFilterConfiguration.setPassTraceRequest(true);
         return serverFilterConfiguration;
     }
 
