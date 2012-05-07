@@ -92,7 +92,7 @@ public class TCPNIOUtils {
 
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes", new Object[]{
-                            connection, Integer.valueOf(written)
+                            connection, written
                         });
             }
         } finally {
@@ -141,7 +141,7 @@ public class TCPNIOUtils {
         Buffers.setPositionLimit(buffer, oldPos + written, oldLim);
         if(LOGGER.isLoggable(Level.FINE))
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes", new Object[] {
-                connection, Integer.valueOf(written)
+                connection, written
             });
         return written;
     }
@@ -217,7 +217,7 @@ public class TCPNIOUtils {
 
     static CachedIORecord obtainCachedIORecord() {
         final CachedIORecord record =
-                (CachedIORecord) ThreadCache.takeFromCache(CACHE_IDX);
+                ThreadCache.takeFromCache(CACHE_IDX);
         if (record != null) {
             return record;
 
@@ -254,7 +254,7 @@ public class TCPNIOUtils {
                 }
             } else {
                 buffer = memoryManager.allocateAtLeast(receiveBufferSize);
-                read = readSimpleBuffer(connection, buffer);
+                read = readBuffer(connection, buffer);
             }
         } catch (Throwable e) {
             error = e;
@@ -280,10 +280,20 @@ public class TCPNIOUtils {
         
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (allocated) read {1} bytes", new Object[]{
-                        connection, Integer.valueOf(read)
+                        connection, read
                     });
         }
         return buffer;
+    }
+
+    public static int readBuffer(final TCPNIOConnection connection,
+                                 final Buffer buffer) throws IOException {
+        if (buffer.isComposite()) {
+            return readCompositeBuffer(connection, (CompositeBuffer) buffer);
+        } else {
+            return readSimpleBuffer(connection, buffer);
+        }
+
     }
 
     public static int readCompositeBuffer(final TCPNIOConnection connection,
@@ -297,7 +307,7 @@ public class TCPNIOUtils {
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
         final ByteBufferArray array = buffer.toByteBufferArray();
-        final ByteBuffer byteBuffers[] = (ByteBuffer[]) array.getArray();
+        final ByteBuffer byteBuffers[] = array.getArray();
         final int size = array.size();
         
         final int read;
@@ -316,7 +326,7 @@ public class TCPNIOUtils {
         
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (nonallocated, composite) read {1} bytes", new Object[]{
-                        connection, Integer.valueOf(read)
+                        connection, read
                     });
         }
         
@@ -348,7 +358,7 @@ public class TCPNIOUtils {
         
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (nonallocated, simple) read {1} bytes", new Object[]{
-                        connection, Integer.valueOf(read)
+                        connection, read
                     });
         }
         
@@ -490,7 +500,7 @@ public class TCPNIOUtils {
 
         ByteBuffer switchToStrong() {
             if (directBuffer == null && softRef != null) {
-                directBuffer = directBufferSlice = (ByteBuffer) softRef.get();
+                directBuffer = directBufferSlice = softRef.get();
             }
             return directBuffer;
         }
@@ -509,7 +519,7 @@ public class TCPNIOUtils {
 
         private void ensureArraySize() {
             if (arraySize == array.length) {
-                array = (ByteBuffer[]) Arrays.copyOf(array, (arraySize * 3) / 2 + 1);
+                array = Arrays.copyOf(array, (arraySize * 3) / 2 + 1);
             }
         }
     }
