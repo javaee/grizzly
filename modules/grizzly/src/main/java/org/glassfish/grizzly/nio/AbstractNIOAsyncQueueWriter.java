@@ -344,6 +344,9 @@ public abstract class AbstractNIOAsyncQueueWriter
     public AsyncQueue.AsyncResult processAsync(final Context context) {
         final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
         final NIOConnection nioConnection = (NIOConnection) context.getConnection();
+        if (!nioConnection.isOpen()) {
+            return AsyncResult.COMPLETE;
+        }
         
         final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
