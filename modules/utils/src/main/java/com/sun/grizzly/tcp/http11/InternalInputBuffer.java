@@ -819,6 +819,7 @@ public class InternalInputBuffer implements InputBuffer {
 
             nRead = inputStream.read(buf, pos, buf.length - lastValid);
             if (nRead > 0) {
+                request.setBytesRead(request.getBytesRead() + nRead);
                 lastValid = pos + nRead;
             }
 
@@ -835,6 +836,7 @@ public class InternalInputBuffer implements InputBuffer {
             lastValid = pos;
             nRead = inputStream.read(buf, pos, buf.length - lastValid);
             if (nRead > 0) {
+                request.setBytesRead(request.getBytesRead() + nRead);
                 lastValid = pos + nRead;
             }
 
