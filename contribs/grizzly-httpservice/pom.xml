@@ -44,13 +44,13 @@
   <parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
-    <version>1.9.49-SNAPSHOT</version>
+    <version>1.9.49</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>jar</packaging>
   <name>Grizzly OSGi HttpService</name>
-  <version>1.9.49-SNAPSHOT</version>
+  <version>1.9.49</version>
   <groupId>com.sun.grizzly.osgi</groupId>
   <artifactId>grizzly-httpservice</artifactId>
   <dependencies>

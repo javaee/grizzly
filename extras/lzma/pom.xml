@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-extra</artifactId>
-        <version>1.9.49-SNAPSHOT</version>
+        <version>1.9.49</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-lzma</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.49-SNAPSHOT</version>
+    <version>1.9.49</version>
     <name>grizzly-lzma</name>
     <url>https://grizzly.dev.java.net</url>    
     <properties>
