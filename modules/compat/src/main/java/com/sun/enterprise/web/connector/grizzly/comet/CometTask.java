@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,15 +61,15 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
 
     private static final Logger logger = SelectorThread.logger();
 
-    /**
-     * The {@link CometContext} associated with this instance.
-     */
-    protected final CometContext cometContext;
-
-    /**
-     * The {@link CometHandler} associated with this task.
-     */
-    protected final CometHandler cometHandler;
+//    /**
+//     * The {@link CometContext} associated with this instance.
+//     */
+//    protected final CometContext cometContext;
+//
+//    /**
+//     * The {@link CometHandler} associated with this task.
+//     */
+//    protected final CometHandler cometHandler;
 
     /**
      *  true if interrupt should flushAPT
@@ -80,8 +80,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
      * New {@link CometTask}.
      */
     public CometTask(CometContext cometContext, CometHandler cometHandler) {
-        this.cometContext = cometContext;
-        this.cometHandler = cometHandler;
+        super(cometContext, cometHandler);
     }
 
     /**
@@ -195,7 +194,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
      *         instance.
      */
     public CometContext getCometContext() {
-        return cometContext;
+        return (CometContext) cometContext;
     }
 
     /**
@@ -203,7 +202,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
      * @return {@link CometHandler }
      */
     public CometHandler getCometHandler() {
-        return cometHandler;
+        return (CometHandler) cometHandler;
     }
 
     void setCallInterrupt(final boolean isCallInterrupt) {
