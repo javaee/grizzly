@@ -166,7 +166,6 @@ public class BasicCometTest extends TestCase {
 
             @Override
             public void service(Request request, Response response) throws Exception {
-                System.out.println("ping");
                 CometEngine.getEngine().getCometContext(TEST_TOPIC).notify("Ping");
                 response.setContentType("plain/text");
                 response.getWriter().write("Done");
@@ -178,7 +177,6 @@ public class BasicCometTest extends TestCase {
 
             @Override
             public void service(Request request, Response response) throws Exception {
-                System.out.println("static");
                 response.setContentType("plain/text");
                 response.getWriter().write("Static");
                 response.getWriter().flush();
