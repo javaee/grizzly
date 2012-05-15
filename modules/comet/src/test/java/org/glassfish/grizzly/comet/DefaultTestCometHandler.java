@@ -66,7 +66,6 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
 
     @Override
     public void onEvent(CometEvent event) throws IOException {
-        System.out.println("onEvent " + event);
         LOGGER.log(Level.FINE, "     -> onEvent Handler:{0}", hashCode());
         onEventCalled.set(true);
         if (resumeAfterEvent) {
