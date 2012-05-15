@@ -60,8 +60,11 @@ package com.sun.grizzly.tcp.http11.filters;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import com.sun.grizzly.tcp.OutputBuffer;
@@ -75,7 +78,7 @@ import com.sun.grizzly.tcp.http11.OutputFilter;
  */
 public class GzipOutputFilter implements OutputFilter {
 
-        
+    private static final Logger LOGGER = LoggerUtils.getLogger();
 
     // -------------------------------------------------------------- Constants
 
@@ -181,14 +184,16 @@ public class GzipOutputFilter implements OutputFilter {
      * Make the filter ready to process the next request.
      */
     public void recycle() {
-        try{
-            if(compressionStream != null) {
+        try {
+            if (compressionStream != null) {
                 compressionStream.close();
-                compressionStream = null;
             }
-        } catch (IOException ex){
-            ex.printStackTrace();
-            ;
+        } catch (IOException ex) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, ex.toString(), ex);
+            }
+        } finally {
+            compressionStream = null;
         }
     }
 
