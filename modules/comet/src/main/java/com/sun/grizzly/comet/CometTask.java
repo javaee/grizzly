@@ -100,16 +100,30 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      */
     protected boolean callInterrupt;
 
-    public CometTask() {
-        this(null, null);
+    /**
+     * true, if we want to enable mechanism, which detects closed connections,
+     * or false otherwise. The mentioned mechanism should be disabled if we
+     * expect client to use HTTP pipelining.
+     */
+    protected final boolean isDetectConnectionClose;
+    
+    /**
+     * New {@link CometTask}.
+     */
+    public CometTask (CometContext cometContext, CometHandler cometHandler) {
+        this(cometContext, cometHandler,
+                cometContext.isDetectClosedConnections() &&
+                cometContext.getExpirationDelay() != 0);
     }
 
     /**
      * New {@link CometTask}.
      */
-    public CometTask(CometContext cometContext, CometHandler cometHandler) {
+    public CometTask (CometContext cometContext, CometHandler cometHandler,
+            boolean isDetectConnectionClose) {
         this.cometContext = cometContext;
         this.cometHandler = cometHandler;
+        this.isDetectConnectionClose = isDetectConnectionClose;
     }
 
     /**
@@ -132,7 +146,8 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      */
     @Override
     public long getIdleTimeoutDelay() {
-        return cometContext.getExpirationDelay();
+        final long expirationDelay = cometContext.getExpirationDelay();
+        return expirationDelay > 0 ? expirationDelay : -1;
     }
 
     /**
@@ -397,5 +412,13 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      */
     public CometHandler getCometHandler() {
         return cometHandler;
+    }
+
+    /**
+     * Returns <tt>true</tt> if connection terminate detection is on.
+     * If this feature is on - HTTP pipelining can not be used.
+     */
+    public boolean isDetectConnectionClose() {
+        return isDetectConnectionClose;
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.StatsThreadPool;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.SelectorFactory;
@@ -53,8 +54,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.grizzly.util.FixedThreadPool;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
@@ -79,6 +80,11 @@ import java.util.Queue;
  * registering the {@link CometContext}'s topic (see {@link #register}), which can be
  * before, during or after invoking a <code>Servlet</code>
  *
+ * There is known limitation related to <tt>HTTP pipelining</tt>, it can't work
+ * properly when {@link CometContext#isDetectClosedConnections()} is enabled.
+ * So if you want to support <tt>HTTP pipelining</tt>, the closed connection
+ * detection mechanism should be disabled via {@link CometContext#setDetectClosedConnections(boolean)}.
+ * 
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
  */
@@ -137,7 +143,9 @@ public class CometEngine {
         cometContextCache = DataStructures.getCLQinstance(CometContext.class);
         activeContexts = new ConcurrentHashMap<String, CometContext>(16, 0.75f, 64);
 
-        ExtendedThreadPool tpe = new FixedThreadPool(Runtime.getRuntime().availableProcessors(), "CometWorker");
+        final int poolSize = Runtime.getRuntime().availableProcessors();
+        ExtendedThreadPool tpe = new StatsThreadPool("CometWorker",
+                poolSize, poolSize, -1, -1, TimeUnit.MILLISECONDS);
         setThreadPool(tpe);
     }
 
@@ -323,23 +331,25 @@ public class CometEngine {
                 return false;
             }
             cometTask.setAsyncProcessorTask(apt);
-            if (cometContext.getExpirationDelay() != -1) {
+            if (cometContext.getExpirationDelay() > 0) {
                 cometTask.setTimeout(System.currentTimeMillis());
             }
+            
             SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
-            if (mainKey.isValid() && cometContext.getExpirationDelay()
-                    != DISABLE_CLIENT_DISCONNECTION_DETECTION) {
+            if (mainKey.isValid() && cometTask.isDetectConnectionClose()) {
                 try {
                     mainKey.interestOps(SelectionKey.OP_READ);
-                    mainKey.attach(cometTask);
-                    cometContext.initialize(cometTask.getCometHandler());
                 } catch (Exception e) {
                     mainKey.attach(Long.MIN_VALUE);
                     return false;
                 }
-                cometContext.addActiveHandler(cometTask);
-                return true;
             }
+            
+            mainKey.attach(cometTask);
+            cometContext.initialize(cometTask.getCometHandler());
+            cometContext.addActiveHandler(cometTask);
+            return true;
+            
         }
         return false;
     }
@@ -361,7 +371,7 @@ public class CometEngine {
         if (task != null && task.getCometContext().handlers().remove(task.cometHandler) != null) {
             final SelectionKey key = task.getSelectionKey();
             // setting attachment non asynced to ensure grizzly dont keep calling us
-            key.attach(System.currentTimeMillis());
+//            key.attach(System.currentTimeMillis());
             if (finishExecution) {
                 key.cancel();
 
@@ -402,7 +412,10 @@ public class CometEngine {
     protected void flushPostExecute(final CometTask task, boolean cancelKey) {
         AsyncProcessorTask apt = task.getAsyncProcessorTask();
         ProcessorTask p = task.getAsyncProcessorTask().getAsyncExecutor().getProcessorTask();
-        p.setReRegisterSelectionKey(false);
+        
+        p.setReRegisterSelectionKey(!task.isDetectConnectionClose());
+//        p.setReRegisterSelectionKey(false);
+        
         p.setAptCancelKey(cancelKey);
         if (apt.getStage() == AsyncTask.POST_EXECUTE) {
             try {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,8 @@ import java.io.OutputStream;
 import java.util.logging.Level;
 
 import com.sun.grizzly.util.Utils;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import junit.framework.TestCase;
 
 
@@ -73,7 +75,7 @@ public class BasicCometTest extends TestCase {
     final static String onEvent = "onEvent";
     
     private GrizzlyWebServer gws;
-    private int PORT = 18890;
+    private static final int PORT = 18890;
     CometContext test;
 
     @Override
@@ -81,6 +83,7 @@ public class BasicCometTest extends TestCase {
         super.setUp();
         test = CometEngine.getEngine().register("GrizzlyAdapter");
         test.setBlockingNotification(false);
+        test.setDetectClosedConnections(true);
     }
 
     @Override
@@ -94,7 +97,7 @@ public class BasicCometTest extends TestCase {
         Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         test.setExpirationDelay(delay);
-        newGWS(PORT+=1);
+        newGWS(PORT);
         String alias = "/OnInterrupt";
         addAdapter(alias, false);
         gws.start();
@@ -110,7 +113,7 @@ public class BasicCometTest extends TestCase {
     
     public void testClientCloseConnection() throws Exception {
         Utils.dumpOut("testClientCloseConnection");
-        newGWS(PORT+=2);
+        newGWS(PORT);
         test.setExpirationDelay(-1);
         String alias = "/OnClientCloseConnection";
         final CometGrizzlyAdapter ga = addAdapter(alias, true);
@@ -134,6 +137,171 @@ public class BasicCometTest extends TestCase {
         }
     }
 
+    public void testHttpPipeline() throws Exception {
+        Utils.dumpOut("testHttpPipeline");
+        newGWS(PORT);
+        test.setExpirationDelay(10000);
+        test.setDetectClosedConnections(false);
+        final String alias = "/testPipeline";
+        final CometGrizzlyAdapter ga = addAdapter(alias, true);
+        gws.addGrizzlyAdapter(new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                CometEngine.getEngine().getCometContext("GrizzlyAdapter").notify("Ping");
+                response.getWriter().write("Done");
+            }
+        }, new String[] {"/notify"});
+
+        gws.addGrizzlyAdapter(new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                response.getWriter().write("Static");
+            }
+        }, new String[] {"/static"});
+        
+        gws.start();
+
+        Socket s = new Socket("localhost", PORT);
+        s.setSoTimeout(10 * 1000);
+        OutputStream os = s.getOutputStream();
+        String cometRequest = "GET " + alias + " HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        String staticRequest = "GET /static HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        
+        
+        String lastCometRequest = "GET " + alias + " HTTP/1.1\n"+"Host: localhost:" + PORT + "\nConnection: close\n\n";
+        
+        
+        String pipelinedRequest1 = cometRequest + staticRequest + cometRequest;
+        String pipelinedRequest2 = cometRequest + staticRequest + lastCometRequest;
+        
+        String[] pipelineRequests = new String[] {pipelinedRequest1, pipelinedRequest2};
+        
+        try {
+            for (String piplineRequest : pipelineRequests) {
+                os.write(piplineRequest.getBytes());
+                os.flush();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                String line;
+
+                int numberOfPipelinedRequests = 3;
+
+                _outter:
+                for (int i = 0; i < numberOfPipelinedRequests; i++) {
+                    boolean expectStatus = true;
+
+                    if (i % 2 == 0) {
+                        new URL("http://localhost:" + PORT + "/notify").getContent();
+                    }
+
+                    boolean expectEmpty = false;
+                    while (true) {
+                        line = reader.readLine();
+//                        System.out.println(line);
+
+                        if (expectEmpty) {
+                            assertEquals("", line);
+                            break;
+                        }
+
+                        if (expectStatus) {
+                            assertEquals("HTTP/1.1 200 OK", line);
+                            expectStatus = false;
+                        }
+
+                        if (line == null) {
+                            break _outter;
+                        } else if (line.equals("0")) {
+                            expectEmpty = true;
+                        }
+                    }
+                }
+            }
+        } finally {
+            s.close();
+        }
+    }
+    
+    public void testHttpPipeline2() throws Exception {
+        Utils.dumpOut("testHttpPipeline2");
+        newGWS(PORT);
+        test.setExpirationDelay(10000);
+        test.setDetectClosedConnections(false);
+        final String alias = "/testPipeline2";
+        final CometGrizzlyAdapter ga = addAdapter(alias, true);
+        gws.addGrizzlyAdapter(new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                CometEngine.getEngine().getCometContext("GrizzlyAdapter").notify("Ping");
+                response.getWriter().write("Done");
+            }
+        }, new String[] {"/notify"});
+
+        gws.addGrizzlyAdapter(new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                response.getWriter().write("Static");
+            }
+        }, new String[] {"/static"});
+        
+        gws.start();
+
+        Socket s = new Socket("localhost", PORT);
+        s.setSoTimeout(10 * 1000);
+        OutputStream os = s.getOutputStream();
+        String cometRequest = "GET " + alias + " HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        String staticRequest = "GET /static HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        
+        
+        try {
+            os.write(cometRequest.getBytes());
+            os.flush();
+            Thread.sleep(1000);
+            os.write(staticRequest.getBytes());
+            os.flush();
+            
+            new URL("http://localhost:" + PORT + "/notify").getContent();
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            String line;
+
+            int numberOfPipelinedRequests = 2;
+
+            _outter:
+            for (int i = 0; i < numberOfPipelinedRequests; i++) {
+                boolean expectStatus = true;
+
+                boolean expectEmpty = false;
+                while (true) {
+                    line = reader.readLine();
+//                        System.out.println(line);
+
+                    if (expectEmpty) {
+                        assertEquals("", line);
+                        break;
+                    }
+
+                    if (expectStatus) {
+                        assertEquals("HTTP/1.1 200 OK", line);
+                        expectStatus = false;
+                    }
+
+                    if (line == null) {
+                        break _outter;
+                    } else if (line.equals("0")) {
+                        expectEmpty = true;
+                    }
+                }
+            }
+        } finally {
+            s.close();
+        }
+    }
+    
     /* public void testOnTerminate() throws IOException {
         Utils.dumpOut("testOnTerminate ");
         test.setExpirationDelay(-1);
@@ -160,7 +328,7 @@ public class BasicCometTest extends TestCase {
 
     public void testOnEvent() throws Exception {
         Utils.dumpOut("testOnEvent ");
-        newGWS(PORT+=4);
+        newGWS(PORT);
         String alias = "/OnEvent";
         addAdapter(alias, true);
         test.setExpirationDelay(-1);
@@ -206,7 +374,7 @@ public class BasicCometTest extends TestCase {
 
     private CometGrizzlyAdapter addAdapter(final String alias, final boolean resume) {
         CometGrizzlyAdapter c = new CometGrizzlyAdapter(resume);
-        gws.addGrizzlyAdapter(c, new String[]{alias});
+        gws.addGrizzlyAdapter(c, new String[] {alias});
         return c;
     }
 
