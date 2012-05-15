@@ -55,15 +55,23 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
     volatile AtomicBoolean onInterruptCalled = new AtomicBoolean(false);
     volatile AtomicBoolean onEventCalled = new AtomicBoolean(false);
     volatile AtomicBoolean onTerminateCalled = new AtomicBoolean(false);
-
-    public DefaultTestCometHandler(CometContext<String> cometContext, Response response) {
+    
+    private final boolean resumeAfterEvent;
+    
+    public DefaultTestCometHandler(CometContext<String> cometContext,
+            Response response, boolean resume) {
         super(cometContext, response);
+        this.resumeAfterEvent = resume;
     }
 
     @Override
     public void onEvent(CometEvent event) throws IOException {
+        System.out.println("onEvent " + event);
         LOGGER.log(Level.FINE, "     -> onEvent Handler:{0}", hashCode());
         onEventCalled.set(true);
+        if (resumeAfterEvent) {
+            getCometContext().resumeCometHandler(this);
+        }
     }
 
     @Override
@@ -78,18 +86,25 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
     public void onTerminate(CometEvent event) throws IOException {
         LOGGER.log(Level.FINE, "    -> onTerminate Handler:{0}", hashCode());
         onTerminateCalled.set(true);
-        getResponse().getWriter().write(BasicCometTest.onTerminate);
+        write(BasicCometTest.onTerminate);
     }
 
     @Override
     public void onInterrupt(CometEvent event) throws IOException {
         LOGGER.log(Level.FINE, "    -> onInterrupt Handler:{0}", hashCode());
         onInterruptCalled.set(true);
-        getResponse().getWriter().write(BasicCometTest.onInterrupt);
+        write(BasicCometTest.onInterrupt);
     }
 
     @Override
     public int compareTo(CometHandler o) {
         return hashCode() - o.hashCode();
+    }
+    
+    private void write(String s) throws IOException {
+        getResponse().getWriter().write(BasicCometTest.onInterrupt);
+        
+        // forcing chunking
+        getResponse().getWriter().flush();
     }
 }
