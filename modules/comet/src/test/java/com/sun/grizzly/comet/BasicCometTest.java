@@ -193,6 +193,9 @@ public class BasicCometTest extends TestCase {
                     boolean expectStatus = true;
 
                     if (i % 2 == 0) {
+                        // pause to give some time for comet request to reach the server
+                        Thread.sleep(1000);
+                        
                         new URL("http://localhost:" + PORT + "/notify").getContent();
                     }
 
