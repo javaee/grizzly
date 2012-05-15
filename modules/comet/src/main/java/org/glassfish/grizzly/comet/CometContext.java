@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -128,6 +128,13 @@ public class CometContext<E> {
     private final CometEvent<CometContext> eventInitialize;
 
     /**
+     * true, if we want to enable mechanism, which detects closed connections,
+     * or false otherwise. The mentioned mechanism should be disabled if we
+     * expect client to use HTTP pipelining.
+     */
+    private boolean isDetectClosedConnections = true;
+    
+    /**
      * Create a new instance
      *
      * @param contextTopic the context path
@@ -221,7 +228,6 @@ public class CometContext<E> {
         if (!CometEngine.getEngine().isCometEnabled()) {
             throw new IllegalStateException(COMET_NOT_ENABLED);
         }
-        handlers.add(handler);
         Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER
             .createAttribute("HttpServerFilter.Request");
         final Connection c = connection.get();
@@ -233,19 +239,17 @@ public class CometContext<E> {
             final CometCompletionHandler ccHandler = new CometCompletionHandler(handler);
             c.addCloseListener(ccHandler);
             response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, ccHandler, new CometTimeoutHandler(handler));
-            // Register asynchronous read-event listener
-            final NIOInputStream nioInputStream = response.getRequest().getNIOInputStream();
-            if (!nioInputStream.isFinished()) {
-                nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler));
-                notifyOnAsyncRead(handler);
-            } else {
+            if (isDetectClosedConnections) {
                 // Initialize asynchronous reading to be notified when connection
                 // is getting closed by peer
                 response.getRequest().initiateAsyncronousDataReceiving();
             }
+
+            handlers.add(handler);
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+        
         return handler.hashCode();
     }
 
@@ -481,6 +485,27 @@ public class CometContext<E> {
         return notificationHandler;
     }
 
+    /**
+     * Enable/disable the mechanism, which detects closed connections and notifies
+     * user's handlers via
+     * {@link CometHandler#onInterrupt(com.sun.grizzly.comet.CometEvent)} method.
+     * If this feature is on - HTTP pipelining can not be used.
+     * 
+     * @param isDetectClosedConnections
+     */
+    public void setDetectClosedConnections(final boolean isDetectClosedConnections) {
+        this.isDetectClosedConnections = isDetectClosedConnections;
+    }
+    
+    /**
+     * Returns <tt>true</tt> if connection terminate detection is on.
+     * If this feature is on - HTTP pipelining can not be used.
+     * The feature is enabled by default.
+     */
+    public boolean isDetectClosedConnections() {
+        return isDetectClosedConnections;
+    }
+    
     private static void notifyOnAsyncRead(CometHandler handler) {
         try {
             handler.onEvent(new CometEvent(CometEvent.Type.READ));
@@ -574,6 +599,9 @@ public class CometContext<E> {
 
         @Override
         public void onAllDataRead() {
+            if (nioInputStream.isReady()) {
+                notifyOnAsyncRead(handler);
+            }
         }
     }
 }
