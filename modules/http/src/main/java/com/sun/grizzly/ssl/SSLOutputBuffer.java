@@ -204,8 +204,8 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer implements Secure
 
     @Override
     public void recycle() {
-        sslEngine = null;
         super.recycle();
+        sslEngine = null;
     }
     
     private boolean associateWithThread(ByteBuffer buffer) {
