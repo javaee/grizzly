@@ -816,6 +816,11 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         parseHost(hostDC, request, response, state);
 
+        if (isHttp11 && request.serverName().getLength() == 0) {
+            state.error = true;
+            return;
+        }
+        
         if (request.requiresAcknowledgement()) {
             // if we have any request content, we can ignore the Expect
             // request
