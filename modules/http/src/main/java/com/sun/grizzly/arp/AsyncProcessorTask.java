@@ -113,12 +113,16 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
 
                         continueExecution = asyncExecutor.postExecute();
                         if (continueExecution) {
-                            if (asyncExecutor.getProcessorTask().hasNextRequest()) {
+                            final ProcessorTask processorTask =
+                                    asyncExecutor.getProcessorTask();
+                    
+                            if (processorTask.hasNextRequest()
+                                    && isKeepAlive(processorTask)) {
                                 asyncExecutor.reset();
                                 asyncExecutor.getProcessorTask().prepareForNextRequest();
 
                                 stage = AsyncTask.PRE_EXECUTE;
-                            } else {                                
+                            } else {
                                 stage = AsyncTask.FINISH;
                             }
                         }
@@ -252,6 +256,12 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     private void setAsyncResponsePostProcessor() {
         asyncExecutor.getProcessorTask().setAsyncResponsePostProcessor(
                 asyncResponsePostProcessor);
+    }
+
+    private boolean isKeepAlive(final ProcessorTask processorTask) {
+        return processorTask.isKeepAlive() && !processorTask.isError()
+                && !processorTask.getAptCancelKey()
+                && !processorTask.getDropConnection();
     }
 
     /**

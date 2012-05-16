@@ -374,7 +374,9 @@ public class CometEngine {
 //            key.attach(System.currentTimeMillis());
             if (finishExecution) {
                 key.cancel();
-
+                AsyncProcessorTask apt = task.getAsyncProcessorTask();
+                ProcessorTask p = apt.getAsyncExecutor().getProcessorTask();
+                p.setAptCancelKey(true);
                 task.callInterrupt = true;
                 task.run();
             } else {
@@ -411,7 +413,7 @@ public class CometEngine {
      */
     protected void flushPostExecute(final CometTask task, boolean cancelKey) {
         AsyncProcessorTask apt = task.getAsyncProcessorTask();
-        ProcessorTask p = task.getAsyncProcessorTask().getAsyncExecutor().getProcessorTask();
+        ProcessorTask p = apt.getAsyncExecutor().getProcessorTask();
         
         p.setReRegisterSelectionKey(!task.isDetectConnectionClose());
 //        p.setReRegisterSelectionKey(false);
