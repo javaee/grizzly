@@ -799,6 +799,10 @@ public class Response {
     /**
      * Set the content length (in bytes) for this Response.
      *
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
+     * 
      * @param length The new content length
      */
     public void setContentLengthLong(final long length) {
@@ -816,19 +820,15 @@ public class Response {
 
     /**
      * Set the content length (in bytes) for this Response.
+     * 
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
      *
      * @param length The new content length
      */
     public void setContentLength(final int length) {
-        checkResponse();
-        if (isCommitted())
-            return;
-
-        if (usingWriter)
-            return;
-
-        response.setContentLength(length);
-
+        setContentLengthLong(length);
     }
 
 

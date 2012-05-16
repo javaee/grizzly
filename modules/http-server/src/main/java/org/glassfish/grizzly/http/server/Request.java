@@ -2435,7 +2435,8 @@ public class Request {
     public void initiateAsyncronousDataReceiving() {
         httpServerFilter.reregisterForReadAttr.set(ctx, Boolean.TRUE);
         // resume context to pass control to HttpServerFilter, which is going to
-        // check the reregisterForReadAttr and enable asynchronous reading.
+        // check the reregisterForReadAttr, enable asynchronous reading and suspend
+        // the context again.
         ctx.resume();
     }
 
