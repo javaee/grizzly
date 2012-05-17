@@ -66,6 +66,8 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     private FutureImpl<Connection> acceptListener;
     private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
     private final Object acceptSync = new Object();
+    private volatile int maxAcceptRetries = 5;
+    
 
     public TCPNIOServerConnection(TCPNIOTransport transport,
             ServerSocketChannel serverSocketChannel) {
@@ -132,9 +134,58 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     private SocketChannel doAccept() throws IOException {
         final ServerSocketChannel serverChannel =
                 (ServerSocketChannel) getChannel();
-        return serverChannel.accept();
+        final SelectionKey key = getSelectionKey();
+        
+        int retryNum = 0;
+        do {
+            try {
+                return serverChannel.accept();
+            } catch (IOException e) {
+                if(!key.isValid()) throw e;
+                
+                try {
+                    // Let's try to recover here from "too many open files" error
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex1) {
+                    throw new IOException(ex1.getMessage());
+                }
+                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TCPSELECTOR_HANDLER_ACCEPTCHANNEL_EXCEPTION(), e);
+            }
+        } while (retryNum++ < maxAcceptRetries);
+        
+        throw new IOException("Accept retries exceeded");
     }
 
+    /**
+     * Get the max number of attempts <code>TCPNIOServerConnection</code>
+     * will use to accept client connection in case if
+     * {@link ServerSocketChannel#accept()} throws {@link IOException},
+     * which most probably mean "too many open files" error.
+     * 
+     * @return the max number of attempts <code>TCPNIOServerConnection</code>
+     * will use to accept client connection.
+     */
+    public int getMaxAcceptRetries() {
+        return maxAcceptRetries;
+    }
+
+    /**
+     * Set the max number of attempts <code>TCPNIOServerConnection</code> will
+     * use to accept client connection in case if {@link ServerSocketChannel#accept()}
+     * throws {@link IOException}, which most probably mean
+     * "too many open files" error.
+     * 
+     * @param maxAcceptRetries the max number of attempts
+     *      <code>TCPNIOServerConnection</code> will use to accept client connection.
+     */
+    public void setMaxAcceptRetries(int maxAcceptRetries) {
+        if (maxAcceptRetries < 0) {
+            throw new IllegalArgumentException("maxAcceptRetries can't be negative");
+        }
+        
+        this.maxAcceptRetries = maxAcceptRetries;
+    }
+    
     private void configureAcceptedChannel(final SocketChannel acceptedChannel)
             throws IOException {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
