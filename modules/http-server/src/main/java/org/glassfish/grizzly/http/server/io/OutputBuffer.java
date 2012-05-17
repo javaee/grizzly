@@ -415,7 +415,7 @@ public class OutputBuffer {
      * 
      * @since 2.2   
      */
-    public void sendfile(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
+    public void sendfile(final File file, final CompletionHandler<WriteResult> handler) {
         if (file == null) {
             throw new IllegalArgumentException("Argument 'file' cannot be null");
         }
@@ -459,8 +459,7 @@ public class OutputBuffer {
     public void sendfile(final File file, 
                          final long offset, 
                          final long length, 
-                         final CompletionHandler<WriteResult> handler) 
-    throws IOException {
+                         final CompletionHandler<WriteResult> handler) {
         if (!sendfileEnabled) {
             throw new IllegalStateException("sendfile support isn't available.");
         }
@@ -494,7 +493,23 @@ public class OutputBuffer {
         // set Content-Encoding to identity to prevent compression
         response.setHeader(Header.ContentEncoding, "identity");
 
-        flush(); // commit the headers, then send the file
+        try {
+            flush(); // commit the headers, then send the file
+        } catch (IOException e) {
+            if (handler != null) {
+                handler.failed(e);
+            } else {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE,
+                            String.format("Failed to transfer file %s.  Cause: %s.",
+                                    file.getAbsolutePath(),
+                                    e.getMessage()),
+                            e);
+                }
+            }
+            
+            return;
+        }
 
         // check the suspend status at the time this method was invoked
         // and take action based on this value
@@ -511,6 +526,7 @@ public class OutputBuffer {
             // appropriate action depending on the current suspend status
             ch = createInternalCompletionHandler(file, suspendedAtStart);
         }
+        
         ctx.write(f, ch);
     }
 

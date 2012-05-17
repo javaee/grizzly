@@ -47,9 +47,7 @@ import java.nio.channels.FileChannel;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -62,6 +60,8 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.ArraySet;
+import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.GenericAdapter;
 
 /**
  * {@link HttpHandler}, which processes requests to a static resources.
@@ -218,8 +218,38 @@ public class StaticHttpHandler extends HttpHandler {
         this.isFileCacheEnabled = isFileCacheEnabled;
     }
     
-    public static void sendFile(final Response response, final File file)
-            throws IOException {
+    /**
+     * <p>
+     * Depending on {@link Response#isSendFileEnabled()} value, the method
+     * will either use zero-copy {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)},
+     * or auxiliary buffer to send file to the remote endpoint.
+     * Note that all headers necessary for the file transfer must be set prior
+     * to invoking this method as this will case the HTTP header to be flushed
+     * to the client prior to sending the file content. This should also be the
+     * last call to write any content to the remote endpoint.
+     * </p>
+     * 
+     * <p>
+     * It's required that the response be suspended when using this functionality.
+     * It will be assumed that if the response wasn't suspended when this method
+     * is called, that it's desired that this method manages the suspend/resume cycle.
+     * </p>
+     *
+     * <p>
+     * After calling this method the HTTP request processing will be completely
+     * delegated to Grizzly and once send file is complete, Grizzly will release
+     * all the associated resources.
+     * It's possible to pass {@link CompletionHandler} to track send file progress.
+     * </p>
+     * 
+     * @param response
+     * @param file
+     * @param completionHandler
+     * 
+     * @since 2.3
+     */
+    public static void sendFile(final Response response, final File file,
+            final CompletionHandler<File> completionHandler) {
         response.setStatus(HttpStatus.OK_200);
 
         // In case this sendFile(...) is called directly by user - pickup the content-type
@@ -229,31 +259,43 @@ public class StaticHttpHandler extends HttpHandler {
         response.setContentLengthLong(length);
         response.addDateHeader(Header.Date, System.currentTimeMillis());
         if (!response.isSendFileEnabled() || response.getRequest().isSecure()) {
-            sendUsingBuffers(response, file);
+            sendUsingBuffers(response, file, completionHandler);
         } else {
-            sendZeroCopy(response, file);
+            sendZeroCopy(response, file, completionHandler);
         }
     }
 
-    private static void sendUsingBuffers(final Response response, final File file)
-            throws FileNotFoundException, IOException {
+    private static void sendUsingBuffers(final Response response,
+            final File file, final CompletionHandler<File> completionHandler) {
         final int chunkSize = 8192;
-        
-        response.suspend();
         
         final NIOOutputStream outputStream = response.getOutputStream();
         
-        outputStream.notifyCanWrite(
+        final NonBlockingDownloadHandler nonBlockingDownloadHandler =
                 new NonBlockingDownloadHandler(response, outputStream,
-                        file, chunkSize),
-                chunkSize * 3 / 2);
+                    file, completionHandler, chunkSize);
 
+        if (!response.isSuspended()) {
+            response.suspend();
+        }
+        
+        outputStream.notifyCanWrite(nonBlockingDownloadHandler,
+                chunkSize * 3 / 2);
     }
 
-    private static void sendZeroCopy(final Response response, final File file)
-            throws IOException {
+    private static void sendZeroCopy(final Response response, final File file,
+            final CompletionHandler<File> completionHandler) {
+        
         final OutputBuffer outputBuffer = response.getOutputBuffer();
-        outputBuffer.sendfile(file, null);
+        outputBuffer.sendfile(file,
+                Futures.<File, WriteResult>toAdaptedCompletionHandler(
+                null, completionHandler, new GenericAdapter<WriteResult, File>() {
+
+            @Override
+            public File adapt(final WriteResult result) {
+                return file;
+            }
+        }));
     }
 
     public final boolean addToFileCache(final Request req,
@@ -403,7 +445,7 @@ public class StaticHttpHandler extends HttpHandler {
         pickupContentType(response, resource);
         
         addToFileCache(request, response, resource);
-        sendFile(response, resource);
+        sendFile(response, resource, null);
 
         return true;
     }
@@ -479,16 +521,19 @@ public class StaticHttpHandler extends HttpHandler {
     
     private static class NonBlockingDownloadHandler implements WriteHandler {
         // keep the remaining size
-        private volatile long size;
-        
+        private final File file;
+        private final CompletionHandler<File> completionHandler;
         private final Response response;
         private final NIOOutputStream outputStream;
         private final FileChannel fileChannel;
         private final MemoryManager mm;
         private final int chunkSize;
         
+        private volatile long size;
+        
         NonBlockingDownloadHandler(final Response response,
                 final NIOOutputStream outputStream, final File file,
+                final CompletionHandler<File> completionHandler,
                 final int chunkSize) {
             
             try {
@@ -496,7 +541,9 @@ public class StaticHttpHandler extends HttpHandler {
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException("File should have existed", e);
             }
-            
+
+            this.file = file;
+            this.completionHandler = completionHandler;
             size = file.length();
             
             this.response = response;
@@ -519,9 +566,9 @@ public class StaticHttpHandler extends HttpHandler {
 
         @Override
         public void onError(Throwable t) {
-            LOGGER.log(Level.WARNING, "[onError] ", t);
+            LOGGER.log(Level.FINE, "[onError] ", t);
             response.setStatus(500, t.getMessage());
-            complete(true);
+            fail(t);
         }
 
         /**
@@ -536,7 +583,7 @@ public class StaticHttpHandler extends HttpHandler {
             // read file to the Buffer
             final int justReadBytes = fileChannel.read(buffer.toByteBuffer());
             if (justReadBytes <= 0) {
-                complete(false);
+                complete();
                 return false;
             }
 
@@ -550,7 +597,7 @@ public class StaticHttpHandler extends HttpHandler {
 
             // check the remaining size here to avoid extra onWritePossible() invocation
             if (size <= 0) {
-                complete(false);
+                complete();
                 return false;
             }
 
@@ -560,28 +607,54 @@ public class StaticHttpHandler extends HttpHandler {
         /**
          * Complete the download
          */
-        private void complete(final boolean isError) {
+        private void complete() {
             try {
                 fileChannel.close();
             } catch (IOException e) {
-                if (!isError) {
-                    response.setStatus(500, e.getMessage());
-                }
+                response.setStatus(500, e.getMessage());
             }
 
             try {
                 outputStream.close();
             } catch (IOException e) {
-                if (!isError) {
-                    response.setStatus(500, e.getMessage());
-                }
+                response.setStatus(500, e.getMessage());
             }
 
+            if (completionHandler != null) {
+                completionHandler.completed(file);
+            }
+            
             if (response.isSuspended()) {
                 response.resume();
             } else {
                 response.finish();
             }
         }
+        
+        /**
+         * Complete the download
+         */
+        private void fail(final Throwable t) {
+            try {
+                fileChannel.close();
+            } catch (IOException e) {
+            }
+
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+            }
+
+            if (completionHandler != null) {
+                completionHandler.failed(t);
+            }
+            
+            if (response.isSuspended()) {
+                response.resume();
+            } else {
+                response.finish();
+            }
+        }
+        
     }
 }

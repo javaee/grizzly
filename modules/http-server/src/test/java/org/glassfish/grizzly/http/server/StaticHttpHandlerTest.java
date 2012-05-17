@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.http.*;
@@ -156,6 +157,9 @@ public class StaticHttpHandlerTest {
         }        
     }
     
+    /**
+     * Check that HTTP POST method is not allowed
+     */
     @Test
     @SuppressWarnings("unchecked")
     public void testPostMethod() throws Exception {
@@ -184,6 +188,69 @@ public class StaticHttpHandlerTest {
             File fResult = result.get(20, TimeUnit.SECONDS);
             assertEquals(0, fResult.length());
             
+            c.close();
+        } finally {
+            client.stop();
+        }        
+    }
+    
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testStaticHttpHandlerFileSend() throws Exception {
+        
+        final int fileSize = 16 * 1024 * 1024;
+        final File file = generateTempFile(fileSize);
+        
+        final FutureImpl<Boolean> completionHandlerInvokedFuture =
+                Futures.<Boolean>createSafeFuture();
+        
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response)
+                    throws Exception {
+                StaticHttpHandler.sendFile(response, file, new EmptyCompletionHandler<File>() {
+
+                    @Override
+                    public void completed(final File result) {
+                        if (!response.isSuspended()) {
+                            completionHandlerInvokedFuture.failure(
+                                    new IllegalStateException("Response is resumed"));
+                        } else {
+                            completionHandlerInvokedFuture.result(true);
+                        }
+                    }
+                });
+            }
+        }, "/custom");
+        
+        final FutureImpl<File> result = Futures.<File>createSafeFuture();
+
+        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
+                // static resource handler won't know how to handle .tmp extension,
+                // so it should punt.
+                assertEquals("text/plain", response.getHeader(Header.ContentType));
+            }
+        }, isSslEnabled);
+        BigInteger controlSum = getMDSum(file);
+        try {
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/custom/" + file.getName())
+                        .method(Method.GET)
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20000, TimeUnit.SECONDS);
+            BigInteger resultSum = getMDSum(fResult);
+            assertTrue("MD5Sum between control and test files differ.",
+                        controlSum.equals(resultSum));
+            assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
             c.close();
         } finally {
             client.stop();
