@@ -66,7 +66,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean TIMEOUT_ENABLED = true;
     boolean TRACE_ENABLED = false;
     boolean UPLOAD_TIMEOUT_ENABLED = true;
-    boolean WEBSOCKET_SUPPORT_ENABLED = false;
+    boolean WEBSOCKET_SUPPORT_ENABLED = true;
     boolean XPOWERED_BY = true;
     int COMPRESSION_MIN_SIZE = 2048;
     int CONNECTION_UPLOAD_TIMEOUT = 300000;
