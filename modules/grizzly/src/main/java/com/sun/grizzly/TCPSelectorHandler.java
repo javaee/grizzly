@@ -739,16 +739,13 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public SelectableChannel acceptWithoutRegistration(SelectionKey key) throws IOException {
-        boolean isAccepted;
         int retryNum = 0;
         do {
             try {
-                isAccepted = true;
                 return ((ServerSocketChannel) key.channel()).accept();
             } catch (IOException ex) {
                 if(!key.isValid()) throw ex;
                 
-                isAccepted = false;
                 try {
                     // Let's try to recover here from too many open file
                     Thread.sleep(1000);
@@ -757,7 +754,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 }
                 logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TCPSELECTOR_HANDLER_ACCEPTCHANNEL_EXCEPTION(), ex);
             }
-        } while (!isAccepted && retryNum++ < maxAcceptRetries);
+        } while (retryNum++ < maxAcceptRetries);
 
         throw new IOException("Accept retries exceeded");
     }
