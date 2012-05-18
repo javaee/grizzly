@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -218,7 +218,7 @@ final class AjpMessageUtils {
         return offset;
     }
 
-    private static int decodeHeaders(final Buffer requestContent, int offset,
+    static int decodeHeaders(final Buffer requestContent, int offset,
             final AjpHttpRequest req) {
         // Decode headers
         final MimeHeaders headers = req.getHeaders();
@@ -349,7 +349,7 @@ final class AjpMessageUtils {
         return length == 0xFFFF || length == -1;
     }
 
-    private static int readShort(final Buffer buffer, final int offset) {
+    static int readShort(final Buffer buffer, final int offset) {
         return buffer.getShort(offset) & 0xFFFF;
     }
 

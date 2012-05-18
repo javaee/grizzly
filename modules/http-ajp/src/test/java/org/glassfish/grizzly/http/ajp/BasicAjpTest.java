@@ -47,6 +47,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -64,11 +65,8 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.memory.Buffers;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Assert;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -77,25 +75,62 @@ import static org.junit.Assert.*;
  * 
  * @author Alexey Stashok
  */
-public class BasicAjpTest {
-    public static final int PORT = 19012;
+public class BasicAjpTest extends AjpTestBase {
+    @Test
+    public void test100ContinuePost() throws IOException, InstantiationException, Exception {
+        HttpHandler httpHanlder = new HttpHandler() {
 
-    private AjpAddOn ajpAddon;
-    private HttpServer httpServer;
+            @Override
+            public void service(Request request, Response response)
+                    throws Exception {
+                if (request.getHeader("Expect") != null) {
+                    response.sendAcknowledgement();
+                    
+                    final int length = request.getContentLength();
+                    final InputStream is = request.getInputStream();
 
-    @Before
-    public void before() throws Exception {
-        ByteBufferWrapper.DEBUG_MODE = true;
-        configureHttpServer();
-    }
+                    for (int i = 0; i < length; i++) {
+                        final int c = is.read();
+                        final int expected = (i % 'Z' - 'A') + 'A';
+                        if (c != expected) {
+                            response.sendError(400, "Unexpected char[" + i + "]. Expected: " + ((char) expected) + " but was: " + ((char) c) + "(" + c + ")");
+                            return;
+                        }
+                    }
 
-    @After
-    public void after() throws Exception {
-        if (httpServer != null) {
-            httpServer.stop();
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.sendError(500, "100-continue header has been lost?");
+                }
+            }
+
+        };
+
+        final int size = 1024;
+        
+        startHttpServer(httpHanlder);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/myresource", 80, PORT);
+        headersPacket.addHeader("Content-Length", String.valueOf(size));
+        headersPacket.addHeader("Host", "localhost:80");
+        headersPacket.addHeader("Expect", "100-continue");
+        
+        send(headersPacket.toByteArray());
+        
+        byte[] postBody = new byte[size];
+        for (int i = 0; i < postBody.length; i++) {
+            postBody[i] = (byte) ((i % 'Z' - 'A') + 'A');
         }
-    }
+        
+        final AjpDataPacket dataPacket = new AjpDataPacket(postBody);
+        send(dataPacket.toByteArray());
 
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+    }
+    
     @Test
     public void testPingPong() throws Exception {
         startHttpServer(new HttpHandler() {
@@ -107,7 +142,7 @@ public class BasicAjpTest {
         }, "/");
 
         final MemoryManager mm =
-                httpServer.getListener("grizzly").getTransport().getMemoryManager();
+                httpServer.getListener(LISTENER_NAME).getTransport().getMemoryManager();
         final Buffer request = mm.allocate(512);
         request.put((byte) 0x12);
         request.put((byte) 0x34);
@@ -145,7 +180,7 @@ public class BasicAjpTest {
             }
         };
 
-        final NetworkListener listener = httpServer.getListener("grizzly");
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         listener.deregisterAddOn(ajpAddon);
         listener.registerAddOn(myAjpAddon);
@@ -174,7 +209,7 @@ public class BasicAjpTest {
 
     @Test
     public void testNullAttribute() throws Exception {
-        final NetworkListener listener = httpServer.getListener("grizzly");
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         startHttpServer(new HttpHandler() {
 
@@ -223,7 +258,7 @@ public class BasicAjpTest {
         patternMap.put("authors", new String[] {"Shalini M"});
         patternMap.put("price", new String[] {"100$"});
         
-        final NetworkListener listener = httpServer.getListener("grizzly");
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         startHttpServer(new HttpHandler() {
 
@@ -278,7 +313,7 @@ public class BasicAjpTest {
     
     @Test
     public void testSslParams() throws Exception {
-        final NetworkListener listener = httpServer.getListener("grizzly");
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         startHttpServer(new HttpHandler() {
 
@@ -330,7 +365,7 @@ public class BasicAjpTest {
     @Test
     public void testRemoteAddress() throws Exception {
         final String expectedAddr = "10.163.27.8";
-        final NetworkListener listener = httpServer.getListener("grizzly");
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         startHttpServer(new HttpHandler() {
 
@@ -385,7 +420,7 @@ public class BasicAjpTest {
         builder.add(new ResultFilter(future));
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
-                httpServer.getListener("grizzly").getTransport())
+                httpServer.getListener(LISTENER_NAME).getTransport())
                 .processor(builder.build())
                 .build();
 
@@ -395,24 +430,6 @@ public class BasicAjpTest {
         connection.write(request);
 
         return future;
-    }
-
-    private void configureHttpServer() throws Exception {
-        httpServer = new HttpServer();
-        final NetworkListener listener =
-                new NetworkListener("grizzly",
-                NetworkListener.DEFAULT_NETWORK_HOST,
-                PORT);
-
-        ajpAddon = new AjpAddOn();
-        listener.registerAddOn(ajpAddon);
-        
-        httpServer.addListener(listener);
-    }
-
-    private void startHttpServer(HttpHandler httpHandler, String... mappings) throws Exception {
-        httpServer.getServerConfiguration().addHttpHandler(httpHandler, mappings);
-        httpServer.start();
     }
 
     private String toHexString(byte[] response) {
