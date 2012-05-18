@@ -41,16 +41,7 @@
 package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.net.SSLSupport;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**

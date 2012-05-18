@@ -262,6 +262,61 @@ public class BasicAjpTest extends AjpTestBase {
     }
     
     @Test
+    public void test100ContinuePost() throws IOException, InstantiationException {
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                if (request.getHeader("Expect") != null) {
+                    response.sendAcknowledgement();
+                    
+                    final int length = request.getContentLength();
+                    final InputStream is = request.getInputStream();
+
+                    for (int i = 0; i < length; i++) {
+                        final int c = is.read();
+                        final int expected = (i % 'Z' - 'A') + 'A';
+                        if (c != expected) {
+                            response.sendError(400, "Unexpected char[" + i + "]. Expected: " + ((char) expected) + " but was: " + ((char) c) + "(" + c + ")");
+                            return;
+                        }
+                    }
+
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.sendError(500, "100-continue header has been lost?");
+                }
+            }
+
+        };
+
+        final int size = 1024;
+        
+        configureHttpServer(a);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/myresource", 80, PORT);
+        headersPacket.addHeader("Content-Length", String.valueOf(size));
+        headersPacket.addHeader("Host", "localhost:80");
+        headersPacket.addHeader("Expect", "100-continue");
+        
+        send(headersPacket.toByteArray());
+        
+        byte[] postBody = new byte[size];
+        for (int i = 0; i < postBody.length; i++) {
+            postBody[i] = (byte) ((i % 'Z' - 'A') + 'A');
+        }
+        
+        final AjpDataPacket dataPacket = new AjpDataPacket(postBody);
+        send(dataPacket.toByteArray());
+
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+    }
+
+    @Test
     public void testStabilityAfterFailure() throws Exception {
         GrizzlyAdapter a = new GrizzlyAdapter() {
 

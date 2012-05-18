@@ -227,6 +227,8 @@ public class AjpProcessorTask extends ProcessorTask {
             // Has been set
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
             // Has been set
+        } else if (actionCode == ActionCode.ACTION_ACK) {
+            // 100-Continue had to be processed by httpd
         } else {
             super.action(actionCode, param);
         }
