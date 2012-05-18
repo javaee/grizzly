@@ -122,7 +122,7 @@ public class AjpTestBase {
     protected void send(byte[] request) throws IOException {
         if (socket == null || socket.isClosed()) {
             socket = new Socket("localhost", PORT);
-            socket.setSoTimeout(5000000);
+            socket.setSoTimeout(5000);
         }
         socket.getOutputStream().write(request);
     }
