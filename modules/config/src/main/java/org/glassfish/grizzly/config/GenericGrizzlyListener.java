@@ -601,7 +601,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             }
             final int httpServerFilterIdx = filterChainBuilder.indexOfType(HttpServerFilter.class);
 
-            if (httpServerFilterIdx >= 0) {
+            if (httpServerFilterIdx >= 0 && f != null) {
                 // Insert the WebSocketFilter right after HttpCodecFilter
                 filterChainBuilder.add(httpServerFilterIdx, f);
             }
