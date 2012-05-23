@@ -48,6 +48,7 @@ import org.glassfish.grizzly.Grizzly;
  */
 public class ServerFilterConfiguration {
 
+    public static final int MAX_REQUEST_PARAMETERS = 10000;
     public static final String USE_SEND_FILE = "org.glassfish.grizzly.http.USE_SEND_FILE";
 
     private String httpServerName;
@@ -56,6 +57,7 @@ public class ServerFilterConfiguration {
     
     private boolean traceEnabled;
     private boolean passTraceRequest;
+    private int maxRequestParameters = MAX_REQUEST_PARAMETERS;
     
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
@@ -80,6 +82,7 @@ public class ServerFilterConfiguration {
         this.scheme = configuration.scheme;
         this.traceEnabled = configuration.traceEnabled;
         this.passTraceRequest = configuration.passTraceRequest;
+        this.maxRequestParameters = configuration.maxRequestParameters;
     }
     
     /**
@@ -192,6 +195,8 @@ public class ServerFilterConfiguration {
      * @return <tt>true</tt> if the <tt>TRACE</tt> request will be passed
      *  to the registered {@link HttpHandler}s, otherwise <tt>false</tt> if the
      *  <tt>TRACE</tt> request will be handled by Grizzly.
+     *
+     * @since 2.2.7
      */
     public boolean isPassTraceRequest() {
         return passTraceRequest;
@@ -207,6 +212,8 @@ public class ServerFilterConfiguration {
      * @param passTraceRequest boolean to configure if trace requests will
      *                         be handled by Grizzly or by a configured
      *                         {@link HttpHandler}.
+     *
+     * @since 2.2.7
      */
     public void setPassTraceRequest(boolean passTraceRequest) {
         this.passTraceRequest = passTraceRequest;
@@ -216,6 +223,8 @@ public class ServerFilterConfiguration {
      *
      * @return <tt>true</tt> if a proper response to HTTP <tt>TRACE</tt> is to
      *  be generated, or <tt>false</tt> if a 405 is to be returned instead.
+     *
+     * @since 2.2.7
      */
     public boolean isTraceEnabled() {
         return traceEnabled;
@@ -229,12 +238,44 @@ public class ServerFilterConfiguration {
      * This method only comes into effect when <code>setPassTraceRequest(false)</code>
      * has been called.
      *
-     * @param enabled boolean to configure how grizzly
+     * @param enabled boolean to configure how grizzly handles TRACE requests
+     *
+     * @since 2.2.7
      */
     public void setTraceEnabled(final boolean enabled) {
         traceEnabled = enabled;
     }
-    
+
+    /**
+     * Returns the maximum number of parameters allowed per request.  If the
+     * value is less than zero, then there will be no limit on parameters.  By
+     * default, the limit imposed is {@value #MAX_REQUEST_PARAMETERS}.
+     *
+     * @return the maximum number of parameters, or <tt>-1</tt> if there is no
+     *  imposed limit.
+     *
+     * @since 2.2.8
+     */
+    public int getMaxRequestParameters() {
+        return maxRequestParameters;
+    }
+
+    /**
+     * Sets the maximum number of parameters allowed for a request.
+     *
+     * @param maxRequestParameters the maximum number of parameters.
+     *
+     * @since 2.2.8
+     */
+    public void setMaxRequestParameters(int maxRequestParameters) {
+        if (maxRequestParameters < 0) {
+            this.maxRequestParameters = -1;
+        } else {
+            this.maxRequestParameters = maxRequestParameters;
+        }
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
 
