@@ -45,7 +45,7 @@ package org.glassfish.grizzly.servlet;
  * @since 2.2
  */
 @SuppressWarnings({"UnusedDeclaration"})
-enum DispatcherType {
+public enum DispatcherType {
     REQUEST((byte) (1)),
     FORWARD((byte) (1 << 1)),
     INCLUDE((byte) (1 << 2)),
