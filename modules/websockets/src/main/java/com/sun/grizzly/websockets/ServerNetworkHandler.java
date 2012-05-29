@@ -70,9 +70,10 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private static final Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Request request;
     private final Response response;
+    private final HttpServletRequest httpServletRequest;
+    private final HttpServletResponse httpServletResponse;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
-    private final Mapper mapper;
     private UDecoder urlDecoder = new UDecoder();
     
     private final ProtocolHandler protocolHandler;
@@ -82,8 +83,20 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             ProtocolHandler protocolHandler, Mapper mapper) {
         request = req;
         response = resp;
+        GrizzlyRequest grizzlyRequest = new GrizzlyRequest();
+        grizzlyRequest.setRequest(request);
+        GrizzlyResponse grizzlyResponse = new GrizzlyResponse();
+        grizzlyResponse.setResponse(response);
+        grizzlyRequest.setResponse(grizzlyResponse);
+        grizzlyResponse.setRequest(grizzlyRequest);
+        try {
+            httpServletRequest = new WSServletRequestImpl(grizzlyRequest, mapper);
+            httpServletResponse = new HttpServletResponseImpl(grizzlyResponse);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+
         this.protocolHandler = protocolHandler;
-        this.mapper = mapper;
         inputBuffer = (InternalInputBuffer) req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
         
@@ -175,15 +188,11 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public HttpServletRequest getRequest() throws IOException {
-        GrizzlyRequest r = new GrizzlyRequest();
-        r.setRequest(request);
-        return new WSServletRequestImpl(r, mapper);
+        return httpServletRequest;
     }
 
     public HttpServletResponse getResponse() throws IOException {
-        GrizzlyResponse r = new GrizzlyResponse();
-        r.setResponse(response);
-        return new HttpServletResponseImpl(r);
+        return httpServletResponse;
     }
 
     public synchronized void close() {
@@ -211,11 +220,6 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         private String contextPath;
         public WSServletRequestImpl(GrizzlyRequest r, Mapper mapper) throws IOException {
             super(r);
-            // Hold your nose....
-            GrizzlyResponse res = new GrizzlyResponse();
-            res.setResponse(new Response());
-            r.setResponse(res);
-            // Safe now...
             setContextImpl(new ServletContextImpl());
             if (mapper != null) {
                 updatePaths(r, mapper);

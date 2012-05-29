@@ -51,13 +51,13 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Collection<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
     protected final ProtocolHandler protocolHandler;
+    protected HttpServletRequest request;
+    protected HttpServletResponse response;
 
     enum State {
         NEW,
@@ -67,10 +67,22 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
-    EnumSet<State> connected = EnumSet.<State>range(State.CONNECTED, State.CLOSING);
+    EnumSet<State> connected = EnumSet.range(State.CONNECTED, State.CLOSING);
 
     public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
         this.protocolHandler = protocolHandler;
+        final NetworkHandler handler = protocolHandler.getNetworkHandler();
+        if (handler instanceof ServerNetworkHandler) {
+            final ServerNetworkHandler networkHandler =
+                    (ServerNetworkHandler) handler;
+            try {
+                request = networkHandler.getRequest();
+                response = networkHandler.getResponse();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
@@ -235,20 +247,10 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     public final HttpServletRequest getRequest() {
-        final NetworkHandler handler = getNetworkHandler();
-        try {
-            return handler instanceof ServerNetworkHandler ? ((ServerNetworkHandler) handler).getRequest() : null;
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
-        }
+        return request;
     }
 
     public final HttpServletResponse getResponse() {
-        final NetworkHandler handler = getNetworkHandler();
-        try {
-            return handler instanceof ServerNetworkHandler ? ((ServerNetworkHandler) handler).getResponse() : null;
-        } catch (IOException e) {
-            throw new WebSocketException(e.getMessage(), e);
-        }
+        return response;
     }
 }
