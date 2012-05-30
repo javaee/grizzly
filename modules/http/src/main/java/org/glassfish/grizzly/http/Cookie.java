@@ -59,7 +59,8 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -98,7 +99,10 @@ import org.glassfish.grizzly.memory.MemoryManager;
 // so long as sun.servlet.* must run on older JDK 1.02 JVMs which
 // don't include that support.
 
-public class Cookie implements Cloneable {
+public class Cookie implements Cloneable, Cacheable {
+
+    private static final ThreadCache.CachedTypeIndex<Cookie> CACHE_IDX =
+                ThreadCache.obtainIndex(Cookie.class, 16);
 
     //
     // The value of the cookie itself.
@@ -120,6 +124,7 @@ public class Cookie implements Cloneable {
     protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
+    protected boolean putToCache = true;
     
     protected Cookie() {
     }
@@ -154,12 +159,22 @@ public class Cookie implements Cloneable {
      * @see #setVersion
      *
      */
-
-    public Cookie(final String name, final String value) {
+    protected Cookie(final String name, final String value) {
         checkName(name);
 
-	this.name = name;
-	this.value = value;
+        this.name = name;
+        this.value = value;
+    }
+
+    public static Cookie create(final String name, final String value) {
+        Cookie cookie = ThreadCache.takeFromCache(CACHE_IDX);
+        if (cookie != null) {
+            cookie.name = name;
+            cookie.value = value;
+        } else {
+            cookie = new Cookie(name, value);
+        }
+        return cookie;
     }
 
     /**
@@ -583,6 +598,7 @@ public class Cookie implements Cloneable {
     /**
      * Return the header name to set the cookie, based on cookie version.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getCookieHeaderName() {
         return getCookieHeaderName(version);
     }
@@ -658,6 +674,22 @@ public class Cookie implements Cloneable {
 	} catch (CloneNotSupportedException e) {
 	    throw new RuntimeException(e.getMessage());
 	}
+    }
+
+    @Override
+    public void recycle() {
+        name = null;
+        value = null;
+        comment = null;
+        domain = null;
+        maxAge = -1;
+        path = null;
+        secure = false;
+        version = 0;
+        isHttpOnly = false;
+        if (putToCache) {
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
     }
 }
 

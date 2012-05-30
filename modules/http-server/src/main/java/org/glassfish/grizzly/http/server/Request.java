@@ -611,6 +611,11 @@ public class Request {
         ctx = null;
         httpServerFilter = null;
 
+        if (cookies != null && cookies.length > 0) {
+            for (Cookie cookie : cookies) {
+                cookie.recycle();
+            }
+        }
         cookies = null;
         requestedSessionId = null;
         session = null;
@@ -2266,7 +2271,7 @@ public class Request {
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
-            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+            final Cookie cookie = Cookie.create(Globals.SESSION_COOKIE_NAME,
                     session.getIdInternal());
             configureSessionCookie(cookie);
             response.addCookie(cookie);

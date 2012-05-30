@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.ThreadCache;
+
 /**
  * Lazy wrapper over {@link Cookie}.
  * The String representations of the cookie's attributes will be initialized on the first get...() call.
@@ -47,10 +49,37 @@ package org.glassfish.grizzly.http;
  * @author Alexey Stashok
  */
 public class LazyCookie extends Cookie {
+
+    private static final ThreadCache.CachedTypeIndex<LazyCookie> CACHE_IDX =
+                ThreadCache.obtainIndex(LazyCookie.class, 16);
+
     private final LazyCookieState lazyState = new LazyCookieState();
 
     private boolean isInitialized;
-    
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    private LazyCookie() {
+        putToCache = false;
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static LazyCookie create() {
+        LazyCookie cookie = ThreadCache.takeFromCache(CACHE_IDX);
+        if (cookie == null) {
+            cookie = new LazyCookie();
+        }
+        return cookie;
+    }
+
+
+    // ----------------------------------------------------- Methods from Cookie
+
 
     /**
      * {@inheritDoc}
@@ -124,6 +153,38 @@ public class LazyCookie extends Cookie {
         return super.isSecure();
     }
 
+
+    
+    /**
+     * Returns the lazy state representation.
+     * @return the lazy state representation.
+     */
+    public LazyCookieState lazy() {
+        return lazyState;
+    }
+
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    @Override
+    public void recycle() {
+        super.recycle();
+        isInitialized = false;
+        lazyState.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    @Override
+    protected boolean lazyNameEquals(String name) {
+        return lazyState.getName().equals(name);
+    }
+
+
     protected final void checkInitialized() {
         if (!isInitialized) {
             isInitialized = true;
@@ -134,12 +195,12 @@ public class LazyCookie extends Cookie {
     protected void initialize() {
         final String strName = lazyState.getName().toString();
         checkName(strName);
-        
+
         name = strName;
 
         value = unescape(lazyState.getValue().toString());
         path = unescape(lazyState.getPath().toString());
-        
+
         final String domainStr = lazyState.getDomain().toString();
         if (domainStr != null) {
             domain = unescape(domainStr); //avoid NPE
@@ -147,25 +208,6 @@ public class LazyCookie extends Cookie {
 
         final String commentStr = lazyState.getComment().toString();
         comment = (version == 1) ? unescape(commentStr) : null;
-    }
-    
-    /**
-     * Returns the lazy state representation.
-     * @return the lazy state representation.
-     */
-    public LazyCookieState lazy() {
-        return lazyState;
-    }
-
-    @Override
-    protected boolean lazyNameEquals(String name) {
-        return lazyState.getName().equals(name);
-    }
-    
-
-    public void recycle() {
-        isInitialized = false;
-        lazyState.recycle();
     }
 
     protected String unescape(String s) {
