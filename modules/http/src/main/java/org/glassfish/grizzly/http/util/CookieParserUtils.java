@@ -139,7 +139,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(buffer, pos, end);
 
             // Skip whitespace
@@ -247,7 +247,6 @@ public class CookieParserUtils {
             // All checks passed. Add the cookie, start with the
             // special avpairs first
             if (isSpecial) {
-                isSpecial = false;
                 // $Version must be the first avpair in the cookie header
                 // (sc must be null)
                 if (CookieUtils.equals("Version", buffer, nameStart, nameEnd)
@@ -293,7 +292,7 @@ public class CookieParserUtils {
                 LOGGER.fine("Unknown Special Cookie");
 
             } else { // Normal Cookie
-                cookie = new LazyCookie();
+                cookie = LazyCookie.create();
                 lazyCookie = cookie.lazy();
 
                 cookie.setVersion(version);
@@ -363,7 +362,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(cookiesStr, pos, end);
 
             // Skip whitespace
@@ -470,7 +469,6 @@ public class CookieParserUtils {
             // All checks passed. Add the cookie, start with the
             // special avpairs first
             if (isSpecial) {
-                isSpecial = false;
                 // $Version must be the first avpair in the cookie header
                 // (sc must be null)
                 if (CookieUtils.equals("Version", cookiesStr, nameStart, nameEnd)
@@ -530,7 +528,7 @@ public class CookieParserUtils {
                     value = "";
                 }
 
-                cookie = new Cookie(name, value);
+                cookie = Cookie.create(name, value);
                 cookie.setVersion(version);
 
                 cookies.add(cookie);
@@ -574,7 +572,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(buffer, pos, end);
 
             // Skip whitespace
@@ -771,7 +769,7 @@ public class CookieParserUtils {
             }
 
             // Normal Cookie
-            cookie = new LazyCookie();
+            cookie = LazyCookie.create();
             lazyCookie = cookie.lazy();
 
             lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
@@ -823,7 +821,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(cookiesStr, pos, end);
 
             // Skip whitespace
@@ -1032,7 +1030,7 @@ public class CookieParserUtils {
                 value = "";
             }
 
-            cookie = new Cookie(name, value);
+            cookie = Cookie.create(name, value);
 
             cookies.add(cookie);
         }
@@ -1092,6 +1090,7 @@ public class CookieParserUtils {
      *
      * @param cc The cookie value to modify
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static void unescapeDoubleQuotes(CharChunk cc) {
 
         if (cc == null || cc.getLength() == 0) {
@@ -1123,6 +1122,7 @@ public class CookieParserUtils {
      * @param length number of bytes to un-escape.
      * @return new length
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static int unescapeDoubleQuotes(Buffer buffer, int start, int length) {
 
         if (buffer == null || length <= 0) {

@@ -430,6 +430,7 @@ public class CookieWrapper extends Cookie {
 	wrappedCookie.setVersion(v);
     }
 
+   @SuppressWarnings("UnusedDeclaration")
    public Object cloneCookie() {
         return wrappedCookie.clone();
    }

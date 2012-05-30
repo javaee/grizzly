@@ -313,7 +313,12 @@ public class Response {
         response = null;
         ctx = null;
         suspendState.set(SuspendState.NONE);
-        cookies.clear();
+        if (!cookies.isEmpty()) {
+            for (Cookie cookie : cookies) {
+                cookie.recycle();
+            }
+            cookies.clear();
+        }
 
         cacheEnabled = false;
 
