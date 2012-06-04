@@ -397,8 +397,19 @@ public class BasicAjpTest extends AjpTestBase {
         }
     }
     
+    @Test
     public void testPingPong() throws Exception {
-        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+        
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                response.setStatus(200, "FINE");
+            }
+
+        };
+        
+        configureHttpServer(a);
         
         final byte[] request = new byte[] {0x12, 0x34, 0, 1, AjpConstants.JK_AJP13_CPING_REQUEST};
         
@@ -410,6 +421,14 @@ public class BasicAjpTest extends AjpTestBase {
         Assert.assertEquals((byte) 'B', responseInputStream.read());
         Assert.assertEquals((short) 1, responseInputStream.readShort());
         Assert.assertEquals(AjpConstants.JK_AJP13_CPONG_REPLY, responseInputStream.read());
+        
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("GET", "/TestServlet/normal", 80, PORT);
+        headersPacket.addHeader("Host", "localhost:80");
+        send(headersPacket.toByteArray());
+        
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
     }
 
     @Test

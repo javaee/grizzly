@@ -350,8 +350,12 @@ public class AjpProcessorTask extends ProcessorTask {
      * @throws IOException
      */
     private void processCPing() throws IOException {
-        AjpHttpResponse.writeCPongReply(outputStream);
-        outputStream.flush();
+        response.setCommitted(true);
+        keepAlive = true;
+        final AjpOutputBuffer ajpOutputBuffer = (AjpOutputBuffer) outputBuffer;
+        AjpHttpResponse.writeCPongReply(ajpOutputBuffer);
+        ajpOutputBuffer.flush();
+        ajpOutputBuffer.setFinished(true);
     }
 
     @Override

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * {@link Response} implementation, which also contains AJP
@@ -58,8 +57,10 @@ public final class AjpHttpResponse extends Response {
     final ByteChunk tmpHeaderByteChunk =
             new ByteChunk(AjpConstants.MAX_PACKET_SIZE);
 
-    static void writeCPongReply(final OutputStream outputStream) throws IOException {
-        outputStream.write(JK_AJP13_CPONG_REPLY_CONTENT);
+    static void writeCPongReply(final AjpOutputBuffer outputBuffer)
+            throws IOException {
+        outputBuffer.writeEncodedAjpMessage(JK_AJP13_CPONG_REPLY_CONTENT,
+                0, JK_AJP13_CPONG_REPLY_CONTENT.length);
     }
 
     @Override
