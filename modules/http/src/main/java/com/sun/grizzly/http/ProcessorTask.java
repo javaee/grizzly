@@ -1376,7 +1376,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         // Check user-agent header
-        if (restrictedUserAgents != null && (http11 || keepAlive)) {
+        if (!isEmptyArray(restrictedUserAgents) && (http11 || keepAlive)) {
             MessageBytes userAgentValueMB =
                 request.getMimeHeaders().getValue("user-agent");
             if (userAgentValueMB != null) {
@@ -2403,7 +2403,7 @@ public class ProcessorTask extends TaskBase implements Processor,
            return compressionOutputFilter;
 
         // Check for incompatible Browser
-        if (noCompressionUserAgents != null) {
+        if (!isEmptyArray(noCompressionUserAgents)) {
             MessageBytes userAgentValueMB =
                 request.getMimeHeaders().getValue("user-agent");
             if (userAgentValueMB != null) {
@@ -2760,6 +2760,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         
         return threadAttachment;
         
+    }
+
+    private boolean isEmptyArray(String[] array) {
+        return array == null || array.length == 0;
     }
 
     public static interface PostProcessor {

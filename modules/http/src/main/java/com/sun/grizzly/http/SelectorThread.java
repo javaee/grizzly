@@ -184,11 +184,12 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Compression value.
      */
     protected String compression = "off";
-    protected String noCompressionUserAgents = null;
-    protected String restrictedUserAgents = null;
-    protected String compressableMimeTypes = "text/html,text/xml,text/plain";
-    private volatile String[] parsedCompressableMimeTypes = null;
-    private volatile int parsedComressableMimeTypesHash = -1;
+    private final CommaSeparatedList noCompressionUserAgents = new CommaSeparatedList();
+
+    private final CommaSeparatedList restrictedUserAgents = new CommaSeparatedList();
+
+    private final CommaSeparatedList compressableMimeTypes = new CommaSeparatedList("text/html,text/xml,text/plain");
+    
     protected int compressionMinSize    = 2048;
        
     // ------------------------------------------------------ Properties----/
@@ -2132,52 +2133,119 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
    // ------------------------------------------------------ Compression ---//
 
 
-    protected void configureCompression(ProcessorTask processorTask){
-        processorTask.addNoCompressionUserAgent(noCompressionUserAgents);
-        parseComressableMimeTypes();
-        processorTask.setCompressableMimeTypes(parsedCompressableMimeTypes);
+    protected void configureCompression(ProcessorTask processorTask) {
+        processorTask.setCompressableMimeTypes(compressableMimeTypes.split());
         processorTask.setCompressionMinSize(compressionMinSize);
         processorTask.setCompression(compression);
-        processorTask.addRestrictedUserAgent(restrictedUserAgents);
+        processorTask.setRestrictedUserAgents(restrictedUserAgents.split());
+        processorTask.setNoCompressionUserAgents(noCompressionUserAgents.split());
     }
 
     
+    /**
+     * Gets the compression level. The possible values are:
+     * 1) <b>off</b>: never compress HTTP response content
+     * 2) <b>force</b>: force HTTP response content compression
+     * 3) <b>on</b>: enable compression for HTTP response content, if the HTTP
+     *      request/response headers conform to the
+     *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
+     *      {@link #getNoCompressionUserAgents()} requirements.
+     * 
+     * @return compression the compression level. The possible values are: off, on, force.
+     */
     public String getCompression() {
         return compression;
     }
 
-    
+
+    /**
+     * Sets the compression level. The acceptable <code>compression</code>
+     * parameter values are:
+     * 1) <b>off</b>: never compress HTTP response content
+     * 2) <b>force</b>: force HTTP response content compression
+     * 3) <b>on</b>: enable compression for HTTP response content, if the HTTP
+     *      request/response headers conform to the
+     *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
+     *      {@link #getNoCompressionUserAgents()} requirements.
+     * 
+     * @param compression the compression level. The acceptable values are: off, on, force.
+     */
     public void setCompression(String compression) {
         this.compression = compression;
     }
 
+    /**
+     * Get the min size of HTTP response payload, the compression might be applied on.
+     * 
+     * @return the min size of HTTP response payload, the compression might be applied on.
+     */
+    public int getCompressionMinSize() {
+        return compressionMinSize;
+    }
+
     
+    /**
+     * Set the min size of HTTP response payload, the compression might be applied on.
+     * 
+     * @param compressionMinSize the min size of HTTP response payload,
+     *          the compression might be applied on.
+     */
+    public void setCompressionMinSize(int compressionMinSize) {
+        this.compressionMinSize = compressionMinSize;
+    }
+    
+    
+    /**
+     * Get the comma-separated list of client user-agents which we never
+     * apply compression to.
+     * @return the comma-separated list of client user-agents.
+     */
     public String getNoCompressionUserAgents() {
-        return noCompressionUserAgents;
+        return noCompressionUserAgents.getComaSeparatedList();
     }
 
     
+    /**
+     * Set the comma-separated list of client user-agents which we never
+     * apply compression to.
+     * @param noCompressionUserAgents the comma-separated list of client user-agents.
+     */
     public void setNoCompressionUserAgents(String noCompressionUserAgents) {
-        this.noCompressionUserAgents = noCompressionUserAgents;
+        this.noCompressionUserAgents.setComaSeparatedList(noCompressionUserAgents);
     }
-
     
+    /**
+     * Get the comma-separated list of restricted user-agents, which will be
+     * responded using HTTP/1.0 protocol only.
+     * @return the comma-separated list of restricted user-agents.
+     */    
     public String getRestrictedUserAgents() {
-        return restrictedUserAgents;
+        return restrictedUserAgents.getComaSeparatedList();
     }
 
-    
+    /**
+     * Set the comma-separated list of restricted user-agents, which will be
+     * responded using HTTP/1.0 protocol only.
+     * @param restrictedUserAgents the comma-separated list of restricted user-agents.
+     */    
     public void setRestrictedUserAgents(String restrictedUserAgents) {
-        this.restrictedUserAgents = restrictedUserAgents;
+        this.restrictedUserAgents.setComaSeparatedList(restrictedUserAgents);
     }
 
+    /**
+     * Get the comma-separated compressable mime-type list.
+     * @return the comma-separated compressable mime-type list.
+     */
     public String getCompressableMimeTypes() {
-        return compressableMimeTypes;
+        return compressableMimeTypes.getComaSeparatedList();
     }
-
     
+    /**
+     * Set the comma-separated compressable mime-type list.
+     * @param compressableMimeTypes the comma-separated compressable mime-type list.
+     */
     public void setCompressableMimeTypes(String compressableMimeTypes) {
-        this.compressableMimeTypes = compressableMimeTypes;
+        this.compressableMimeTypes.setComaSeparatedList(compressableMimeTypes);
     }
 
     private static int getSelectorThreadLookupKey(InetAddress address, int port) {
@@ -2185,39 +2253,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         return (addressHash + port);
     }
     
-    private void parseComressableMimeTypes() {
-        if (compressableMimeTypes == null) {
-            parsedCompressableMimeTypes = new String[0];
-            return;
-        }
-        
-        int hash = -1;
-        if ((hash = compressableMimeTypes.hashCode()) == parsedComressableMimeTypesHash)
-            return;
-        
-        List<String> compressableMimeTypeList = new ArrayList<String>(4);
-        StringTokenizer st = new StringTokenizer(compressableMimeTypes, ",");
-
-        while(st.hasMoreTokens()) {
-            compressableMimeTypeList.add(st.nextToken().trim());
-        }
-        
-        String[] tmpParsedCompressableMimeTypes = new String[compressableMimeTypeList.size()];
-        compressableMimeTypeList.toArray(tmpParsedCompressableMimeTypes);
-        parsedCompressableMimeTypes = tmpParsedCompressableMimeTypes;
-        parsedComressableMimeTypesHash = hash;
-    }
-    
-    
-    public int getCompressionMinSize() {
-        return compressionMinSize;
-    }
-
-    
-    public void setCompressionMinSize(int compressionMinSize) {
-        this.compressionMinSize = compressionMinSize;
-    }
-
     // ------------------------------------------------------------------- //
     
     
@@ -2685,5 +2720,55 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         }
         
         this.maxCachedProcessorTasks = maxCachedProcessorTasks;
+    }
+    
+    /**
+     * Class represents a wrapper over comma-separated list represented as {@link String} value.
+     */
+    protected static class CommaSeparatedList {
+        private String comaSeparatedList;
+        private String[] splitArray;
+
+        public CommaSeparatedList() {
+        }
+
+        public CommaSeparatedList(String comaSeparatedList) {
+            this.comaSeparatedList = comaSeparatedList;
+        }
+                
+        public String getComaSeparatedList() {
+            return comaSeparatedList;
+        }
+
+        public void setComaSeparatedList(String comaSeparatedList) {
+            this.comaSeparatedList = comaSeparatedList;
+            splitArray = null;
+        }
+
+        /**
+         * Split the comma-separated list and return the list as {@link String}[].
+         */
+        public String[] split() {
+            if (splitArray != null) {
+                return splitArray;
+            }
+            
+            if (comaSeparatedList == null) {
+                splitArray = new String[0];
+                return splitArray;
+            }
+            
+            List<String> tmpSplitList = new ArrayList<String>(4);
+            StringTokenizer st = new StringTokenizer(comaSeparatedList, ",");
+
+            while(st.hasMoreTokens()) {
+                tmpSplitList.add(st.nextToken().trim());
+            }
+
+            String[] tmpSplitArray = new String[tmpSplitList.size()];
+            tmpSplitList.toArray(tmpSplitArray);
+            splitArray = tmpSplitArray;
+            return splitArray;
+        }
     }
 }
