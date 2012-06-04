@@ -2143,15 +2143,21 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     
     /**
-     * Gets the compression level. The possible values are:
+     * Returns the compression level. The possible values are:
      * 1) <b>off</b>: never compress HTTP response content
-     * 2) <b>force</b>: force HTTP response content compression
+     * 2) <b>force</b>: force HTTP response content compression regardless
+     *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
+     *      {@link #getNoCompressionUserAgents()} limitations. This mode might be
+     *      particularly useful for testing purposes.
      * 3) <b>on</b>: enable compression for HTTP response content, if the HTTP
      *      request/response headers conform to the
      *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
      *      {@link #getNoCompressionUserAgents()} requirements.
      * 
-     * @return compression the compression level. The possible values are: off, on, force.
+     * Pls note: for "on" and "force" compression levels, the
+     * compression will be applied to HTTP response content only
+     * in case if corresponding HTTP request contains appropriate Accept-Encoding
+     * header.
      */
     public String getCompression() {
         return compression;
@@ -2162,22 +2168,26 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Sets the compression level. The acceptable <code>compression</code>
      * parameter values are:
      * 1) <b>off</b>: never compress HTTP response content
-     * 2) <b>force</b>: force HTTP response content compression
+     * 2) <b>force</b>: force HTTP response content compression regardless
+     *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
+     *      {@link #getNoCompressionUserAgents()} limitations. This mode might be
+     *      particularly useful for testing purposes.
      * 3) <b>on</b>: enable compression for HTTP response content, if the HTTP
      *      request/response headers conform to the
      *      {@link #getCompressionMinSize()}, {@link #getCompressableMimeTypes()},
      *      {@link #getNoCompressionUserAgents()} requirements.
      * 
-     * @param compression the compression level. The acceptable values are: off, on, force.
+     * Pls note: for "on" and "force" compression levels, the
+     * compression will be applied to HTTP response content only
+     * in case if corresponding HTTP request contains appropriate Accept-Encoding
+     * header.
      */
     public void setCompression(String compression) {
         this.compression = compression;
     }
 
     /**
-     * Get the min size of HTTP response payload, the compression might be applied on.
-     * 
-     * @return the min size of HTTP response payload, the compression might be applied on.
+     * Returns the min size (in bytes) of HTTP response payload, the compression might be applied on.
      */
     public int getCompressionMinSize() {
         return compressionMinSize;
@@ -2185,10 +2195,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     
     /**
-     * Set the min size of HTTP response payload, the compression might be applied on.
-     * 
-     * @param compressionMinSize the min size of HTTP response payload,
-     *          the compression might be applied on.
+     * Sets the min size (in bytes) of HTTP response payload, the compression might be applied on.
      */
     public void setCompressionMinSize(int compressionMinSize) {
         this.compressionMinSize = compressionMinSize;
@@ -2196,9 +2203,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     
     /**
-     * Get the comma-separated list of client user-agents which we never
+     * Returns the comma-separated list of client user-agents which we never
      * apply compression to.
-     * @return the comma-separated list of client user-agents.
      */
     public String getNoCompressionUserAgents() {
         return noCompressionUserAgents.getComaSeparatedList();
@@ -2206,43 +2212,38 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     
     /**
-     * Set the comma-separated list of client user-agents which we never
+     * Sets the comma-separated list of client user-agents which we never
      * apply compression to.
-     * @param noCompressionUserAgents the comma-separated list of client user-agents.
      */
     public void setNoCompressionUserAgents(String noCompressionUserAgents) {
         this.noCompressionUserAgents.setComaSeparatedList(noCompressionUserAgents);
     }
     
     /**
-     * Get the comma-separated list of restricted user-agents, which will be
+     * Returns the comma-separated list of restricted user-agents, which will be
      * responded using HTTP/1.0 protocol only.
-     * @return the comma-separated list of restricted user-agents.
      */    
     public String getRestrictedUserAgents() {
         return restrictedUserAgents.getComaSeparatedList();
     }
 
     /**
-     * Set the comma-separated list of restricted user-agents, which will be
+     * Sets the comma-separated list of restricted user-agents, which will be
      * responded using HTTP/1.0 protocol only.
-     * @param restrictedUserAgents the comma-separated list of restricted user-agents.
      */    
     public void setRestrictedUserAgents(String restrictedUserAgents) {
         this.restrictedUserAgents.setComaSeparatedList(restrictedUserAgents);
     }
 
     /**
-     * Get the comma-separated compressable mime-type list.
-     * @return the comma-separated compressable mime-type list.
+     * Returns the comma-separated compressable mime-type list.
      */
     public String getCompressableMimeTypes() {
         return compressableMimeTypes.getComaSeparatedList();
     }
     
     /**
-     * Set the comma-separated compressable mime-type list.
-     * @param compressableMimeTypes the comma-separated compressable mime-type list.
+     * Sets the comma-separated compressable mime-type list.
      */
     public void setCompressableMimeTypes(String compressableMimeTypes) {
         this.compressableMimeTypes.setComaSeparatedList(compressableMimeTypes);
