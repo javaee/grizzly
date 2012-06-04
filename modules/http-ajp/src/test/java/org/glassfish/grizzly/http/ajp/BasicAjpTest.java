@@ -137,6 +137,7 @@ public class BasicAjpTest extends AjpTestBase {
 
             @Override
             public void service(Request request, Response response) throws Exception {
+                response.setStatus(200, "FINE");
             }
 
         }, "/");
@@ -157,6 +158,15 @@ public class BasicAjpTest extends AjpTestBase {
         assertEquals('B', response.get());
         assertEquals((short) 1, response.getShort());
         assertEquals(AjpConstants.JK_AJP13_CPONG_REPLY, response.get());
+        
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("GET", "/TestServlet/normal", 80, PORT);
+        headersPacket.addHeader("Host", "localhost:80");
+        send(headersPacket.toByteArray());
+        
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+        
     }
     
     @Test
