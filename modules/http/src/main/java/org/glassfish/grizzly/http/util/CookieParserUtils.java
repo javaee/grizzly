@@ -738,7 +738,7 @@ public class CookieParserUtils {
                                                        valueStart,
                                                        valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
-                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()));
+                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
                     }
 
