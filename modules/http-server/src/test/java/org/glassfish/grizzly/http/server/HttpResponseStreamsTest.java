@@ -698,6 +698,34 @@ public class HttpResponseStreamsTest extends TestCase {
         doTest(s, sb.toString());
     }
 
+    public void testCharacter027() throws Exception {
+
+        final StringBuilder sb = buildBuffer(2002); // boundary
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override
+            public void doWrite(Response response)
+                    throws IOException {
+                Writer writer = response.getNIOWriter();
+                writer.write(sb.toString());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+        s = new WriteStrategy() {
+            @Override
+            public void doWrite(Response response)
+                    throws IOException {
+                Writer writer = response.getNIOWriter();
+                writer.write(sb.toString().toCharArray());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
     // ------------------------------------------------------------ Binary Tests
 
 

@@ -87,11 +87,13 @@ import org.glassfish.grizzly.utils.Exceptions;
  * to the HTTP messaging system in Grizzly.
  */
 public class OutputBuffer {
-    
+
     private static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
+    private static final int MAX_COPY_BUFFER_SIZE = 1024 * 8;
+
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
-    
+
     private HttpResponsePacket response;
 
     private FilterChainContext ctx;
@@ -107,10 +109,10 @@ public class OutputBuffer {
     // The cloner, which will be responsible for cloning temporaryWriteBuffer,
     // if it's not possible to write its content in this thread
     private final ByteArrayCloner cloner = new ByteArrayCloner();
-    
+
     private final List<LifeCycleListener> lifeCycleListeners =
             new ArrayList<LifeCycleListener>(2);
-    
+
     private boolean committed;
 
     private boolean finished;
@@ -121,7 +123,7 @@ public class OutputBuffer {
 
     private final Map<String, CharsetEncoder> encoders =
             new HashMap<String, CharsetEncoder>();
-    
+
     private final CharBuffer charBuf = CharBuffer.allocate(1);
 
     private MemoryManager memoryManager;
@@ -133,21 +135,30 @@ public class OutputBuffer {
     private WriteHandler asyncWriteQueueHandler;
 
     private AsyncQueueWriter asyncWriter;
-    
+
     private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
+
+    /**
+     * This char[] array will be used when a user calls {@link #write(String)}  or
+     * {@link #write(String, int, int)}.  In these two cases, {@link String#getChars(int, int, char[], int)}
+     * will be used to copy the characters from the String into this array which
+     * will then be wrapped and passed for encoding.  This is done as the copy+wrap
+     * is cheaper than just wrapping the String.
+     */
+    private char[] stringCopyBuffer;
 
     /**
      * Flag indicating whether or not async operations are being used on the
      * input streams.
      */
     private boolean asyncEnabled = true;
-    
+
     private boolean sendfileEnabled;
-    
+
     private Response serverResponse;
-    
+
     private final CompletionHandler<WriteResult> onAsyncErrorCompletionHandler =
             new OnErrorCompletionHandler();
 
@@ -211,18 +222,18 @@ public class OutputBuffer {
     public void registerLifeCycleListener(final LifeCycleListener listener) {
         lifeCycleListeners.add(listener);
     }
-    
+
     @SuppressWarnings({"UnusedDeclaration"})
     public boolean removeLifeCycleListener(final LifeCycleListener listener) {
         return lifeCycleListeners.remove(listener);
     }
-    
+
     public void setBufferSize(final int bufferSize) {
         if (!committed && currentBuffer == null) {
-            this.bufferSize = bufferSize;  
+            this.bufferSize = bufferSize;
         }
     }
-    
+
     /**
      * Reset current response.
      *
@@ -234,7 +245,7 @@ public class OutputBuffer {
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
         compositeBuffer = null;
-        
+
         if (currentBuffer != null) {
             currentBuffer.clear();
         }
@@ -250,10 +261,10 @@ public class OutputBuffer {
     public boolean isClosed() {
         return closed;
     }
-    
+
     /**
      * Get the number of bytes buffered on OutputBuffer and ready to be sent.
-     * 
+     *
      * @return the number of bytes buffered on OutputBuffer and ready to be sent.
      */
     @SuppressWarnings({"UnusedDeclaration"})
@@ -262,15 +273,15 @@ public class OutputBuffer {
         if (compositeBuffer != null) {
             size += compositeBuffer.remaining();
         }
-        
+
         if (currentBuffer != null) {
             size += currentBuffer.position();
         }
-        
+
         return size;
     }
-    
-    
+
+
     /**
      * Recycle the output buffer. This should be called when closing the
      * connection.
@@ -283,7 +294,7 @@ public class OutputBuffer {
             compositeBuffer.dispose();
             compositeBuffer = null;
         }
-        
+
         if (currentBuffer != null) {
             currentBuffer.dispose();
             currentBuffer = null;
@@ -328,7 +339,7 @@ public class OutputBuffer {
         if (!closed) {
             close();
         }
-        
+
         if (ctx != null) {
             ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
         }
@@ -347,7 +358,7 @@ public class OutputBuffer {
     public void acknowledge() throws IOException {
 
         ctx.write(response, !asyncEnabled);
-        
+
     }
 
 
@@ -398,8 +409,23 @@ public class OutputBuffer {
         if (closed || len == 0) {
             return;
         }
+        int offLocal = off;
+        int lenLocal = len;
 
-        flushCharsToBuf(CharBuffer.wrap(str, off, len + off));
+        while (lenLocal > 0) {
+            if (lenLocal > MAX_COPY_BUFFER_SIZE) {
+                copyStringCharsToInternalBuffer(str, offLocal, MAX_COPY_BUFFER_SIZE);
+                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, MAX_COPY_BUFFER_SIZE));
+                offLocal += MAX_COPY_BUFFER_SIZE;
+                lenLocal -= MAX_COPY_BUFFER_SIZE;
+            } else {
+                copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
+                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
+                offLocal += lenLocal;
+                lenLocal -= lenLocal;
+            }
+        }
+
     }
 
 
@@ -413,7 +439,7 @@ public class OutputBuffer {
         }
 
         checkCurrentBuffer();
-        
+
         if (currentBuffer.hasRemaining()) {
             currentBuffer.put((byte) b);
         } else {
@@ -434,17 +460,17 @@ public class OutputBuffer {
      * <p>
      * Calls <code>write(file, 0, file.length())</code>.
      * </p>
-     * 
+     *
      * @param file the {@link File} to transfer.
      * @param handler {@link CompletionHandler} that will be notified
      *                of the transfer progress/completion or failure.
-     *             
+     *
      * @throws IOException if an error occurs during the transfer
      * @throws IllegalArgumentException if <code>file</code> is null
-     * 
+     *
      * @see #sendfile(java.io.File, long, long, org.glassfish.grizzly.CompletionHandler)
-     * 
-     * @since 2.2   
+     *
+     * @since 2.2
      */
     public void sendfile(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
         if (file == null) {
@@ -462,7 +488,7 @@ public class OutputBuffer {
      * content. This should also be the last call to write any content to the remote
      * endpoint.
      * </p>
-     * 
+     *
      * <p>
      * It's required that the response be suspended when using this functionality.
      * It will be assumed that if the response wasn't suspended when this method
@@ -474,7 +500,7 @@ public class OutputBuffer {
      * @param length the total number of bytes to transfer
      * @param handler {@link CompletionHandler} that will be notified
      *                of the transfer progress/completion or failure.
-     *               
+     *
      * @throws IOException              if an error occurs during the transfer
      * @throws IOException              if an I/O error occurs
      * @throws IllegalArgumentException if the response has already been committed
@@ -487,10 +513,10 @@ public class OutputBuffer {
      *                                  {@link CompletionHandler} was provided.
      * @since 2.2
      */
-    public void sendfile(final File file, 
-                         final long offset, 
-                         final long length, 
-                         final CompletionHandler<WriteResult> handler) 
+    public void sendfile(final File file,
+                         final long offset,
+                         final long length,
+                         final CompletionHandler<WriteResult> handler)
     throws IOException {
         if (!sendfileEnabled) {
             throw new IllegalStateException("sendfile support isn't available.");
@@ -517,7 +543,7 @@ public class OutputBuffer {
         } if (compositeBuffer != null) {
             compositeBuffer.clear();
         }
-        
+
         response.setContentLengthLong(f.remaining());
         if (response.getContentType() == null) {
             response.setContentType(MimeType.getByFilename(file.getName()));
@@ -551,21 +577,22 @@ public class OutputBuffer {
         if (closed || len == 0) {
             return;
         }
-        
+
         // Copy the content of the b[] to the currentBuffer, if it's possible
         if (bufferSize >= len &&
                 (currentBuffer == null || currentBuffer.remaining() >= len)) {
             checkCurrentBuffer();
 
+            assert currentBuffer != null;
             currentBuffer.put(b, off, len);
         } else {  // If b[] is too big - try to send it to wire right away.
-            
+
             // wrap byte[] with a thread local buffer
             temporaryWriteBuffer.reset(b, off, len);
-            
+
             // if there is data in the currentBuffer - complete it
             finishCurrentBuffer();
-            
+
             // mark headers as commited
             doCommit();
             if (compositeBuffer != null) { // if we write a composite buffer
@@ -574,7 +601,7 @@ public class OutputBuffer {
                 compositeBuffer = null;
             } else { // we write just mutableHeapBuffer content
                 writeContentBuffer0(temporaryWriteBuffer, false, cloner);
-            }            
+            }
         }
     }
 
@@ -593,7 +620,7 @@ public class OutputBuffer {
         // commit the response (mark it as committed)
         final boolean isJustCommitted = doCommit();
         // Try to commit the content chunk together with headers (if there were not committed before)
-        if (!writeContentChunk(!isJustCommitted, true) && (isJustCommitted || response.isChunked())) {
+        if (!writeContentChunk(true) && (isJustCommitted || response.isChunked())) {
             // If there is no ready content chunk to commit,
             // but headers were not committed yet, or this is chunked encoding
             // and we need to send trailer
@@ -613,7 +640,7 @@ public class OutputBuffer {
         handleAsyncErrors();
 
         final boolean isJustCommitted = doCommit();
-        if (!writeContentChunk(!isJustCommitted, false) && isJustCommitted) {
+        if (!writeContentChunk(false) && isJustCommitted) {
             forceCommitHeaders(false);
         }
 
@@ -646,7 +673,7 @@ public class OutputBuffer {
      *
      * Note, that passed {@link Buffer} will be directly used by underlying
      * connection, so it could be reused only if it has been flushed.
-     * 
+     *
      * @param buffer the {@link Buffer} to write
      * @throws IOException if an error occurs during the write
      */
@@ -655,7 +682,7 @@ public class OutputBuffer {
         finishCurrentBuffer();
         checkCompositeBuffer();
         compositeBuffer.append(buffer);
-        
+
         if (compositeBuffer.remaining() > bufferSize) {
             flush();
         }
@@ -681,7 +708,7 @@ public class OutputBuffer {
         if (length <= 0 || getMaxAsyncWriteQueueSize() <= 0) {
             return true;
         }
-        
+
         final Connection c = ctx.getConnection();
         return asyncWriter.canWrite(c, length + getBufferedDataSize());
     }
@@ -707,11 +734,11 @@ public class OutputBuffer {
                                                   + " bytes.  Max allowable write is "
                                                   + maxBytes + '.');
         }
-        
+
         final Connection c = ctx.getConnection();
-        
+
         final int totalLength = length + getBufferedDataSize();
-        
+
         if (canWrite(totalLength)) {
             final Reentrant reentrant = asyncWriter.getWriteReentrant();
             if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
@@ -719,10 +746,10 @@ public class OutputBuffer {
             } else {
                 notifyWritePossibleAsync(c);
             }
-            
+
             return;
         }
-        
+
         final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
 
         asyncWriteQueueHandler = new WriteHandler() {
@@ -770,7 +797,7 @@ public class OutputBuffer {
     private void notifyWritePossible() {
         final Reentrant reentrant = asyncWriter.getWriteReentrant();
         final WriteHandler localHandler = handler;
-        
+
         if (localHandler != null) {
             try {
                 this.handler = null;
@@ -794,9 +821,8 @@ public class OutputBuffer {
         }
     }
 
-    
-    private boolean writeContentChunk(final boolean areHeadersCommitted,
-                                      final boolean isLast) throws IOException {
+
+    private boolean writeContentChunk(final boolean isLast) throws IOException {
         if (!response.isChunkingAllowed()
                 && response.getContentLength() == -1) {
             if (!isLast) {
@@ -825,14 +851,14 @@ public class OutputBuffer {
 
             return true;
         }
-        
+
         return false;
     }
 
     private void writeContentBuffer0(final Buffer bufferToFlush,
             final boolean isLast, final MessageCloner<Buffer> messageCloner)
             throws IOException {
-        
+
         final HttpContent.Builder builder = response.httpContentBuilder();
 
         builder.content(bufferToFlush).last(isLast);
@@ -867,14 +893,14 @@ public class OutputBuffer {
             if (encoding == null) {
                 encoding = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARACTER_ENCODING;
             }
-            
+
             encoder = encoders.get(encoding);
             if (encoder == null) {
                 final Charset cs = Charsets.lookupCharset(encoding);
                 encoder = cs.newEncoder();
                 encoder.onMalformedInput(CodingErrorAction.REPLACE);
                 encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-                
+
                 encoders.put(encoding, encoder);
             } else {
                 encoder.reset();
@@ -885,7 +911,7 @@ public class OutputBuffer {
 
     }
 
-    
+
     private boolean doCommit() throws IOException {
 
         if (!committed) {
@@ -933,14 +959,14 @@ public class OutputBuffer {
                                      true);
 
         currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-        
+
         while (res == CoderResult.OVERFLOW) {
             finishCurrentBuffer();
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
             bufferPos = currentBuffer.position();
             byteBufferPos = currentByteBuffer.position();
-            
+
             res = enc.encode(charBuf, currentByteBuffer, true);
 
             currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
@@ -949,10 +975,36 @@ public class OutputBuffer {
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
         }
-        
+
         if (compositeBuffer != null) {
-            writeContentChunk(!doCommit(), false);
-        }        
+            writeContentChunk(false);
+        }
+    }
+
+    private void copyStringCharsToInternalBuffer(final String string,
+                                                 final int offset,
+                                                 final int len) {
+        if (stringCopyBuffer == null || len > stringCopyBuffer.length) {
+            stringCopyBuffer = new char[getCopyBufferAllocationLength(len)];
+        }
+        string.getChars(offset, offset + len, stringCopyBuffer, 0);
+    }
+
+
+    private static int getCopyBufferAllocationLength(final int minimumLength) {
+        if (minimumLength >= MAX_COPY_BUFFER_SIZE) {
+            return MAX_COPY_BUFFER_SIZE;
+        }
+
+        int returnLen = MAX_COPY_BUFFER_SIZE;
+        for (int i = 5; i > 0; i--) {
+            final int computedLen = MAX_COPY_BUFFER_SIZE >> i;
+            if (minimumLength <= computedLen) {
+                returnLen = computedLen;
+                break;
+            }
+        }
+        return returnLen;
     }
 
     private void notifyCommit() throws IOException {
