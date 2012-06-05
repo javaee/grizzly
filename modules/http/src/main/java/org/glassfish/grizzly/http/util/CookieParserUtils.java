@@ -296,7 +296,6 @@ public class CookieParserUtils {
 
             } else { // Normal Cookie
                 cookie = cookies.getNextUnusedCookie();
-                cookie.setLazy(true);
                 lazyCookie = cookie.getLazyCookieState();
 
                 cookie.setVersion(version);
@@ -531,7 +530,6 @@ public class CookieParserUtils {
                 }
 
                 cookie = cookies.getNextUnusedCookie();
-                cookie.setLazy(false);
                 cookie.setName(name);
                 cookie.setValue(value);
                 cookie.setVersion(version);
@@ -773,7 +771,6 @@ public class CookieParserUtils {
 
             // Normal Cookie
             cookie = cookies.getNextUnusedCookie();
-            cookie.setLazy(true);
             lazyCookie = cookie.getLazyCookieState();
 
             lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
@@ -1033,7 +1030,6 @@ public class CookieParserUtils {
             }
 
             cookie = cookies.getNextUnusedCookie();
-            cookie.setLazy(false);
             cookie.setName(name);
             cookie.setValue(value);
         }

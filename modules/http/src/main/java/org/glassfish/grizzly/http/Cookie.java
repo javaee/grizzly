@@ -120,15 +120,11 @@ public class Cookie implements Cloneable, Cacheable {
     protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
-    protected LazyCookieState lazyCookieState = new LazyCookieState();
-    protected boolean usingLazyCookieState = false;
+    protected LazyCookieState lazyCookieState;
+    protected boolean usingLazyCookieState;
 
-    /**
-     * This constructor should only be used when a cookie will be initialized
-     * lazily using {@link LazyCookieState}.
-     */
+
     protected Cookie() {
-        usingLazyCookieState = true;
     }
 
     /**
@@ -136,13 +132,10 @@ public class Cookie implements Cloneable, Cacheable {
      *
      * <p>The name must conform to RFC 2109. That means it can contain 
      * only ASCII alphanumeric characters and cannot contain commas, 
-     * semicolons, or white space or begin with a $ character. The cookie's
-     * name cannot be changed after creation.
+     * semicolons, or white space or begin with a $ character.
      *
      * <p>The value can be anything the server chooses to send. Its
-     * value is probably of interest only to the server. The cookie's
-     * value can be changed after creation with the
-     * <code>setValue</code> method.
+     * value is probably of interest only to the server.
      *
      * <p>By default, cookies are created according to the Netscape
      * cookie specification. The version can be changed with the 
@@ -597,11 +590,11 @@ public class Cookie implements Cloneable, Cacheable {
     }
 
     public LazyCookieState getLazyCookieState() {
+        usingLazyCookieState = true;
+        if (lazyCookieState == null) {
+            lazyCookieState = new LazyCookieState();
+        }
         return lazyCookieState;
-    }
-
-    public void setLazy(boolean lazy) {
-        usingLazyCookieState = lazy;
     }
 
     // -------------------- Cookie parsing tools
