@@ -138,7 +138,7 @@ public class CookiesTest extends TestCase {
             String cookieString = testCase.getFirst();
             
             final List<Cookie> cookies =
-                    CookiesBuilder.client().parse(cookieString).build();
+                    CookiesBuilder.client().parse(cookieString).build().get();
 
             final Checker[] checkers = testCase.getSecond();
 
@@ -152,7 +152,7 @@ public class CookiesTest extends TestCase {
 
             for (Cookie cookie : cookies) {
                 final String serializedString = cookie.asClientCookieString();
-                List<Cookie> parsedCookies = CookiesBuilder.client().parse(serializedString).build();
+                List<Cookie> parsedCookies = CookiesBuilder.client().parse(serializedString).build().get();
                 assertEquals(testCase.toString(), 1, parsedCookies.size());
                 
                 Cookie parsedCookie = parsedCookies.get(0);
@@ -160,7 +160,7 @@ public class CookiesTest extends TestCase {
                 assertTrue(testCase.toString(), equalsCookies(cookie, parsedCookie));
 
                 Buffer serializedBuffer = cookie.asClientCookieBuffer();
-                parsedCookies = CookiesBuilder.client().parse(serializedBuffer).build();
+                parsedCookies = CookiesBuilder.client().parse(serializedBuffer).build().get();
                 assertEquals(1, parsedCookies.size());
 
                 parsedCookie = parsedCookies.get(0);
@@ -176,7 +176,7 @@ public class CookiesTest extends TestCase {
             String cookieString = testCase.getFirst();
 
             final List<Cookie> cookies =
-                    CookiesBuilder.server().parse(cookieString).build();
+                    CookiesBuilder.server().parse(cookieString).build().get();
 
             final Checker[] checkers = testCase.getSecond();
 
@@ -190,7 +190,7 @@ public class CookiesTest extends TestCase {
 
             for (Cookie cookie : cookies) {
                 final String serializedString = cookie.asServerCookieString();
-                List<Cookie> parsedCookies = CookiesBuilder.server().parse(serializedString).build();
+                List<Cookie> parsedCookies = CookiesBuilder.server().parse(serializedString).build().get();
                 assertEquals(testCase.toString(), 1, parsedCookies.size());
 
                 Cookie parsedCookie = parsedCookies.get(0);
@@ -198,7 +198,7 @@ public class CookiesTest extends TestCase {
                 assertTrue(equalsCookies(cookie, parsedCookie));
 
                 Buffer serializedBuffer = cookie.asServerCookieBuffer();
-                parsedCookies = CookiesBuilder.server().parse(serializedBuffer).build();
+                parsedCookies = CookiesBuilder.server().parse(serializedBuffer).build().get();
                 assertEquals(testCase.toString(), 1, parsedCookies.size());
 
                 parsedCookie = parsedCookies.get(0);

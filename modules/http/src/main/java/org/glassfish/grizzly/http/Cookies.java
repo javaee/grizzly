@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.BufferChunk;
@@ -84,11 +86,13 @@ public final class Cookies {
     // expected average number of cookies per request
     private static final int INITIAL_SIZE = 4;
 
-    private final Collection<Cookie> cookies =
+    private final List<Cookie> cookies =
             new ArrayList<Cookie>(INITIAL_SIZE);
     
     private boolean isProcessed;
     private MimeHeaders headers;
+
+    private int nextUnusedCookieIndex = 0;
 
     /*
     List of Separator Characters (see isSeparator())
@@ -116,24 +120,40 @@ public final class Cookies {
         return headers != null;
     }
 
-    public Collection<Cookie> get() {
+    public List<Cookie> get() {
         if (!isProcessed) {
             isProcessed = true;
             processCookies();
         }
 
-        return cookies;
+        return Collections.unmodifiableList(cookies);
     }
 
     public void setHeaders(MimeHeaders headers) {
         this.headers = headers;
+    }
+
+    public Cookie getNextUnusedCookie() {
+        if (nextUnusedCookieIndex < cookies.size()) {
+            return cookies.get(nextUnusedCookieIndex++);
+        } else {
+            Cookie cookie = new Cookie();
+            cookies.add(cookie);
+            nextUnusedCookieIndex++;
+            return cookie;
+        }
     }
     
     /**
      * Recycle.
      */
     public void recycle() {
-        cookies.clear();
+        if (!cookies.isEmpty()) {
+            for (Cookie cookie : cookies) {
+                cookie.recycle();
+            }
+        }
+        nextUnusedCookieIndex = 0;
         headers = null;
         isProcessed = false;
     }
@@ -167,7 +187,7 @@ public final class Cookies {
                 }
 
                 final BufferChunk bufferChunk = cookieValue.getBufferChunk();
-                CookieParserUtils.parseClientCookies(cookies, bufferChunk.getBuffer(),
+                CookieParserUtils.parseClientCookies(this, bufferChunk.getBuffer(),
                         bufferChunk.getStart(),
                         bufferChunk.getLength());
             } else {

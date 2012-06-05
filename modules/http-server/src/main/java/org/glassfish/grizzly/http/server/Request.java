@@ -2263,8 +2263,8 @@ public class Request {
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
-            final Cookie cookie = Cookie.create(Globals.SESSION_COOKIE_NAME,
-                    session.getIdInternal());
+            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+                                             session.getIdInternal());
             configureSessionCookie(cookie);
             response.addCookie(cookie);
 
