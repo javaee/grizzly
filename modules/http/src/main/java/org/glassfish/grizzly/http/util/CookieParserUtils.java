@@ -58,8 +58,8 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.http.LazyCookie;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.LazyCookieState;
 
@@ -67,12 +67,14 @@ import java.text.ParseException;
 import java.util.Date;
 import org.glassfish.grizzly.Grizzly;
 import java.util.logging.Logger;
-import java.util.Collection;
 import org.glassfish.grizzly.Buffer;
 import static org.glassfish.grizzly.http.util.CookieUtils.*;
 
 /**
  * The set of Cookie utility methods for cookie parsing.
+ *
+ * There is duplication of logic within which we know to be frowned upon, however
+ * it is done with performance in mind.
  *
  * @author Grizzly team
  */
@@ -86,7 +88,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len) {
         parseClientCookies(cookies, buffer, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
     }
@@ -97,7 +99,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
@@ -112,7 +114,7 @@ public class CookieParserUtils {
         int valueEnd;
         int version = 0;
 
-        LazyCookie cookie = null;
+        Cookie cookie = null;
         LazyCookieState lazyCookie = null;
 
         boolean isSpecial;
@@ -247,6 +249,7 @@ public class CookieParserUtils {
             // All checks passed. Add the cookie, start with the
             // special avpairs first
             if (isSpecial) {
+                isSpecial = false;
                 // $Version must be the first avpair in the cookie header
                 // (sc must be null)
                 if (CookieUtils.equals("Version", buffer, nameStart, nameEnd)
@@ -292,8 +295,9 @@ public class CookieParserUtils {
                 LOGGER.fine("Unknown Special Cookie");
 
             } else { // Normal Cookie
-                cookie = LazyCookie.create();
-                lazyCookie = cookie.lazy();
+                cookie = cookies.getNextUnusedCookie();
+                cookie.setLazy(true);
+                lazyCookie = cookie.getLazyCookieState();
 
                 cookie.setVersion(version);
                 lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
@@ -308,9 +312,6 @@ public class CookieParserUtils {
                     // Name Only
                     lazyCookie.getValue().setString("");
                 }
-
-                cookies.add(cookie);
-
             }
         }
     }
@@ -321,7 +322,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             String cookiesStr, boolean versionOneStrictCompliance) {
 
         if (cookiesStr == null) {
@@ -469,6 +470,7 @@ public class CookieParserUtils {
             // All checks passed. Add the cookie, start with the
             // special avpairs first
             if (isSpecial) {
+                isSpecial = false;
                 // $Version must be the first avpair in the cookie header
                 // (sc must be null)
                 if (CookieUtils.equals("Version", cookiesStr, nameStart, nameEnd)
@@ -528,10 +530,11 @@ public class CookieParserUtils {
                     value = "";
                 }
 
-                cookie = Cookie.create(name, value);
+                cookie = cookies.getNextUnusedCookie();
+                cookie.setLazy(false);
+                cookie.setName(name);
+                cookie.setValue(value);
                 cookie.setVersion(version);
-
-                cookies.add(cookie);
 
             }
         }
@@ -539,7 +542,7 @@ public class CookieParserUtils {
 
 
 
-    public static void parseServerCookies(Collection<Cookie> cookies,
+    public static void parseServerCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
@@ -553,7 +556,7 @@ public class CookieParserUtils {
         int valueStart;
         int valueEnd;
 
-        LazyCookie cookie = null;
+        Cookie cookie = null;
         LazyCookieState lazyCookie = null;
 
         boolean isQuoted;
@@ -769,8 +772,9 @@ public class CookieParserUtils {
             }
 
             // Normal Cookie
-            cookie = LazyCookie.create();
-            lazyCookie = cookie.lazy();
+            cookie = cookies.getNextUnusedCookie();
+            cookie.setLazy(true);
+            lazyCookie = cookie.getLazyCookieState();
 
             lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
 
@@ -784,12 +788,10 @@ public class CookieParserUtils {
                 // Name Only
                 lazyCookie.getValue().setString("");
             }
-
-            cookies.add(cookie);
         }
     }
 
-    public static void parseServerCookies(Collection<Cookie> cookies,
+    public static void parseServerCookies(Cookies cookies,
             String cookiesStr, boolean versionOneStrictCompliance) {
 
         if (cookiesStr == null) {
@@ -1030,9 +1032,10 @@ public class CookieParserUtils {
                 value = "";
             }
 
-            cookie = Cookie.create(name, value);
-
-            cookies.add(cookie);
+            cookie = cookies.getNextUnusedCookie();
+            cookie.setLazy(false);
+            cookie.setName(name);
+            cookie.setValue(value);
         }
     }
 

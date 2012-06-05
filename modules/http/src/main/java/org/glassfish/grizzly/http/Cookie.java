@@ -60,7 +60,6 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -101,9 +100,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 public class Cookie implements Cloneable, Cacheable {
 
-    private static final ThreadCache.CachedTypeIndex<Cookie> CACHE_IDX =
-                ThreadCache.obtainIndex(Cookie.class, 16);
-
     //
     // The value of the cookie itself.
     //
@@ -124,9 +120,15 @@ public class Cookie implements Cloneable, Cacheable {
     protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
-    protected boolean putToCache = true;
-    
+    protected LazyCookieState lazyCookieState = new LazyCookieState();
+    protected boolean usingLazyCookieState = false;
+
+    /**
+     * This constructor should only be used when a cookie will be initialized
+     * lazily using {@link LazyCookieState}.
+     */
     protected Cookie() {
+        usingLazyCookieState = true;
     }
 
     /**
@@ -159,23 +161,13 @@ public class Cookie implements Cloneable, Cacheable {
      * @see #setVersion
      *
      */
-    protected Cookie(final String name, final String value) {
+    public Cookie(final String name, final String value) {
         checkName(name);
 
         this.name = name;
         this.value = value;
     }
 
-    public static Cookie create(final String name, final String value) {
-        Cookie cookie = ThreadCache.takeFromCache(CACHE_IDX);
-        if (cookie != null) {
-            cookie.name = name;
-            cookie.value = value;
-        } else {
-            cookie = new Cookie(name, value);
-        }
-        return cookie;
-    }
 
     /**
      * Validate the cookie name
@@ -231,7 +223,8 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getComment() {
-	return comment;
+        checkInitialized();
+	    return comment;
     }
     
     
@@ -279,7 +272,8 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getDomain() {
-	return domain;
+        checkInitialized();
+	    return domain;
     }
 
 
@@ -331,7 +325,8 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public int getMaxAge() {
-	return maxAge;
+        checkInitialized();
+	    return maxAge;
     }
     
     
@@ -379,7 +374,8 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getPath() {
-	return path;
+        checkInitialized();
+	    return path;
     }
 
 
@@ -420,7 +416,8 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public boolean isSecure() {
-	return secure;
+        checkInitialized();
+	    return secure;
     }
 
 
@@ -436,11 +433,14 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public String getName() {
-	return name;
+        checkInitialized();
+	    return name;
     }
 
 
-
+    public void setName(String name) {
+        this.name = name;
+    }
 
 
     /**
@@ -481,7 +481,8 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public String getValue() {
-	return value;
+        checkInitialized();
+	    return value;
     }
 
 
@@ -504,7 +505,8 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public int getVersion() {
-	return version;
+        checkInitialized();
+	    return version;
     }
 
 
@@ -594,6 +596,14 @@ public class Cookie implements Cloneable, Cacheable {
         return buffer;
     }
 
+    public LazyCookieState getLazyCookieState() {
+        return lazyCookieState;
+    }
+
+    public void setLazy(boolean lazy) {
+        usingLazyCookieState = lazy;
+    }
+
     // -------------------- Cookie parsing tools
     /**
      * Return the header name to set the cookie, based on cookie version.
@@ -627,25 +637,72 @@ public class Cookie implements Cloneable, Cacheable {
         return this.name.equals(name);
     }
 
+    protected final void checkInitialized() {
+        if (usingLazyCookieState) {
+            initialize();
+        }
+    }
+
+    protected void initialize() {
+        final String strName = lazyCookieState.getName().toString();
+        checkName(strName);
+
+        name = strName;
+
+        value = unescape(lazyCookieState.getValue().toString());
+        path = unescape(lazyCookieState.getPath().toString());
+
+        final String domainStr = lazyCookieState.getDomain().toString();
+        if (domainStr != null) {
+            domain = unescape(domainStr); //avoid NPE
+        }
+
+        final String commentStr = lazyCookieState.getComment().toString();
+        comment = (version == 1) ? unescape(commentStr) : null;
+    }
+
     // Note -- disabled for now to allow full Netscape compatibility
     // from RFC 2068, token special case characters
     // 
     // private static final String tspecials = "()<>@,;:\\\"/[]?={} \t";
 
     private static final String tspecials = ",; ";
-    
-    
-    
+
+
+    protected String unescape(String s) {
+        if (s == null) {
+            return null;
+        }
+        if (s.indexOf('\\') == -1) {
+            return s;
+        }
+
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c != '\\') {
+                buf.append(c);
+            } else {
+                if (++i >= s.length()) {
+                    //invalid escape, hence invalid cookie
+                    throw new IllegalArgumentException();
+                }
+                c = s.charAt(i);
+                buf.append(c);
+            }
+        }
+        return buf.toString();
+    }
 
     /*
-     * Tests a string and returns true if the string counts as a 
+     * Tests a string and returns true if the string counts as a
      * reserved token in the Java language.
-     * 
+     *
      * @param value		the <code>String</code> to be tested
      *
      * @return			<tt>true</tt> if the <code>String</code> is
      *				a reserved token; <tt>false</tt>
-     *				if it is not			
+     *				if it is not
      */
 
     private static boolean isToken(String value) {
@@ -662,9 +719,9 @@ public class Cookie implements Cloneable, Cacheable {
 
     /**
      *
-     * Overrides the standard <code>java.lang.Object.clone</code> 
+     * Overrides the standard <code>java.lang.Object.clone</code>
      * method to return a copy of this cookie.
-     *		
+     *
      *
      */
 
@@ -675,6 +732,8 @@ public class Cookie implements Cloneable, Cacheable {
 	    throw new RuntimeException(e.getMessage());
 	}
     }
+
+
 
     @Override
     public void recycle() {
@@ -687,8 +746,9 @@ public class Cookie implements Cloneable, Cacheable {
         secure = false;
         version = 0;
         isHttpOnly = false;
-        if (putToCache) {
-            ThreadCache.putToCache(CACHE_IDX, this);
+        if (usingLazyCookieState) {
+            usingLazyCookieState = false;
+            lazyCookieState.recycle();
         }
     }
 }
