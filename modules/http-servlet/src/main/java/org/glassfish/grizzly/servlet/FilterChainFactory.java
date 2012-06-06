@@ -166,7 +166,7 @@ public class FilterChainFactory {
         // Add filters that match on servlet name second
         String servletName = servlet.getServletConfig().getServletName();
         for (final FilterRegistration registration : registrations) {
-            for (final Map.Entry<String[], Byte> entry : registration.urlPatterns.entrySet()) {
+            for (final Map.Entry<String[], Byte> entry : registration.servletNames.entrySet()) {
                 if (!registration.isDispatcherSet(entry.getValue(), dispatcherType)) {
                     continue;
                 }

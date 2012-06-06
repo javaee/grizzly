@@ -336,6 +336,51 @@ public class HttpServerTest extends HttpServerAbstractTest {
         assertTrue(destroy[0]);
     }
 
+    public void testFilterLifecycleByServletName() throws IOException {
+
+        final int port = PORT + 8;
+        httpServer = HttpServer.createSimpleServer(".", port);
+        final boolean init[] = new boolean[]{false};
+        final boolean filter[] = new boolean[]{false};
+        final boolean destroy[] = new boolean[]{false};
+        WebappContext ctx = new WebappContext("Test");
+
+        addServlet(ctx, "/test");
+
+        FilterRegistration reg = ctx.addFilter("filter", new Filter() {
+            @Override
+            public void init(final FilterConfig filterConfig) {
+                assertEquals("filter", filterConfig.getFilterName());
+                init[0] = true;
+            }
+
+            @Override
+            public void doFilter(
+                    final ServletRequest request, final ServletResponse response,
+                    final FilterChain chain) throws IOException, ServletException {
+                filter[0] = true;
+                chain.doFilter(request, response);
+            }
+
+            @Override
+            public void destroy() {
+                destroy[0] = true;
+            }
+        });
+        reg.addMappingForServletNames(null, "/test");
+        ctx.deploy(httpServer);
+
+        httpServer.start();
+        HttpURLConnection conn =
+                (HttpURLConnection) new URL("http", "localhost", port, "/test").openConnection();
+        assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+        ctx.undeploy();
+        httpServer.stop();
+        assertTrue(init[0]);
+        assertTrue(filter[0]);
+        assertTrue(destroy[0]);
+    }
+
     /**
      * Test for https://grizzly.dev.java.net/issues/show_bug.cgi?id=513
      *
