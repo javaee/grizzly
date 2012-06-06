@@ -332,7 +332,7 @@ public class ThreadPoolConfig {
                 + "  poolName: " + poolName + "\r\n"
                 + "  corePoolSize: " + corePoolSize + "\r\n"
                 + "  maxPoolSize: " + maxPoolSize + "\r\n"
-                + "  queue: " + queue.getClass() + "\r\n"
+                + "  queue: " + (queue != null ? queue.getClass() : "undefined") + "\r\n"
                 + "  queueLimit: " + queueLimit + "\r\n"
                 + "  keepAliveTime (millis): " + keepAliveTimeMillis + "\r\n"
                 + "  threadFactory: " + threadFactory + "\r\n"
