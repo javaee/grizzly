@@ -160,7 +160,7 @@ public class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createImmutable(
+        asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
                 new TCPNIOAsyncQueueReader(this), new TCPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
@@ -469,6 +469,7 @@ public class TCPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            //noinspection SuspiciousMethodCalls
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final GrizzlyFuture future = connection.close();
@@ -888,13 +889,7 @@ public class TCPNIOTransport extends NIOTransport implements
         } else {
             if (buffer.hasRemaining()) {
                 try {
-                    if (buffer.isComposite()) {
-                        read = TCPNIOUtils.readCompositeBuffer(tcpConnection,
-                                (CompositeBuffer) buffer);
-                    } else {
-                        read = TCPNIOUtils.readSimpleBuffer(tcpConnection, buffer);
-                    }
-
+                    read = TCPNIOUtils.readBuffer(tcpConnection, buffer);
                 } catch (Exception e) {
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.log(Level.FINE, "TCPNIOConnection (" + connection + ") (existing) read exception", e);

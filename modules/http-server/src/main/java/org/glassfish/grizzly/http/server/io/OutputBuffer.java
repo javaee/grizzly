@@ -57,8 +57,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -84,6 +92,8 @@ public class OutputBuffer {
     
     private static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
+    private static final int MAX_COPY_BUFFER_SIZE = 1024 * 8;
+
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
     
     /**
@@ -108,6 +118,15 @@ public class OutputBuffer {
     // The cloner, which will be responsible for cloning temporaryWriteBuffer,
     // if it's not possible to write its content in this thread
     private final ByteArrayCloner cloner = new ByteArrayCloner();
+
+    /**
+     * This char[] array will be used when a user calls {@link #write(String)}  or
+     * {@link #write(String, int, int)}.  In these two cases, {@link String#getChars(int, int, char[], int)}
+     * will be used to copy the characters from the String into this array which
+     * will then be wrapped and passed for encoding.  This is done as the copy+wrap
+     * is cheaper than just wrapping the String.
+     */
+    private char[] stringCopyBuffer;
     
     private final List<LifeCycleListener> lifeCycleListeners =
             new ArrayList<LifeCycleListener>(2);
@@ -368,7 +387,22 @@ public class OutputBuffer {
             return;
         }
 
-        flushCharsToBuf(CharBuffer.wrap(str, off, len + off));
+        int offLocal = off;
+        int lenLocal = len;
+
+        while (lenLocal > 0) {
+            if (lenLocal > MAX_COPY_BUFFER_SIZE) {
+                copyStringCharsToInternalBuffer(str, offLocal, MAX_COPY_BUFFER_SIZE);
+                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, MAX_COPY_BUFFER_SIZE));
+                offLocal += MAX_COPY_BUFFER_SIZE;
+                lenLocal -= MAX_COPY_BUFFER_SIZE;
+            } else {
+                copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
+                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
+                offLocal += lenLocal;
+                lenLocal -= lenLocal;
+            }
+        }
     }
 
 
@@ -415,7 +449,7 @@ public class OutputBuffer {
      * 
      * @since 2.2   
      */
-    public void sendfile(final File file, final CompletionHandler<WriteResult> handler) throws IOException {
+    public void sendfile(final File file, final CompletionHandler<WriteResult> handler) {
         if (file == null) {
             throw new IllegalArgumentException("Argument 'file' cannot be null");
         }
@@ -459,8 +493,7 @@ public class OutputBuffer {
     public void sendfile(final File file, 
                          final long offset, 
                          final long length, 
-                         final CompletionHandler<WriteResult> handler) 
-    throws IOException {
+                         final CompletionHandler<WriteResult> handler) {
         if (!sendfileEnabled) {
             throw new IllegalStateException("sendfile support isn't available.");
         }
@@ -494,7 +527,23 @@ public class OutputBuffer {
         // set Content-Encoding to identity to prevent compression
         response.setHeader(Header.ContentEncoding, "identity");
 
-        flush(); // commit the headers, then send the file
+        try {
+            flush(); // commit the headers, then send the file
+        } catch (IOException e) {
+            if (handler != null) {
+                handler.failed(e);
+            } else {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE,
+                            String.format("Failed to transfer file %s.  Cause: %s.",
+                                    file.getAbsolutePath(),
+                                    e.getMessage()),
+                            e);
+                }
+            }
+            
+            return;
+        }
 
         // check the suspend status at the time this method was invoked
         // and take action based on this value
@@ -511,6 +560,7 @@ public class OutputBuffer {
             // appropriate action depending on the current suspend status
             ch = createInternalCompletionHandler(file, suspendedAtStart);
         }
+        
         ctx.write(f, ch);
     }
 
@@ -526,7 +576,7 @@ public class OutputBuffer {
                 (currentBuffer == null || currentBuffer.remaining() >= len)) {
             checkCurrentBuffer();
 
-            //noinspection ConstantConditions
+            assert currentBuffer != null;
             currentBuffer.put(b, off, len);
         } else {  // If b[] is too big - try to send it to wire right away.
             
@@ -682,7 +732,9 @@ public class OutputBuffer {
         return false;
     }
 
-
+    /**
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
+     */
     public boolean canWrite(final int length) {
         if (length <= 0 || getMaxAsyncWriteQueueSize() < 0 ||
                 (length + getBufferedDataSize()) <= guaranteedNonBlockingUnits) {
@@ -883,11 +935,11 @@ public class OutputBuffer {
 
         builder.content(bufferToFlush).last(isLast);
         ctx.write(null,
-                  builder.build(),
-                  onAsyncErrorCompletionHandler,
-                  null,
-                  messageCloner,
-                  IS_BLOCKING);
+                builder.build(),
+                onAsyncErrorCompletionHandler,
+                null,
+                messageCloner,
+                IS_BLOCKING);
     }
 
     private void checkCurrentBuffer() {
@@ -1026,6 +1078,32 @@ public class OutputBuffer {
     private void resetHandler() {
         this.handler = null;
         this.handlerRequestedSize = 0;
+    }
+
+    private void copyStringCharsToInternalBuffer(final String string,
+                                                 final int offset,
+                                                 final int len) {
+        if (stringCopyBuffer == null || len > stringCopyBuffer.length) {
+            stringCopyBuffer = new char[getCopyBufferAllocationLength(len)];
+        }
+        string.getChars(offset, offset + len, stringCopyBuffer, 0);
+    }
+
+
+    private static int getCopyBufferAllocationLength(final int minimumLength) {
+        if (minimumLength >= MAX_COPY_BUFFER_SIZE) {
+            return MAX_COPY_BUFFER_SIZE;
+        }
+
+        int returnLen = MAX_COPY_BUFFER_SIZE;
+        for (int i = 5; i > 0; i--) {
+            final int computedLen = MAX_COPY_BUFFER_SIZE >> i;
+            if (minimumLength <= computedLen) {
+                returnLen = computedLen;
+                break;
+            }
+        }
+        return returnLen;
     }
     
     private CompletionHandler<WriteResult> createInternalCompletionHandler(
@@ -1198,7 +1276,7 @@ public class OutputBuffer {
                     try {
                         resetHandler();
                         localHandler.onError(t);
-                    } catch (Exception e) {
+                    } catch (Exception ignored) {
                     }
                 }
             }

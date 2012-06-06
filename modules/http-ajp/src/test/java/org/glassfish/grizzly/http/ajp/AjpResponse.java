@@ -38,31 +38,65 @@
  * holder.
  */
 
-package org.glassfish.grizzly.comet;
+package org.glassfish.grizzly.http.ajp;
 
-import java.io.IOException;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
 
-public class CometHttpHandler extends HttpHandler {
-    final boolean resume;
-    DefaultTestCometHandler cometHandler;
-    CometContext<String> cometContext;
-
-    public CometHttpHandler(CometContext<String> cometContext, boolean resume) {
-        this.cometContext = cometContext;
-        this.resume = resume;
+public class AjpResponse {
+    private byte type;
+    private byte[] body;
+    private int responseCode;
+    private String responseMessage;
+    private MimeHeaders headers;
+    private int packetLength;
+    
+    public byte getType() {
+        return type;
     }
 
-    @Override
-    public void service(Request request, Response response) throws IOException {
-        cometHandler = createHandler(response);
-        cometContext.addCometHandler(cometHandler);
+    public void setType(byte type) {
+        this.type = type;
     }
 
-    public DefaultTestCometHandler createHandler(Response response) {
-        return new DefaultTestCometHandler(cometContext, response, resume);
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+
+    public void setResponseMessage(String responseMessage) {
+        this.responseMessage = responseMessage;
+    }
+
+
+    public void setHeaders(MimeHeaders headers) {
+        this.headers = headers;
+    }
+
+    public MimeHeaders getHeaders() {
+        return headers;
+    }
+
+    public int getPacketLength() {
+        return packetLength;
+    }
+
+    public void setPacketLength(int packetLength) {
+        this.packetLength = packetLength;
     }
 }

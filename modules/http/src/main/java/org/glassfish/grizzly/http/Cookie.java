@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -98,7 +98,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 // so long as sun.servlet.* must run on older JDK 1.02 JVMs which
 // don't include that support.
 
-public class Cookie implements Cloneable {
+public class Cookie implements Cloneable, Cacheable {
 
     //
     // The value of the cookie itself.
@@ -120,7 +120,10 @@ public class Cookie implements Cloneable {
     protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
-    
+    protected LazyCookieState lazyCookieState;
+    protected boolean usingLazyCookieState;
+
+
     protected Cookie() {
     }
 
@@ -129,13 +132,10 @@ public class Cookie implements Cloneable {
      *
      * <p>The name must conform to RFC 2109. That means it can contain 
      * only ASCII alphanumeric characters and cannot contain commas, 
-     * semicolons, or white space or begin with a $ character. The cookie's
-     * name cannot be changed after creation.
+     * semicolons, or white space or begin with a $ character.
      *
      * <p>The value can be anything the server chooses to send. Its
-     * value is probably of interest only to the server. The cookie's
-     * value can be changed after creation with the
-     * <code>setValue</code> method.
+     * value is probably of interest only to the server.
      *
      * <p>By default, cookies are created according to the Netscape
      * cookie specification. The version can be changed with the 
@@ -154,13 +154,13 @@ public class Cookie implements Cloneable {
      * @see #setVersion
      *
      */
-
     public Cookie(final String name, final String value) {
         checkName(name);
 
-	this.name = name;
-	this.value = value;
+        this.name = name;
+        this.value = value;
     }
+
 
     /**
      * Validate the cookie name
@@ -216,7 +216,8 @@ public class Cookie implements Cloneable {
      */ 
 
     public String getComment() {
-	return comment;
+        checkInitialized();
+	    return comment;
     }
     
     
@@ -264,7 +265,8 @@ public class Cookie implements Cloneable {
      */ 
 
     public String getDomain() {
-	return domain;
+        checkInitialized();
+	    return domain;
     }
 
 
@@ -316,7 +318,8 @@ public class Cookie implements Cloneable {
      */
 
     public int getMaxAge() {
-	return maxAge;
+        checkInitialized();
+	    return maxAge;
     }
     
     
@@ -364,7 +367,8 @@ public class Cookie implements Cloneable {
      */ 
 
     public String getPath() {
-	return path;
+        checkInitialized();
+	    return path;
     }
 
 
@@ -405,7 +409,8 @@ public class Cookie implements Cloneable {
      */
 
     public boolean isSecure() {
-	return secure;
+        checkInitialized();
+	    return secure;
     }
 
 
@@ -421,11 +426,14 @@ public class Cookie implements Cloneable {
      */
 
     public String getName() {
-	return name;
+        checkInitialized();
+	    return name;
     }
 
 
-
+    public void setName(String name) {
+        this.name = name;
+    }
 
 
     /**
@@ -466,7 +474,8 @@ public class Cookie implements Cloneable {
      */
 
     public String getValue() {
-	return value;
+        checkInitialized();
+	    return value;
     }
 
 
@@ -489,7 +498,8 @@ public class Cookie implements Cloneable {
      */
 
     public int getVersion() {
-	return version;
+        checkInitialized();
+	    return version;
     }
 
 
@@ -579,10 +589,19 @@ public class Cookie implements Cloneable {
         return buffer;
     }
 
+    public LazyCookieState getLazyCookieState() {
+        usingLazyCookieState = true;
+        if (lazyCookieState == null) {
+            lazyCookieState = new LazyCookieState();
+        }
+        return lazyCookieState;
+    }
+
     // -------------------- Cookie parsing tools
     /**
      * Return the header name to set the cookie, based on cookie version.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getCookieHeaderName() {
         return getCookieHeaderName(version);
     }
@@ -611,25 +630,72 @@ public class Cookie implements Cloneable {
         return this.name.equals(name);
     }
 
+    protected final void checkInitialized() {
+        if (usingLazyCookieState) {
+            initialize();
+        }
+    }
+
+    protected void initialize() {
+        final String strName = lazyCookieState.getName().toString();
+        checkName(strName);
+
+        name = strName;
+
+        value = unescape(lazyCookieState.getValue().toString());
+        path = unescape(lazyCookieState.getPath().toString());
+
+        final String domainStr = lazyCookieState.getDomain().toString();
+        if (domainStr != null) {
+            domain = unescape(domainStr); //avoid NPE
+        }
+
+        final String commentStr = lazyCookieState.getComment().toString();
+        comment = (version == 1) ? unescape(commentStr) : null;
+    }
+
     // Note -- disabled for now to allow full Netscape compatibility
     // from RFC 2068, token special case characters
     // 
     // private static final String tspecials = "()<>@,;:\\\"/[]?={} \t";
 
     private static final String tspecials = ",; ";
-    
-    
-    
+
+
+    protected String unescape(String s) {
+        if (s == null) {
+            return null;
+        }
+        if (s.indexOf('\\') == -1) {
+            return s;
+        }
+
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c != '\\') {
+                buf.append(c);
+            } else {
+                if (++i >= s.length()) {
+                    //invalid escape, hence invalid cookie
+                    throw new IllegalArgumentException();
+                }
+                c = s.charAt(i);
+                buf.append(c);
+            }
+        }
+        return buf.toString();
+    }
 
     /*
-     * Tests a string and returns true if the string counts as a 
+     * Tests a string and returns true if the string counts as a
      * reserved token in the Java language.
-     * 
+     *
      * @param value		the <code>String</code> to be tested
      *
      * @return			<tt>true</tt> if the <code>String</code> is
      *				a reserved token; <tt>false</tt>
-     *				if it is not			
+     *				if it is not
      */
 
     private static boolean isToken(String value) {
@@ -646,9 +712,9 @@ public class Cookie implements Cloneable {
 
     /**
      *
-     * Overrides the standard <code>java.lang.Object.clone</code> 
+     * Overrides the standard <code>java.lang.Object.clone</code>
      * method to return a copy of this cookie.
-     *		
+     *
      *
      */
 
@@ -658,6 +724,25 @@ public class Cookie implements Cloneable {
 	} catch (CloneNotSupportedException e) {
 	    throw new RuntimeException(e.getMessage());
 	}
+    }
+
+
+
+    @Override
+    public void recycle() {
+        name = null;
+        value = null;
+        comment = null;
+        domain = null;
+        maxAge = -1;
+        path = null;
+        secure = false;
+        version = 0;
+        isHttpOnly = false;
+        if (usingLazyCookieState) {
+            usingLazyCookieState = false;
+            lazyCookieState.recycle();
+        }
     }
 }
 

@@ -190,6 +190,12 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         assertFalse(tpc2.getInitialMonitoringConfig().getProbes().length == 0);
     }
     
+    public void testThreadPoolConfig() throws Exception {
+        ThreadPoolConfig defaultThreadPool = ThreadPoolConfig.newConfig();
+        assertNotNull(defaultThreadPool);
+        assertNotNull(defaultThreadPool.toString());
+    }
+    
     private void doTest(GrizzlyExecutorService r, int tasks) throws Exception{
         final CountDownLatch cl = new CountDownLatch(tasks);
         while(tasks-->0){

@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.comet;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Socket;
@@ -52,8 +54,7 @@ import java.util.logging.Logger;
 
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.*;
 
 /**
  * Basic Comet Test.
@@ -63,6 +64,8 @@ import org.glassfish.grizzly.http.server.NetworkListener;
  */
 public class BasicCometTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(BasicCometTest.class);
+    
+    private static final String TEST_TOPIC = "/test-topic";
 
     final static String onInitialize = "onInitialize";
     final static String onTerminate = "onTerminate";
@@ -82,11 +85,12 @@ public class BasicCometTest extends TestCase {
             listener.registerAddOn(new CometAddOn());
         }
         httpServer.start();
-        cometContext = CometEngine.getEngine().<String>register("GrizzlyAdapter");
+        cometContext = CometEngine.getEngine().<String>register(TEST_TOPIC);
     }
 
     @Override
     protected void tearDown() throws Exception {
+        CometEngine.getEngine().deregister(TEST_TOPIC);
         stopHttpServer();
         super.tearDown();
     }
@@ -150,6 +154,178 @@ public class BasicCometTest extends TestCase {
         assertTrue(cometHandler.onTerminateCalled.get());
     }
 
+    public void testHttpPipeline() throws Exception {
+        LOGGER.fine("testHttpPipeline");
+        cometContext.setExpirationDelay(10000);
+        cometContext.setDetectClosedConnections(false);
+        final String alias = "/testPipeline";
+        
+        addHttpHandler(alias, true);
+        
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                CometEngine.getEngine().getCometContext(TEST_TOPIC).notify("Ping");
+                response.setContentType("plain/text");
+                response.getWriter().write("Done");
+                response.getWriter().flush();
+            }
+        }, "/notify");
+
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.setContentType("plain/text");
+                response.getWriter().write("Static");
+                response.getWriter().flush();
+            }
+        }, "/static");
+
+        Socket s = new Socket("localhost", PORT);
+        s.setSoTimeout(10 * 1000);
+        OutputStream os = s.getOutputStream();
+        String cometRequest = "GET " + alias + " HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        String staticRequest = "GET /static HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        
+        
+        String lastCometRequest = "GET " + alias + " HTTP/1.1\n"+"Host: localhost:" + PORT + "\nConnection: close\n\n";
+        
+        
+        String pipelinedRequest1 = cometRequest + staticRequest + cometRequest;
+        String pipelinedRequest2 = cometRequest + staticRequest + lastCometRequest;
+        
+        String[] pipelineRequests = new String[] {pipelinedRequest1, pipelinedRequest2};
+        
+        try {
+            for (String piplineRequest : pipelineRequests) {
+                os.write(piplineRequest.getBytes());
+                os.flush();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                String line;
+
+                int numberOfPipelinedRequests = 3;
+
+                _outter:
+                for (int i = 0; i < numberOfPipelinedRequests; i++) {
+                    boolean expectStatus = true;
+
+                    if (i % 2 == 0) {
+                        // pause to give some time for comet request to reach the server
+                        Thread.sleep(1000);
+                        new URL("http://localhost:" + PORT + "/notify").getContent();
+                    }
+
+                    boolean expectEmpty = false;
+                    while (true) {
+                        line = reader.readLine();
+//                        System.out.println(line);
+
+                        if (expectEmpty) {
+                            assertEquals("", line);
+                            break;
+                        }
+
+                        if (expectStatus) {
+                            assertEquals("HTTP/1.1 200 OK", line);
+                            expectStatus = false;
+                        }
+
+                        if (line == null) {
+                            break _outter;
+                        } else if (line.equals("0")) {
+                            expectEmpty = true;
+                        }
+                    }
+                }
+            }
+        } finally {
+            s.close();
+        }
+    }
+    
+    public void testHttpPipeline2() throws Exception {
+        LOGGER.fine("testHttpPipeline2");
+        cometContext.setExpirationDelay(10000);
+        cometContext.setDetectClosedConnections(false);
+        final String alias = "/testPipeline2";
+        addHttpHandler(alias, true);
+        
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                CometEngine.getEngine().getCometContext(TEST_TOPIC).notify("Ping");
+                response.setContentType("plain/text");
+                response.getWriter().write("Done");
+                response.getWriter().flush();
+            }
+        }, "/notify");
+
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.setContentType("plain/text");
+                response.getWriter().write("Static");
+                response.getWriter().flush();
+            }
+        }, "/static");
+        
+        Socket s = new Socket("localhost", PORT);
+        s.setSoTimeout(10 * 1000);
+        OutputStream os = s.getOutputStream();
+        String cometRequest = "GET " + alias + " HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        String staticRequest = "GET /static HTTP/1.1\nHost: localhost:" + PORT + "\n\n";
+        
+        
+        try {
+            os.write(cometRequest.getBytes());
+            os.flush();
+            Thread.sleep(1000);
+            os.write(staticRequest.getBytes());
+            os.flush();
+            
+            new URL("http://localhost:" + PORT + "/notify").getContent();
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            String line;
+
+            int numberOfPipelinedRequests = 2;
+
+            _outter:
+            for (int i = 0; i < numberOfPipelinedRequests; i++) {
+                boolean expectStatus = true;
+
+                boolean expectEmpty = false;
+                while (true) {
+                    line = reader.readLine();
+                        // System.out.println(line);
+
+                    if (expectEmpty) {
+                        assertEquals("", line);
+                        break;
+                    }
+
+                    if (expectStatus) {
+                        assertEquals("HTTP/1.1 200 OK", line);
+                        expectStatus = false;
+                    }
+
+                    if (line == null) {
+                        break _outter;
+                    } else if (line.equals("0")) {
+                        expectEmpty = true;
+                    }
+                }
+            }
+        } finally {
+            s.close();
+        }
+    }
+    
     public void testOnEvent() throws Exception {
         LOGGER.fine("testOnEvent ");
         final String alias = "/OnEvent";

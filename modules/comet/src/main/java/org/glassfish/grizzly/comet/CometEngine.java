@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,6 +67,11 @@ import org.glassfish.grizzly.localization.LogMessages;
  * You can also select the stage where the suspension of the response happens when registering the {@link
  * CometContext}'s topic (see {@link #register}), which can be before, during or after invoking a <code>Servlet</code>
  *
+ * There is known limitation related to <tt>HTTP pipelining</tt>, it can't work
+ * properly when {@link CometContext#isDetectClosedConnections()} is enabled.
+ * So if you want to support <tt>HTTP pipelining</tt>, the closed connection
+ * detection mechanism should be disabled via {@link CometContext#setDetectClosedConnections(boolean)}.
+ * 
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
  */

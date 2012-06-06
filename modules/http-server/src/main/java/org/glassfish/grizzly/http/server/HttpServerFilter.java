@@ -52,6 +52,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -63,8 +64,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.http.*;
+
 import org.glassfish.grizzly.http.util.Header;
 
 import org.glassfish.grizzly.memory.Buffers;
@@ -74,8 +74,6 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class HttpServerFilter extends BaseFilter
         implements JmxMonitoringAware<HttpServerProbe> {
-
-    private static final Logger LOGGER = Grizzly.logger(HttpServerFilter.class);
 
     private final Attribute<Request> httpRequestInProcessAttr;
     final Attribute<Boolean> reregisterForReadAttr;
@@ -148,6 +146,7 @@ public class HttpServerFilter extends BaseFilter
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 final HttpResponsePacket response = request.getResponse();                
                 handlerRequest = Request.create();
+                handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
                 httpRequestInProcessAttr.set(connection, handlerRequest);
                 final Response handlerResponse = Response.create();
 

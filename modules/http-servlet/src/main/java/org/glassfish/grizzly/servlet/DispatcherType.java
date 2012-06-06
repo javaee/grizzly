@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,7 +45,7 @@ package org.glassfish.grizzly.servlet;
  * @since 2.2
  */
 @SuppressWarnings({"UnusedDeclaration"})
-enum DispatcherType {
+public enum DispatcherType {
     REQUEST((byte) (1)),
     FORWARD((byte) (1 << 1)),
     INCLUDE((byte) (1 << 2)),

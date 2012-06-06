@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,7 +52,7 @@ public class CountDownCometHandler extends DefaultTestCometHandler {
     public final CountDownLatch onTerminate;
 
     public CountDownCometHandler(CometContext<String> cometContext, Response response) {
-        super(cometContext, response);
+        super(cometContext, response, false);
         onEvent = new CountDownLatch(1);
         onInitialize = new CountDownLatch(1);
         onInterrupt = new CountDownLatch(1);

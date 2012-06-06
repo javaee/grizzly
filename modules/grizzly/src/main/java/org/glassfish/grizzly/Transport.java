@@ -61,6 +61,15 @@ import org.glassfish.grizzly.utils.StateHolder;
  * @author Alexey Stashok
  */
 public interface Transport extends JmxMonitoringAware<TransportProbe> {
+
+    /**
+     * The default read buffer size.  This value is used to determine
+     * how large of a buffer to allocate when performing a read from
+     * a socket.
+     *
+     * @since 2.2.8
+     */
+    static final int DEFAULT_READ_BUFFER_SIZE = 1024 * 64;
     
     enum State {STARTING, START, PAUSE, STOPPING, STOP}
 
@@ -199,6 +208,9 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * reading data from {@link Transport}'s {@link Connection}s.
      * For particular {@link Connection}, this setting could be overridden by
      * {@link Connection#setReadBufferSize(int)}.
+     *
+     * If not explicitly configured, this value will be set to
+     * {@link #DEFAULT_READ_BUFFER_SIZE}.
      *
      * @param readBufferSize the default size of {@link Buffer}s, which will
      * be allocated for reading data from {@link Transport}'s

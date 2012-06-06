@@ -42,6 +42,7 @@ package org.glassfish.grizzly.config.dom;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
+import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -66,7 +67,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean TIMEOUT_ENABLED = true;
     boolean TRACE_ENABLED = false;
     boolean UPLOAD_TIMEOUT_ENABLED = true;
-    boolean WEBSOCKET_SUPPORT_ENABLED = false;
+    boolean WEBSOCKET_SUPPORT_ENABLED = true;
     boolean XPOWERED_BY = true;
     int COMPRESSION_MIN_SIZE = 2048;
     int CONNECTION_UPLOAD_TIMEOUT = 300000;
@@ -78,6 +79,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
     int WEBSOCKETS_TIMEOUT = 15 * 60;
+    int MAX_REQUEST_PARAMETERS = ServerFilterConfiguration.MAX_REQUEST_PARAMETERS;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
     String COMPRESSION_PATTERN = "on|off|force|\\d+";
@@ -325,6 +327,27 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getJkEnabled();
 
     void setJkEnabled(String enabled);
+
+    /**
+     * Returns the maximum number of parameters allowed per request.  If the value less than zero,
+     * then there will be no limit on parameters.  If not explicitly configured,
+     * this returns {@value #MAX_REQUEST_PARAMETERS}.
+     *
+     * @return the maximum number of parameters or {@value #MAX_REQUEST_PARAMETERS}
+     *  if not explicitly configured.
+     *
+     * @since 2.2.8
+     */
+    @Attribute(defaultValue = "" + MAX_REQUEST_PARAMETERS, dataType = Integer.class)
+    String getMaxRequestParameters();
+
+    /**
+     * Sets the maximum number of parameters allowed for a request.  If the
+     * value is zero or less, then there will be no limit on parameters.
+     *
+     * @since 2.2.8
+     */
+    void setMaxRequestParameters();
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to

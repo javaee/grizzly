@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -355,6 +355,9 @@ public abstract class HttpHeader extends HttpPacket
      * Get the content-length of this {@link HttpPacket}. Applicable only in case
      * of fixed-length HTTP message.
      * 
+     * The method may return <tt>-1</tt>, which means there is no
+     * content-length specified.
+     * 
      * @return the content-length of this {@link HttpPacket}. Applicable only
      * in case of fixed-length HTTP message.
      */
@@ -373,26 +376,31 @@ public abstract class HttpHeader extends HttpPacket
 
     /**
      * Set the length of this HTTP message.
-     *
-     * @param len the length of this HTTP message.
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
+     * 
+     * @param length the content-length of this {@link HttpPacket}.
+     * Applicable only in case of fixed-length HTTP message.
      */
-    public void setContentLength(final int len) {
-        this.contentLength = len;
-        if (len < 0) {
-            headers.removeHeader(Header.ContentLength);
-        }
+    public void setContentLength(final int length) {
+        setContentLengthLong(length);
     }
 
     /**
      * Set the content-length of this {@link HttpPacket}. Applicable only in case
      * of fixed-length HTTP message.
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
      *
-     * @param contentLength  the content-length of this {@link HttpPacket}.
+     * @param length  the content-length of this {@link HttpPacket}.
      * Applicable only in case of fixed-length HTTP message.
      */
-    public void setContentLengthLong(final long contentLength) {
-        this.contentLength = contentLength;
-        if (contentLength < 0) {
+    public void setContentLengthLong(final long length) {
+        this.contentLength = length;
+        if (length < 0) {
+            this.contentLength = -1;
             headers.removeHeader(Header.ContentLength);
         }
     }

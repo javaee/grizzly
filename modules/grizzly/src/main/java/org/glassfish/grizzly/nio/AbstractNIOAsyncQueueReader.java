@@ -185,7 +185,9 @@ public abstract class AbstractNIOAsyncQueueReader
     @Override
     public AsyncResult processAsync(final Context context) {
         final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-
+        if (!nioConnection.isOpen()) {
+            return AsyncResult.COMPLETE;
+        }
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 nioConnection.getAsyncReadQueue();
 

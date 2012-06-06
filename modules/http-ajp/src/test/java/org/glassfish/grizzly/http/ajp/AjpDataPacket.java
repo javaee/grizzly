@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,31 +38,25 @@
  * holder.
  */
 
-package org.glassfish.grizzly.comet;
+package org.glassfish.grizzly.http.ajp;
 
-import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
+public class AjpDataPacket extends AjpPacket {
+    private byte[] data;
 
-public class CometHttpHandler extends HttpHandler {
-    final boolean resume;
-    DefaultTestCometHandler cometHandler;
-    CometContext<String> cometContext;
-
-    public CometHttpHandler(CometContext<String> cometContext, boolean resume) {
-        this.cometContext = cometContext;
-        this.resume = resume;
+    public AjpDataPacket(byte[] data) {
+        this.data = data;
     }
 
     @Override
-    public void service(Request request, Response response) throws IOException {
-        cometHandler = createHandler(response);
-        cometContext.addCometHandler(cometHandler);
-    }
+    protected ByteBuffer buildContent() {
+        final ByteBuffer buffer = ByteBuffer.allocate(data.length + 2);
+        buffer.put((byte) 0);
+        buffer.put((byte) data.length);
+        buffer.put(data);
+        buffer.flip();
 
-    public DefaultTestCometHandler createHandler(Response response) {
-        return new DefaultTestCometHandler(cometContext, response, resume);
+        return buffer;
     }
 }

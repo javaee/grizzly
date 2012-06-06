@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,8 +58,8 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.http.LazyCookie;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.LazyCookieState;
 
@@ -67,12 +67,14 @@ import java.text.ParseException;
 import java.util.Date;
 import org.glassfish.grizzly.Grizzly;
 import java.util.logging.Logger;
-import java.util.Collection;
 import org.glassfish.grizzly.Buffer;
 import static org.glassfish.grizzly.http.util.CookieUtils.*;
 
 /**
  * The set of Cookie utility methods for cookie parsing.
+ *
+ * There is duplication of logic within which we know to be frowned upon, however
+ * it is done with performance in mind.
  *
  * @author Grizzly team
  */
@@ -86,7 +88,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len) {
         parseClientCookies(cookies, buffer, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
     }
@@ -97,7 +99,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
@@ -112,7 +114,7 @@ public class CookieParserUtils {
         int valueEnd;
         int version = 0;
 
-        LazyCookie cookie = null;
+        Cookie cookie = null;
         LazyCookieState lazyCookie = null;
 
         boolean isSpecial;
@@ -139,7 +141,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(buffer, pos, end);
 
             // Skip whitespace
@@ -293,8 +295,8 @@ public class CookieParserUtils {
                 LOGGER.fine("Unknown Special Cookie");
 
             } else { // Normal Cookie
-                cookie = new LazyCookie();
-                lazyCookie = cookie.lazy();
+                cookie = cookies.getNextUnusedCookie();
+                lazyCookie = cookie.getLazyCookieState();
 
                 cookie.setVersion(version);
                 lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
@@ -309,9 +311,6 @@ public class CookieParserUtils {
                     // Name Only
                     lazyCookie.getValue().setString("");
                 }
-
-                cookies.add(cookie);
-
             }
         }
     }
@@ -322,7 +321,7 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    public static void parseClientCookies(Collection<Cookie> cookies,
+    public static void parseClientCookies(Cookies cookies,
             String cookiesStr, boolean versionOneStrictCompliance) {
 
         if (cookiesStr == null) {
@@ -363,7 +362,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(cookiesStr, pos, end);
 
             // Skip whitespace
@@ -530,10 +529,10 @@ public class CookieParserUtils {
                     value = "";
                 }
 
-                cookie = new Cookie(name, value);
+                cookie = cookies.getNextUnusedCookie();
+                cookie.setName(name);
+                cookie.setValue(value);
                 cookie.setVersion(version);
-
-                cookies.add(cookie);
 
             }
         }
@@ -541,7 +540,7 @@ public class CookieParserUtils {
 
 
 
-    public static void parseServerCookies(Collection<Cookie> cookies,
+    public static void parseServerCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
@@ -555,7 +554,7 @@ public class CookieParserUtils {
         int valueStart;
         int valueEnd;
 
-        LazyCookie cookie = null;
+        Cookie cookie = null;
         LazyCookieState lazyCookie = null;
 
         boolean isQuoted;
@@ -574,7 +573,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(buffer, pos, end);
 
             // Skip whitespace
@@ -740,7 +739,7 @@ public class CookieParserUtils {
                                                        valueStart,
                                                        valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
-                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()));
+                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
                     }
 
@@ -771,8 +770,8 @@ public class CookieParserUtils {
             }
 
             // Normal Cookie
-            cookie = new LazyCookie();
-            lazyCookie = cookie.lazy();
+            cookie = cookies.getNextUnusedCookie();
+            lazyCookie = cookie.getLazyCookieState();
 
             lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
 
@@ -786,12 +785,10 @@ public class CookieParserUtils {
                 // Name Only
                 lazyCookie.getValue().setString("");
             }
-
-            cookies.add(cookie);
         }
     }
 
-    public static void parseServerCookies(Collection<Cookie> cookies,
+    public static void parseServerCookies(Cookies cookies,
             String cookiesStr, boolean versionOneStrictCompliance) {
 
         if (cookiesStr == null) {
@@ -823,7 +820,7 @@ public class CookieParserUtils {
             }
 
             // Get the cookie name. This must be a token
-            valueEnd = valueStart = nameStart = pos;
+            nameStart = pos;
             pos = nameEnd = getTokenEndPosition(cookiesStr, pos, end);
 
             // Skip whitespace
@@ -1032,9 +1029,9 @@ public class CookieParserUtils {
                 value = "";
             }
 
-            cookie = new Cookie(name, value);
-
-            cookies.add(cookie);
+            cookie = cookies.getNextUnusedCookie();
+            cookie.setName(name);
+            cookie.setValue(value);
         }
     }
 
@@ -1092,6 +1089,7 @@ public class CookieParserUtils {
      *
      * @param cc The cookie value to modify
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static void unescapeDoubleQuotes(CharChunk cc) {
 
         if (cc == null || cc.getLength() == 0) {
@@ -1123,6 +1121,7 @@ public class CookieParserUtils {
      * @param length number of bytes to un-escape.
      * @return new length
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static int unescapeDoubleQuotes(Buffer buffer, int start, int length) {
 
         if (buffer == null || length <= 0) {
