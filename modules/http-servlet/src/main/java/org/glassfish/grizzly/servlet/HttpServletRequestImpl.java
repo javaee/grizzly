@@ -93,7 +93,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * @version $Revision: 1.7 $ $Date: 2007/08/01 19:04:28 $
  */
 @SuppressWarnings("deprecation")
-public class HttpServletRequestImpl implements HttpServletRequest {
+public class HttpServletRequestImpl implements HttpServletRequest, Holders.RequestHolder {
     private static final Logger logger = Grizzly.logger(HttpServletRequestImpl.class);
       
     private final ServletInputStreamImpl inputStream;
@@ -1221,7 +1221,17 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Request getRequest() {
         return request;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Request getInternalRequest() {
+        return request;
+    }
+    
     // ----------------------------------------------------------- DoPrivileged
+
     
     private final class GetAttributePrivilegedAction
             implements PrivilegedAction<Enumeration<String>> {

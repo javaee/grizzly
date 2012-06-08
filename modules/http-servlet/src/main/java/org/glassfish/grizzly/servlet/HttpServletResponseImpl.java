@@ -82,7 +82,7 @@ import org.glassfish.grizzly.http.server.Response;
  * @version $Revision: 1.9 $ $Date: 2007/05/05 05:32:43 $
  */
 @SuppressWarnings("deprecation")
-public class HttpServletResponseImpl implements HttpServletResponse {
+public class HttpServletResponseImpl implements HttpServletResponse, Holders.ResponseHolder {
 
     private final ServletOutputStreamImpl outputStream;
     private ServletWriterImpl writer;
@@ -718,6 +718,14 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
 
     public Response getResponse() {
+        return response;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Response getInternalResponse() {
         return response;
     }
 }
