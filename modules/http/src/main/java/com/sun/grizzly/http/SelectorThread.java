@@ -273,10 +273,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     private boolean useChunking = true;
 
     /**
-     * The HTTP request scheme, which if non-null overrides default one picked up
-     * by framework during runtime.
+     * The auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind some HTTP gateway like reverse proxy or load balancer.
      */
-    private String scheme;
+    private BackendConfiguration backendConfiguration;
     
     /**
      * Is the {@link ByteBuffer} used by the <code>ReadTask</code> use
@@ -2520,23 +2520,23 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     }
 
     /**
-     * Get the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
+     * Returns the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load balancer.
      * 
-     * @return the HTTP request scheme
-     */
-    public String getScheme() {
-        return scheme;
+     * @since 1.9.50
+     */    
+    public BackendConfiguration getBackendConfiguration() {
+        return backendConfiguration;
     }
 
     /**
-     * Set the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
-     * 
-     * @param scheme the HTTP request scheme
+     * Sets the auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind HTTP gateway like reverse proxy or load balancer.
+     *
+     * @since 1.9.50
      */
-    public void setScheme(String scheme) {
-        this.scheme = scheme;
+    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
+        this.backendConfiguration = backendConfiguration;
     }
     
     /**

@@ -56,10 +56,7 @@ import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.config.dom.Transport;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.http.HttpProtocolChain;
-import com.sun.grizzly.http.ProcessorTaskFactory;
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.StatsThreadPool;
+import com.sun.grizzly.http.*;
 import com.sun.grizzly.portunif.CustomFilterChainProtocolHandler;
 import com.sun.grizzly.portunif.PUPreProcessor;
 import com.sun.grizzly.portunif.PUReadFilter;
@@ -630,7 +627,19 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setProperty("uriEncoding", http.getUriEncoding());
         setProperty("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
         setPreallocateProcessorTasks(GrizzlyConfig.toBoolean(http.getPreallocateProcessorTasks()));
-        setScheme(http.getScheme());
+        
+        if (http.getScheme() != null || http.getSchemeMapping() != null
+                || http.getRemoteUserMapping() != null) {
+            final BackendConfiguration backendConfiguration = new BackendConfiguration();
+            if (http.getSchemeMapping() != null) {
+                backendConfiguration.setSchemeMapping(http.getSchemeMapping());
+            } else {
+                backendConfiguration.setScheme(http.getScheme());
+            }
+            
+            backendConfiguration.setRemoteUserMapping(http.getRemoteUserMapping());
+            setBackendConfiguration(backendConfiguration);
+        }
     }
 
     /**

@@ -57,6 +57,8 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
@@ -306,13 +308,16 @@ public class BasicSelectorThreadTest extends TestCase {
         }
     }
     
-    public void testSchemeOverride() throws Exception {
-        Utils.dumpOut("Test: testSchemeOverride");
+    public void testScheme() throws Exception {
+        Utils.dumpOut("Test: testScheme");
         final String testString = "https";
         final byte[] testData = testString.getBytes();
         try {
             createSelectorThread(PORT);
-            st.setScheme("https");
+            BackendConfiguration backendConfiguration = new BackendConfiguration();
+            backendConfiguration.setScheme("https");
+            
+            st.setBackendConfiguration(backendConfiguration);
             st.setAdapter(new GrizzlyAdapter() {
 
                 @Override
@@ -326,13 +331,128 @@ public class BasicSelectorThreadTest extends TestCase {
 
 
             sendRequest(testData, testString, PORT);
-
-
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
         }
     }
     
+    public void testSchemeMappingNull() throws Exception {
+        Utils.dumpOut("Test: testSchemeMappingNull");
+        final String testString = "http";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            BackendConfiguration backendConfiguration = new BackendConfiguration();
+            backendConfiguration.setSchemeMapping("my-scheme");
+            st.setBackendConfiguration(backendConfiguration);
+            
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    response.getWriter().write(request.getScheme());
+                }
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+
+            sendRequest(testData, testString, PORT);
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+
+    public void testSchemeMapping() throws Exception {
+        Utils.dumpOut("Test: testSchemeMapping");
+        final String testString = "https";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            BackendConfiguration backendConfiguration = new BackendConfiguration();
+            backendConfiguration.setSchemeMapping("my-scheme");
+            st.setBackendConfiguration(backendConfiguration);
+            
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    response.getWriter().write(request.getScheme());
+                }
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+
+            sendRequest(Collections.singletonMap("my-scheme", "https"), testData,
+                    testString, PORT);
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+
+    public void testRemoteUserMappingNull() throws Exception {
+        Utils.dumpOut("Test: testRemoteUserMappingNull");
+        final String testString = "";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            BackendConfiguration backendConfiguration = new BackendConfiguration();
+            backendConfiguration.setRemoteUserMapping("my-remote-user");
+            st.setBackendConfiguration(backendConfiguration);
+            
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    if (request.getRemoteUser() != null) {
+                        response.getWriter().write(request.getRemoteUser());
+                    }
+                }
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+            sendRequest(null, testData,
+                    testString, PORT);
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+    
+    public void testRemoteUserMapping() throws Exception {
+        Utils.dumpOut("Test: testRemoteUserMapping");
+        final String testString = "grizzly";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(PORT);
+            BackendConfiguration backendConfiguration = new BackendConfiguration();
+            backendConfiguration.setRemoteUserMapping("my-remote-user");
+            st.setBackendConfiguration(backendConfiguration);
+            
+            st.setAdapter(new GrizzlyAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    if (request.getRemoteUser() != null) {
+                        response.getWriter().write(request.getRemoteUser());
+                    }
+                }
+            });
+
+            st.listen();
+            st.enableMonitoring();
+
+            sendRequest(Collections.singletonMap("my-remote-user", "grizzly"), testData,
+                    testString, PORT);
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+
     public class NotFoundAdapter extends GrizzlyAdapter {
 
         @Override
@@ -357,15 +477,27 @@ public class BasicSelectorThreadTest extends TestCase {
     private String sendRequest(byte[] testData, String testString, int port)
             throws Exception {
 
-        return sendRequest(testData, testString, true, port);
+        return sendRequest(null, testData, testString, true, port);
     }
 
-    private String sendRequest(byte[] testData, String testString, boolean assertTrue, int port)
-            throws Exception {
+    private String sendRequest(Map<String, String> headers, byte[] testData,
+            String testString, int port) throws Exception {
+        return sendRequest(headers, testData, testString, true, port);
+    }
 
+    private String sendRequest(Map<String, String> headers, byte[] testData,
+            String testString, boolean assertTrue, int port)
+            throws Exception {
         URL url = new URL("http://localhost:" + port);
         HttpURLConnection connection =
                 (HttpURLConnection) url.openConnection();
+        
+        if (headers != null) {
+            for(Map.Entry<String, String> entry : headers.entrySet()) {
+                connection.addRequestProperty(entry.getKey(), entry.getValue());
+            }
+        }
+        
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
         OutputStream os = connection.getOutputStream();

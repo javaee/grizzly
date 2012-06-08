@@ -1763,6 +1763,12 @@ public class GrizzlyRequest {
         if (userPrincipal != null) {
             return (userPrincipal.getName());
         } else {
+            if (!request.getRemoteUser().isNull()) {
+                final String remoteUser = request.getRemoteUser().toString();
+                userPrincipal = new GrizzlyPrincipal(remoteUser);
+                return remoteUser;
+            }
+            
             return (null);
         }
 

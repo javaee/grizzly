@@ -1420,15 +1420,39 @@ public class ProcessorTask extends TaskBase implements Processor,
             methodMB.setString(Constants.POST);
         }
 
-        final String hardcodedScheme = selectorThread.getScheme();
-        if (hardcodedScheme != null) {
-            request.scheme().setString(hardcodedScheme);
-        } else if (sslSupport != null) {
+        final MimeHeaders headers = request.getMimeHeaders();
+
+        boolean isSchemeSet = false;
+        
+        if (selectorThread.getBackendConfiguration() != null) {
+            final BackendConfiguration backendConfiguration =
+                    selectorThread.getBackendConfiguration();
+            
+            if (backendConfiguration.getScheme() != null) {
+                request.scheme().setString(backendConfiguration.getScheme());
+                isSchemeSet = true;
+            } else if (backendConfiguration.getSchemeMapping() != null) {
+                String value = headers.getHeader(backendConfiguration.getSchemeMapping());
+                if (value != null) {
+                    request.scheme().setString(value);
+                    isSchemeSet = true;
+                }
+            }
+            
+            final MessageBytes remoteUserMB = request.getRemoteUser();
+            if (remoteUserMB.isNull() &&
+                    backendConfiguration.getRemoteUserMapping() != null) {
+                String value = headers.getHeader(backendConfiguration.getRemoteUserMapping());
+                if (value != null) {
+                    remoteUserMB.setString(value);
+                }
+            }
+        }
+        
+        if (!isSchemeSet && sslSupport != null) {
             request.scheme().setString("https");
         }
         
-        MimeHeaders headers = request.getMimeHeaders();
-
         keepAlive(headers);
 
         // Check for a full URI (including protocol://host:port/)
