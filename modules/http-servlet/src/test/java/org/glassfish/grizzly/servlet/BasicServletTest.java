@@ -53,6 +53,8 @@ import javax.servlet.http.HttpServletResponse;
 import com.sun.jersey.server.impl.application.WebApplicationContext;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.utils.Utils;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 
 /**
  * Basic Servlet Test.
@@ -267,6 +269,33 @@ public class BasicServletTest extends HttpServerAbstractTest {
         }
     }
 
+    public void testInternalArtifacts() throws IOException {
+        try {
+            startHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test");
+            ServletRegistration reg = ctx.addServlet("TestServlet", new HttpServlet() {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
+                    Request grizzlyRequest = ServletUtils.getInternalRequest(req);
+                    Response grizzlyResponse = ServletUtils.getInternalResponse(resp);
+                    
+                    resp.addHeader("Internal-Request", grizzlyRequest != null ? "present" : null);
+                    resp.addHeader("Internal-Response", grizzlyResponse != null ? "present" : null);
+                }
+            });
+            reg.addMapping("/internal");
+            ctx.deploy(httpServer);
+            
+            final HttpURLConnection connection = getConnection("/internal", PORT);
+
+            assertEquals(HttpServletResponse.SC_OK, connection.getResponseCode());
+
+            assertEquals("present", connection.getHeaderField("Internal-Request"));
+            assertEquals("present", connection.getHeaderField("Internal-Response"));
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
     private ServletRegistration addServlet(final WebappContext ctx,
                                            final String name,
                                            final String alias) {
