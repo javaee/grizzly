@@ -60,10 +60,10 @@ public class ServerFilterConfiguration {
     private int maxRequestParameters = MAX_REQUEST_PARAMETERS;
     
     /**
-     * The HTTP request scheme, which if non-null overrides default one picked
-     * up by framework during runtime.
+     * The auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind some HTTP gateway like reverse proxy or load balancer.
      */
-    private String scheme;
+    private BackendConfiguration backendConfiguration;
 
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
@@ -79,7 +79,7 @@ public class ServerFilterConfiguration {
         this.httpServerName = configuration.httpServerName;
         this.httpServerVersion = configuration.httpServerVersion;
         this.sendFileEnabled = configuration.sendFileEnabled;
-        this.scheme = configuration.scheme;
+        this.backendConfiguration = configuration.backendConfiguration;
         this.traceEnabled = configuration.traceEnabled;
         this.passTraceRequest = configuration.passTraceRequest;
         this.maxRequestParameters = configuration.maxRequestParameters;
@@ -168,29 +168,25 @@ public class ServerFilterConfiguration {
     }
 
     /**
-     * Get the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
+     * Returns the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load balancer.
      *
-     * @return the HTTP request scheme
-     * 
-     * @since 2.2.4
-     */
-    public String getScheme() {
-        return scheme;
+     * @since 2.2.10
+     */    
+    public BackendConfiguration getBackendConfiguration() {
+        return backendConfiguration;
     }
 
     /**
-     * Set the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
+     * Sets the auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind HTTP gateway like reverse proxy or load balancer.
      *
-     * @param scheme the HTTP request scheme
-     * 
-     * @since 2.2.4
+     * @since 2.2.10
      */
-    public void setScheme(String scheme) {
-        this.scheme = scheme;
+    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
+        this.backendConfiguration = backendConfiguration;
     }
-
+    
     /**
      * @return <tt>true</tt> if the <tt>TRACE</tt> request will be passed
      *  to the registered {@link HttpHandler}s, otherwise <tt>false</tt> if the

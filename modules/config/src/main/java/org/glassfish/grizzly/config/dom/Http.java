@@ -301,14 +301,36 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setVersion(String version);
 
     /**
-     * The HTTP schema (http or https) to override HTTP request scheme picked up
-     * by Grizzly or web-container during runtime.
+     * The HTTP scheme (http or https) to override HTTP request scheme picked up
+     * by Grizzly or web-container during HTTP request processing.
      */
     @Attribute
     @Pattern(regexp = SCHEME_PATTERN)
     String getScheme();
 
     void setScheme(final String scheme);
+
+    /**
+     * Returns the HTTP request header name, whose value (if non-null) would be used
+     * to override default protocol scheme picked up by framework during
+     * request processing.
+     */
+    @Attribute
+    String getSchemeMapping();
+
+    void setSchemeMapping(final String schemeMapping);
+
+    /**
+     * Returns the HTTP request header name, whose value (if non-null) would be used
+     * to set the name of the remote user that has been authenticated
+     * for HTTP Request.
+     * 
+     * @see Request#getRemoteUser()
+     */
+    @Attribute
+    String getRemoteUserMapping();
+
+    void setRemoteUserMapping(final String remoteUserMapping);
 
     @Attribute(defaultValue = "" + WEBSOCKET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getWebsocketsSupportEnabled();

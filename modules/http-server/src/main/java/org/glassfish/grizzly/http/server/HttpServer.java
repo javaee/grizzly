@@ -609,8 +609,8 @@ public class HttpServer {
                 config.setSendFileEnabled(listener.isSendFileEnabled());
             }
             
-            if (listener.getScheme() != null) {
-                config.setScheme(listener.getScheme());
+            if (listener.getBackendConfiguration() != null) {
+                config.setBackendConfiguration(listener.getBackendConfiguration());
             }
             
             config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());

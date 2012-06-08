@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -62,53 +63,141 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Other config related tests.
+ * {@link BackendConfiguration} related tests.
  * 
  * @author Alexey Stashok
  */
-public class BasicConfigTest {
+public class BackendConfigTest {
     private static final int PORT = 18901;
 
     @Test
     public void testSchemeOverriding() throws Exception {
-        final HttpServer server = createWebServer(new HttpHandler() {
+        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        backendConfiguration.setScheme("https");
+
+        final HttpPacket request = createRequest("/test", null);
+
+        Map<String, String> props = doTest(new HttpHandler() {
 
             @Override
             public void service(Request request, Response response) throws Exception {
                 response.getWriter().write("scheme=" + request.getScheme() + "\n");
             }
-        });
+        }, backendConfiguration, request);
+
+        String scheme = props.get("scheme");
+        assertNotNull(scheme);
+        assertEquals("https", scheme);
+    }
+    
+    @Test
+    public void testMappedSchemeNull() throws Exception {
+        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        backendConfiguration.setSchemeMapping("my-scheme");
+
+        final HttpPacket request = createRequest("/test", null);
+
+        Map<String, String> props = doTest(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.getWriter().write("scheme=" + request.getScheme() + "\n");
+
+            }
+        }, backendConfiguration, request);
+
+        String scheme = props.get("scheme");
+        assertNotNull(scheme);
+        assertEquals("http", scheme);
+    }
+
+    @Test
+    public void testMappedScheme() throws Exception {
+        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        backendConfiguration.setSchemeMapping("my-scheme");
+
+        final HttpPacket request = createRequest("/test",
+                Collections.singletonMap("my-scheme", "https"));
+
+        Map<String, String> props = doTest(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.getWriter().write("scheme=" + request.getScheme() + "\n");
+
+            }
+        }, backendConfiguration, request);
+
+        String scheme = props.get("scheme");
+        assertNotNull(scheme);
+        assertEquals("https", scheme);
+    }
+
+    @Test
+    public void testMappedRemoteUserNull() throws Exception {
+        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        backendConfiguration.setRemoteUserMapping("my-user");
+
+        final HttpPacket request = createRequest("/test", null);
+
+        Map<String, String> props = doTest(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                if (request.getRemoteUser() != null) {
+                    response.getWriter().write("remote-user=" + request.getRemoteUser() + "\n");
+                }
+
+            }
+        }, backendConfiguration, request);
+
+        String remoteUser = props.get("remote-user");
+        assertNull(remoteUser);
+    }
+
+    @Test
+    public void testMappedRemoteUser() throws Exception {
+        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        backendConfiguration.setRemoteUserMapping("my-user");
+
+        final HttpPacket request = createRequest("/test",
+                Collections.singletonMap("my-user", "grizzly"));
+
+        Map<String, String> props = doTest(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                if (request.getRemoteUser() != null) {
+                    response.getWriter().write("remote-user=" + request.getRemoteUser() + "\n");
+                }
+
+            }
+        }, backendConfiguration, request);
+
+        String remoteUser = props.get("remote-user");
+        assertNotNull(remoteUser);
+        assertEquals("grizzly", remoteUser);
+    }
+
+    private Map<String, String> doTest(final HttpHandler httpHandler,
+            final BackendConfiguration backendConfiguration,
+            final HttpPacket request
+            ) throws Exception {
+        final HttpServer server = createWebServer(httpHandler);
 
         // Override the scheme
-        server.getListeners().iterator().next().setScheme("https");
+        server.getListeners().iterator().next().setBackendConfiguration(backendConfiguration);
         
         try {
             server.start();
-            
-            final HttpPacket request = createRequest("/test", null);
-            final HttpContent response = doTest(request, 10);
-
-            final String responseContent = response.getContent().toStringContent();
-            Map<String, String> props = new HashMap<String, String>();
-
-            BufferedReader reader = new BufferedReader(new StringReader(responseContent));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] nameValue = line.split("=");
-                assertEquals(2, nameValue.length);
-                props.put(nameValue[0], nameValue[1]);
-            }
-
-            String scheme = props.get("scheme");
-            assertNotNull(scheme);
-            assertEquals("https", scheme);
+            return runRequest(request, 10);
         } finally {
             server.stop();
         }
     }
     
     @SuppressWarnings("unchecked")
-    private HttpContent doTest(
+    private Map<String, String> runRequest(
             final HttpPacket request,
             final int timeout)
             throws Exception {
@@ -132,7 +221,20 @@ public class BasicConfigTest {
             try {
                 connection = connectFuture.get(timeout, TimeUnit.SECONDS);
                 connection.write(request);
-                return testResultFuture.get(timeout, TimeUnit.SECONDS);
+                HttpContent response = testResultFuture.get(timeout, TimeUnit.SECONDS);
+                
+                final String responseContent = response.getContent().toStringContent();
+                Map<String, String> props = new HashMap<String, String>();
+
+                BufferedReader reader = new BufferedReader(new StringReader(responseContent));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] nameValue = line.split("=");
+                    assertEquals(2, nameValue.length);
+                    props.put(nameValue[0], nameValue[1]);
+                }
+                
+                return props;
             } finally {
                 // Close the client connection
                 if (connection != null) {

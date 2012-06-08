@@ -502,22 +502,40 @@ public class Request {
         parameters.setQuery(request.getQueryStringDC());
 
         final DataChunk remoteUser = request.remoteUser();
-        if (!remoteUser.isNull()) {
-            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
-        }
 
         if (httpServerFilter != null) {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
 
             sendFileEnabled = configuration.isSendFileEnabled();
-            final String overridingScheme = configuration.getScheme();
-
-            scheme = overridingScheme != null ? overridingScheme
-                    : request.isSecure() ? "https" : "http";
+            
+            final BackendConfiguration backendConfiguration =
+                    configuration.getBackendConfiguration();
+            
+            if (backendConfiguration != null) {
+                // Set the protocol scheme based on backend config
+                if (backendConfiguration.getScheme() != null) {
+                    scheme = backendConfiguration.getScheme();
+                } else if (backendConfiguration.getSchemeMapping() != null) {
+                    scheme = request.getHeader(backendConfiguration.getSchemeMapping());
+                }
+                
+                if (remoteUser.isNull() &&
+                        backendConfiguration.getRemoteUserMapping() != null) {
+                    remoteUser.setString(request.getHeader(
+                            backendConfiguration.getRemoteUserMapping()));
+                }
+            }
         } else {
             sendFileEnabled = false;
+        }
+        
+        if (scheme == null) {
             scheme = request.isSecure() ? "https" : "http";
+        }
+
+        if (!remoteUser.isNull()) {
+            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
     }
 
