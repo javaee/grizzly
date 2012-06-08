@@ -85,7 +85,6 @@ public class GrizzlyPrincipal implements Principal, Serializable {
 
     // --------------------------------------------------------- Public Methods
 
-    @Override
     public String getName() {
         return name;
     }
