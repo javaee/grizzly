@@ -67,7 +67,6 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -122,8 +121,6 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Request {
 
     private static final Logger LOGGER = Grizzly.logger(Request.class);
-
-    private static final Cookie[] EMPTY_COOKIES = new Cookie[0];
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
@@ -611,11 +608,6 @@ public class Request {
         ctx = null;
         httpServerFilter = null;
 
-        if (cookies != null && cookies.length > 0) {
-            for (Cookie cookie : cookies) {
-                cookie.recycle();
-            }
-        }
         cookies = null;
         requestedSessionId = null;
         session = null;
@@ -1885,10 +1877,8 @@ public class Request {
         cookiesParsed = true;
 
         final Cookies serverCookies = getRawCookies();
-        final Collection<Cookie> parsedCookies = serverCookies.get();
-        cookies = ((parsedCookies.isEmpty())
-                      ? EMPTY_COOKIES
-                      : parsedCookies.toArray(new Cookie[parsedCookies.size()]));
+        cookies = serverCookies.get();
+
     }
 
 

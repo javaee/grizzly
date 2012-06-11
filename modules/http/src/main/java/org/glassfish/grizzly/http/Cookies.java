@@ -62,11 +62,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.CookieParserUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import java.util.ArrayList;
-import java.util.Collection;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.BufferChunk;
@@ -82,17 +79,19 @@ import org.glassfish.grizzly.http.util.BufferChunk;
  */
 public final class Cookies {
 
+    private static final Cookie[] EMPTY_COOKIE_ARRAY = new Cookie[0];
+
     private static final Logger logger = Grizzly.logger(Cookies.class);
     // expected average number of cookies per request
     private static final int INITIAL_SIZE = 4;
-
-    private final List<Cookie> cookies =
-            new ArrayList<Cookie>(INITIAL_SIZE);
+    private Cookie[] cookies = new Cookie[INITIAL_SIZE];
+    private Cookie[] processedCookies;
     
     private boolean isProcessed;
     private MimeHeaders headers;
 
     private int nextUnusedCookieIndex = 0;
+    private int storedCookieCount;
 
     /*
     List of Separator Characters (see isSeparator())
@@ -120,13 +119,20 @@ public final class Cookies {
         return headers != null;
     }
 
-    public List<Cookie> get() {
+
+
+    public Cookie[] get() {
         if (!isProcessed) {
             isProcessed = true;
             processCookies();
+            if (nextUnusedCookieIndex > 0) {
+                processedCookies = copyTo(new Cookie[nextUnusedCookieIndex]);
+            } else {
+                processedCookies = EMPTY_COOKIE_ARRAY;
+            }
         }
 
-        return Collections.unmodifiableList(cookies);
+        return processedCookies;
     }
 
     public void setHeaders(MimeHeaders headers) {
@@ -134,12 +140,18 @@ public final class Cookies {
     }
 
     public Cookie getNextUnusedCookie() {
-        if (nextUnusedCookieIndex < cookies.size()) {
-            return cookies.get(nextUnusedCookieIndex++);
+
+        if (nextUnusedCookieIndex < storedCookieCount) {
+            return cookies[nextUnusedCookieIndex++];
         } else {
             Cookie cookie = new Cookie();
-            cookies.add(cookie);
-            nextUnusedCookieIndex++;
+            if (nextUnusedCookieIndex == cookies.length) {
+                Cookie[] temp = new Cookie[cookies.length + INITIAL_SIZE];
+                System.arraycopy(cookies, 0, temp, 0, cookies.length);
+                cookies = temp;
+            }
+            storedCookieCount++;
+            cookies[nextUnusedCookieIndex++] = cookie;
             return cookie;
         }
     }
@@ -148,14 +160,20 @@ public final class Cookies {
      * Recycle.
      */
     public void recycle() {
-        if (!cookies.isEmpty()) {
-            for (Cookie cookie : cookies) {
-                cookie.recycle();
-            }
+        for (int i = 0; i < nextUnusedCookieIndex; i++) {
+            cookies[i].recycle();
         }
+        processedCookies = null;
         nextUnusedCookieIndex = 0;
         headers = null;
         isProcessed = false;
+    }
+
+    private Cookie[] copyTo(Cookie[] destination) {
+        if (nextUnusedCookieIndex > 0) {
+            System.arraycopy(cookies, 0, destination, 0, nextUnusedCookieIndex);
+        }
+        return destination;
     }
 
     // code from CookieTools 
@@ -203,7 +221,7 @@ public final class Cookies {
      */
     @Override
     public String toString() {
-        return cookies.toString();
+        return Arrays.toString(cookies);
     }
 
     private static void log(String s) {
@@ -213,13 +231,12 @@ public final class Cookies {
     }
 
     public Cookie findByName(String cookieName) {
-        final Collection<Cookie> parsedCookies = get();
-        for (Cookie cookie : parsedCookies) {
+        final Cookie[] cookiesArray = get();
+        for (Cookie cookie : cookiesArray) {
             if (cookie.lazyNameEquals(cookieName)) {
                 return cookie;
             }
         }
-
         return null;
     }
 }
