@@ -69,7 +69,7 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  * @author Justin Lee
  */
-public class BasicAjpTest extends AjpTestBase {
+public class BasicAjpTest extends AbstractTest {
 
     @Test
     public void testStaticRequests() throws IOException, InstantiationException {
@@ -374,9 +374,15 @@ public class BasicAjpTest extends AjpTestBase {
         
         byte[] incompleteData = new byte[headersPacketArray.length + dataPacket1Array.length];
         System.arraycopy(headersPacketArray, 0, incompleteData, 0, headersPacketArray.length);
-        System.arraycopy(dataPacket1Array, 0, incompleteData, headersPacketArray.length, incompleteData.length - headersPacketArray.length);
-        
+        System.arraycopy(dataPacket1Array, 0, incompleteData, headersPacketArray.length, dataPacket1Array.length);
+                
         send(incompleteData);
+        Thread.sleep(5000); // Sleep for 5 seconds to let GrizzlyAdapter exit w/ EOF (see InputReader.setDefaultReadTimeout(3000); within configureHttpServer()).
+        
+        AjpResponse ajpAskMoreDataPacket1 = Utils.parseResponse(readAjpMessage());
+        Assert.assertTrue(AjpMessageUtils.getShort(ajpAskMoreDataPacket1.getBody(), 0) <= AjpConstants.MAX_READ_SIZE);
+
+        send(dataPacket2Array);
         Thread.sleep(1000);
         
         // Cause failure on server
@@ -397,6 +403,60 @@ public class BasicAjpTest extends AjpTestBase {
         }
     }
     
+    @Test
+    public void testStabilityAfterHalfReadPost() throws Exception {
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                final int length = request.getContentLength();
+                final InputStream is = request.getInputStream();
+
+                for (int i = 0; i < length / 2; i++) {
+                    final int c = is.read();
+                    
+                    final int expected = (i % 'Z' - 'A') + 'A';
+                    if (c != expected) {
+                        response.sendError(400, "Unexpected char[" + i + "]. Expected: " + ((char) expected) + " but was: " + ((char) c) + "(" + c + ")");
+                        return;
+                    }
+                }
+                
+                response.setStatus(200, "FINE");
+            }
+
+        };
+
+        final int postSize = 1024;
+        
+        configureHttpServer(a);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/TestServlet/normal", 80, PORT);
+        headersPacket.addHeader("Content-Length", String.valueOf(postSize));
+        headersPacket.addHeader("Host", "localhost:80");
+        final byte[] headersPacketArray = headersPacket.toByteArray();
+        
+        byte[] postBody = new byte[postSize];
+        for (int i = 0; i < postBody.length; i++) {
+            postBody[i] = (byte) ((i % 'Z' - 'A') + 'A');
+        }
+        
+        final AjpDataPacket dataPacket = new AjpDataPacket(postBody);
+        final byte[] dataPacketArray = dataPacket.toByteArray();
+        
+        
+        for (int i = 0; i < 1024; i++) {
+            send(headersPacketArray);
+            send(dataPacketArray);
+
+            AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+            Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+            closeClient();
+        }
+    }
+
     @Test
     public void testPingPong() throws Exception {
         GrizzlyAdapter a = new GrizzlyAdapter() {

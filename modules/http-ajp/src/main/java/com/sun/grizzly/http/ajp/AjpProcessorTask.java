@@ -88,7 +88,7 @@ public class AjpProcessorTask extends ProcessorTask {
 
     @Override
     protected InternalInputBuffer createInputBuffer(Request request, int requestBufferSize) {
-        return new AjpInputBuffer(ajpConfiguration, request, requestBufferSize);
+        return new AjpInputBuffer(ajpConfiguration, this, request, requestBufferSize);
     }
 
     @Override
@@ -157,8 +157,8 @@ public class AjpProcessorTask extends ProcessorTask {
                 break;
             }
             default:
-                throw new IllegalStateException("Invalid packet type: " +
-                        ajpRequest.getType());
+                error = true;
+                logger.log(Level.WARNING, "Invalid packet type: {0}", ajpRequest.getType());
         }
     }
 
@@ -372,5 +372,8 @@ public class AjpProcessorTask extends ProcessorTask {
         super.setBufferSize(requestBufferSize);
     }
     
-    
+    protected void error() {
+        error = true;
+        keepAlive = false;
+    }
 }

@@ -64,13 +64,18 @@ public class AjpInputBuffer extends InternalInputBuffer {
 
     private final AjpConfiguration configuration;
 
+    private final AjpProcessorTask ajpProcessorTask;
+    
     private int thisPacketEnd;
     private int dataPacketRemaining;
+    private boolean isIOExceptionOccurred;
     
     public AjpInputBuffer(final AjpConfiguration configuration,
-            final Request request, final int requestBufferSize) {
+            final AjpProcessorTask ajpProcessorTask, final Request request,
+            final int requestBufferSize) {
         super(request, requestBufferSize);
-        
+    
+        this.ajpProcessorTask = ajpProcessorTask;
         this.configuration = configuration;
         inputStreamInputBuffer = new AjpInputStreamInputBuffer();
     }
@@ -83,7 +88,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
         final int magic = AjpMessageUtils.getShort(buf, pos);
         if (magic != 0x1234) {
             throw new IllegalStateException("Invalid packet magic number: " +
-                    Integer.toHexString(magic) + " pos=" + pos + "lastValid=" + lastValid + " end=" + end);
+                    Integer.toHexString(magic) + " pos=" + pos + " lastValid=" + lastValid + " end=" + end);
         }
         
         final int size = AjpMessageUtils.getShort(buf, pos + 2);
@@ -170,7 +175,11 @@ public class AjpInputBuffer extends InternalInputBuffer {
         throw new IllegalStateException("Should never be called for AJP");
     }
 
-    private boolean ensureAvailable(final int length) throws IOException {
+    protected boolean ensureAvailable(final int length) throws IOException {
+        if (isIOExceptionOccurred) {
+            return false;
+        }
+        
         final int available = available();
         
         if (available >= length) {
@@ -195,6 +204,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
                 targetArray =
                         new byte[Math.max(buf.length, AjpConstants.MAX_PACKET_SIZE * 2)];
                 offs = 0;
+                end = 0;
             }
             
             if (available > 0) {
@@ -210,8 +220,13 @@ public class AjpInputBuffer extends InternalInputBuffer {
         try {
             while (lastValid - pos < length) {
                 error = true;
-                final int readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
-                if (readNow < 0) {
+                final int readNow;
+                try {
+                    readNow = inputStream.read(buf, lastValid, buf.length - lastValid);
+                    if (readNow < 0) {
+                        return false;
+                    }
+                } catch (IOException ioe) {
                     return false;
                 }
                 
@@ -220,6 +235,8 @@ public class AjpInputBuffer extends InternalInputBuffer {
             }
         } finally {
             if (error) {
+                ajpProcessorTask.error();  // Notify ProcessorTask about the error
+                isIOExceptionOccurred = true;
                 pos = lastValid = thisPacketEnd = end;
             }
         }
@@ -231,12 +248,15 @@ public class AjpInputBuffer extends InternalInputBuffer {
     public void endRequest() throws IOException {
         pos = thisPacketEnd;
         end = 0;
+        dataPacketRemaining = 0;
+        isIOExceptionOccurred = false;
     }
     
     @Override
     public void recycle() {
         thisPacketEnd = 0;
         dataPacketRemaining = 0;
+        isIOExceptionOccurred = false;
         
         super.recycle();
     }

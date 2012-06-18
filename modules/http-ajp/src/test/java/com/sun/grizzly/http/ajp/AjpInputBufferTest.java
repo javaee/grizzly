@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,37 +37,84 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.http.ajp;
 
-import org.junit.Assert;
+import com.sun.grizzly.tcp.Request;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import org.junit.Test;
 
-import java.io.IOException;
+import static org.junit.Assert.*;
 
-public class AjpPacketTest extends AbstractTest {
+/**
+ * {@link AjpInputBuffer} tests.
+ * 
+ * @author Alexey Stashok
+ */
+public class AjpInputBufferTest {
+
     @Test
-    public void forwardWgetRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//ajpindex.html", 1025, 61878);
-        forward.addHeader("User-Agent", "Wget/1.13 (darwin10.8.0)");
-        forward.addHeader("Accept", "*/*");
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("Connection", "Keep-Alive");
+    public void testOverflowWithEnd() throws IOException {
+        final int size = 16384;
+        
+        MyAjpInputBuffer inputBuffer = new MyAjpInputBuffer(size);
+        
+        final ByteArrayInputStream is = new ByteArrayInputStream(new byte[1024]);
+        
+        inputBuffer.setInputStream(is);
 
-        Assert.assertArrayEquals(read("/request.txt").array(), forward.toBuffer().array());
+        inputBuffer.setPos(size - 1);
+        inputBuffer.setLastValid(size);
+        inputBuffer.setEnd(size - 2);
+        
+        byte[] oldBuf = inputBuffer.getBuf();
+        
+        assertTrue(inputBuffer.ensureAvailable(4));
+        assertEquals(0, inputBuffer.getPos());
+        assertEquals(1024 + 1, inputBuffer.getLastValid());
+        assertEquals(0, inputBuffer.getEnd());
+        assertNotSame(oldBuf, inputBuffer.getBuf());
     }
+    
+    private static class MyAjpInputBuffer extends AjpInputBuffer {
 
-    @Test
-    public void forwardFireFoxRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//index.html", 1025, 56599);
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:5.0.1) Gecko/20100101 Firefox/5.0.1");
-        forward.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        forward.addHeader("Accept-Language", "en-us,en;q=0.5");
-        forward.addHeader("Accept-Encoding", "gzip, deflate");
-        forward.addHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
-        forward.addHeader("Connection", "keep-alive");
+        public MyAjpInputBuffer(final int inputBufferSize) {
+            super(null, null, new Request(), inputBufferSize);
+        }
 
-        Assert.assertArrayEquals(read("/request2.txt").array(), forward.toBuffer().array());
+        @Override
+        protected boolean ensureAvailable(int length) throws IOException {
+            return super.ensureAvailable(length);
+        }
+
+        public void setEnd(int end) {
+            this.end = end;
+        }
+
+        public void setLastValid(int lastValid) {
+            this.lastValid = lastValid;
+        }
+
+        public void setPos(int pos) {
+            this.pos = pos;
+        }
+
+        public byte[] getBuf() {
+            return buf;
+        }
+
+        public int getEnd() {
+            return end;
+        }
+
+        public int getLastValid() {
+            return lastValid;
+        }
+
+        public int getPos() {
+            return pos;
+        }
+        
+        
     }
 }

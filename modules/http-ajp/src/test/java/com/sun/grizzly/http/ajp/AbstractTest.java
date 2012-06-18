@@ -41,20 +41,15 @@
 package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Utils;
+import java.io.*;
 import org.junit.After;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
-public class AjpTestBase {
+public abstract class AbstractTest {
     protected static final int PORT = 19012;
     protected AjpSelectorThread selectorThread;
     private Socket socket;
@@ -112,7 +107,9 @@ public class AjpTestBase {
             socket = new Socket("localhost", PORT);
             socket.setSoTimeout(5000);
         }
-        socket.getOutputStream().write(request);
+        final OutputStream outputStream = socket.getOutputStream();
+        outputStream.write(request);
+        outputStream.flush();
     }
 
     protected void closeClient() {
@@ -157,8 +154,9 @@ public class AjpTestBase {
         selectorThread.setAdapter(adapter);
         selectorThread.setTcpNoDelay(true);
         selectorThread.setUseChunking(false);
-        selectorThread.setKeepAliveTimeoutInSeconds(1);
+        selectorThread.setKeepAliveTimeoutInSeconds(-1);
         selectorThread.setSendBufferSize(512);
+        InputReader.setDefaultReadTimeout(3000);
 
         selectorThread.listen();
     }
