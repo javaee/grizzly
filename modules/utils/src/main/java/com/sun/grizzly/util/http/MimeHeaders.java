@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,9 +59,10 @@
 package com.sun.grizzly.util.http;
 
 import com.sun.grizzly.util.buf.MessageBytes;
-import java.io.*;
-import java.util.*;
-import java.text.*;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Enumeration;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
  */
@@ -132,6 +133,11 @@ import java.text.*;
  * @author kevin seguin
  */
 public class MimeHeaders {
+
+    public static final int MAX_NUM_HEADERS_UNBOUNDED = -1;
+
+    public static final int MAX_NUM_HEADERS_DEFAULT = 100;
+
     /** Initial size - should be == average number of headers per request
      *  XXX  make it configurable ( fine-tuning of web-apps )
      */
@@ -147,6 +153,8 @@ public class MimeHeaders {
      * The current number of header fields.
      */
     private int count;
+
+    private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
 
     /**
      * Creates a new MimeHeaders object using a default buffer size.
@@ -246,26 +254,34 @@ public class MimeHeaders {
     }
 
     // -------------------- Adding headers --------------------
-    
+
 
     /**
      * Adds a partially constructed field to the header.  This
      * field has not had its name or value initialized.
      */
     private MimeHeaderField createHeader() {
-	MimeHeaderField mh;
-	int len = headers.length;
-	if (count >= len) {
-	    // expand header list array
-	    MimeHeaderField tmp[] = new MimeHeaderField[count * 2];
-	    System.arraycopy(headers, 0, tmp, 0, len);
-	    headers = tmp;
-	}
-	if ((mh = headers[count]) == null) {
-	    headers[count] = mh = new MimeHeaderField();
-	}
-	count++;
-	return mh;
+        if (maxNumHeaders >= 0 && count > maxNumHeaders) {
+            throw new MaxHeaderCountExceededException();
+        }
+        MimeHeaderField mh;
+        int len = headers.length;
+
+        if (count >= len) {
+            // expand header list array
+            int newCount = count * 2;
+            if (maxNumHeaders >= 0 && newCount > maxNumHeaders) {
+                newCount = maxNumHeaders;
+            }
+            MimeHeaderField tmp[] = new MimeHeaderField[newCount];
+            System.arraycopy(headers, 0, tmp, 0, len);
+            headers = tmp;
+        }
+        if ((mh = headers[count]) == null) {
+            headers[count] = mh = new MimeHeaderField();
+        }
+        count++;
+        return mh;
     }
 
     /** Create a new named header , return the MessageBytes
@@ -290,6 +306,7 @@ public class MimeHeaders {
 
     /** Create a new named header using translated char[].
      */
+    @SuppressWarnings("UnusedDeclaration")
     public MessageBytes addValue(char c[], int startN, int len)
     {
 	MimeHeaderField mhf=createHeader();
@@ -365,6 +382,7 @@ public class MimeHeaders {
      * if such a field could not be found.
      * @param name the name of the header field to be removed
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void removeHeader(String name) {
         // XXX
         // warning: rather sticky code; heavily tuned
@@ -406,6 +424,25 @@ public class MimeHeaders {
         headers[count - 1] = mh;
         count--;
     }
+
+    // ----------------------------------------------------- Max Header Handling
+
+
+    public void setMaxNumHeaders(int maxNumHeaders) {
+        this.maxNumHeaders = maxNumHeaders;
+    }
+
+    public int getMaxNumHeaders() {
+        return maxNumHeaders;
+    }
+
+    public class MaxHeaderCountExceededException extends IllegalStateException {
+
+        public MaxHeaderCountExceededException() {
+            super("Illegal attempt to exceed the configured maximum headers of " + maxNumHeaders);
+        }
+
+    } // END MaxHeaderCountExceededException
 
 }
 
@@ -526,3 +563,4 @@ class MimeHeaderField {
 	return valueB;
     }
 }
+

@@ -40,7 +40,7 @@
 
 package com.sun.grizzly.config.dom;
 
-import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.http.MimeHeaders;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -79,6 +79,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
+    int MAX_HEADERS = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     boolean PREALLOCATE_PROCESSOR_TASKS = false;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
@@ -331,6 +332,22 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getWebsocketsSupportEnabled();
 
     void setWebsocketsSupportEnabled(String enabled);
+
+    /**
+     * Returns the maximum number of headers allowed for a request.
+     */
+    @Attribute(defaultValue = "" + MAX_HEADERS, dataType = Integer.class)
+    String getMaxRequestHeaders();
+
+    void setMaxRequestHeaders(String maxRequestHeaders);
+
+    /**
+     * Returns the maximum number of headers allowed for a response.
+     */
+    @Attribute(defaultValue = "" + MAX_HEADERS, dataType = Integer.class)
+    String getMaxResponseHeaders();
+
+    void setMaxResponseHeaders(String maxRequestHeaders);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to

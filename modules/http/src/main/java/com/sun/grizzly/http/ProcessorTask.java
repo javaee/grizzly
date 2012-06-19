@@ -430,6 +430,16 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected boolean isAsyncHttpWriteEnabled;
 
+    /**
+     * Maximum number of HTTP headers that may be accepted within a request.
+     */
+    protected int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+
+    /**
+     * Maximum number of HTTP headers that may be accepted within a response.
+     */
+    protected int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+
 
     /**
      * The maximum time a connection can stay open holding a {@link WorkerThread}.
@@ -516,11 +526,12 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Initialize the stream and the buffer used to parse the request.
      */
     public void initialize(){
-        boolean securityEnabled = System.getSecurityManager() != null;
         started = true;
 
         request = createRequest();
+        request.getMimeHeaders().setMaxNumHeaders(getMaxRequestHeaders());
         response = createResponse();
+        response.getMimeHeaders().setMaxNumHeaders(getMaxResponseHeaders());
         response.setHook(this);
 
         inputBuffer = createInputBuffer(request, requestBufferSize);
@@ -723,7 +734,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     if (errorHandler != null) {
                         try {
                             errorHandler.onParsingError(response);
-                        } catch (Exception ingored) {
+                        } catch (Exception ignored) {
                         }
                     }
 
@@ -2129,6 +2140,33 @@ public class ProcessorTask extends TaskBase implements Processor,
         return forcedRequestType;
     }
 
+    /**
+     * Return the maximum number of headers allowed for a request.
+     */
+    public int getMaxRequestHeaders() {
+        return maxRequestHeaders;
+    }
+
+    /**
+     * Set the maximum number of headers allowed for a request.
+     */
+    public void setMaxRequestHeaders(int maxRequestHeaders) {
+        this.maxRequestHeaders = maxRequestHeaders;
+    }
+
+    /**
+     * Return the maximum number of headers allowed for a request.
+     */
+    public int getMaxResponseHeaders() {
+        return maxResponseHeaders;
+    }
+
+    /**
+     * Set the maximum number of headers allowed for a request.
+     */
+    public void setMaxResponseHeaders(int maxResponseHeaders) {
+        this.maxResponseHeaders = maxResponseHeaders;
+    }
 
     // ------------------------------------------------------- Asynch call ---//
 

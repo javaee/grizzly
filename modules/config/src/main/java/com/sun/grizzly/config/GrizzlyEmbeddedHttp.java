@@ -627,7 +627,16 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setProperty("uriEncoding", http.getUriEncoding());
         setProperty("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
         setPreallocateProcessorTasks(GrizzlyConfig.toBoolean(http.getPreallocateProcessorTasks()));
-        
+        try {
+                    setMaxRequestHeaders(Integer.parseInt(http.getMaxRequestHeaders()));
+                } catch (NumberFormatException ignored) {
+                    // default will be applied
+                }
+                try {
+                    setMaxResponseHeaders(Integer.parseInt(http.getMaxResponseHeaders()));
+                } catch (NumberFormatException ignored) {
+                    // default will be applied
+                }
         if (http.getScheme() != null || http.getSchemeMapping() != null
                 || http.getRemoteUserMapping() != null) {
             final BackendConfiguration backendConfiguration = new BackendConfiguration();

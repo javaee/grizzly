@@ -73,6 +73,7 @@ import com.sun.grizzly.util.SelectorFactory;
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
+import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.res.StringManager;
 
 import javax.management.MBeanRegistration;
@@ -220,6 +221,16 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     protected int maxPostSize = 2 * 1024 * 1024;
+
+    /**
+     * The maximum number of headers allowed for a request.
+     */
+    protected int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+
+    /**
+     * The maximum number of headers allowed for a response.
+     */
+    protected int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
 
     /**
      * Max number of bytes Grizzly will try to swallow in order to read off
@@ -1069,6 +1080,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
         task.setSendBufferSize(sendBufferSize);
+        task.setMaxRequestHeaders(maxRequestHeaders);
+        task.setMaxResponseHeaders(maxResponseHeaders);
 
         // Asynch extentions
         if ( asyncExecution ) {
@@ -2411,7 +2424,23 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setMaxPostSize(int maxPostSize) {
         this.maxPostSize = maxPostSize;
     }
-      
+
+    public int getMaxRequestHeaders() {
+        return maxRequestHeaders;
+    }
+
+    public void setMaxRequestHeaders(int maxRequestHeaders) {
+        this.maxRequestHeaders = maxRequestHeaders;
+    }
+
+    public int getMaxResponseHeaders() {
+        return maxResponseHeaders;
+    }
+
+    public void setMaxResponseHeaders(int maxResponseHeaders) {
+        this.maxResponseHeaders = maxResponseHeaders;
+    }
+
     /**
      * Get the max number of bytes Grizzly will try to swallow in order
      * to read off from the current request payload and prepare input to
