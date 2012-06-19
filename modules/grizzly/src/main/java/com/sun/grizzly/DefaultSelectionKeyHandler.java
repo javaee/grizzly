@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -207,7 +207,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             }
 
             long expire = getExpirationStamp(key.attachment());
-            if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT){
+            if (expire >= 0) {
                 if (currentTime - expire >= timeout) {
                     cancel(key);
                 } else if (expire + timeout < nextKeysExpiration) {
@@ -287,6 +287,6 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
         if (attachment instanceof SelectionKeyAttachment) {
             return ((SelectionKeyAttachment) attachment).getTimeout();
         }
-        return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
+        return SelectionKeyAttachment.UNSET_TIMEOUT;
     }
 }

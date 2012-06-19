@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -199,7 +199,8 @@ public class DefaultProtocolFilter implements ProtocolFilter {
 
             KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)
                     workerThread.getAttachment();
-            k.setTimeout(System.currentTimeMillis());
+            k.setTimeout(System.currentTimeMillis());  // enable transaction timeout
+            k.setIdleTimeoutDelay(SelectionKeyAttachment.UNLIMITED_TIMEOUT); // disable idleTimeout
             KeepAliveStats ks = selectorThread.getKeepAliveStats();
             k.setKeepAliveStats(ks);
             
@@ -265,6 +266,15 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
         
         if (keepAlive) {
+            final Object attachement = ctx.getSelectionKey().attachment();
+            if (attachement instanceof SelectionKeyAttachment) {
+                final SelectionKeyAttachment selectionKeyAttachment =
+                        (SelectionKeyAttachment) attachement;
+                selectionKeyAttachment.setTimeout(System.currentTimeMillis());
+                selectionKeyAttachment.setIdleTimeoutDelay(
+                        SelectionKeyAttachment.UNSET_TIMEOUT);
+            }
+            
             ctx.setKeyRegistrationState(
                     Context.KeyRegistrationState.REGISTER);
         } else {
@@ -365,7 +375,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             final SelectionKey selectionKey = processorTask.getSelectionKey();
             final SelectorThread selectorThread = processorTask.getSelectorThread();
 
-            if (keepAlive) {
+            if (keepAlive) {                
                 selectorHandler.register(selectionKey,
                         SelectionKey.OP_READ);
             } else {

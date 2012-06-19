@@ -217,7 +217,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      */
     private void disableTimeout() {
         final ThreadAttachment attachment = obtainAndSetThreadAttachment();
-        attachment.setIdleTimeoutDelay(Long.MAX_VALUE);
+        attachment.setIdleTimeoutDelay(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
     }
     
     /**
@@ -225,7 +225,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      */
     private void enableTimeout() {
         final ThreadAttachment attachment = obtainAndSetThreadAttachment();
-        attachment.setIdleTimeoutDelay(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
+        attachment.setIdleTimeoutDelay(SelectionKeyAttachment.UNSET_TIMEOUT);
         attachment.setTimeout(System.currentTimeMillis());
     }
     

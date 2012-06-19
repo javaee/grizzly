@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,10 +50,11 @@ import java.nio.channels.SelectionKey;
  */
 public abstract class SelectionKeyAttachment {
     public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
-    public static final long DEREGISTERED = Long.MIN_VALUE +1;
+    public static final long DEREGISTERED = Long.MIN_VALUE + 1;
+    public static final long UNSET_TIMEOUT = Long.MIN_VALUE + 2;
     
-    protected volatile long timeout = UNLIMITED_TIMEOUT;
-    protected volatile long idleTimeoutDelay = UNLIMITED_TIMEOUT;
+    protected volatile long timeout = UNSET_TIMEOUT;
+    protected volatile long idleTimeoutDelay = UNSET_TIMEOUT;
     protected volatile TimeOutListener timeoutListener;
     protected volatile KeySelectionListener keySelectionListener;
 
@@ -150,8 +151,8 @@ public abstract class SelectionKeyAttachment {
     }
 
     public void release(SelectionKey selectionKey) {
-        idleTimeoutDelay = UNLIMITED_TIMEOUT;
-        timeout = UNLIMITED_TIMEOUT;
+        idleTimeoutDelay = UNSET_TIMEOUT;
+        timeout = UNSET_TIMEOUT;
         timeoutListener = null;
         keySelectionListener = null;
     }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -124,11 +124,10 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             if (attachment != null) {
                 long expire = getExpirationStamp(attachment);
 
-                if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT &&
-                        expire != SelectionKeyAttachment.DEREGISTERED) {
+                if (expire >= 0) {
                     long idleLimit = getIdleLimit(attachment);
 
-                    if (idleLimit != -1 && currentTime - expire >= idleLimit &&
+                    if (idleLimit >= 0 && currentTime - expire >= idleLimit &&
                             (!(attachment instanceof SelectionKeyAttachment) ||
                             ((SelectionKeyAttachment) attachment).timedOut(key))) {
                         //preventing further idle timeout detection for same key
@@ -151,7 +150,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
     private long getIdleLimit(Object attachment) {
         if (attachment instanceof SelectionKeyAttachment) {
             long idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
-            if (idleLimit != SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
+            if (idleLimit != SelectionKeyAttachment.UNSET_TIMEOUT) {
                 return idleLimit;
             }
         }

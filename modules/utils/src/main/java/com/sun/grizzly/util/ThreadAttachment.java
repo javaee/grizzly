@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     /**
      * The maximum time this object can be associated with an active {@link Thread}
      */
-    private long transactionTimeout = UNLIMITED_TIMEOUT;
+    private long transactionTimeout = UNSET_TIMEOUT;
 
     public static class Mode {
         public static final int ATTRIBUTES_ONLY = 0;
@@ -275,7 +275,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sslEngine = null;
         inputBB = null;
         outputBB = null;
-        transactionTimeout = UNLIMITED_TIMEOUT;
+        transactionTimeout = UNSET_TIMEOUT;
     }
 
     @Override
@@ -341,8 +341,10 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
 
     @Override
     public long getIdleTimeoutDelay() {
-        if (isUnlimitedTimeout(idleTimeoutDelay)) { // the most often case, if async is not used
+        if (isNotSetTimeout(idleTimeoutDelay)) { // the most often case, if async is not used
             return transactionTimeout;
+        } else if (isNotSetTimeout(transactionTimeout)) {
+            return idleTimeoutDelay;
         }
 
         if (transactionTimeout >= 0 && idleTimeoutDelay >= 0) {
@@ -354,7 +356,11 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         }
     }
 
-    protected static final boolean isUnlimitedTimeout(long timeout) {
+    protected static boolean isUnlimitedTimeout(long timeout) {
         return timeout == SelectionKeyAttachment.UNLIMITED_TIMEOUT;
+    }
+
+    protected static boolean isNotSetTimeout(long timeout) {
+        return timeout == SelectionKeyAttachment.UNSET_TIMEOUT;
     }
 }
