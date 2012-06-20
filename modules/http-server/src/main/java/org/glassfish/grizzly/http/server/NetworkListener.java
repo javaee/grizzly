@@ -41,8 +41,6 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -52,10 +50,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -171,6 +169,9 @@ public class NetworkListener {
      * up by framework during runtime.
      */
     private String scheme;
+
+    private int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+    private int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     
     // ------------------------------------------------------------ Constructors
 
@@ -420,13 +421,54 @@ public class NetworkListener {
     public void setScheme(String scheme) {
         this.scheme = scheme;
     }
-    
+
+    /**
+     * Returns the maximum number of headers allowed for a request.
+     *
+     * @since 2.2.11
+     */
+    public int getMaxRequestHeaders() {
+        return maxRequestHeaders;
+    }
+
+    /**
+     * Sets the maximum number of headers allowed for a request.
+     *
+     * If the specified value is less than zero, then there may be an
+     * unlimited number of headers (memory permitting).
+     *
+     * @since 2.2.11
+     */
+    public void setMaxRequestHeaders(int maxRequestHeaders) {
+        this.maxRequestHeaders = maxRequestHeaders;
+    }
+
+    /**
+     * Returns the maximum number of headers allowed for a response.
+     *
+     * @since 2.2.11
+     */
+    public int getMaxResponseHeaders() {
+        return maxResponseHeaders;
+    }
+
+    /**
+     * Sets the maximum number of headers allowed for a response.
+     *
+     * If the specified value is less than zero, then there may be an
+     * unlimited number of headers (memory permitting).
+     *
+     * @since 2.2.11
+     */
+    public void setMaxResponseHeaders(int maxResponseHeaders) {
+        this.maxResponseHeaders = maxResponseHeaders;
+    }
+
     /**
      * @return the {@link SSLEngine} configuration for this listener.
      */
     public SSLEngineConfigurator getSslEngineConfig() {
         return sslEngineConfig;
-
     }
 
     /**

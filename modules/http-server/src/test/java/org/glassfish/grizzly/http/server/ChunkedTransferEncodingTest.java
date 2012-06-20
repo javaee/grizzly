@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import java.util.List;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.glassfish.grizzly.utils.TransferQueue;
@@ -288,6 +289,7 @@ public class ChunkedTransferEncodingTest {
         }
         
         final HttpRequestPacket requestPacket = requestPacketBuilder.build();
+        requestPacket.getHeaders().setMaxNumHeaders(-1);
         
         packetList.add(requestPacket);
         
@@ -306,6 +308,9 @@ public class ChunkedTransferEncodingTest {
         }
         
         final HttpTrailer.Builder trailerBuilder = HttpTrailer.builder(requestPacket);
+        final MimeHeaders headers = new MimeHeaders();
+        headers.setMaxNumHeaders(-1);
+        trailerBuilder.headers(headers);
 
         for (Entry<String, Pair<String, String>> entry : trailerHeaders.entrySet()) {
             final String value = entry.getValue().getFirst();
@@ -346,6 +351,8 @@ public class ChunkedTransferEncodingTest {
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
+        listener.setMaxRequestHeaders(-1);
+        listener.setMaxResponseHeaders(-1);
         listener.getTransport().getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
         if (isChunkWhenParsing) {
             listener.registerAddOn(new AddOn() {
