@@ -80,6 +80,7 @@ import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -513,13 +514,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transactionTimeoutMillis = Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
         filterChainBuilder.add(new IdleTimeoutFilter(delayedExecutor, Integer.parseInt(http.getTimeoutSeconds()),
             TimeUnit.SECONDS));
+        int maxRequestHeaders;
+        try {
+            maxRequestHeaders = Integer.parseInt(http.getMaxRequestHeaders());
+        } catch (NumberFormatException nfe) {
+            maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+        }
+        int maxResponseHeaders;
+        try {
+            maxResponseHeaders = Integer.parseInt(http.getMaxResponseHeaders());
+        } catch (NumberFormatException nfe) {
+            maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+        }
         final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
             new org.glassfish.grizzly.http.HttpServerFilter(
                 Boolean.parseBoolean(http.getChunkingEnabled()),
                 Integer.parseInt(http.getHeaderBufferLengthBytes()),
                 http.getForcedResponseType(),
                 configureKeepAlive(http),
-                delayedExecutor);
+                delayedExecutor,
+                maxRequestHeaders,
+                maxResponseHeaders);
         final Set<ContentEncoding> contentEncodings =
             configureContentEncodings(http);
         for (ContentEncoding contentEncoding : contentEncodings) {

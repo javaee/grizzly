@@ -577,8 +577,11 @@ public class HttpServer {
             final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),
                                          maxHeaderSize,
+                                         null,
                                          listener.getKeepAlive(),
-                                         null);
+                                         null,
+                                         listener.getMaxRequestHeaders(),
+                                         listener.getMaxResponseHeaders());
             final Set<ContentEncoding> contentEncodings =
                     configureCompressionEncodings(listener);
             for (ContentEncoding contentEncoding : contentEncodings) {
