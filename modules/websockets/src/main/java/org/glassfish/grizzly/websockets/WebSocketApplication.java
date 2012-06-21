@@ -218,6 +218,22 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @throws HandshakeException error occurred during the handshake.
      */
     protected void handshake(HandShake handshake) throws HandshakeException {
-    } 
+    }
+
+    /**
+     * This method will be invoked if an unexpected exception is caught by
+     * the WebSocket runtime.
+     *
+     * @param webSocket the websocket being processed at the time the
+     *                  exception occurred.
+     * @param t the unexpected exception.
+     *
+     * @return <code>true</code> if the WebSocket should be closed otherwise
+     *  <code>false</code>.
+     */
+    protected boolean onError(final WebSocket webSocket,
+                              final Throwable t) {
+        return true;
+    }
 
 }
