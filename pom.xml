@@ -145,6 +145,11 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>${felix-version}</version>
+                </plugin>
+                <plugin>
                     <inherited>true</inherited>
                     <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
                     <artifactId>maven-antrun-extended-plugin</artifactId>
@@ -366,11 +371,6 @@
                 <version>2.0</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>${felix-version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>hk2</artifactId>
                 <version>${hk2.version}</version>
@@ -422,7 +422,7 @@
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
-        <felix-version>2.3.6</felix-version>
+        <felix-version>2.3.7</felix-version>
         <cobertura.version>2.4</cobertura.version>
         <gmbal.version>3.0.0-b023</gmbal.version>
         <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>
