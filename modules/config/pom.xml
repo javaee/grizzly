@@ -122,7 +122,6 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>1.4.0</version>
                 <configuration>
                     <supportedProjectTypes>
                         <supportedProjectType>hk2-jar</supportedProjectType>
