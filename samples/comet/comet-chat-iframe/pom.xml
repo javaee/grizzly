@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.50</version>
+        <version>1.9.51-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sun.grizzly.samples</groupId>
   <artifactId>grizzly-comet-chat-iframe</artifactId>
   <packaging>war</packaging>
-  <version>1.9.50</version>
+  <version>1.9.51-SNAPSHOT</version>
   <name>grizzly-comet-chat-iframe</name>
   <url>http://maven.apache.org</url>
   <dependencies>
