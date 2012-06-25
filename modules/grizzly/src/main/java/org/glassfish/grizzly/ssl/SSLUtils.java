@@ -65,8 +65,6 @@ public class SSLUtils {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(SSL_ENGINE_ATTR_NAME);
 
     private static final byte CHANGE_CIPHER_SPECT_CONTENT_TYPE = 20;
-    private static final byte ALERT_CONTENT_TYPE = 21;
-    private static final byte HANDSHAKE_CONTENT_TYPE = 22;
     private static final byte APPLICATION_DATA_CONTENT_TYPE = 23;
     private static final int SSLV3_RECORD_HEADER_SIZE = 5; // SSLv3 record header
     private static final int SSL20_HELLO_VERSION = 0x0002;
@@ -116,7 +114,7 @@ public class SSLUtils {
              */
             final byte major = buf.get(pos + 1);
             final byte minor = buf.get(pos + 2);
-            final int v = (major << 8) | minor;
+            final int v = (major << 8) | minor & 0xff;
 
             // Check if too old (currently not possible)
             // or if the major version does not match.
