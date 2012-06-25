@@ -1008,7 +1008,7 @@ public class OutputBuffer {
     }
 
     private void notifyCommit() throws IOException {
-        for (int i = 0; i < lifeCycleListeners.size(); i++) {
+        for (int i = 0, len = lifeCycleListeners.size(); i < len; i++) {
             lifeCycleListeners.get(i).onCommit();
         }
     }
