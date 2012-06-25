@@ -400,7 +400,7 @@ public class OutputBuffer {
                 copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
                 flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
                 offLocal += lenLocal;
-                lenLocal -= lenLocal;
+                lenLocal = 0;
             }
         }
     }
@@ -1061,7 +1061,7 @@ public class OutputBuffer {
     }
 
     private void notifyCommit() throws IOException {
-        for (int i = 0; i < lifeCycleListeners.size(); i++) {
+        for (int i = 0, len = lifeCycleListeners.size(); i < len; i++) {
             lifeCycleListeners.get(i).onCommit();
         }
     }
