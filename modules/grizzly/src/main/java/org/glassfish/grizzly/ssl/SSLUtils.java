@@ -164,9 +164,8 @@ public class SSLUtils {
                 /*
                  * Client or Server Hello
                  */
-                int mask = (isShort ? 0x7f : 0x3f);
-                len = ((byteZero & mask) << 8)
-                        + (buf.get(pos + 1) & 0xff) + (isShort ? 2 : 3);
+                int mask = 0x7f;
+                len = ((byteZero & mask) << 8) + (buf.get(pos + 1) & 0xff) + (2);
 
             } else {
                 // Gobblygook!
@@ -278,15 +277,4 @@ public class SSLUtils {
         }
     }
 
-    static void clearOrCompact(Buffer buffer) {
-        if (buffer == null) {
-            return;
-        }
-
-        if (!buffer.hasRemaining()) {
-            buffer.clear();
-        } else if (buffer.position() > 0) {
-            buffer.compact();
-        }
-    }
 }
