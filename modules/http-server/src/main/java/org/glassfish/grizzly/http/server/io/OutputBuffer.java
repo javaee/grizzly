@@ -422,7 +422,7 @@ public class OutputBuffer {
                 copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
                 flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
                 offLocal += lenLocal;
-                lenLocal -= lenLocal;
+                lenLocal = 0;
             }
         }
 
