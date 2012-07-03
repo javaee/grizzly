@@ -310,7 +310,7 @@ public class StaticHttpHandler extends HttpHandler {
         }
 
         final String resourcesContextPath = request.getContextPath();
-        if (resourcesContextPath.length() > 0) {
+        if (resourcesContextPath != null && !resourcesContextPath.isEmpty()) {
             if (!uri.startsWith(resourcesContextPath)) {
                 return null;
             }
