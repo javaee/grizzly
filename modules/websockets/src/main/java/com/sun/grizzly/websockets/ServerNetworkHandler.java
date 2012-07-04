@@ -45,6 +45,7 @@ import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
+import com.sun.grizzly.tcp.Constants;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
@@ -55,16 +56,18 @@ import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
+import com.sun.grizzly.util.http.Cookie;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import com.sun.grizzly.util.http.mapper.Mapper;
 import com.sun.grizzly.util.http.mapper.MappingData;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.sun.grizzly.websockets.glassfish.GlassfishSupport;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 public class ServerNetworkHandler extends BaseNetworkHandler {
     private static final Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
@@ -83,15 +86,22 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             ProtocolHandler protocolHandler, Mapper mapper) {
         request = req;
         response = resp;
-        GrizzlyRequest grizzlyRequest = new GrizzlyRequest();
+        final WSGrizzlyRequestImpl grizzlyRequest = new WSGrizzlyRequestImpl();
         grizzlyRequest.setRequest(request);
-        GrizzlyResponse grizzlyResponse = new GrizzlyResponse();
+        final GrizzlyResponse grizzlyResponse = new GrizzlyResponse();
         grizzlyResponse.setResponse(response);
         grizzlyRequest.setResponse(grizzlyResponse);
         grizzlyResponse.setRequest(grizzlyRequest);
         try {
-            httpServletRequest = new WSServletRequestImpl(grizzlyRequest, mapper);
+            // Has to be called before servlet request/response wrappers initialization
+            grizzlyRequest.parseSessionId();
+            
+            final WSServletRequestImpl wsServletRequest =
+                    new WSServletRequestImpl(grizzlyRequest, mapper);
+            httpServletRequest = wsServletRequest;
             httpServletResponse = new HttpServletResponseImpl(grizzlyResponse);
+            
+            wsServletRequest.initSession();
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
@@ -104,7 +114,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
 
     @Override
     protected int read() {
-        int read = 0;
+        int read;
         ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
         
         Throwable error = null;
@@ -214,16 +224,61 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         }
     }
     
+    private class WSGrizzlyRequestImpl extends GrizzlyRequest {
+
+        /**
+         * Make method visible for websockets
+         */
+        @Override
+        protected void parseSessionId() {
+            // Try to get session id from request-uri
+            super.parseSessionId();
+            
+            // Try to get session id from cookie
+            Cookie[] parsedCookies = getCookies();
+            if (parsedCookies != null) for (Cookie c : parsedCookies) {
+                if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                    setRequestedSessionId(c.getValue());
+                    setRequestedSessionCookie(true);
+                    break;
+                }
+            }            
+        }
+    } // END WSServletRequestImpl
+    
     private class WSServletRequestImpl extends HttpServletRequestImpl {
+        private final GlassfishSupport glassfishSupport;
+        
         private String pathInfo;
         private String servletPath;
         private String contextPath;
+        
         public WSServletRequestImpl(GrizzlyRequest r, Mapper mapper) throws IOException {
             super(r);
             setContextImpl(new ServletContextImpl());
             if (mapper != null) {
-                updatePaths(r, mapper);
+                final MappingData mappingData = updatePaths(r, mapper);
+                glassfishSupport = new GlassfishSupport(mappingData.context,
+                        mappingData.wrapper, this);
+            } else {
+                glassfishSupport = new GlassfishSupport();
             }
+        }
+
+        @Override
+        protected void initSession() {
+            if (!glassfishSupport.isValid()) {
+                super.initSession();
+            }
+        }
+
+        @Override
+        public HttpSession getSession(boolean create) {
+            if (glassfishSupport.isValid()) {
+                return glassfishSupport.getSession(create);
+            }
+            
+            return super.getSession(create);
         }
 
         @Override
@@ -241,7 +296,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             return pathInfo;
         }
 
-        private void updatePaths(GrizzlyRequest r, Mapper mapper) {
+        private MappingData updatePaths(GrizzlyRequest r, Mapper mapper) {
             final Request req = r.getRequest();
             try {
                 MessageBytes decodedURI = req.decodedURI();
@@ -252,6 +307,8 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 pathInfo = data.pathInfo.getString();
                 servletPath = data.wrapperPath.getString();
                 contextPath = data.contextPath.getString();
+                
+                return data;
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Unable to map request", e);
@@ -260,6 +317,8 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 servletPath = null;
                 contextPath = null;
             }
+
+            return null;
         }
 
     } // END WSServletRequestImpl
