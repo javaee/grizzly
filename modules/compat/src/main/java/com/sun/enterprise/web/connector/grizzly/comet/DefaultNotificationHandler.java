@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,7 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
-import com.sun.enterprise.web.connector.grizzly.comet.CometHandler;
-import com.sun.grizzly.Controller;
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
 
 /**
  * Default Notificationhandler that uses the same a Grizzly thread pool
@@ -62,40 +58,5 @@ public class DefaultNotificationHandler
     @Override
     protected void setThreadPool(ExecutorService threadPool){
         super.setThreadPool(threadPool);
-    }
-
-    /**
-     * {@inheritDoc}
-     */ 
-    @Override
-    protected void notify0(com.sun.grizzly.comet.CometEvent cometEvent,
-            com.sun.grizzly.comet.CometHandler cometHandler) {
-          
-        try{
-            switch (cometEvent.getType()) {
-                case CometEvent.INTERRUPT:
-                    synchronized(cometHandler){
-                    ((CometHandler)cometHandler).onInterrupt((CometEvent)cometEvent);
-                    }
-                    break;
-                case CometEvent.NOTIFY:
-                case CometEvent.READ:
-                case CometEvent.WRITE:
-                    synchronized(cometHandler){
-                    ((CometHandler)cometHandler).onEvent((CometEvent)cometEvent);
-                    }
-                    break;                 
-                case CometEvent.INITIALIZE:
-                    ((CometHandler)cometHandler).onInitialize((CometEvent)cometEvent);
-                    break;      
-                case CometEvent.TERMINATE:
-                    ((CometHandler)cometHandler).onTerminate((CometEvent)cometEvent);
-                    break;                       
-                default:
-                    throw new IllegalStateException();
-            }
-        } catch (IOException ex){
-            Controller.logger().log(Level.FINE,"",ex);
-        }
     }
 }

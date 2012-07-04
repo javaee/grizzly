@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,10 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
+import com.sun.grizzly.comet.CometTask;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -57,37 +59,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Jeanfrancois Arcand
  * @deprecated use {@link CometContext}
  */
-public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
-   
-    protected final CometEvent eventInitialize;
-   
-    protected final CometEvent eventInterrupt;
-
-    protected final CometEvent eventTerminate;
+public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E> {
+    private final Object mapSync = new Object();
+    private final WeakHashMap<CometHandler, com.sun.grizzly.comet.CometHandler> cometHandlerMap
+            = new WeakHashMap<CometHandler, com.sun.grizzly.comet.CometHandler>();
     
-    /**
-     * {@inheritDoc}
-     */ 
-    public CometContext(String contextPath, int continuationType) {
-        super(contextPath, continuationType);
-        this.eventInterrupt   = new CometEvent(CometEvent.INTERRUPT,this);
-        this.eventInitialize  = new CometEvent(CometEvent.INITIALIZE,this);
-        this.eventTerminate   = new CometEvent(CometEvent.TERMINATE,this,this);
+    public CometContext(String contextTopic, int type) {
+        super(contextTopic, type);
     }
+
     
-    
-    protected void setTopic(String topic){
+    protected void setTopic(String topic) {
         this.topic = topic;
     }
     
-    /**
-     * {@inheritDoc}
-     */     
-    @Override
-    public CometHandler getCometHandler(int hashCode){
-        return (CometHandler) super.getCometHandler(hashCode);
-    }      
+    public int addCometHandler(CometHandler handler) {
+        return addCometHandler(handler, false);
+    }
     
+    public int addCometHandler(CometHandler handler, boolean alreadySuspended) {
+        return super.addCometHandler(wrapCometHandler(handler), alreadySuspended);
+    }
 
     /**
      * Resume the Comet request and remove it from the active {@link CometHandler} list. Once resumed,
@@ -99,68 +91,81 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
      * @param handler The CometHandler to resume.
      * @return <tt>true</tt> if the operation succeeded.
      */
-    @Override
-    public boolean resumeCometHandler(com.sun.grizzly.comet.CometHandler handler){
-        boolean status = CometEngine.getEngine().interrupt(handlers.get(handler),false);
-        if (status){
-            try {
-                handler.onTerminate(eventTerminate);
-            } catch (IOException ignored) { }
-        }
-        return status;
+    public void resumeCometHandler(CometHandler handler) {
+        super.resumeCometHandler(wrapCometHandler(handler));
     }
     
-    /**
-     * {@inheritDoc}
-     */ 
-    @Override
-    public void notify(final Object attachment) throws IOException {
-        CometEvent event = new CometEvent(CometEvent.NOTIFY,this);
-        event.attach(attachment);
-        Iterator<com.sun.grizzly.comet.CometHandler> iterator = handlers.keySet().iterator();
-        notificationHandler.setBlockingNotification(blockingNotification);
-        notificationHandler.notify((com.sun.grizzly.comet.CometEvent)event,iterator);
-        resetSuspendIdleTimeout();
+    public void removeCometHandler(CometHandler handler) {
+        removeCometHandler(handler, true);
     }
 
-    /**
-     * {@inheritDoc}
-     */  
-    @Override
-    public void notify(final Object attachment,final int eventType,final int cometHandlerID)
-            throws IOException{   
-        CometHandler cometHandler = getCometHandler(cometHandlerID);
-  
-        if (cometHandler == null){
-            throw new IllegalStateException(INVALID_COMET_HANDLER);
-        }
-        CometEvent event = new CometEvent(eventType,this);
-        event.attach(attachment);
-        
-        notificationHandler.setBlockingNotification(blockingNotification);        
-        notificationHandler.notify(event,cometHandler);
-        if (event.getType() != CometEvent.TERMINATE
-            && event.getType() != CometEvent.INTERRUPT) {
-            resetSuspendIdleTimeout(); 
-        }
+    public boolean removeCometHandler(CometHandler handler, boolean resume) {
+        return super.removeCometHandler(wrapCometHandler(handler), resume);
     }
-    
-    /**
-     * Return the internal list of active {@link CometHandler}
-     * @return Return the internal list of active {@link CometHandler}
-     */
-    @Override
-    protected ConcurrentHashMap<com.sun.grizzly.comet.CometHandler,com.sun.grizzly.comet.CometTask> handlers(){
+
+    ConcurrentHashMap<com.sun.grizzly.comet.CometHandler, CometTask> getHandlers() {
         return handlers;
     }
-    
-    /**
-     * {@inheritDoc}
-     */     
-    @Override
-    protected void initialize(com.sun.grizzly.comet.CometHandler handler) throws IOException {
-        ((com.sun.enterprise.web.connector.grizzly.comet.CometHandler)handler).onInitialize(eventInitialize); 
-    }
-    
-}
 
+    
+    
+    private com.sun.grizzly.comet.CometHandler wrapCometHandler(CometHandler handler) {
+        synchronized(mapSync) {
+            com.sun.grizzly.comet.CometHandler normalHandler = cometHandlerMap.get(handler);
+            if (normalHandler == null) {
+                normalHandler = new CometHandlerWrapper(handler);
+            }
+            
+            return normalHandler;
+        }
+    }
+
+    private static final class CometHandlerWrapper<E>
+            implements com.sun.grizzly.comet.CometHandler<E> {
+        
+        private final CometHandler<E> cometHandler;
+
+        public CometHandlerWrapper(CometHandler<E> cometHandler) {
+            this.cometHandler = cometHandler;
+        }
+        
+        public void attach(E attachment) {
+            cometHandler.attach(attachment);
+        }
+
+        public void onEvent(com.sun.grizzly.comet.CometEvent event) throws IOException {
+            cometHandler.onEvent(new CometEvent(event));
+        }
+
+        public void onInitialize(com.sun.grizzly.comet.CometEvent event) throws IOException {
+            cometHandler.onInitialize(new CometEvent(event));
+        }
+
+        public void onTerminate(com.sun.grizzly.comet.CometEvent event) throws IOException {
+            cometHandler.onTerminate(new CometEvent(event));
+        }
+
+        public void onInterrupt(com.sun.grizzly.comet.CometEvent event) throws IOException {
+            cometHandler.onInterrupt(new CometEvent(event));
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof CometHandlerWrapper) {
+                return cometHandler.equals(((CometHandlerWrapper) obj).cometHandler);
+            }
+            
+            return cometHandler.equals(obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return cometHandler.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return cometHandler.toString();
+        }
+    }
+}

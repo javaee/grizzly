@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
+import java.io.Serializable;
+
 /**
  * Simple event class used to pass information between {@link CometHandler}
  * and the Comet implementation.
@@ -47,21 +49,117 @@ package com.sun.enterprise.web.connector.grizzly.comet;
  * @author Jeanfrancois Arcand
  * @deprecated use {@link CometEvent}
  */
-public class CometEvent<E> extends com.sun.grizzly.comet.CometEvent {
+public class CometEvent<E> implements Serializable{
 
-    public CometEvent(int type, CometContext context) {
-        super(type, context);
-    }
-
-    public CometEvent(int type, CometContext context, E attachment) {
-        super(type, context,attachment);
-    }
+    
     /**
-     * {@inheritDoc}
-     */   
-    @Override
-    protected void setType(int type){
-        super.setType(type);
+     * Interrupt the {@link CometHandler}.
+     */
+    public final static int INTERRUPT = 0;
+    
+    
+    /**
+     * Notify the {@link CometHandler}.
+     */
+    public final static int NOTIFY = 1;
+    
+    
+    /**
+     * Initialize the {@link CometHandler}.
+     */    
+    public final static int INITIALIZE = 2;
+    
+    
+    /**
+     * Terminate the {@link CometHandler}.
+     */     
+    public final static int TERMINATE = 3;    
+    
+    
+    /**
+     * Notify the {@link CometHandler} of available bytes.
+     */       
+    public final static int READ = 4;
+    
+    
+    /**
+     * Notify the {@link CometHandler} when the channel is writable.
+     */       
+    public final static int WRITE = 5;
+    
+    
+    /**
+     * This type of event.
+     */
+    protected int type;
+
+    
+    /**
+     * Share an <code>E</code> amongst {@link CometHandler}
+     */
+    protected E attachment;
+    
+    
+    /**
+     * The CometContext from where this instance was fired.
+     */
+    private transient CometContext cometContext;
+
+
+    public CometEvent(final com.sun.grizzly.comet.CometEvent<E> copyEvent) {
+        this.type = copyEvent.getType();
+        this.attachment = copyEvent.attachment();
+        this.cometContext = (CometContext) copyEvent.getCometContext();
     }
     
+    /**
+     * Return the <code>type</code> of this object.
+     * @return int Return the <code>type</code> of this object
+     */
+    public int getType(){
+        return type;
+    }
+    
+    
+    /**
+     * Set the <code>type</code> of this object.
+     * @param type the <code>type</code> of this object
+     */    
+    protected void setType(int type){
+        this.type = type;
+    }
+    
+    
+    /**
+     * Attach an <E>
+     * @param attachment An attachment. 
+     */
+    public void attach(E attachment){
+        this.attachment = attachment;
+    }
+    
+    
+    /**
+     * Return the attachment <E>
+     * @return attachment An attachment. 
+     */    
+    public E attachment(){
+        return attachment;
+    }
+
+    
+    /**
+     * Return the {@link CometContext} that fired this event.
+     */
+    public CometContext getCometContext() {
+        return cometContext;
+    }
+
+    
+    /**
+     * Set the {@link CometContext} that fired this event.
+     */
+    protected void setCometContext(CometContext cometContext) {
+        this.cometContext = cometContext;
+    }
 }

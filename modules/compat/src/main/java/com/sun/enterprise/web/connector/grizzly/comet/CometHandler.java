@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,40 +43,63 @@ package com.sun.enterprise.web.connector.grizzly.comet;
 import java.io.IOException;
 
 /**
- * This interface allow Java components part of an HTTP request to be polled
- * by the Grizzly Asynchronous Request Mechanism. Components that implement
- * this interface will be notified when another {@link CometHandler} 
- * notify them using <code>CometContext.notify</code>.
+ * This interface represents a suspended connection (or response). Passing an 
+ * instance of this class to {@link CometContext.addCometListener} automatically
+ * tells Grizzly Comet to suspend the underlying connection and to avoid commiting the 
+ * response. Since the response is not commited, the connection is considered
+ * as suspended and can be resumed later when an event happens by invoking,
+ * from {@link #onEvent} or eveyrwhere, the {@link CometContext#resumeCometHandler}, 
+ * which resume the connection by commiting the response. As an example, a browser icons
+ * will spins when a connection is suspended, as the complete response hasn't been
+ * sent back. 
+ * 
+ * Components that implement this interface will be notified when another {@link CometHandler} 
+ * notify them using {@link CometContext#notify}
  *
- * With Servlet, it is recommended to attach the <code>HTTPServletResponse</code>
- * and use this object to push back bytes to the client.
+ * With Servlet, it is recommended to attach the {@link HTTPServletResponse}
+ * and use this object to push back messages to the client.
  *
  * @author Jeanfrancois Arcand
- * @deprecated use {@link CometHandler} from com.sun.grizzly.comet.CometHandler.
  */
-public interface CometHandler<E> extends com.sun.grizzly.comet.CometHandler<E> {
+@Deprecated
+public interface CometHandler<E> {
+
     /**
-     * {@inheritDoc}
-     */ 
+     * Attach an intance of E to this class.
+     */
     public void attach(E attachment);
     
+    
     /**
-     * {@inheritDoc}
-     */     
+     * Receive {@link CometEvent} notification. This method will be invoked
+     * everytime a {@link CometContext#notify} is invoked. The {@link CometEvent}
+     * will contains the message that can be pushed back to the remote client,
+     * cached or ignored. This method can also be used to resume a connection
+     * once a notified by invoking {@link CometContext#resumeCometHandler}.
+     */
     public void onEvent(CometEvent event) throws IOException;
     
+    
     /**
-     * {@inheritDoc}
-     */     
+     * Receive {@link CometEvent} notification when Grizzly is about to
+     * suspend the connection. This method is always invoked during the 
+     * processing of {@link CometContext#addCometHandler} operations.
+     */
     public void onInitialize(CometEvent event) throws IOException;
     
-    /**
-     * {@inheritDoc}
-     */     
-    public void onTerminate(CometEvent event) throws IOException;    
     
     /**
-     * {@inheritDoc}
-     */    
-    public void onInterrupt(CometEvent event) throws IOException;
+     * Receive {@link CometEvent} notification when the response
+     * is resumed by a {@link CometHandler} or by the {@link CometContext}
+     */
+    public void onTerminate(CometEvent event) throws IOException;    
+    
+    
+    /**
+     * Receive {@link CometEvent} notification when the underlying 
+     * tcp communication is resumed by the Grizzly ARP. This happens
+     * when the {@link CometContext#setExpirationDelay} expires or when
+     * the remote client close the connection.
+     */
+    public void onInterrupt(CometEvent event) throws IOException;    
 }

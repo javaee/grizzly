@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,9 +40,6 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
-
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
  * Request Processing mechanism. This class is the entry point to any
@@ -76,7 +73,7 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
      */   
     public static CometEngine getEngine(){
         return cometEngine;
-    }
+}
     
     
     /**
@@ -92,31 +89,29 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
      * {@inheritDoc}
      */   
     @Override
-    public CometContext register(String topic, int type){
+    public CometContext register(String topic, int type) {
         // Double checked locking used used to prevent the otherwise static/global 
         // locking, cause example code does heavy usage of register calls
         // for existing topics from http get calls etc.
-        CometContext cometContext = (CometContext)activeContexts.get(topic);
-        if (cometContext == null){
-            synchronized(activeContexts){
-                cometContext = (CometContext)activeContexts.get(topic);
-                if (cometContext == null){
-                    cometContext = (CometContext)cometContextCache.poll();
-                    if (cometContext != null)
-                        cometContext.setTopic(topic);                
-                    if (cometContext == null){
+        CometContext cometContext = (CometContext) activeContexts.get(topic);
+        if (cometContext == null) {
+            synchronized (activeContexts) {
+                cometContext = (CometContext) activeContexts.get(topic);
+                if (cometContext == null) {
+                    cometContext = (CometContext) cometContextCache.poll();
+                    if (cometContext != null) {
+                        cometContext.setTopic(topic);
+                    }
+                    if (cometContext == null) {
                         cometContext = new CometContext(topic, type);
-                        NotificationHandler notificationHandler 
-                                = new DefaultNotificationHandler();
+                        NotificationHandler notificationHandler = new DefaultNotificationHandler();
                         cometContext.setNotificationHandler(notificationHandler);
-                        if (notificationHandler != null && (notificationHandler
-                                    instanceof DefaultNotificationHandler)){
-                            ((DefaultNotificationHandler)notificationHandler)
-                                .setThreadPool(threadPool);
+                        if (notificationHandler != null && (notificationHandler instanceof DefaultNotificationHandler)) {
+                            ((DefaultNotificationHandler) notificationHandler).setThreadPool(threadPool);
                         }
                     }
-                    activeContexts.put(topic,cometContext);
-                }                
+                    activeContexts.put(topic, cometContext);
+                }
             }
         }
         return cometContext;
@@ -129,65 +124,5 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
     @Override
     public CometContext getCometContext(String contextPath){
         return (CometContext)activeContexts.get(contextPath);
-    }
-    
-    @Override
-    protected boolean interrupt(final com.sun.grizzly.comet.CometTask task, 
-            final boolean finishExecution) {
-        return super.interrupt(task, finishExecution);
-    }
-    /**
-     *
-     * @param task
-     * @param aptflush
-     * @param cancelkey
-     */
-    @Override
-    protected void flushPostExecute(final com.sun.grizzly.comet.CometTask task, 
-            boolean finishExecution) {
-        super.flushPostExecute(task, finishExecution);
-    }
-
-    /**
-     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
-     */
-    protected boolean interrupt(final CometTask task,final boolean finishExecution) {
-        if (task != null && task.getCometContext().handlers().remove(task.getCometHandler()) != null){
-            final SelectionKey key = task.getSelectionKey();
-             // setting attachment non asynced to ensure grizzly dont keep calling us
-            key.attach(System.currentTimeMillis());
-            if (finishExecution){
-                // dont want to do that in non selector thread:
-                // canceled key wont get canceled again due to isvalid check
-                key.cancel();
-
-                task.setCallInterrupt(true);
-                task.interruptFlushAPT = finishExecution;
-                task.run();
-
-            }else{
-                interrupt0(task, finishExecution);
-            }
-            return true;
-        }
-        return false;
-    }
-
-
-    /**
-     * interrupt logic in its own method, so it can be executed either async or sync.<br>
-     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
-     * hence not safe to run in the performance critical selector thread.
-     */
-    @Override
-    protected void interrupt0(com.sun.grizzly.comet.CometTask task,
-            boolean finishExecution){
-        if (finishExecution){
-            try{
-                ((CometHandler)task.getCometHandler()).onInterrupt((
-                        (CometEvent)((CometContext)task.getCometContext()).eventInterrupt));
-            }catch(IOException e) { }
-        }
-        flushPostExecute(task,finishExecution);
     }
 }
