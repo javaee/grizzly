@@ -102,7 +102,7 @@ public class OutputBuffer {
 
     private Buffer currentBuffer;
 
-    // Buffer, which is used for write(byte[] ...) scenarious to try to avoid
+    // Buffer, which is used for write(byte[] ...) scenarios to try to avoid
     // byte arrays copying
     private final TemporaryHeapBuffer temporaryWriteBuffer =
             new TemporaryHeapBuffer();
@@ -299,6 +299,8 @@ public class OutputBuffer {
             currentBuffer.dispose();
             currentBuffer = null;
         }
+
+        temporaryWriteBuffer.recycle();
 
         charBuf.position(0);
 
@@ -593,7 +595,7 @@ public class OutputBuffer {
             // if there is data in the currentBuffer - complete it
             finishCurrentBuffer();
 
-            // mark headers as commited
+            // mark headers as committed
             doCommit();
             if (compositeBuffer != null) { // if we write a composite buffer
                 compositeBuffer.append(temporaryWriteBuffer);
