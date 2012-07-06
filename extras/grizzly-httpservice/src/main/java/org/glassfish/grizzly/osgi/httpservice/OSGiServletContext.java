@@ -103,8 +103,14 @@ public class OSGiServletContext extends WebappContext {
         if (path == null)
             return (null);
 
+        URL resource = httpContext.getResource(path);
+        if (resource == null) {
+            logger.warn(format("Error getting resource ''{0}''. Message: {1}", path, "Can't locate resource."));
+            return null;
+        }
+
         try {
-            return httpContext.getResource(path).openStream();
+            return resource.openStream();
         } catch (IOException e) {
             logger.warn(format("Error getting resource ''{0}''. Message: {1}", path, e.getMessage()));
         }
