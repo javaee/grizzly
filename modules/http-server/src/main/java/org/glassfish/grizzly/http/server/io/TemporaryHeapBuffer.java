@@ -113,4 +113,8 @@ final class TemporaryHeapBuffer extends HeapBuffer {
         result = 31 * result + (isDisposed ? 1 : 0);
         return result;
     }
+
+    public void recycle() {
+        reset(null, 0, 0);
+    }
 }
