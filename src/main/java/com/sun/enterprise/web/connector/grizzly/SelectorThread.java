@@ -1474,6 +1474,9 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         }
     }
     
+    protected void disableExpirationTimeout(SelectionKey key) {
+        key.attach(null);
+    }
     
     /**
      * Cancel keep-alive connections.
@@ -1621,7 +1624,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         }      
         
         Object attach = key.attachment();
-        key.attach(null);
+        disableExpirationTimeout(key);
         
         if (!defaultAlgorithmInstalled) {
             if (key.isValid() && attach != null && attach instanceof ReadTask){

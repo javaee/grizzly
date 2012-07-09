@@ -198,11 +198,29 @@ public class SSLSelectorThread extends SelectorThread
             logger.log(Level.INFO,"Handling OP_READ on SocketChannel " + 
                     key.channel());
         }      
+
+        disableExpirationTimeout(key);
         
-        key.attach(null);
         return getReadTask(key);
     }    
     
+
+    @Override
+    protected void disableExpirationTimeout(SelectionKey key) {
+        // Keep-alive expired
+        final Object attachment = key.attachment();
+        if (attachment != null) {
+            if (attachment instanceof SSLEngine) {
+                SSLSession sslSession = ((SSLEngine) attachment).getSession();
+                String hashString = String.valueOf(key.hashCode());
+                if (sslSession != null) {
+                    sslSession.removeValue(hashString);
+                }
+            } else {
+                super.disableExpirationTimeout(key);
+            }
+        }
+    }
     
     /**
      * Cancel keep-alive connections.
