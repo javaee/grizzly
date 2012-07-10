@@ -917,6 +917,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     // --------------------------------------------------------- Private Methods
 
 
+    @SuppressWarnings("unchecked")
     protected void doTestParallelWrites(int packetsNumber,
                                         int size,
                                         boolean blocking) throws Exception {
