@@ -58,11 +58,10 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
+import org.glassfish.grizzly.Buffer;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
  */
@@ -594,7 +593,7 @@ public class MimeHeaders {
 class NamesIterator implements Iterator<String> {
 
     int pos;
-    final int size;
+    int size;
     int currentPos;
     String next;
     final MimeHeaders headers;
@@ -646,6 +645,7 @@ class NamesIterator implements Iterator<String> {
         headers.removeHeader(currentPos);
         pos = currentPos;
         currentPos = -1;
+        size--;
         findNext();
     }
 }
@@ -656,7 +656,7 @@ value element.
 class ValuesIterator implements Iterator<String> {
 
     int pos;
-    final int size;
+    int size;
     int currentPos;
     DataChunk next;
     final MimeHeaders headers;
@@ -701,6 +701,7 @@ class ValuesIterator implements Iterator<String> {
         headers.removeHeader(currentPos);
         pos = currentPos;
         currentPos = -1;
+        size--;
         findNext();
     }
 }
