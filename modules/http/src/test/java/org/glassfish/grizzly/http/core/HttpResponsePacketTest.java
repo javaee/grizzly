@@ -39,11 +39,13 @@
  */
 package org.glassfish.grizzly.http.core;
 
+import java.util.Iterator;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 
 public class HttpResponsePacketTest extends TestCase {
     
@@ -100,7 +102,45 @@ public class HttpResponsePacketTest extends TestCase {
         response.addHeader(Header.ContentType, "text/xml");
         assertEquals("text/xml", response.getContentType());
         assertEquals("text/xml", response.getHeader(Header.ContentType));
-        
     }
-    
+        
+    /**
+     * http://java.net/jira/browse/GRIZZLY-1295 "NullPointer while trying to get
+     * next value via ValuesIterator in MimeHeaders"
+     */
+    public void testMimeHeaderIterators() {
+        response.setHeader("Content-Length", "1");
+        response.setHeader("Content-Type", "text/plain");
+        response.setHeader("Host", "localhost");
+
+        // Headers iterator test
+        boolean removed = false;
+
+        final MimeHeaders headers = response.getHeaders();
+        for (Iterator<String> it = headers.names().iterator(); it.hasNext();) {
+            it.next();
+
+            if (!removed) {
+                it.remove();
+                removed = true;
+            }
+        }
+
+        removed = false;
+
+        final String multiValueHeader = "Multi-Value";
+
+        response.addHeader(multiValueHeader, "value-1");
+        response.addHeader(multiValueHeader, "value-2");
+        response.addHeader(multiValueHeader, "value-3");
+
+        for (Iterator<String> it = headers.values(multiValueHeader).iterator(); it.hasNext();) {
+            it.next();
+
+            if (!removed) {
+                it.remove();
+                removed = true;
+            }
+        }
+    }
 }
