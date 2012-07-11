@@ -488,7 +488,7 @@ public class CometContext<E> {
     /**
      * Enable/disable the mechanism, which detects closed connections and notifies
      * user's handlers via
-     * {@link CometHandler#onInterrupt(com.sun.grizzly.comet.CometEvent)} method.
+     * {@link CometHandler#onInterrupt(org.glassfish.grizzly.comet.CometEvent)} method.
      * If this feature is on - HTTP pipelining can not be used.
      * 
      * @param isDetectClosedConnections
