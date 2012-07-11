@@ -54,6 +54,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.JdkVersion;
 
 /**
  * Default implementation of NIO <code>SelectorHandler</code>
@@ -67,7 +68,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     public static final boolean IS_WORKAROUND_SELECTOR_SPIN =
             System.getProperty("os.name").equalsIgnoreCase("linux") &&
-                !System.getProperty("java.version").startsWith("1.7");
+                    JdkVersion.getJdkVersion().compareTo("1.7.0") < 0;
     
     protected final long selectTimeout;
 

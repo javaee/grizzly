@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.utils.JdkVersion;
 
 /**
  * {@link HttpServerFilter} configuration.
@@ -295,35 +296,10 @@ public class ServerFilterConfiguration {
     }
 
 
-    private static boolean linuxSendFileSupported(final String jdkVersion) {
-        if (jdkVersion.startsWith("1.6")) {
-            int idx = jdkVersion.indexOf('_');
-            if (idx == -1) {
-                return false;
-            }
-            StringBuilder sb = new StringBuilder(3);
-            final String substr = jdkVersion.substring(idx + 1);
-            int len = Math.min(substr.length(), 3);
-            for (int i = 0; i < len; i++) {
-                final char c = substr.charAt(i);
-                if (Character.isDigit(c)) {
-                    sb.append(c);
-                    continue;
-                }
-                break;
-            }
-            if (sb.length() == 0) {
-                return false;
-            }
-            final int patchRev = Integer.parseInt(sb.toString());
-            return (patchRev >= 18);
-        } else {
-            return jdkVersion.startsWith("1.7") || jdkVersion.startsWith("1.8");
-        }
-    }
-
     private static boolean linuxSendFileSupported() {
-        return linuxSendFileSupported(System.getProperty("java.version"));
+        JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+        JdkVersion minimumVersion = JdkVersion.parseVersion("1.6.0_18");
+        return minimumVersion.compareTo(jdkVersion) <= 0;
     }
 
 }

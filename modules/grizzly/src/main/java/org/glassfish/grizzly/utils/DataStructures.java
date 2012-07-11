@@ -56,9 +56,9 @@ public class DataStructures {
     static {
         Class<?> c = null;
         try {
-            int jver = Integer.valueOf(System.getProperty("java.version").
-                    substring(0, 3).replace(".", ""));
-            c = getAndVerify(jver > 16
+            JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+            JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
+            c = getAndVerify((minimumVersion.compareTo(jdkVersion) <= 0)
                     ? "java.util.concurrent.LinkedTransferQueue"
                     : "org.glassfish.grizzly.utils.LinkedTransferQueue");
             Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);
