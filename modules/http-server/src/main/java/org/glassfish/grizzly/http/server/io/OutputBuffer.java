@@ -111,7 +111,7 @@ public class OutputBuffer {
 
     private Buffer currentBuffer;
 
-    // Buffer, which is used for write(byte[] ...) scenarious to try to avoid
+    // Buffer, which is used for write(byte[] ...) scenarios to try to avoid
     // byte arrays copying
     private final TemporaryHeapBuffer temporaryWriteBuffer =
             new TemporaryHeapBuffer();
@@ -277,6 +277,8 @@ public class OutputBuffer {
             currentBuffer = null;
         }
 
+        temporaryWriteBuffer.recycle();
+
         charBuf.position(0);
 
         fileTransferRequested = false;
@@ -400,7 +402,7 @@ public class OutputBuffer {
                 copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
                 flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
                 offLocal += lenLocal;
-                lenLocal -= lenLocal;
+                lenLocal = 0;
             }
         }
     }
@@ -588,7 +590,7 @@ public class OutputBuffer {
             
             final int flushedBufferSize;
             
-            // mark headers as commited
+            // mark headers as committed
             doCommit();
             if (compositeBuffer != null) { // if we write a composite buffer
                 compositeBuffer.append(temporaryWriteBuffer);
@@ -1070,7 +1072,7 @@ public class OutputBuffer {
     }
 
     private void notifyCommit() throws IOException {
-        for (int i = 0; i < lifeCycleListeners.size(); i++) {
+        for (int i = 0, len = lifeCycleListeners.size(); i < len; i++) {
             lifeCycleListeners.get(i).onCommit();
         }
     }

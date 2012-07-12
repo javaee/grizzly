@@ -43,6 +43,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -80,6 +81,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int TIMEOUT = 30;
     int WEBSOCKETS_TIMEOUT = 15 * 60;
     int MAX_REQUEST_PARAMETERS = ServerFilterConfiguration.MAX_REQUEST_PARAMETERS;
+    int MAX_HEADERS = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
     String COMPRESSION_PATTERN = "on|off|force|\\d+";
@@ -301,14 +303,34 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setVersion(String version);
 
     /**
-     * The HTTP schema (http or https) to override HTTP request scheme picked up
-     * by Grizzly or web-container during runtime.
+     * The HTTP scheme (http or https) to override HTTP request scheme picked up
+     * by Grizzly or web-container during HTTP request processing.
      */
     @Attribute
     @Pattern(regexp = SCHEME_PATTERN)
     String getScheme();
 
     void setScheme(final String scheme);
+
+    /**
+     * Returns the HTTP request header name, whose value (if non-null) would be used
+     * to override default protocol scheme picked up by framework during
+     * request processing.
+     */
+    @Attribute
+    String getSchemeMapping();
+
+    void setSchemeMapping(final String schemeMapping);
+
+    /**
+     * Returns the HTTP request header name, whose value (if non-null) would be used
+     * to set the name of the remote user that has been authenticated
+     * for HTTP Request.
+     */
+    @Attribute
+    String getRemoteUserMapping();
+
+    void setRemoteUserMapping(final String remoteUserMapping);
 
     @Attribute(defaultValue = "" + WEBSOCKET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getWebsocketsSupportEnabled();
@@ -348,6 +370,26 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * @since 2.2.8
      */
     void setMaxRequestParameters();
+
+    /**
+     * Returns the maximum number of headers allowed for a request.
+     *
+     * @since 2.2.11
+     */
+    @Attribute(defaultValue = "" + MAX_HEADERS, dataType = Integer.class)
+    String getMaxRequestHeaders();
+
+    void setMaxRequestHeaders(String maxRequestHeaders);
+
+    /**
+     * Returns the maximum number of headers allowed for a response.
+     *
+     * @since 2.2.11
+     */
+    @Attribute(defaultValue = "" + MAX_HEADERS, dataType = Integer.class)
+    String getMaxResponseHeaders();
+
+    void setMaxResponseHeaders(String maxRequestHeaders);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to

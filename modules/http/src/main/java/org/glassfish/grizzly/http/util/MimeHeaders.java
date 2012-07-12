@@ -58,11 +58,10 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
+import org.glassfish.grizzly.Buffer;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
  */
@@ -130,6 +129,10 @@ servlet needs direct access to headers).
  */
 public class MimeHeaders {
 
+    public static final int MAX_NUM_HEADERS_UNBOUNDED = -1;
+
+    public static final int MAX_NUM_HEADERS_DEFAULT = 100;
+
     /** Initial size - should be == average number of headers per request
      *  XXX  make it configurable ( fine-tuning of web-apps )
      */
@@ -142,6 +145,8 @@ public class MimeHeaders {
      * The current number of header fields.
      */
     private int count;
+
+    private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
 
     /**
      * The header names {@link Iterable}.
@@ -321,11 +326,19 @@ public class MimeHeaders {
      * field has not had its name or value initialized.
      */
     private MimeHeaderField createHeader() {
+        if (maxNumHeaders >= 0 && count == maxNumHeaders) {
+            throw new MaxHeaderCountExceededException();
+        }
         MimeHeaderField mh;
         int len = headers.length;
+
         if (count >= len) {
             // expand header list array
-            MimeHeaderField tmp[] = new MimeHeaderField[count * 2];
+            int newCount = count * 2;
+            if (maxNumHeaders >= 0 && newCount > maxNumHeaders) {
+                newCount = maxNumHeaders;
+            }
+            MimeHeaderField tmp[] = new MimeHeaderField[newCount];
             System.arraycopy(headers, 0, tmp, 0, len);
             headers = tmp;
         }
@@ -487,12 +500,13 @@ public class MimeHeaders {
      * @param name The name of the headers to be removed
      * @param str The string to check the header values against
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void removeHeader(final String name, final String str) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)
                     && getValue(i) != null
                     && getValue(i).toString() != null
-                    && getValue(i).toString().indexOf(str) != -1) {
+                    && getValue(i).toString().contains(str)) {
                 removeHeader(i--);
             }
         }
@@ -505,6 +519,7 @@ public class MimeHeaders {
      * @param name The name of the headers to be removed
      * @param regex The regex string to check the header values against
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void removeHeaderMatches(final String name, final String regex) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)
@@ -546,6 +561,27 @@ public class MimeHeaders {
         headers[count - 1] = mh;
         count--;
     }
+
+
+    // ----------------------------------------------------- Max Header Handling
+
+
+    public void setMaxNumHeaders(int maxNumHeaders) {
+        this.maxNumHeaders = maxNumHeaders;
+    }
+
+    public int getMaxNumHeaders() {
+        return maxNumHeaders;
+    }
+
+    public class MaxHeaderCountExceededException extends IllegalStateException {
+
+        public MaxHeaderCountExceededException() {
+            super("Illegal attempt to exceed the configured maximum number of headers: " + maxNumHeaders);
+        }
+
+    } // END MaxHeaderCountExceededException
+
 }
 
 /**
@@ -557,7 +593,7 @@ public class MimeHeaders {
 class NamesIterator implements Iterator<String> {
 
     int pos;
-    final int size;
+    int size;
     int currentPos;
     String next;
     final MimeHeaders headers;
@@ -609,6 +645,7 @@ class NamesIterator implements Iterator<String> {
         headers.removeHeader(currentPos);
         pos = currentPos;
         currentPos = -1;
+        size--;
         findNext();
     }
 }
@@ -619,7 +656,7 @@ value element.
 class ValuesIterator implements Iterator<String> {
 
     int pos;
-    final int size;
+    int size;
     int currentPos;
     DataChunk next;
     final MimeHeaders headers;
@@ -664,6 +701,7 @@ class ValuesIterator implements Iterator<String> {
         headers.removeHeader(currentPos);
         pos = currentPos;
         currentPos = -1;
+        size--;
         findNext();
     }
 }

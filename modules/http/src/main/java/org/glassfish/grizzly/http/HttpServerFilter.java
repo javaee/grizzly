@@ -127,10 +127,15 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private final boolean processKeepAlive;
     private String defaultResponseContentType;
+    private int maxRequestHeaders;
+    private int maxResponseHeaders;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
+     *
+     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
+    @Deprecated
     public HttpServerFilter() {
         this(true, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
     }
@@ -144,7 +149,10 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param maxHeadersSize the maximum size of an inbound HTTP message header.
      * @param keepAlive keep-alive configuration for this filter instance.
      * @param executor {@link DelayedExecutor} for handling keep-alive.
+     *
+     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
+    @Deprecated
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             KeepAlive keepAlive,
@@ -169,12 +177,51 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param keepAlive keep-alive configuration for this filter instance.
      * @param executor {@link DelayedExecutor} for handling keep-alive. If <tt>null</tt> -
      *  keep-alive idle connections should be managed outside HttpServerFilter.
+     *
+     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
+    @Deprecated
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
+        this(chunkingEnabled,
+             maxHeadersSize,
+             defaultResponseContentType,
+             keepAlive,
+             executor,
+             MimeHeaders.MAX_NUM_HEADERS_DEFAULT,
+             MimeHeaders.MAX_NUM_HEADERS_DEFAULT);
+    }
+
+    /**
+     * Constructor, which creates <tt>HttpServerFilter</tt> instance,
+     * with the specific max header size parameter.
+     *
+     * @param chunkingEnabled            flag indicating whether or not chunking should
+     *                                   be allowed or not.
+     * @param maxHeadersSize             the maximum size of an inbound HTTP message header.
+     * @param defaultResponseContentType the content type that the response should
+     *                                   use if no content had been specified at the time the response is committed.
+     * @param keepAlive                  keep-alive configuration for this filter instance.
+     * @param executor                   {@link DelayedExecutor} for handling keep-alive. If <tt>null</tt> -
+     *                                   keep-alive idle connections should be managed outside HttpServerFilter.
+     * @param maxRequestHeaders          maximum number of request headers allowed for a single request.
+     * @param maxResponseHeaders         maximum number of response headers allowed for a single response.
+     *
+     * @since 2.2.11
+     *
+     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
+     */
+    @Deprecated
+    public HttpServerFilter(boolean chunkingEnabled,
+                            int maxHeadersSize,
+                            String defaultResponseContentType,
+                            KeepAlive keepAlive,
+                            DelayedExecutor executor,
+                            int maxRequestHeaders,
+                            int maxResponseHeaders) {
         super(chunkingEnabled, maxHeadersSize);
 
         this.httpRequestInProcessAttr =
@@ -184,9 +231,9 @@ public class HttpServerFilter extends HttpCodecFilter {
                 createAttribute("HttpServerFilter.KeepAliveContext");
 
         keepAliveQueue = executor != null ?
-            executor.createDelayQueue(
-            new KeepAliveWorker(keepAlive), new KeepAliveResolver()) :
-            null;
+                executor.createDelayQueue(
+                        new KeepAliveWorker(keepAlive), new KeepAliveResolver()) :
+                null;
 
         this.keepAlive = keepAlive;
         this.processKeepAlive = keepAlive != null;
@@ -194,6 +241,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (defaultResponseContentType != null && !defaultResponseContentType.isEmpty()) {
             this.defaultResponseContentType = defaultResponseContentType;
         }
+        this.maxRequestHeaders = maxRequestHeaders;
+        this.maxResponseHeaders = maxResponseHeaders;
     }
 
     // ----------------------------------------------------------- Configuration
@@ -223,11 +272,12 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (httpRequest == null) {
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = HttpRequestPacketImpl.create();
-            httpRequest.initialize(connection, this, input.position(), maxHeadersSize);
+            httpRequest.initialize(connection, this, input.position(), maxHeadersSize, maxRequestHeaders);
             httpRequest.setSecure(isSecureLocal);
             final HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
             response.setUpgrade(httpRequest.getUpgrade());
             response.setSecure(isSecureLocal);
+            response.getHeaders().setMaxNumHeaders(maxResponseHeaders);
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
             if (processKeepAlive) {

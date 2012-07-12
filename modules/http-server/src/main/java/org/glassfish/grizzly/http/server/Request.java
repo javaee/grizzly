@@ -65,7 +65,6 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -120,8 +119,6 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Request {
 
     private static final Logger LOGGER = Grizzly.logger(Request.class);
-
-    private static final Cookie[] EMPTY_COOKIES = new Cookie[0];
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
@@ -502,22 +499,40 @@ public class Request {
         parameters.setQuery(request.getQueryStringDC());
 
         final DataChunk remoteUser = request.remoteUser();
-        if (!remoteUser.isNull()) {
-            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
-        }
 
         if (httpServerFilter != null) {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
 
             sendFileEnabled = configuration.isSendFileEnabled();
-            final String overridingScheme = configuration.getScheme();
-
-            scheme = overridingScheme != null ? overridingScheme
-                    : request.isSecure() ? "https" : "http";
+            
+            final BackendConfiguration backendConfiguration =
+                    configuration.getBackendConfiguration();
+            
+            if (backendConfiguration != null) {
+                // Set the protocol scheme based on backend config
+                if (backendConfiguration.getScheme() != null) {
+                    scheme = backendConfiguration.getScheme();
+                } else if (backendConfiguration.getSchemeMapping() != null) {
+                    scheme = request.getHeader(backendConfiguration.getSchemeMapping());
+                }
+                
+                if (remoteUser.isNull() &&
+                        backendConfiguration.getRemoteUserMapping() != null) {
+                    remoteUser.setString(request.getHeader(
+                            backendConfiguration.getRemoteUserMapping()));
+                }
+            }
         } else {
             sendFileEnabled = false;
+        }
+        
+        if (scheme == null) {
             scheme = request.isSecure() ? "https" : "http";
+        }
+
+        if (!remoteUser.isNull()) {
+            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
     }
 
@@ -609,11 +624,6 @@ public class Request {
         ctx = null;
         httpServerFilter = null;
 
-        if (cookies != null && cookies.length > 0) {
-            for (Cookie cookie : cookies) {
-                cookie.recycle();
-            }
-        }
         cookies = null;
         requestedSessionId = null;
         session = null;
@@ -1877,10 +1887,8 @@ public class Request {
         cookiesParsed = true;
 
         final Cookies serverCookies = getRawCookies();
-        final Collection<Cookie> parsedCookies = serverCookies.get();
-        cookies = ((parsedCookies.isEmpty())
-                      ? EMPTY_COOKIES
-                      : parsedCookies.toArray(new Cookie[parsedCookies.size()]));
+        cookies = serverCookies.get();
+
     }
 
 

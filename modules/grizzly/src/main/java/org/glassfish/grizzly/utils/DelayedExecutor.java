@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -98,6 +98,7 @@ public class DelayedExecutor {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public ExecutorService getThreadPool() {
         return threadPool;
     }
@@ -113,7 +114,10 @@ public class DelayedExecutor {
     }
 
     private static boolean wasModified(final Long l1, final Long l2) {
-        return l1 != l2 && (l1 != null ? !l1.equals(l2) : !l2.equals(l1));
+        if (l1 != null) {
+            return !l1.equals(l2);
+        }
+        return l2 != null && !l2.equals(l1);
     }
 
     private class DelayedRunnable implements Runnable {

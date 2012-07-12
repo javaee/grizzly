@@ -53,6 +53,7 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -163,11 +164,10 @@ public class NetworkListener {
     private String uriEncoding;
     private int transactionTimeout;
     private Boolean sendFileEnabled;
-    /**
-     * The HTTP request scheme, which if non-null overrides default one picked
-     * up by framework during runtime.
-     */
-    private String scheme;
+    
+    private BackendConfiguration backendConfiguration;
+    private int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+    private int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     
     // ------------------------------------------------------------ Constructors
 
@@ -395,35 +395,72 @@ public class NetworkListener {
     }
 
     /**
-     * Get the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
+     * Returns the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load balancer.
      *
-     * @return the HTTP request scheme
-     * 
-     * @since 2.2.4
-     */
-    public String getScheme() {
-        return scheme;
+     * @since 2.2.10
+     */    
+    public BackendConfiguration getBackendConfiguration() {
+        return backendConfiguration;
     }
 
     /**
-     * Set the HTTP request scheme, which if non-null overrides default one
-     * picked up by framework during runtime.
+     * Sets the auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind HTTP gateway like reverse proxy or load balancer.
      *
-     * @param scheme the HTTP request scheme
-     * 
-     * @since 2.2.4
+     * @since 2.2.10
      */
-    public void setScheme(String scheme) {
-        this.scheme = scheme;
+    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
+        this.backendConfiguration = backendConfiguration;
     }
-    
+
+    /**
+     * Returns the maximum number of headers allowed for a request.
+     *
+     * @since 2.2.11
+     */
+    public int getMaxRequestHeaders() {
+        return maxRequestHeaders;
+    }
+
+    /**
+     * Sets the maximum number of headers allowed for a request.
+     *
+     * If the specified value is less than zero, then there may be an
+     * unlimited number of headers (memory permitting).
+     *
+     * @since 2.2.11
+     */
+    public void setMaxRequestHeaders(int maxRequestHeaders) {
+        this.maxRequestHeaders = maxRequestHeaders;
+    }
+
+    /**
+     * Returns the maximum number of headers allowed for a response.
+     *
+     * @since 2.2.11
+     */
+    public int getMaxResponseHeaders() {
+        return maxResponseHeaders;
+    }
+
+    /**
+     * Sets the maximum number of headers allowed for a response.
+     *
+     * If the specified value is less than zero, then there may be an
+     * unlimited number of headers (memory permitting).
+     *
+     * @since 2.2.11
+     */
+    public void setMaxResponseHeaders(int maxResponseHeaders) {
+        this.maxResponseHeaders = maxResponseHeaders;
+    }
+
     /**
      * @return the {@link SSLEngine} configuration for this listener.
      */
     public SSLEngineConfigurator getSslEngineConfig() {
         return sslEngineConfig;
-
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.http.core;
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.glassfish.grizzly.utils.TransferQueue;
@@ -122,7 +123,14 @@ public class ChunkedTransferEncodingTest {
         if (isChunkWhenParsing) {
             filterChainBuilder.add(new ChunkingFilter(2));
         }
-        final HttpServerFilter httpServerFilter = new HttpServerFilter();
+        final HttpServerFilter httpServerFilter =
+                new HttpServerFilter(true,
+                                     HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE,
+                                     null,
+                                     null,
+                                     null,
+                                     MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED,
+                                     MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
         filterChainBuilder.add(httpServerFilter);
         httpRequestCheckFilter = new HTTPRequestCheckFilter(resultQueue);
         filterChainBuilder.add(httpRequestCheckFilter);

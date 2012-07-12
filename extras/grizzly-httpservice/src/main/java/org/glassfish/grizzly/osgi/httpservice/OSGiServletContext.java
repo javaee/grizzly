@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -103,8 +103,14 @@ public class OSGiServletContext extends WebappContext {
         if (path == null)
             return (null);
 
+        URL resource = httpContext.getResource(path);
+        if (resource == null) {
+            logger.warn(format("Error getting resource ''{0}''. Message: {1}", path, "Can't locate resource."));
+            return null;
+        }
+
         try {
-            return httpContext.getResource(path).openStream();
+            return resource.openStream();
         } catch (IOException e) {
             logger.warn(format("Error getting resource ''{0}''. Message: {1}", path, e.getMessage()));
         }

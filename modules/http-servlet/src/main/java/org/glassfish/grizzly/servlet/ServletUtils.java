@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,84 +37,57 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.memory.HeapBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 
 /**
- * {@link HeapBuffer} implementation, which might be reset to reference another
- * byte[] at any moment.
+ * Grizzly Servlet utilities.
  * 
  * @author Alexey Stashok
  */
-final class TemporaryHeapBuffer extends HeapBuffer {
-
-    boolean isDisposed;
+public class ServletUtils {
+    /**
+     * Returns internal Grizzly {@link Request} associated with the passed
+     * {@link HttpServletRequest}.
+     * 
+     * @param servletRequest {@link HttpServletRequest}
+     * 
+     * @throws IllegalArgumentException if passed {@link HttpServletRequest}
+     *      is not based on Grizzly {@link Request}.
+     * 
+     * @return internal Grizzly {@link Request} associated with the passed
+     * {@link HttpServletRequest}.
+     */
+    public static Request getInternalRequest(HttpServletRequest servletRequest) {
+        if (servletRequest instanceof Holders.RequestHolder) {
+            return ((Holders.RequestHolder) servletRequest).getInternalRequest();
+        }
+        
+        throw new IllegalArgumentException("Passed HttpServletRequest is not based on Grizzly");
+    }
     
     /**
-     * Reset the byte[] this Buffer wraps.
+     * Returns internal Grizzly {@link Response} associated with the passed
+     * {@link HttpServletResponse}.
+     * 
+     * @param servletResponse {@link HttpServletResponse}
+     * 
+     * @throws IllegalArgumentException if passed {@link HttpServletResponse}
+     *      is not based on Grizzly {@link Response}.
+     * 
+     * @return internal Grizzly {@link Response} associated with the passed
+     * {@link HttpServletResponse}.
      */
-    void reset(final byte[] heap, final int offset, final int len) {
-        this.heap = heap;
-        this.offset = offset;
-        this.cap = len;
-        this.lim = len;
-        this.pos = 0;
-        byteBuffer = null;
-        isDisposed = false;
-    }
-
-    Buffer cloneContent() {
-//        final byte[] clonedBytes = Arrays.copyOfRange(heap,
-//                offset + pos, offset + lim);
-        final int length = remaining();
+    public static Response getInternalResponse(HttpServletResponse servletResponse) {
+        if (servletResponse instanceof Holders.ResponseHolder) {
+            return ((Holders.ResponseHolder) servletResponse).getInternalResponse();
+        }
         
-        final Buffer buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
-        buffer.allowBufferDispose(true);
-        buffer.put(heap, offset + pos, length);
-        buffer.flip();
-
-        // reset the mutable buffer content with the cloned array
-//        reset(clonedBytes, 0, clonedBytes.length);
-        
-        dispose();
-        
-        return buffer;
-    }
-
-    @Override
-    public void dispose() {
-        isDisposed = true;
-        
-        super.dispose();
+        throw new IllegalArgumentException("Passed HttpServletResponse is not based on Grizzly");
     }
     
-    boolean isDisposed() {
-        return isDisposed;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof TemporaryHeapBuffer)) return false;
-        if (!super.equals(o)) return false;
-
-        TemporaryHeapBuffer that = (TemporaryHeapBuffer) o;
-
-        return (isDisposed == that.isDisposed);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (isDisposed ? 1 : 0);
-        return result;
-    }
-
-    public void recycle() {
-        reset(null, 0, 0);
-    }
 }

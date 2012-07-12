@@ -37,28 +37,29 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.http.server;
+package org.glassfish.grizzly.servlet;
 
-import junit.framework.TestCase;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 
-import java.lang.reflect.Method;
-
-public class JDKVersionParseTest extends TestCase {
-
-    public void testVersionParse() throws Exception {
-        Method m = ServerFilterConfiguration.class.getDeclaredMethod("linuxSendFileSupported", String.class);
-        m.setAccessible(true);
-        assertFalse((Boolean) m.invoke(null, "1.6.0_11"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_11a"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_11-ea"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_11--aaa"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_a11"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_1aa"));
-        assertFalse((Boolean) m.invoke(null, "1.6.0_11a"));
-        assertTrue((Boolean) m.invoke(null, "1.6.0_19a"));
-        assertTrue((Boolean) m.invoke(null, "1.6.0_19-ea"));
-        assertTrue((Boolean) m.invoke(null, "1.6.0_111"));
-        assertTrue((Boolean) m.invoke(null, "1.6.0_111-ea"));
+/**
+ * Set of holder interfaces, which help to bind Servlet and Grizzly HttpServer
+ * abstractions.
+ * 
+ * @author Alexey Stashok
+ */
+public class Holders {
+    public interface RequestHolder {
+        /**
+         * Returns internal Grizzly {@link Request} associated with this Holder.
+         */
+        Request getInternalRequest();
     }
-
+    
+    public interface ResponseHolder {
+        /**
+         * Returns internal Grizzly {@link Response} associated with this Holder.
+         */
+        Response getInternalResponse();
+    }
 }

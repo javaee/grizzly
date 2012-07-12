@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -78,8 +78,11 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
     public void initialize(final Connection connection,
                            final HttpCodecFilter filter,
                            final int initialOffset,
-                           final int maxHeaderSize) {
+                           final int maxHeaderSize,
+                           final int maxNumberOfHeaders) {
         headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
+        contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
+        headers.setMaxNumHeaders(maxNumberOfHeaders);
         setConnection(connection);
     }
 

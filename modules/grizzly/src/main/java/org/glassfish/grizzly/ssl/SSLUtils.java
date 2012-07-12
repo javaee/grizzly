@@ -115,7 +115,7 @@ public class SSLUtils {
              */
             final byte major = buf.get(pos + 1);
             final byte minor = buf.get(pos + 2);
-            final int v = (major << 8) | minor;
+            final int v = (major << 8) | minor & 0xff;
 
             // Check if too old (currently not possible)
             // or if the major version does not match.
@@ -147,7 +147,7 @@ public class SSLUtils {
 
                 final byte major = buf.get(pos + 3);
                 final byte minor = buf.get(pos + 4);
-                final int v = (major << 8) | minor;
+                final int v = (major << 8) | minor & 0xff;
 
                 // Check if too old (currently not possible)
                 // or if the major version does not match.

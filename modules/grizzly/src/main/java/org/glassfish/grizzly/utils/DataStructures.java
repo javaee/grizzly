@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,9 +56,9 @@ public class DataStructures {
     static {
         Class<?> c = null;
         try {
-            int jver = Integer.valueOf(System.getProperty("java.version").
-                    substring(0, 3).replace(".", ""));
-            c = getAndVerify(jver > 16
+            JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+            JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
+            c = getAndVerify((minimumVersion.compareTo(jdkVersion) <= 0)
                     ? "java.util.concurrent.LinkedTransferQueue"
                     : "org.glassfish.grizzly.utils.LinkedTransferQueue");
             Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);

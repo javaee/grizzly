@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import java.util.Queue;
@@ -149,7 +150,7 @@ public class HttpClientFilter extends HttpCodecFilter {
             httpResponse = HttpResponsePacketImpl.create();
             final Queue<HttpRequestPacketImpl> requestQueue = getRequestQueue(connection);
             httpResponse.setRequest(requestQueue.poll());
-            httpResponse.initialize(this, input.position(), maxHeadersSize);
+            httpResponse.initialize(this, input.position(), maxHeadersSize, MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
             httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
         }

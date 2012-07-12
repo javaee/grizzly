@@ -78,15 +78,9 @@ import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
-import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.CompressionEncodingFilter;
-import org.glassfish.grizzly.http.server.CompressionLevel;
-import org.glassfish.grizzly.http.server.FileCacheFilter;
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
-import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -520,13 +514,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transactionTimeoutMillis = Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
         filterChainBuilder.add(new IdleTimeoutFilter(delayedExecutor, Integer.parseInt(http.getTimeoutSeconds()),
             TimeUnit.SECONDS));
+        int maxRequestHeaders;
+        try {
+            maxRequestHeaders = Integer.parseInt(http.getMaxRequestHeaders());
+        } catch (NumberFormatException nfe) {
+            maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+        }
+        int maxResponseHeaders;
+        try {
+            maxResponseHeaders = Integer.parseInt(http.getMaxResponseHeaders());
+        } catch (NumberFormatException nfe) {
+            maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
+        }
         final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
             new org.glassfish.grizzly.http.HttpServerFilter(
                 Boolean.parseBoolean(http.getChunkingEnabled()),
                 Integer.parseInt(http.getHeaderBufferLengthBytes()),
                 http.getForcedResponseType(),
                 configureKeepAlive(http),
-                delayedExecutor);
+                delayedExecutor,
+                maxRequestHeaders,
+                maxResponseHeaders);
         final Set<ContentEncoding> contentEncodings =
             configureContentEncodings(http);
         for (ContentEncoding contentEncoding : contentEncodings) {
@@ -647,7 +655,22 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected ServerFilterConfiguration getHttpServerFilterConfiguration(Http http) {
         final ServerFilterConfiguration serverFilterConfiguration =
                 new ServerFilterConfiguration();
-        serverFilterConfiguration.setScheme(http.getScheme());
+        
+        final String scheme = http.getScheme();
+        final String schemeMapping = http.getSchemeMapping();
+        final String remoteUserMapping = http.getRemoteUserMapping();
+        
+        if (scheme != null || schemeMapping != null || remoteUserMapping != null) {
+            final BackendConfiguration backendConfiguration = new BackendConfiguration();
+            if (schemeMapping == null) {
+                backendConfiguration.setScheme(scheme);
+            } else {
+                backendConfiguration.setSchemeMapping(schemeMapping);
+            }
+            
+            backendConfiguration.setRemoteUserMapping(remoteUserMapping);
+            serverFilterConfiguration.setBackendConfiguration(backendConfiguration);
+        }
         serverFilterConfiguration.setPassTraceRequest(true);
         int maxRequestParameters;
         try {
