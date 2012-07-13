@@ -78,7 +78,7 @@ public class WebSocketServer {
     
     /**
      * @param host the network port to which this listener will bind.
-     * @param range port range to attempt to bind to.
+     * @param portRange port range to attempt to bind to.
      *
      * @return a <code>WebSocketServer</code> configured to listen to requests
      * on <code>host</code>:<code>[port-range]</code>.
