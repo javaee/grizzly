@@ -40,10 +40,14 @@
 
 package org.glassfish.grizzly.config;
 
+import com.sun.enterprise.module.bootstrap.DefaultErrorService;
 import org.glassfish.grizzly.config.dom.NetworkListener;
-import com.sun.hk2.component.Holder;
-import com.sun.hk2.component.InhabitantsParser;
-import com.sun.hk2.component.InhabitantsScanner;
+import org.glassfish.hk2.api.DynamicConfiguration;
+import org.glassfish.hk2.api.DynamicConfigurationService;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.api.ServiceLocatorFactory;
+import org.glassfish.hk2.bootstrap.HK2Populator;
+import org.glassfish.hk2.bootstrap.impl.ClasspathDescriptorFileFinder;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigParser;
 import org.jvnet.hk2.config.DomDocument;
@@ -55,7 +59,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,9 +72,6 @@ import org.glassfish.grizzly.Grizzly;
 public class Utils {
     private static final Logger LOGGER = Grizzly.logger(Utils.class);
 
-    private final static String habitatName = "default";
-    private final static String inhabitantPath = "META-INF/inhabitants";
-
     public static Habitat getHabitat(final String fileURL) {
         URL url = Utils.class.getClassLoader().getResource(fileURL);
         if (url == null) {
@@ -83,7 +83,7 @@ public class Utils {
         }
         Habitat habitat;
         try {
-            habitat = getHabitat(url.openStream());
+            habitat = getHabitat(url.openStream(), url.toString());
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
@@ -91,9 +91,9 @@ public class Utils {
         return habitat;
     }
 
-    public static Habitat getHabitat(final InputStream inputStream) {
+    public static Habitat getHabitat(final InputStream inputStream, String name) {
         try {
-            final Habitat habitat = getNewHabitat();
+            final Habitat habitat = getNewHabitat(name);
             final ConfigParser parser = new ConfigParser(habitat);
             XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
                     ? XMLInputFactory.newFactory()
@@ -109,39 +109,31 @@ public class Utils {
         }
     }
 
-    public static Habitat getNewHabitat() {
-        final Holder<ClassLoader> holder = new Holder<ClassLoader>() {
-            public ClassLoader get() {
-                return getClass().getClassLoader();
-            }
-        };
-        final Enumeration<URL> resources;
-        try {
-            resources = Utils.class.getClassLoader().getResources(inhabitantPath + '/' + habitatName);
-        } catch (IOException e) {
-            throw new GrizzlyConfigException(e);
-        }
-        if (resources == null) {
-            System.out.println("Cannot find any inhabitant file in the classpath");
-            return null;
-        }
-        final Habitat habitat = new Habitat();
-        while (resources.hasMoreElements()) {
-            final URL resource = resources.nextElement();
-            final InhabitantsScanner scanner;
+    public static Habitat getNewHabitat(String name) {
+        Habitat habitat = null;
+
+        if (ServiceLocatorFactory.getInstance().find(name) == null) {
+            ServiceLocator serviceLocator = ServiceLocatorFactory.getInstance()
+                    .create(name);
+
+            DynamicConfigurationService dcs = serviceLocator.getService(DynamicConfigurationService.class);
+            DynamicConfiguration config = dcs.createDynamicConfiguration();
+
+            config.addActiveDescriptor(DefaultErrorService.class);
+
+            config.commit();
+
+            habitat = new Habitat(null, name); // implicitly binds in ServiceLocator
+
             try {
-                scanner = new InhabitantsScanner(resource.openConnection().getInputStream(), habitatName);
+                HK2Populator.populate(serviceLocator,
+                        new ClasspathDescriptorFileFinder(Utils.class.getClassLoader()));
             } catch (IOException e) {
-                throw new GrizzlyConfigException(e);
-            }
-            final InhabitantsParser inhabitantsParser = new InhabitantsParser(habitat);
-            try {
-                inhabitantsParser.parse(scanner, holder);
-            } catch (IOException e1) {
-                e1.printStackTrace();
+                e.printStackTrace();
             }
         }
-        return habitat;
+
+        return (habitat != null) ? habitat : new Habitat(null, name);
     }
     
     @SuppressWarnings("UnusedDeclaration")
