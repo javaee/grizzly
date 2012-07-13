@@ -122,6 +122,7 @@ public class Cookie implements Cloneable, Cacheable {
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
     protected LazyCookieState lazyCookieState;
     protected boolean usingLazyCookieState;
+    protected boolean initialized;
 
 
     protected Cookie() {
@@ -631,7 +632,7 @@ public class Cookie implements Cloneable, Cacheable {
     }
 
     protected final void checkInitialized() {
-        if (usingLazyCookieState) {
+        if (!initialized && usingLazyCookieState) {
             initialize();
         }
     }
@@ -652,6 +653,7 @@ public class Cookie implements Cloneable, Cacheable {
 
         final String commentStr = lazyCookieState.getComment().toString();
         comment = (version == 1) ? unescape(commentStr) : null;
+        initialized = true;
     }
 
     // Note -- disabled for now to allow full Netscape compatibility
@@ -739,6 +741,7 @@ public class Cookie implements Cloneable, Cacheable {
         secure = false;
         version = 0;
         isHttpOnly = false;
+        initialized = false;
         if (usingLazyCookieState) {
             usingLazyCookieState = false;
             lazyCookieState.recycle();
