@@ -145,11 +145,6 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-bundle-plugin</artifactId>
-                    <version>${felix-version}</version>
-                </plugin>
-                <plugin>
                     <inherited>true</inherited>
                     <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
                     <artifactId>maven-antrun-extended-plugin</artifactId>
@@ -371,8 +366,23 @@
                 <version>2.0</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2</artifactId>
+                <artifactId>core</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.hk2</groupId>
+                <artifactId>hk2-locator</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.hk2</groupId>
+                <artifactId>hk2-config</artifactId>
                 <version>${hk2.version}</version>
             </dependency>
             <dependency>
@@ -418,7 +428,7 @@
     </dependencies>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hk2.version>1.6.13</hk2.version>
+        <hk2.version>2.1.9</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
