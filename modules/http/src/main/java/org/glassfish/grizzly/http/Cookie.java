@@ -62,6 +62,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  *
@@ -122,7 +123,6 @@ public class Cookie implements Cloneable, Cacheable {
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
     protected LazyCookieState lazyCookieState;
     protected boolean usingLazyCookieState;
-    protected boolean initialized;
 
 
     protected Cookie() {
@@ -165,23 +165,24 @@ public class Cookie implements Cloneable, Cacheable {
 
     /**
      * Validate the cookie name
+     *
      * @param name cookie name
      */
     protected static void checkName(final String name) {
-	if (!isToken(name)
-		|| name.equalsIgnoreCase("Comment")	// rfc2019
-		|| name.equalsIgnoreCase("Discard")	// 2019++
-		|| name.equalsIgnoreCase("Domain")
-		|| name.equalsIgnoreCase("Expires")	// (old cookies)
-		|| name.equalsIgnoreCase("Max-Age")	// rfc2019
-		|| name.equalsIgnoreCase("Path")
-		|| name.equalsIgnoreCase("Secure")
-		|| name.equalsIgnoreCase("Version")
-		|| name.startsWith("$")
-	    ) {
+        if (!isToken(name)
+                || name.equalsIgnoreCase("Comment")    // rfc2019
+                || name.equalsIgnoreCase("Discard")    // 2019++
+                || name.equalsIgnoreCase("Domain")
+                || name.equalsIgnoreCase("Expires")    // (old cookies)
+                || name.equalsIgnoreCase("Max-Age")    // rfc2019
+                || name.equalsIgnoreCase("Path")
+                || name.equalsIgnoreCase("Secure")
+                || name.equalsIgnoreCase("Version")
+                || name.charAt(0) == '$'
+                ) {
 
-	    throw new IllegalArgumentException("Cookie name, " + name + ", is a reserved word");
-	}
+            throw new IllegalArgumentException("Cookie name, " + name + ", is a reserved word");
+        }
     }
     
     /**
@@ -199,7 +200,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setComment(String purpose) {
-	comment = purpose;
+        comment = purpose;
     }
     
     
@@ -217,7 +218,10 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getComment() {
-        checkInitialized();
+        if (comment == null && usingLazyCookieState) {
+            final String commentStr = lazyCookieState.getComment().toString(Charsets.ASCII_CHARSET);
+            comment = (version == 1) ? unescape(commentStr) : null;
+        }
 	    return comment;
     }
     
@@ -247,7 +251,7 @@ public class Cookie implements Cloneable, Cacheable {
 
     public void setDomain(String pattern) {
         if (pattern != null) {
-	        domain = pattern.toLowerCase();	// IE allegedly needs this
+            domain = pattern.toLowerCase();	// IE allegedly needs this
         }
     }
     
@@ -266,8 +270,13 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getDomain() {
-        checkInitialized();
-	    return domain;
+        if (domain == null && usingLazyCookieState) {
+            final String domainStr = lazyCookieState.getDomain().toString(Charsets.ASCII_CHARSET);
+            if (domainStr != null) {
+                domain = unescape(domainStr);
+            }
+        }
+        return domain;
     }
 
 
@@ -297,7 +306,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setMaxAge(int expiry) {
-	maxAge = expiry;
+        maxAge = expiry;
     }
 
 
@@ -319,8 +328,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public int getMaxAge() {
-        checkInitialized();
-	    return maxAge;
+        return maxAge;
     }
     
     
@@ -348,7 +356,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setPath(String uri) {
-	path = uri;
+        path = uri;
     }
 
 
@@ -368,8 +376,10 @@ public class Cookie implements Cloneable, Cacheable {
      */ 
 
     public String getPath() {
-        checkInitialized();
-	    return path;
+        if (path == null && usingLazyCookieState) {
+            path = unescape(lazyCookieState.getPath().toString(Charsets.ASCII_CHARSET));
+        }
+        return path;
     }
 
 
@@ -391,7 +401,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
  
     public void setSecure(boolean flag) {
-	secure = flag;
+        secure = flag;
     }
 
 
@@ -410,8 +420,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public boolean isSecure() {
-        checkInitialized();
-	    return secure;
+        return secure;
     }
 
 
@@ -427,8 +436,13 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public String getName() {
-        checkInitialized();
-	    return name;
+        if (name == null && usingLazyCookieState) {
+            final String strName = lazyCookieState.getName().toString(Charsets.ASCII_CHARSET);
+            checkName(strName);
+
+            name = strName;
+        }
+        return name;
     }
 
 
@@ -457,7 +471,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setValue(String newValue) {
-	value = newValue;
+        value = newValue;
     }
 
 
@@ -475,8 +489,10 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public String getValue() {
-        checkInitialized();
-	    return value;
+        if (value == null && usingLazyCookieState) {
+            value = unescape(lazyCookieState.getValue().toString(Charsets.ASCII_CHARSET));
+        }
+        return value;
     }
 
 
@@ -499,8 +515,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public int getVersion() {
-        checkInitialized();
-	    return version;
+        return version;
     }
 
 
@@ -524,7 +539,7 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setVersion(int v) {
-	version = v;
+        version = v;
     }
 
     /**
@@ -631,31 +646,6 @@ public class Cookie implements Cloneable, Cacheable {
         return this.name.equals(name);
     }
 
-    protected final void checkInitialized() {
-        if (!initialized && usingLazyCookieState) {
-            initialize();
-        }
-    }
-
-    protected void initialize() {
-        final String strName = lazyCookieState.getName().toString();
-        checkName(strName);
-
-        name = strName;
-
-        value = unescape(lazyCookieState.getValue().toString());
-        path = unescape(lazyCookieState.getPath().toString());
-
-        final String domainStr = lazyCookieState.getDomain().toString();
-        if (domainStr != null) {
-            domain = unescape(domainStr); //avoid NPE
-        }
-
-        final String commentStr = lazyCookieState.getComment().toString();
-        comment = (version == 1) ? unescape(commentStr) : null;
-        initialized = true;
-    }
-
     // Note -- disabled for now to allow full Netscape compatibility
     // from RFC 2068, token special case characters
     // 
@@ -721,11 +711,11 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public Object clone() throws CloneNotSupportedException {
-	try {
-	    return super.clone();
-	} catch (CloneNotSupportedException e) {
-	    throw new RuntimeException(e.getMessage());
-	}
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
 
@@ -741,7 +731,6 @@ public class Cookie implements Cloneable, Cacheable {
         secure = false;
         version = 0;
         isHttpOnly = false;
-        initialized = false;
         if (usingLazyCookieState) {
             usingLazyCookieState = false;
             lazyCookieState.recycle();
