@@ -945,13 +945,24 @@ public class HeapBuffer implements Buffer {
         return false;
     }
 
+    @Override
+    public boolean hasArray() {
+        return true;
+    }
+
+    @Override
+    public int arrayOffset() {
+        return offset;
+    }
+
+    public byte[] array() {
+        return heap;
+    }
 
     // ------------------------------------------------------- Protected Methods
 
 
-    protected byte[] array() {
-        return heap;
-    }
+
 
     protected HeapBuffer createHeapBuffer(final byte[] heap,
             final int offset, final int capacity) {

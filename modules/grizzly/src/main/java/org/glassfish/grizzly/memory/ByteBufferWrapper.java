@@ -758,7 +758,22 @@ public class ByteBufferWrapper implements Buffer {
     public boolean isExternal() {
         return false;
     }
-    
+
+    @Override
+    public boolean hasArray() {
+        return visible.hasArray();
+    }
+
+    @Override
+    public byte[] array() {
+        return visible.array();
+    }
+
+    @Override
+    public int arrayOffset() {
+        return visible.arrayOffset();
+    }
+
     protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(byteBuffer);
     }
