@@ -68,10 +68,11 @@ public class InQueueFilter<E> extends BaseFilter {
         return o;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        final E message = ctx.getMessage();
-        queue.add(message);
+        final Object message = ctx.getMessage();
+        queue.add((E) message);
         return ctx.getStopAction();
     }
     
