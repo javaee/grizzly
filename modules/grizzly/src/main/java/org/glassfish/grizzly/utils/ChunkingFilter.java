@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,16 +40,15 @@
 
 package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.AbstractTransformer;
+import java.io.IOException;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransformationException;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.Buffers;
-import java.util.logging.Logger;
 
 
 /**
@@ -60,7 +59,7 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
+public class ChunkingFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(ChunkingFilter.class);
 
     private final int chunkSize;
@@ -72,8 +71,6 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
      * @param chunkSize the chunk size.
      */
     public ChunkingFilter(int chunkSize) {
-        super(new ChunkingDecoder(chunkSize),
-                new ChunkingEncoder(chunkSize));
         this.chunkSize = chunkSize;
     }
 
@@ -81,63 +78,39 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
         return chunkSize;
     }
 
-    public static final class ChunkingDecoder extends ChunkingTransformer {
-
-        public ChunkingDecoder(int chunk) {
-            super(chunk);
-        }
-
+    @Override
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        return chunk(ctx);
     }
 
-    public static final class ChunkingEncoder extends ChunkingTransformer {
 
-        public ChunkingEncoder(int chunk) {
-            super(chunk);
-        }
-
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        return chunk(ctx);
     }
 
-    public static abstract class ChunkingTransformer
-            extends AbstractTransformer<Buffer, Buffer> {
-        private final int chunk;
-
-        public ChunkingTransformer(int chunk) {
-            this.chunk = chunk;
+    private NextAction chunk(FilterChainContext ctx) {
+        final Buffer input = ctx.getMessage();
+        
+        if (!input.hasRemaining()) {
+            input.tryDispose();
+            return ctx.getStopAction();
         }
+        
+        final int chunkSizeLocal = Math.min(chunkSize, input.remaining());
 
-        @Override
-        public String getName() {
-            return "ChunkingTransformer";
-        }
+        final int oldInputPos = input.position();
+        final int oldInputLimit = input.limit();
 
-        @Override
-        protected TransformationResult<Buffer, Buffer> transformImpl(
-                AttributeStorage storage, Buffer input)
-                throws TransformationException {
+        Buffers.setPositionLimit(input, oldInputPos, oldInputPos + chunkSizeLocal);
 
-            if (!input.hasRemaining()) {
-                return TransformationResult.createIncompletedResult(input);
-            }
+        final Buffer output = ctx.getMemoryManager().allocate(chunkSizeLocal);
+        output.put(input).flip();
 
-            final int chunkSize = Math.min(chunk, input.remaining());
+        Buffers.setPositionLimit(input, oldInputPos + chunkSizeLocal, oldInputLimit);
 
-            final int oldInputPos = input.position();
-            final int oldInputLimit = input.limit();
-
-            Buffers.setPositionLimit(input, oldInputPos, oldInputPos + chunkSize);
-            
-            final Buffer output = obtainMemoryManager(storage).allocate(chunkSize);
-            output.put(input).flip();
-
-            Buffers.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
-
-            return TransformationResult.createCompletedResult(
-                    output, input);
-        }
-
-        @Override
-        public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
-            return input != null && input.hasRemaining();
-        }
+        ctx.setMessage(output);
+        
+        return ctx.getInvokeAction(input);
     }
 }

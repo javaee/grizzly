@@ -40,18 +40,18 @@
 
 package org.glassfish.grizzly.compression.zip;
 
-import org.glassfish.grizzly.AbstractTransformer;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.TransformationException;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.compression.AbstractTransformer;
+import org.glassfish.grizzly.compression.TransformationException;
+import org.glassfish.grizzly.compression.TransformationResult;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * This class implements a {@link org.glassfish.grizzly.Transformer} which decodes data

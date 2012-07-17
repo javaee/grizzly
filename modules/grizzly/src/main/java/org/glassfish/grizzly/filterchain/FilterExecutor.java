@@ -39,12 +39,11 @@
  */
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.ServiceEvent;
 import java.io.IOException;
 
 /**
  * Executes appropriate {@link Filter} processing method to process occurred
- * {@link ServiceEvent}.
+ * {@link Event}.
  */
 public interface FilterExecutor {
 

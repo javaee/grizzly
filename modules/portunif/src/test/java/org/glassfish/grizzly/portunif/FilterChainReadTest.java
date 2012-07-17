@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,18 +40,6 @@
 
 package org.glassfish.grizzly.portunif;
 
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.StringEncoder;
-import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -65,10 +53,21 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.EchoFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Test {@link FilterChain} blocking read.
@@ -170,6 +169,8 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
+        final StringFilter stringFilter = new StringFilter();
+        
         final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
 
         final PUFilter puFilter = new PUFilter();
@@ -182,7 +183,7 @@ public class FilterChainReadTest extends TestCase {
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new StringFilter());
+        filterChainBuilder.add(stringFilter);
         filterChainBuilder.add(puFilter);
 
 
@@ -202,7 +203,7 @@ public class FilterChainReadTest extends TestCase {
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new StringFilter());
+            clientFilterChainBuilder.add(stringFilter);
             clientFilterChainBuilder.add(new BaseFilter() {
 
                 @Override
@@ -216,24 +217,22 @@ public class FilterChainReadTest extends TestCase {
 
             connection.setProcessor(clientFilterChain);
 
+            final MemoryManager memoryManager = transport.getMemoryManager();
             for (int i = 0; i < messageNum; i++) {
                 String clientMessage = "";
 
-                CompositeBuffer bb = CompositeBuffer.newBuffer(transport.getMemoryManager());
+                CompositeBuffer bb = CompositeBuffer.newBuffer(memoryManager);
                 
                 for (int j = 0; j < clientMsgs.length; j++) {
                     String msg = clientMsgs[j] + "-" + i;
                     clientMessage += msg;
-                    StringEncoder stringEncoder = new StringEncoder();
-                    TransformationResult<String, Buffer> result =
-                            stringEncoder.transform(connection, msg);
-                    Buffer buffer = result.getMessage();
+                    Buffer buffer = stringFilter.encode(memoryManager, msg);
                     bb.append(buffer);
                 }
 
 
                 Future<WriteResult<WritableMessage, SocketAddress>> writeFuture =
-                        transport.getAsyncQueueIO().getWriter().write(connection, bb);
+                        connection.write(bb);
 
                 assertTrue("Write timeout loop: " + i,
                         writeFuture.get(10, TimeUnit.SECONDS) != null);
@@ -361,7 +360,7 @@ public class FilterChainReadTest extends TestCase {
             intermResultQueue.add(message);
 
             Connection connection = ctx.getConnection();
-            connection.setReadTimeout(10, TimeUnit.SECONDS);
+            connection.setBlockingReadTimeout(10, TimeUnit.SECONDS);
 
             try {
                 for (int i = 0; i < clientMsgs - 1; i++) {

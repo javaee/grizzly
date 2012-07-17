@@ -40,8 +40,12 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
+import org.glassfish.grizzly.WritableMessage;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -50,8 +54,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
  * @author Alexey Stashok
  * @author Ryan Lubke
  */
-public interface AsyncQueueWriter<L> 
-        extends Writer<L>, AsyncQueue {
+public interface AsyncQueueWriter<L>  extends Writer<L>, AsyncQueue {
     
     /**
      * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means

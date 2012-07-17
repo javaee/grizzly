@@ -368,14 +368,14 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void fireEvent(Event event, Connection connection);
 
     /**
-     * Fires the {@link ServiceEvent} on the {@link Connection}
+     * Fires the {@link Event} on the {@link Connection}
      *
      * @param event service event
      * @param connection {@link Connection}, on which we fire the event.
      * @param processingHandler I/O event processing handler.
      */
-    void fireEvent(ServiceEvent event, Connection connection,
-            ServiceEventProcessingHandler processingHandler);
+    void fireEvent(Event event, Connection connection,
+            EventProcessingHandler processingHandler);
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,
@@ -386,46 +386,6 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     boolean isStopped();
 
     boolean isPaused();
-
-    /**
-     * Get the {@link Reader} to read data from the {@link Connection}.
-     * The <tt>Transport</tt> may decide to return blocking or non-blocking {@link Reader}
-     * depending on the {@link Connection} settings.
-     * 
-     * @param connection {@link Connection}.
-     * 
-     * @return {@link Reader}.
-     */
-    Reader getReader(Connection connection);
-
-    /**
-     * Get the {@link Reader} implementation, depending on the requested mode.
-     *
-     * @param isBlocking blocking mode.
-     *
-     * @return {@link Reader}.
-     */
-    Reader getReader(boolean isBlocking);
-
-    /**
-     * Get the {@link Writer} to write data to the {@link Connection}.
-     * The <tt>Transport</tt> may decide to return blocking or non-blocking {@link Writer}
-     * depending on the {@link Connection} settings.
-     *
-     * @param connection {@link Connection}.
-     *
-     * @return {@link Writer}.
-     */
-    Writer getWriter(Connection connection);
-
-    /**
-     * Get the {@link Writer} implementation, depending on the requested mode.
-     *
-     * @param isBlocking blocking mode.
-     *
-     * @return {@link Writer}.
-     */
-    Writer getWriter(boolean isBlocking);
 
     /**
      * Get the monitoring configuration for Transport {@link Connection}s.

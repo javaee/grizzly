@@ -40,56 +40,23 @@
 
 package org.glassfish.grizzly;
 
-import java.util.concurrent.ExecutorService;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ClientCheckFilter;
-import org.glassfish.grizzly.utils.ParallelWriteFilter;
-import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
-import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
-import org.glassfish.grizzly.utils.StandaloneProcessor;
-import org.glassfish.grizzly.utils.streams.StreamReader;
-import org.glassfish.grizzly.utils.streams.StreamWriter;
-import org.glassfish.grizzly.utils.streams.ssl.SSLStreamReader;
-import org.glassfish.grizzly.utils.streams.ssl.SSLStreamWriter;
-import org.junit.Test;
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.junit.Before;
-
+import java.net.URL;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.runners.Parameterized.Parameters;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import java.io.IOException;
-import java.net.URL;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.ssl.SSLContextConfigurator;
-import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.StringFilter;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -101,14 +68,40 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.glassfish.grizzly.utils.ClientCheckFilter;
+import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.ParallelWriteFilter;
+import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
+import org.glassfish.grizzly.utils.StringFilter;
+import static org.junit.Assert.*;
+import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import static org.junit.Assert.*;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Set of SSL tests
@@ -353,7 +346,6 @@ public class SSLTest {
             }
 
             connection.closeSilently();
-            connection = null;
 
             future = cTransport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
@@ -486,20 +478,20 @@ public class SSLTest {
             int packetsNumber, int filterIndex, Filter... filters) throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        SSLEngineConfigurator clientSSLEngineConfigurator = null;
-        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+        SSLEngineConfigurator clientSSLConfigurator = null;
+        SSLEngineConfigurator serverSSLConfigurator = null;
 
         if (sslContextConfigurator.validateConfiguration(true)) {
             if (isLazySslInit) {
-                clientSSLEngineConfigurator =
+                clientSSLConfigurator =
                         new SSLEngineConfigurator(sslContextConfigurator);
-                serverSSLEngineConfigurator =
+                serverSSLConfigurator =
                         new SSLEngineConfigurator(sslContextConfigurator,
                         false, false, false);
             } else {
-                clientSSLEngineConfigurator =
+                clientSSLConfigurator =
                         new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
-                serverSSLEngineConfigurator =
+                serverSSLConfigurator =
                         new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                         false, false, false);
             }
@@ -507,20 +499,18 @@ public class SSLTest {
             fail("Failed to validate SSLContextConfiguration.");
         }
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
-                clientSSLEngineConfigurator));
-        filterChainBuilder.add(new EchoFilter());
-        filterChainBuilder.addAll(filterIndex, filters);
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
+        serverFilterChainBuilder.add(new TransportFilter());
+        serverFilterChainBuilder.add(new SSLFilter(
+                serverSSLConfigurator, clientSSLConfigurator));
+        serverFilterChainBuilder.add(new StringFilter());
+        serverFilterChainBuilder.add(new EchoFilter());
+        serverFilterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setProcessor(serverFilterChainBuilder.build());
         transport.setMemoryManager(manager);
-
-        SSLStreamReader reader = null;
-        SSLStreamWriter writer = null;
 
         try {
             transport.bind(PORT);
@@ -528,61 +518,53 @@ public class SSLTest {
 
             transport.configureBlocking(isBlocking);
 
+            final BlockingQueue<String> inQueue = new LinkedBlockingQueue<String>();
+            
+            final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            final SSLFilter sslFilter =
+                    new SSLFilter(serverSSLConfigurator, clientSSLConfigurator);
+            clientFilterChainBuilder.add(sslFilter);
+            clientFilterChainBuilder.add(new StringFilter());
+            clientFilterChainBuilder.add(new BaseFilter() {
+
+                @Override
+                public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                    final String message = ctx.getMessage();
+                    inQueue.offer(message);
+                    return ctx.getStopAction();
+                }
+            });
+            
+            TCPNIOConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChainBuilder.build())
+                    .build();
+                
             for (int i = 0; i < connectionsNum; i++) {
-                final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
-                transport.connect(
-                        new InetSocketAddress("localhost", PORT),
-                        Futures.<Connection>toCompletionHandler(
-                        future,
-                        new EmptyCompletionHandler<Connection>()  {
+                final Future<Connection> connectFuture = connectorHandler.connect(
+                        new InetSocketAddress("localhost", PORT));
 
-                            @Override
-                            public void completed(final Connection connection) {
-                                StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                                connection.setReadTimeout(10, TimeUnit.SECONDS);
-                            }
-                        }));
-
-                connection = future.get(10, TimeUnit.SECONDS);
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
 
-                StreamReader connectionStreamReader =
-                        StandaloneProcessor.INSTANCE.getStreamReader(connection);
-                StreamWriter connectionStreamWriter =
-                        StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-                
-                reader = new SSLStreamReader(connectionStreamReader);
-                writer = new SSLStreamWriter(connectionStreamWriter);
-
-                final Future handshakeFuture = writer.handshake(reader,
-                        clientSSLEngineConfigurator);
+                final FutureImpl<SSLEngine> handshakeFuture = Futures.<SSLEngine>createSafeFuture();
+                sslFilter.handshake(connection, Futures.toCompletionHandler(handshakeFuture));
 
                 handshakeFuture.get(10, TimeUnit.SECONDS);
                 assertTrue(handshakeFuture.isDone());
 
                 for (int j = 0; j < packetsNumber; j++) {
                     try {
-                        byte[] sentMessage = ("Hello world! Connection#" + i + " Packet#" + j).getBytes();
+                        String sendString = "Hello world! Connection#" + i + " Packet#" + j;
 
-                        // aquire read lock to not allow incoming data to be processed by Processor
-                        writer.writeByteArray(sentMessage);
-                        Future writeFuture = writer.flush();
+                        Future writeFuture = connection.write(sendString);
 
                         writeFuture.get(10, TimeUnit.SECONDS);
                         assertTrue("Write timeout", writeFuture.isDone());
 
-                        byte[] receivedMessage = new byte[sentMessage.length];
-
-                        Future readFuture = reader.notifyAvailable(receivedMessage.length);
-                        readFuture.get(10, TimeUnit.SECONDS);
-                        assertTrue(readFuture.isDone());
-
-                        reader.readByteArray(receivedMessage);
-
-                        String sentString = new String(sentMessage);
-                        String receivedString = new String(receivedMessage);
-                        assertEquals(sentString, receivedString);
+                        String receivedString = inQueue.poll(10, TimeUnit.SECONDS);
+                        assertEquals(sendString, receivedString);
                     } catch (Exception e) {
                         logger.log(Level.WARNING, "Error occurred when testing connection#{0} packet#{1}",
                                 new Object[]{i, j});
@@ -590,23 +572,10 @@ public class SSLTest {
                     }
                 }
                 
-                reader.close();
-                reader = null;
-                
-                writer.close();
-                writer = null;
-                
                 connection.closeSilently();
                 connection = null;
             }
         } finally {
-            if (reader != null) {
-                reader.close();
-            }
-
-            if (writer != null) {
-                writer.close();
-            }
             if (connection != null) {
                 connection.closeSilently();
             }

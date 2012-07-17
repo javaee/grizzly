@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,44 +37,45 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.utils.streams;
-
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import java.io.IOException;
+package org.glassfish.grizzly;
 
 /**
+ * Common interface for entities that may be written to a {@link java.nio.channels.Channel}.
  *
- * @author oleksiys
+ * @since 2.2
  */
-public interface Output {
-    public void write(byte data) throws IOException;
+public interface WritableMessage {
 
-    public void write(Buffer buffer) throws IOException;
+    /**
+     * Return <code>true</code> if this message has data remaining to be 
+     * written.
+     * 
+     * @return <code>true</code> if this message has data remaining to 
+     * be written.
+     */
+    boolean hasRemaining();
 
-    public boolean isBuffered();
 
-    public void ensureBufferCapacity(int size) throws IOException;
+    /**
+     * Return the number of bytes remaining to be written.
+     * @return the number of bytes remaining to be written.
+     */
+    int remaining();
+
+
+    /**
+     * Perform message specific actions to release resources held by the
+     * entity backing this <code>WritableMessage</code>.
+     */
+    boolean release();
     
     /**
-     * Return the <tt>Input</tt>'s {@link Buffer}.
-     *
-     * @return the <tt>Input</tt>'s {@link Buffer}.
+     * Returns <tt>true</tt> if the message represents an external resource
+     * (for example {@link org.glassfish.grizzly.FileTransfer}),
+     * which is not loaded in memory.
+     * 
+     * <tt>False</tt>, if the message is
+     * located in memory (like {@link org.glassfish.grizzly.Buffer}).
      */
-    public Buffer getBuffer();
-
-    /**
-     * Make sure that all data that has been written is
-     * flushed from the stream to its destination.
-     */
-    public GrizzlyFuture<Integer> flush(
-            CompletionHandler<Integer> completionHandler) throws IOException;
-
-    /**
-     * Close the {@link StreamWriter} and make sure all data was flushed.
-     */
-    public GrizzlyFuture<Integer> close(
-            CompletionHandler<Integer> completionHandler) throws IOException;
+    boolean isExternal();
 }

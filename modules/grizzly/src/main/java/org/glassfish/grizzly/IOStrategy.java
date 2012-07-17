@@ -40,9 +40,8 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
-
 import java.io.IOException;
+import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
 
 /**
  * <tt>strategy</tt> is responsible for making decision how
@@ -53,72 +52,72 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public interface IOStrategy extends WorkerThreadPoolConfigProducer {
-
-
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
      * method to allow the strategy implementation to decide how the
-     * {@link Event} will be handled.
+     * {@link IOEvent} will be handled.
      *
      * @param connection the {@link Connection} upon which the provided
-     *  {@link Event} occurred.
-     * @param event the {@link Event} that triggered execution of this
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
      *  <code>strategy</code>
      *
-     * @return <tt>true</tt>, if this thread should keep processing Events on
+     * @return <tt>true</tt>, if this thread should keep processing IOEvents on
      * the current and other Connections, or <tt>false</tt> if this thread
-     * should hand-off the farther Event processing on any Connections,
-     * which means IOStrategy is becoming responsible for continuing Event
-     * processing (possibly starting new thread, which will handle Events).
-     *
-     * @throws IOException if an error occurs processing the {@link Event}.
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeEvent(final Connection connection, final Event event)
-    throws IOException;
+    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent)
+            throws IOException;
     
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
      * method to allow the strategy implementation to decide how the
-     * {@link ServiceEvent} will be handled.
+     * {@link IOEvent} will be handled.
      *
      * @param connection the {@link Connection} upon which the provided
-     *  {@link ServiceEvent} occurred.
-     * @param serviceEvent the {@link ServiceEvent} that triggered execution of this
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
      *  <code>strategy</code>
+     * @param processingHandler I/O event processing handler.
      *
-     * @return <tt>true</tt>, if this thread should keep processing ServiceEvents on
+     * @return <tt>true</tt>, if this thread should keep processing IOEvents on
      * the current and other Connections, or <tt>false</tt> if this thread
-     * should hand-off the farther ServiceEvent processing on any Connections,
-     * which means IOStrategy is becoming responsible for continuing ServiceEvent
-     * processing (possibly starting new thread, which will handle ServiceEvents).
-     *
-     * @throws IOException if an error occurs processing the {@link ServiceEvent}.
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeServiceEvent(final Connection connection, final ServiceEvent serviceEvent)
-    throws IOException;
+    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent,
+            final EventProcessingHandler processingHandler) throws IOException;
 
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
      * method to allow the strategy implementation to decide how the
-     * {@link ServiceEvent} will be handled.
+     * {@link IOEvent} will be handled.
      *
      * @param connection the {@link Connection} upon which the provided
-     *  {@link ServiceEvent} occurred.
-     * @param serviceEvent the {@link ServiceEvent} that triggered execution of this
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
      *  <code>strategy</code>
-     * @param isServiceEventInterestEnabled <tt>true</tt> if ServiceEvent is still enabled on the
-     *  {@link Connection}, or <tt>false</tt> if ServiceEvent was preliminary disabled
-     *  or ServiceEvent is being simulated.
+     * @param listener to be notified about <tt>IOStrategy</tt> decision.
      *
-     * @return <tt>true</tt>, if this thread should keep processing ServiceEvents on
+     * @return <tt>true</tt>, if this thread should keep processing IOEvents on
      * the current and other Connections, or <tt>false</tt> if this thread
-     * should hand-off the farther ServiceEvent processing on any Connections,
-     * which means IOStrategy is becoming responsible for continuing ServiceEvent
-     * processing (possibly starting new thread, which will handle ServiceEvents).
-     *
-     * @throws IOException if an error occurs processing the {@link ServiceEvent}.
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeServiceEvent(final Connection connection, final ServiceEvent serviceEvent,
-            final boolean isServiceEventInterestEnabled) throws IOException;
+    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent,
+            final DecisionListener listener) throws IOException;
     
+    /**
+     * Listener, which would be called by {@link IOStrategy} implementation
+     * notifying whether submitted {@link IOEvent} will be executed synchronously
+     * in the current thread or asynchronously in the worker thread.
+     */
+    public interface DecisionListener {
+        public EventProcessingHandler goSync(final Connection connection, final IOEvent ioEvent) throws IOException;
+        public EventProcessingHandler goAsync(final Connection connection, final IOEvent ioEvent) throws IOException;
+    }
 }

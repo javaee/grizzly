@@ -48,7 +48,6 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ServiceEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -58,7 +57,8 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.CopyListener;
 import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.ServiceEventProcessingHandler;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -206,15 +206,15 @@ public class PUFilter extends BaseFilter {
             
             terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
-            final FilterChainContext filterChainContext =
+            final FilterChainContext nestedFilterChainContext =
                     obtainChildFilterChainContext(protocol, connection, ctx);
             
-            filterChainContext.addCopyListener(suspendedContextCopyListener);
-            suspendedContextAttribute.set(filterChainContext, ctx);
+            nestedFilterChainContext.addCopyListener(suspendedContextCopyListener);
+            suspendedContextAttribute.set(nestedFilterChainContext, ctx);
             
             final NextAction suspendAction = ctx.getSuspendAction();
             ctx.suspend();
-            ProcessorExecutor.execute(filterChainContext.getInternalContext());
+            ProcessorExecutor.execute(nestedFilterChainContext.getInternalContext());
 
             return suspendAction;
         }
@@ -239,7 +239,7 @@ public class PUFilter extends BaseFilter {
         final FilterChainContext filterChainContext =
                 filterChain.obtainFilterChainContext(connection);
         final Context context = filterChainContext.getInternalContext();
-        context.setEvent(ServiceEvent.READ, new InternalProcessingHandler(ctx));
+        context.setEvent(IOEvent.READ, new InternalProcessingHandler(ctx, context));
         filterChainContext.setAddress(ctx.getAddress());
         filterChainContext.setMessage(ctx.getMessage());
         return filterChainContext;
@@ -320,29 +320,26 @@ public class PUFilter extends BaseFilter {
     }
 
 
-    private class InternalProcessingHandler extends ServiceEventProcessingHandler.Adapter {
+    private class InternalProcessingHandler extends EventProcessingHandler.Adapter {
         private final FilterChainContext parentContext;
+        private final Context currentContext;
         
-        private InternalProcessingHandler(final FilterChainContext parentContext) {
+        private InternalProcessingHandler(final FilterChainContext parentContext,
+                final Context currentContext) {
             this.parentContext = parentContext;
+            this.currentContext = currentContext;
         }
         
         @Override
-        public void onReregister(final Context context) throws IOException {
-            final FilterChainContext suspendedContext =
-                    suspendedContextAttribute.get(context);
-
-            assert suspendedContext != null;
-            
-            terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getForkAction());
-            
-            suspendedContext.resume();
+        public void onComplete(final Context context) throws IOException {
+            if (context == currentContext) {
+                complete(context);
+            } else {
+                fork(context);
+            }
         }
-
-        @Override
-        public void onComplete(final Context context, final Object data)
-                throws IOException {
+        
+        private void complete(final Context context) {
             final FilterChainContext suspendedContext =
                     suspendedContextAttribute.remove(context);
 
@@ -350,6 +347,18 @@ public class PUFilter extends BaseFilter {
             
             terminateNextActionAttribute.set(suspendedContext,
                     suspendedContext.getStopAction());                
+            
+            suspendedContext.resume();
+        }
+        
+        private void fork(final Context context) {
+            final FilterChainContext suspendedContext =
+                    suspendedContextAttribute.get(context);
+
+            assert suspendedContext != null;
+            
+            terminateNextActionAttribute.set(suspendedContext,
+                    suspendedContext.getForkAction());
             
             suspendedContext.resume();
         }

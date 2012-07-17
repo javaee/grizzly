@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,25 +38,40 @@
  * holder.
  */
 
-package org.glassfish.grizzly.utils.streams;
+package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.Connection;
-import java.io.Closeable;
+import java.io.IOException;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- * Common interface for Stream readers and writers.
  *
- * @see StreamReader
- * @see StreamWriter
- * 
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public interface Stream extends Closeable {
+public class BufferInQueueFilter extends InQueueFilter<Buffer> {
+    private final int messageSize;
 
-    /**
-     * Get the {@link Connection} this <tt>StreamReader</tt> belongs to.
-     *
-     * @return the {@link Connection} this <tt>StreamReader</tt> belongs to.
-     */
-    Connection getConnection();
+    public BufferInQueueFilter() {
+        this(-1);
+    }
+
+    public BufferInQueueFilter(int messageSize) {
+        this.messageSize = messageSize;
+    }
+
+    @Override
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        if (messageSize <= 0) {
+            return super.handleRead(ctx);
+        }
+        Buffer buffer = ctx.getMessage();
+        while (buffer.remaining() >= messageSize) {
+            final Buffer remainder = buffer.split(buffer.position() + messageSize);
+            queue.add(buffer);
+            buffer = remainder;
+        }
+        return ctx.getStopAction(buffer.hasRemaining() ? buffer : null);
+    }
+    
 }

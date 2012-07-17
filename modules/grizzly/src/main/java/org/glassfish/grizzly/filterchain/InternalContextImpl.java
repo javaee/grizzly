@@ -67,9 +67,8 @@ class InternalContextImpl extends Context {
     }
 
     void softCopyTo(final InternalContextImpl targetContext) {
-        targetContext.serviceEventProcessingHandler = this.serviceEventProcessingHandler;
+        targetContext.eventProcessingHandler = this.eventProcessingHandler;
         targetContext.event = this.event;
         targetContext.wasSuspended = this.wasSuspended;
-        targetContext.isManualServiceEventControl = this.isManualServiceEventControl;
     }
 }

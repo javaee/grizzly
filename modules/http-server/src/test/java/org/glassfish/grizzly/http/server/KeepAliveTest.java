@@ -140,7 +140,9 @@ public class KeepAliveTest extends TestCase {
             public void service(Request request,
                     Response response) throws Exception {
                 response.setContentType("text/plain");
-                response.getWriter().write(msg + ai.getAndIncrement());
+                final String responseString = msg + ai.getAndIncrement();
+                System.out.println(responseString);
+                response.getWriter().write(responseString);
             }
 
         }, "/path");
@@ -162,7 +164,7 @@ public class KeepAliveTest extends TestCase {
                         .header("Host", "localhost:" + PORT)
                         .build());
 
-            Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
+            Buffer buffer = resultFuture.get(100000, TimeUnit.SECONDS);
 
             assertEquals("Hello world #0", buffer.toStringContent());
 
@@ -174,9 +176,9 @@ public class KeepAliveTest extends TestCase {
                         .header("Host", "localhost:" + PORT)
                         .build());
 
-                buffer = resultFuture.get(10, TimeUnit.SECONDS);
+                buffer = resultFuture.get(10000, TimeUnit.SECONDS);
 
-                fail("IOException expected");
+                fail("IOException expected, but reponse came:\n" + buffer.toStringContent());
             } catch (ExecutionException ee) {
                 final Throwable cause = ee.getCause();
                 assertTrue("IOException expected, but got" + cause.getClass() +

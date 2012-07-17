@@ -40,30 +40,34 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ServiceEvent;
-import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.Transport.State;
-import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.ArrayDeque;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Transport.State;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.threadpool.WorkerThread;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.StateHolder;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -204,8 +208,7 @@ public final class SelectorRunner implements Runnable {
 
                 for (final SelectionKey selectionKey : keys) {
                     final Connection connection =
-                            transport.getSelectionKeyHandler().
-                            getConnectionForKey(selectionKey);
+                            transport.getConnectionForKey(selectionKey);
                     connection.closeSilently();
                 }
             } catch (ClosedSelectorException e) {
@@ -376,7 +379,7 @@ public final class SelectorRunner implements Runnable {
                 }
             } catch (IOException e) {
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.WARNING, Level.FINE);
+                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.FINE, Level.FINE);
             } catch (CancelledKeyException e) {
                 keyReadyOps = 0;
                 notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Level.FINE, Level.FINE);
@@ -389,24 +392,39 @@ public final class SelectorRunner implements Runnable {
     private boolean iterateKeyEvents()
             throws IOException {
 
-        final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
-        final IOStrategy ioStrategy = transport.getIOStrategy();
-        final ServiceEvent[] serviceEvents = selectionKeyHandler.getServiceEvents(keyReadyOps);
         final NIOConnection connection =
-                selectionKeyHandler.getConnectionForKey(key);
+                transport.getConnectionForKey(key);
 
-        for (ServiceEvent serviceEvent : serviceEvents) {
-            NIOConnection.notifyServiceEventReady(connection, serviceEvent);
-            
-            final int interest = serviceEvent.getSelectionKeyInterest();
-            keyReadyOps &= (~interest);
-            if (selectionKeyHandler.onProcessInterest(key, interest)) {
-                if (!ioStrategy.executeEvent(connection, serviceEvent)) {
-                    return false;
-                }
+        if ((keyReadyOps & SelectionKey.OP_READ) != 0) {
+            keyReadyOps &= (~SelectionKey.OP_READ);
+            if (!transport.processOpRead(connection)) {
+                return false;
             }
+            
+            if (keyReadyOps == 0) return true;
         }
 
+        if ((keyReadyOps & SelectionKey.OP_WRITE) != 0) {
+            keyReadyOps &= (~SelectionKey.OP_WRITE);
+            if (!transport.processOpWrite(connection)) {
+                return false;
+            }
+            
+            return true;
+        }
+
+        if ((keyReadyOps & SelectionKey.OP_ACCEPT) != 0) {
+            keyReadyOps &= (~SelectionKey.OP_ACCEPT);
+            if (!transport.processOpAccept(connection)) {
+                return false;
+            }
+        } else if ((keyReadyOps & SelectionKey.OP_CONNECT) != 0) {
+            keyReadyOps &= (~SelectionKey.OP_CONNECT);
+            if (!transport.processOpConnect(connection)) {
+                return false;
+            }
+        }
+        
         return true;
     }
 
@@ -454,14 +472,13 @@ public final class SelectorRunner implements Runnable {
 
             if (key != null) {
                 try {
-                    final Connection connection =
-                            transport.getSelectionKeyHandler().getConnectionForKey(key);
+                    final Connection connection = transport.getConnectionForKey(key);
 
                     if (connection != null) {
                         connection.closeSilently();
                     } else {
                         final SelectableChannel channel = key.channel();
-                        transport.getSelectionKeyHandler().cancel(key);
+                        key.cancel();
                         channel.close();
                     }
                 } catch (IOException cancelException) {
@@ -491,13 +508,11 @@ public final class SelectorRunner implements Runnable {
         final Selector newSelector = Selectors.newSelector(transport.getSelectorProvider());
 
         final Set<SelectionKey> keys = oldSelector.keys();
-        final SelectionKeyHandler selectionKeyHandler =
-                transport.getSelectionKeyHandler();
         
         for (final SelectionKey selectionKey : keys) {
             try {
                 final NIOConnection nioConnection =
-                        selectionKeyHandler.getConnectionForKey(selectionKey);
+                        transport.getConnectionForKey(selectionKey);
                 final SelectionKey newSelectionKey =
                         selectionKey.channel().register(newSelector,
                         selectionKey.interestOps(), selectionKey.attachment());

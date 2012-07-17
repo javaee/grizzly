@@ -39,36 +39,23 @@
  */
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.HttpHeader;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.util.List;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.junit.After;
-import org.junit.Before;
-import org.glassfish.grizzly.utils.TransferQueue;
-import org.glassfish.grizzly.http.HttpPacket;
-import org.junit.runners.Parameterized;
-import org.junit.runner.RunWith;
-import java.util.Arrays;
-import java.util.Collection;
-import org.junit.runners.Parameterized.Parameters;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -79,23 +66,36 @@ import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.Pair;
-
-import org.junit.Test;
+import org.glassfish.grizzly.utils.TransferQueue;
+import org.junit.After;
 import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Chunked Transfer-Encoding and HttpHandler tests.
@@ -353,7 +353,7 @@ public class ChunkedTransferEncodingTest {
                                     PORT);
         listener.setMaxRequestHeaders(-1);
         listener.setMaxResponseHeaders(-1);
-        listener.getTransport().getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
+        ((NIOTransport) listener.getTransport()).setMaxAsyncWriteQueueSizeInBytes(-1);
         if (isChunkWhenParsing) {
             listener.registerAddOn(new AddOn() {
 

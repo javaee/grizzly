@@ -177,7 +177,7 @@ public class DownloadHttpHandlerSample {
 
                     if (isWriteMore) {
                         // if there are more bytes to be sent - reregister this WriteHandler
-                        output.notifyCanWrite(this, CHUNK_SIZE);
+                        output.notifyCanWrite(this);
                     }
                 }
 
@@ -248,7 +248,7 @@ public class DownloadHttpHandlerSample {
                         response.finish();                    
                     }                    
                 }
-            }, CHUNK_SIZE);
+            });
         }
     } // END NonBlockingDownloadHandler    
 }

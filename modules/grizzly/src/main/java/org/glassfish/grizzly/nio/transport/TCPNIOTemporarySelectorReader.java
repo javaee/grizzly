@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 
 /**
@@ -52,8 +53,10 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
  * @author oleksiys
  */
 public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
-    public TCPNIOTemporarySelectorReader(TCPNIOTransport transport) {
-        super(transport);
+    private final TCPNIOTransport transport;
+    
+    public TCPNIOTemporarySelectorReader(final TCPNIOTransport transport) {
+        this.transport = transport;
     }
 
     @Override
@@ -62,7 +65,7 @@ public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader
             throws IOException {
         final int oldPosition = buffer != null ? buffer.position() : 0;
         
-        if ((buffer = ((TCPNIOTransport) transport).read(connection, buffer)) != null) {
+        if ((buffer = transport.read(connection, buffer)) != null) {
             final int readBytes = buffer.position() - oldPosition;
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + readBytes);
@@ -72,5 +75,10 @@ public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader
         }
 
         return 0;
+    }
+
+    @Override
+    protected TemporarySelectorIO getTemporarySelectorIO() {
+        return transport.getTemporarySelectorIO();
     }
 }

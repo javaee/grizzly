@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -115,27 +115,23 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
     // ---------------------------------------------- Methods from NIOOutputSink
 
     /**
-     * @param length specifies the number of characters that require writing
-     *
      * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
      *  will succeed, otherwise returns <code>false</code>.
      */
-    @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWriteChar(length);
+    @Override public boolean canWrite() {
+        return outputBuffer.canWrite();
     }
 
     /**
      * Instructs the <code>NIOOutputSink</code> to invoke the provided
-     * {@link WriteHandler} when it is possible to write <code>length</code>
-     * characters.
+     * {@link WriteHandler} when it is possible to write next portion of characters.
      *
      * @param handler the {@link WriteHandler} that should be notified
-     *  when it's possible to write <code>length</code> characters.
-     * @param length the number of characters that require writing.
+     *  when it's possible to write characters.
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+    public void notifyCanWrite(final WriteHandler handler) {
+        outputBuffer.notifyCanWrite(handler);
     }
 
 

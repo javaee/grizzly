@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.nio.NIOTransportBuilder;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
@@ -124,8 +124,8 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
      * Note: the value is per connection, not transport total.
      */
     public int getMaxAsyncWriteQueueSizeInBytes() {
-        return udpTransport.getAsyncQueueIO()
-                .getWriter().getMaxPendingBytesPerConnection();
+        return udpTransport.getAsyncQueueWriter()
+                .getMaxPendingBytesPerConnection();
     }
     
     /**
@@ -137,8 +137,8 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
      */
     public UDPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
             final int size) {
-        udpTransport.getAsyncQueueIO()
-                .getWriter().setMaxPendingBytesPerConnection(size);
+        udpTransport.getAsyncQueueWriter()
+                .setMaxPendingBytesPerConnection(size);
         return this;
     }
 

@@ -38,18 +38,17 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.nio;
 
 import java.nio.channels.spi.SelectorProvider;
+import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOChannelDistributor;
-import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
-import org.glassfish.grizzly.nio.SelectorHandler;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -102,7 +101,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
                                                    ? workerConfig.copy()
                                                    : ThreadPoolConfig.newConfig());
         transport.setSelectorHandler(SelectorHandler.DEFAULT_SELECTOR_HANDLER);
-        transport.setSelectionKeyHandler(SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER);
         transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
         transport.setAttributeBuilder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
@@ -196,26 +194,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      */
     public T setSelectorHandler(final SelectorHandler selectorHandler) {
         transport.setSelectorHandler(selectorHandler);
-        return getThis();
-    }
-
-    /**
-     * @return the {@link SelectionKeyHandler} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link SelectionKeyHandler#DEFAULT_SELECTION_KEY_HANDLER} will be used.
-     */
-    public SelectionKeyHandler getSelectionKeyHandler() {
-        return transport.getSelectionKeyHandler();
-    }
-
-    /**
-     * Set the {@link SelectionKeyHandler} to be used by the created {@link NIOTransport}.
-     *
-     * @param selectionKeyHandler the {@link SelectionKeyHandler}.
-     *
-     * @return this <code>NIOTransportBuilder</code>
-     */
-    public T setSelectionKeyHandler(final SelectionKeyHandler selectionKeyHandler) {
-        transport.setSelectionKeyHandler(selectionKeyHandler);
         return getThis();
     }
 
@@ -348,6 +326,49 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         return getThis();
     }
 
+
+    /**
+     * @see NIOTransport#isOptimizedForMultiplexing()
+     */
+    public boolean isOptimizedForMultiplexing() {
+        return transport.isOptimizedForMultiplexing();
+    }
+
+    /**
+     * @see NIOTransport#setOptimizedForMultiplexing(boolean)
+     *
+     * @return this <code>NIOTransportBuilder</code>
+     */
+    public T setOptimizedForMultiplexing(
+            final boolean isOptimizedForMultiplexing) {
+        transport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
+        return getThis();
+    }
+    
+
+    /**
+     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * 
+     * Note: the value is per connection, not transport total.
+     */
+    public int getMaxAsyncWriteQueueSizeInBytes() {
+        return transport.getAsyncQueueWriter()
+                .getMaxPendingBytesPerConnection();
+    }
+    
+    /**
+     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * 
+     * Note: the value is per connection, not transport total.
+     *
+     * @return this <code>NIOTransportBuilder</code>
+     */
+    public T setMaxAsyncWriteQueueSizeInBytes(
+            final int size) {
+        transport.getAsyncQueueWriter().setMaxPendingBytesPerConnection(size);
+        return getThis();
+    }
+    
     /**
      * @return an {@link NIOTransport} based on the builder's configuration.
      */

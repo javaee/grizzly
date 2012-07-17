@@ -40,17 +40,10 @@
 
 package org.glassfish.grizzly;
 
-import java.nio.channels.SelectableChannel;
-import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -60,34 +53,40 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.SelectorRunner;
-
-import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
-import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
-import org.glassfish.grizzly.utils.StandaloneProcessor;
 import org.glassfish.grizzly.utils.StringFilter;
-import org.glassfish.grizzly.utils.streams.StreamReader;
-import org.glassfish.grizzly.utils.streams.StreamWriter;
 
 
 /**
@@ -95,11 +94,12 @@ import org.glassfish.grizzly.utils.streams.StreamWriter;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public static final int PORT = 7777;
 
-    private static final Logger logger = Grizzly.logger(TCPNIOTransportTest.class);
+    private static final Logger LOGGER = Grizzly.logger(TCPNIOTransportTest.class);
 
     @Override
     protected void setUp() throws Exception {
@@ -260,43 +260,33 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     
     public void testConnectorHandlerConnectAndWrite() throws Exception {
         Connection connection = null;
-        StreamWriter writer = null;
-
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        
+        transport.setProcessor(FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .build());
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
-
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            byte[] sendingBytes = "Hello".getBytes();
-            writer.writeByteArray(sendingBytes);
-            Future<Integer> writeFuture = writer.flush();
-            Integer bytesWritten = writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(writeFuture.isDone());
-            assertEquals(sendingBytes.length, (int) bytesWritten);
-        } finally {
-            if (writer != null) {
-                writer.close();
-            }
+            final Buffer sendingBuffer = Buffers.wrap(
+                    transport.getMemoryManager(), "Hello");
+            final int bufferSize = sendingBuffer.remaining();
 
+            Future<WriteResult> writeFuture = connection.write(sendingBuffer);
+            
+            WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(writeFuture.isDone());
+            assertEquals(bufferSize, writeResult.getWrittenSize());
+        } finally {
             if (connection != null) {
                 connection.closeSilently();
             }
@@ -375,54 +365,45 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
+        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
+        serverChainBuilder.add(new TransportFilter());
+        serverChainBuilder.add(new StringFilter());
+        serverChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setProcessor(serverChainBuilder.build());
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-
-            byte[] originalMessage = "Hello".getBytes();
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(originalMessage);
-            Future<Integer> writeFuture = writer.flush();
-
+            
+            final String testString = "Hello";
+            Future<WriteResult> writeFuture = connection.write(testString);
             assertTrue("Write timeout", writeFuture.isDone());
-            assertEquals(originalMessage.length, (int) writeFuture.get());
 
+            final String inString = inQueueFilter.poll(10, TimeUnit.SECONDS);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(originalMessage.length);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-            byte[] echoMessage = new byte[originalMessage.length];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(echoMessage, originalMessage));
+            assertEquals(inString, testString);
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -434,12 +415,12 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new EchoFilter());
+        
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
@@ -448,39 +429,31 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
             transport.configureBlocking(true);
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-
             for (int i = 0; i < 100; i++) {
-                byte[] originalMessage = ("Hello world #" + i).getBytes();
-                writer.writeByteArray(originalMessage);
-                Future<Integer> writeFuture = writer.flush();
-
+                String originalMessage = "Hello world #" + i;
+                Future<WriteResult> writeFuture = connection.write(originalMessage);
+                
                 assertTrue("Write timeout", writeFuture.isDone());
-                assertEquals(originalMessage.length, (int) writeFuture.get());
 
-                Future readFuture = reader.notifyAvailable(originalMessage.length);
-                assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-                byte[] echoMessage = new byte[originalMessage.length];
-                reader.readByteArray(echoMessage);
-                assertTrue(Arrays.equals(echoMessage, originalMessage));
+                String echoMessage = inQueueFilter.poll(10, TimeUnit.SECONDS);
+                assertEquals(echoMessage, originalMessage);
             }
         } finally {
             if (connection != null) {
@@ -493,12 +466,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new EchoFilter());
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
@@ -507,38 +479,30 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            byte[] originalMessage = "Hello".getBytes();
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(originalMessage);
-            Future<Integer> writeFuture = writer.flush();
+            final String testString = "Hello";
+            Future<WriteResult> writeFuture = connection.write(testString);
+            assertTrue("Write timeout", writeFuture.isDone());
 
-            Integer writtenBytes = writeFuture.get(10, TimeUnit.SECONDS);
-            assertEquals(originalMessage.length, (int) writtenBytes);
+            final String inString = inQueueFilter.poll(10, TimeUnit.SECONDS);
 
-
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(originalMessage.length);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-            byte[] echoMessage = new byte[originalMessage.length];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(echoMessage, originalMessage));
+            assertEquals(inString, testString);
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -554,8 +518,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         final AtomicInteger serverBytesCounter = new AtomicInteger();
 
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
         
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -570,32 +532,30 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
+                .setMaxAsyncWriteQueueSizeInBytes(-1)
+                .build();
         transport.setProcessor(filterChainBuilder.build());
-        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(packetSize);
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
             final CountDownLatch sendLatch = new CountDownLatch(packetsNumber);
 
@@ -603,18 +563,18 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 final byte[] message = new byte[packetSize];
                 Arrays.fill(message, (byte) i);
 
-                writer.writeByteArray(message);
-                writer.flush(new EmptyCompletionHandler<Integer>() {
+                connection.write(Buffers.wrap(transport.getMemoryManager(), message),
+                        new EmptyCompletionHandler<WriteResult>() {
 
                     @Override
-                    public void completed(Integer result) {
-                        assertEquals(message.length, (int) result);
+                    public void completed(WriteResult result) {
+                        assertEquals(message.length, result.getWrittenSize());
                         sendLatch.countDown();
                     }
 
                     @Override
                     public void failed(Throwable throwable) {
-                        logger.log(Level.WARNING, "failure", throwable);
+                        LOGGER.log(Level.WARNING, "failure", throwable);
                     }
                 });
             }
@@ -623,17 +583,9 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 byte[] pattern = new byte[packetSize];
                 Arrays.fill(pattern, (byte) i);
 
-                byte[] message = new byte[packetSize];
-                Future future = reader.notifyAvailable(packetSize);
-                try {
-                    future.get(10, TimeUnit.SECONDS);
-                } catch (TimeoutException e) {
-                    assertTrue("Timeout. Server processed " +
-                            serverBytesCounter.get() + " bytes", false);
-                }
-                assertTrue(future.isDone());
-                reader.readByteArray(message);
-                assertTrue(Arrays.equals(pattern, message));
+                Buffer message = inQueueFilter.poll(10, TimeUnit.SECONDS);
+                
+                assertTrue(Buffers.wrap(transport.getMemoryManager(), pattern).equals(message));
             }
 
             sendLatch.await(10, TimeUnit.SECONDS);
@@ -647,7 +599,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         }
     }
     
-    public void testFeeder() throws Exception {
+    public void testChunkedMessageWithSleep() throws Exception {
         class CheckSizeFilter extends BaseFilter {
             private int size;
             private CountDownLatch latch;
@@ -660,8 +612,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             @Override
             public NextAction handleRead(FilterChainContext ctx)
                     throws IOException {
-                final Buffer buffer = (Buffer) ctx.getMessage();
-                logger.log(Level.INFO, "Feeder. Check size filter: {0}", buffer);
+                final Buffer buffer = ctx.getMessage();
+                LOGGER.log(Level.INFO, "Feeder. Check size filter: {0}", buffer);
                 if (buffer.remaining() >= size) {
                     latch.countDown();
                     return ctx.getInvokeAction();
@@ -675,8 +627,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         int fullMessageSize = 2048;
 
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
         CheckSizeFilter checkSizeFilter = new CheckSizeFilter(fullMessageSize);
 
@@ -692,42 +642,39 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(fullMessageSize);
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
+            final MemoryManager mm = transport.getMemoryManager();
+            
             byte[] firstChunk = new byte[fullMessageSize / 5];
             Arrays.fill(firstChunk, (byte) 1);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(firstChunk);
-            Future<Integer> writeFuture = writer.flush();
-            assertTrue("First chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) > 0);
+            Future<WriteResult> writeFuture = connection.write(Buffers.wrap(mm, firstChunk));
+            assertTrue("First chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) != null);
 
             Thread.sleep(1000);
             
             byte[] secondChunk = new byte[fullMessageSize - firstChunk.length];
             Arrays.fill(secondChunk, (byte) 2);
-            writer.writeByteArray(secondChunk);
-            writeFuture = writer.flush();
-            assertTrue("Second chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) > 0);
+            writeFuture = connection.write(Buffers.wrap(mm, secondChunk));
+            assertTrue("Second chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) != null);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(fullMessageSize);
+            Buffer echoMessage = null;
             try {
-                assertTrue("Read timeout. CheckSizeFilter latch: " +
-                        checkSizeFilter.latch,
-                        readFuture.get(10, TimeUnit.SECONDS) != null);
+                echoMessage = inQueueFilter.poll(10, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 assertTrue("Read timeout. CheckSizeFilter latch: " +
                         checkSizeFilter.latch, false);
@@ -736,9 +683,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             byte[] pattern = new byte[fullMessageSize];
             Arrays.fill(pattern, 0, firstChunk.length, (byte) 1);
             Arrays.fill(pattern, firstChunk.length, pattern.length, (byte) 2);
-            byte[] echoMessage = new byte[fullMessageSize];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(pattern, echoMessage));
+            assertTrue(Buffers.wrap(mm, pattern).equals(echoMessage));
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -750,29 +695,28 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testSelectorSwitch() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         final CustomChannelDistributor distributor = new CustomChannelDistributor(transport);
         transport.setNIOChannelDistributor(distributor);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new BaseFilter() {
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new BaseFilter() {
 
             @Override
             public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
                 final NIOConnection connection = (NIOConnection) ctx.getConnection();
 
                 connection.attachToSelectorRunner(distributor.getSelectorRunner());
-                connection.enableServiceEventInterest(ServiceEvent.READ);
+                connection.registerKeyInterest(SelectionKey.OP_READ);
                 
                 return ctx.getInvokeAction();
             }
-        });
-        filterChainBuilder.add(new EchoFilter());
+        })
+                .add(new EchoFilter());
 
         transport.setProcessor(filterChainBuilder.build());
 
@@ -782,39 +726,32 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final TCPNIOConnectorHandler connectorHandler = 
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
 
-            byte[] originalMessage = "Hello".getBytes();
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(originalMessage);
-            Future<Integer> writeFuture = writer.flush();
-
+            final String testString = "Hello";
+            Future<WriteResult> writeFuture = connection.write(testString);
             assertTrue("Write timeout", writeFuture.isDone());
-            assertEquals(originalMessage.length, (int) writeFuture.get());
 
+            final String inString = inQueueFilter.poll(10, TimeUnit.SECONDS);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(originalMessage.length);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-            byte[] echoMessage = new byte[originalMessage.length];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(echoMessage, originalMessage));
+            assertEquals(inString, testString);
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -919,7 +856,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    @SuppressWarnings("unchecked")
     protected void doTestParallelWrites(int packetsNumber,
                                         int size,
                                         boolean blocking) throws Exception {
@@ -964,7 +900,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             try {
                 connection.write("start");
             } catch (Exception e) {
-                logger.log(Level.WARNING, "Error occurred when sending start command");
+                LOGGER.log(Level.WARNING, "Error occurred when sending start command");
                 throw e;
             }
 
@@ -991,9 +927,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         }
     }
     
-    
     // ---------------------------------------------------------- Nested Classes
-
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
 
         private final AtomicInteger counter;

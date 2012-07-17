@@ -44,12 +44,12 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
@@ -446,9 +446,9 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void fireEvent(final ServiceEvent event,
+    public void fireEvent(final Event event,
             final Connection connection,
-            final ServiceEventProcessingHandler processingHandler) {
+            final EventProcessingHandler processingHandler) {
 
         final Processor conProcessor = connection.getProcessor();
 

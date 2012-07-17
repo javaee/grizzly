@@ -40,14 +40,14 @@
 
 package org.glassfish.grizzly.compression.zip;
 
+import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.compression.TransformationResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.Buffers;
-import java.io.IOException;
 
 /**
  * This class implements a {@link org.glassfish.grizzly.filterchain.Filter} which

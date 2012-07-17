@@ -852,7 +852,7 @@ public class HeapBuffer implements Buffer {
         } finally {
             if (isRestoreByteBuffer) {
                 Buffers.setPositionLimit(byteBuffer, oldPosition, oldLimit);
-            }
+    }
         }
     }
 
@@ -955,6 +955,7 @@ public class HeapBuffer implements Buffer {
         return offset;
     }
 
+    @Override
     public byte[] array() {
         return heap;
     }
@@ -973,13 +974,13 @@ public class HeapBuffer implements Buffer {
     }
 
     protected ByteBuffer toByteBuffer0(final int pos,
-                                       final int len,
+                                       final int lim,
                                        final boolean slice) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.wrap(heap);
         }
 
-        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + len);
+        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + lim);
 
         return ((slice) ? byteBuffer.slice() : byteBuffer);
 

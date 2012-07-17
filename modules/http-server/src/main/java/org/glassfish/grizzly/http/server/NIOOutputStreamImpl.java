@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,16 +105,16 @@ class NIOOutputStreamImpl extends NIOOutputStream implements Cacheable {
     /**
      * {@inheritDoc}
      */
-    @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWrite(length);
+    @Override public boolean canWrite() {
+        return outputBuffer.canWrite();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+    public void notifyCanWrite(final WriteHandler handler) {
+        outputBuffer.notifyCanWrite(handler);
     }
 
 

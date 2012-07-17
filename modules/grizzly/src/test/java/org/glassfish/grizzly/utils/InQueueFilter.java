@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,58 +38,41 @@
  * holder.
  */
 
-package org.glassfish.grizzly.utils.streams;
+package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  *
  * @author oleksiys
  */
-public class StreamOutput implements Output {
-    private final StreamWriter streamWriter;
+public class InQueueFilter<E> extends BaseFilter {
+    protected final BlockingQueue<E> queue = new LinkedBlockingQueue<E>();
 
-    public StreamOutput(StreamWriter streamWriter) {
-        this.streamWriter = streamWriter;
+    public E poll() {
+        return queue.poll();
+    }
+
+    public E poll(final long timeout, final TimeUnit timeUnit) throws TimeoutException, InterruptedException {
+        final E o = queue.poll(timeout, timeUnit);
+        if (o == null) {
+            throw new TimeoutException();
+        }
+        return o;
     }
 
     @Override
-    public void write(byte data) throws IOException {
-        streamWriter.writeByte(data);
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        final E message = ctx.getMessage();
+        queue.add(message);
+        return ctx.getStopAction();
     }
-
-    @Override
-    public void write(Buffer buffer) throws IOException {
-        streamWriter.writeBuffer(buffer);
-    }
-
-    @Override
-    public boolean isBuffered() {
-        return false;
-    }
-
-    @Override
-    public void ensureBufferCapacity(int size) throws IOException {
-    }
-
-    @Override
-    public Buffer getBuffer() {
-        throw new UnsupportedOperationException("Buffer is not available in StreamOutput");
-    }
-
-    @Override
-    public GrizzlyFuture<Integer> flush(
-            CompletionHandler<Integer> completionHandler) throws IOException {
-        return streamWriter.flush(completionHandler);
-    }
-
-    @Override
-    public GrizzlyFuture<Integer> close(
-            CompletionHandler<Integer> completionHandler) throws IOException {
-        return streamWriter.close(completionHandler);
-    }
-
+    
 }

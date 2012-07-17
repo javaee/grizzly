@@ -45,10 +45,19 @@ import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.Appender;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorExecutor;
+import org.glassfish.grizzly.ProcessorResult;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
@@ -93,23 +102,24 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         if (filterChainContext.getOperation() == Operation.NONE) {
             final Event event = internalContext.getEvent();
 
-            if (event != ServiceEvent.WRITE) {
-                if (ServiceEvent.isServiceEvent(event)) {
-                    filterChainContext.setOperation(
-                            FilterChainContext.serviceEvent2Operation((ServiceEvent) event));
+//            if (event != ServiceEvent.WRITE) {
+                final Operation operation =
+                        FilterChainContext.event2Operation(event);
+                
+                if (operation != null) {
+                    filterChainContext.setOperation(operation);
                 } else {
                     filterChainContext.setOperation(Operation.EVENT);
-                    filterChainContext.event = event;
                 }
-            } else {
-                // On OP_WRITE - call the async write queue
-                final Connection connection = context.getConnection();
-                final AsyncQueueEnabledTransport transport =
-                        (AsyncQueueEnabledTransport) connection.getTransport();
-                final AsyncQueueWriter writer = transport.getAsyncQueueIO().getWriter();
-
-                return writer.processAsync(context).toProcessorResult();
-            }
+//            } else {
+//                // On OP_WRITE - call the async write queue
+//                final Connection connection = context.getConnection();
+//                final AsyncQueueEnabledTransport transport =
+//                        (AsyncQueueEnabledTransport) connection.getTransport();
+//                final AsyncQueueWriter writer = transport.getAsyncQueueIO().getWriter();
+//
+//                return writer.processAsync(context).toProcessorResult();
+//            }
         }
 
         return execute(filterChainContext);
@@ -121,7 +131,10 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * @throws java.lang.Exception
      */
     @Override
-    public ProcessorResult execute(FilterChainContext ctx) {
+    public ProcessorResult execute(final FilterChainContext initialContext) {
+        
+        FilterChainContext ctx = initialContext;
+        
         final FilterExecutor executor = ExecutorResolver.resolve(ctx);
 
         if (ctx.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX) {
@@ -139,23 +152,24 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 switch (execution.type) {
                     case FilterExecution.TERMINATE_TYPE:
                         return ProcessorResult.createTerminate();
-                    case FilterExecution.REEXECUTE_TYPE:
+                    case FilterExecution.FORK_TYPE:
                         ctx = execution.getContext();
-                        
-                        final int idx = indexOfRemainder(
-                                filtersState,
-                                ctx.getOperation(), ctx.getStartIdx(), end);
-                        if (idx != -1) {
-                            // if there is a remainder associated with the connection
-                            // rerun the filter chain with the new context right away
-                            ctx.setMessage(null);
-                            ctx.setFilterIdx(idx);
-                            return ProcessorResult.createRerun(ctx.internalContext);
-                        }
-
-                        // reregister to listen for next operation,
-                        // keeping the current Context
-                        return ProcessorResult.createReregister(ctx.internalContext);
+                        ctx.setMessage(null);
+//                        
+//                        final int idx = indexOfRemainder(
+//                                filtersState,
+//                                ctx.getOperation(), ctx.getStartIdx(), end);
+//                        if (idx != -1) {
+//                            // if there is a remainder associated with the connection
+//                            // rerun the filter chain with the new context right away
+//                            ctx.setFilterIdx(idx);
+//                        } else {
+//                            // reregister to listen for next operation,
+//                            // keeping the current Context
+//                            ctx.setFilterIdx(executor.defaultEndIdx(ctx));
+//                        }
+//                        
+//                        return ProcessorResult.createFork(ctx.internalContext);
                 }
             } while (prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
@@ -168,7 +182,9 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return ProcessorResult.createError(e);
         }
 
-        return ProcessorResult.createComplete();
+        return ctx == initialContext ?
+                ProcessorResult.createComplete() :
+                ProcessorResult.createComplete(ctx.internalContext);
     }
 
     /**
@@ -233,7 +249,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             case ForkAction.TYPE:
                 final ForkAction forkAction =
                         (ForkAction) lastNextAction;
-                return FilterExecution.createReExecute(
+                return FilterExecution.createFork(
                         forkAction.getContext());
             case SuspendAction.TYPE: // on suspend - return immediatelly
                 return FilterExecution.createTerminate();
@@ -398,7 +414,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final CompletionHandler<WriteResult> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(Operation.EVENT);
-        context.event = TransportFilter.createFlushEvent(completionHandler);
+        context.setEvent(TransportFilter.createFlushEvent(completionHandler));
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
@@ -411,7 +427,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;
         context.setOperation(Operation.EVENT);
-        context.event = event;
+        context.setEvent(event);
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
@@ -424,7 +440,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;
         context.setOperation(Operation.EVENT);
-        context.event = event;
+        context.setEvent(event);
         ExecutorResolver.UPSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
@@ -611,7 +627,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return -1;
         }
 
-        public int lastIndexOf(final ServiceEvent event,
+        public int lastIndexOf(final IOEvent event,
                 final FILTER_STATE_TYPE type, final int end) {
             final int eventIdx = event.ordinal();
 
@@ -626,7 +642,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return -1;
         }
 
-        public int lastIndexOf(final ServiceEvent event,
+        public int lastIndexOf(final IOEvent event,
                 final FILTER_STATE_TYPE type) {
             return lastIndexOf(event, type, state[event.ordinal()].length);
         }
@@ -697,7 +713,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     private static final class FilterExecution {
         private static final int CONTINUE_TYPE = 0;
         private static final int TERMINATE_TYPE = 1;
-        private static final int REEXECUTE_TYPE = 2;
+        private static final int FORK_TYPE = 2;
         
         private static final FilterExecution CONTINUE =
                 new FilterExecution(CONTINUE_TYPE, null);
@@ -716,8 +732,8 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             return TERMINATE;
         }
         
-        public static FilterExecution createReExecute(final FilterChainContext context) {
-            return new FilterExecution(REEXECUTE_TYPE, context);
+        public static FilterExecution createFork(final FilterChainContext context) {
+            return new FilterExecution(FORK_TYPE, context);
         }
 
         public FilterExecution(final int type, final FilterChainContext context) {

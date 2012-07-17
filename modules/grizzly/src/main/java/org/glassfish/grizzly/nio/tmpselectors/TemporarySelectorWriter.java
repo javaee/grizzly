@@ -48,7 +48,7 @@ import java.nio.channels.Selector;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -57,13 +57,6 @@ import org.glassfish.grizzly.nio.NIOConnection;
  */
 public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
-
-    protected final TemporarySelectorsEnabledTransport transport;
-
-    public TemporarySelectorWriter(
-            TemporarySelectorsEnabledTransport transport) {
-        this.transport = transport;
-    }
 
     /**
      * {@inheritDoc}
@@ -76,7 +69,7 @@ public abstract class TemporarySelectorWriter
             final LifeCycleHandler lifeCycleHandler) {
         write(connection, dstAddress, message, completionHandler,
                 lifeCycleHandler,
-                connection.getWriteTimeout(TimeUnit.MILLISECONDS),
+                ((NIOConnection) connection).getBlockingWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
 
@@ -172,8 +165,7 @@ public abstract class TemporarySelectorWriter
                     } else {
                         attempts++;
                         if (writeSelector == null) {
-                            writeSelector = transport.getTemporarySelectorIO().
-                                    getSelectorPool().poll();
+                            writeSelector = getTemporarySelectorIO().getSelectorPool().poll();
 
                             if (writeSelector == null) {
                                 // Continue using the main one.
@@ -192,15 +184,10 @@ public abstract class TemporarySelectorWriter
                 }
             }
         } finally {
-            transport.getTemporarySelectorIO().recycleTemporaryArtifacts(
-                    writeSelector, key);
+            getTemporarySelectorIO().getSelectorPool().offer(writeSelector, key);
         }
         
         return bytesWritten;
-    }
-
-    public TemporarySelectorsEnabledTransport getTransport() {
-        return transport;
     }
 
     /**
@@ -208,14 +195,6 @@ public abstract class TemporarySelectorWriter
      */
     @Override
     public boolean canWrite(final Connection connection) {
-        return canWrite(connection, 1);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean canWrite(final Connection connection, final int size) {
         return true;
     }
 
@@ -225,15 +204,6 @@ public abstract class TemporarySelectorWriter
     @Override
     public void notifyWritePossible(final Connection connection,
             final WriteHandler writeHandler) {
-        notifyWritePossible(connection, writeHandler, 1);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void notifyWritePossible(final Connection connection,
-            final WriteHandler writeHandler, final int size) {
         try {
             writeHandler.onWritePossible();
         } catch (Throwable t) {
@@ -246,6 +216,8 @@ public abstract class TemporarySelectorWriter
             SocketAddress dstAddress, WritableMessage message,
             WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException;
+    
+    protected abstract TemporarySelectorIO getTemporarySelectorIO();
     
     private static void failure(
             final Throwable failure,

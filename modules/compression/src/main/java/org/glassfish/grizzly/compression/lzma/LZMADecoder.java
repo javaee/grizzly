@@ -39,20 +39,18 @@
  */
 package org.glassfish.grizzly.compression.lzma;
 
-import org.glassfish.grizzly.compression.lzma.impl.Base;
-import org.glassfish.grizzly.compression.lzma.impl.Decoder;
-import org.glassfish.grizzly.AbstractTransformer;
+import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.TransformationException;
-import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.MemoryManager;
-
-import java.io.IOException;
-
+import org.glassfish.grizzly.compression.AbstractTransformer;
+import org.glassfish.grizzly.compression.TransformationException;
+import org.glassfish.grizzly.compression.TransformationResult;
+import org.glassfish.grizzly.compression.lzma.impl.Base;
+import org.glassfish.grizzly.compression.lzma.impl.Decoder;
 import org.glassfish.grizzly.compression.lzma.impl.Decoder.LiteralDecoder;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 

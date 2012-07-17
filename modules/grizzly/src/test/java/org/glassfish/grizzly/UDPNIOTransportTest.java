@@ -40,15 +40,20 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.filterchain.*;
-import org.glassfish.grizzly.impl.FutureImpl;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
@@ -56,21 +61,22 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
-import org.glassfish.grizzly.utils.StandaloneProcessor;
-import org.glassfish.grizzly.utils.streams.StreamReader;
-import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.utils.InQueueFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Unit test for {@link UDPNIOTransport}
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class UDPNIOTransportTest extends GrizzlyTestCase {
     public static final int PORT = 7777;
 
+    private static final Logger LOGGER = Grizzly.logger(UDPNIOTransportTest.class);
+    
     @Override
     protected void setUp() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
@@ -147,43 +153,33 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testConnectorHandlerConnectAndWrite() throws Exception {
         Connection connection = null;
-        StreamWriter writer = null;
-
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+        
+        transport.setProcessor(FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .build());
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
-
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT));
             
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            byte[] sendingBytes = "Hello".getBytes();
-            writer.writeByteArray(sendingBytes);
-            Future<Integer> writeFuture = writer.flush();
-            Integer bytesWritten = writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(writeFuture.isDone());
-            assertEquals(sendingBytes.length, (int) bytesWritten);
-        } finally {
-            if (writer != null) {
-                writer.close();
-            }
+            final Buffer sendingBuffer = Buffers.wrap(
+                    transport.getMemoryManager(), "Hello");
+            final int bufferSize = sendingBuffer.remaining();
 
+            Future<WriteResult> writeFuture = connection.write(sendingBuffer);
+            
+            WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(writeFuture.isDone());
+            assertEquals(bufferSize, writeResult.getWrittenSize());
+        } finally {
             if (connection != null) {
                 connection.closeSilently();
             }
@@ -194,53 +190,45 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
+        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
+        serverChainBuilder.add(new TransportFilter());
+        serverChainBuilder.add(new StringFilter());
+        serverChainBuilder.add(new EchoFilter());
 
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setProcessor(serverChainBuilder.build());
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                            connectFuture, new EmptyCompletionHandler<Connection>() {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final UDPNIOConnectorHandler connectorHandler = 
+                    UDPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-
-            byte[] originalMessage = "Hello".getBytes();
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(originalMessage);
-            Future<Integer> writeFuture = writer.flush();
-
+            
+            final String testString = "Hello";
+            Future<WriteResult> writeFuture = connection.write(testString);
             assertTrue("Write timeout", writeFuture.isDone());
-            assertEquals(originalMessage.length, (int) writeFuture.get());
 
+            final String inString = inQueueFilter.poll(100000, TimeUnit.SECONDS);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(originalMessage.length);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-            byte[] echoMessage = new byte[originalMessage.length];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(echoMessage, originalMessage));
+            assertEquals(inString, testString);
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -252,13 +240,12 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
-
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new EchoFilter());
+        
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
@@ -267,38 +254,31 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
             transport.configureBlocking(true);
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final UDPNIOConnectorHandler connectorHandler = 
+                    UDPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-
             for (int i = 0; i < 100; i++) {
-                byte[] originalMessage = ("Hello world #" + i).getBytes();
-                writer.writeByteArray(originalMessage);
-                Future<Integer> writeFuture = writer.flush();
-
+                String originalMessage = "Hello world #" + i;
+                Future<WriteResult> writeFuture = connection.write(originalMessage);
+                
                 assertTrue("Write timeout", writeFuture.isDone());
-                assertEquals(originalMessage.length, (int) writeFuture.get());
 
-                Future readFuture = reader.notifyAvailable(originalMessage.length);
-                assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-                byte[] echoMessage = new byte[originalMessage.length];
-                reader.readByteArray(echoMessage);
-                assertTrue(Arrays.equals(echoMessage, originalMessage));
+                String echoMessage = inQueueFilter.poll(10, TimeUnit.SECONDS);
+                assertEquals(echoMessage, originalMessage);
             }
         } finally {
             if (connection != null) {
@@ -311,13 +291,12 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
-
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new EchoFilter());
+        
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
@@ -325,37 +304,30 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                            connectFuture, new EmptyCompletionHandler<Connection>() {
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final UDPNIOConnectorHandler connectorHandler = 
+                    UDPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            byte[] originalMessage = "Hello".getBytes();
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(originalMessage);
-            Future<Integer> writeFuture = writer.flush();
+            final String testString = "Hello";
+            Future<WriteResult> writeFuture = connection.write(testString);
+            assertTrue("Write timeout", writeFuture.isDone());
 
-            Integer writtenBytes = writeFuture.get(10, TimeUnit.SECONDS);
-            assertEquals(originalMessage.length, (int) writtenBytes);
+            final String inString = inQueueFilter.poll(10, TimeUnit.SECONDS);
 
-
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            Future readFuture = reader.notifyAvailable(originalMessage.length);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
-
-            byte[] echoMessage = new byte[originalMessage.length];
-            reader.readByteArray(echoMessage);
-            assertTrue(Arrays.equals(echoMessage, originalMessage));
+            assertEquals(inString, testString);
         } finally {
             if (connection != null) {
                 connection.closeSilently();
@@ -368,16 +340,25 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
         int packetsNumber = 100;
         final int packetSize = 32;
+        final AtomicInteger serverBytesCounter = new AtomicInteger();
 
         Connection connection = null;
-        StreamReader reader;
-        StreamWriter writer;
-
+        
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter());
-        
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+        filterChainBuilder.add(new EchoFilter() {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
+                
+                serverBytesCounter.addAndGet(((Buffer) ctx.getMessage()).remaining());
+                return super.handleRead(ctx);
+            }
+        });
+
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -385,43 +366,48 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.setWriteBufferSize(2048);
 
             transport.bind(PORT);
-
             transport.start();
 
-            final FutureImpl<Connection> connectFuture =
-                    Futures.createSafeFuture();
-            transport.connect(
-                    new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
-                    connectFuture, new EmptyCompletionHandler<Connection>()  {
+            final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(packetSize);
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(inQueueFilter);
 
-                        @Override
-                        public void completed(final Connection connection) {
-                            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-                        }
-                    }));
+            final UDPNIOConnectorHandler connectorHandler = 
+                    UDPNIOConnectorHandler.builder(transport)
+                    .processor(clientChainBuilder.build())
+                    .build();
+            
+            final Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-
             for (int i = 0; i < packetsNumber; i++) {
-                final byte[] message = new byte[packetSize];
-                Arrays.fill(message, (byte) i);
+                final byte[] outMessage = new byte[packetSize];
+                Arrays.fill(outMessage, (byte) i);
 
-                writer.writeByteArray(message);
-                writer.flush();
+                connection.write(Buffers.wrap(transport.getMemoryManager(), outMessage),
+                        new EmptyCompletionHandler<WriteResult>() {
 
-                final byte[] rcvMessage = new byte[packetSize];
-                Future future = reader.notifyAvailable(packetSize);
-                future.get(10, TimeUnit.SECONDS);
-                assertTrue(future.isDone());
-                reader.readByteArray(rcvMessage);
+                    @Override
+                    public void completed(WriteResult result) {
+                        assertEquals(outMessage.length, result.getWrittenSize());
+                    }
 
-                assertTrue("Message is corrupted!",
-                        Arrays.equals(rcvMessage, message));
+                    @Override
+                    public void failed(Throwable throwable) {
+                        LOGGER.log(Level.WARNING, "failure", throwable);
+                    }
+                });
+                
+                byte[] pattern = new byte[packetSize];
+                Arrays.fill(pattern, (byte) i);
 
+                Buffer inMessage = inQueueFilter.poll(10, TimeUnit.SECONDS);
+                
+                assertTrue("packet #" + i + " failed", Buffers.wrap(transport.getMemoryManager(), pattern).equals(inMessage));
             }
         } finally {
             if (connection != null) {
@@ -431,7 +417,6 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.stop();
         }
     }
-
     public void testWorkerThreadPoolConfiguration() throws Exception {
         UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
         ThreadPoolConfig config = ThreadPoolConfig.newConfig();

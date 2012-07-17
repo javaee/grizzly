@@ -39,39 +39,41 @@
  */
 
 package org.glassfish.grizzly;
+
 import java.io.IOException;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.impl.FutureImpl;
-import java.util.concurrent.TimeUnit;
 import java.net.InetSocketAddress;
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.runners.Parameterized.Parameters;
-import java.util.Collection;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.SimpleDynamicNIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.StringFilter;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.junit.Assert.*;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Basic IOStrategies test.

@@ -41,10 +41,10 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
@@ -84,8 +84,8 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     public static Context create(final Connection connection,
-            final Processor processor, final ServiceEvent event,
-            final ServiceEventProcessingHandler processingHandler) {
+            final Processor processor, final Event event,
+            final EventProcessingHandler processingHandler) {
         
         final Context context = create(connection, processor, event);
         context.setProcessingHandler(processingHandler);
@@ -108,17 +108,15 @@ public class Context implements AttributeStorage, Cacheable {
      */
     private final AttributeHolder attributes;
     /**
-     * ServiceEventProcessingHandler is called to notify about ServiceEvent processing
+     * EventProcessingHandler is called to notify about Event processing
      * life-cycle events like suspend, resume, complete.
      */
-    protected ServiceEventProcessingHandler serviceEventProcessingHandler;
+    protected EventProcessingHandler eventProcessingHandler;
     /**
-     * <tt>true</tt> if this ServiceEvent processing was suspended during its processing,
+     * <tt>true</tt> if this Event processing was suspended during its processing,
      * or <tt>false</tt> otherwise.
      */
     protected boolean wasSuspended;
-
-    protected boolean isManualServiceEventControl;
 
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
@@ -129,10 +127,10 @@ public class Context implements AttributeStorage, Cacheable {
      */
     public void suspend() {
         wasSuspended = true;
-        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
+        final EventProcessingHandler processingHandlerLocal = this.eventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
-                processingHandlerLocal.onContextSuspend(this);
+                processingHandlerLocal.onSuspend(this);
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -143,10 +141,10 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be resumed in the current thread.
      */
     public void resume() {
-        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
+        final EventProcessingHandler processingHandlerLocal = this.eventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
-                processingHandlerLocal.onContextResume(this);
+                processingHandlerLocal.onResume(this);
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -162,31 +160,6 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * Switches processing to the manual ServiceEvent control.
-     * {@link Connection#enableServiceEvent(org.glassfish.grizzly.ServiceEvent)} or
-     * {@link Connection#disableServiceEvent(org.glassfish.grizzly.ServiceEvent)} might be
-     * explicitly called.
-     */
-    public void setManualServiceEventControl() {
-        isManualServiceEventControl = true;
-        final ServiceEventProcessingHandler processingHandlerLocal = this.serviceEventProcessingHandler;
-        if (processingHandlerLocal != null) {
-            try {
-                processingHandlerLocal.onContextManualServiceEventControl(this);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-    }
-
-    /**
-     * @return <tt>true</tt>, if processing was switched to the manual ServiceEvent
-     * control, or <tt>false</tt> otherwise.
-     */
-    public boolean isManualServiceEventControl() {
-        return isManualServiceEventControl;
-    }
-    /**
      * Get the processing {@link Event}.
      *
      * @return the processing {@link Event}.
@@ -201,19 +174,18 @@ public class Context implements AttributeStorage, Cacheable {
      * @param event the processing {@link Event}.
      */
     public void setEvent(Event event) {
-        this.event = event;
-        this.serviceEventProcessingHandler = null;
+        setEvent(event, null);
     }
 
     /**
-     * Set the processing {@link ServiceEvent}.
+     * Set the processing {@link Event}.
      *
-     * @param event the processing {@link ServiceEvent}.
+     * @param event the processing {@link Event}.
      */
-    public void setEvent(final ServiceEvent event,
-            final ServiceEventProcessingHandler handler) {
+    public void setEvent(final Event event,
+            final EventProcessingHandler handler) {
         this.event = event;
-        this.serviceEventProcessingHandler = handler;
+        this.eventProcessingHandler = handler;
     }
 
     /**
@@ -256,12 +228,12 @@ public class Context implements AttributeStorage, Cacheable {
         this.processor = processor;
     }
 
-    protected ServiceEventProcessingHandler getProcessingHandler() {
-        return serviceEventProcessingHandler;
+    protected EventProcessingHandler getProcessingHandler() {
+        return eventProcessingHandler;
     }
 
-    protected void setProcessingHandler(final ServiceEventProcessingHandler processingHandler) {
-        this.serviceEventProcessingHandler = processingHandler;
+    protected void setProcessingHandler(final EventProcessingHandler processingHandler) {
+        this.eventProcessingHandler = processingHandler;
     }
 
     /**
@@ -287,11 +259,10 @@ public class Context implements AttributeStorage, Cacheable {
         attributes.recycle();
 
         processor = null;
-        serviceEventProcessingHandler = null;
+        eventProcessingHandler = null;
         connection = null;
         event = Event.NULL;
         wasSuspended = false;
-        isManualServiceEventControl = false;
     }
 
     /**

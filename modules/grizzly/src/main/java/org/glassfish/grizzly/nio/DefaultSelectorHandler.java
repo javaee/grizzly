@@ -45,14 +45,15 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.*;
+import java.util.Collections;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.JdkVersion;
 
@@ -108,7 +109,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
         final boolean hasPostponedTasks =
                 !selectorRunner.getPostponedTasks().isEmpty();
       
-        final long t1 = System.currentTimeMillis();
         if (!hasPostponedTasks) {
             hasSelectedKeys = selector.select(selectTimeout) > 0;
         } else {
@@ -337,9 +337,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
                     final SelectionKey registeredSelectionKey =
                             channel.register(selector, interest, attachment);
 
-                    selectorRunner.getTransport().
-                            getSelectionKeyHandler().
-                            onKeyRegistered(registeredSelectionKey);
+//                    selectorRunner.getTransport().
+//                            getSelectionKeyHandler().
+//                            onKeyRegistered(registeredSelectionKey);
 
                     final RegisterChannelResult result =
                             new RegisterChannelResult(selectorRunner,
@@ -382,41 +382,38 @@ public class DefaultSelectorHandler implements SelectorHandler {
                                     final CompletionHandler<RegisterChannelResult> completionHandler) {
 
         final Throwable error;
-        try {
-            if (channel.isOpen()) {
+        if (channel.isOpen()) {
 
-                final Selector selector = selectorRunner.getSelector();
+            final Selector selector = selectorRunner.getSelector();
 
-                final SelectionKey key = channel.keyFor(selector);
+            final SelectionKey key = channel.keyFor(selector);
 
-                // Check whether the channel has been registered on a selector
-                if (key != null) {
-                    // If channel is registered
-                    selectorRunner.getTransport().getSelectionKeyHandler().cancel(key);
+            // Check whether the channel has been registered on a selector
+            if (key != null) {
+                // If channel is registered
+                key.cancel();
+//                    selectorRunner.getTransport().getSelectionKeyHandler().cancel(key);
 
-                    selectorRunner.getTransport().
-                            getSelectionKeyHandler().
-                            onKeyDeregistered(key);
+//                    selectorRunner.getTransport().
+//                            getSelectionKeyHandler().
+//                            onKeyDeregistered(key);
 
-                    final RegisterChannelResult result =
-                            new RegisterChannelResult(selectorRunner,
-                            key, channel);
+                final RegisterChannelResult result =
+                        new RegisterChannelResult(selectorRunner,
+                        key, channel);
 
-                    if (completionHandler != null) {
-                        completionHandler.completed(result);
-                    }
-                    return;
+                if (completionHandler != null) {
+                    completionHandler.completed(result);
                 }
-
-                error = new IllegalStateException("Channel is not registered");
-            } else {
-                error = new ClosedChannelException();
+                return;
             }
-            
-            Futures.notifyFailure(null, completionHandler, error);
-        } catch (IOException e) {
-            Futures.notifyFailure(null, completionHandler, e);
+
+            error = new IllegalStateException("Channel is not registered");
+        } else {
+            error = new ClosedChannelException();
         }
+
+        Futures.notifyFailure(null, completionHandler, error);
     }
     
     @Override

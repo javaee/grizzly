@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,10 +42,11 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 
 /**
@@ -53,8 +54,10 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
  * @author oleksiys
  */
 public final class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
-    public UDPNIOTemporarySelectorWriter(UDPNIOTransport transport) {
-        super(transport);
+    private final UDPNIOTransport transport;
+    
+    public UDPNIOTemporarySelectorWriter(final UDPNIOTransport transport) {
+        this.transport = transport;
     }
 
     @Override
@@ -62,7 +65,12 @@ public final class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter
             WritableMessage message, WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException {
 
-        return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
+        return transport.write((UDPNIOConnection) connection,
                 dstAddress, message, currentResult);
     }
+    
+    @Override
+    protected TemporarySelectorIO getTemporarySelectorIO() {
+        return transport.getTemporarySelectorIO();
+    }    
 }

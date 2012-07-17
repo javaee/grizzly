@@ -48,7 +48,6 @@ import java.nio.InvalidMarkException;
 import java.nio.ReadOnlyBufferException;
 import java.nio.charset.Charset;
 
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 

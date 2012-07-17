@@ -40,23 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.NullaryFunction;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.EchoFilter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -70,9 +53,26 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.NullaryFunction;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -336,14 +336,14 @@ public class FilterChainTest extends TestCase {
     }
 
     public void testWriteCloner() throws Exception {
-        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
+                .setMaxAsyncWriteQueueSizeInBytes(-1)
+                .build();
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
-        
         transport.setProcessor(filterChainBuilder.build());
 
         Connection connection = null;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.nio.NIOTransportBuilder;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
@@ -213,48 +213,6 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     public TCPNIOTransportBuilder setTcpNoDelay(boolean tcpNoDelay) {
         tcpTransport.setTcpNoDelay(tcpNoDelay);
         return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#isOptimizedForMultiplexing()
-     */
-    public boolean isOptimizedForMultiplexing() {
-        return tcpTransport.isOptimizedForMultiplexing();
-    }
-
-    /**
-     * @see TCPNIOTransport#setOptimizedForMultiplexing(boolean)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setOptimizedForMultiplexing(
-            final boolean isOptimizedForMultiplexing) {
-        tcpTransport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
-        return this;
-    }
-
-    /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
-     * 
-     * Note: the value is per connection, not transport total.
-     */
-    public int getMaxAsyncWriteQueueSizeInBytes() {
-        return tcpTransport.getAsyncQueueIO()
-                .getWriter().getMaxPendingBytesPerConnection();
-    }
-    
-    /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
-     * 
-     * Note: the value is per connection, not transport total.
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
-            final int size) {
-        tcpTransport.getAsyncQueueIO()
-                .getWriter().setMaxPendingBytesPerConnection(size);
-        return this;
     }
     
     /**

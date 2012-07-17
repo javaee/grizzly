@@ -46,11 +46,13 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -119,8 +121,8 @@ public class UDPNIOConnection extends NIOConnection {
             setWriteBufferSize(transport.getWriteBufferSize());
 
             final int transportMaxAsyncWriteQueueSize =
-                    ((UDPNIOTransport) transport).getAsyncQueueIO()
-                    .getWriter().getMaxPendingBytesPerConnection();
+                    ((UDPNIOTransport) transport).getAsyncQueueWriter()
+                    .getMaxPendingBytesPerConnection();
             
             setMaxAsyncWriteQueueSize(
                     transportMaxAsyncWriteQueueSize == AsyncQueueWriter.AUTO_SIZE ?

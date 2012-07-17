@@ -40,27 +40,6 @@
 
 package org.glassfish.grizzly.http.core;
 
-import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.Pair;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -73,10 +52,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
-import org.glassfish.grizzly.utils.StandaloneProcessor;
-import org.glassfish.grizzly.utils.streams.StreamWriter;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.glassfish.grizzly.utils.Pair;
 
 /**
  * Testing HTTP request parsing
@@ -231,6 +231,7 @@ public class HttpRequestParseTest extends TestCase {
                 headers, eol);
     }
 
+    @SuppressWarnings("unchecked")
     private void doHttpRequestTest(Pair<String, String> method,
             Pair<String, String> requestURI, Pair<String, String> protocol,
             Map<String, Pair<String, String>> headers, String eol)
@@ -239,13 +240,12 @@ public class HttpRequestParseTest extends TestCase {
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
         Connection connection = null;
-        StreamWriter writer;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new ChunkingFilter(2));
-        filterChainBuilder.add(new HttpServerFilter());
-        filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new ChunkingFilter(2))
+                .add(new HttpServerFilter())
+                .add(new HTTPRequestCheckFilter(parseResult,
                 method, requestURI, protocol, headers));
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
@@ -255,11 +255,17 @@ public class HttpRequestParseTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+                    .add(new TransportFilter());
+            
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChainBuilder.build())
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-
-            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             StringBuilder sb = new StringBuilder();
 
@@ -276,14 +282,12 @@ public class HttpRequestParseTest extends TestCase {
 
             sb.append(eol);
 
-            byte[] message = sb.toString().getBytes();
-            
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            writer.writeByteArray(message);
-            Future<Integer> writeFuture = writer.flush();
+            final Buffer message = Buffers.wrap(transport.getMemoryManager(),
+                    sb.toString());
+            final int messageLen = message.remaining();
+            Future<WriteResult> writeFuture = connection.write(message);
 
-            assertTrue("Write timeout", writeFuture.isDone());
-            assertEquals(message.length, (int) writeFuture.get());
+            assertEquals(messageLen, writeFuture.get().getWrittenSize());
 
             assertTrue(parseResult.get(10, TimeUnit.SECONDS));
         } finally {

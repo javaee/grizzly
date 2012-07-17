@@ -53,7 +53,6 @@ import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -194,17 +193,18 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             connection.resetProperties();
 
             // Deregister OP_CONNECT interest
-            connection.disableServiceEventInterest(ServiceEvent.CLIENT_CONNECTED);
+            connection.deregisterKeyInterest(SelectionKey.OP_CONNECT);
 
             tcpTransport.configureChannel(channel);
+        
+            if (connection.notifyReady()) {
+                tcpTransport.getIOStrategy().executeIOEvent(
+                        connection, IOEvent.CONNECT,
+                        new EnableReadHandler(completionHandler));
+            }
         } catch (Exception e) {
             abortConnection(connection, completionHandler, e);
             throw new IllegalStateException(e);
-        }
-        
-        if (connection.notifyReady()) {
-            tcpTransport.fireEvent(ServiceEvent.CONNECTED, connection,
-                    new EnableReadHandler(completionHandler));
         }
     }
 
@@ -259,10 +259,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             transport.selectorRegistrationHandler.completed(result);
 
             final SelectionKey selectionKey = result.getSelectionKey();
-            final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
 
             final TCPNIOConnection connection =
-                    (TCPNIOConnection) selectionKeyHandler.getConnectionForKey(selectionKey);
+                    (TCPNIOConnection) transport.getConnectionForKey(selectionKey);
 
             try {
                 connection.onConnect();
@@ -294,12 +293,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
     
-    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-//    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
-
-    // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
-    // about Connection CONNECT
-    private static final class EnableReadHandler extends ServiceEventProcessingHandler.Adapter {
+    // Post processor, which supposed to enable OP_READ interest, once Processor
+    // is notified about Connection CONNECT
+    private static final class EnableReadHandler extends EventProcessingHandler.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 
@@ -309,17 +305,12 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
 
         @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
-        }
-
-        @Override
         public void onNotRun(final Context context) throws IOException {
-            onComplete(context, null);
+            onComplete(context);
         }
 
         @Override
-        public void onComplete(final Context context, final Object data)
+        public void onComplete(final Context context)
                 throws IOException {
             final NIOConnection connection = (NIOConnection) context.getConnection();
 
@@ -327,7 +318,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 completionHandler.completed(connection);
             }
 
-            connection.enableServiceEventInterest(ServiceEvent.READ);
+            connection.registerKeyInterest(SelectionKey.OP_READ);
         }
 
 
