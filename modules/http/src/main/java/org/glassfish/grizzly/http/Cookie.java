@@ -94,11 +94,6 @@ import org.glassfish.grizzly.utils.Charsets;
  * @version	$Version$
  *
  */
-
-// XXX would implement java.io.Serializable too, but can't do that
-// so long as sun.servlet.* must run on older JDK 1.02 JVMs which
-// don't include that support.
-
 public class Cookie implements Cloneable, Cacheable {
 
     //
@@ -156,34 +151,10 @@ public class Cookie implements Cloneable, Cacheable {
      *
      */
     public Cookie(final String name, final String value) {
-        checkName(name);
-
         this.name = name;
         this.value = value;
     }
 
-
-    /**
-     * Validate the cookie name
-     *
-     * @param name cookie name
-     */
-    protected static void checkName(final String name) {
-        if (!isToken(name)
-                || name.equalsIgnoreCase("Comment")    // rfc2019
-                || name.equalsIgnoreCase("Discard")    // 2019++
-                || name.equalsIgnoreCase("Domain")
-                || name.equalsIgnoreCase("Expires")    // (old cookies)
-                || name.equalsIgnoreCase("Max-Age")    // rfc2019
-                || name.equalsIgnoreCase("Path")
-                || name.equalsIgnoreCase("Secure")
-                || name.equalsIgnoreCase("Version")
-                || name.charAt(0) == '$'
-                ) {
-
-            throw new IllegalArgumentException("Cookie name, " + name + ", is a reserved word");
-        }
-    }
     
     /**
      *
@@ -437,10 +408,7 @@ public class Cookie implements Cloneable, Cacheable {
 
     public String getName() {
         if (name == null && usingLazyCookieState) {
-            final String strName = lazyCookieState.getName().toString(Charsets.ASCII_CHARSET);
-            checkName(strName);
-
-            name = strName;
+            name = lazyCookieState.getName().toString(Charsets.ASCII_CHARSET);
         }
         return name;
     }
