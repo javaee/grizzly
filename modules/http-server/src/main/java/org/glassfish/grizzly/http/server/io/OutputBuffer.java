@@ -979,6 +979,7 @@ public class OutputBuffer {
         }
 
         if (compositeBuffer != null) {
+            doCommit();
             writeContentChunk(false);
         }
     }
