@@ -49,7 +49,8 @@ use strict;
 my $PORT = 5000;
 my $HOST = "localhost";
 my $BM = '';
-my $GIT = "ssh://oleksiys\@git.java.net/grizzly~git";
+my $GITSSH = "ssh://$ENV{'java_net_id'}\@git.java.net/grizzly~git";
+my $GITREADONLY = "git://java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
@@ -77,11 +78,15 @@ sub checkoutGrizzly {
    }
    if (-e "2dot0") {
        chdir("2dot0");
-       my @args = ("git", "pull", "--rebase origin");
+       my @args = ("git", "pull", "--rebase", "origin", "master");
        system(@args) == 0 or die "git pull/update failed: $?";
        chdir("..");
    } else {
-       my @args = ("git", "clone", "$GIT", "2dot0");
+       my $GITPATH = $GITREADONLY;
+       if (defined $ENV{"java_net_id"}) {
+            $GITPATH = $GITSSH;
+       }
+       my @args = ("git", "clone", "$GITPATH", "2dot0");
        system(@args) == 0 or die "git clone of Grizzly 2.0 failed: $?";
    }  
 }
