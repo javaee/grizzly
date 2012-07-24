@@ -3,7 +3,7 @@
 #
 #    DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-#    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+#    Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
 #
 #    The contents of this file are subject to the terms of either the GNU
 #    General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,7 @@ use strict;
 my $PORT = 5000;
 my $HOST = "localhost";
 my $BM = '';
-my $HG = "https://hg.java.net/hg/grizzly~hg";
+my $GIT = "ssh://oleksiys\@git.java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
@@ -57,7 +57,7 @@ my @RUNS;
 # --------------------------------- MAIN EXECUTION
 
 parseCommandLine();
-#initializeGrizzly();
+initializeGrizzly();
 parseBenchmarks();
 runBenchmarks();
 
@@ -77,12 +77,12 @@ sub checkoutGrizzly {
    }
    if (-e "2dot0") {
        chdir("2dot0");
-       my @args = ("hg", "pull", "-u");
-       system(@args) == 0 or die "hg pull/update failed: $?";
+       my @args = ("git", "pull", "--rebase origin");
+       system(@args) == 0 or die "git pull/update failed: $?";
        chdir("..");
    } else {
-       my @args = ("hg", "clone", "$HG", "2dot0");
-       system(@args) == 0 or die "hg clone of Grizzly 2.0 failed: $?";
+       my @args = ("git", "clone", "$GIT", "2dot0");
+       system(@args) == 0 or die "git clone of Grizzly 2.0 failed: $?";
    }  
 }
 
