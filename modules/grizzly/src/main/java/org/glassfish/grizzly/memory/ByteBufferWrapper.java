@@ -82,12 +82,6 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public ByteBufferWrapper prepend(final Buffer header) {
-        checkDispose();
-        return this;
-    }
-
-    @Override
     public void trim() {
         checkDispose() ;
         flip();
@@ -222,6 +216,10 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer split(int splitPosition) {
+        if (splitPosition == capacity()) {
+            return Buffers.EMPTY_BUFFER;
+        }
+        
         final int oldPosition = position();
         final int oldLimit = limit();
 

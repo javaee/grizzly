@@ -113,12 +113,6 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public HeapBuffer prepend(final Buffer header) {
-        checkDispose();
-        return this;
-    }
-
-    @Override
     public void trim() {
         checkDispose() ;
         flip();

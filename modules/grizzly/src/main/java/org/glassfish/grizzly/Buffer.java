@@ -63,13 +63,13 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
 
     boolean isComposite();
 
-    /**
-     * Prepend data from header.position() to header.limit() to the
-     * current buffer.  This will change the value returned by buffer()!
-     * @throws IllegalArgumentException if header.limit() - header.position()
-     * is greater than headerSize.
-     */
-    Buffer prepend(Buffer header);
+//    /**
+//     * Prepend data from header.position() to header.limit() to the
+//     * current buffer.  This will change the value returned by buffer()!
+//     * @throws IllegalArgumentException if header.limit() - header.position()
+//     * is greater than headerSize.
+//     */
+//    Buffer prepend(Buffer header);
 
     /**
      * Trim the buffer by reducing capacity to position, if possible.

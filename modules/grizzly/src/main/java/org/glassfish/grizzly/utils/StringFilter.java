@@ -108,6 +108,7 @@ public final class StringFilter extends BaseFilter {
             }
             
             final Buffer remainder = input.split(input.position());
+            input.tryDispose();
         
             ctx.setMessage(newState.getResult());
 

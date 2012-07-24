@@ -69,7 +69,13 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
         return BuffersBuffer.create(memoryManager, buffers, isReadOnly);
     }
 
-    @Override
+    /**
+     * Prepend data from the passed {@link Buffer} to the current buffer.
+     * 
+     * This will change the value returned by buffer()!
+     * @throws IllegalArgumentException if header.limit() - header.position()
+     * is greater than headerSize.
+     */
     public abstract CompositeBuffer prepend(Buffer buffer);
 
     @Override
