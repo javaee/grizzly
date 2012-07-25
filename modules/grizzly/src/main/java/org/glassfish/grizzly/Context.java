@@ -44,7 +44,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
@@ -54,7 +53,6 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 public class Context implements AttributeStorage, Cacheable {
 
     private static final Logger LOGGER = Grizzly.logger(Context.class);
-    private static final Processor NULL_PROCESSOR = new NullProcessor();
     private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
             ThreadCache.obtainIndex(Context.class, 4);
 
@@ -70,14 +68,9 @@ public class Context implements AttributeStorage, Cacheable {
 
     public static Context create(final Connection connection,
             final Processor processor, final Event event) {
-        final Context context;
-
-        if (processor != null) {
-            context = processor.obtainContext(connection);
-        } else {
-            context = NULL_PROCESSOR.obtainContext(connection);
-        }
-
+        assert processor != null;
+        
+        final Context context = processor.obtainContext(connection);
         context.setEvent(event);
 
         return context;
@@ -272,34 +265,5 @@ public class Context implements AttributeStorage, Cacheable {
     public void recycle() {
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
-    }
-
-    private final static class NullProcessor implements Processor {
-
-        @Override
-        public Context obtainContext(Connection connection) {
-            final Context context = Context.create(connection);
-            context.setProcessor(this);
-
-            return context;
-        }
-
-        @Override
-        public ProcessorResult process(Context context) {
-            return ProcessorResult.createNotRun();
-        }
-
-        @Override
-        public void read(Connection connection,
-                CompletionHandler completionHandler) {
-            throw new UnsupportedOperationException("Not supported.");
-        }
-
-        @Override
-        public void write(Connection connection, Object dstAddress,
-                Object message, CompletionHandler completionHandler,
-                LifeCycleHandler lifeCycleHandler) {
-            throw new UnsupportedOperationException("Not supported.");
-        }
     }
 }

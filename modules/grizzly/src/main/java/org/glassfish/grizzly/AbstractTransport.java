@@ -79,7 +79,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport default Processor
      */
-    protected Processor processor;
+    protected Processor processor = Processor.NullProcessor.INSTANCE;
 
     /**
      * Transport strategy
