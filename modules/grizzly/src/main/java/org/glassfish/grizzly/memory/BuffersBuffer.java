@@ -1592,6 +1592,21 @@ public class BuffersBuffer extends CompositeBuffer {
         return false;
     }
 
+    @Override
+    public boolean hasArray() {
+        return false;
+    }
+
+    @Override
+    public byte[] array() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int arrayOffset() {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Returns the current hash code of this buffer.
      *

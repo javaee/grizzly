@@ -1,4 +1,3 @@
-
 Purpose of these scripts
 -------------------------------------------
 These are intended to provide a way to run mulitple grizzly benchmarks
@@ -96,8 +95,8 @@ Running
      ./benchmark --benchmark <bm definition file> --host <host of the fhb-runner> \
      --port <port the fhb-runner is listening on>
      
-   When the script is invoked, the latest Grizzly 2.0 code will be checked out of svn
-   and built.  Next, the bencmark will be built after which the server will be started.
+   When the script is invoked, the latest Grizzly 2.0 code will be checked out of git
+   and built. Next, the benchmark will be built after which the server will be started.
    The fhb command parameters are then sent to the fhb-runner to invoke.
    
  - Once all benchmarks have been run, the accumulated results will have been logged

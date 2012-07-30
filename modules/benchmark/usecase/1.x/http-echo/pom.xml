@@ -42,17 +42,11 @@
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <parent>
-        <groupId>org.glassfish.grizzly</groupId>
-        <artifactId>grizzly-project</artifactId>
-        <version>2.1.2-SNAPSHOT</version>
-        <relativePath>../../../../../pom.xml</relativePath>
-    </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly.benchmark</groupId>
     <artifactId>grizzly-http-echo-benchmark1.x</artifactId>
     <packaging>bundle</packaging>
-    <version>2.1.2-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
     <name>grizzly-http-echo-benchmark1.x</name>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -87,7 +81,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>1.9.35</version>
+            <version>1.9.50</version>
         </dependency>
     </dependencies>
 </project>

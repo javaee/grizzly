@@ -113,12 +113,6 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public HeapBuffer prepend(final Buffer header) {
-        checkDispose();
-        return this;
-    }
-
-    @Override
     public void trim() {
         checkDispose() ;
         flip();
@@ -852,7 +846,7 @@ public class HeapBuffer implements Buffer {
         } finally {
             if (isRestoreByteBuffer) {
                 Buffers.setPositionLimit(byteBuffer, oldPosition, oldLimit);
-            }
+    }
         }
     }
 
@@ -945,13 +939,25 @@ public class HeapBuffer implements Buffer {
         return false;
     }
 
+    @Override
+    public boolean hasArray() {
+        return true;
+    }
+
+    @Override
+    public int arrayOffset() {
+        return offset;
+    }
+
+    @Override
+    public byte[] array() {
+        return heap;
+    }
 
     // ------------------------------------------------------- Protected Methods
 
 
-    protected byte[] array() {
-        return heap;
-    }
+
 
     protected HeapBuffer createHeapBuffer(final byte[] heap,
             final int offset, final int capacity) {
@@ -962,13 +968,13 @@ public class HeapBuffer implements Buffer {
     }
 
     protected ByteBuffer toByteBuffer0(final int pos,
-                                       final int len,
+                                       final int lim,
                                        final boolean slice) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.wrap(heap);
         }
 
-        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + len);
+        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + lim);
 
         return ((slice) ? byteBuffer.slice() : byteBuffer);
 

@@ -43,64 +43,46 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * The {@link ServiceEvent} processing handler, which will be notified about changes
- * in {@link ServiceEvent} processing statuses.
+ * The {@link Event} processing handler, which will be notified about changes
+ * in {@link Event} processing statuses.
  * 
  * @author Alexey Stashok
  */
-public interface ServiceEventProcessingHandler {
+public interface EventProcessingHandler {
     /**
-     * {@link ServiceEvent} processing suspended.
+     * {@link Event} processing suspended.
      *
      * @param context
      * @throws IOException
      */
-    public void onContextSuspend(Context context) throws IOException;
+    public void onSuspend(Context context) throws IOException;
 
     /**
-     * {@link ServiceEvent} processing resumed.
+     * {@link Event} processing resumed.
      *
      * @param context
      * @throws IOException
      */
-    public void onContextResume(Context context) throws IOException;
+    public void onResume(Context context) throws IOException;
+
+//    /**
+//     * Reregister {@link ServiceEvent} interest.
+//     *
+//     * @param context
+//     * @throws IOException
+//     */
+//    public void onReregister(Context context) throws IOException;
 
     /**
-     * Processing switched to the manual ServiceEvent control.
-     * {@link Connection#enableServiceEventInterest(org.glassfish.grizzly.ServiceEvent)} or
-     * {@link Connection#disableServiceEventInterest(org.glassfish.grizzly.ServiceEvent)} might be
-     * explicitly called.
-     * 
-     * @param context
-     */
-    public void onContextManualServiceEventControl(final Context context) throws IOException;
-
-    /**
-     * Reregister {@link ServiceEvent} interest.
-     *
-     * @param context
-     * @throws IOException
-     */
-    public void onReregister(Context context) throws IOException;
-
-    /**
-     * {@link ServiceEvent} processing completed.
+     * {@link Event} processing completed.
      * 
      * @param context 
      * @throws IOException
      */
-    public void onComplete(Context context, Object data) throws IOException;
+    public void onComplete(Context context) throws IOException;
 
     /**
-     * Detaching {@link ServiceEvent} processing out of this {@link Context}.
-     *
-     * @param context
-     * @throws IOException
-     */
-    public void onLeave(Context context) throws IOException;
-
-    /**
-     * Terminate {@link ServiceEvent} processing in this thread, but it's going to
+     * Terminate {@link Event} processing in this thread, but it's going to
      * be continued later.
      *
      * @param context
@@ -109,73 +91,59 @@ public interface ServiceEventProcessingHandler {
     public void onTerminate(Context context) throws IOException;
 
     /**
-     * Re-run {@link ServiceEvent} processing.
+     * Re-run {@link Event} processing.
      *
      * @param context original {@link Context} to be rerun
      * @param newContext new context, which will replace original {@link Context}
      * @throws IOException
      */
-    public void onRerun(Context context, Context newContext) throws IOException;
+//    public void onRerun(Context context, Context newContext) throws IOException;
 
     /**
-     * Error occurred during {@link ServiceEvent} processing.
+     * Error occurred during {@link Event} processing.
      *
      * @param context
      */
     public void onError(Context context, Object description) throws IOException;
 
     /**
-     * {@link ServiceEvent} wasn't processed.
+     * {@link Event} wasn't processed.
      *
      * @param context
      */
     public void onNotRun(Context context) throws IOException;
     
     /**
-     * Empty {@link ServiceEventProcessingHandler} implementation.
+     * Empty {@link EventProcessingHandler} implementation.
      */
-    public class Adapter implements ServiceEventProcessingHandler {
+    public class Adapter implements EventProcessingHandler {
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onContextSuspend(Context context) throws IOException {
+        public void onSuspend(Context context) throws IOException {
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onContextResume(Context context) throws IOException {
+        public void onResume(Context context) throws IOException {
         }
+
+//        /**
+//         * {@inheritDoc}
+//         */
+//        @Override
+//        public void onReregister(Context context) throws IOException {
+//        }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onContextManualServiceEventControl(Context context) throws IOException {
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onReregister(Context context) throws IOException {
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onComplete(Context context, Object data) throws IOException {
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onLeave(Context context) throws IOException {
+        public void onComplete(Context context) throws IOException {
         }
 
         /**
@@ -188,9 +156,9 @@ public interface ServiceEventProcessingHandler {
         /**
          * {@inheritDoc}
          */
-        @Override
-        public void onRerun(Context context, Context newContext) throws IOException {
-        }
+//        @Override
+//        public void onRerun(Context context, Context newContext) throws IOException {
+//        }
 
         /**
          * {@inheritDoc}

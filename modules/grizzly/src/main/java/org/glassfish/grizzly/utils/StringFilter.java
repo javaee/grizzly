@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,16 +40,33 @@
 
 package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * StringFilter implementation, which performs Buffer <-> String transformation.
  * 
  * @author Alexey Stashok
  */
-public final class StringFilter extends AbstractCodecFilter<Buffer, String> {
+public final class StringFilter extends BaseFilter {
+    private static final Logger LOGGER = Grizzly.logger(StringFilter.class);
+    
+    protected final Charset charset;
+    
+    protected final Attribute<DecodeResult> decodeStateAttr;
+
+    protected final byte[] stringTerminateBytes;
 
     public StringFilter() {
         this(null, null);
@@ -59,8 +76,199 @@ public final class StringFilter extends AbstractCodecFilter<Buffer, String> {
         this(charset, null);
     }
 
-    public StringFilter(Charset charset, String stringTerminatingSymb) {
-        super(new StringDecoder(charset, stringTerminatingSymb),
-                new StringEncoder(charset, stringTerminatingSymb));
+    public StringFilter(Charset charset, String stringTerminate) {
+        if (charset != null) {
+            this.charset = charset;
+        } else {
+            this.charset = Charset.defaultCharset();
+        }
+        
+        if (stringTerminate != null) {
+            stringTerminateBytes = stringTerminate.getBytes(charset);
+        } else {
+            stringTerminateBytes = null;
+        }
+
+        decodeStateAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                StringFilter.class.getName() + "string-length");
+    }
+
+    @Override
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        
+        final DecodeResult prevState = decodeStateAttr.get(connection);
+        final Buffer input = ctx.getMessage();
+
+        final DecodeResult newState = decode(input, prevState);
+        
+        if (newState.isDone()) {
+            if (prevState != null) {
+                decodeStateAttr.remove(connection);
+            }
+            
+            final Buffer remainder = input.split(input.position());
+            input.tryDispose();
+        
+            ctx.setMessage(newState.getResult());
+
+            return ctx.getInvokeAction(remainder.hasRemaining() ? remainder : null);
+            
+        } else {
+            if (prevState == null) {
+                decodeStateAttr.set(connection, newState);
+            }
+            
+            return ctx.getStopAction(input);
+        }
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        
+        final Object input = ctx.getMessage();
+        if (!(input instanceof String)) {
+            return ctx.getInvokeAction();
+        }
+        
+        final String inputString = ctx.getMessage();
+        final Buffer output = encode(ctx.getMemoryManager(), inputString);
+
+        ctx.setMessage(output);
+        
+        return ctx.getInvokeAction();
+    }
+
+    public DecodeResult decode(final Buffer inputBuffer,
+            final DecodeResult decodeResult) {
+        return stringTerminateBytes == null ?
+                parseWithLengthPrefix(inputBuffer, decodeResult) :
+                parseWithTerminatingSeq(inputBuffer, decodeResult);
+    }
+    
+    public Buffer encode(final MemoryManager mm, final String inputString) {
+        byte[] byteRepresentation;
+        try {
+            byteRepresentation = inputString.getBytes(charset.name());
+        } catch(UnsupportedEncodingException e) {
+            throw new IllegalStateException("Charset " +
+                    charset.name() + " is not supported", e);
+        }
+        final int termLen = stringTerminateBytes == null ? 4 : stringTerminateBytes.length;
+        final Buffer output = mm.allocate(byteRepresentation.length + termLen);
+        if (stringTerminateBytes == null) {
+            output.putInt(byteRepresentation.length);
+        }
+        output.put(byteRepresentation);
+        if (stringTerminateBytes != null) {
+            output.put(stringTerminateBytes);
+        }
+        output.flip();
+        output.allowBufferDispose(true);
+        return output;
+    }
+    
+    protected DecodeResult parseWithLengthPrefix(final Buffer input,
+            DecodeResult decodeResult) {
+        
+        if (decodeResult == null) {
+            decodeResult = new DecodeResult();
+        } else if (decodeResult.isDone()) {
+            return decodeResult;
+        }
+        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "StringFilter decode stringSize={0} buffer={1} content={2}",
+                    new Object[]{decodeResult.state, input, input.toStringContent()});
+        }
+
+        int stringSize = decodeResult.state;
+        if (stringSize == -1) {
+            if (input.remaining() < 4) {
+                return decodeResult;
+            }
+
+            decodeResult.state = stringSize = input.getInt();
+        }
+        
+        if (input.remaining() < stringSize) {
+            return decodeResult;
+        }
+
+        String stringMessage = input.toStringContent(charset,
+                input.position(), input.position() + stringSize);
+
+        input.position(input.position() + stringSize);        
+        decodeResult.done(stringMessage);
+        
+        return decodeResult;
+    }
+
+    protected DecodeResult parseWithTerminatingSeq(final Buffer input,
+            DecodeResult decodeResult) {
+        
+        if (decodeResult == null) {
+            decodeResult = new DecodeResult();
+        } else if (decodeResult.isDone()) {
+            return decodeResult;
+        }
+
+        final int terminationBytesLength = stringTerminateBytes.length;
+        int checkIndex = 0;
+        
+        int termIndex = -1;
+
+        int offset = 0;
+        if (decodeResult.state != -1) {
+            offset = decodeResult.state;
+        }
+
+        for(int i = input.position() + offset; i < input.limit(); i++) {
+            if (input.get(i) == stringTerminateBytes[checkIndex]) {
+                checkIndex++;
+                if (checkIndex >= terminationBytesLength) {
+                    termIndex = i - terminationBytesLength + 1;
+                    break;
+                }
+            }
+        }
+
+        if (termIndex >= 0) {
+            // Terminating sequence was found
+            final String stringMessage = input.toStringContent(
+                    charset, input.position(), termIndex);
+            
+            decodeResult.done(stringMessage);
+            
+            input.position(termIndex + terminationBytesLength);
+        } else {
+            offset = input.remaining() - terminationBytesLength;
+            if (offset < 0) {
+                offset = 0;
+            }
+
+            decodeResult.state = offset;
+        }
+        
+        return decodeResult;
+    }
+    
+    public static class DecodeResult {
+        private String result;
+        
+        private int state = -1;
+        
+
+        public boolean isDone() {
+            return result != null;
+        }
+
+        public String getResult() {
+            return result;
+        }
+
+        private void done(String result) {
+            this.result = result;
+        }
     }
 }

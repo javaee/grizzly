@@ -41,7 +41,12 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import org.glassfish.grizzly.*;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -64,7 +69,8 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  *
  * @author Alexey Stashok
  */
-public final class SimpleDynamicNIOStrategy implements IOStrategy {
+public final class SimpleDynamicNIOStrategy extends AbstractIOStrategy {
+    private static final Logger logger = Grizzly.logger(SimpleDynamicNIOStrategy.class);
 
     private static final SimpleDynamicNIOStrategy INSTANCE = new SimpleDynamicNIOStrategy();
 
@@ -93,36 +99,41 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
 
     // ------------------------------------------------- Methods from IOStrategy
 
-    /**
-     * Execute custom {@link Event}s in the same thread.
-     */
     @Override
-    public boolean executeEvent(final Connection connection, final Event event)
-            throws IOException {
-        if (ServiceEvent.isServiceEvent(event)) {
-            return executeServiceEvent(connection, (ServiceEvent) event);
-        }
-        
-        return sameThreadStrategy.executeEvent(connection, event);
-    }
-
-    @Override
-    public boolean executeServiceEvent(Connection connection, ServiceEvent serviceEvent) throws IOException {
-        return executeServiceEvent(connection, serviceEvent, true);
-    }
-
-    @Override
-    public boolean executeServiceEvent(final Connection connection,
-            final ServiceEvent serviceEvent, final boolean isServiceEventInterestEnabled)
-            throws IOException {
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventProcessingHandler processingHandler) {
         
         final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
 
-        return ((lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD)
-                     ? sameThreadStrategy.executeServiceEvent(connection, serviceEvent, isServiceEventInterestEnabled)
-                     : workerThreadStrategy.executeServiceEvent(connection, serviceEvent, isServiceEventInterestEnabled));
+        return executeIOEvent(connection, ioEvent, processingHandler,
+                lastSelectedKeysCount > WORKER_THREAD_THRESHOLD);
     }
-    
+
+    @Override
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            DecisionListener listener) throws IOException {
+        EventProcessingHandler processingHandler = null;
+        final boolean isRunAsync =
+                getLastSelectedKeysCount(connection) > WORKER_THREAD_THRESHOLD;
+        if (listener != null) {
+            processingHandler = isRunAsync ?
+                    listener.goAsync(connection, ioEvent) :
+                    listener.goSync(connection, ioEvent);
+        }
+        
+        return executeIOEvent(connection, ioEvent, processingHandler, isRunAsync);
+    }
+
+
+    @Override
+    protected boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler, boolean isRunAsync) {
+        return isRunAsync
+                ? workerThreadStrategy.executeIOEvent(connection, ioEvent, processingHandler)
+                : sameThreadStrategy.executeIOEvent(connection, ioEvent, processingHandler);
+    }
+
     @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 
@@ -143,4 +154,8 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
         return ((NIOConnection) c).getSelectorRunner().getLastSelectedKeysCount();
     }
 
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 }

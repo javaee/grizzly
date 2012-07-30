@@ -114,20 +114,6 @@ public interface Writable<L> {
     boolean canWrite();
 
     /**
-     * Return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes and is ready to accept another "size" bytes,
-     *  otherwise <code>false</code>.
-     * 
-     * @param size number of bytes to write.
-     * @return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes and is ready to accept another "size" bytes,
-     *  otherwise <code>false</code>
-     * 
-     * @since 2.3
-     */
-    boolean canWrite(int size);
-
-    /**
      * Registers {@link WriteHandler}, which will be notified ones at least one
      * byte can be written.
      * 
@@ -142,19 +128,4 @@ public interface Writable<L> {
      * @since 2.3
      */
     void notifyWritePossible(final WriteHandler writeHandler);
-    
-    /**
-     * Registers {@link WriteHandler}, which will be notified ones {@link Buffer}
-     * of "size"-bytes can be written.
-     * Note: using this method from different threads simultaneously may lead
-     * to quick situation changes, so at time {@link WriteHandler} is called -
-     * the queue may become busy again.
-     * 
-     * @param writeHandler {@link WriteHandler} to be notified.
-     * @param size number of bytes queue has to be able to accept before notifying
-     *             {@link WriteHandler}.
-     * 
-     * @since 2.3
-     */
-    void notifyWritePossible(final WriteHandler writeHandler, final int size);
 }

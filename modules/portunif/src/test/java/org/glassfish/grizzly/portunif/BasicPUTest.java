@@ -40,21 +40,12 @@
 
 package org.glassfish.grizzly.portunif;
 
-import java.util.concurrent.TimeUnit;
-import java.nio.charset.Charset;
-
-import org.glassfish.grizzly.filterchain.FilterChain;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -62,12 +53,13 @@ import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StringFilter;
-import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Test;
 
 /**
  * Simple port-unification test
@@ -358,7 +350,7 @@ public class BasicPUTest {
                         (Connection) serverConnectionFutures[i].get(10, TimeUnit.SECONDS);
                 
                 transport.fireEvent(new CustomEvent(), serverSideConnection);
-                assertTrue("Event haven't come", counters[i].await(10, TimeUnit.SECONDS));
+                assertTrue("Event haven't come. Counter: " + counters[i].getCount(), counters[i].await(10, TimeUnit.SECONDS));
             }
 
         } finally {

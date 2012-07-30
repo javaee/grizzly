@@ -54,7 +54,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -62,9 +61,9 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.*;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
@@ -78,8 +77,8 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public final class UDPNIOTransport extends NIOTransport implements
-        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
+        SocketBinder, SocketConnectorHandler,
+        FilterChainEnabledTransport {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
@@ -101,9 +100,9 @@ public final class UDPNIOTransport extends NIOTransport implements
      */
     protected final Collection<UDPNIOServerConnection> serverConnections;
     /**
-     * Transport AsyncQueueIO
+     * Transport async write queue
      */
-    protected final AsyncQueueIO<SocketAddress> asyncQueueIO;
+    final UDPNIOAsyncQueueWriter asyncQueueWriter;
     /**
      * Server socket backlog.
      */
@@ -128,9 +127,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
-                new UDPNIOAsyncQueueReader(this),
-                new UDPNIOAsyncQueueWriter(this));
+        asyncQueueWriter = new UDPNIOAsyncQueueWriter(this);
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new UDPNIOTemporarySelectorReader(this),
@@ -415,18 +412,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
         }
 
-        if (asyncQueueIO != null) {
-            AsyncQueueReader reader = asyncQueueIO.getReader();
-            if (reader != null) {
-                reader.onClose(connection);
-            }
-
-            AsyncQueueWriter writer = asyncQueueIO.getWriter();
-            if (writer != null) {
-                writer.onClose(connection);
-            }
-
-        }
+        asyncQueueWriter.onClose(connection);
     }
 
     @Override
@@ -445,10 +431,6 @@ public final class UDPNIOTransport extends NIOTransport implements
 
             if (selectorHandler == null) {
                 selectorHandler = new DefaultSelectorHandler();
-            }
-
-            if (selectionKeyHandler == null) {
-                selectionKeyHandler = new DefaultSelectionKeyHandler();
             }
 
             if (processor == null) {
@@ -592,8 +574,8 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public AsyncQueueIO getAsyncQueueIO() {
-        return asyncQueueIO;
+    protected final AbstractNIOAsyncQueueWriter getAsyncQueueWriter() {
+        return asyncQueueWriter;
     }
 
     @Override
@@ -619,44 +601,40 @@ public final class UDPNIOTransport extends NIOTransport implements
         notifyProbesConfigChanged(this);
     }
 
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public Reader getReader(final Connection connection) {
+//        return getReader(connection.isBlocking());
+//    }
+//
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public Reader getReader(final boolean isBlocking) {
+//        if (isBlocking) {
+//            return getTemporarySelectorIO().getReader();
+//        } else {
+//            return getAsyncQueueIO().getReader();
+//        }
+//    }
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public Reader getReader(final Connection connection) {
-        return getReader(connection.isBlocking());
+    protected Writer<SocketAddress> getWriter(final Connection connection) {
+        return super.getWriter(connection);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Reader getReader(final boolean isBlocking) {
-        if (isBlocking) {
-            return getTemporarySelectorIO().getReader();
-        } else {
-            return getAsyncQueueIO().getReader();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Writer getWriter(final Connection connection) {
-        return getWriter(connection.isBlocking());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Writer getWriter(final boolean isBlocking) {
-        if (isBlocking) {
-            return getTemporarySelectorIO().getWriter();
-        } else {
-            return getAsyncQueueIO().getWriter();
-        }
+    protected Writer<SocketAddress> getWriter(final boolean isBlocking) {
+        return super.getWriter(isBlocking);
     }
 
     private int readConnected(final UDPNIOConnection connection, Buffer buffer,
@@ -857,6 +835,16 @@ public final class UDPNIOTransport extends NIOTransport implements
         return new org.glassfish.grizzly.nio.transport.jmx.UDPNIOTransport(this);
     }
 
+    @Override
+    protected boolean processOpAccept(NIOConnection connection) throws IOException {
+        throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    protected boolean processOpConnect(NIOConnection connection) throws IOException {
+        throw new UnsupportedOperationException("Not supported");
+    }
+
     protected class RegisterChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {
 
@@ -865,8 +853,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             final SelectionKey selectionKey = result.getSelectionKey();
 
             final UDPNIOConnection connection =
-                    (UDPNIOConnection) getSelectionKeyHandler().
-                    getConnectionForKey(selectionKey);
+                    (UDPNIOConnection) getConnectionForKey(selectionKey);
 
             if (connection != null) {
                 final SelectorRunner selectorRunner = result.getSelectorRunner();

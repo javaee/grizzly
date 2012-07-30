@@ -42,14 +42,20 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.*;
-import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.WritableMessage;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
@@ -73,23 +79,12 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         if (!isBlocking) {
             buffer = transport.read(connection, null);
         } else {
-            GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
+            final ReadResult<Buffer, SocketAddress> result =
                     transport.getTemporarySelectorIO().getReader().read(
                     connection, null);
-            try {
-                ReadResult<Buffer, SocketAddress> result = future.get();
-                buffer = result.getMessage();
-                future.recycle(true);
-            } catch (ExecutionException e) {
-                final Throwable cause = e.getCause();
-                if (cause instanceof IOException) {
-                    throw (IOException) cause;
-                }
-                
-                throw new IOException(cause);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
+
+            buffer = result.getMessage();
+            result.recycle();
         }
         
         if (buffer == null || buffer.position() == 0) {
@@ -124,7 +119,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             transportContext.setLifeCycleHandler(null);
 
             if (!transportContext.isBlocking()) {
-                transport.getAsyncQueueIO().getWriter().write(connection, null,
+                transport.getAsyncQueueWriter().write(connection, null,
                         message, completionHandler, lifeCycleHandler, cloner);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,

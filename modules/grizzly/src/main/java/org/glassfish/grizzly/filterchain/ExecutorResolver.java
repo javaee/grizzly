@@ -82,7 +82,7 @@ abstract class ExecutorResolver {
         @Override
         public NextAction execute(final Filter filter,
                 final FilterChainContext context) throws IOException {
-            return filter.handleEvent(context, context.event);
+            return filter.handleEvent(context, context.getEvent());
         }
     };
     
@@ -91,7 +91,7 @@ abstract class ExecutorResolver {
         @Override
         public NextAction execute(final Filter filter,
                 final FilterChainContext context) throws IOException {
-            return filter.handleEvent(context, context.event);
+            return filter.handleEvent(context, context.getEvent());
         }
     };
     

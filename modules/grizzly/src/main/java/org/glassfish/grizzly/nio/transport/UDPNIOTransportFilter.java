@@ -42,14 +42,19 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.ExecutionException;
+import java.nio.channels.SelectionKey;
 import java.util.logging.Filter;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.*;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -77,22 +82,9 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             transport.read(connection, null, readResult);
 
         } else {
-            GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
+            readResult =
                     transport.getTemporarySelectorIO().getReader().read(
                     connection, null);
-            try {
-                readResult = future.get();
-                future.recycle(false);
-            } catch (ExecutionException e) {
-                final Throwable cause = e.getCause();
-                if (cause instanceof IOException) {
-                    throw (IOException) cause;
-                }
-
-                throw new IOException(cause);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
         }
 
         if (readResult.getReadSize() > 0) {
@@ -105,7 +97,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             ctx.setAddress(address);
 
             if (!connection.isConnected()) {
-                connection.enableServiceEventInterest(ServiceEvent.READ);
+                connection.registerKeyInterest(SelectionKey.OP_READ);
             }
         } else {
             readResult.recycle();
@@ -126,7 +118,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                     ctx.getTransportContext();
 
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
-            final Object address = ctx.getAddress();
+            final SocketAddress address = (SocketAddress) ctx.getAddress();
             
             transportContext.setCompletionHandler(null);
 

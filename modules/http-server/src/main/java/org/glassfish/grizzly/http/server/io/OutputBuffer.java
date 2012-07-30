@@ -57,7 +57,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -66,7 +65,6 @@ import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -77,10 +75,10 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 
@@ -147,14 +145,11 @@ public class OutputBuffer {
     private MemoryManager memoryManager;
 
     private WriteHandler handler;
-    private int handlerRequestedSize;
 
     private final AtomicReference<Throwable> asyncError = new AtomicReference<Throwable>();
 
     private InternalWriteHandler asyncWriteHandler;
 
-    private Writer writer;
-    
     private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
@@ -169,8 +164,9 @@ public class OutputBuffer {
     private final CompletionHandler<WriteResult> onWritePossibleCompletionHandler =
             new OnWritePossibleCompletionHandler();
 
-    private int guaranteedNonBlockingUnits;
-    private int charsBuffered;
+    private boolean isNonBlockingWriteGuaranteed;
+    private boolean isLastWriteNonBlocking;
+    
     
     // ---------------------------------------------------------- Public Methods
 
@@ -183,8 +179,6 @@ public class OutputBuffer {
         sendfileEnabled = response.isSendFileEnabled();
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
-        final Connection c = ctx.getConnection();
-        writer = c.getTransport().getWriter(IS_BLOCKING);
     }
 
     public void prepareCharacterEncoder() {
@@ -286,11 +280,10 @@ public class OutputBuffer {
         ctx = null;
         memoryManager = null;
         resetHandler();
-        guaranteedNonBlockingUnits = 0;
-        charsBuffered = 0;
+        isNonBlockingWriteGuaranteed = false;
+        isLastWriteNonBlocking = false;
         asyncError.set(null);
         asyncWriteHandler = null;
-        writer = null;
 
         committed = false;
         finished = false;
@@ -352,10 +345,10 @@ public class OutputBuffer {
             return;
         }
 
+        updateNonBlockingStatus();
         flushCharsToBuf(CharBuffer.wrap(cbuf, off, len));
 
     }
-
 
     public void writeChar(int c) throws IOException {
 
@@ -365,6 +358,8 @@ public class OutputBuffer {
             return;
         }
 
+        updateNonBlockingStatus();
+        
         charBuf.position(0);
         charBuf.put(0, (char) c);
         flushCharsToBuf(charBuf);
@@ -389,6 +384,8 @@ public class OutputBuffer {
             return;
         }
 
+        updateNonBlockingStatus();
+        
         int offLocal = off;
         int lenLocal = len;
 
@@ -417,6 +414,8 @@ public class OutputBuffer {
             return;
         }
 
+        updateNonBlockingStatus();
+        
         checkCurrentBuffer();
         
         if (currentBuffer.hasRemaining()) {
@@ -573,6 +572,8 @@ public class OutputBuffer {
             return;
         }
         
+        updateNonBlockingStatus();
+        
         // Copy the content of the b[] to the currentBuffer, if it's possible
         if (bufferSize >= len &&
                 (currentBuffer == null || currentBuffer.remaining() >= len)) {
@@ -588,22 +589,18 @@ public class OutputBuffer {
             // if there is data in the currentBuffer - complete it
             finishCurrentBuffer();
             
-            final int flushedBufferSize;
-            
             // mark headers as committed
             doCommit();
             if (compositeBuffer != null) { // if we write a composite buffer
                 compositeBuffer.append(temporaryWriteBuffer);
-                flushedBufferSize = compositeBuffer.remaining();
                 
                 flushBuffer(compositeBuffer, false, cloner);
                 compositeBuffer = null;
             } else { // we write just mutableHeapBuffer content
-                flushedBufferSize = len;
                 flushBuffer(temporaryWriteBuffer, false, cloner);
             }
             
-            blockAfterWriteIfNeeded(flushedBufferSize);
+            blockAfterWriteIfNeeded();
         }
     }
 
@@ -619,8 +616,6 @@ public class OutputBuffer {
         }
         closed = true;
 
-        final int flushedBufferSize = getBufferedDataSize();
-        
         // commit the response (mark it as committed)
         final boolean isJustCommitted = doCommit();
         // Try to commit the content chunk together with headers (if there were not committed before)
@@ -631,15 +626,7 @@ public class OutputBuffer {
             forceCommitHeaders(true);
         }
         
-        final int unitsFlushed;
-        if (charsBuffered > 0) {
-            unitsFlushed = charsBuffered;
-            charsBuffered = 0;
-        } else {
-            unitsFlushed = flushedBufferSize;
-        }
-        
-        blockAfterWriteIfNeeded(unitsFlushed);
+        blockAfterWriteIfNeeded();
     }
 
 
@@ -653,22 +640,12 @@ public class OutputBuffer {
     public void flush() throws IOException {
         handleAsyncErrors();
 
-        final int flushedBufferSize = getBufferedDataSize();
-        
         final boolean isJustCommitted = doCommit();
         if (!flushInternalBuffers(false) && isJustCommitted) {
             forceCommitHeaders(false);
         }
 
-        final int unitsFlushed;
-        if (charsBuffered > 0) {
-            unitsFlushed = charsBuffered;
-            charsBuffered = 0;
-        } else {
-            unitsFlushed = flushedBufferSize;
-        }
-        
-        blockAfterWriteIfNeeded(unitsFlushed);      
+        blockAfterWriteIfNeeded();      
     }
 
 
@@ -704,6 +681,9 @@ public class OutputBuffer {
      */
     public void writeBuffer(final Buffer buffer) throws IOException {
         handleAsyncErrors();
+        
+        updateNonBlockingStatus();
+        
         finishCurrentBuffer();
         checkCompositeBuffer();
         compositeBuffer.append(buffer);
@@ -717,35 +697,17 @@ public class OutputBuffer {
     // -------------------------------------------------- General Public Methods
 
 
-    public boolean canWriteChar(final int length) {
-        if (length <= 0 || getMaxAsyncWriteQueueSize() < 0 ||
-                length <= guaranteedNonBlockingUnits) {
-            return true;
-        }
-        final CharsetEncoder e = getEncoder();
-        final int len = Float.valueOf(length * e.averageBytesPerChar()).intValue();
-        
-        final Connection c = ctx.getConnection();
-        if (c.canWrite(len + getBufferedDataSize())) {
-            guaranteedNonBlockingUnits = length;
-            return true;
-        }
-        
-        return false;
-    }
-
     /**
      * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      */
-    public boolean canWrite(final int length) {
-        if (length <= 0 || getMaxAsyncWriteQueueSize() < 0 ||
-                (length + getBufferedDataSize()) <= guaranteedNonBlockingUnits) {
+    public boolean canWrite() {
+        if (isNonBlockingWriteGuaranteed) {
             return true;
         }
         
         final Connection c = ctx.getConnection();
-        if (c.canWrite(length + getBufferedDataSize())) {
-            guaranteedNonBlockingUnits = length;
+        if (c.canWrite()) {
+            isNonBlockingWriteGuaranteed = true;
             return true;
         }
         
@@ -753,7 +715,7 @@ public class OutputBuffer {
     }
 
 
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
+    public void notifyCanWrite(final WriteHandler handler) {
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
@@ -764,24 +726,23 @@ public class OutputBuffer {
             return;
         }
 
-        final int maxBytes = getMaxAsyncWriteQueueSize();
-        if (maxBytes > 0 && length > maxBytes) {
-            throw new IllegalArgumentException("Illegal request to write "
-                                                  + length
-                                                  + " bytes.  Max allowable write is "
-                                                  + maxBytes + '.');
-        }
+//        final int maxBytes = getMaxAsyncWriteQueueSize();
+//        if (maxBytes > 0 && length > maxBytes) {
+//            throw new IllegalArgumentException("Illegal request to write "
+//                                                  + length
+//                                                  + " bytes.  Max allowable write is "
+//                                                  + maxBytes + '.');
+//        }
         
         final Connection c = ctx.getConnection();
         
-        final int totalLength = length + getBufferedDataSize();
+//        final int totalLength = length + getBufferedDataSize();
         
         this.handler = handler;
-        this.handlerRequestedSize = totalLength;
 
-        if (guaranteedNonBlockingUnits >= totalLength || canWrite(totalLength)) {
-            final Reentrant reentrant = writer.getWriteReentrant();
-            if (!writer.isMaxReentrantsReached(reentrant)) {
+        if (isNonBlockingWriteGuaranteed || canWrite()) {
+            final Reentrant reentrant = Reentrant.getWriteReentrant();
+            if (!reentrant.isMaxReentrantsReached()) {
                 notifyWritePossible();
             } else {
                 notifyWritePossibleAsync(c);
@@ -797,15 +758,15 @@ public class OutputBuffer {
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            c.notifyWritePossible(asyncWriteHandler, totalLength);
+            c.notifyWritePossible(asyncWriteHandler);
         } catch (Exception ignored) {
         }
     }
 
-    private int getMaxAsyncWriteQueueSize() {
-        return ctx.getConnection().getMaxAsyncWriteQueueSize();
-    }
-
+//    private int getMaxAsyncWriteQueueSize() {
+//        return ctx.getConnection().getMaxAsyncWriteQueueSize();
+//    }
+//
     /**
      * Notify WriteHandler asynchronously
      */
@@ -819,24 +780,21 @@ public class OutputBuffer {
      * Notify WriteHandler
      */
     private void notifyWritePossible() {
-        final Reentrant reentrant = writer.getWriteReentrant();
+        final Reentrant reentrant = Reentrant.getWriteReentrant();
         final WriteHandler localHandler = handler;
-        final int localRequestedSize = handlerRequestedSize;
         
         if (localHandler != null) {
             try {
                 resetHandler();
-                reentrant.incAndGet();
+                reentrant.inc();
                 
-                if (guaranteedNonBlockingUnits < localRequestedSize) {
-                    guaranteedNonBlockingUnits = localRequestedSize;
-                }
+                isNonBlockingWriteGuaranteed = true;
                 
                 localHandler.onWritePossible();
             } catch (Exception ioe) {
                 localHandler.onError(ioe);
             } finally {
-                reentrant.decAndGet();
+                reentrant.dec();
             }
         }
     }
@@ -851,14 +809,13 @@ public class OutputBuffer {
         }
     }
 
-    private void blockAfterWriteIfNeeded(final int flushedBufferSize)
+    private void blockAfterWriteIfNeeded()
             throws IOException {
-        guaranteedNonBlockingUnits -= flushedBufferSize;
-        if (guaranteedNonBlockingUnits >= 0) {
+        
+        if (isNonBlockingWriteGuaranteed || isLastWriteNonBlocking) {
             return;
         }
-
-        guaranteedNonBlockingUnits = 0;
+        
         final Connection connection = ctx.getConnection();
         
         if (connection.canWrite()) {
@@ -882,7 +839,7 @@ public class OutputBuffer {
         
         try {
             final long writeTimeout =
-                    connection.getWriteTimeout(TimeUnit.MILLISECONDS);
+                    connection.getBlockingWriteTimeout(TimeUnit.MILLISECONDS);
             if (writeTimeout >= 0) {
                 future.get(writeTimeout, TimeUnit.MILLISECONDS);
             } else {
@@ -1021,7 +978,6 @@ public class OutputBuffer {
     private void flushCharsToBuf(final CharBuffer charBuf) throws IOException {
 
         handleAsyncErrors();
-        charsBuffered += charBuf.remaining();
         
         // flush the buffer - need to take care of encoding at this point
         final CharsetEncoder enc = getEncoder();
@@ -1065,9 +1021,7 @@ public class OutputBuffer {
             doCommit();
             flushInternalBuffers(false);
             
-            final int localCharsBuffered = charsBuffered;
-            charsBuffered = 0;
-            blockAfterWriteIfNeeded(localCharsBuffered);
+            blockAfterWriteIfNeeded();
         }        
     }
 
@@ -1079,9 +1033,13 @@ public class OutputBuffer {
 
     private void resetHandler() {
         this.handler = null;
-        this.handlerRequestedSize = 0;
     }
 
+    private void updateNonBlockingStatus() {
+        isLastWriteNonBlocking = isNonBlockingWriteGuaranteed;
+        isNonBlockingWriteGuaranteed = false;
+    }
+    
     private void copyStringCharsToInternalBuffer(final String string,
                                                  final int offset,
                                                  final int len) {
@@ -1258,8 +1216,8 @@ public class OutputBuffer {
         public void onWritePossible() throws Exception {
             if (!done) {
                 try {
-                    final Reentrant reentrant = writer.getWriteReentrant();
-                    if (!writer.isMaxReentrantsReached(reentrant)) {
+                    final Reentrant reentrant = Reentrant.getWriteReentrant();
+                    if (!reentrant.isMaxReentrantsReached()) {
                         notifyWritePossible();
                     } else {
                         notifyWritePossibleAsync(ctx.getConnection());

@@ -45,8 +45,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorExecutor;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -136,11 +146,6 @@ public final class FilterChainContext implements AttributeStorage {
      * Context associated message
      */
     private Object message;
-
-    /**
-     * Context associated event, if EVENT operation
-     */
-    protected Event event;
     
     /**
      * Context associated source address
@@ -441,7 +446,7 @@ public final class FilterChainContext implements AttributeStorage {
      * Passed {@link org.glassfish.grizzly.Appendable} data will be saved and reused
      * during the next {@link FilterChain} invocation.
      */
-    public NextAction getStopAction(org.glassfish.grizzly.Appendable appendable) {
+    public NextAction getStopAction(Appendable appendable) {
         cachedStopAction.setRemainder(appendable);
         return cachedStopAction;
     }
@@ -640,7 +645,7 @@ public final class FilterChainContext implements AttributeStorage {
                 filterIdx - 1, -1, filterIdx - 1);
 
         newContext.setOperation(Operation.EVENT);
-        newContext.event = TransportFilter.createFlushEvent(completionHandler);
+        newContext.setEvent(TransportFilter.createFlushEvent(completionHandler));
         newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
         newContext.setAddress(address);
         newContext.customAttributes = getAttributes();
@@ -655,16 +660,11 @@ public final class FilterChainContext implements AttributeStorage {
     public void notifyUpstream(final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
         
-        if (ServiceEvent.isServiceEvent(event)) {
-            throw new IllegalArgumentException("Event argument can not be ServiceEvent");
-        }
-        
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection(),
                 filterIdx + 1, endIdx, filterIdx + 1);
 
-        newContext.setOperation(Operation.EVENT);
-        newContext.event = event;
+        newContext.setEvent(event);
         newContext.setAddress(address);
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
@@ -679,16 +679,12 @@ public final class FilterChainContext implements AttributeStorage {
     public void notifyDownstream(final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
         
-        if (ServiceEvent.isServiceEvent(event)) {
-            throw new IllegalArgumentException("Event argument can not be ServiceEvent");
-        }
-        
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection(),
                 filterIdx - 1, -1, filterIdx - 1);
 
         newContext.setOperation(Operation.EVENT);
-        newContext.event = event;
+        newContext.setEvent(event);
         newContext.setAddress(address);
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
@@ -786,7 +782,6 @@ public final class FilterChainContext implements AttributeStorage {
         cachedInvokeAction.reset();
         cachedStopAction.reset();
         message = null;
-        event = null;
         address = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
@@ -817,15 +812,28 @@ public final class FilterChainContext implements AttributeStorage {
         return sb.toString();
     }
 
-    static Operation serviceEvent2Operation(final ServiceEvent serviceEvent) {
-        switch(serviceEvent) {
-            case READ: return Operation.READ;
-            case USER_WRITE: return Operation.WRITE;
-            case ACCEPTED: return Operation.ACCEPT;
-            case CONNECTED: return Operation.CONNECT;
-            case CLOSED: return Operation.CLOSE;
-            default: return Operation.NONE;
+    protected Event getEvent() {
+        return internalContext.getEvent();
+    }
+    
+    protected void setEvent(final Event event) {
+        internalContext.setEvent(event);
+    }
+    
+    static Operation event2Operation(final Event event) {
+        if (event == IOEvent.READ) {
+            return Operation.READ;
+        } else if (event == Event.USER_WRITE) {
+            return Operation.WRITE;
+        } else if (event == IOEvent.ACCEPT) {
+            return Operation.ACCEPT;
+        } else if (event == IOEvent.CONNECT) {
+            return Operation.CONNECT;
+        } else if (event == IOEvent.CLOSED) {
+            return Operation.CLOSE;
         }
+        
+        return null;
     }
 
     public static final class TransportContext {

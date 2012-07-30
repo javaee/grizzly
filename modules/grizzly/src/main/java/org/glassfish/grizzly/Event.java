@@ -45,12 +45,25 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Event {
-    public static final Event NULL = new Event() {
-        @Override
-        public Object type() {
-            return null;
-        }
-    };
+    public static final Event NULL = new EventAdapter(null);
+    
+    /**
+     * Event occurs on a {@link Connection}, once user wants to write a message.
+     */
+    public static final Event USER_WRITE = new EventAdapter(new Object());
     
     public Object type();
+    
+    static class EventAdapter implements Event {
+        private final Object type;
+
+        public EventAdapter(Object type) {
+            this.type = type;
+        }
+                
+        @Override
+        public Object type() {
+            return type;
+        }
+    }
 }

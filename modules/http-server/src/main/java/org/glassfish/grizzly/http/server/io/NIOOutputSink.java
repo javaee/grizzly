@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.server.io;
 
-import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.WriteHandler;
 
 /**
@@ -58,29 +57,25 @@ public interface NIOOutputSink {
 
     /**
      * Instructs the <code>NIOOutputSink</code> to invoke the provided
-     * {@link WriteHandler} when it is possible to write <code>length</code>
-     * bytes (or characters).
+     * {@link WriteHandler} when it is possible to write bytes (or characters).
      *
      * Note that once the {@link WriteHandler} has been notified, it will not
      * be considered for notification again at a later point in time. 
      *
      * @param handler the {@link WriteHandler} that should be notified
-     *  when it's possible to write <code>length</code> bytes.
-     * @param length the number of bytes or characters that require writing.
+     *  when it's possible to write data.
      *
      * @throws IllegalStateException if this method is invoked and a handler
      *  from a previous invocation is still present (due to not having yet been
      *  notified).  
      */
-    void notifyCanWrite(final WriteHandler handler, final int length);
+    void notifyCanWrite(final WriteHandler handler);
 
 
     /**
-     * @param length specifies the number of bytes (or characters) that require writing
-     *
      * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
      *  will succeed, otherwise returns <code>false</code>.
      */
-    boolean canWrite(final int length);
+    boolean canWrite();
 
 }

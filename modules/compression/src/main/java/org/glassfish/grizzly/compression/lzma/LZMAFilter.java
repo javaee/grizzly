@@ -39,14 +39,13 @@
  */
 package org.glassfish.grizzly.compression.lzma;
 
+import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.compression.TransformationResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-
-import java.io.IOException;
 
 public class LZMAFilter extends BaseFilter {
 

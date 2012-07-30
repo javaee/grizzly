@@ -40,12 +40,10 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
@@ -54,15 +52,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  * @author oleksiys
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
-
-    private final static EnumSet<ServiceEvent> READ_WRITE_EVENT_SET =
-            EnumSet.<ServiceEvent>of(ServiceEvent.READ, ServiceEvent.WRITE);
-
-    private final static EnumSet<ServiceEvent> WORKER_THREAD_EVENT_SET =
-            EnumSet.<ServiceEvent>of(ServiceEvent.READ, ServiceEvent.WRITE, ServiceEvent.CLOSED);
-    
-    protected final static ServiceEventProcessingHandler ENABLE_INTEREST_PROCESSING_HANDLER =
-            new EnableInterestProcessingHandler();
 
     protected abstract Logger getLogger();
 
@@ -83,83 +72,31 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     // ------------------------------------------------------- Public Methods
 
+
     @Override
-    public boolean executeEvent(Connection connection, Event event) throws IOException {
-        if (ServiceEvent.isServiceEvent(event)) {
-            return executeServiceEvent(connection, (ServiceEvent) event);
-        }
-        
-        fireEvent(connection, event, getLogger());
-        return true;
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent) throws IOException {
+        return executeIOEvent(connection, ioEvent, (EventProcessingHandler) null);
     }
-    
-    @Override
-    public final boolean executeServiceEvent(final Connection connection,
-            final ServiceEvent serviceEvent) throws IOException {
-        return executeServiceEvent(connection, serviceEvent, true);
-    }
-    
+
+    protected abstract boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler, boolean isRunAsync) throws IOException;
 
     // ------------------------------------------------------- Protected Methods
 
-
-    protected static boolean isReadWrite(final ServiceEvent serviceEvent) {
-        return READ_WRITE_EVENT_SET.contains(serviceEvent);
-    }
-
-    protected static boolean isExecuteInWorkerThread(final ServiceEvent serviceEvent) {
-        return WORKER_THREAD_EVENT_SET.contains(serviceEvent);
-    }
 
     protected static Executor getWorkerThreadPool(final Connection c) {
         return c.getTransport().getWorkerThreadPool();
     }
 
     protected static void fireEvent(final Connection connection,
-                                      final Event event,
-                                      final Logger logger) {
-        try {
-            connection.getTransport().fireEvent(event, connection);
-        } catch (Exception e) {
-            logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_IOSTRATEGY_UNCAUGHT_EXCEPTION(), e);
-            connection.closeSilently();
-        }
-
-    }
-
-    protected static void fireEvent(final Connection connection,
-                                      final ServiceEvent event,
-                                      final ServiceEventProcessingHandler ph,
+                                      final IOEvent event,
+                                      final EventProcessingHandler ph,
                                       final Logger logger) {
         try {
             connection.getTransport().fireEvent(event, connection, ph);
         } catch (Exception e) {
             logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_IOSTRATEGY_UNCAUGHT_EXCEPTION(), e);
             connection.closeSilently();
-        }
-
-    }    
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private final static class EnableInterestProcessingHandler
-            extends ServiceEventProcessingHandler.Adapter {
-        
-        @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
-        }
-
-        @Override
-        public void onComplete(final Context context, final Object data) throws IOException {
-            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-            final Connection connection = context.getConnection();
-            
-            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
-                connection.simulateServiceEvent(serviceEvent);
-            } else {
-                connection.enableServiceEventInterest(serviceEvent);
-            }
         }
     }
 }

@@ -41,9 +41,12 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
@@ -54,10 +57,13 @@ import org.glassfish.grizzly.nio.SelectorRunner;
  * @author Alexey Stashok
  */
 public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
-
     private static final LeaderFollowerNIOStrategy INSTANCE = new LeaderFollowerNIOStrategy();
 
     private static final Logger logger = Grizzly.logger(LeaderFollowerNIOStrategy.class);
+    
+    private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.CLOSED);
+
 
 
     // ------------------------------------------------------------ Constructors
@@ -75,32 +81,45 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
 
     }
 
-
-    // ------------------------------------------------- Methods from IOStrategy
+    @Override
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler) {
+        return executeIOEvent(connection, ioEvent, processingHandler,
+                WORKER_THREAD_EVENT_SET.contains(ioEvent));
+    }
 
     @Override
-    public boolean executeServiceEvent(final Connection connection,
-            final ServiceEvent serviceEvent, final boolean isServiceEventInterestEnabled) throws IOException {
-
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        ServiceEventProcessingHandler ph = null;
-        if (isReadWrite(serviceEvent)) {
-            if (isServiceEventInterestEnabled) {
-                connection.disableServiceEventInterest(serviceEvent);
-            }
-            
-            ph = ENABLE_INTEREST_PROCESSING_HANDLER;
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            DecisionListener listener) throws IOException {
+        EventProcessingHandler processingHandler = null;
+        
+        final boolean isRunAsync = WORKER_THREAD_EVENT_SET.contains(ioEvent);
+        if (listener != null) {
+            processingHandler = isRunAsync ?
+                    listener.goAsync(connection, ioEvent) :
+                    listener.goSync(connection, ioEvent);
         }
+    
+        return executeIOEvent(connection, ioEvent, processingHandler, isRunAsync);
+    }
 
-        if (isExecuteInWorkerThread(serviceEvent)) {
+
+    @Override
+    protected boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler, boolean isRunAsync) {
+        
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        if (isRunAsync) {
+            
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             getWorkerThreadPool(connection).execute(runner);
-            fireEvent(connection, serviceEvent, ph, logger);
+            fireEvent(connection, ioEvent, processingHandler, logger);
 
             return false;
         } else {
-            fireEvent(connection, serviceEvent, ph, logger);
+            
+            fireEvent(connection, ioEvent, processingHandler, logger);
             return true;
         }
     }

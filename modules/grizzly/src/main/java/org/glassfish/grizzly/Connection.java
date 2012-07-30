@@ -136,6 +136,14 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      */
     L getLocalAddress();
 
+    long getBlockingReadTimeout(TimeUnit timeUnit);
+
+    void setBlockingReadTimeout(long timeout, TimeUnit timeUnit);
+
+    long getBlockingWriteTimeout(TimeUnit timeUnit);
+
+    void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit);
+
     /**
      * Close the {@link Connection}
      *
@@ -160,78 +168,6 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      */
     void closeSilently();
 
-    /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
-     *
-     * @return the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
-     */
-    int getReadBufferSize();
-
-    /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
-     *
-     * @param readBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for reading data from {@link Connection}.
-     */
-    void setReadBufferSize(int readBufferSize);
-
-    /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
-     *
-     * @return the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
-     */
-    int getWriteBufferSize();
-
-    /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
-     *
-     * @param writeBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for writing data to {@link Connection}.
-     */
-    void setWriteBufferSize(int writeBufferSize);
-
-    /**
-     * Get the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @return the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @since 2.2
-     */
-    public int getMaxAsyncWriteQueueSize();
-
-    /**
-     * Set the max size (in bytes) of asynchronous write queue associated
-     * with connection.
-     * 
-     * @param maxAsyncWriteQueueSize the max size (in bytes) of asynchronous
-     * write queue associated with connection.
-     * 
-     * @since 2.2
-     */
-    public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize);
-    
-    long getReadTimeout(TimeUnit timeUnit);
-
-    void setReadTimeout(long timeout, TimeUnit timeUnit);
-
-    long getWriteTimeout(TimeUnit timeUnit);
-
-    void setWriteTimeout(long timeout, TimeUnit timeUnit);
-
-    public void simulateServiceEvent(final ServiceEvent serviceEvent) throws IOException;
-
-    public void enableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException;
-
-    public void disableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException;
-    
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */

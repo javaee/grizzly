@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
@@ -226,15 +227,16 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             try {
                 connection.onConnect();
+                
+                if (connection.notifyReady()) {
+                    transport.getIOStrategy().executeIOEvent(
+                            connection, IOEvent.CONNECT,
+                            new EnableReadHandler(completionHandler));
+                }
             } catch (Exception e) {
                 abortConnection(connection, completionHandler, e);
 //                LOGGER.log(Level.FINE, "Exception happened, when "
 //                        + "trying to connect the channel", e);
-            }
-            
-            if (connection.notifyReady()) {
-                transport.fireEvent(ServiceEvent.CONNECTED, connection,
-                        new EnableReadHandler(completionHandler));
             }
         }
 
@@ -248,7 +250,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadHandler extends ServiceEventProcessingHandler.Adapter {
+    private static class EnableReadHandler extends EventProcessingHandler.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 
@@ -257,24 +259,26 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             this.completionHandler = completionHandler;
         }
 
-        @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
-        }
+//        @Override
+//        public void onReregister(final Context context) throws IOException {
+//            onComplete(context, null);
+//        }
 
         @Override
         public void onNotRun(final Context context) throws IOException {
-            onComplete(context, null);
+            onComplete(context);
         }
         
         @Override
-        public void onComplete(final Context context, final Object data)
+        public void onComplete(final Context context)
                 throws IOException {
             final NIOConnection connection = (NIOConnection) context.getConnection();
 
             if (completionHandler != null) {
                 completionHandler.completed(connection);
             }
+            
+            connection.registerKeyInterest(SelectionKey.OP_READ);
         }
 
         @Override

@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WritableMessage;
 
 /**
  * Callback handler, which will be called by Grizzly {@link org.glassfish.grizzly.Writer}

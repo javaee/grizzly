@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,35 +40,34 @@
 
 package org.glassfish.grizzly.portunif;
 
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
-import org.glassfish.grizzly.utils.StringDecoder;
-import org.glassfish.grizzly.Buffer;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import java.io.IOException;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.StringFilter;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  * Port-unification test, which involves secured and plain protocols.
@@ -93,9 +92,6 @@ public class SSLAndPlainTest {
 
     @Test
     public void sslFinderFirst() throws Exception {
-//        final String[] plainProtocols = {"X", "Y", "Z"};
-//        final String[] sslProtocols = {"A", "B", "X"};
-
         // Protocol name should be 5 bytes min to let SSLFinder (which is run first) recognize the protocol.
         final ProtocolDescription[] protocols = new ProtocolDescription[]{
             new ProtocolDescription("XXXXX", false), new ProtocolDescription("AAAAA", true),
@@ -233,7 +229,7 @@ public class SSLAndPlainTest {
     }
 
     private static final class SimpleProtocolFinder implements ProtocolFinder {
-        private static final StringDecoder STRING_DECODER = new StringDecoder(CHARSET);
+        private static final StringFilter STRING_FILTER = new StringFilter(CHARSET);
 
         public final ProtocolDescription protocolDescription;
         public SimpleProtocolFinder(final ProtocolDescription protocolDescription) {
@@ -246,22 +242,16 @@ public class SSLAndPlainTest {
             final Buffer requestedProtocol = ctx.getMessage();
             final int bufferStart = requestedProtocol.position();
 
-            final TransformationResult<Buffer, String> result =
-                    STRING_DECODER.transform(ctx.getConnection(), requestedProtocol);
+            final StringFilter.DecodeResult result =
+                    STRING_FILTER.decode(requestedProtocol, null);
+            
+            requestedProtocol.position(bufferStart);
 
-            switch (result.getStatus()) {
-                case COMPLETE:
-                    STRING_DECODER.release(ctx.getConnection());
-                    requestedProtocol.position(bufferStart);
-                    return protocolDescription.name.equals(result.getMessage()) ?
-                        Result.FOUND : Result.NOT_FOUND;
-                case INCOMPLETE:
-                    return Result.NEED_MORE_DATA;
-
-                default:
-                    STRING_DECODER.release(ctx.getConnection());
-                    requestedProtocol.position(bufferStart);
-                    return Result.NOT_FOUND;
+            if (result.isDone()) {
+                return protocolDescription.name.equals(result.getResult())
+                        ? Result.FOUND : Result.NOT_FOUND;
+            } else {
+                return Result.NEED_MORE_DATA;
             }
         }
     }

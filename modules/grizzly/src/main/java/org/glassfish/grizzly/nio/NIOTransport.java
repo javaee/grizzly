@@ -40,11 +40,21 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.AbstractTransport;
-import org.glassfish.grizzly.Connection;
 import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Random;
+import org.glassfish.grizzly.AbstractTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.Writer;
+import org.glassfish.grizzly.asyncqueue.AsyncQueue;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
 /**
  *
@@ -54,7 +64,6 @@ public abstract class NIOTransport extends AbstractTransport {
     protected static final Random RANDOM = new Random();
     
     protected SelectorHandler selectorHandler;
-    protected SelectionKeyHandler selectionKeyHandler;
 
     protected int selectorRunnersCount;
     
@@ -70,15 +79,10 @@ public abstract class NIOTransport extends AbstractTransport {
         selectorRunnersCount = Runtime.getRuntime().availableProcessors();
     }
 
-    public SelectionKeyHandler getSelectionKeyHandler() {
-        return selectionKeyHandler;
+    public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
+        return (NIOConnection) selectionKey.attachment();
     }
-
-    public void setSelectionKeyHandler(final SelectionKeyHandler selectionKeyHandler) {
-        this.selectionKeyHandler = selectionKeyHandler;
-        notifyProbesConfigChanged(this);
-    }
-
+    
     public SelectorHandler getSelectorHandler() {
         return selectorHandler;
     }
@@ -119,6 +123,49 @@ public abstract class NIOTransport extends AbstractTransport {
                 : SelectorProvider.provider();
     }
 
+
+    /**
+     * Returns <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
+     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
+     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     */
+    public boolean isOptimizedForMultiplexing() {
+        return !getAsyncQueueWriter().isAllowDirectWrite();
+    }
+
+    /**
+     * Configures <tt>TCPNIOTransport</tt> to be optimized for specific for the
+     * connection multiplexing usecase, when different threads will try to
+     * write data simultaneously.
+     */
+    public void setOptimizedForMultiplexing(final boolean isOptimizedForMultiplexing) {
+        getAsyncQueueWriter().setAllowDirectWrite(!isOptimizedForMultiplexing);
+    }
+
+    /**
+     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * 
+     * Note: the value is per connection, not transport total.
+     */
+    public int getMaxAsyncWriteQueueSizeInBytes() {
+        return getAsyncQueueWriter()
+                .getMaxPendingBytesPerConnection();
+    }
+    
+    /**
+     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * 
+     * Note: the value is per connection, not transport total.
+     */
+    public void setMaxAsyncWriteQueueSizeInBytes(
+            final int size) {
+        getAsyncQueueWriter().setMaxPendingBytesPerConnection(size);
+    }
+    
     @Override
     public void start() throws IOException {
         if (selectorProvider == null) {
@@ -162,13 +209,142 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     /**
+     * Get the {@link Writer} to write data to the {@link Connection}.
+     * The <tt>Transport</tt> may decide to return blocking or non-blocking {@link Writer}
+     * depending on the {@link Connection} settings.
+     *
+     * @param connection {@link Connection}.
+     *
+     * @return {@link Writer}.
+     */
+    protected Writer<SocketAddress> getWriter(final Connection connection) {
+        return getWriter(connection.isBlocking());
+    }
+
+    /**
+     * Get the {@link Writer} implementation, depending on the requested mode.
+     *
+     * @param isBlocking blocking mode.
+     *
+     * @return {@link Writer}.
+     */
+    protected Writer<SocketAddress> getWriter(final boolean isBlocking) {
+        if (isBlocking) {
+            return getTemporarySelectorIO().getWriter();
+        } else {
+            return getAsyncQueueWriter();
+        }
+    }
+
+    protected abstract TemporarySelectorIO getTemporarySelectorIO();
+    
+    /**
+
+    /**
      * {@inheritDoc}
      */
     protected SelectorRunner[] getSelectorRunners() {
         return selectorRunners;
     }
     
+    protected boolean processOpRead(final NIOConnection nioConnection)
+            throws IOException {
+        return strategy.executeIOEvent(nioConnection, IOEvent.READ,
+                new IOStrategy.DecisionListener() {
+
+            @Override
+            public EventProcessingHandler goSync(Connection connection,
+                    IOEvent ioEvent) {
+                return ENABLED_READ_PROCESSING_HANDLER;
+            }
+
+            @Override
+            public EventProcessingHandler goAsync(Connection connection,
+                    IOEvent ioEvent) throws IOException {
+                ((NIOConnection) connection).deregisterKeyInterest(
+                        SelectionKey.OP_READ);
+                return DISABLED_READ_PROCESSING_HANDLER;
+            }
+        });
+    }
+
+    protected boolean processOpWrite(final NIOConnection connection)
+            throws IOException {
+        return processOpWrite(connection, true);
+    }
+    
+    boolean processOpWrite(final NIOConnection connection,
+            final boolean isOpWriteEnabled)
+            throws IOException {
+        
+        final AsyncQueue.AsyncResult result =
+                getAsyncQueueWriter().onReady(connection);
+        
+        switch (result) {
+            case COMPLETE:
+                if (isOpWriteEnabled) {
+                    connection.deregisterKeyInterest(SelectionKey.OP_WRITE);
+                }
+                break;
+
+            case HAS_MORE:
+                if (!isOpWriteEnabled) {
+                    connection.registerKeyInterest(SelectionKey.OP_WRITE);
+                }
+                break;
+
+            case EXPECTING_MORE:
+                if (!isOpWriteEnabled) {
+                    connection.enqueOpWriteReady();
+                }
+        }
+        
+        return true;
+    }
+
+    protected abstract boolean processOpAccept(NIOConnection connection)
+            throws IOException;
+    
+    protected abstract boolean processOpConnect(NIOConnection connection)
+            throws IOException;
+
     protected abstract void closeConnection(final NIOConnection connection)
             throws IOException;
+    
+    protected abstract AbstractNIOAsyncQueueWriter getAsyncQueueWriter();
+    
+    private static final EventProcessingHandler ENABLED_READ_PROCESSING_HANDLER =
+            new EnabledReadProcessingHandler();
+    
+    private static final EventProcessingHandler DISABLED_READ_PROCESSING_HANDLER =
+            new DisabledReadProcessingHandler();
+    
+    private final static class EnabledReadProcessingHandler
+            extends EventProcessingHandler.Adapter {
+
+        @Override
+        public void onComplete(final Context context) throws IOException {
+            if (context.wasSuspended()) {
+                ((NIOConnection) context.getConnection()).registerKeyInterest(
+                        SelectionKey.OP_READ);
+            }
+        }
+
+        @Override
+        public void onSuspend(final Context context) throws IOException {
+            ((NIOConnection) context.getConnection()).deregisterKeyInterest(
+                    SelectionKey.OP_READ);
+        }
+    }
+    
+    private final static class DisabledReadProcessingHandler
+            extends EventProcessingHandler.Adapter {
+
+        @Override
+        public void onComplete(final Context context) throws IOException {
+            ((NIOConnection) context.getConnection()).registerKeyInterest(
+                    SelectionKey.OP_READ);
+        }
+    }
     
 }

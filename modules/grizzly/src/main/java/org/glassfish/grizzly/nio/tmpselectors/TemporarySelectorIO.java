@@ -40,16 +40,8 @@
 
 package org.glassfish.grizzly.nio.tmpselectors;
 
-import org.glassfish.grizzly.Grizzly;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.util.logging.Level;
-import org.glassfish.grizzly.Reader;
-import org.glassfish.grizzly.Writer;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  *
@@ -60,20 +52,13 @@ public class TemporarySelectorIO {
 
     protected TemporarySelectorPool selectorPool;
 
-    private final Reader<SocketAddress> reader;
-    private final Writer<SocketAddress> writer;
+    private final TemporarySelectorReader reader;
+    private final TemporarySelectorWriter writer;
 
-    public TemporarySelectorIO(Reader<SocketAddress> reader,
-            Writer<SocketAddress> writer) {
-        this(reader, writer, null);
-    }
-
-    public TemporarySelectorIO(Reader<SocketAddress> reader,
-            Writer<SocketAddress> writer,
-            TemporarySelectorPool selectorPool) {
+    public TemporarySelectorIO(TemporarySelectorReader reader,
+            TemporarySelectorWriter writer) {
         this.reader = reader;
         this.writer = writer;
-        this.selectorPool = selectorPool;
     }
 
     public TemporarySelectorPool getSelectorPool() {
@@ -84,29 +69,11 @@ public class TemporarySelectorIO {
         this.selectorPool = selectorPool;
     }
 
-    public Reader<SocketAddress> getReader() {
+    public TemporarySelectorReader getReader() {
         return reader;
     }
 
-    public Writer<SocketAddress> getWriter() {
+    public TemporarySelectorWriter getWriter() {
         return writer;
-    }
-
-    protected void recycleTemporaryArtifacts(Selector selector,
-            SelectionKey selectionKey) {
-        
-        if (selectionKey != null) {
-            try {
-                selectionKey.cancel();
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TEMPORARY_SELECTOR_IO_CANCEL_KEY_EXCEPTION(selectionKey),
-                        e);
-            }
-        }
-
-        if (selector != null) {
-            selectorPool.offer(selector);
-        }
     }
 }

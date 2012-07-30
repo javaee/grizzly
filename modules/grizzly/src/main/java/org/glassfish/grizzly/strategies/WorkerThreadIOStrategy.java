@@ -40,13 +40,13 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ServiceEvent;
-import org.glassfish.grizzly.ServiceEventProcessingHandler;
-import org.glassfish.grizzly.Processor;
+import java.util.EnumSet;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
 
 /**
  * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link Processor}s in worker thread.
@@ -55,6 +55,9 @@ import org.glassfish.grizzly.*;
  */
 public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
+    private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.CLOSED);
+    
     private static final WorkerThreadIOStrategy INSTANCE = new WorkerThreadIOStrategy();
 
     private static final Logger logger = Grizzly.logger(WorkerThreadIOStrategy.class);
@@ -73,72 +76,70 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         return INSTANCE;
     }
 
-
     // ------------------------------------------------- Methods from IOStrategy
 
 
     @Override
-    public boolean executeServiceEvent(final Connection connection,
-            final ServiceEvent serviceEvent,
-            final boolean isServiceEventInterestEnabled)
-            throws IOException {
-
-        final boolean isReadOrWriteEvent = isReadWrite(serviceEvent);
-
-        final ServiceEventProcessingHandler pp;
-        if (isReadOrWriteEvent) {
-            if (isServiceEventInterestEnabled) {
-                connection.disableServiceEventInterest(serviceEvent);
-            }
-            
-            pp = ENABLE_INTEREST_PROCESSING_HANDLER;
-        } else {
-            pp = null;
-        }
-
-        if (isExecuteInWorkerThread(serviceEvent)) {
-            getWorkerThreadPool(connection).execute(
-                    new WorkerThreadRunnable(connection, serviceEvent, pp));
-        } else {
-            run0(connection, serviceEvent, pp);
-        }
-
-        return true;
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler) {
+        return executeIOEvent(connection, ioEvent, processingHandler,
+                WORKER_THREAD_EVENT_SET.contains(ioEvent));
     }
 
+    @Override
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            DecisionListener listener) throws IOException {
+        EventProcessingHandler processingHandler = null;
+        
+        final boolean isRunAsync = WORKER_THREAD_EVENT_SET.contains(ioEvent);
+        if (listener != null) {
+            processingHandler = isRunAsync ?
+                    listener.goAsync(connection, ioEvent) :
+                    listener.goSync(connection, ioEvent);
+        }
+    
+        return executeIOEvent(connection, ioEvent, processingHandler, isRunAsync);
+    }
+
+    @Override
+    protected boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler, boolean isRunAsync) {
+        
+        if (isRunAsync) {
+            getWorkerThreadPool(connection).execute(
+                    new WorkerThreadRunnable(connection, ioEvent,
+                    processingHandler));
+        } else {
+            fireEvent(connection, ioEvent, processingHandler, logger);
+        }
+        
+        return true;
+    }
+    
     @Override
     protected Logger getLogger() {
         return logger;
     }
 
     // --------------------------------------------------------- Private Methods
-
-
-    private static void run0(final Connection connection,
-                             final ServiceEvent event,
-                             final ServiceEventProcessingHandler processingHandler) {
-
-        fireEvent(connection, event, processingHandler, logger);
-
-    }
     
     private static final class WorkerThreadRunnable implements Runnable {
         final Connection connection;
-        final ServiceEvent serviceEvent;
-        final ServiceEventProcessingHandler processingHandler;
+        final IOEvent event;
+        final EventProcessingHandler processingHandler;
         
         private WorkerThreadRunnable(final Connection connection,
-                final ServiceEvent serviceEvent,
-                final ServiceEventProcessingHandler processingHandler) {
+                final IOEvent event,
+                final EventProcessingHandler processingHandler) {
             this.connection = connection;
-            this.serviceEvent = serviceEvent;
+            this.event = event;
             this.processingHandler = processingHandler;
             
         }
 
         @Override
         public void run() {
-            run0(connection, serviceEvent, processingHandler);
+            fireEvent(connection, event, processingHandler, logger);
         }        
     }
 

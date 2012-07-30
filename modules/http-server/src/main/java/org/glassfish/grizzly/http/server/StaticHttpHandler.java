@@ -282,8 +282,7 @@ public class StaticHttpHandler extends HttpHandler {
             response.suspend();
         }
         
-        outputStream.notifyCanWrite(nonBlockingDownloadHandler,
-                chunkSize * 3 / 2);
+        outputStream.notifyCanWrite(nonBlockingDownloadHandler);
     }
 
     private static void sendZeroCopy(final Response response, final File file,
@@ -563,7 +562,7 @@ public class StaticHttpHandler extends HttpHandler {
 
             if (isWriteMore) {
                 // if there are more bytes to be sent - reregister this WriteHandler
-                outputStream.notifyCanWrite(this, chunkSize * 3 /2);
+                outputStream.notifyCanWrite(this);
             }
         }
 

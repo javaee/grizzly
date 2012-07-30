@@ -43,6 +43,7 @@ package org.glassfish.grizzly.ssl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -58,11 +59,27 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.filterchain.*;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
@@ -70,7 +87,7 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  *
  * @author Alexey Stashok
  */
-public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
+public class SSLFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
     private final Attribute<CompletionHandler<SSLEngine>> handshakeCompletionHandlerAttr;
@@ -114,7 +131,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
                      SSLEngineConfigurator clientSSLEngineConfigurator,
                      boolean renegotiateOnClientAuthWant) {
-        super(new SSLDecoderTransformer(), new SSLEncoderTransformer());
+        
         this.renegotiateOnClientAuthWant = renegotiateOnClientAuthWant;
         if (serverSSLEngineConfigurator == null) {
             this.serverSSLEngineConfigurator = new SSLEngineConfigurator(
@@ -170,7 +187,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         SSLEngine sslEngine = getSSLEngine(connection);
 
         if (sslEngine != null && !isHandshaking(sslEngine)) {
-            return super.handleRead(ctx);
+            return decode(ctx);
         } else {
             if (sslEngine == null) {
                 sslEngine = serverSSLEngineConfigurator.createSSLEngine();
@@ -188,7 +205,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
                 if (hasRemaining) {
                     ctx.setMessage(buffer);
-                    return super.handleRead(ctx);
+                    return decode(ctx);
                 }
             }
 
@@ -324,6 +341,183 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
     // ------------------------------------------------------- Protected Methods
 
+    protected NextAction decode(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        final Buffer input = ctx.getMessage();
+        
+        final SSLEngine sslEngine = getSSLEngine(connection);
+        if (sslEngine == null) {
+            throw new IllegalStateException("SSL handshake is not complete");
+        }
+
+        final int expectedLength;
+        try {
+            expectedLength = getSSLPacketSize(input);
+            if (expectedLength == -1 || input.remaining() < expectedLength) {
+                return ctx.getStopAction(input);
+            }
+        } catch (SSLException e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final Buffer targetBuffer = allowDispose(ctx.getMemoryManager().allocate(
+                    sslEngine.getSession().getApplicationBufferSize()));
+
+        try {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLDecoder engine: {0} input: {1} output: {2}",
+                        new Object[]{sslEngine, input, targetBuffer});
+            }
+
+            final int pos = input.position();
+            final SSLEngineResult sslEngineResult;
+            if (!input.isComposite()) {
+                sslEngineResult = sslEngine.unwrap(input.toByteBuffer(),
+                        targetBuffer.toByteBuffer());
+            } else {
+                final ByteBuffer originalByteBuffer =
+                        input.toByteBuffer(pos,
+                        pos + expectedLength);
+
+                sslEngineResult = sslEngine.unwrap(originalByteBuffer,
+                        targetBuffer.toByteBuffer());
+            }
+            
+            input.position(pos + sslEngineResult.bytesConsumed());
+            targetBuffer.position(sslEngineResult.bytesProduced());
+
+
+            final SSLEngineResult.Status status = sslEngineResult.getStatus();
+
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLDecoderr done engine: {0} result: {1} input: {2} output: {3}",
+                        new Object[]{sslEngine, sslEngineResult, input, targetBuffer});
+            }
+
+            if (status == SSLEngineResult.Status.OK) {
+                targetBuffer.trim();
+
+                ctx.setMessage(targetBuffer);
+                
+                return ctx.getInvokeAction(extractInputRemainder(input));
+            } else if (status == SSLEngineResult.Status.CLOSED) {
+                targetBuffer.dispose();
+                ctx.setMessage(Buffers.EMPTY_BUFFER);
+                
+                return ctx.getInvokeAction(extractInputRemainder(input));
+            } else {
+                targetBuffer.dispose();
+
+                if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                    return ctx.getStopAction(input);
+    
+                } else /*if (status == SSLEngineResult.Status.BUFFER_OVERFLOW)*/ {
+                    throw new IllegalStateException("Buffer overflow during unwrap operation");
+                }
+            }
+        } catch (SSLException e) {
+            targetBuffer.dispose();
+            throw new IllegalStateException(e);
+        }
+    }    
+
+    protected NextAction encode(final FilterChainContext ctx) {
+        final Connection connection = ctx.getConnection();
+        final Buffer input = ctx.getMessage();
+        
+        final SSLEngine sslEngine = getSSLEngine(connection);
+        if (sslEngine == null) {
+            throw new IllegalStateException("SSL handshake is not complete");
+        }
+
+        synchronized (connection) {   // synchronize parallel writers here
+
+            Buffer targetBuffer = null;
+            Buffer currentTargetBuffer;
+
+            final MemoryManager memoryManager = ctx.getMemoryManager();
+            final ByteBufferArray originalByteBufferArray =
+                    input.toByteBufferArray();
+            boolean restore = false;
+            IllegalStateException error = null;
+                    
+            for (int i = 0; i < originalByteBufferArray.size(); i++) {
+                final int pos = input.position();
+                final ByteBuffer originalByteBuffer = originalByteBufferArray.getArray()[i];
+
+                currentTargetBuffer = allowDispose(memoryManager.allocate(
+                        sslEngine.getSession().getPacketBufferSize()));
+
+                final ByteBuffer currentTargetByteBuffer =
+                        currentTargetBuffer.toByteBuffer();
+
+                try {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
+                                new Object[]{sslEngine, originalByteBuffer, currentTargetByteBuffer});
+                    }
+
+                    final SSLEngineResult sslEngineResult =
+                            sslEngine.wrap(originalByteBuffer,
+                            currentTargetByteBuffer);
+
+                    // If the position of the original message hasn't changed,
+                    // update the position now.
+                    if (pos == input.position()) {
+                        restore = true;
+                        input.position(pos + sslEngineResult.bytesConsumed());
+                    }
+
+                    final SSLEngineResult.Status status = sslEngineResult.getStatus();
+
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "SSLEncoder done engine: {0} result: {1} input: {2} output: {3}",
+                                new Object[]{sslEngine, sslEngineResult, originalByteBuffer, currentTargetByteBuffer});
+                    }
+                    
+                    if (status == SSLEngineResult.Status.OK) {
+                        currentTargetBuffer.position(sslEngineResult.bytesProduced());
+                        currentTargetBuffer.trim();
+                        targetBuffer = Buffers.appendBuffers(memoryManager,
+                                targetBuffer, currentTargetBuffer);
+
+                    } else if (status == SSLEngineResult.Status.CLOSED) {
+                        error = new IllegalStateException("SSLEngine is CLOSED");
+                    } else if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        error = new IllegalStateException(
+                                "Buffer underflow during wrap operation");
+                    } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+                        error = new IllegalStateException(
+                                "Buffer overflow during wrap operation");
+                    }
+                } catch (SSLException e) {
+                    error = new IllegalStateException(e);
+                }
+
+                if (error != null) {
+                    disposeBuffers(currentTargetBuffer, targetBuffer);
+                    originalByteBufferArray.restore();
+                    throw error;
+                }
+                
+                if (originalByteBuffer.hasRemaining()) { // Keep working with the current source ByteBuffer
+                    i--;
+                }
+            }
+            
+            assert !input.hasRemaining();
+
+            if (restore) {
+                originalByteBufferArray.restore();
+            }
+            originalByteBufferArray.recycle();
+
+            input.tryDispose();
+            
+            ctx.setMessage(allowDispose(targetBuffer));
+            return ctx.getInvokeAction();
+        }
+    }
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
                                      final FilterChainContext context,
@@ -610,7 +804,7 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     @SuppressWarnings("unchecked")
     private NextAction doWrite(final FilterChainContext ctx)
             throws IOException {
-        final NextAction nextAction = super.handleWrite(ctx);
+        final NextAction nextAction = encode(ctx);
         if (nextAction.type() != 0) { // Is it InvokeAction?
             // if not
             throw new IllegalStateException("Unexpected next action type: " +
@@ -682,6 +876,42 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
     }
 
+    private static Buffer extractInputRemainder(Buffer input) {
+        final Buffer remainder;
+        
+        if (!input.hasRemaining()) {
+            remainder = null;
+        } else {
+            remainder = input.split(input.position());
+        }
+        
+        input.tryDispose();
+        return remainder;
+    }
+
+    private static void disposeBuffers(final Buffer currentBuffer, final Buffer bigBuffer) {
+        if (currentBuffer != null) {
+            currentBuffer.dispose();
+        }
+
+        if (bigBuffer != null) {
+            bigBuffer.allowBufferDispose(true);
+            if (bigBuffer.isComposite()) {
+                ((CompositeBuffer) bigBuffer).allowInternalBuffersDispose(true);
+            }
+            
+            bigBuffer.dispose();
+        }
+    }
+    
+    private static Buffer allowDispose(final Buffer buffer) {
+        buffer.allowBufferDispose(true);
+        if (buffer.isComposite()) {
+            ((CompositeBuffer) buffer).allowInternalBuffersDispose(true);
+        }
+        
+        return buffer;
+    }
 
     // ----------------------------------------------------------- Inner Classes
 

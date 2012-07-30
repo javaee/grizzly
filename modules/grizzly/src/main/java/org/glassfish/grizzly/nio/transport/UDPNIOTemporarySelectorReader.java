@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 
 /**
@@ -52,14 +53,22 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
  * @author oleksiys
  */
 public final class UDPNIOTemporarySelectorReader extends TemporarySelectorReader {
-    public UDPNIOTemporarySelectorReader(UDPNIOTransport transport) {
-        super(transport);
+    private final UDPNIOTransport transport;
+    
+    public UDPNIOTemporarySelectorReader(final UDPNIOTransport transport) {
+        this.transport = transport;
     }
 
     @Override
     protected int readNow0(NIOConnection connection, Buffer buffer,
             ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        return ((UDPNIOTransport) transport).read((UDPNIOConnection) connection,
-                buffer, currentResult);
+        final int read = transport.read((UDPNIOConnection) connection,
+                          buffer, currentResult);
+        return read;
+    }
+    
+    @Override
+    protected TemporarySelectorIO getTemporarySelectorIO() {
+        return transport.getTemporarySelectorIO();
     }
 }

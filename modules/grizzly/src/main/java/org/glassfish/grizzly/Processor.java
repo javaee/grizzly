@@ -74,4 +74,38 @@ public interface Processor<E extends Context> {
             Object dstAddress, Object message,
             CompletionHandler<WriteResult> completionHandler,
             LifeCycleHandler lifeCycleHandler);
+    
+    public final static class NullProcessor implements Processor<Context> {
+
+        public static final NullProcessor INSTANCE = new NullProcessor();
+        
+        private NullProcessor() {
+        }
+        
+        @Override
+        public Context obtainContext(Connection connection) {
+            final Context context = Context.create(connection);
+            context.setProcessor(this);
+
+            return context;
+        }
+
+        @Override
+        public ProcessorResult process(final Context context) {
+            return ProcessorResult.createComplete();
+        }
+
+        @Override
+        public void read(Connection connection,
+                CompletionHandler completionHandler) {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+
+        @Override
+        public void write(Connection connection, Object dstAddress,
+                Object message, CompletionHandler completionHandler,
+                LifeCycleHandler lifeCycleHandler) {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+    }    
 }

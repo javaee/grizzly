@@ -48,7 +48,6 @@ import java.nio.InvalidMarkException;
 import java.nio.ReadOnlyBufferException;
 import java.nio.charset.Charset;
 
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 
@@ -64,13 +63,13 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
 
     boolean isComposite();
 
-    /**
-     * Prepend data from header.position() to header.limit() to the
-     * current buffer.  This will change the value returned by buffer()!
-     * @throws IllegalArgumentException if header.limit() - header.position()
-     * is greater than headerSize.
-     */
-    Buffer prepend(Buffer header);
+//    /**
+//     * Prepend data from header.position() to header.limit() to the
+//     * current buffer.  This will change the value returned by buffer()!
+//     * @throws IllegalArgumentException if header.limit() - header.position()
+//     * is greater than headerSize.
+//     */
+//    Buffer prepend(Buffer header);
 
     /**
      * Trim the buffer by reducing capacity to position, if possible.
@@ -1592,5 +1591,60 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      *         {@link BufferArray}.
      */
     BufferArray toBufferArray(BufferArray array, int position, int limit);
+
+    /**
+     * Tells whether or not this buffer is backed by an accessible byte array.
+     *
+     * If this method returns true then the array and arrayOffset methods may
+     * safely be invoked.
+     *
+     * @return <tt>true</tt> if, and only if, this buffer is backed by an array
+     *  and is not read-only
+     *
+     * @since 2.1.12
+     */
+    boolean hasArray();
+
+    /**
+     * Returns the byte array that backs this buffer  (optional operation).
+     *
+     * Modifications to this buffer's content will cause the returned array's
+     * content to be modified, and vice versa.
+     *
+     * Invoke the hasArray method before invoking this method in order to ensure
+     * that this buffer has an accessible backing array.
+     *
+     * @return The array that backs this buffer
+     *
+     * @throws ReadOnlyBufferException If this buffer is backed by an array
+     *  but is read-only
+     * @throws UnsupportedOperationException If this buffer is not backed by an
+     *  accessible array
+     *
+     * @since 2.1.12
+     */
+    byte[] array();
+
+    /**
+     * Returns the offset within this buffer's backing array of the first
+     * element of the buffer  (optional operation).
+     *
+     * If this buffer is backed by an array then buffer position p corresponds
+     * to array index p + arrayOffset().
+     *
+     * Invoke the hasArray method before invoking this method in order to ensure
+     * that this buffer has an accessible backing array.
+     *
+     * @return The offset within this buffer's array of the first element of
+     *  the buffer
+     *
+     * @throws ReadOnlyBufferException If this buffer is backed by an array
+     *  but is read-only
+     * @throws UnsupportedOperationException If this buffer is not backed by an
+     *  accessible array
+     *
+     * @since 2.1.12
+     */
+    int arrayOffset();
 
 }

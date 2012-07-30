@@ -40,16 +40,6 @@
 
 package org.glassfish.grizzly.nio.transport.jmx;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.ServiceEvent;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.TransportProbe;
-import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import java.util.Date;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +51,16 @@ import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 import org.glassfish.gmbal.NameValue;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportProbe;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
+import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -176,11 +176,6 @@ public class NIOTransport extends JmxObject {
     @ManagedAttribute(id="selector-handler")
     public String getSelectorHandler() {
         return getType(transport.getSelectorHandler());
-    }
-
-    @ManagedAttribute(id="selection-key-handler")
-    public String getSelectionKeyHandler() {
-        return getType(transport.getSelectionKeyHandler());
     }
 
     @ManagedAttribute(id="selector-threads-count")
@@ -366,15 +361,15 @@ public class NIOTransport extends JmxObject {
         }
 
         @Override
-        public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent) {
+        public void onIOEventReadyEvent(Connection connection, IOEvent serviceEvent) {
         }
-
-        @Override
-        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {
-        }
-
-        @Override
-        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {
-        }
+//
+//        @Override
+//        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {
+//        }
+//
+//        @Override
+//        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {
+//        }
     }
 }

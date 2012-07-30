@@ -39,26 +39,19 @@
  */
 package org.glassfish.grizzly;
 
+import static junit.framework.Assert.assertEquals;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.nio.channels.SelectionKey;
-
-import static junit.framework.Assert.assertEquals;
 
 public class TestDefaults {
 
     @BeforeClass
     public static void init() {
-        System.setProperty("org.glassfish.grizzly.DEFAULT_SELECTION_KEY_HANDLER", TestHandler.class.getName());
         System.setProperty("org.glassfish.grizzly.DEFAULT_MEMORY_MANAGER", TestManager.class.getName());
         System.setProperty("org.glassfish.grizzly.DEFAULT_ATTRIBUTE_BUILDER", TestBuilder.class.getName());
                 
@@ -71,7 +64,6 @@ public class TestDefaults {
     @Test
     public void testDefaults() throws Exception {
     
-        assertEquals(SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER.getClass(), TestHandler.class);
         assertEquals(MemoryManager.DEFAULT_MEMORY_MANAGER.getClass(), TestManager.class);
         assertEquals(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.getClass(), TestBuilder.class);
 
@@ -82,49 +74,6 @@ public class TestDefaults {
     // ---------------------------------------------------------- Nested Classes
 
 
-    public static class TestHandler implements SelectionKeyHandler {
-        @Override
-        public void onKeyRegistered(SelectionKey key) {
-        }
-
-        @Override
-        public void onKeyDeregistered(SelectionKey key) {
-        }
-
-        @Override
-        public boolean onProcessInterest(SelectionKey key, int interest) throws IOException {
-            return false;
-        }
-
-        @Override
-        public void cancel(SelectionKey key) throws IOException {
-        }
-
-        @Override
-        public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
-            return null; 
-        }
-
-        @Override
-        public void setConnectionForKey(NIOConnection connection, SelectionKey selectionKey) {
-        }
-
-        @Override
-        public int serviceEvent2SelectionKeyInterest(ServiceEvent ioEvent) {
-            return 0; 
-        }
-
-        @Override
-        public ServiceEvent selectionKeyInterest2ServiceEvent(int selectionKeyInterest) {
-            return null;
-        }
-
-        @Override
-        public ServiceEvent[] getServiceEvents(int interest) {
-            return new ServiceEvent[0]; 
-        }
-    } // END TestHandler
-    
     public static final class TestManager implements MemoryManager {
 
         @Override

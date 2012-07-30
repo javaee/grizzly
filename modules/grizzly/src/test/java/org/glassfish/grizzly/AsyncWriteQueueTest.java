@@ -40,24 +40,12 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import java.util.List;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.utils.StandaloneModeTestUtils;
-import org.glassfish.grizzly.utils.StandaloneProcessor;
-import org.glassfish.grizzly.utils.streams.StreamReader;
-import org.junit.Test;
-import org.junit.runners.Parameterized.Parameters;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -65,29 +53,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.EchoFilter;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StringFilter;
+import static org.junit.Assert.*;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import static org.junit.Assert.*;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * AsyncWriteQueue tests.
@@ -174,8 +164,7 @@ public class AsyncWriteQueueTest {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            transport.getAsyncQueueIO().getWriter()
-                    .setMaxPendingBytesPerConnection(256);
+            transport.setMaxAsyncWriteQueueSizeInBytes(256);
             
 
             final Connection finalConnection = connection;
@@ -200,11 +189,7 @@ public class AsyncWriteQueueTest {
                             }
                         };
                         
-                        final AsyncQueueWriter writer =
-                                (AsyncQueueWriter) transport.getWriter(finalConnection);
-                        
-                        writer.notifyWritePossible(finalConnection,
-                                new WriteHandler() {
+                        finalConnection.notifyWritePossible(new WriteHandler() {
 
                             @Override
                             public void onWritePossible() throws Exception {
@@ -219,47 +204,15 @@ public class AsyncWriteQueueTest {
                                 finalConnection.write(
                                         "client(" + id + ")-" + msgNum,
                                         ch);
-                                writer.notifyWritePossible(finalConnection,
-                                        this, 100);
+                                finalConnection.notifyWritePossible(this);
                             }
 
                             @Override
                             public void onError(Throwable t) {
                                 f.failure(t);
                             }
-                        }, 100);
-                        
-//                        finalConnection.write(
-//                                "client(" + id + ")-" + acceptedPackets,
-//                                ch,
-//                                new LifeCycleHandler.Adapter() {
-//
-//                            @Override
-//                            public void onAccept(Connection connection,
-//                                    WritableMessage message) {
-//                                try {
-//                                    final int msgNum = acceptedPackets.incrementAndGet();
-//                                    if (msgNum >= packetsCount) {
-//                                        if (msgNum == packetsCount) {
-//                                            f.result(Boolean.TRUE);
-//                                        }
-//                                        return;
-//                                    }
-//                                    
-//                                    finalConnection.write(
-//                                            "client(" + id + ")-" + msgNum,
-//                                            ch, this);
-//                                } catch (Exception ignored) {
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void onPushBack(Connection connection,
-//                                    WritableMessage message, PushBackContext pushBackContext) {
-//                                pushBackContext.retryWhenPossible();
-//                            }
-//                        });
-                        
+                        });
+                                                
                         return f.get(10, TimeUnit.SECONDS);
                     }
                 });
@@ -292,16 +245,17 @@ public class AsyncWriteQueueTest {
     @Test
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader;
 
         final int packetNumber = 127;
         final int packetSize = 128000;
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
+        
+        final FutureImpl<Buffer> responseFuture = Futures.<Buffer>createSafeFuture();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new EchoFilter() {
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new EchoFilter() {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx)
@@ -311,24 +265,43 @@ public class AsyncWriteQueueTest {
             }
         });
 
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new BaseFilter() {
+            final int expectedResponseSize = packetNumber * packetSize;
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
+                final Buffer b = ctx.getMessage();
+                if (b.remaining() < expectedResponseSize) {
+                    return ctx.getStopAction(b);
+                }
+                
+                responseFuture.result(b);
+                
+                return ctx.getStopAction();
+            }
+        });
+
         TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setProcessor(serverFilterChainBuilder.build());
 
         try {
-            final AsyncQueueWriter<SocketAddress> asyncQueueWriter =
-                    transport.getAsyncQueueIO().getWriter();
-            asyncQueueWriter.setMaxPendingBytesPerConnection(-1);
+            transport.setMaxAsyncWriteQueueSizeInBytes(-1);
 
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
+            TCPNIOConnectorHandler connectorHandler = TCPNIOConnectorHandler
+                    .builder(transport)
+                    .processor(clientFilterChainBuilder.build())
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-
-            reader = ((StandaloneProcessor) connection.getProcessor()).getStreamReader(connection);
 
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
@@ -361,7 +334,7 @@ public class AsyncWriteQueueTest {
                         byte[] originalMessage = new byte[packetSize];
                         Arrays.fill(originalMessage, b);
                         Buffer buffer = Buffers.wrap(mm, originalMessage);
-                        asyncQueueWriter.write(con, buffer, completionHandler);
+                        con.write(buffer, completionHandler);
 
                         return null;
                     }
@@ -378,36 +351,21 @@ public class AsyncWriteQueueTest {
                 executorService.shutdown();
             }
 
-            int responseSize = packetNumber * packetSize;
-            Future<Integer> readFuture = reader.notifyAvailable(responseSize);
-            Integer available = null;
-            
-            try {
-                available = readFuture.get(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "read error", e);
-            }
-
-            assertTrue("Read timeout. Server received: " +serverRcvdBytes.get() +
-                    " bytes. Expected: " + packetNumber * packetSize,
-                     available != null);
-
-            byte[] echoMessage = new byte[responseSize];
-            reader.readByteArray(echoMessage);
+            final Buffer echoMessage = responseFuture.get(10, TimeUnit.SECONDS);
 
             // Check interleaving...
 
             boolean[] isByteUsed = new boolean[packetNumber];
             int offset = 0;
             for(int i=0; i<packetNumber; i++) {
-                byte pattern = echoMessage[offset];
+                byte pattern = echoMessage.get(offset);
 
                 assertEquals("Pattern: " + pattern + " was already used",
                         false, isByteUsed[pattern]);
 
                 isByteUsed[pattern] = true;
                 for(int j = 0; j < packetSize; j++) {
-                    byte check = echoMessage[offset++];
+                    byte check = echoMessage.get(offset++);
                     assertEquals("Echo doesn't match. Offset: " + offset +
                             " pattern: " + pattern + " found: " + check,
                             pattern, check);
@@ -438,9 +396,8 @@ public class AsyncWriteQueueTest {
 
 
         try {
-            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
-            asyncQueueWriter.setMaxPendingBytesPerConnection(256000 * 10);
-            System.out.println("Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
+            transport.setMaxAsyncWriteQueueSizeInBytes(256000 * 10);
+            System.out.println("Max Space: " + transport.getMaxAsyncWriteQueueSizeInBytes());
             
             transport.bind(PORT);
             transport.start();
@@ -448,29 +405,25 @@ public class AsyncWriteQueueTest {
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
 
             final MemoryManager mm = transport.getMemoryManager();
-            final Connection con = connection;
+            final NIOConnection con = (NIOConnection) connection;
 
             transport.pause();
-            final TaskQueue tqueue = ((NIOConnection) connection).getAsyncWriteQueue();
+//            final TaskQueue tqueue = ((NIOConnection) connection).getAsyncWriteQueue();
 
             do {
                 byte[] originalMessage = new byte[packetSize];
                 Arrays.fill(originalMessage, (byte) 1);
                 Buffer buffer = Buffers.wrap(mm, originalMessage);
-                try {
-                    if (asyncQueueWriter.canWrite(con, 256000)) {
-                        asyncQueueWriter.write(con, buffer);
-                    }
-                } catch (IOException e) {
-                    assertTrue("IOException occurred: " + e.toString(), false);
+                if (con.canWrite()) {
+                    con.write(buffer);
                 }
-            } while (asyncQueueWriter.canWrite(con, 256000));  // fill the buffer
+                
+            } while (con.canWrite());  // fill the buffer
 
             // out of space.  Add a monitor to be notified when space is available
-            asyncQueueWriter.notifyWritePossible(con, new WriteQueueHandler(con), 256000 * 4);
+            con.notifyWritePossible(new WriteQueueHandler(con));
 
             transport.resume(); // resume the transport so bytes start draining from the queue
 
@@ -485,8 +438,8 @@ public class AsyncWriteQueueTest {
                 System.out.println("Notified in " + result + "ms");
             }
             
-            final int size = tqueue.size();
-            assertTrue("Actual size=" + size, size < asyncQueueWriter.getMaxPendingBytesPerConnection()); 
+            final int size = con.getAsyncWriteQueueSize();
+            assertTrue("Actual size=" + size, size < con.getMaxAsyncWriteQueueSize()); 
             System.out.println("Queue Space: " + size);
 
         } finally {
@@ -530,15 +483,11 @@ public class AsyncWriteQueueTest {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            StandaloneModeTestUtils.configureConnectionAsStandalone(connection);
-
-            final AsyncQueueWriter<SocketAddress> asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
-            
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
             final int maxReentrants = 10;
-            asyncQueueWriter.setMaxWriteReentrants(10);
+            Writer.Reentrant.setMaxReentrants(10);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
@@ -550,7 +499,7 @@ public class AsyncWriteQueueTest {
             
             Buffer buffer = Buffers.wrap(mm, "" + ((char) ('A' + packetCounter.getAndIncrement())));
 
-            asyncQueueWriter.write(con, buffer,
+            con.write(buffer,
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
 
                         @Override
@@ -562,7 +511,7 @@ public class AsyncWriteQueueTest {
                                 threadsHistory.add(Thread.currentThread());
                                 Buffer bufferInner = Buffers.wrap(mm, ""
                                         + ((char) ('A' + packetNum)));
-                                asyncQueueWriter.write(con, bufferInner, this);
+                                con.write(bufferInner, this);
                             } else {
                                 resultFuture.result(Boolean.TRUE);
                             }

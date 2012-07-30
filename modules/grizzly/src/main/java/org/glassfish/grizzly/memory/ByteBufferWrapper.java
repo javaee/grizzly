@@ -82,12 +82,6 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public ByteBufferWrapper prepend(final Buffer header) {
-        checkDispose();
-        return this;
-    }
-
-    @Override
     public void trim() {
         checkDispose() ;
         flip();
@@ -233,6 +227,10 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public Buffer split(int splitPosition) {
         checkDispose();
+        if (splitPosition == capacity()) {
+            return Buffers.EMPTY_BUFFER;
+        }
+        
         final int oldPosition = position();
         final int oldLimit = limit();
 
@@ -817,7 +815,22 @@ public class ByteBufferWrapper implements Buffer {
     public boolean isExternal() {
         return false;
     }
-    
+
+    @Override
+    public boolean hasArray() {
+        return visible.hasArray();
+    }
+
+    @Override
+    public byte[] array() {
+        return visible.array();
+    }
+
+    @Override
+    public int arrayOffset() {
+        return visible.arrayOffset();
+    }
+
     protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(byteBuffer);
     }

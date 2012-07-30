@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.ProcessorResult;
 
 /**
  * Common interface for {@link AsyncQueue} processors.
@@ -50,24 +48,10 @@ import org.glassfish.grizzly.ProcessorResult;
  * @author Alexey Stashok
  */
 public interface AsyncQueue {
-    static final String EXPECTING_MORE_OPTION =
-            AsyncQueue.class.getName() + ".expectingMore";
-    
     public enum AsyncResult {
-        COMPLETE(ProcessorResult.createLeave()),
-        INCOMPLETE(ProcessorResult.createComplete()),
-        EXPECTING_MORE(ProcessorResult.createComplete(EXPECTING_MORE_OPTION));
-
-        private final ProcessorResult result;
-        
-        private AsyncResult(final ProcessorResult result) {
-            this.result = result;
-        }
-
-        public ProcessorResult toProcessorResult() {
-            return result;
-        }
-        
+        COMPLETE,
+        HAS_MORE,
+        EXPECTING_MORE;
     }
     
     /**
@@ -85,10 +69,10 @@ public interface AsyncQueue {
      * {@link AsyncQueue}, which are associated with the given
      * {@link Connection}
      * 
-     * @param context {@link Context}
+     * @param connection {@link Connection}
      * @return {@link AsyncResult}, depending on async queue status.
      */
-    public abstract AsyncResult processAsync(Context context);
+    public abstract AsyncResult onReady(Connection connection);
     
     /**
      * Callback method, which is called, when {@link Connection} has been closed,

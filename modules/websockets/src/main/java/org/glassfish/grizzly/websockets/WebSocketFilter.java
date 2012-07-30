@@ -224,7 +224,9 @@ public class WebSocketFilter extends BaseFilter {
             } catch (FramingException e) {
                 holder.webSocket.onClose(new ClosingFrame(e.getClosingCode(), e.getMessage()));
             } catch (Exception wse) {
-                holder.webSocket.onClose(new ClosingFrame(1011, wse.getMessage()));
+                if (holder.application.onError(holder.webSocket, wse)) {
+                    holder.webSocket.onClose(new ClosingFrame(1011, wse.getMessage()));
+                }
             }
         }
         return ctx.getStopAction();

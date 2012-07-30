@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.nio.tmpselectors;
 
-import org.glassfish.grizzly.Grizzly;
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Queue;
@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.Selectors;
 
@@ -183,6 +184,23 @@ public class TemporarySelectorPool {
         }
     }
 
+    public void offer(final Selector selector, final SelectionKey selectionKey) {
+        
+        if (selectionKey != null) {
+            try {
+                selectionKey.cancel();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_TEMPORARY_SELECTOR_IO_CANCEL_KEY_EXCEPTION(selectionKey),
+                        e);
+            }
+        }
+
+        if (selector != null) {
+            offer(selector);
+        }
+    }
+    
     private void closeSelector(Selector selector) {
         try {
             selector.close();

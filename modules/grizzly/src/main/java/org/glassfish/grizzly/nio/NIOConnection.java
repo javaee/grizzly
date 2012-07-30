@@ -53,8 +53,18 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
@@ -92,7 +102,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     protected volatile Processor processor;
     protected final AttributeHolder attributes;
-    protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
+    
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
     // Semaphor responsible for connect/close notification
@@ -122,7 +132,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = TaskQueue.createTaskQueue();
         asyncWriteQueue = TaskQueue.createTaskQueue();
         
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
@@ -142,45 +151,92 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public Transport getTransport() {
         return transport;
     }
-
-    @Override
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     *
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     */
     public int getReadBufferSize() {
         return readBufferSize;
     }
 
-    @Override
-    public void setReadBufferSize(int readBufferSize) {
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     *
+     * @param readBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for reading data from {@link Connection}.
+     */
+    public void setReadBufferSize(final int readBufferSize) {
         this.readBufferSize = readBufferSize;
     }
 
-    @Override
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     *
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     */
     public int getWriteBufferSize() {
         return writeBufferSize;
     }
 
-    @Override
-    public void setWriteBufferSize(int writeBufferSize) {
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     *
+     * @param writeBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for writing data to {@link Connection}.
+     */
+    public void setWriteBufferSize(final int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
     }
 
     /**
-     * {@inheritDoc}
+     * Get the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @return the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @since 2.2
      */
-    @Override
     public int getMaxAsyncWriteQueueSize() {
         return maxAsyncWriteQueueSize;
     }
 
     /**
-     * {@inheritDoc}
+     * Set the max size (in bytes) of asynchronous write queue associated
+     * with connection.
+     * 
+     * @param maxAsyncWriteQueueSize the max size (in bytes) of asynchronous
+     * write queue associated with connection.
+     * 
+     * @since 2.2
      */
-    @Override
     public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
         this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
     }
-    
+
+    /**
+     * Returns the number of in bytes pending for writing in the asynchronous
+     * write queue associated with connection.
+     * 
+     * Pls. note that number of pending bytes may change dramatically
+     * each millisecond, so this method might be used for monitoring purposes
+     * only.
+     * 
+     * @since 2.3
+     */
+    public int getAsyncWriteQueueSize() {
+        return getAsyncWriteQueue().size();
+    }
+
     @Override
-    public long getReadTimeout(TimeUnit timeUnit) {
+    public long getBlockingReadTimeout(TimeUnit timeUnit) {
         if (readTimeoutMillis <= 0) {
             return readTimeoutMillis;
         }
@@ -189,7 +245,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void setReadTimeout(long timeout, TimeUnit timeUnit) {
+    public void setBlockingReadTimeout(long timeout, TimeUnit timeUnit) {
         if (timeout < 0) {
             readTimeoutMillis = -1;
         } else {
@@ -198,7 +254,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public long getWriteTimeout(TimeUnit timeUnit) {
+    public long getBlockingWriteTimeout(TimeUnit timeUnit) {
         if (writeTimeoutMillis <= 0) {
             return writeTimeoutMillis;
         }
@@ -207,7 +263,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void setWriteTimeout(long timeout, TimeUnit timeUnit) {
+    public void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit) {
         if (timeout < 0) {
             writeTimeoutMillis = -1;
         } else {
@@ -294,12 +350,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final NullaryFunction<E> factory) {
         return processorStateStorage.getState(processor, factory);
     }
-    
-    public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
-        return asyncReadQueue;
-    }
 
-    public TaskQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
+    protected TaskQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
         return asyncWriteQueue;
     }
 
@@ -365,15 +417,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     @Override
     public boolean canWrite() {
-        return canWrite(1);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean canWrite(final int size) {
-        return transport.getWriter(this).canWrite(this, size);
+        return transport.getWriter(this).canWrite(this);
     }
 
     /**
@@ -381,16 +425,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     @Override
     public void notifyWritePossible(final WriteHandler writeHandler) {
-        notifyWritePossible(writeHandler, 1);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void notifyWritePossible(final WriteHandler writeHandler,
-            final int size) {
-        transport.getWriter(this).notifyWritePossible(this, writeHandler, size);
+        transport.getWriter(this).notifyWritePossible(this, writeHandler);
     }
     
     @Override
@@ -604,15 +639,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify registered {@link ConnectionProbe}s about the IO Event ready event.
      *
      * @param connection the <tt>Connection</tt> event occurred on.
-     * @param serviceEvent the {@link ServiceEvent}.
+     * @param ioEvent the {@link ServiceEvent}.
      */
-    protected static void notifyServiceEventReady(NIOConnection connection,
-        ServiceEvent serviceEvent) {
+    protected static void notifyIOEventReady(NIOConnection connection,
+        IOEvent ioEvent) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
-                probe.onServiceEventReadyEvent(connection, serviceEvent);
+                probe.onIOEventReadyEvent(connection, ioEvent);
             }
         }
     }
@@ -623,16 +658,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param connection the <tt>Connection</tt> event occurred on.
      * @param serviceEvent the {@link ServiceEvent}.
      */
-    protected static void notifyServiceEventEnabled(NIOConnection connection,
-        ServiceEvent serviceEvent) {
-        final ConnectionProbe[] probes =
-            connection.monitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (ConnectionProbe probe : probes) {
-                probe.onServiceEventEnableEvent(connection, serviceEvent);
-            }
-        }
-    }
+//    protected static void notifyServiceEventEnabled(NIOConnection connection,
+//        ServiceEvent serviceEvent) {
+//        final ConnectionProbe[] probes =
+//            connection.monitoringConfig.getProbesUnsafe();
+//        if (probes != null) {
+//            for (ConnectionProbe probe : probes) {
+//                probe.onServiceEventEnableEvent(connection, serviceEvent);
+//            }
+//        }
+//    }
 
     /**
      * Notify registered {@link ConnectionProbe}s about the IO Event disabled event.
@@ -640,16 +675,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param connection the <tt>Connection</tt> event occurred on.
      * @param serviceEvent the {@link ServiceEvent}.
      */
-    protected static void notifyServiceEventDisabled(NIOConnection connection,
-        ServiceEvent serviceEvent) {
-        final ConnectionProbe[] probes =
-            connection.monitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (ConnectionProbe probe : probes) {
-                probe.onServiceEventDisableEvent(connection, serviceEvent);
-            }
-        }
-    }
+//    protected static void notifyServiceEventDisabled(NIOConnection connection,
+//        ServiceEvent serviceEvent) {
+//        final ConnectionProbe[] probes =
+//            connection.monitoringConfig.getProbesUnsafe();
+//        if (probes != null) {
+//            for (ConnectionProbe probe : probes) {
+//                probe.onServiceEventDisableEvent(connection, serviceEvent);
+//            }
+//        }
+//    }
 
     /**
      * Notify registered {@link ConnectionProbe}s about the close event.
@@ -701,71 +736,83 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         // Check if connection init event (like CONNECT or ACCEPT) has been sent
         if (connectCloseSemaphor.getAndSet(NOTIFICATION_CLOSED_COMPLETE) ==
                 NOTIFICATION_INITIALIZED) {
-            transport.fireEvent(ServiceEvent.CLOSED, this, null);
+            transport.fireEvent(IOEvent.CLOSED, this, null);
         }
     }
 
-    @Override
-    public void simulateServiceEvent(final ServiceEvent serviceEvent) throws IOException {
-        final SelectorHandler selectorHandler = transport.getSelectorHandler();
-        switch (serviceEvent) {
-            case WRITE:
-                selectorHandler.enque(selectorRunner, writeSimulatorRunnable, null);
-                break;
-            case READ:
-                selectorHandler.enque(selectorRunner, readSimulatorRunnable, null);
-                break;
-            default:
-                throw new IllegalArgumentException("We support only READ and WRITE events. Got " + serviceEvent);
-        }
-    }
-    
-    @Override
-    public final void enableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException {
-        final int interest = serviceEvent.getSelectionKeyInterest();
+//    @Override
+//    public void simulateKeyInterest(final ServiceEvent serviceEvent) throws IOException {
+//        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+//        switch (serviceEvent) {
+//            case WRITE:
+//                selectorHandler.enque(selectorRunner, writeSimulatorRunnable, null);
+//                break;
+//            case READ:
+//                selectorHandler.enque(selectorRunner, readSimulatorRunnable, null);
+//                break;
+//            default:
+//                throw new IllegalArgumentException("We support only READ and WRITE events. Got " + serviceEvent);
+//        }
+//    }
+//    
+    public final void registerKeyInterest(final int interest) throws IOException {
         if (interest == 0) {
             return;
         }
         
-        notifyServiceEventEnabled(this, serviceEvent);
-        
+//        notifyServiceEventEnabled(this, serviceEvent);
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
             interest);
     }
-
-    private final SelectorHandler.Task writeSimulatorRunnable =
-            new SelectorHandler.Task() {
-
-                @Override
-                public boolean run() throws IOException {
-                    return transport.getIOStrategy().executeServiceEvent(
-                            NIOConnection.this, ServiceEvent.WRITE, false);
-                }
-            };
     
-    private final SelectorHandler.Task readSimulatorRunnable =
-            new SelectorHandler.Task() {
-
-                @Override
-                public boolean run() throws IOException {
-                    return transport.getIOStrategy().executeServiceEvent(
-                            NIOConnection.this, ServiceEvent.READ, false);
-                }
-            }; 
-    
-    @Override
-    public final void disableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException {
-        final int interest = serviceEvent.getSelectionKeyInterest();
+    public final void deregisterKeyInterest(final int interest) throws IOException {
         if (interest == 0) {
             return;
         }
-
-        notifyServiceEventDisabled(this, serviceEvent);
-
+        
+//        notifyServiceEventEnabled(this, serviceEvent);
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-        selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
+        selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey,
+            interest);
     }
+
+    protected void enqueOpWriteReady() {
+        transport.getSelectorHandler().enque(selectorRunner,
+                opWriteReadyTask, null);
+    }
+    
+    private final SelectorHandler.Task opWriteReadyTask =
+            new SelectorHandler.Task() {
+
+                @Override
+                public boolean run() throws IOException {
+                    return transport.processOpWrite(NIOConnection.this, false);
+                }
+            };
+//    
+//    private final SelectorHandler.Task readSimulatorRunnable =
+//            new SelectorHandler.Task() {
+//
+//                @Override
+//                public boolean run() throws IOException {
+//                    return transport.getIOStrategy().executeIOEvent(
+//                            NIOConnection.this, ServiceEvent.READ, false);
+//                }
+//            }; 
+//    
+//    @Override
+//    public final void disableServiceEventInterest(final ServiceEvent serviceEvent) throws IOException {
+//        final int interest = serviceEvent.getSelectionKeyInterest();
+//        if (interest == 0) {
+//            return;
+//        }
+//
+//        notifyServiceEventDisabled(this, serviceEvent);
+//
+//        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+//        selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
+//    }
 
     protected final void checkEmptyRead(final int size) {
         if (WIN32) {
@@ -783,7 +830,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     final void onSelectionKeyUpdated(final SelectionKey newSelectionKey) {
         this.selectionKey = newSelectionKey;
     }
-    
+
     /**
      * Map, which contains {@link Processor}s and their states related to this {@link Connection}.
      */

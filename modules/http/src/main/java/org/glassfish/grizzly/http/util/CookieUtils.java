@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,10 +62,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Grizzly;
 
 /**
  * The general set of Cookie utility methods.
@@ -73,7 +71,6 @@ import org.glassfish.grizzly.Grizzly;
  * @author Grizzly team
  */
 public final class CookieUtils {
-    private static final Logger LOGGER = Grizzly.logger(CookieUtils.class);
 
     /**
      * If set to true, then it will double quote the value and update cookie version
@@ -202,6 +199,21 @@ public final class CookieUtils {
         return true;
     }
 
+    // XXX will be refactored soon!
+    public static boolean equals(String s, byte[] b, int start, int end) {
+        int blen = end - start;
+        if (b == null || blen != s.length()) {
+            return false;
+        }
+        int boff = start;
+        for (int i = 0; i < blen; i++) {
+            if (b[boff++] != s.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     
     // XXX will be refactored soon!
     public static boolean equals(String s, Buffer b, int start, int end) {
@@ -242,6 +254,23 @@ public final class CookieUtils {
         int boff = start;
         for (int i = 0; i < blen; i++) {
             final int b1 = Ascii.toLower(b.get(boff++));
+            final int b2 = Ascii.toLower(s.charAt(i));
+            if (b1 != b2) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // XXX will be refactored soon!
+    public static boolean equalsIgnoreCase(String s, byte[] b, int start, int end) {
+        int blen = end - start;
+        if (b == null || blen != s.length()) {
+            return false;
+        }
+        int boff = start;
+        for (int i = 0; i < blen; i++) {
+            final int b1 = Ascii.toLower(b[boff++]);
             final int b2 = Ascii.toLower(s.charAt(i));
             if (b1 != b2) {
                 return false;
@@ -320,6 +349,28 @@ public final class CookieUtils {
      * token, with no separator characters in between.
      * JVK
      */
+    public static int getTokenEndPosition(byte[] bytes, int off, int end) {
+        return getTokenEndPosition(bytes, off, end, true);
+    }
+
+    public static int getTokenEndPosition(byte[] bytes, int off, int end,
+                                          boolean parseAsVersion1) {
+        int pos = off;
+        while (pos < end && !isSeparator(bytes[pos], parseAsVersion1)) {
+            pos++;
+        }
+
+        if (pos > end) {
+            return end;
+        }
+        return pos;
+    }
+
+    /**
+     * Given the starting position of a token, this gets the end of the
+     * token, with no separator characters in between.
+     * JVK
+     */
     public static int getTokenEndPosition(String s, int off, int end) {
         return getTokenEndPosition(s, off, end, true);
     }
@@ -348,6 +399,26 @@ public final class CookieUtils {
             if (buffer.get(pos) == '"') {
                 return pos;
             } else if (buffer.get(pos) == '\\' && pos < (end - 1)) {
+                pos += 2;
+            } else {
+                pos++;
+            }
+        }
+        // Error, we have reached the end of the header w/o a end quote
+        return end;
+    }
+
+    /**
+     * Given a starting position after an initial quote character, this gets
+     * the position of the end quote. This escapes anything after a '\' char
+     * JVK RFC 2616
+     */
+    public static int getQuotedValueEndPosition(byte[] bytes, int off, int end) {
+        int pos = off;
+        while (pos < end) {
+            if (bytes[pos] == '"') {
+                return pos;
+            } else if (bytes[pos] == '\\' && pos < (end - 1)) {
                 pos += 2;
             } else {
                 pos++;

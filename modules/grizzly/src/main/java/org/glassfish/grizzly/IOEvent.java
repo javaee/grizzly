@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,19 +37,49 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.asyncqueue;
+package org.glassfish.grizzly;
 
 /**
- * Interface, which Transports should implement if they support AsyncQueues.
+ * Enumeration represents the service events, occurred on a {@link Connection}.
  *
+ * @see Connection
+ * 
  * @author Alexey Stashok
  */
-public interface AsyncQueueEnabledTransport {
+public enum IOEvent implements Event {
     /**
-     * Get asynchronous queue implementation.
-     *
-     * @return asynchronous queue implementation.
+     * Event occurs on a {@link Connection}, once it gets available for read.
      */
-    public AsyncQueueIO getAsyncQueueIO();
+    READ,
+
+    /**
+     * Event occurs on a server {@link Connection}, when it becomes ready
+     * to accept new client {@link Connection}.
+     *
+     * Note, this event occurs on server code for server {@link Connection}.
+     */
+    ACCEPT,
+
+    /**
+     * Event occurs on a {@link Connection}, once it was connected to server.
+     * 
+     * (this is the IOEvent, which is not getting propagated to a {@link Processor}
+     */
+    CONNECT,
+
+    /**
+     * Event occurs on a {@link Connection}, once it gets closed.
+     */
+    CLOSED;
+    
+    private static final Object ioType = new Object();
+    
+    public static boolean isIOEvent(final Event event) {
+        return event.type() == ioType;
+    }
+
+    @Override
+    public Object type() {
+        return ioType;
+    }
 }

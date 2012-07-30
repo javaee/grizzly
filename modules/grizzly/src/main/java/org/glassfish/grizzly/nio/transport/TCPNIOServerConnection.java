@@ -44,7 +44,6 @@ import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,7 +52,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 
 /**
@@ -65,7 +63,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     private static final Logger LOGGER = Grizzly.logger(TCPNIOServerConnection.class);
     private FutureImpl<Connection> acceptListener;
     private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
-    private final Object acceptSync = new Object();
     private volatile int maxAcceptRetries = 5;
     
 
@@ -97,63 +94,30 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         notifyProbesBind(this);
     }
 
+    /**
+     * Method will be called by framework, when async accept will be ready
+     *
+     * @throws java.io.IOException
+     */
+    protected void onAccept() throws IOException {
+
+        final TCPNIOConnection acceptedConnection;
+
+        final SocketChannel acceptedChannel = doAccept();
+        if (acceptedChannel == null) {
+            return;
+        }
+
+        configureAcceptedChannel(acceptedChannel);
+        acceptedConnection = registerAcceptedChannel(acceptedChannel,
+                defaultCompletionHandler, SelectionKey.OP_READ);
+
+        notifyProbesAccept(this, acceptedConnection);
+    }
+    
     @Override
     public boolean isBlocking() {
         return transport.isBlocking();
-    }
-
-
-    /**
-     * Asynchronously accept a {@link Connection}
-     *
-     * @return {@link Future}
-     * @throws java.io.IOException
-     */
-    protected GrizzlyFuture<Connection> acceptAsync() throws IOException {
-        if (!isOpen()) {
-            throw new IOException("Connection is closed");
-        }
-
-        synchronized (acceptSync) {
-            final FutureImpl<Connection> future = SafeFutureImpl.create();
-            final SocketChannel acceptedChannel = doAccept();
-            if (acceptedChannel != null) {
-                configureAcceptedChannel(acceptedChannel);
-                registerAcceptedChannel(acceptedChannel,
-                        new RegisterAcceptedChannelCompletionHandler(future),
-                        0);
-            } else {
-                acceptListener = future;
-                enableServiceEventInterest(ServiceEvent.SERVER_ACCEPT);
-            }
-
-            return future;
-        }
-    }
-
-    private SocketChannel doAccept() throws IOException {
-        final ServerSocketChannel serverChannel =
-                (ServerSocketChannel) getChannel();
-        final SelectionKey key = getSelectionKey();
-        
-        int retryNum = 0;
-        do {
-            try {
-                return serverChannel.accept();
-            } catch (IOException e) {
-                if(!key.isValid()) throw e;
-                
-                try {
-                    // Let's try to recover here from "too many open files" error
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex1) {
-                    throw new IOException(ex1.getMessage());
-                }
-                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TCPSELECTOR_HANDLER_ACCEPTCHANNEL_EXCEPTION(), e);
-            }
-        } while (retryNum++ < maxAcceptRetries);
-        
-        throw new IOException("Accept retries exceeded");
     }
 
     /**
@@ -186,71 +150,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         this.maxAcceptRetries = maxAcceptRetries;
     }
     
-    private void configureAcceptedChannel(final SocketChannel acceptedChannel)
-            throws IOException {
-        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
-        tcpNIOTransport.configureChannel(acceptedChannel);
-    }
-
-    private TCPNIOConnection registerAcceptedChannel(final SocketChannel acceptedChannel,
-            final CompletionHandler<RegisterChannelResult> completionHandler,
-            final int initialSelectionKeyInterest)
-            throws IOException {
-
-        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
-        final TCPNIOConnection connection =
-                tcpNIOTransport.obtainNIOConnection(acceptedChannel);
-
-        if (processor != null) {
-            connection.setProcessor(processor);
-        }
-
-        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
-                acceptedChannel, initialSelectionKeyInterest, connection,
-                completionHandler);
-
-        return connection;
-    }
-
-    @Override
-    public void preClose() {
-        if (acceptListener != null) {
-            acceptListener.failure(new IOException("Connection is closed"));
-        }
-
-        try {
-            ((TCPNIOTransport) transport).unbind(this);
-        } catch (IOException e) {
-            LOGGER.log(Level.FINE,
-                    "Exception occurred, when unbind connection: " + this, e);
-        }
-
-        super.preClose();
-    }
-
-
-    /**
-     * Method will be called by framework, when async accept will be ready
-     *
-     * @throws java.io.IOException
-     */
-    public void onAccept() throws IOException {
-
-        final TCPNIOConnection acceptedConnection;
-
-        final SocketChannel acceptedChannel = doAccept();
-        if (acceptedChannel == null) {
-            return;
-        }
-
-        configureAcceptedChannel(acceptedChannel);
-        acceptedConnection = registerAcceptedChannel(acceptedChannel,
-                defaultCompletionHandler, SelectionKey.OP_READ);
-
-        notifyProbesAccept(this, acceptedConnection);
-
-    }
-
     @Override
     public void setReadBufferSize(final int readBufferSize) {
         final ServerSocket socket = ((ServerSocketChannel) channel).socket();
@@ -276,6 +175,73 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         this.writeBufferSize = writeBufferSize;
     }
 
+    @Override
+    public void preClose() {
+        if (acceptListener != null) {
+            acceptListener.failure(new IOException("Connection is closed"));
+        }
+
+        try {
+            ((TCPNIOTransport) transport).unbind(this);
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE,
+                    "Exception occurred, when unbind connection: " + this, e);
+        }
+
+        super.preClose();
+    }
+    
+    private SocketChannel doAccept() throws IOException {
+        final ServerSocketChannel serverChannel =
+                (ServerSocketChannel) getChannel();
+        final SelectionKey key = getSelectionKey();
+        
+        int retryNum = 0;
+        do {
+            try {
+                return serverChannel.accept();
+            } catch (IOException e) {
+                if(!key.isValid()) throw e;
+                
+                try {
+                    // Let's try to recover here from "too many open files" error
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex1) {
+                    throw new IOException(ex1.getMessage());
+                }
+                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TCPSELECTOR_HANDLER_ACCEPTCHANNEL_EXCEPTION(), e);
+            }
+        } while (retryNum++ < maxAcceptRetries);
+        
+        throw new IOException("Accept retries exceeded");
+    }
+    
+    private void configureAcceptedChannel(final SocketChannel acceptedChannel)
+            throws IOException {
+        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
+        tcpNIOTransport.configureChannel(acceptedChannel);
+    }
+
+    private TCPNIOConnection registerAcceptedChannel(final SocketChannel acceptedChannel,
+            final CompletionHandler<RegisterChannelResult> completionHandler,
+            final int initialSelectionKeyInterest)
+            throws IOException {
+
+        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
+        final TCPNIOConnection connection =
+                tcpNIOTransport.obtainNIOConnection(acceptedChannel);
+
+        if (processor != null) {
+            connection.setProcessor(processor);
+        }
+
+        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
+                acceptedChannel, initialSelectionKeyInterest, connection,
+                completionHandler);
+
+        return connection;
+    }    
+    
     protected final class RegisterAcceptedChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {
 
@@ -297,12 +263,10 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
 
                 nioTransport.selectorRegistrationHandler.completed(result);
 
-                final SelectionKeyHandler selectionKeyHandler =
-                        nioTransport.getSelectionKeyHandler();
                 final SelectionKey acceptedConnectionKey =
                         result.getSelectionKey();
                 final TCPNIOConnection connection =
-                        (TCPNIOConnection) selectionKeyHandler.getConnectionForKey(acceptedConnectionKey);
+                        (TCPNIOConnection) transport.getConnectionForKey(acceptedConnectionKey);
 
                 connection.resetProperties();
                 if (listener != null) {
@@ -310,7 +274,8 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                 }
 
                 if (connection.notifyReady()) {
-                    transport.fireEvent(ServiceEvent.ACCEPTED, connection, null);
+                    transport.getIOStrategy().executeIOEvent(connection,
+                            IOEvent.ACCEPT);
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "

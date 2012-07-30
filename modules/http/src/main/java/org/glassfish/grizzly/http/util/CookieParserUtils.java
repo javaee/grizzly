@@ -106,6 +106,16 @@ public class CookieParserUtils {
             throw new IllegalArgumentException();
         }
 
+        if (buffer.hasArray()) {
+            parseClientCookies(cookies,
+                               buffer,
+                               buffer.array(),
+                               off,
+                               len,
+                               versionOneStrictCompliance);
+            return;
+        }
+
         int end = off + len;
         int pos = off;
         int nameStart;
@@ -283,13 +293,13 @@ public class CookieParserUtils {
                 }
 
 
-                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
-                    // sc.getPort is not currently implemented.
-                    // sc.getPort().setBytes( bytes,
-                    //                        valueStart,
-                    //                        valueEnd-valueStart );
-                    continue;
-                }
+//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
 
                 // Unknown cookie, complain
                 LOGGER.fine("Unknown Special Cookie");
@@ -303,6 +313,235 @@ public class CookieParserUtils {
 
                 if (valueStart != -1) { // Normal AVPair
                     lazyCookie.getValue().setBuffer(buffer, valueStart, valueEnd);
+                    if (isQuoted) {
+                        // We know this is a byte value so this is safe
+                        unescapeDoubleQuotes(lazyCookie.getValue());
+                    }
+                } else {
+                    // Name Only
+                    lazyCookie.getValue().setString("");
+                }
+            }
+        }
+    }
+
+    /**
+     * Parses a cookie header after the initial "Cookie:"
+     * [WS][$]token[WS]=[WS](token|QV)[;|,]
+     * RFC 2965
+     * JVK
+     */
+    private static void parseClientCookies(Cookies cookies,
+                                           Buffer buffer,
+                                           byte[] bytes,
+                                           int off,
+                                           int len,
+                                           boolean versionOneStrictCompliance) {
+
+        if (len <= 0 || buffer == null || bytes == null) {
+            throw new IllegalArgumentException();
+        }
+        // keep note of the array offset - we need it for translation
+        // into the byte[] but it's also needed when translating positions
+        // *back* into the buffer.
+        int arrayOffset = buffer.arrayOffset();
+        int end = off + arrayOffset + len;
+        int pos = off + arrayOffset;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
+        int version = 0;
+
+        Cookie cookie = null;
+        LazyCookieState lazyCookie = null;
+
+        boolean isSpecial;
+        boolean isQuoted;
+
+        while (pos < end) {
+            isSpecial = false;
+            isQuoted = false;
+
+            // Skip whitespace and non-token characters (separators)
+            while (pos < end
+                    && (isSeparator(bytes[pos]) || isWhiteSpace(bytes[pos]))) {
+                pos++;
+            }
+
+            if (pos >= end) {
+                return;
+            }
+
+            // Detect Special cookies
+            if (bytes[pos] == '$') {
+                isSpecial = true;
+                pos++;
+            }
+
+            // Get the cookie name. This must be a token
+            nameStart = pos;
+            pos = nameEnd = getTokenEndPosition(bytes, pos, end);
+
+            // Skip whitespace
+            while (pos < end && isWhiteSpace(bytes[pos])) {
+                pos++;
+            }
+
+            // Check for an '=' -- This could also be a name-only
+            // cookie at the end of the cookie header, so if we
+            // are past the end of the header, but we have a name
+            // skip to the name-only part.
+            if (pos < end && bytes[pos] == '=') {
+
+                // Skip whitespace
+                do {
+                    pos++;
+                } while (pos < end && isWhiteSpace(bytes[pos]));
+
+                if (pos >= end) {
+                    return;
+                }
+
+                // Determine what type of value this is, quoted value,
+                // token, name-only with an '=', or other (bad)
+                switch (bytes[pos]) {
+                    case '"':
+                        // Quoted Value
+                        isQuoted = true;
+                        valueStart = pos + 1; // strip "
+                        // getQuotedValue returns the position before
+                        // at the last qoute. This must be dealt with
+                        // when the bytes are copied into the cookie
+                        valueEnd = getQuotedValueEndPosition(bytes,
+                                valueStart, end);
+                        // We need pos to advance
+                        pos = valueEnd;
+                        // Handles cases where the quoted value is
+                        // unterminated and at the end of the header,
+                        // e.g. [myname="value]
+                        if (pos >= end) {
+                            return;
+                        }
+                        break;
+                    case ';':
+                    case ',':
+                        // Name-only cookie with an '=' after the name token
+                        // This may not be RFC compliant
+                        valueStart = valueEnd = -1;
+                        // The position is OK (On a delimiter)
+                        break;
+                    default:
+                        if (!isSeparator(bytes[pos], versionOneStrictCompliance)) {
+                            // Token
+                            // Token
+                            valueStart = pos;
+                            // getToken returns the position at the delimeter
+                            // or other non-token character
+                            valueEnd = getTokenEndPosition(bytes, valueStart, end,
+                                    versionOneStrictCompliance);
+                            // We need pos to advance
+                            pos = valueEnd;
+                        } else {
+                            // INVALID COOKIE, advance to next delimiter
+                            // The starting character of the cookie value was
+                            // not valid.
+                            LOGGER.fine("Invalid cookie. Value not a token or quoted value");
+                            while (pos < end && bytes[pos] != ';'
+                                    && bytes[pos] != ',') {
+                                pos++;
+                            }
+
+                            pos++;
+                            // Make sure no special avpairs can be attributed to
+                            // the previous cookie by setting the current cookie
+                            // to null
+                            cookie = null;
+                            lazyCookie = null;
+                            continue;
+                        }
+                }
+            } else {
+                // Name only cookie
+                valueStart = valueEnd = -1;
+                pos = nameEnd;
+
+            }
+
+            // We should have an avpair or name-only cookie at this
+            // point. Perform some basic checks to make sure we are
+            // in a good state.
+
+            // Skip whitespace
+            while (pos < end && isWhiteSpace(bytes[pos])) {
+                pos++;
+            }
+
+            // Make sure that after the cookie we have a separator. This
+            // is only important if this is not the last cookie pair
+            while (pos < end && bytes[pos] != ';' && bytes[pos] != ',') {
+                pos++;
+            }
+
+            pos++;
+
+            // All checks passed. Add the cookie, start with the
+            // special avpairs first
+            if (isSpecial) {
+                isSpecial = false;
+                // $Version must be the first avpair in the cookie header
+                // (sc must be null)
+                if (CookieUtils.equals("Version", bytes, nameStart, nameEnd)
+                        && cookie == null) {
+                    // Set version
+                    if (bytes[valueStart] == '1'
+                            && valueEnd == (valueStart + 1)) {
+                        version = 1;
+                    } else {
+                        // unknown version (Versioning is not very strict)
+                    }
+                    continue;
+                }
+
+                // We need an active cookie for Path/Port/etc.
+                if (cookie == null) {
+                    continue;
+                }
+
+                // Domain is more common, so it goes first
+                if (CookieUtils.equals("Domain", bytes, nameStart, nameEnd)) {
+                    lazyCookie.getDomain().setBuffer(buffer,
+                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    continue;
+                }
+
+                if (CookieUtils.equals("Path", bytes, nameStart, nameEnd)) {
+                    lazyCookie.getPath().setBuffer(buffer,
+                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    continue;
+                }
+
+
+//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
+
+                // Unknown cookie, complain
+                LOGGER.fine("Unknown Special Cookie");
+
+            } else { // Normal Cookie
+                cookie = cookies.getNextUnusedCookie();
+                lazyCookie = cookie.getLazyCookieState();
+
+                cookie.setVersion(version);
+                lazyCookie.getName().setBuffer(buffer, nameStart - arrayOffset, nameEnd - arrayOffset);
+
+                if (valueStart != -1) { // Normal AVPair
+                    lazyCookie.getValue().setBuffer(buffer, valueStart - arrayOffset, valueEnd - arrayOffset);
                     if (isQuoted) {
                         // We know this is a byte value so this is safe
                         unescapeDoubleQuotes(lazyCookie.getValue());
@@ -501,13 +740,13 @@ public class CookieParserUtils {
                 }
 
 
-                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
-                    // sc.getPort is not currently implemented.
-                    // sc.getPort().setBytes( bytes,
-                    //                        valueStart,
-                    //                        valueEnd-valueStart );
-                    continue;
-                }
+//                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
 
                 // Unknown cookie, complain
                 LOGGER.fine("Unknown Special Cookie");
@@ -538,13 +777,277 @@ public class CookieParserUtils {
         }
     }
 
+    private static void parseServerCookies(Cookies cookies,
+                                           Buffer buffer,
+                                           byte[] bytes,
+                                           int off,
+                                           int len,
+                                           boolean versionOneStrictCompliance) {
 
+        if (len <= 0 || buffer == null || bytes == null) {
+            throw new IllegalArgumentException();
+        }
+
+        // keep note of the array offset - we need it for translation
+        // into the byte[] but it's also needed when translating positions
+        // *back* into the buffer.
+        int arrayOffset = buffer.arrayOffset();
+        int end = off + arrayOffset + len;
+        int pos = off + arrayOffset;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
+
+        Cookie cookie = null;
+        LazyCookieState lazyCookie = null;
+
+        boolean isQuoted;
+
+        while (pos < end) {
+            isQuoted = false;
+
+            // Skip whitespace and non-token characters (separators)
+            while (pos < end
+                    && (isSeparator(bytes[pos]) || isWhiteSpace(bytes[pos]))) {
+                pos++;
+            }
+
+            if (pos >= end) {
+                return;
+            }
+
+            // Get the cookie name. This must be a token
+            nameStart = pos;
+            pos = nameEnd = getTokenEndPosition(bytes, pos, end);
+
+            // Skip whitespace
+            while (pos < end && isWhiteSpace(bytes[pos])) {
+                pos++;
+            }
+
+            // Check for an '=' -- This could also be a name-only
+            // cookie at the end of the cookie header, so if we
+            // are past the end of the header, but we have a name
+            // skip to the name-only part.
+            if (pos < end && bytes[pos] == '=') {
+
+                // Skip whitespace
+                do {
+                    pos++;
+                } while (pos < end && isWhiteSpace(bytes[pos]));
+
+                if (pos >= end) {
+                    return;
+                }
+
+                // Determine what type of value this is, quoted value,
+                // token, name-only with an '=', or other (bad)
+                switch (bytes[pos]) {
+                    case '"':
+                        // Quoted Value
+                        isQuoted = true;
+                        valueStart = pos + 1; // strip "
+                        // getQuotedValue returns the position before
+                        // at the last qoute. This must be dealt with
+                        // when the bytes are copied into the cookie
+                        valueEnd = getQuotedValueEndPosition(bytes,
+                                valueStart, end);
+                        // We need pos to advance
+                        pos = valueEnd;
+                        // Handles cases where the quoted value is
+                        // unterminated and at the end of the header,
+                        // e.g. [myname="value]
+                        if (pos >= end) {
+                            return;
+                        }
+                        break;
+                    case ';':
+                    case ',':
+                        // Name-only cookie with an '=' after the name token
+                        // This may not be RFC compliant
+                        valueStart = valueEnd = -1;
+                        // The position is OK (On a delimiter)
+                        break;
+                    default:
+                        if (!isSeparator(bytes[pos], versionOneStrictCompliance)) {
+                            // Token
+                            // Token
+                            valueStart = pos;
+                            // getToken returns the position at the delimeter
+                            // or other non-token character
+                            valueEnd = getTokenEndPosition(bytes, valueStart, end,
+                                    versionOneStrictCompliance);
+                            // We need pos to advance
+                            pos = valueEnd;
+                        } else {
+                            // INVALID COOKIE, advance to next delimiter
+                            // The starting character of the cookie value was
+                            // not valid.
+                            LOGGER.fine("Invalid cookie. Value not a token or quoted value");
+                            while (pos < end && bytes[pos] != ';'
+                                    && bytes[pos] != ',') {
+                                pos++;
+                            }
+
+                            pos++;
+                            // Make sure no special avpairs can be attributed to
+                            // the previous cookie by setting the current cookie
+                            // to null
+                            cookie = null;
+                            lazyCookie = null;
+                            continue;
+                        }
+                }
+            } else {
+                // Name only cookie
+                valueStart = valueEnd = -1;
+                pos = nameEnd;
+
+            }
+
+            // We should have an avpair or name-only cookie at this
+            // point. Perform some basic checks to make sure we are
+            // in a good state.
+
+            // Skip whitespace
+            while (pos < end && isWhiteSpace(bytes[pos])) {
+                pos++;
+            }
+
+            // Make sure that after the cookie we have a separator. This
+            // is only important if this is not the last cookie pair
+            while (pos < end && bytes[pos] != ';' && bytes[pos] != ',') {
+                pos++;
+            }
+
+            pos++;
+
+            // All checks passed. Add the cookie, start with the
+            // special avpairs first
+            if (cookie != null) {
+                // Domain is more common, so it goes first
+                if (lazyCookie.getDomain().isNull() &&
+                        equalsIgnoreCase("Domain", bytes, nameStart, nameEnd)) {
+                    lazyCookie.getDomain().setBuffer(buffer,
+                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    continue;
+                }
+
+                // Path
+                if (lazyCookie.getPath().isNull() &&
+                        equalsIgnoreCase("Path", bytes, nameStart, nameEnd)) {
+                    lazyCookie.getPath().setBuffer(buffer,
+                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    continue;
+                }
+
+                // Version
+                if (cookie.getVersion() == 0 &&
+                        CookieUtils.equals("Version", bytes, nameStart, nameEnd)) {
+                    // Set version
+                    if (bytes[valueStart] == '1'
+                            && valueEnd == (valueStart + 1)) {
+                        cookie.setVersion(1);
+                    } else {
+                        // unknown version (Versioning is not very strict)
+                    }
+                    continue;
+                }
+
+                // Comment
+                if (lazyCookie.getComment().isNull() &&
+                        CookieUtils.equals("Comment", bytes, nameStart, nameEnd)) {
+                    lazyCookie.getComment().setBuffer(buffer,
+                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    continue;
+                }
+
+                // Max-Age
+                if (cookie.getMaxAge() == -1 &&
+                        CookieUtils.equals("Max-Age", bytes, nameStart, nameEnd)) {
+                    cookie.setMaxAge(Ascii.parseInt(buffer,
+                            valueStart - arrayOffset,
+                            valueEnd - valueStart - arrayOffset));
+                    continue;
+                }
+
+                // Expires
+                if (cookie.getVersion() == 0 && cookie.getMaxAge() == -1 &&
+                        equalsIgnoreCase("Expires", bytes, nameStart, nameEnd)) {
+                    try {
+                        valueEnd = getTokenEndPosition(bytes, valueEnd + 1, end, false);
+                        pos = valueEnd + 1;
+
+                        final String expiresDate =
+                                buffer.toStringContent(Charsets.ASCII_CHARSET,
+                                        valueStart,
+                                        valueEnd);
+                        final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
+                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
+                    } catch (ParseException ignore) {
+                    }
+
+                    continue;
+                }
+
+                // Secure
+                if (!cookie.isSecure() &&
+                        equalsIgnoreCase("Secure", bytes, nameStart, nameEnd)) {
+                    lazyCookie.setSecure(true);
+                    continue;
+                }
+
+                // HttpOnly
+                if (!cookie.isHttpOnly() &&
+                        CookieUtils.equals("HttpOnly", bytes, nameStart, nameEnd)) {
+                    cookie.setHttpOnly(true);
+                    continue;
+                }
+
+//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
+            }
+
+            // Normal Cookie
+            cookie = cookies.getNextUnusedCookie();
+            lazyCookie = cookie.getLazyCookieState();
+
+            lazyCookie.getName().setBuffer(buffer, nameStart - arrayOffset, nameEnd - arrayOffset);
+
+            if (valueStart != -1) { // Normal AVPair
+                lazyCookie.getValue().setBuffer(buffer, valueStart - arrayOffset, valueEnd - arrayOffset);
+                if (isQuoted) {
+                    // We know this is a byte value so this is safe
+                    unescapeDoubleQuotes(lazyCookie.getValue());
+                }
+            } else {
+                // Name Only
+                lazyCookie.getValue().setString("");
+            }
+        }
+    }
 
     public static void parseServerCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
             throw new IllegalArgumentException();
+        }
+
+        if (buffer.hasArray()) {
+            parseServerCookies(cookies,
+                               buffer,
+                               buffer.array(),
+                               off,
+                               len,
+                               versionOneStrictCompliance);
+            return;
         }
 
         int end = off + len;
@@ -760,13 +1263,13 @@ public class CookieParserUtils {
                     continue;
                 }
 
-                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
-                    // sc.getPort is not currently implemented.
-                    // sc.getPort().setBytes( bytes,
-                    //                        valueStart,
-                    //                        valueEnd-valueStart );
-                    continue;
-                }
+//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
             }
 
             // Normal Cookie
@@ -999,17 +1502,17 @@ public class CookieParserUtils {
                     continue;
                 }
 
-                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
-                    // sc.getPort is not currently implemented.
-                    // sc.getPort().setBytes( bytes,
-                    //                        valueStart,
-                    //                        valueEnd-valueStart );
-                    continue;
-                }
-
-                if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
-                    continue;
-                }
+//                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
+//                    // sc.getPort is not currently implemented.
+//                    // sc.getPort().setBytes( bytes,
+//                    //                        valueStart,
+//                    //                        valueEnd-valueStart );
+//                    continue;
+//                }
+//
+//                if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
+//                    continue;
+//                }
             }
 
             // Normal Cookie

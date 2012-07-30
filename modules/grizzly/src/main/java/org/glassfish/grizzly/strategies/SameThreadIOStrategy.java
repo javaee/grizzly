@@ -42,9 +42,11 @@ package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncQueue;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -59,11 +61,11 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     private static final Logger logger = Grizzly.logger(SameThreadIOStrategy.class);
 
 
-    private static final InterestProcessingHandlerWhenIoEnabled PROCESSING_HANDLER_WHEN_IO_ENABLED =
-            new InterestProcessingHandlerWhenIoEnabled();
-
-    private static final InterestProcessingHandlerWhenIoDisabled PROCESSING_HANDLER_WHEN_IO_DISABLED =
-            new InterestProcessingHandlerWhenIoDisabled();
+//    private static final InterestProcessingHandlerWhenIoEnabled PROCESSING_HANDLER_WHEN_IO_ENABLED =
+//            new InterestProcessingHandlerWhenIoEnabled();
+//
+//    private static final InterestProcessingHandlerWhenIoDisabled PROCESSING_HANDLER_WHEN_IO_DISABLED =
+//            new InterestProcessingHandlerWhenIoDisabled();
     
     // ------------------------------------------------------------ Constructors
 
@@ -81,24 +83,34 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
     // ------------------------------------------------- Methods from IOStrategy
 
+    @Override
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            DecisionListener listener) throws IOException {
+        
+        EventProcessingHandler processingHandler = null;
+        
+        if (listener != null) {
+            processingHandler = listener.goSync(connection, ioEvent);
+        }
+        
+        return executeIOEvent(connection, ioEvent, processingHandler, false);
+    }
 
     @Override
-    public boolean executeServiceEvent(final Connection connection,
-            final ServiceEvent serviceEvent, final boolean isServiceEventInterestEnabled)
-            throws IOException {
+    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventProcessingHandler processingHandler) {
+        return executeIOEvent(connection, ioEvent, processingHandler, false);
+    }
+
+    @Override
+    protected boolean executeIOEvent(Connection connection, IOEvent event,
+            EventProcessingHandler processingHandler, boolean isRunAsync) {
         
-        ServiceEventProcessingHandler ph = null;
-        if (isReadWrite(serviceEvent)) {
-            ph = isServiceEventInterestEnabled
-                    ? PROCESSING_HANDLER_WHEN_IO_ENABLED
-                    : PROCESSING_HANDLER_WHEN_IO_DISABLED;
-        }
-
-        fireEvent(connection, serviceEvent, ph, logger);
-
+        fireEvent(connection, event, processingHandler, logger);
         return true;
     }
 
+    
     @Override
     protected Logger getLogger() {
         return logger;
@@ -116,73 +128,73 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static final class InterestProcessingHandlerWhenIoEnabled
-            extends ServiceEventProcessingHandler.Adapter {
-
-        @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
-        }
-
-        @Override
-        public void onComplete(final Context context, final Object data) throws IOException {
-            if (context.wasSuspended() || context.isManualServiceEventControl()) {
-                final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-                final Connection connection = context.getConnection();
-                
-                if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
-                    connection.simulateServiceEvent(serviceEvent);
-                } else {
-                    connection.enableServiceEventInterest(serviceEvent);
-                }
-            }
-        }
-
-        @Override
-        public void onContextSuspend(final Context context) throws IOException {
-            // check manual io event control, to not disable service event twice
-            if (!context.isManualServiceEventControl()) {
-                disableServiceEvent(context);
-            }
-        }
-
-        @Override
-        public void onContextManualServiceEventControl(final Context context)
-                throws IOException {
-            // check suspended mode, to not disable service event interest twice
-            if (!context.wasSuspended()) {
-                disableServiceEvent(context);
-            }
-        }
-
-        private static void disableServiceEvent(final Context context)
-                throws IOException {
-            final Connection connection = context.getConnection();
-            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-            connection.disableServiceEventInterest(serviceEvent);
-        }
-
-    }
-    
-    private static final class InterestProcessingHandlerWhenIoDisabled
-            extends ServiceEventProcessingHandler.Adapter {
-
-        @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
-        }
-
-        @Override
-        public void onComplete(final Context context, final Object data)
-                throws IOException {
-            
-            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-            final Connection connection = context.getConnection();
-            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
-                connection.simulateServiceEvent(serviceEvent);
-            } else {
-                connection.enableServiceEventInterest(serviceEvent);
-            }
-        }
-    }    
+//    private static final class InterestProcessingHandlerWhenIoEnabled
+//            extends EventProcessingHandler.Adapter {
+//
+//        @Override
+//        public void onReregister(final Context context) throws IOException {
+//            onComplete(context, null);
+//        }
+//
+//        @Override
+//        public void onComplete(final Context context, final Object data) throws IOException {
+//            if (context.wasSuspended() || context.isIOOptimizationsFlushed()) {
+//                final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
+//                final Connection connection = context.getConnection();
+//                
+//                if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
+//                    connection.simulateServiceEvent(serviceEvent);
+//                } else {
+//                    connection.enableServiceEventInterest(serviceEvent);
+//                }
+//            }
+//        }
+//
+//        @Override
+//        public void onSuspend(final Context context) throws IOException {
+//            // check manual io event control, to not disable service event twice
+//            if (!context.isIOOptimizationsFlushed()) {
+//                disableServiceEvent(context);
+//            }
+//        }
+//
+//        @Override
+//        public void onFlushIOOptimizations(final Context context)
+//                throws IOException {
+//            // check suspended mode, to not disable service event interest twice
+//            if (!context.wasSuspended()) {
+//                disableServiceEvent(context);
+//            }
+//        }
+//
+//        private static void disableServiceEvent(final Context context)
+//                throws IOException {
+//            final Connection connection = context.getConnection();
+//            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
+//            connection.disableServiceEventInterest(serviceEvent);
+//        }
+//
+//    }
+//    
+//    private static final class InterestProcessingHandlerWhenIoDisabled
+//            extends EventProcessingHandler.Adapter {
+//
+//        @Override
+//        public void onReregister(final Context context) throws IOException {
+//            onComplete(context, null);
+//        }
+//
+//        @Override
+//        public void onComplete(final Context context, final Object data)
+//                throws IOException {
+//            
+//            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
+//            final Connection connection = context.getConnection();
+//            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
+//                connection.simulateServiceEvent(serviceEvent);
+//            } else {
+//                connection.enableServiceEventInterest(serviceEvent);
+//            }
+//        }
+//    }
 }

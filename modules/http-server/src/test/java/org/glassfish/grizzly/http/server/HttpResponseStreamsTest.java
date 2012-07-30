@@ -706,7 +706,7 @@ public class HttpResponseStreamsTest extends TestCase {
             @Override
             public void doWrite(Response response)
                     throws IOException {
-                Writer writer = response.getNIOWriter();
+                Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
@@ -717,7 +717,7 @@ public class HttpResponseStreamsTest extends TestCase {
             @Override
             public void doWrite(Response response)
                     throws IOException {
-                Writer writer = response.getNIOWriter();
+                Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };

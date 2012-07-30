@@ -53,10 +53,10 @@ public final class ProcessorExecutor {
     private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 
     public static void execute(final Connection connection,
-            final ServiceEvent serviceEvent, final Processor processor,
-            final ServiceEventProcessingHandler processingHandler) {
+            final Event event, final Processor processor,
+            final EventProcessingHandler processingHandler) {
 
-        execute(Context.create(connection, processor, serviceEvent,
+        execute(Context.create(connection, processor, event,
                 processingHandler));
     }
    
@@ -69,38 +69,34 @@ public final class ProcessorExecutor {
                     context.getProcessor()});
         }
 
-        boolean isRerun;
-        ProcessorResult result;
-        ProcessorResult.Status status;
+//        boolean isRerun;
+//        ProcessorResult result;
+//        ProcessorResult.Status status;
         
         try {
-            do {
-                result = context.getProcessor().process(context);
-                status = result.getStatus();
-                isRerun = (status == ProcessorResult.Status.RERUN);
-                if (isRerun) {
-                    final Context newContext = (Context) result.getData();
-                    rerun(context, newContext);
-                    context = newContext;
-                }
-            } while (isRerun);
+//            do {
+            final ProcessorResult result = context.getProcessor().process(context);
+            final ProcessorResult.Status status = result.getStatus();
+//                isRerun = (status == ProcessorResult.Status.FORK);
+//                if (isRerun) {
+//                    final Context newContext = (Context) result.getData();
+//                    rerun(context, newContext);
+//                    context = newContext;
+//                }
+//            } while (isRerun);
 
             switch (status) {
                 case COMPLETE:
-                    complete(context, result.getData());
-                    break;
-
-                case LEAVE:
-                    leave(context);
+                    complete(context, (Context) result.getData());
                     break;
 
                 case TERMINATE:
                     terminate(context);
                     break;
 
-                case REREGISTER:
-                    reregister(context, result.getData());
-                    break;
+//                case REREGISTER:
+//                    reregister(context, result.getData());
+//                    break;
 
                 case ERROR:
                     error(context, result.getData());
@@ -124,54 +120,43 @@ public final class ProcessorExecutor {
         execute(context);
     }
 
-    private static void complete(final Context context, final Object data)
+    private static void complete(final Context context, final Context newContext)
             throws IOException {
 
-        final ServiceEventProcessingHandler processingHandler =
+        final EventProcessingHandler processingHandler =
                 context.getProcessingHandler();
+        
+        final Context processingContext = newContext == null ? context : newContext;
         
         try {
             if (processingHandler != null) {
-                processingHandler.onComplete(context, data);
+                processingHandler.onComplete(processingContext);
             }
         } finally {
-            context.recycle();
+            processingContext.recycle();
         }
     }
 
-    private static void leave(final Context context) throws IOException {
-        final ServiceEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        try {
-            if (processingHandler != null) {
-                processingHandler.onLeave(context);
-            }
-        } finally {
-            context.recycle();
-        }
-    }
-
-    private static void reregister(final Context context, final Object data)
-            throws IOException {
-        
-        // "Context context" was suspended, so we reregister with its copy
-        // which is passed as "Object data"
-        final Context realContext = (Context) data;
-        final ServiceEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        try {
-            if (processingHandler != null) {
-                processingHandler.onReregister(realContext);
-            }
-        } finally {
-            realContext.recycle();
-        }
-    }
+//    private static void reregister(final Context context, final Object data)
+//            throws IOException {
+//        
+//        // "Context context" was suspended, so we reregister with its copy
+//        // which is passed as "Object data"
+//        final Context realContext = (Context) data;
+//        final EventProcessingHandler processingHandler =
+//                context.getProcessingHandler();
+//
+//        try {
+//            if (processingHandler != null) {
+//                processingHandler.onReregister(realContext);
+//            }
+//        } finally {
+//            realContext.recycle();
+//        }
+//    }
 
     private static void terminate(final Context context) throws IOException {
-        final ServiceEventProcessingHandler processingHandler =
+        final EventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         if (processingHandler != null) {
@@ -179,20 +164,20 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void rerun(final Context context, final Context newContext)
-            throws IOException {
-        
-        final ServiceEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        if (processingHandler != null) {
-            processingHandler.onRerun(context, newContext);
-        }
-    }
+//    private static void rerun(final Context context, final Context newContext)
+//            throws IOException {
+//        
+//        final EventProcessingHandler processingHandler =
+//                context.getProcessingHandler();
+//
+//        if (processingHandler != null) {
+//            processingHandler.onRerun(context, newContext);
+//        }
+//    }
 
     private static void error(final Context context, final Object description)
             throws IOException {
-        final ServiceEventProcessingHandler processingHandler =
+        final EventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
         try {
@@ -206,7 +191,7 @@ public final class ProcessorExecutor {
     }
 
     private static void notRun(final Context context) throws IOException {
-        final ServiceEventProcessingHandler processingHandler =
+        final EventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         try {
             if (processingHandler != null) {

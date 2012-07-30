@@ -110,9 +110,9 @@ public interface ConnectionProbe {
      * {@link Connection} gets ready.
      *
      * @param connection {@link Connection}, the event belongs to.
-     * @param serviceEvent {@link ServiceEvent}.
+     * @param ioEvent {@link IOEvent}.
      */
-    public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent);
+    public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent);
 
     /**
      * Method will be called, when {@link ServiceEvent} for the specific
@@ -121,7 +121,7 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param serviceEvent {@link ServiceEvent}.
      */
-    public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent);
+//    public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent);
 
     /**
      * Method will be called, when {@link ServiceEvent} for the specific
@@ -130,7 +130,7 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param serviceEvent {@link ServiceEvent}.
      */
-    public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent);
+//    public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -193,19 +193,19 @@ public interface ConnectionProbe {
          * {@inheritDoc}
          */
         @Override
-        public void onServiceEventReadyEvent(Connection connection, ServiceEvent serviceEvent) {}
+        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {}
 
         /**
          * {@inheritDoc}
          */
-        @Override
-        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {}
+//        @Override
+//        public void onServiceEventEnableEvent(Connection connection, ServiceEvent serviceEvent) {}
 
         /**
          * {@inheritDoc}
          */
-        @Override
-        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {}
+//        @Override
+//        public void onServiceEventDisableEvent(Connection connection, ServiceEvent serviceEvent) {}
 
     } // END Adapter
 

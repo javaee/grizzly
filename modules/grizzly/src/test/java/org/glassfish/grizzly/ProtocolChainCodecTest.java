@@ -40,26 +40,26 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.DelayFilter;
-import org.glassfish.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.DelayFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  *
@@ -152,7 +152,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
 
                 final String message = (String) ctx.getMessage();
 
-                logger.log(Level.FINE, "Server got message: " + message);
+                logger.log(Level.FINE, "Server got message: {0}", message);
 
                 assertEquals(clientMessage + "-" + counter, message);
 

@@ -39,26 +39,19 @@
  */
 package org.glassfish.grizzly.http.core;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.junit.After;
-import org.junit.Before;
-import org.glassfish.grizzly.utils.TransferQueue;
-import java.util.Queue;
-import org.junit.runners.Parameterized;
-import org.junit.runner.RunWith;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.runners.Parameterized.Parameters;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -70,6 +63,7 @@ import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.HttpTrailer;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.UnsafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -81,9 +75,14 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.Pair;
-
-import org.junit.Test;
+import org.glassfish.grizzly.utils.TransferQueue;
+import org.junit.After;
 import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Chunked Transfer-Encoding tests.
@@ -136,7 +135,7 @@ public class ChunkedTransferEncodingTest {
         filterChainBuilder.add(httpRequestCheckFilter);
 
         transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(-1);
+        transport.setMaxAsyncWriteQueueSizeInBytes(-1);
         
         transport.setProcessor(filterChainBuilder.build());
         

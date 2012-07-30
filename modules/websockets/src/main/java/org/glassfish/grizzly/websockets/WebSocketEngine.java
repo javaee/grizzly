@@ -154,7 +154,9 @@ public class WebSocketEngine {
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setConnection(connection);
                 socket = app.createSocket(protocolHandler, request, app);
-                WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
+                WebSocketHolder holder =
+                        WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
+                holder.application = app;
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
                     @Override
@@ -276,6 +278,7 @@ public class WebSocketEngine {
     public static class WebSocketHolder {
         public volatile WebSocket webSocket;
         public volatile HandShake handshake;
+        public volatile WebSocketApplication application;
         public volatile Buffer buffer;
         public volatile ProtocolHandler handler;
 

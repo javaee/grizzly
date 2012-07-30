@@ -561,7 +561,7 @@ public class NetworkListener {
      */
     public void setMaxPendingBytes(int maxPendingBytes) {
         this.maxPendingBytes = maxPendingBytes;
-        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(maxPendingBytes);
+        transport.setMaxAsyncWriteQueueSizeInBytes(maxPendingBytes);
     }
 
     // ---------------------------------------------------------- Public Methods

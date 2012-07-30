@@ -56,17 +56,38 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.SocketBinder;
+import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.nio.*;
+import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.DefaultSelectorHandler;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
+import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
@@ -79,9 +100,9 @@ import org.glassfish.grizzly.utils.Exceptions;
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
  */
-public class TCPNIOTransport extends NIOTransport implements
-        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
+public class TCPNIOTransport extends NIOTransport
+        implements SocketBinder, SocketConnectorHandler,
+        FilterChainEnabledTransport {
 
     static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
@@ -94,9 +115,9 @@ public class TCPNIOTransport extends NIOTransport implements
      */
     protected final Collection<TCPNIOServerConnection> serverConnections;
     /**
-     * Transport AsyncQueueIO
+     * Transport async write queue
      */
-    final AsyncQueueIO<SocketAddress> asyncQueueIO;
+    final TCPNIOAsyncQueueWriter asyncQueueWriter;
     /**
      * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
@@ -137,8 +158,6 @@ public class TCPNIOTransport extends NIOTransport implements
     int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
-    private boolean isOptimizedForMultiplexing;
-    
     private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
 
@@ -160,8 +179,7 @@ public class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
-                new TCPNIOAsyncQueueReader(this), new TCPNIOAsyncQueueWriter(this));
+        asyncQueueWriter = new TCPNIOAsyncQueueWriter(this);
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new TCPNIOTemporarySelectorReader(this),
@@ -189,10 +207,6 @@ public class TCPNIOTransport extends NIOTransport implements
             
             if (selectorHandler == null) {
                 selectorHandler = new DefaultSelectorHandler();
-            }
-
-            if (selectionKeyHandler == null) {
-                selectionKeyHandler = new DefaultSelectionKeyHandler();
             }
 
             if (processor == null) {
@@ -594,18 +608,7 @@ public class TCPNIOTransport extends NIOTransport implements
             }
         }
 
-        if (asyncQueueIO != null) {
-            final AsyncQueueReader reader = asyncQueueIO.getReader();
-            if (reader != null) {
-                reader.onClose(connection);
-            }
-
-            final AsyncQueueWriter writer = asyncQueueIO.getWriter();
-            if (writer != null) {
-                writer.onClose(connection);
-            }
-
-        }
+        asyncQueueWriter.onClose(connection);
     }
 
     TCPNIOConnection obtainNIOConnection(final SocketChannel channel) {
@@ -667,11 +670,6 @@ public class TCPNIOTransport extends NIOTransport implements
             LOGGER.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
         }
-    }
-
-    @Override
-    public AsyncQueueIO<SocketAddress> getAsyncQueueIO() {
-        return asyncQueueIO;
     }
 
     public int getLinger() {
@@ -757,107 +755,70 @@ public class TCPNIOTransport extends NIOTransport implements
         notifyProbesConfigChanged(this);
     }
 
-    /**
-     * Returns <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
-     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
-     * mode, or <tt>false</tt> otherwise.
-     * 
-     * @return <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
-     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
-     * mode, or <tt>false</tt> otherwise.
-     */
-    public boolean isOptimizedForMultiplexing() {
-        return isOptimizedForMultiplexing;
-    }
-
-    /**
-     * Configures <tt>TCPNIOTransport</tt> to be optimized for specific for the
-     * connection multiplexing usecase, when different threads will try to
-     * write data simultaneously.
-     */
-    public void setOptimizedForMultiplexing(final boolean isOptimizedForMultiplexing) {
-        this.isOptimizedForMultiplexing = isOptimizedForMultiplexing;
-        ((TCPNIOAsyncQueueWriter) asyncQueueIO.getWriter())
-                .setAllowDirectWrite(!isOptimizedForMultiplexing);
-    }
-
     @Override
     public Filter getTransportFilter() {
         return defaultTransportFilter;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public TemporarySelectorIO getTemporarySelectorIO() {
+    protected Writer<SocketAddress> getWriter(final Connection connection) {
+        return super.getWriter(connection);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected Writer<SocketAddress> getWriter(final boolean isBlocking) {
+        return super.getWriter(isBlocking);
+    }
+    
+    @Override
+    protected final AbstractNIOAsyncQueueWriter getAsyncQueueWriter() {
+        return asyncQueueWriter;
+    }
+
+    @Override
+    protected TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
     }
 
     @Override
-    public void fireEvent(final ServiceEvent event,
-            final Connection connection,
-            final ServiceEventProcessingHandler processingHandler) {
-
-        if (event == ServiceEvent.SERVER_ACCEPT) {
-            try {
-                ((TCPNIOServerConnection) connection).onAccept();
-            } catch (IOException e) {
-                failProcessingHandler(event, connection,
-                        processingHandler, e);
-            }
-
-            return;
-        } else if (event == ServiceEvent.CLIENT_CONNECTED) {
-            try {
-                ((TCPNIOConnection) connection).onConnect();
-            } catch (IOException e) {
-                failProcessingHandler(event, connection,
-                        processingHandler, e);
-            }
-
-            return;
-        }
-
-        super.fireEvent(event, connection, processingHandler);
+    protected boolean processOpAccept(NIOConnection connection)
+            throws IOException {
+        ((TCPNIOServerConnection) connection).onAccept();
+        return true;
     }
-    
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
-    public Reader<SocketAddress> getReader(final Connection connection) {
-        return getReader(connection.isBlocking());
+    protected boolean processOpConnect(NIOConnection connection)
+            throws IOException {
+        ((TCPNIOConnection) connection).onConnect();
+        return true;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Reader<SocketAddress> getReader(final boolean isBlocking) {
-        if (isBlocking) {
-            return getTemporarySelectorIO().getReader();
-        } else {
-            return getAsyncQueueIO().getReader();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Writer<SocketAddress> getWriter(final Connection connection) {
-        return getWriter(connection.isBlocking());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Writer<SocketAddress> getWriter(final boolean isBlocking) {
-        if (isBlocking) {
-            return getTemporarySelectorIO().getWriter();
-        } else {
-            return getAsyncQueueIO().getWriter();
-        }
-    }
+//    
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public Reader<SocketAddress> getReader(final Connection connection) {
+//        return getReader(connection.isBlocking());
+//    }
+//
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public Reader<SocketAddress> getReader(final boolean isBlocking) {
+//        if (isBlocking) {
+//            return getTemporarySelectorIO().getReader();
+//        } else {
+//            return getAsyncQueueIO().getReader();
+//        }
+//    }
 
     public Buffer read(final Connection connection, Buffer buffer)
             throws IOException {
@@ -963,9 +924,9 @@ public class TCPNIOTransport extends NIOTransport implements
         return written;
     }
     
-    private static void failProcessingHandler(final ServiceEvent event,
+    private static void failProcessingHandler(final Event event,
             final Connection connection,
-            final ServiceEventProcessingHandler processingHandler,
+            final EventProcessingHandler processingHandler,
             final IOException e) {
         if (processingHandler != null) {
             try {
@@ -992,8 +953,7 @@ public class TCPNIOTransport extends NIOTransport implements
             final SelectionKey selectionKey = result.getSelectionKey();
 
             final TCPNIOConnection connection =
-                    (TCPNIOConnection) getSelectionKeyHandler().
-                    getConnectionForKey(selectionKey);
+                    (TCPNIOConnection) getConnectionForKey(selectionKey);
 
             if (connection != null) {
                 final SelectorRunner selectorRunner = result.getSelectorRunner();

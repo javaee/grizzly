@@ -39,11 +39,9 @@
  */
 package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 
 class MemoryManagerInitializer {
 
@@ -59,7 +57,7 @@ class MemoryManagerInitializer {
                     Class<? extends MemoryManager> mmClass = (Class<? extends MemoryManager>)
                             Class.forName(className,
                                           true,
-                                          SelectionKeyHandler.class.getClassLoader());
+                                          MemoryManager.class.getClassLoader());
                     return mmClass.newInstance();
                 } catch (Exception e) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {

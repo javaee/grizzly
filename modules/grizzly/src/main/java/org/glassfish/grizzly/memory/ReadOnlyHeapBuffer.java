@@ -74,11 +74,6 @@ final class ReadOnlyHeapBuffer extends HeapBuffer {
     }
 
     @Override
-    public HeapBuffer prepend(Buffer header) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
     public HeapBuffer put(int index, byte b) {
         throw new ReadOnlyBufferException();
     }
