@@ -491,7 +491,7 @@ public class CookieParserUtils {
                 isSpecial = false;
                 // $Version must be the first avpair in the cookie header
                 // (sc must be null)
-                if (CookieUtils.equals("Version", bytes, nameStart - arrayOffset, nameEnd - arrayOffset)
+                if (CookieUtils.equals("Version", bytes, nameStart, nameEnd)
                         && cookie == null) {
                     // Set version
                     if (bytes[valueStart] == '1'
