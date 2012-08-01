@@ -41,17 +41,19 @@ package org.glassfish.grizzly.config;
 
 import com.sun.hk2.component.Holder;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
-
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.Ssl;
@@ -60,8 +62,6 @@ import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -136,6 +136,12 @@ public class SSLConfigurator extends SSLEngineConfigurator {
                 if (Boolean.parseBoolean(ssl.getTlsEnabled())) {
                     tmpSSLArtifactsList.add("TLSv1");
                 }
+                if (Boolean.parseBoolean(ssl.getTls11Enabled())) {
+                    tmpSSLArtifactsList.add("TLSv1.1");
+                }
+                if (Boolean.parseBoolean(ssl.getTls12Enabled())) {
+                    tmpSSLArtifactsList.add("TLSv1.2");
+                }
                 if (Boolean.parseBoolean(ssl.getSsl3Enabled())
                         || Boolean.parseBoolean(ssl.getTlsEnabled())) {
                     tmpSSLArtifactsList.add("SSLv2Hello");
@@ -181,7 +187,13 @@ public class SSLConfigurator extends SSLEngineConfigurator {
                     enabledCipherSuites = ciphers;
                 }
             }
-
+            
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Enabled secure protocols={0}"
+                        + "" + " ciphers={1}", new Object[]
+                        {Arrays.asList(enabledProtocols), Arrays.asList(enabledCipherSuites)});
+            }
+            
             return newSslContext;
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
