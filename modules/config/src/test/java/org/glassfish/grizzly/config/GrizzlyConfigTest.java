@@ -45,7 +45,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
-
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -53,8 +52,9 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 /**
  * Created Jan 5, 2009
@@ -76,9 +76,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             final String content = getContent(new URL("http://localhost:38082").openConnection());
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
             final String content3 = getContent(new URL("http://localhost:38084").openConnection());
-            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", content);
-            Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
-            Assert.assertEquals("<html><body>You've found the server on port 38084</body></html>", content3);
+            assertEquals("<html><body>You've found the server on port 38082</body></html>", content);
+            assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
+            assertEquals("<html><body>You've found the server on port 38084</body></html>", content3);
         } finally {
             grizzlyConfig.shutdown();
         }
@@ -95,17 +95,17 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
+            assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
             found = false;
             for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from Transport", found);
+            assertTrue("Should find the NetworkListener in the list of references from Transport", found);
             found = false;
             for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
+            assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
         } finally {
             grizzlyConfig.shutdown();
         }
@@ -117,7 +117,7 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
         try {
             grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
-            Assert.assertEquals("5", threadPool.getMaxThreadPoolSize());
+            assertEquals("5", threadPool.getMaxThreadPoolSize());
         } finally {
             if (grizzlyConfig != null) {
                 grizzlyConfig.shutdown();
@@ -137,13 +137,13 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
             
-            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>",
+            assertEquals("<html><body>You've found the server on port 38082</body></html>",
                     getContent(new URL("https://localhost:38082").openConnection()));
-            Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>",
+            assertEquals("<html><body>You've found the server on port 38083</body></html>",
                     getContent(new URL("https://localhost:38083").openConnection()));
-            Assert.assertEquals("<html><body>You've found the server on port 38084</body></html>",
+            assertEquals("<html><body>You've found the server on port 38084</body></html>",
                     getContent(new URL("https://localhost:38084").openConnection()));
-            Assert.assertEquals("<html><body>You've found the server on port 38085</body></html>",
+            assertEquals("<html><body>You've found the server on port 38085</body></html>",
                     getContent(new URL("https://localhost:38085").openConnection()));
         } finally {
             grizzlyConfig.shutdown();
@@ -190,12 +190,12 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             GenericGrizzlyListener genericGrizzlyListener1 =
                     (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
             
-            Assert.assertEquals(SameThreadIOStrategy.class, genericGrizzlyListener1.getTransport().getIOStrategy().getClass());
+            assertEquals(SameThreadIOStrategy.class, genericGrizzlyListener1.getTransport().getIOStrategy().getClass());
 
             GenericGrizzlyListener genericGrizzlyListener2 =
                     (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-2");
             
-            Assert.assertEquals(WorkerThreadIOStrategy.class, genericGrizzlyListener2.getTransport().getIOStrategy().getClass());
+            assertEquals(WorkerThreadIOStrategy.class, genericGrizzlyListener2.getTransport().getIOStrategy().getClass());
             
         } finally {
             grizzlyConfig.shutdown();
@@ -233,10 +233,10 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             c4.addRequestProperty("my-remote-user", "glassfish");
             final String content4 = getContent(c4);
             
-            Assert.assertEquals("http", content);
-            Assert.assertEquals("https", content2);
-            Assert.assertEquals("https", content3);
-            Assert.assertEquals("httpglassfish", content4);
+            assertEquals("http", content);
+            assertEquals("https", content2);
+            assertEquals("https", content3);
+            assertEquals("httpglassfish", content4);
         } finally {
             grizzlyConfig.shutdown();
         }

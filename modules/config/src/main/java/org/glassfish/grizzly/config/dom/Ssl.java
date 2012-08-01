@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,8 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean SSL2_ENABLED = false;
     boolean SSL3_ENABLED = true;
     boolean TLS_ENABLED = true;
+    boolean TLS11_ENABLED = true;
+    boolean TLS12_ENABLED = true;
     boolean TLS_ROLLBACK_ENABLED = true;
     boolean RENEGOTIATE_ON_CLIENT_AUTH_WANT = true;
     int MAX_CERT_LENGTH = 5;
@@ -189,6 +191,22 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getTlsEnabled();
 
     void setTlsEnabled(String value);
+
+    /**
+     * Determines whether TLS 1.1 is enabled.
+     */
+    @Attribute(defaultValue = "" + TLS11_ENABLED, dataType = Boolean.class)
+    String getTls11Enabled();
+
+    void setTls11Enabled(String value);
+
+    /**
+     * Determines whether TLS 1.2 is enabled.
+     */
+    @Attribute(defaultValue = "" + TLS12_ENABLED, dataType = Boolean.class)
+    String getTls12Enabled();
+
+    void setTls12Enabled(String value);
 
     /**
      * Determines whether TLS rollback is enabled. TLS rollback should be enabled for Microsoft Internet Explorer 5.0
