@@ -255,6 +255,12 @@ public class SSLConfigHolder {
                 if (Boolean.parseBoolean(ssl.getTlsEnabled())) {
                     tmpSSLArtifactsList.add("TLSv1");
                 }
+                if (Boolean.parseBoolean(ssl.getTls11Enabled())) {
+                    tmpSSLArtifactsList.add("TLSv1.1");
+                }
+                if (Boolean.parseBoolean(ssl.getTls12Enabled())) {
+                    tmpSSLArtifactsList.add("TLSv1.2");
+                }
                 if (Boolean.parseBoolean(ssl.getSsl3Enabled())
                         || Boolean.parseBoolean(ssl.getTlsEnabled())) {
                     tmpSSLArtifactsList.add("SSLv2Hello");
@@ -303,6 +309,12 @@ public class SSLConfigHolder {
                 }
             }
 
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Enabled secure protocols={0}"
+                        + "" + " ciphers={1}", new Object[]
+                        {Arrays.asList(enabledProtocols), Arrays.asList(enabledCipherSuites)});
+            }
+            
             return true;
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.WARNING)) {

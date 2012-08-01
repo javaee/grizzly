@@ -46,18 +46,15 @@ import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
+import static junit.framework.Assert.*;
 
 /**
  * Created Jan 5, 2009
@@ -65,8 +62,8 @@ import static junit.framework.Assert.fail;
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
-@Test
 public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
+    @Test
     public void processConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
@@ -77,13 +74,14 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             }
             final String content = getContent(new URL("http://localhost:38082").openConnection());
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
-            Assert.assertEquals(content, "<html><body>You've found the server on port 38082</body></html>");
-            Assert.assertEquals(content2, "<html><body>You've found the server on port 38083</body></html>");
+            assertEquals(content, "<html><body>You've found the server on port 38082</body></html>");
+            assertEquals(content2, "<html><body>You've found the server on port 38083</body></html>");
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void references() {
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
@@ -93,29 +91,30 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Protocol");
+            assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
             found = false;
             for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Transport");
+            assertTrue("Should find the NetworkListener in the list of references from Transport", found);
             found = false;
             for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from ThreadPool");
+            assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void defaults() {
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
             final Http http = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findHttpProtocol().getHttp();
-            Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
-            Assert.assertEquals(http.getCompressableMimeType(), "text/html,text/xml,text/plain");
+            assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+            assertEquals(http.getCompressableMimeType(), "text/html,text/xml,text/plain");
         } finally {
             grizzlyConfig.shutdown();
         }
@@ -131,6 +130,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
 //        }
 //    }
 
+    @Test
     public void ssl() throws URISyntaxException, IOException {
         configure();
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl.xml");
@@ -140,15 +140,16 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
                 setRootFolder(listener, count++);
             }
-            Assert.assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
+            assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
                 "<html><body>You've found the server on port 38082</body></html>");
-            Assert.assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
+            assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
                 "<html><body>You've found the server on port 38083</body></html>");
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void sslEmpty() throws URISyntaxException, IOException {
         configure();
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-empty.xml");
@@ -158,13 +159,14 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
                 setRootFolder(listener, count++);
             }
-            Assert.assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
+            assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
                 "<html><body>You've found the server on port 38083</body></html>");
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void customSecurePasswordProviders() throws URISyntaxException, IOException {
         configure();
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-passprovider.xml");
@@ -174,9 +176,9 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
                 setRootFolder(listener, count++);
             }
-            Assert.assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
+            assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
                 "<html><body>You've found the server on port 38082</body></html>");
-            Assert.assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
+            assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
                 "<html><body>You've found the server on port 38083</body></html>");
         } finally {
             grizzlyConfig.shutdown();
@@ -227,24 +229,28 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             c4.addRequestProperty("my-remote-user", "glassfish");
             final String content4 = getContent(c4);
             
-            Assert.assertEquals("http", content);
-            Assert.assertEquals("https", content2);
-            Assert.assertEquals("https", content3);
-            Assert.assertEquals("httpglassfish", content4);
+            assertEquals("http", content);
+            assertEquals("https", content2);
+            assertEquals("https", content3);
+            assertEquals("httpglassfish", content4);
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void badConfig() {
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
         try {
             grizzlyConfig.setupNetwork();
+            fail("Supposed to fail");
+        } catch (Exception e) {
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void timeoutDisabled() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
         try {
@@ -254,6 +260,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
     
+    @Test
     public void testMissingTransport() throws Exception {
         GrizzlyConfig config = new GrizzlyConfig("bad-transport.xml");
         try {
@@ -266,6 +273,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    @Test
     public void testMissingThreadPool() throws Exception {
         GrizzlyConfig config = new GrizzlyConfig("bad-threadpool.xml");
         try {
@@ -278,6 +286,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    @Test
     public void testMissingProtocol() throws Exception {
             GrizzlyConfig config = new GrizzlyConfig("bad-protocol.xml");
             try {
