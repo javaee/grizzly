@@ -74,12 +74,12 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
@@ -1006,7 +1006,7 @@ public class SSLFilter extends BaseFilter {
     // ---------------------------------------------------------- Nested Classes
 
 
-    public static class CertificateEvent implements FilterChainEvent {
+    public static class CertificateEvent implements Event {
 
         private static final String TYPE = "CERT_EVENT";
 

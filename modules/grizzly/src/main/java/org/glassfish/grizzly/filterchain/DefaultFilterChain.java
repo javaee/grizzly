@@ -422,7 +422,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @Override
     public void fireEventDownstream(final Connection connection,
-            final FilterChainEvent event,
+            final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;
@@ -435,7 +435,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @Override
     public void fireEventUpstream(final Connection connection,
-            final FilterChainEvent event,
+            final Event event,
             final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;

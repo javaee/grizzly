@@ -202,7 +202,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
 }</programlisting></para>
 
   <para>The Filters in FilterChain are able to intercept and process custom
-  Events by implementing method:<programlisting language="java">public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException;</programlisting></para>
+  Events by implementing method:<programlisting language="java">public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException;</programlisting></para>
 
   <para>As we see each Filter "handle" method has FilterChainContext parameter
   and returns NextAction result.</para>
@@ -320,7 +320,7 @@ ctx.notifyDownstream(event);</programlisting></para>
 
               <para>This operation notifies all the upstream/downstream
               Filters in the FilterChain about specific <emphasis
-              role="italic">FilterChainEvent</emphasis>.</para>
+              role="italic">Event</emphasis>.</para>
             </listitem>
           </itemizedlist></para>
       </listitem>
