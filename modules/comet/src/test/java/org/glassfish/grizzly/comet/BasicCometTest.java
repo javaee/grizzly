@@ -49,11 +49,9 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
  
 import junit.framework.TestCase;
-import org.glassfish.grizzly.utils.Utils;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.*;
 
@@ -97,7 +95,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnInterruptExpirationDelay() throws Exception {
-        Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
+        System.out.println("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         cometContext.setExpirationDelay(delay);
         String alias = "/OnInterrupt";
@@ -117,7 +115,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testClientCloseConnection() throws Exception {
-        Utils.dumpOut("testClientCloseConnection");
+        System.out.println("testClientCloseConnection");
         cometContext.setExpirationDelay(-1);
         String alias = "/OnClientCloseConnection";
         final CometHttpHandler ga = addHttpHandler(alias, true);
@@ -126,7 +124,7 @@ public class BasicCometTest extends TestCase {
         s.setSoTimeout(500);
         OutputStream os = s.getOutputStream();
         String a = "GET " + alias + " HTTP/1.1\n" + "Host: localhost:" + PORT + "\n\n";
-        Utils.dumpOut("     " + a);
+        System.out.println("     " + a);
         os.write(a.getBytes());
         os.flush();
         try {
@@ -140,7 +138,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnTerminate() throws IOException, InterruptedException {
-        Utils.dumpOut("testOnTerminate ");
+        System.out.println("testOnTerminate ");
         cometContext.setExpirationDelay(-1);
         String alias = "/OnTerminate";
         final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);
@@ -329,7 +327,7 @@ public class BasicCometTest extends TestCase {
     }
     
     public void testOnEvent() throws Exception {
-        Utils.dumpOut("testOnEvent ");
+        System.out.println("testOnEvent ");
         final String alias = "/OnEvent";
         cometContext.setExpirationDelay(-1);
         final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);

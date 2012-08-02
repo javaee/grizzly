@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,8 +39,6 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.utils.Utils;
-
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -61,7 +59,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     private static final int PORT = 18890 + 12;
 
     public void testForward() throws IOException {
-        Utils.dumpOut("testForward");
+        System.out.println("testForward");
         try {
             newHttpServer(PORT);
 
@@ -103,7 +101,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testForwardRootContext() throws IOException {
-        Utils.dumpOut("testForwardRootContext");
+        System.out.println("testForwardRootContext");
         try {
             newHttpServer(PORT);
 
@@ -145,7 +143,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testInclude() throws IOException {
-        Utils.dumpOut("testInclude");
+        System.out.println("testInclude");
         try {
             newHttpServer(PORT);
 
@@ -188,7 +186,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testIncludeRootContext() throws IOException {
-        Utils.dumpOut("testIncludeRootContext");
+        System.out.println("testIncludeRootContext");
         try {
             newHttpServer(PORT);
 
@@ -231,7 +229,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testNamedDispatcherForward() throws IOException {
-        Utils.dumpOut("testNamedDispatcherForward");
+        System.out.println("testNamedDispatcherForward");
         try {
             newHttpServer(PORT);
 
@@ -276,7 +274,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testNamedDispatcherInclude() throws IOException {
-        Utils.dumpOut("testNamedDispatcherInclude");
+        System.out.println("testNamedDispatcherInclude");
         try {
             newHttpServer(PORT);
 
@@ -321,7 +319,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     }
 
     public void testCrossContextForward() throws IOException {
-        Utils.dumpOut( "testCrossContextForward" );
+        System.out.println("testCrossContextForward");
         try {
             newHttpServer( PORT );
             WebappContext ctx1 = new WebappContext("ctx1", "/webapp1");
@@ -376,7 +374,7 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
     public void testComplexDispatch() throws IOException {
         // servlet1 --> dispatcher forward by ServletRequest's API(servlet2) ->
         // named dispatcher include(servlet3) -> cross context, dispatcher include by ServletContext's API(servlet4)
-        Utils.dumpOut( "testComplexDispatch" );
+        System.out.println("testComplexDispatch");
         try {
             newHttpServer( PORT );
             WebappContext ctx1 = new WebappContext("ctx1", "/webapp1");

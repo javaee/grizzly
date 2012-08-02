@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.utils.Utils;
 
 public class DefaultTestCometHandler extends DefaultCometHandler<String> implements Comparable<CometHandler> {
     private static final Logger LOGGER = Grizzly.logger(DefaultTestCometHandler.class);
@@ -75,20 +74,20 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
     }
 
     public void onInitialize(CometEvent event) throws IOException {
-        Utils.dumpOut("     -> onInitialize Handler:" + hashCode());
+        System.out.println("     -> onInitialize Handler:" + hashCode());
         getResponse().addHeader(BasicCometTest.onInitialize,
             event.attachment() == null ? BasicCometTest.onInitialize : event.attachment().toString());
         onInitializeCalled.set(true);
     }
 
     public void onTerminate(CometEvent event) throws IOException {
-        Utils.dumpOut("    -> onTerminate Handler:" + hashCode());
+        System.out.println("    -> onTerminate Handler:" + hashCode());
         onTerminateCalled.set(true);
         write(BasicCometTest.onTerminate);
     }
 
     public void onInterrupt(CometEvent event) throws IOException {
-        Utils.dumpOut("    -> onInterrupt Handler:" + hashCode());
+        System.out.println("    -> onInterrupt Handler:" + hashCode());
         onInterruptCalled.set(true);
         write(BasicCometTest.onInterrupt);
     }

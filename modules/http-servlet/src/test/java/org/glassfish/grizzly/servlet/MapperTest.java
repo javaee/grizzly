@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandlerChain;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * Test {@link HttpHandlerChain} use of the {@link MapperTest}
@@ -63,7 +62,7 @@ public class MapperTest extends HttpServerAbstractTest {
     private static final Logger LOGGER = Grizzly.logger(MapperTest.class);
 
     public void testOverlappingMapping() throws IOException {
-        Utils.dumpOut("testOverlappingMapping");
+        System.out.println("testOverlappingMapping");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -87,7 +86,7 @@ public class MapperTest extends HttpServerAbstractTest {
 
 
     public void testOverlappingMapping2() throws IOException {
-        Utils.dumpOut("testOverlappingMapping2");
+        System.out.println("testOverlappingMapping2");
         try {
             startHttpServer(PORT);
 
@@ -111,7 +110,7 @@ public class MapperTest extends HttpServerAbstractTest {
 
 
     public void testRootStarMapping() throws IOException {
-        Utils.dumpOut("testRootMapping");
+        System.out.println("testRootMapping");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -130,7 +129,7 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 
     public void testRootStarMapping2() throws IOException {
-            Utils.dumpOut("testRootMapping");
+            System.out.println("testRootMapping");
             try {
                 startHttpServer(PORT);
                 WebappContext ctx = new WebappContext("Test");
@@ -149,7 +148,7 @@ public class MapperTest extends HttpServerAbstractTest {
         }
 
     public void testRootMapping() throws IOException {
-        Utils.dumpOut("testRootMapping");
+        System.out.println("testRootMapping");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -168,7 +167,7 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 
     public void testRootMapping2() throws IOException {
-            Utils.dumpOut("testRootMapping");
+            System.out.println("testRootMapping");
             try {
                 startHttpServer(PORT);
                 WebappContext ctx = new WebappContext("Test");
@@ -187,7 +186,7 @@ public class MapperTest extends HttpServerAbstractTest {
         }
 
     public void testWrongMapping() throws IOException {
-        Utils.dumpOut("testWrongMapping");
+        System.out.println("testWrongMapping");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -203,7 +202,7 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 //
 //    public void testComplexMapping() throws IOException {
-//        Utils.dumpOut("testComplexMapping");
+//        System.out.println("testComplexMapping");
 //        try {
 //            startHttpServer(PORT);
 //            String alias = "/a/b/c/*.html";
@@ -218,7 +217,7 @@ public class MapperTest extends HttpServerAbstractTest {
 //    }
 //
     public void testWildcardMapping() throws IOException {
-        Utils.dumpOut("testWildcardMapping");
+        System.out.println("testWildcardMapping");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -237,7 +236,7 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 
      public void testWrongMappingRootContext() throws IOException {
-        Utils.dumpOut("testWrongMappingRootContext");
+        System.out.println("testWrongMappingRootContext");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");

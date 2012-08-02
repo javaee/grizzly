@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,8 +52,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.glassfish.grizzly.utils.Utils;
-
 public class CometUnitTests /*extends TestCase*/ {
     private static final int PORT = 19100;
     private SocketAddress connectadr;
@@ -86,8 +84,8 @@ public class CometUnitTests /*extends TestCase*/ {
     protected void init(boolean useconcurrentcomethandler) throws Exception {
         connectadr = new InetSocketAddress("localhost", PORT);
         RuntimeMXBean rmx = ManagementFactory.getRuntimeMXBean();
-        Utils.dumpErr("JVM: " + rmx.getVmVendor() + " " + rmx.getVmName() + " " + rmx.getVmVersion() + " params: " + rmx
-            .getInputArguments());
+        System.out.println("JVM: " + rmx.getVmVendor() + " " + rmx.getVmName() + " " + rmx.getVmVersion() + " params: " + rmx
+                .getInputArguments());
     }
 
     public void testSlug() {
@@ -118,9 +116,9 @@ public class CometUnitTests /*extends TestCase*/ {
     protected void doActualLogic(final boolean reuse, final boolean streaming,
         int secondsPerTest, int threadCount, boolean spreadNotify) throws InterruptedException,
         IOException {
-        Utils.dumpErr((streaming ? "STREAMING" : "LONG POLLING")
-            + ": " + (reuse ? "SOCKET REUSE" : "NEW SOCKET")
-            + ", client threads: " + threadCount + ", spreadNotifyToManyThreads: " + spreadNotify);
+        System.out.println((streaming ? "STREAMING" : "LONG POLLING")
+                + ": " + (reuse ? "SOCKET REUSE" : "NEW SOCKET")
+                + ", client threads: " + threadCount + ", spreadNotifyToManyThreads: " + spreadNotify);
         //int cpus = Runtime.getRuntime().availableProcessors();
 //        ((DefaultNotificationHandler) CometTestAdapter.cometContext.notificationHandler).
 //            setSpreadNotifyToManyToThreads(spreadNotify);
@@ -160,11 +158,11 @@ public class CometUnitTests /*extends TestCase*/ {
             if (delta > 4500) {
                 t1 = t2;
                 int currentTotalMsg = msgc.get();
-                Utils.dumpErr(
-                    "  K events/sec : " + (currentTotalMsg - oldTotal + 500) / delta
+                System.out.println(
+                        "  K events/sec : " + (currentTotalMsg - oldTotal + 500) / delta
 //                            "  cometHandlers: " + CometTestAdapter.cometContext.handlers.size() +
-                        + "  work queue: " + size
-                        + "  broadcasts: " + broadcasts
+                                + "  work queue: " + size
+                                + "  broadcasts: " + broadcasts
                 );
                 oldTotal = currentTotalMsg;
             }
@@ -182,9 +180,9 @@ public class CometUnitTests /*extends TestCase*/ {
             }
         }
         testisdone = true;
-        Utils.dumpErr("test is done. waiting for clients to die.");
+        System.out.println("test is done. waiting for clients to die.");
         threadsAreDone.await(6, TimeUnit.SECONDS);
-        Utils.dumpErr("clients are done.");
+        System.out.println("clients are done.");
 //        assertTrue(status);
     }
 

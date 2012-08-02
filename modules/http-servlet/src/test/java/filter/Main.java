@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,13 +67,13 @@ public class Main {
         initParams.put("com.sun.jersey.config.property.packages",
                 "filter");
 
-//        Utils.dumpOut("Starting grizzly...");
+//        System.out.println("Starting grizzly...");
         return create(BASE_URI, initParams);
     }
 
     public static void main(String[] args) throws IOException {
         HttpServer httpServer = startServer();
-//        Utils.dumpOut(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
+//        System.out.println(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
 //                BASE_URI));
         System.in.read();
         httpServer.stop();

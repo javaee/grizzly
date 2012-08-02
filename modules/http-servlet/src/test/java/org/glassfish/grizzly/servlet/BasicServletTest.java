@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,9 +50,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.sun.jersey.server.impl.application.WebApplicationContext;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.utils.Utils;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 
@@ -68,7 +66,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     private final String header = "text/html;charset=utf8";
 
     public void testServletName() throws IOException {
-        Utils.dumpOut("testServletName");
+        System.out.println("testServletName");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/contextPath");
@@ -84,7 +82,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testSetHeaderTest() throws IOException {
-        Utils.dumpOut("testSetHeaderTest");
+        System.out.println("testSetHeaderTest");
         try {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
@@ -100,7 +98,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testPathInfo() throws IOException {
-        Utils.dumpOut("testPathInfo");
+        System.out.println("testPathInfo");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/contextPath");
@@ -116,7 +114,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
 //    public void testNotAllowEncodedSlash() throws IOException {
-//        Utils.dumpOut("testNotAllowEncodedSlash");
+//        System.out.println("testNotAllowEncodedSlash");
 //        try {
 //            newHttpServer(PORT);
 //            String alias = "/contextPath/servletPath/";
@@ -133,7 +131,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
 //    }
 //
 //    public void testAllowEncodedSlash() throws IOException {
-//        Utils.dumpOut("testAllowEncodedSlash");
+//        System.out.println("testAllowEncodedSlash");
 //        try {
 //            newHttpServer(PORT);
 //            String alias = "/contextPath/servletPath/";
@@ -151,7 +149,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
 //    }
 
     public void testDoubleSlash() throws IOException {
-        Utils.dumpOut("testDoubleSlash");
+        System.out.println("testDoubleSlash");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test", "/");
@@ -162,7 +160,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            Utils.dumpOut("s: " + s);
+            System.out.println("s: " + s);
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
@@ -180,7 +178,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            Utils.dumpOut("s: " + s);
+            System.out.println("s: " + s);
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
@@ -199,7 +197,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     }
 
     public void testInitParameters() throws IOException {
-        Utils.dumpOut("testContextParameters");
+        System.out.println("testContextParameters");
         try {
             newHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");

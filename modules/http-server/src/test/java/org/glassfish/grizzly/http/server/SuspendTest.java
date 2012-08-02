@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -70,7 +70,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.utils.Utils;
 import org.junit.After;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -393,7 +392,7 @@ public class SuspendTest {
 
                     @Override
                     public void completed(Response result) {
-//                        Utils.dumpErr("resumed");
+//                        System.out.println("resumed");
                     }
                 });
 
@@ -405,7 +404,7 @@ public class SuspendTest {
                             res.suspend();
                             fail("should not reach here");
                         } catch (IllegalStateException t) {
-//                            Utils.dumpErr("catched suspended suspend");
+//                            System.out.println("catched suspended suspend");
                             writeToSuspendedClient(res);
                             try {
                                 res.resume();
@@ -432,7 +431,7 @@ public class SuspendTest {
                     @Override
                     public void completed(Response result) {
                         try {
-//                            Utils.dumpErr("trying to resume");
+//                            System.out.println("trying to resume");
                             res.resume();
                             fail("should no get here");
                         } catch (IllegalStateException ex) {
@@ -458,7 +457,7 @@ public class SuspendTest {
                         @Override
                         public void completed(Response result) {
                             if (res.isSuspended()) {
-//                                Utils.dumpErr("Resumed");
+//                                System.out.println("Resumed");
                                 try {
                                     res.getWriter().write(testString);
                                 } catch (Exception ex) {
@@ -493,7 +492,7 @@ public class SuspendTest {
                         @Override
                         public void cancelled() {
                             try {
-//                                Utils.dumpErr("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
+//                                System.out.println("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
@@ -521,7 +520,7 @@ public class SuspendTest {
                         @Override
                         public void completed(Response result) {
                             try {
-                                Utils.dumpErr("Resumed TOOK: " + (System.currentTimeMillis() - t1));
+                                System.out.println("Resumed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                                 res.finish();
                                 // res.flushBuffer();
@@ -545,7 +544,7 @@ public class SuspendTest {
                         }
 
                         if (!res.isCommitted()) {
-                            Utils.dumpErr("Resuming");
+                            System.out.println("Resuming");
                             res.resume();
                         } else {
                             fail("response is committed so we don't resume");

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,6 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.utils.Utils;
 
 /**
  * {@link HttpServer} tests.
@@ -72,7 +71,7 @@ public class HelloHttpServerTest extends TestCase {
     private HttpServer httpServer;
 
     public void testNPERegression() throws IOException {
-        Utils.dumpOut("testNPERegression");
+        System.out.println("testNPERegression");
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -97,7 +96,7 @@ public class HelloHttpServerTest extends TestCase {
     }
 
     public void testMultiPath() throws IOException {
-        Utils.dumpOut("testMultiPath");
+        System.out.println("testMultiPath");
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -131,7 +130,7 @@ public class HelloHttpServerTest extends TestCase {
     }
 
     public void testProtocolFilter() throws IOException {
-        Utils.dumpOut("testProtocolFilter");
+        System.out.println("testProtocolFilter");
         try {
             String[] aliases = new String[] { "*.foo" };
             WebappContext ctx = new WebappContext("Test");
@@ -143,7 +142,7 @@ public class HelloHttpServerTest extends TestCase {
             ctx.deploy(httpServer);
 
             Processor pc = httpServer.getListener("grizzly").getTransport().getProcessor();
-            Utils.dumpOut("ProtcolChain: " + pc);
+            System.out.println("ProtcolChain: " + pc);
             assertNotNull(pc);
         } finally {
             stopHttpServer();
