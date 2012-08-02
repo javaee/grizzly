@@ -76,24 +76,6 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
         }
     }
 
-
-    /**
-     * @see UDPNIOTransport#getConnectionTimeout
-     */
-    public int getConnectionTimeout() {
-        return udpTransport.getConnectionTimeout();
-    }
-
-    /**
-     * @see UDPNIOTransport#setConnectionTimeout(int)
-     *
-     * @return this <code>UDPNIOTransport</code>
-     */
-    public UDPNIOTransportBuilder setConnectionTimeout(int connectionTimeout) {
-        udpTransport.setConnectionTimeout(connectionTimeout);
-        return getThis();
-    }
-
     /**
      * @see UDPNIOTransport#isReuseAddress()
      */

@@ -53,15 +53,34 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.SocketBinder;
+import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.nio.*;
-import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.DefaultSelectorHandler;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
+import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -90,11 +109,6 @@ public final class UDPNIOTransport extends NIOTransport implements
      * The socket reuseAddress
      */
     protected boolean reuseAddress = true;
-    /**
-     * Default channel connection timeout
-     */
-    protected int connectionTimeout =
-            UDPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
     /**
      * The Server connections.
      */
@@ -580,15 +594,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
-    }
-
-    public int getConnectionTimeout() {
-        return connectionTimeout;
-    }
-
-    public void setConnectionTimeout(int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        notifyProbesConfigChanged(this);
     }
 
     public boolean isReuseAddress() {

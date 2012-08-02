@@ -41,10 +41,10 @@ package org.glassfish.grizzly;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.LinkedList;
-import java.util.List;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 
 /**
  * Abstract class simplifies the implementation of
@@ -59,10 +59,13 @@ public abstract class AbstractSocketConnectorHandler
     protected final Transport transport;
     private Processor processor;
 
-    protected final List<ConnectionProbe> probes =
-            new LinkedList<ConnectionProbe>();
-
-    public AbstractSocketConnectorHandler(Transport transport) {
+    /**
+     * Connection probes
+     */
+    protected final MonitoringConfigImpl<ConnectionProbe> connectionMonitoringConfig =
+            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
+    
+    public AbstractSocketConnectorHandler(final Transport transport) {
         this.transport = transport;
         this.processor = transport.getProcessor();
     }
@@ -86,17 +89,17 @@ public abstract class AbstractSocketConnectorHandler
     @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) {
-        return connectAsync(remoteAddress, localAddress, null, true);
+        return connect0(remoteAddress, localAddress, null, true);
     }
 
     @Override
     public void connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) {
-        connectAsync(remoteAddress, localAddress, completionHandler, false);
+        connect0(remoteAddress, localAddress, completionHandler, false);
     }
 
-    protected abstract FutureImpl<Connection> connectAsync(
+    protected abstract FutureImpl<Connection> connect0(
             final SocketAddress remoteAddress,
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler,
@@ -120,7 +123,7 @@ public abstract class AbstractSocketConnectorHandler
      * @param processor the default {@link Processor} to process
      * {@link Event}, occurring on connection phase.
      */
-    public void setProcessor(Processor processor) {
+    public final void setProcessor(Processor processor) {
         this.processor = processor;
     }
 
@@ -130,8 +133,8 @@ public abstract class AbstractSocketConnectorHandler
      *
      * @param probe the {@link ConnectionProbe}.
      */
-    public void addMonitoringProbe(ConnectionProbe probe) {
-        probes.add(probe);
+    public final void addMonitoringProbe(ConnectionProbe probe) {
+        connectionMonitoringConfig.addProbes(probe);
     }
 
     /**
@@ -139,8 +142,8 @@ public abstract class AbstractSocketConnectorHandler
      *
      * @param probe the {@link ConnectionProbe}.
      */
-    public boolean removeMonitoringProbe(ConnectionProbe probe) {
-        return probes.remove(probe);
+    public final boolean removeMonitoringProbe(ConnectionProbe probe) {
+        return connectionMonitoringConfig.removeProbes(probe);
     }
 
     /**
@@ -151,8 +154,8 @@ public abstract class AbstractSocketConnectorHandler
      *
      * @return the {@link ConnectionProbe}, which are registered on the <tt>Connection</tt>.
      */
-    public ConnectionProbe[] getMonitoringProbes() {
-        return probes.toArray(new ConnectionProbe[probes.size()]);
+    public final ConnectionProbe[] getMonitoringProbes() {
+        return connectionMonitoringConfig.getProbes();
     }
 
     /**
@@ -161,7 +164,13 @@ public abstract class AbstractSocketConnectorHandler
      * 
      * @param connection {@link Connection} to pre-configure.
      */
-    protected void preConfigure(Connection connection) {
+    protected void preConfigure(final Connection connection) {
+        connection.setProcessor(getProcessor());
+        
+        final MonitoringConfig<ConnectionProbe> monitoringConfig =
+                connection.getMonitoringConfig();
+        final ConnectionProbe[] probes = connectionMonitoringConfig.getProbes();
+        monitoringConfig.addProbes(probes);
     }
 
     protected FutureImpl<Connection> makeCancellableFuture(final Connection connection) {

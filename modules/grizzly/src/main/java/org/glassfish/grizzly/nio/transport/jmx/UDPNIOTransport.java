@@ -60,9 +60,4 @@ public class UDPNIOTransport extends NIOTransport {
     public boolean getReuseAddress() {
         return ((org.glassfish.grizzly.nio.transport.UDPNIOTransport) transport).isReuseAddress();
     }
-
-    @ManagedAttribute(id="client-connect-timeout-millis")
-    public int getConnectTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.UDPNIOTransport) transport).getConnectionTimeout();
-    }
 }

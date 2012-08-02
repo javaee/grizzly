@@ -85,9 +85,4 @@ public class TCPNIOTransport extends NIOTransport {
     public boolean getKeepAlive() {
         return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).isKeepAlive();
     }
-
-    @ManagedAttribute(id="client-connect-timeout-millis")
-    public int getConnectTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).getConnectionTimeout();
-    }
 }

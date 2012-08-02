@@ -44,7 +44,6 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.*;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -63,13 +62,10 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnectorHandler.class);
 
-    protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     protected boolean isReuseAddress;
-    protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 
     protected UDPNIOConnectorHandler(UDPNIOTransport transport) {
         super(transport);
-        connectionTimeoutMillis = transport.getConnectionTimeout();
         isReuseAddress = transport.isReuseAddress();
     }
 
@@ -79,7 +75,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @return non-connected UDP {@link Connection}.
      */
     public GrizzlyFuture<Connection> connect() {
-        return connectAsync(null, null, null, true);
+        return connect0(null, null, null, true);
     }
 
     @Override
@@ -87,11 +83,11 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler) {
 
-        connectAsync(remoteAddress, localAddress, completionHandler, false);
+        connect0(remoteAddress, localAddress, completionHandler, false);
     }
 
     @Override
-    protected FutureImpl<Connection> connectAsync(
+    protected final FutureImpl<Connection> connect0(
             final SocketAddress remoteAddress,
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler,
@@ -120,8 +116,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             }
 
             preConfigure(newConnection);
-
-            newConnection.setProcessor(getProcessor());
 
             final NIOChannelDistributor nioChannelDistributor =
                     nioTransport.getNIOChannelDistributor();
@@ -172,28 +166,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     public void setReuseAddress(boolean isReuseAddress) {
         this.isReuseAddress = isReuseAddress;
-    }
-
-    public long getSyncConnectTimeout(final TimeUnit timeUnit) {
-        return timeUnit.convert(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    public void setSyncConnectTimeout(final long timeout, final TimeUnit timeUnit) {
-        this.connectionTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
-    }
-
-    protected void waitNIOFuture(final FutureImpl<Connection> future,
-            final CompletionHandler<Connection> completionHandler) {
-        
-        try {
-            future.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Futures.notifyFailure(future, completionHandler, e);
-        } catch (TimeoutException e) {
-            Futures.notifyFailure(future, completionHandler,
-                    new IOException("Channel registration on Selector timeout!"));
-        } catch (Exception ingored) {
-        }
     }
 
     private static void abortConnection(final UDPNIOConnection connection,
@@ -309,11 +281,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         public Builder setReuseAddress(final boolean isReuseAddress) {
             ((UDPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
-            return this;
-        }
-
-        public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
-            ((UDPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
             return this;
         }
     }
