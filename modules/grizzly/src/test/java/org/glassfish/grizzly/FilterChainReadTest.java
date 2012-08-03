@@ -61,6 +61,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
+import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
@@ -122,22 +123,14 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
+            final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
 
-            FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new StringFilter());
-            clientFilterChainBuilder.add(new BaseFilter() {
-
-                @Override
-                public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                    resultQueue.add((String) ctx.getMessage());
-                    return ctx.getStopAction();
-                }
-
-            });
-            final FilterChain clientFilterChain = clientFilterChainBuilder.build();
+            FilterChain clientFilterChain =
+                    FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .add(inQueueFilter)
+                    .build();
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
@@ -167,7 +160,7 @@ public class FilterChainReadTest extends TestCase {
                 }
 
 
-                final String message = resultQueue.poll(10, TimeUnit.SECONDS);
+                final String message = inQueueFilter.poll(10, TimeUnit.SECONDS);
 
                 assertEquals("Unexpected response (" + i + ")",
                         clientMessage, message);
