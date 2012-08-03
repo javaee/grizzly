@@ -42,14 +42,17 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
@@ -294,6 +297,27 @@ public class BasicServletTest extends HttpServerAbstractTest {
         }
     }
     
+    public void testContextListener() throws IOException {
+        LOGGER.fine("testContextListener");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            ctx.addListener(MyContextListener.class);
+            
+            addServlet(ctx, "foobar", "/servletPath/*");
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            String s = conn.getHeaderField("Servlet-Name");
+            assertEquals("foobar", s);
+        } finally {
+            stopHttpServer();
+            
+            assertEquals(MyContextListener.INITIALIZED, MyContextListener.events.poll());
+            assertEquals(MyContextListener.DESTROYED, MyContextListener.events.poll());
+        }
+    }
+    
     private ServletRegistration addServlet(final WebappContext ctx,
                                            final String name,
                                            final String alias) {
@@ -315,5 +339,26 @@ public class BasicServletTest extends HttpServerAbstractTest {
         reg.addMapping(alias);
 
         return reg;
+    }
+    
+    public static class MyContextListener implements ServletContextListener {
+        static final String INITIALIZED = "initialized";
+        static final String DESTROYED = "destroyed";
+        
+        static final Queue<String> events = new ConcurrentLinkedQueue<String>();
+
+        public MyContextListener() {
+            events.clear();
+        }
+
+        @Override
+        public void contextInitialized(ServletContextEvent sce) {
+            events.add(INITIALIZED);
+        }
+
+        @Override
+        public void contextDestroyed(ServletContextEvent sce) {
+            events.add(DESTROYED);
+        }
     }
 }

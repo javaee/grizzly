@@ -173,6 +173,18 @@ public class WebappContext implements ServletContext {
     /* Request dispatcher helper class */
     private DispatcherHelper dispatcherHelper;
 
+    /**
+     * Destroy listener to be registered on {@link ServletHandler} to make sure
+     * we undeploy entire application when {@link ServletHandler#destroy()} is invoked.
+     */
+    private final Runnable onDestroyListener = new Runnable() {
+        @Override
+        public void run() {
+            if (deployed) {
+                undeploy();
+            }
+        }
+    };
 
     // ------------------------------------------------------------ Constructors
 
@@ -282,6 +294,8 @@ public class WebappContext implements ServletContext {
     public synchronized void undeploy() {
         try {
             if (deployed) {
+                deployed = false;
+                
                 final HttpServer server = DEPLOYED_APPS.remove(this);
                 destoryServlets(server);
 
@@ -297,8 +311,6 @@ public class WebappContext implements ServletContext {
                         "[" + displayName + "] Exception undeploying application.  See stack trace for details.",
                         e);
             }
-        } finally {
-            deployed = false;
         }
     }
 
@@ -1494,6 +1506,7 @@ public class WebappContext implements ServletContext {
                 servletHandler.setContextPath(contextPath);
                 servletHandler.setFilterChainFactory(filterChainFactory);
                 servletHandler.setExpectationHandler(registration.expectationHandler);
+                servletHandler.addOnDestroyListener(onDestroyListener);
 
                 final String[] patterns = registration.urlPatterns.getArray();
                 if (patterns != null && patterns.length > 0) {
@@ -1558,6 +1571,8 @@ public class WebappContext implements ServletContext {
                     servletHandler.setContextPath(contextPath);
                     servletHandler.setFilterChainFactory(filterChainFactory);
                     servletHandler.setExpectationHandler(registration.expectationHandler);
+                    servletHandler.addOnDestroyListener(onDestroyListener);
+                    
                     serverConfig.addHttpHandler(servletHandler,
                                                     updateMappings(servletHandler,
                                                             "/"));
