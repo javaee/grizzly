@@ -41,22 +41,21 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Note;
-import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.server.AfterServiceListener;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -68,6 +67,7 @@ import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
+import org.glassfish.grizzly.http.util.HttpStatus;
 
 import static org.glassfish.grizzly.servlet.DispatcherType.REQUEST;
 
@@ -117,6 +117,9 @@ public class ServletHandler extends HttpHandler {
     protected ExpectationHandler expectationHandler;
 
     private FilterChainFactory filterChainFactory;
+
+    // Listeners to be invoked when ServletHandler.destroy is called
+    private List<Runnable> onDestroyListeners;
 
     // ------------------------------------------------------------ Constructors
 
@@ -454,21 +457,36 @@ public class ServletHandler extends HttpHandler {
      */
     @Override
     public void destroy() {
-        if (classLoader != null) {
-            ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(classLoader);
-            try {
-                super.destroy();
+        try {
+            if (classLoader != null) {
+                ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(classLoader);
+                try {
+                    super.destroy();
 
-                if (servletInstance != null) {
-                    servletInstance.destroy();
-                    servletInstance = null;
+                    if (servletInstance != null) {
+                        servletInstance.destroy();
+                        servletInstance = null;
+                    }
+                } finally {
+                    Thread.currentThread().setContextClassLoader(prevClassLoader);
                 }
-            } finally {
-                Thread.currentThread().setContextClassLoader(prevClassLoader);
+            } else {
+                super.destroy();
             }
-        } else {
-            super.destroy();
+        } finally {
+            // notify destroy listeners (if any)
+            if (onDestroyListeners != null) {
+                for (int i = 0; i < onDestroyListeners.size(); i++) {
+                    try {
+                        onDestroyListeners.get(i).run();
+                    } catch (Throwable t) {
+                        LOGGER.log(Level.WARNING, "onDestroyListener error", t);
+                    }
+                }
+
+                onDestroyListeners = null;
+            }
         }
     }
 
@@ -523,6 +541,18 @@ public class ServletHandler extends HttpHandler {
 
     protected void setFilterChainFactory(final FilterChainFactory filterChainFactory) {
         this.filterChainFactory = filterChainFactory;
+    }
+
+    /**
+     * Adds the {@link Runnable}, which will be invoked when {@link #destroy()} is called.
+     * @param r {@link Runnable}, which contains destroy listener logic.
+     */
+    void addOnDestroyListener(final Runnable r) {
+        if (onDestroyListeners == null) {
+            onDestroyListeners = new ArrayList<Runnable>(2);
+        }
+        
+        onDestroyListeners.add(r);
     }
 
     // ---------------------------------------------------------- Nested Classes

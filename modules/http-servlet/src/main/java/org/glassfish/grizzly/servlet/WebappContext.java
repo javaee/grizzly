@@ -57,30 +57,6 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
-import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
-import org.glassfish.grizzly.http.server.util.DispatcherHelper;
-import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.http.server.util.Mapper;
-import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.server.util.MimeType;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.localization.LogMessages;
-
-import javax.servlet.Filter;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextAttributeEvent;
-import javax.servlet.ServletContextAttributeListener;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.ServletException;
-import javax.servlet.SingleThreadModel;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,6 +77,29 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.Filter;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.Servlet;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextAttributeEvent;
+import javax.servlet.ServletContextAttributeListener;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.ServletException;
+import javax.servlet.SingleThreadModel;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
+import org.glassfish.grizzly.http.server.util.DispatcherHelper;
+import org.glassfish.grizzly.http.server.util.Enumerator;
+import org.glassfish.grizzly.http.server.util.Mapper;
+import org.glassfish.grizzly.http.server.util.MappingData;
+import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * <p>
@@ -173,6 +172,18 @@ public class WebappContext implements ServletContext {
     /* Request dispatcher helper class */
     private DispatcherHelper dispatcherHelper;
 
+    /**
+     * Destroy listener to be registered on {@link ServletHandler} to make sure
+     * we undeploy entire application when {@link ServletHandler#destroy()} is invoked.
+     */
+    private final Runnable onDestroyListener = new Runnable() {
+        @Override
+        public void run() {
+            if (deployed) {
+                undeploy();
+            }
+        }
+    };
 
     // ------------------------------------------------------------ Constructors
 
@@ -282,6 +293,8 @@ public class WebappContext implements ServletContext {
     public synchronized void undeploy() {
         try {
             if (deployed) {
+                deployed = false;
+                
                 final HttpServer server = DEPLOYED_APPS.remove(this);
                 destoryServlets(server);
 
@@ -297,8 +310,6 @@ public class WebappContext implements ServletContext {
                         "[" + displayName + "] Exception undeploying application.  See stack trace for details.",
                         e);
             }
-        } finally {
-            deployed = false;
         }
     }
 
@@ -1494,6 +1505,7 @@ public class WebappContext implements ServletContext {
                 servletHandler.setContextPath(contextPath);
                 servletHandler.setFilterChainFactory(filterChainFactory);
                 servletHandler.setExpectationHandler(registration.expectationHandler);
+                servletHandler.addOnDestroyListener(onDestroyListener);
 
                 final String[] patterns = registration.urlPatterns.getArray();
                 if (patterns != null && patterns.length > 0) {
@@ -1558,6 +1570,8 @@ public class WebappContext implements ServletContext {
                     servletHandler.setContextPath(contextPath);
                     servletHandler.setFilterChainFactory(filterChainFactory);
                     servletHandler.setExpectationHandler(registration.expectationHandler);
+                    servletHandler.addOnDestroyListener(onDestroyListener);
+                    
                     serverConfig.addHttpHandler(servletHandler,
                                                     updateMappings(servletHandler,
                                                             "/"));
