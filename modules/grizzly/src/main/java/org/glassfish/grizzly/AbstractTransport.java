@@ -106,16 +106,6 @@ public abstract class AbstractTransport implements Transport {
      */
     protected AttributeBuilder attributeBuilder;
 
-    /**
-     * Transport default buffer size for read operations
-     */
-    protected int readBufferSize;
-
-    /**
-     * Transport default buffer size for write operations
-     */
-    protected int writeBufferSize;
-
     protected ThreadPoolConfig workerPoolConfig;
 
     protected ThreadPoolConfig kernelPoolConfig;
@@ -191,40 +181,6 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public StateHolder<State> getState() {
         return state;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getReadBufferSize() {
-        return readBufferSize;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setReadBufferSize(int readBufferSize) {
-        this.readBufferSize = readBufferSize;
-        notifyProbesConfigChanged(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getWriteBufferSize() {
-        return writeBufferSize;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setWriteBufferSize(int writeBufferSize) {
-        this.writeBufferSize = writeBufferSize;
-        notifyProbesConfigChanged(this);
     }
 
     /**

@@ -193,55 +193,6 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void setIOStrategy(IOStrategy IOStrategy);
 
     /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Transport}'s {@link Connection}s.
-     * For particular {@link Connection}, this setting could be overridden by
-     * {@link Connection#getReadBufferSize()}.
-     * 
-     * @return the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Transport}'s {@link Connection}s.
-     */
-    int getReadBufferSize();
-
-    /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Transport}'s {@link Connection}s.
-     * For particular {@link Connection}, this setting could be overridden by
-     * {@link Connection#setReadBufferSize(int)}.
-     *
-     * If not explicitly configured, this value will be set to
-     * {@link #DEFAULT_READ_BUFFER_SIZE}.
-     *
-     * @param readBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for reading data from {@link Transport}'s
-     * {@link Connection}s.
-     */
-    void setReadBufferSize(int readBufferSize);
-
-    /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Transport}'s {@link Connection}s.
-     * For particular {@link Connection}, this setting could be overridden by
-     * {@link Connection#getWriteBufferSize()}.
-     *
-     * @return the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Transport}'s {@link Connection}s.
-     */
-    int getWriteBufferSize();
-
-    /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Transport}'s {@link Connection}s.
-     * For particular {@link Connection}, this setting could be overridden by
-     * {@link Connection#setWriteBufferSize(int)}.
-     *
-     * @param writeBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for writing data to {@link Transport}'s
-     * {@link Connection}s.
-     */
-    void setWriteBufferSize(int writeBufferSize);
-
-    /**
      * Get a thread pool, which will run Event processing
      * (depending on Transport {@link IOStrategy}) to let kernel threads continue
      * their job.

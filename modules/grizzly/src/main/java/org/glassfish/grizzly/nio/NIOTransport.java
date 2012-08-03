@@ -73,10 +73,79 @@ public abstract class NIOTransport extends AbstractTransport {
 
     protected SelectorProvider selectorProvider = SelectorProvider.provider();
     
+    /**
+     * Transport default buffer size for read operations
+     */
+    protected int readBufferSize;
+
+    /**
+     * Transport default buffer size for write operations
+     */
+    protected int writeBufferSize;
+    
     public NIOTransport(final String name) {
         super(name);
 
         selectorRunnersCount = Runtime.getRuntime().availableProcessors();
+    }
+
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
+     * For particular {@link NIOConnection}, this setting could be overridden by
+     * {@link NIOConnection#getReadBufferSize()}.
+     * 
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
+     */
+    public int getReadBufferSize() {
+        return readBufferSize;
+    }
+
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
+     * For particular {@link NIOConnection}, this setting could be overridden by
+     * {@link NIOConnection#setReadBufferSize(int)}.
+     *
+     * If not explicitly configured, this value will be set to
+     * {@link #DEFAULT_READ_BUFFER_SIZE}.
+     *
+     * @param readBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for reading data from {@link NIOTransport}'s
+     * {@link NIOConnection}s.
+     */
+    public void setReadBufferSize(int readBufferSize) {
+        this.readBufferSize = readBufferSize;
+        notifyProbesConfigChanged(this);
+    }
+
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
+     * For particular {@link NIOConnection}, this setting could be overridden by
+     * {@link NIOConnection#getWriteBufferSize()}.
+     *
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
+     */
+    public int getWriteBufferSize() {
+        return writeBufferSize;
+    }
+
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
+     * For particular {@link NIOConnection}, this setting could be overridden by
+     * {@link NIOConnection#setWriteBufferSize(int)}.
+     *
+     * @param writeBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for writing data to {@link NIOTransport}'s
+     * {@link NIOConnection}s.
+     */
+    public void setWriteBufferSize(int writeBufferSize) {
+        this.writeBufferSize = writeBufferSize;
+        notifyProbesConfigChanged(this);
     }
 
     public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
