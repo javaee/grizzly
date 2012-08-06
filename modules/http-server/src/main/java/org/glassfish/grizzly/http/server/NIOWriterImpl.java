@@ -119,10 +119,22 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
      *
      * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
      *  will succeed, otherwise returns <code>false</code>.
+     * 
+     * @deprecated the <code>length</code> parameter will be ignored. Pls use {@link #canWrite()}.
      */
     @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWriteChar(length);
+        return outputBuffer.canWrite();
     }
+    
+    /**
+     * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
+     *  will succeed, otherwise returns <code>false</code>.
+     * 
+     * @since 2.3
+     */
+    @Override public boolean canWrite() {
+        return outputBuffer.canWrite();
+    }    
 
     /**
      * Instructs the <code>NIOOutputSink</code> to invoke the provided
@@ -132,13 +144,28 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
      * @param handler the {@link WriteHandler} that should be notified
      *  when it's possible to write <code>length</code> characters.
      * @param length the number of characters that require writing.
+     * 
+     * @deprecated the <code>length</code> parameter will be ignored. Pls. use {@link #notifyCanWrite(org.glassfish.grizzly.WriteHandler)}.
      */
     @Override
     public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+        outputBuffer.notifyCanWrite(handler);
     }
 
-
+    /**
+     * Instructs the <code>NIOOutputSink</code> to invoke the provided
+     * {@link WriteHandler} when it is possible to write more characters.
+     *
+     * @param handler the {@link WriteHandler} that should be notified
+     *  when it's possible to write more characters.
+     * 
+     * @since 2.3
+     */
+    @Override
+    public void notifyCanWrite(final WriteHandler handler) {
+        outputBuffer.notifyCanWrite(handler);
+    }
+    
     // -------------------------------------------------- Methods from Cacheable
 
 

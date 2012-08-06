@@ -49,7 +49,6 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -64,6 +63,7 @@ import org.glassfish.grizzly.utils.Futures;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     public enum FILTER_STATE_TYPE {
@@ -378,8 +378,17 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public void write(final Connection connection,
             final Object dstAddress, final Object message,
+            final CompletionHandler<WriteResult> completionHandler) {
+        write(connection, dstAddress, message, completionHandler, null);
+    }
+
+    
+    @Override
+    @Deprecated
+    public void write(final Connection connection,
+            final Object dstAddress, final Object message,
             final CompletionHandler completionHandler,
-            final PushBackHandler pushBackHandler) {
+            final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.transportFilterContext.completionHandler = completionHandler;

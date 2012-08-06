@@ -48,7 +48,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
@@ -62,6 +61,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public final class FilterChainContext implements AttributeStorage {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);
 
@@ -584,11 +584,11 @@ public final class FilterChainContext implements AttributeStorage {
 
     }
 
-
+    @Deprecated
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler) {
+                      final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
         
         write(address,
               message,
@@ -597,25 +597,39 @@ public final class FilterChainContext implements AttributeStorage {
               transportFilterContext.isBlocking());
     }
 
-
+    @Deprecated
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler,
                       final boolean blocking) {
         write(address,
               message,
               completionHandler,
               pushBackHandler,
               null,
-              transportFilterContext.isBlocking());
+              blocking);
         
     }
 
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final MessageCloner cloner) {
+        
+        write(address,
+              message,
+              completionHandler,
+              null,
+              cloner,
+              transportFilterContext.isBlocking());
+    }
+
+    @Deprecated
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler,
                       final MessageCloner cloner) {
         
         write(address,
@@ -626,11 +640,24 @@ public final class FilterChainContext implements AttributeStorage {
               transportFilterContext.isBlocking());
     }
 
-
     public void write(final Object address,
                       final Object message,
                       final CompletionHandler<WriteResult> completionHandler,
-                      final PushBackHandler pushBackHandler,
+                      final MessageCloner cloner,
+                      final boolean blocking) {
+        write(address,
+              message,
+              completionHandler,
+              null,
+              cloner,
+              blocking);
+    }
+
+    @Deprecated
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler,
                       final MessageCloner cloner,
                       final boolean blocking) {
 
@@ -846,10 +873,14 @@ public final class FilterChainContext implements AttributeStorage {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static final class TransportContext {
         private boolean isBlocking;
         CompletionHandler completionHandler;
-        PushBackHandler pushBackHandler;
+        
+        @Deprecated
+        org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler;
+        
         MessageCloner cloner;
 
         public void configureBlocking(boolean isBlocking) {
@@ -868,11 +899,13 @@ public final class FilterChainContext implements AttributeStorage {
             this.completionHandler = completionHandler;
         }
 
-        public PushBackHandler getPushBackHandler() {
+        @Deprecated
+        public org.glassfish.grizzly.asyncqueue.PushBackHandler getPushBackHandler() {
             return pushBackHandler;
         }
 
-        public void setPushBackHandler(PushBackHandler pushBackHandler) {
+        @Deprecated
+        public void setPushBackHandler(org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
             this.pushBackHandler = pushBackHandler;
         }
         

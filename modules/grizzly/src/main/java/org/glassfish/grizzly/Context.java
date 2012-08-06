@@ -41,7 +41,6 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -51,6 +50,7 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public class Context implements AttributeStorage, Cacheable {
 
     private static final Logger LOGGER = Grizzly.logger(Context.class);
@@ -307,8 +307,15 @@ public class Context implements AttributeStorage, Cacheable {
 
         @Override
         public void write(Connection connection, Object dstAddress,
+                Object message, CompletionHandler completionHandler) {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+        
+        @Override
+        @Deprecated
+        public void write(Connection connection, Object dstAddress,
                 Object message, CompletionHandler completionHandler,
-                PushBackHandler pushBackHandler) {
+                org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
             throw new UnsupportedOperationException("Not supported.");
         }
 

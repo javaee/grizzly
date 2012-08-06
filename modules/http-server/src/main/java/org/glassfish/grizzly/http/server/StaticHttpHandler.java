@@ -245,8 +245,7 @@ public class StaticHttpHandler extends HttpHandler {
         
         outputStream.notifyCanWrite(
                 new NonBlockingDownloadHandler(response, outputStream,
-                        file, chunkSize),
-                chunkSize * 3 / 2);
+                        file, chunkSize));
 
     }
 
@@ -513,7 +512,7 @@ public class StaticHttpHandler extends HttpHandler {
 
             if (isWriteMore) {
                 // if there are more bytes to be sent - reregister this WriteHandler
-                outputStream.notifyCanWrite(this, chunkSize * 3 /2);
+                outputStream.notifyCanWrite(this);
             }
         }
 

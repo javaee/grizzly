@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -381,18 +380,27 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
+    @Deprecated
     public <M> void write(final M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            PushBackHandler pushbackHandler) {
+            org.glassfish.grizzly.asyncqueue.PushBackHandler pushbackHandler) {
         write(null, message, completionHandler, pushbackHandler);
     }
 
+    @Override
+    public <M> void write(final SocketAddress dstAddress, final M message,
+            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) {
+        write(dstAddress, message, completionHandler, null);
+    }
+
+    
     @SuppressWarnings("unchecked")
     @Override
+    @Deprecated
     public <M> void write(
             final SocketAddress dstAddress, final M message,
             final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            final PushBackHandler pushbackHandler) {
+            final org.glassfish.grizzly.asyncqueue.PushBackHandler pushbackHandler) {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.WRITE);
         obtainedProcessor.write(this, dstAddress, message,
                 completionHandler, pushbackHandler);

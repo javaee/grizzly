@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,6 +50,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
  * @author Alexey Stashok
  * @author Ryan Lubke
  */
+@SuppressWarnings("deprecation")
 public interface AsyncQueueWriter<L> 
         extends Writer<L>, AsyncQueue {
     
@@ -76,11 +77,32 @@ public interface AsyncQueueWriter<L>
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
+     * @param cloner {@link MessageCloner}, which will be invoked by
+     *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
+     *        channel directly and has to be put on a asynchronous queue
+     */
+    public void write(
+            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            MessageCloner<WritableMessage> cloner);
+
+    /**
+     * Method writes the {@link Buffer} to the specific address.
+     *
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WritableMessage} will be
+     *        sent to
+     * @param message the {@link WritableMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
+     *        which will get notified, when write will be completed
      * @param pushBackHandler {@link PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
      * @param cloner {@link MessageCloner}, which will be invoked by
      *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
-     *        channel directly and has to be put on a asynchronous queue    
+     *        channel directly and has to be put on a asynchronous queue
+     * 
+     * @deprecated push back logic is deprecated
      */
     public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
@@ -89,22 +111,32 @@ public interface AsyncQueueWriter<L>
             MessageCloner<WritableMessage> cloner);
 
     /**
+     * @param connection the {@link Connection} to test whether or not it's ready
+     *  to accept more bytes to write.
+     * @return <code>true</code> if the queue has not exceeded it's maximum
+     *  size in bytes of pending writes, otherwise <code>false</code>
+     * @since 2.3
+     */
+    boolean canWrite(final Connection connection);
+    
+    /**
      * @param connection the {@link Connection} to test whether or not the
      *  specified number of bytes can be written to.
      * @param size number of bytes to write.
      * @return <code>true</code> if the queue has not exceeded it's maximum
      *  size in bytes of pending writes, otherwise <code>false</code>
+     * 
+     * @since 2.2
+     * @deprecated the size parameter will be ignored, use {@link #canWrite(org.glassfish.grizzly.Connection)} instead.
      */
     boolean canWrite(final Connection connection, int size);
 
     /**
-     * Registers {@link WriteHandler}, which will be notified ones {@link Buffer}
-     * of "size"-bytes can be written.
+     * Registers {@link WriteHandler}, which will be notified ones the
+     * {@link Connection} is able to accept more bytes to be written.
      * Note: using this method from different threads simultaneously may lead
      * to quick situation changes, so at time {@link WriteHandler} is called -
-     * the queue may become busy again. It's recommended to use this method
-     * together with {@link PushBackHandler} to have a chance to handle
-     * such a situations properly.
+     * the queue may become busy again.
      * 
      * @param connection {@link Connection}
      * @param writeHandler {@link WriteHandler} to be notified.
@@ -112,10 +144,23 @@ public interface AsyncQueueWriter<L>
      *             {@link WriteHandler}.
      * 
      * @since 2.2
+     * @deprecated the size parameter will be ignored, use {@link #notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler) instead.
      */
     void notifyWritePossible(final Connection connection,
             final WriteHandler writeHandler, final int size);
     
+    /**
+     * Registers {@link WriteHandler}, which will be notified ones the
+     * {@link Connection} is able to accept more bytes to be written.
+     * 
+     * @param connection {@link Connection}
+     * @param writeHandler {@link WriteHandler} to be notified.
+     * 
+     * @since 2.3
+     */
+    void notifyWritePossible(final Connection connection,
+            final WriteHandler writeHandler);
+
     /**
      * Configures the maximum number of bytes pending to be written
      * for a particular {@link Connection}.

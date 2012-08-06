@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,24 +40,21 @@
 
 package org.glassfish.grizzly.samples.tunnel;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.asyncqueue.PushBackContext;
-import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Simple tunneling filter, which maps input of one connection to the output of
@@ -126,6 +123,32 @@ public class TunnelFilter extends BaseFilter {
         // if peer connection is already created - just forward data to peer
         redirectToPeer(ctx, peerConnection, message);
 
+        final AsyncQueueWriter writer =
+                (AsyncQueueWriter) connection.getTransport().getWriter(false);
+        
+        if (writer.canWrite(peerConnection)) {
+            return ctx.getStopAction();
+        }
+        
+        // Make sure we don't overload peer's output buffer and do not cause OutOfMemoryError
+        ctx.suspend();
+        writer.notifyWritePossible(peerConnection, new WriteHandler() {
+
+            @Override
+            public void onWritePossible() throws Exception {
+                finish();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                finish();
+            }
+
+            private void finish() {
+                ctx.resume();
+            }
+        });
+
 //        return ctx.getStopAction();
         return suspendNextAction;
     }
@@ -161,28 +184,7 @@ public class TunnelFilter extends BaseFilter {
         logger.log(Level.FINE, "Redirecting from {0} to {1} message: {2}",
                 new Object[]{srcConnection.getPeerAddress(), peerConnection.getPeerAddress(), message});
 
-//        peerConnection.write(message);
-        
-        peerConnection.write(message,
-                new EmptyCompletionHandler<WriteResult>() {
-
-                    @Override
-                    public void failed(Throwable throwable) {
-                        context.resume();
-                    }
-                },
-                
-                new PushBackHandler() {
-                    @Override
-                    public void onAccept(Connection connection, WritableMessage message) {
-                        context.resume();
-                    }
-
-                    @Override
-                    public void onPushBack(Connection connection, WritableMessage message, PushBackContext pushBackContext) {
-                        pushBackContext.retryWhenPossible();
-                    }
-                });
+        peerConnection.write(message);
     }
     
     /**

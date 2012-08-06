@@ -40,20 +40,19 @@
 
 package org.glassfish.grizzly.http.server;
 
+import java.io.IOException;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.Writer;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.server.filecache.FileCache;
-
-import java.io.IOException;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.Writer;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.server.filecache.FileCache;
 
 /**
  *
@@ -91,7 +90,7 @@ public class FileCacheFilter extends BaseFilter {
                     final AsyncQueueWriter asyncQueueWriter =
                             (AsyncQueueWriter) writer;
                     
-                    if (!asyncQueueWriter.canWrite(connection, 1)) {  // if connection write queue is overloaded
+                    if (!asyncQueueWriter.canWrite(connection)) {  // if connection write queue is overloaded
                         // prepare context for suspend
                         final NextAction suspendAction = ctx.getSuspendAction();
                         ctx.suspend();
@@ -113,7 +112,7 @@ public class FileCacheFilter extends BaseFilter {
                             private void finish() {
                                 ctx.resume();
                             }
-                        }, 1);
+                        });
 
                         return suspendAction;
                     }

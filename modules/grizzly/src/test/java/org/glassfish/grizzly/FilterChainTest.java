@@ -440,7 +440,7 @@ public class FilterChainTest extends TestCase {
                 Arrays.fill(bytesData, (byte) (counter++ % 10));
                 final Buffer b = Buffers.wrap(transport.getMemoryManager(), bytesData);
                 
-                ctx.write(null, b, null, null, new MessageCloner() {
+                ctx.write(null, b, null, new MessageCloner() {
 
                     @Override
                     public Object clone(final Connection connection,

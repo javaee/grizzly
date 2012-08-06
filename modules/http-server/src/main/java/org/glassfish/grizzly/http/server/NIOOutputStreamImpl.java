@@ -104,19 +104,36 @@ class NIOOutputStreamImpl extends NIOOutputStream implements Cacheable {
 
     /**
      * {@inheritDoc}
+     * 
+     * @deprecated the <code>length</code> parameter will be ignored. Pls use {@link #canWrite()}.
      */
     @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWrite(length);
+        return outputBuffer.canWrite();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public boolean canWrite() {
+        return outputBuffer.canWrite();
+    }
+
+    /**
+     * {@inheritDoc}
+     * @deprecated the <code>length</code> parameter will be ignored. Pls. use {@link #notifyCanWrite(org.glassfish.grizzly.WriteHandler)}.
+     */
+    @Override
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+        outputBuffer.notifyCanWrite(handler);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+    public void notifyCanWrite(final WriteHandler handler) {
+        outputBuffer.notifyCanWrite(handler);
     }
-
 
     // ---------------------------------------- Methods from BinaryNIOOutputSink
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 package org.glassfish.grizzly;
 
 import java.util.concurrent.Future;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 
 /**
  * Implementations of this interface are able to write data from a {@link Buffer}.
@@ -49,6 +48,7 @@ import org.glassfish.grizzly.asyncqueue.PushBackHandler;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public interface Writable<L> {
 
     /**
@@ -76,12 +76,13 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     * @param pushbackHandler {@link org.glassfish.grizzly.asyncqueue.PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
+     * @deprecated push back logic is deprecated
      */
      <M> void write(M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler);
+            org.glassfish.grizzly.asyncqueue.PushBackHandler pushbackHandler);
 
     /**
      * Method writes the <tt>buffer</tt> to the specific address.
@@ -91,11 +92,25 @@ public interface Writable<L> {
      * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushbackHandler {@link PushBackHandler}, which will be notified
+     */
+     <M> void write(L dstAddress,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler);
+
+     /**
+     * Method writes the <tt>buffer</tt> to the specific address.
+     *
+     * @param dstAddress the destination address the <tt>buffer</tt> will be
+     *        sent to
+     * @param message the buffer, from which the data will be written
+     * @param completionHandler {@link CompletionHandler},
+     *        which will get notified, when write will be completed
+     * @param pushbackHandler {@link org.glassfish.grizzly.asyncqueue.PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
+     * @deprecated push back logic is deprecated
      */
      <M> void write(L dstAddress,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
-            PushBackHandler pushbackHandler);
+            org.glassfish.grizzly.asyncqueue.PushBackHandler pushbackHandler);
 }

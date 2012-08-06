@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -55,6 +54,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
  *
  * @author oleksiys
  */
+@SuppressWarnings("deprecation")
 public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
 
@@ -68,12 +68,13 @@ public abstract class TemporarySelectorWriter
     /**
      * {@inheritDoc}
      */
+    @Deprecated
     @Override
     public void write(
             Connection connection, SocketAddress dstAddress,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final PushBackHandler pushBackHandler) {
+            final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
         write(connection, dstAddress, message, completionHandler,
                 pushBackHandler,
                 connection.getWriteTimeout(TimeUnit.MILLISECONDS),
@@ -93,7 +94,24 @@ public abstract class TemporarySelectorWriter
     public void write(
             Connection connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final PushBackHandler pushBackHandler,
+            long timeout, TimeUnit timeunit) {
+        write(connection, dstAddress, message, completionHandler, null, timeout, timeunit);
+    }
+    
+    /**
+     * Method writes the {@link WritableMessage} to the specific address.
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the <tt>message</tt> will be
+     *        sent to
+     * @param message the {@link WritableMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
+     *        which will get notified, when write will be completed
+     */
+    public void write(
+            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler,
             long timeout, TimeUnit timeunit) {
 
         if (message == null) {

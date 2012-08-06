@@ -46,7 +46,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.memory.Buffers;
@@ -117,18 +116,18 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final MessageCloner cloner = transportContext.getMessageCloner();
-            final PushBackHandler pushBackHandler = transportContext.getPushBackHandler();
+//            final PushBackHandler pushBackHandler = transportContext.getPushBackHandler();
             
             transportContext.setCompletionHandler(null);
             transportContext.setMessageCloner(null);
-            transportContext.setPushBackHandler(null);
+//            transportContext.setPushBackHandler(null);
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueIO().getWriter().write(connection, null,
-                        message, completionHandler, pushBackHandler, cloner);
+                        message, completionHandler, cloner);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
-                        null, message, completionHandler, pushBackHandler);
+                        null, message, completionHandler);
             }
         }
 

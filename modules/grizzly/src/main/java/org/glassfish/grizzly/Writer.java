@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,6 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
 /**
@@ -55,6 +54,7 @@ import org.glassfish.grizzly.asyncqueue.WritableMessage;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public interface Writer<L> {
     /**
      * Method writes the {@link WritableMessage}.
@@ -109,7 +109,7 @@ public interface Writer<L> {
     public void write(Connection connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
-
+    
     /**
      * Method writes the {@link WritableMessage} to the specific address.
      *
@@ -120,12 +120,13 @@ public interface Writer<L> {
      * @param message the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
-     * @param pushBackHandler {@link PushBackHandler}, which will be notified
+     * @param pushBackHandler {@link org.glassfish.grizzly.asyncqueue.PushBackHandler}, which will be notified
      *        if message was accepted by transport write queue or refused
+     * @deprecated push back logic is deprecated
      */
     public void write(
             Connection connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
-            PushBackHandler pushBackHandler);
+            org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler);
 }

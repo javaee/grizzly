@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,6 @@ import java.net.Socket;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.nio.transport.DefaultStreamReader;
 import org.glassfish.grizzly.nio.transport.DefaultStreamWriter;
@@ -62,7 +61,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
  *
  * @author Alexey Stashok
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "deprecation"})
 public class StandaloneProcessor implements Processor {
     public static final StandaloneProcessor INSTANCE = new StandaloneProcessor();
 
@@ -148,9 +147,17 @@ public class StandaloneProcessor implements Processor {
     }
 
     @Override
+    public void write(final Connection connection, final Object dstAddress,
+            final Object message, final CompletionHandler completionHandler) {
+        write(connection, dstAddress, message, completionHandler, null);
+    }
+
+    
+    @Override
+    @Deprecated
     public void write(Connection connection, Object dstAddress,
             Object message, CompletionHandler completionHandler,
-            PushBackHandler pushBackHandler) {
+            org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
         
         final Transport transport = connection.getTransport();
         

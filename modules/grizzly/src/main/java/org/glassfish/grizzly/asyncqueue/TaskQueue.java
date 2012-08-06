@@ -69,9 +69,8 @@ public final class TaskQueue<E> {
     private final MutableMaxQueueSize maxQueueSizeHolder;
     
     private final AtomicInteger writeHandlersCounter = new AtomicInteger();
-    protected final Queue<WriteHandlerQueueRecord> writeHandlersQueue =
-            new ConcurrentLinkedQueue<WriteHandlerQueueRecord>();
-    
+    protected final Queue<WriteHandler> writeHandlersQueue =
+            new ConcurrentLinkedQueue<WriteHandler>();
     // ------------------------------------------------------------ Constructors
 
 
@@ -128,12 +127,14 @@ public final class TaskQueue<E> {
         return spaceInBytes.get();
     }
 
-    /**
-     * Get refused bytes counter.
-     */
-    public AtomicInteger getRefusedBytes() {
-        return refusedBytes;
-    }
+//    /**
+//     * Get refused bytes counter.
+//     * 
+//     * @deprecated bytes must never be refused.
+//     */
+//    public AtomicInteger getRefusedBytes() {
+//        return refusedBytes;
+//    }
 
     /**
      * Get the current processing task, if the current in not set, take the
@@ -164,8 +165,13 @@ public final class TaskQueue<E> {
         return queue;
     }
 
+    @Deprecated
     public void notifyWritePossible(final WriteHandler writeHandler,
             final int size) {
+        notifyWritePossible(writeHandler);
+    }
+    
+    public void notifyWritePossible(final WriteHandler writeHandler) {
         
         if (writeHandler == null) {
             return;
@@ -176,45 +182,40 @@ public final class TaskQueue<E> {
             return;
         }
         
-        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
+        final int maxQueueSize = maxQueueSizeHolder.getMaxQueueSize();
         
-        int reservedBytes;
-        
-        if (maxSize < 0 || (reservedBytes = spaceInBytes()) == 0 ||
-                (maxSize - reservedBytes >= size)) {
+        if (maxQueueSize < 0 || spaceInBytes() < maxQueueSize) {
             try {
                 writeHandler.onWritePossible();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 writeHandler.onError(e);
             }
             
             return;
         }
         
-        final WriteHandlerQueueRecord record =
-                new WriteHandlerQueueRecord(writeHandler, size);
-        offerWriteHandler(record);
+//        final WriteHandler record =
+//                new WriteHandlerQueueRecord(writeHandler, size);
+        offerWriteHandler(writeHandler);
         
-        reservedBytes = spaceInBytes();
-        
-        if (reservedBytes == 0 && removeWriteHandler(record)) {
+        if (spaceInBytes() < maxQueueSize && removeWriteHandler(writeHandler)) {
             try {
                 writeHandler.onWritePossible();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 writeHandler.onError(e);
             }
         } else {
-            checkWriteHandlerOnClose(record);
+            checkWriteHandlerOnClose(writeHandler);
         }
     }
 
     public final boolean forgetWritePossible(final WriteHandler writeHandler) {
-        return removeWriteHandler(new WriteHandlerQueueRecord(writeHandler, 0));
+        return removeWriteHandler(writeHandler);
     }
     
-    private void checkWriteHandlerOnClose(final WriteHandlerQueueRecord record) {
-        if (isClosed && removeWriteHandler(record)) {
-            record.writeHandler.onError(new IOException("Connection is closed"));
+    private void checkWriteHandlerOnClose(final WriteHandler writeHandler) {
+        if (isClosed && removeWriteHandler(writeHandler)) {
+            writeHandler.onError(new IOException("Connection is closed"));
         }
     }
     // ------------------------------------------------------- Protected Methods
@@ -226,21 +227,18 @@ public final class TaskQueue<E> {
             return;
         }
         
-        final int maxSize = maxQueueSizeHolder.getMaxQueueSize();
+        final int maxQueueSize = maxQueueSizeHolder.getMaxQueueSize();
         
-        WriteHandlerQueueRecord record;
-        while((record = pollWriteHandler()) != null) {
-            final int reservedBytes = spaceInBytes();
-            if ((reservedBytes == 0 || (maxSize - reservedBytes >= record.size))) {
-                try {
-                    record.writeHandler.onWritePossible();
-                } catch (Exception e) {
-                    record.writeHandler.onError(e);
-                }
-            } else {
-                offerWriteHandler(record);
-                checkWriteHandlerOnClose(record);
+        while(spaceInBytes() <= maxQueueSize) {
+            WriteHandler writeHandler = pollWriteHandler();
+            if (writeHandler == null) {
                 return;
+            }
+            
+            try {
+                writeHandler.onWritePossible();
+            } catch (Throwable e) {
+                writeHandler.onError(e);
             }
         }
     }
@@ -290,23 +288,23 @@ public final class TaskQueue<E> {
             }
         }
         
-        WriteHandlerQueueRecord record;
-        while ((record = pollWriteHandler()) != null) {
+        WriteHandler writeHandler;
+        while ((writeHandler = pollWriteHandler()) != null) {
             if (error == null) {
                 error = new IOException("Connection closed");
             }
-            record.writeHandler.onError(error);
+            writeHandler.onError(error);
         }
         
     }
     
-    private void offerWriteHandler(final WriteHandlerQueueRecord record) {
+    private void offerWriteHandler(final WriteHandler writeHandler) {
         writeHandlersCounter.incrementAndGet();
-        writeHandlersQueue.offer(record);
+        writeHandlersQueue.offer(writeHandler);
     }
     
-    private boolean removeWriteHandler(final WriteHandlerQueueRecord record) {
-        if (writeHandlersQueue.remove(record)) {
+    private boolean removeWriteHandler(final WriteHandler writeHandler) {
+        if (writeHandlersQueue.remove(writeHandler)) {
             writeHandlersCounter.decrementAndGet();
             return true;
         }
@@ -314,8 +312,8 @@ public final class TaskQueue<E> {
         return false;
     }
 
-    private WriteHandlerQueueRecord pollWriteHandler() {
-        final WriteHandlerQueueRecord record = writeHandlersQueue.poll();
+    private WriteHandler pollWriteHandler() {
+        final WriteHandler record = writeHandlersQueue.poll();
         if (record != null) {
             writeHandlersCounter.decrementAndGet();
             return record;
@@ -326,42 +324,42 @@ public final class TaskQueue<E> {
     
     //----------------------------------------------------------- Nested Classes
     
-    private static final class WriteHandlerQueueRecord {
-        private final int size;
-        private final WriteHandler writeHandler;
-
-        public WriteHandlerQueueRecord(final WriteHandler writeHandler,
-                final int size) {
-            this.writeHandler = writeHandler;
-            this.size = size;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final WriteHandlerQueueRecord other = (WriteHandlerQueueRecord) obj;
-            if (this.writeHandler != other.writeHandler &&
-                    (this.writeHandler == null || !this.writeHandler.equals(other.writeHandler))) {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 7;
-            hash = 31 * hash + 
-                    (this.writeHandler != null ?
-                    this.writeHandler.hashCode() :
-                    0);
-            return hash;
-        }
-    }
+//    private static final class WriteHandlerQueueRecord {
+//        private final int size;
+//        private final WriteHandler writeHandler;
+//
+//        public WriteHandlerQueueRecord(final WriteHandler writeHandler,
+//                final int size) {
+//            this.writeHandler = writeHandler;
+//            this.size = size;
+//        }
+//
+//        @Override
+//        public boolean equals(Object obj) {
+//            if (obj == null) {
+//                return false;
+//            }
+//            if (getClass() != obj.getClass()) {
+//                return false;
+//            }
+//            final WriteHandlerQueueRecord other = (WriteHandlerQueueRecord) obj;
+//            if (this.writeHandler != other.writeHandler &&
+//                    (this.writeHandler == null || !this.writeHandler.equals(other.writeHandler))) {
+//                return false;
+//            }
+//            return true;
+//        }
+//
+//        @Override
+//        public int hashCode() {
+//            int hash = 7;
+//            hash = 31 * hash + 
+//                    (this.writeHandler != null ?
+//                    this.writeHandler.hashCode() :
+//                    0);
+//            return hash;
+//        }
+//    }
     
     public interface MutableMaxQueueSize {
         public int getMaxQueueSize();

@@ -50,8 +50,11 @@ import org.glassfish.grizzly.Connection;
  * 
  * @since 2.2
  * 
+ * @deprecated push back logic is deprecated.
+ * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public interface PushBackHandler {
 
     /**

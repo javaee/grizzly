@@ -48,6 +48,7 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
@@ -138,18 +139,19 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return getWritableMessage().remaining();
     }
 
-    public int getMomentumQueueSize() {
-        return momentumQueueSize;
-    }
+//    public int getMomentumQueueSize() {
+//        return momentumQueueSize;
+//    }
+//
+//    public void setMomentumQueueSize(final int momentumQueueSize) {
+//        this.momentumQueueSize = momentumQueueSize;
+//    }
+//
+//    public boolean isChecked() {
+//        return momentumQueueSize < 0;
+//    }
 
-    public void setMomentumQueueSize(final int momentumQueueSize) {
-        this.momentumQueueSize = momentumQueueSize;
-    }
-
-    public boolean isChecked() {
-        return momentumQueueSize < 0;
-    }
-
+    @Deprecated
     public PushBackHandler getPushBackHandler() {
         return pushBackHandler;
     }

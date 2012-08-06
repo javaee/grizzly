@@ -51,6 +51,7 @@ import java.util.concurrent.*;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("deprecation")
 public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
 
     private static final Callable DUMMY_CALLABLE = new Callable() {

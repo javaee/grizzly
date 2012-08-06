@@ -40,29 +40,6 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpClientFilter;
-import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
-import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import junit.framework.TestCase;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Queue;
@@ -73,10 +50,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import junit.framework.TestCase;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 public class NIOOutputSinksTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
@@ -158,13 +156,13 @@ public class NIOOutputSinksTest extends TestCase {
                 response.setContentType("text/plain");
                 final NIOOutputStream out = response.getNIOOutputStream();
 
-                while (out.canWrite(LENGTH)) {
+                while (out.canWrite()) {
                     byte[] b = new byte[LENGTH];
                     fill(b);
                     writeCounter.addAndGet(b.length);
                     out.write(b);
                     out.flush();
-                }
+                }                
                 response.suspend();
 
                 Connection c = request.getContext().getConnection();
@@ -173,6 +171,7 @@ public class NIOOutputSinksTest extends TestCase {
                 out.notifyCanWrite(new WriteHandler() {
                     @Override
                     public void onWritePossible() {
+                        System.out.println("onWritePossible");
                         callbackInvoked.compareAndSet(false, true);
                         try {
                             clientTransport.pause();
@@ -180,14 +179,11 @@ public class NIOOutputSinksTest extends TestCase {
                             ioe.printStackTrace();
                         }
 
-                        assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
+                        assertTrue(tqueue.spaceInBytes() < MAX_LENGTH);
 
                         try {
                             clientTransport.resume();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
-                        try {
+                        
                             byte[] b = new byte[LENGTH];
                             fill(b);
                             writeCounter.addAndGet(b.length);
@@ -206,7 +202,7 @@ public class NIOOutputSinksTest extends TestCase {
                         response.resume();
                         throw new RuntimeException(t);
                     }
-                }, (LENGTH));
+                });
 
                 clientTransport.resume();
             }
@@ -323,7 +319,7 @@ public class NIOOutputSinksTest extends TestCase {
                 Connection c = request.getContext().getConnection();
                 final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
 
-                while (out.canWrite(LENGTH)) {
+                while (out.canWrite()) {
                     char[] data = new char[LENGTH];
                     fill(data);
                     writeCounter.addAndGet(data.length);
@@ -350,7 +346,7 @@ public class NIOOutputSinksTest extends TestCase {
                         } catch (IOException ioe) {
                             ioe.printStackTrace();
                         }
-                        assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
+                        assertTrue(tqueue.spaceInBytes() < MAX_LENGTH);
                         try {
                             clientTransport.resume();
                         } catch (IOException ioe) {
@@ -374,7 +370,7 @@ public class NIOOutputSinksTest extends TestCase {
                         response.resume();
                         throw new RuntimeException(t);
                     }
-                }, LENGTH);
+                });
             }
 
         };
@@ -411,16 +407,37 @@ public class NIOOutputSinksTest extends TestCase {
     }
 
 
+    
     public void testWriteExceptionPropagation() throws Exception {
-
+        final int LENGTH = 1024;
+        
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("Grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
-        final int LENGTH = 256000;
-        final int MAX_LENGTH = LENGTH * 2;
-        listener.setMaxPendingBytes(MAX_LENGTH);
+        listener.registerAddOn(new AddOn() {
+
+            @Override
+            public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+                final int idx = builder.indexOfType(TransportFilter.class);
+                builder.add(idx + 1, new BaseFilter() {
+                    final AtomicInteger counter = new AtomicInteger();
+                    @Override
+                    public NextAction handleWrite(FilterChainContext ctx)
+                            throws IOException {
+                        final Buffer buffer = ctx.getMessage();
+                        if (counter.addAndGet(buffer.remaining()) > LENGTH * 8) {
+                            throw new CustomException();
+                        }
+                        
+                        return ctx.getInvokeAction();
+                    }
+                });
+            }
+            
+        });
+        
         server.addListener(listener);
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -469,10 +486,11 @@ public class NIOOutputSinksTest extends TestCase {
                     try {
                         out.write(c);
                         out.flush();
-                    } catch (PendingWriteQueueLimitExceededException p) {
+                    } catch (CustomException e) {
                         parseResult.result(Boolean.TRUE);
                         break;
                     } catch (Exception e) {
+                        System.out.println("NOT CUSTOM");
                         parseResult.failure(e);
                         break;
                     }
@@ -509,7 +527,7 @@ public class NIOOutputSinksTest extends TestCase {
             server.stop();
         }
     }
-
+    
     public void testOutputBufferDirectWrite() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -581,7 +599,7 @@ public class NIOOutputSinksTest extends TestCase {
                 final byte[] b = new byte[LENGTH];
                 
                 int i = 0;
-                while (out.canWrite(LENGTH)) {
+                while (out.canWrite()) {
                     Arrays.fill(b, (byte) ('a' + (i++ % ('z' - 'a'))));
                     writeCounter.addAndGet(b.length);
                     out.write(b);
@@ -689,7 +707,7 @@ public class NIOOutputSinksTest extends TestCase {
                     public void onWritePossible() throws Exception {
                         if (reentrants-- >= 0) {
                             threadsHistory.offer(Thread.currentThread());
-                            outputStream.notifyCanWrite(this, 1);
+                            outputStream.notifyCanWrite(this);
                         } else {
                             finish(200);
                         }
@@ -704,7 +722,7 @@ public class NIOOutputSinksTest extends TestCase {
                         response.setStatus(code);
                         response.resume();
                     }
-                }, 1);
+                });
             }
         };
 
@@ -828,7 +846,7 @@ public class NIOOutputSinksTest extends TestCase {
                         clientTransport.pause();
                         
                         try {
-                            while (outputStream.canWrite(LENGTH)) {
+                            while (outputStream.canWrite()) {
                                 byte[] b = new byte[LENGTH];
                                 fill(b);
                                 outputStream.write(b);
@@ -837,7 +855,7 @@ public class NIOOutputSinksTest extends TestCase {
                             }
 
                             if (notificationsCount.incrementAndGet() < NOTIFICATIONS_NUM) {
-                                outputStream.notifyCanWrite(this, LENGTH);
+                                outputStream.notifyCanWrite(this);
                             } else {
                                 finish(200);
                             }
@@ -855,7 +873,7 @@ public class NIOOutputSinksTest extends TestCase {
                         response.setStatus(code);
                         response.resume();
                     }
-                }, LENGTH);
+                });
             }
         };
 
@@ -929,4 +947,8 @@ public class NIOOutputSinksTest extends TestCase {
             }
         }
     }
+    
+    private static final class CustomException extends IOException {
+        private static final long serialVersionUID = 1L;
+    }    
 }

@@ -49,6 +49,8 @@ package org.glassfish.grizzly.asyncqueue;
  * 
  * @since 2.2
  * 
+ * @deprecated push back logic is deprecated.
+ * 
  * @author Alexey Stashok
  */
 public abstract class PushBackContext {
