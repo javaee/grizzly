@@ -45,8 +45,8 @@ package org.glassfish.grizzly.utils;
  */
 public class JdkVersion implements Comparable<JdkVersion> {
 
-    private static final JdkVersion JDK_VERSION = parseVersion(System.getProperty("java.version"));
     private static final JdkVersion UNKNOWN_VERSION = new JdkVersion(-1, -1, -1, -1);
+    private static final JdkVersion JDK_VERSION = parseVersion(System.getProperty("java.version"));
 
     private final int major;
     private final int minor;
