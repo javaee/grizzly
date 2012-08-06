@@ -279,7 +279,7 @@ public class OutputBuffer {
         encoder = null;
         ctx = null;
         memoryManager = null;
-        resetHandler();
+        handler = null;
         isNonBlockingWriteGuaranteed = false;
         isLastWriteNonBlocking = false;
         asyncError.set(null);
@@ -421,9 +421,12 @@ public class OutputBuffer {
         if (currentBuffer.hasRemaining()) {
             currentBuffer.put((byte) b);
         } else {
-            //flush();
-            finishCurrentBuffer();
+            doCommit();
+            flushInternalBuffers(false);
+//            finishCurrentBuffer();
             checkCurrentBuffer();
+            blockAfterWriteIfNeeded();
+            
             currentBuffer.put((byte) b);
         }
 
@@ -785,14 +788,14 @@ public class OutputBuffer {
         
         if (localHandler != null) {
             try {
-                resetHandler();
+                handler = null;
                 reentrant.inc();
                 
                 isNonBlockingWriteGuaranteed = true;
                 
                 localHandler.onWritePossible();
-            } catch (Exception ioe) {
-                localHandler.onError(ioe);
+            } catch (Throwable t) {
+                localHandler.onError(t);
             } finally {
                 reentrant.dec();
             }
@@ -1022,10 +1025,6 @@ public class OutputBuffer {
         }
     }
 
-    private void resetHandler() {
-        this.handler = null;
-    }
-
     private void updateNonBlockingStatus() {
         isLastWriteNonBlocking = isNonBlockingWriteGuaranteed;
         isNonBlockingWriteGuaranteed = false;
@@ -1183,7 +1182,7 @@ public class OutputBuffer {
             asyncError.compareAndSet(null, throwable);
 
             final WriteHandler localHandler = handler;
-            resetHandler();
+            handler = null;
             
             if (localHandler != null) {
                 localHandler.onError(throwable);
@@ -1225,7 +1224,7 @@ public class OutputBuffer {
 
                 if (localHandler != null) {
                     try {
-                        resetHandler();
+                        handler = null;
                         localHandler.onError(t);
                     } catch (Exception ignored) {
                     }
