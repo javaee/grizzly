@@ -466,9 +466,12 @@ public class OutputBuffer {
         if (currentBuffer.hasRemaining()) {
             currentBuffer.put((byte) b);
         } else {
-            //flush();
-            finishCurrentBuffer();
+            doCommit();
+            flushInternalBuffers(false);
+//            finishCurrentBuffer();
             checkCurrentBuffer();
+            blockAfterWriteIfNeeded();
+
             currentBuffer.put((byte) b);
         }
 
