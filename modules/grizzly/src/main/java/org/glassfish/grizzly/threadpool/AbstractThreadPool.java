@@ -515,17 +515,21 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                final MemoryManager m = config.getMemoryManager();
-                ThreadLocalPoolProvider mm = null;
-                if (m instanceof ThreadLocalPoolProvider) {
-                    mm = (ThreadLocalPoolProvider) m;
+                final MemoryManager mm = config.getMemoryManager();
+                final ThreadLocalPoolProvider threadLocalPoolProvider;
+                
+                if (mm instanceof ThreadLocalPoolProvider) {
+                    threadLocalPoolProvider = (ThreadLocalPoolProvider) mm;
+                } else {
+                    threadLocalPoolProvider = null;
                 }
+                
                 return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                                                config.getPoolName()
                                                        + "-WorkerThread("
                                                        + counter.getAndIncrement()
                                                        + ')',
-                                               ((mm != null) ? mm.createThreadLocalPool() : null),
+                                               ((threadLocalPoolProvider != null) ? threadLocalPoolProvider.createThreadLocalPool() : null),
                                                r);
             }
         };

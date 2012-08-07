@@ -279,7 +279,7 @@ public class OutputBuffer {
         encoder = null;
         ctx = null;
         memoryManager = null;
-        resetHandler();
+        handler = null;
         isNonBlockingWriteGuaranteed = false;
         isLastWriteNonBlocking = false;
         asyncError.set(null);
@@ -421,9 +421,12 @@ public class OutputBuffer {
         if (currentBuffer.hasRemaining()) {
             currentBuffer.put((byte) b);
         } else {
-            //flush();
-            finishCurrentBuffer();
+            doCommit();
+            flushInternalBuffers(false);
+//            finishCurrentBuffer();
             checkCurrentBuffer();
+            blockAfterWriteIfNeeded();
+            
             currentBuffer.put((byte) b);
         }
 
@@ -785,14 +788,14 @@ public class OutputBuffer {
         
         if (localHandler != null) {
             try {
-                resetHandler();
+                handler = null;
                 reentrant.inc();
                 
                 isNonBlockingWriteGuaranteed = true;
                 
                 localHandler.onWritePossible();
-            } catch (Exception ioe) {
-                localHandler.onError(ioe);
+            } catch (Throwable t) {
+                localHandler.onError(t);
             } finally {
                 reentrant.dec();
             }
@@ -989,13 +992,9 @@ public class OutputBuffer {
         CoderResult res = enc.encode(charBuf,
                                      currentByteBuffer,
                                      true);
-        if (currentBuffer.isComposite()) {
-            final ByteBuffer duplicate = currentByteBuffer.duplicate();
-            duplicate.flip();
-            currentBuffer.put(duplicate);  // TODO: COPY
-        }
+
         currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-        currentByteBuffer.position(byteBufferPos);
+        
         while (res == CoderResult.OVERFLOW) {
             finishCurrentBuffer();
             checkCurrentBuffer();
@@ -1004,13 +1003,8 @@ public class OutputBuffer {
             byteBufferPos = currentByteBuffer.position();
             
             res = enc.encode(charBuf, currentByteBuffer, true);
-            if (currentBuffer.isComposite()) {
-                final ByteBuffer duplicate = currentByteBuffer.duplicate();
-                duplicate.flip();
-                currentBuffer.put(duplicate);  // TODO: COPY
-            }
+
             currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-            currentByteBuffer.position(byteBufferPos);
         }
 
         if (res != CoderResult.UNDERFLOW) {
@@ -1029,10 +1023,6 @@ public class OutputBuffer {
         for (int i = 0, len = lifeCycleListeners.size(); i < len; i++) {
             lifeCycleListeners.get(i).onCommit();
         }
-    }
-
-    private void resetHandler() {
-        this.handler = null;
     }
 
     private void updateNonBlockingStatus() {
@@ -1192,7 +1182,7 @@ public class OutputBuffer {
             asyncError.compareAndSet(null, throwable);
 
             final WriteHandler localHandler = handler;
-            resetHandler();
+            handler = null;
             
             if (localHandler != null) {
                 localHandler.onError(throwable);
@@ -1234,7 +1224,7 @@ public class OutputBuffer {
 
                 if (localHandler != null) {
                     try {
-                        resetHandler();
+                        handler = null;
                         localHandler.onError(t);
                     } catch (Exception ignored) {
                     }

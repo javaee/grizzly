@@ -50,7 +50,8 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- *
+ * Filter, which is storing incoming message in the queue.
+ * 
  * @author oleksiys
  */
 public class InQueueFilter<E> extends BaseFilter {

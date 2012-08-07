@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -84,10 +84,5 @@ public class TCPNIOTransport extends NIOTransport {
     @ManagedAttribute(id="socket-keep-alive")
     public boolean getKeepAlive() {
         return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).isKeepAlive();
-    }
-
-    @ManagedAttribute(id="client-connect-timeout-millis")
-    public int getConnectTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).getConnectionTimeout();
     }
 }

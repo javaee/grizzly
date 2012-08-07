@@ -149,9 +149,7 @@ public final class TaskQueue<E> {
             return;
         }
         
-        int currentQueueSize = size();
-        
-        if (maxQueueSize < 0 || currentQueueSize < maxQueueSize) {
+        if (maxQueueSize < 0 || size() < maxQueueSize) {
             try {
                 writeHandler.onWritePossible();
             } catch (Throwable e) {
@@ -163,9 +161,7 @@ public final class TaskQueue<E> {
         
         offerWriteHandler(writeHandler);
         
-        currentQueueSize = size();
-        
-        if (currentQueueSize < maxQueueSize && removeWriteHandler(writeHandler)) {
+        if (size() < maxQueueSize && removeWriteHandler(writeHandler)) {
             try {
                 writeHandler.onWritePossible();
             } catch (Throwable e) {
@@ -192,7 +188,7 @@ public final class TaskQueue<E> {
             
             try {
                 writeHandler.onWritePossible();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 writeHandler.onError(e);
             }
         }

@@ -70,6 +70,7 @@ import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -84,8 +85,6 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -152,11 +151,6 @@ public class TCPNIOTransport extends NIOTransport
      * The default server connection backlog size
      */
     int serverConnectionBackLog = 4096;
-    /**
-     * Default channel connection timeout
-     */
-    int connectionTimeout =
-            TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
     private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
@@ -726,16 +720,6 @@ public class TCPNIOTransport extends NIOTransport
         notifyProbesConfigChanged(this);
     }
 
-    public int getConnectionTimeout() {
-        return connectionTimeout;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setConnectionTimeout(final int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        notifyProbesConfigChanged(this);
-    }
-
     public boolean isTcpNoDelay() {
         return tcpNoDelay;
     }
@@ -966,7 +950,8 @@ public class TCPNIOTransport extends NIOTransport
     /**
      * Transport default {@link TCPNIOConnectorHandler}.
      */
-     class TransportConnectorHandler extends TCPNIOConnectorHandler {
+    class TransportConnectorHandler extends TCPNIOConnectorHandler {
+
         public TransportConnectorHandler() {
             super(TCPNIOTransport.this);
         }

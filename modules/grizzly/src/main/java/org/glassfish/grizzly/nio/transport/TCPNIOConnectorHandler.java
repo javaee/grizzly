@@ -44,10 +44,16 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.AbstractSocketConnectorHandler;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
@@ -63,15 +69,12 @@ import org.glassfish.grizzly.utils.Futures;
 public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     private static final Logger LOGGER = Grizzly.logger(TCPNIOConnectorHandler.class);
-    protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
 
     private final InstantConnectHandler instantConnectHandler;
     protected boolean isReuseAddress;
-    protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 
     protected TCPNIOConnectorHandler(final TCPNIOTransport transport) {
         super(transport);
-        connectionTimeoutMillis = transport.getConnectionTimeout();
         isReuseAddress = transport.isReuseAddress();
         instantConnectHandler = new InstantConnectHandler();
     }
@@ -81,11 +84,11 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler) {
 
-        connectAsync(remoteAddress, localAddress, completionHandler, false);
+        connect0(remoteAddress, localAddress, completionHandler, false);
     }
 
     @Override
-    protected FutureImpl<Connection> connectAsync(
+    protected final FutureImpl<Connection> connect0(
             final SocketAddress remoteAddress,
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler,
@@ -112,11 +115,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             preConfigure(finalConnection);
 
-            finalConnection.setProcessor(getProcessor());
-
             final boolean isConnected = socketChannel.connect(remoteAddress);
 
-            
             final CompletionHandler<Connection> completionHandlerToPass;
             final FutureImpl<Connection> futureToReturn;
             
@@ -214,28 +214,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     public void setReuseAddress(boolean isReuseAddress) {
         this.isReuseAddress = isReuseAddress;
-    }
-
-    public long getSyncConnectTimeout(final TimeUnit timeUnit) {
-        return timeUnit.convert(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    public void setSyncConnectTimeout(final long timeout, final TimeUnit timeUnit) {
-        this.connectionTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
-    }
-
-    protected void waitNIOFuture(final FutureImpl<Connection> future,
-            final CompletionHandler<Connection> completionHandler) {
-        
-        try {
-            future.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Futures.notifyFailure(future, completionHandler, e);
-        } catch (TimeoutException e) {
-            Futures.notifyFailure(future, completionHandler,
-                    new IOException("Channel registration on Selector timeout!"));
-        } catch (Exception ignored) {
-        }
     }
 
     private static void abortConnection(final TCPNIOConnection connection,
@@ -350,11 +328,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         public Builder setReuseAddress(final boolean isReuseAddress) {
             ((TCPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
-            return this;
-        }
-
-        public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
-            ((TCPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
             return this;
         }
     }

@@ -41,7 +41,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.nio.NIOTransportBuilder;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
@@ -93,23 +92,6 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      */
     public TCPNIOTransportBuilder setClientSocketSoTimeout(int clientSocketSoTimeout) {
         tcpTransport.setClientSocketSoTimeout(clientSocketSoTimeout);
-        return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#getConnectionTimeout()
-     */
-    public int getConnectionTimeout() {
-        return tcpTransport.getConnectionTimeout();
-    }
-
-    /**
-     * @see TCPNIOTransport#setConnectionTimeout(int)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setConnectionTimeout(int connectionTimeout) {
-        tcpTransport.setConnectionTimeout(connectionTimeout);
         return getThis();
     }
 

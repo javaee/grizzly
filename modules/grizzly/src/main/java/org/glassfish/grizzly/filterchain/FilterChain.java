@@ -108,11 +108,11 @@ public interface FilterChain extends Processor<Context>, List<Filter> {
             CompletionHandler<WriteResult> completionHandler);
 
     void fireEventUpstream(Connection connection,
-            FilterChainEvent event,
+            Event event,
             CompletionHandler<FilterChainContext> completionHandler);
     
     void fireEventDownstream(Connection connection,
-            FilterChainEvent event,
+            Event event,
             CompletionHandler<FilterChainContext> completionHandler);
 
     ReadResult read(FilterChainContext context) throws IOException;

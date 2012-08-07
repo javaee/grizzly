@@ -60,7 +60,6 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -99,14 +98,14 @@ public class FilterChainTest extends TestCase {
                 }
             });
 
-    private static final FilterChainEvent INC_EVENT = new FilterChainEvent() {
+    private static final Event INC_EVENT = new Event() {
         @Override
         public Object type() {
             return "INC_EVENT";
         }
     };
 
-    private static final FilterChainEvent DEC_EVENT = new FilterChainEvent() {
+    private static final Event DEC_EVENT = new Event() {
         @Override
         public Object type() {
             return "DEC_EVENT";

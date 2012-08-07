@@ -153,10 +153,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
+     * reading data from {@link NIOConnection}.
      *
      * @return the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
+     * reading data from {@link NIOConnection}.
      */
     public int getReadBufferSize() {
         return readBufferSize;
@@ -164,10 +164,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
-     * reading data from {@link Connection}.
+     * reading data from {@link NIOConnection}.
      *
      * @param readBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for reading data from {@link Connection}.
+     * be allocated for reading data from {@link NIOConnection}.
      */
     public void setReadBufferSize(final int readBufferSize) {
         this.readBufferSize = readBufferSize;
@@ -175,10 +175,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
+     * writing data to {@link NIOConnection}.
      *
      * @return the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
+     * writing data to {@link NIOConnection}.
      */
     public int getWriteBufferSize() {
         return writeBufferSize;
@@ -186,10 +186,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
-     * writing data to {@link Connection}.
+     * writing data to {@link NIOConnection}.
      *
      * @param writeBufferSize the default size of {@link Buffer}s, which will
-     * be allocated for writing data to {@link Connection}.
+     * be allocated for writing data to {@link NIOConnection}.
      */
     public void setWriteBufferSize(final int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;

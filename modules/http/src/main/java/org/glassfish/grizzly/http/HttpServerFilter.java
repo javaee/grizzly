@@ -40,14 +40,19 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.http.util.Constants;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
@@ -56,13 +61,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DelayedExecutor;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -82,8 +80,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     public static final String HTTP_SERVER_REQUEST_ATTR_NAME =
             HttpServerFilter.class.getName() + ".HttpRequest";
 
-    public static final FilterChainEvent RESPONSE_COMPLETE_EVENT =
-            new FilterChainEvent() {
+    public static final Event RESPONSE_COMPLETE_EVENT =
+            new Event() {
         @Override
         public Object type() {
             return "RESPONSE_COMPLETE_EVENT";
