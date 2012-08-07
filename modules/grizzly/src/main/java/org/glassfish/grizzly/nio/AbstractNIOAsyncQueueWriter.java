@@ -42,10 +42,25 @@ package org.glassfish.grizzly.nio;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.*;
+import org.glassfish.grizzly.AbstractWriter;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.threadpool.WorkerThread;
@@ -65,6 +80,12 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
+    /**
+     * Cached {@link List} instance index.
+     */
+    private static final ThreadCache.CachedTypeIndex<List> TMP_LIST_IDX =
+            ThreadCache.obtainIndex(AbstractNIOAsyncQueueWriter.class + ".list", List.class, 1);
+    
     private final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
             new ThreadLocal<Reentrant>() {
 
@@ -356,11 +377,14 @@ public abstract class AbstractNIOAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
         
-        boolean done = false;
+        List<AsyncWriteQueueRecord> notificationList = null;
+        int bytesReleased = 0;
+        
+        boolean done = true;
+        
         AsyncWriteQueueRecord queueRecord = null;
         try {
             while ((queueRecord = aggregate(writeTaskQueue)) != null) {
-
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.processAsync doWrite"
                             + "connection={0} record={1}",
@@ -371,35 +395,30 @@ public abstract class AbstractNIOAsyncQueueWriter
                         ? (int) write0(nioConnection, queueRecord)
                         : 0;
                 
-                final boolean isFinished = queueRecord.isFinished();
+                done = queueRecord.isFinished();
                 
-                // If we can write directly - do it w/o creating queue record (simple)
                 final int bytesToRelease = !queueRecord.isEmptyRecord()
                         ? written
-                        : (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
+                        : (done ? EMPTY_RECORD_SPACE_VALUE : 0);
 
+                bytesReleased += bytesToRelease;
 
-
-                if (isFinished) {
-                    // Is here a chance that queue becomes empty?
-                    // If yes - we need to switch to manual io event processing
-                    // mode to *disable WRITE interest for SameThreadStrategy*,
-                    // so we don't have either neverending WRITE events processing
-                    // or stuck, when other thread tried to add data to the queue.
-                    if (!context.isManualIOEventControl() &&
-                            writeTaskQueue.spaceInBytes() - bytesToRelease <= 0) {
-                        context.setManualIOEventControl();
+                if (done) {
+                    if (notificationList == null) {
+                        // Try to obtain List object from the thread-local cache
+                        notificationList = ThreadCache.getFromCache(TMP_LIST_IDX);
+                        if (notificationList == null) {
+                            // If there is no List object available in cache - create and add it
+                            notificationList = new ArrayList<AsyncWriteQueueRecord>(2);
+                            ThreadCache.putToCache(TMP_LIST_IDX, notificationList);
+                        } else {
+                            notificationList.clear();
+                        }
                     }
-                }
-                
-                done = (writeTaskQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
-                
-                if (isFinished) {
-                    finishQueueRecord(nioConnection, queueRecord);
                     
-                    if (done) {
-                        return AsyncResult.COMPLETE;
-                    }
+                    // Store all the finished records in the list for future notification
+                    notificationList.add(queueRecord);
+                    
                 } else { // if there is still some data in current message
                     queueRecord.notifyIncomplete();
                     writeTaskQueue.setCurrentElement(queueRecord);
@@ -411,16 +430,53 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                     // If connection is closed - this will fail,
                     // and onWriteFailure called properly
-                    return AsyncResult.INCOMPLETE;
+                    break;
                 }
             }
 
-            if (!done) {
-                // Counter shows there should be some elements in queue,
-                // but seems write() method still didn't add them to a queue
-                // so we can release the thread for now
-                return AsyncResult.EXPECTING_MORE;
+            boolean isComplete = false;
+            
+            // Notify completed records' handlers (if any)
+            if (bytesReleased > 0) {
+                // Is here a chance that queue becomes empty?
+                // If yes - we need to switch to manual io event processing
+                // mode to *disable WRITE interest for SameThreadStrategy*,
+                // so we don't have either neverending WRITE events processing
+                // or stuck, when other thread tried to add data to the queue.
+                if (done && !context.isManualIOEventControl()
+                        && writeTaskQueue.spaceInBytes() - bytesReleased <= 0) {
+                        context.setManualIOEventControl();
+                }
+                
+                isComplete = (writeTaskQueue.releaseSpace(bytesReleased) == 0);
             }
+
+            final AsyncResult result = !done ? AsyncResult.INCOMPLETE :
+                    (!isComplete ? AsyncResult.EXPECTING_MORE : AsyncResult.COMPLETE);
+
+            if (bytesReleased > 0 || notificationList != null) {
+                // Finish the context processing (enable OP_WRITE if needed),
+                // so following notification calls will not block the async write
+                // queue write process
+                context.complete(result.toProcessorResult());
+                
+                if (bytesReleased > 0) {
+                    writeTaskQueue.doNotify();
+                }
+            
+                if (notificationList != null) {
+                    for (int i = 0; i < notificationList.size(); i++) {
+                        final AsyncWriteQueueRecord record = notificationList.get(i);
+                        finishQueueRecord(nioConnection, record);
+                    }
+                    
+                    notificationList.clear();
+                }
+                
+                return AsyncResult.TERMINATE;
+            }
+            
+            return result;
         } catch (IOException e) {
             if (isLogFine) {
                 LOGGER.log(Level.FINEST, "AsyncQueueWriter.processAsync "
@@ -432,20 +488,6 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         return AsyncResult.COMPLETE;
     }
-
-    /**
-     * Return <tt>true</tt> if async write queue counter got zero-value after
-     * subtracting bytes scheduled for release.
-     */
-//    private static boolean checkRefusedBytes(
-//            final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue) {
-//        final AtomicInteger refusedBytesCounter =
-//                writeTaskQueue.getRefusedBytes();
-//        
-//        final int refusedBytes = refusedBytesCounter.getAndSet(0);
-//        return refusedBytes > 0 &&
-//            writeTaskQueue.releaseSpaceAndNotify(refusedBytes) == 0;
-//    }
 
     private static void finishQueueRecord(final NIOConnection nioConnection,
             final AsyncWriteQueueRecord queueRecord) {

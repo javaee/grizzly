@@ -908,6 +908,161 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
 
+    /**
+     * Make sure the write called from WriteHandler.onWritePossible(), even if
+     * it wasn't guaranteed to be non-blocking, will not entirely block
+     * the async writer.
+     * 
+     * http://java.net/jira/browse/GRIZZLY-1309
+     */
+    public void testProvocativeWrite() throws Exception {
+        final int LENGTH = 8192;
+        
+        final AtomicInteger sentBytesCount = new AtomicInteger();
+        
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        server.addListener(listener);
+        
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+            private int bytesRead;
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpContent message = (HttpContent) ctx.getMessage();
+                Buffer b = message.getContent();
+                final int remaining = b.remaining();
+                
+                StringBuilder sb = new StringBuilder(remaining);
+                
+                if (b.hasRemaining()) {
+                    sb.append(b.toStringContent());
+                    try {
+                        check(sb, bytesRead % LENGTH, remaining);
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                    
+                    bytesRead += remaining;
+                }
+                
+                if (message.isLast()) {
+                    parseResult.result(bytesRead);
+                }
+                return ctx.getStopAction();
+            }
+        });
+        
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final HttpHandler ga = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.suspend();
+                
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
+                outputStream.notifyCanWrite(new WriteHandler() {
+
+                    @Override
+                    public void onWritePossible() throws Exception {
+                        boolean isClientTransportPaused = true;
+                        clientTransport.pause();
+                        
+                        try {
+                            while (outputStream.canWrite()) {
+                                byte[] b = new byte[LENGTH];
+                                fill(b);
+                                outputStream.write(b);
+                                outputStream.flush();
+                                sentBytesCount.addAndGet(LENGTH);
+                            }
+
+                            clientTransport.resume();  // Resume the client transport so it can accept more data
+                            isClientTransportPaused = false;
+                            
+                            // Last canWrite returned false, so next write is not guaranteed to be non-blocking
+                            byte[] b = new byte[LENGTH];
+                            fill(b);
+                            outputStream.write(b); // <----- May block here
+                            outputStream.flush();  // <----- or here
+                            sentBytesCount.addAndGet(LENGTH);
+                            
+                            finish(200);
+                        } finally {
+                            if (isClientTransportPaused) {
+                                clientTransport.resume();
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        finish(500);
+                    }
+                    
+                    private void finish(int code) {
+                        response.setStatus(code);
+                        response.resume();
+                    }
+                });
+            }
+        };
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final int responseContentLength =
+                        parseResult.get(10, TimeUnit.SECONDS);
+                
+                assertEquals(sentBytesCount.get(), responseContentLength);
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
     private static void fill(byte[] array) {
         for (int i=0; i<array.length; i++) {
             array[i] = (byte) ('a' + i % ('z' - 'a'));

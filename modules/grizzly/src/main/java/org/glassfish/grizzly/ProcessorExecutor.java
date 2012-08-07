@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,47 +71,20 @@ public final class ProcessorExecutor {
 
         boolean isRerun;
         ProcessorResult result;
-        ProcessorResult.Status status;
         
         try {
             do {
                 result = context.getProcessor().process(context);
-                status = result.getStatus();
-                isRerun = (status == ProcessorResult.Status.RERUN);
+                isRerun = (result.getStatus() == ProcessorResult.Status.RERUN);
                 if (isRerun) {
                     final Context newContext = (Context) result.getData();
                     rerun(context, newContext);
                     context = newContext;
                 }
             } while (isRerun);
-
-            switch (status) {
-                case COMPLETE:
-                    complete(context, result.getData());
-                    break;
-
-                case LEAVE:
-                    leave(context);
-                    break;
-
-                case TERMINATE:
-                    terminate(context);
-                    break;
-
-                case REREGISTER:
-                    reregister(context, result.getData());
-                    break;
-
-                case ERROR:
-                    error(context, result.getData());
-                    break;
-
-                case NOT_RUN:
-                    notRun(context);
-                    break;
-
-                default: throw new IllegalStateException();
-            }
+            
+            complete0(context, result);
+            
         } catch (Throwable t) {
             try {
                 error(context, t);
@@ -170,14 +143,14 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void terminate(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        if (processingHandler != null) {
-            processingHandler.onTerminate(context);
-        }
-    }
+//    private static void terminate(final Context context) throws IOException {
+//        final IOEventProcessingHandler processingHandler =
+//                context.getProcessingHandler();
+//
+//        if (processingHandler != null) {
+//            processingHandler.onTerminate(context);
+//        }
+//    }
 
     private static void rerun(final Context context, final Context newContext)
             throws IOException {
@@ -218,4 +191,52 @@ public final class ProcessorExecutor {
 
     }
 
+    static void complete(final Context context,
+            final ProcessorResult result) {
+        
+        try {
+            complete0(context, result);
+        } catch (Throwable t) {
+            try {
+                error(context, t);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+    
+    private static void complete0(final Context context,
+            final ProcessorResult result)
+            throws IllegalStateException, IOException {
+
+        final ProcessorResult.Status status = result.getStatus();
+
+        switch (status) {
+            case COMPLETE:
+                complete(context, result.getData());
+                break;
+
+            case LEAVE:
+                leave(context);
+                break;
+
+            case TERMINATE:
+//                    terminate(context);
+                break;
+
+            case REREGISTER:
+                reregister(context, result.getData());
+                break;
+
+            case ERROR:
+                error(context, result.getData());
+                break;
+
+            case NOT_RUN:
+                notRun(context);
+                break;
+
+            default:
+                throw new IllegalStateException();
+        }
+    }
 }
