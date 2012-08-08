@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-extra</artifactId>
-        <version>1.9.51</version>
+        <version>1.9.52-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-hudson</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.51</version>
+    <version>1.9.52-SNAPSHOT</version>
     <name>grizzly-hudson</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
