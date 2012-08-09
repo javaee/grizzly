@@ -105,13 +105,13 @@ public class TransferEncodingTest extends TestCase {
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);
-        final HttpContent response = doTest(httpHandler, request, 10000);
+        final HttpContent response = doTest(httpHandler, request, 10);
 
         assertEquals(msgSize, response.getHttpHeader().getContentLength());
     }
 
     public void testLargeMessageAutoChunking() throws Exception {
-        final int msgSize = 1024 * 10;
+        final int msgSize = 1024 * 24;
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);

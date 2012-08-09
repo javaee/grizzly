@@ -90,9 +90,9 @@ public class OutputBuffer {
 
     private static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
-    private static final int MAX_COPY_BUFFER_SIZE = 1024 * 8;
-
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
+
+    private static final int MAX_CHAR_BUFFER_SIZE = 1024 * 64 + 1;
 
     private HttpResponsePacket response;
 
@@ -124,7 +124,7 @@ public class OutputBuffer {
     private final Map<String, CharsetEncoder> encoders =
             new HashMap<String, CharsetEncoder>();
 
-    private final CharBuffer charBuf = CharBuffer.allocate(1);
+    private CharBuffer charsBuffer;
 
     private MemoryManager memoryManager;
 
@@ -139,15 +139,6 @@ public class OutputBuffer {
     private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
-
-    /**
-     * This char[] array will be used when a user calls {@link #write(String)}  or
-     * {@link #write(String, int, int)}.  In these two cases, {@link String#getChars(int, int, char[], int)}
-     * will be used to copy the characters from the String into this array which
-     * will then be wrapped and passed for encoding.  This is done as the copy+wrap
-     * is cheaper than just wrapping the String.
-     */
-    private char[] stringCopyBuffer;
 
     /**
      * Flag indicating whether or not async operations are being used on the
@@ -232,6 +223,13 @@ public class OutputBuffer {
         if (!committed && currentBuffer == null) {
             this.bufferSize = bufferSize;
         }
+        
+        if (charsBuffer != null &&
+                charsBuffer.capacity() < bufferSize) {
+            CharBuffer newCharBuffer = CharBuffer.allocate(bufferSize);
+            newCharBuffer.put(charsBuffer);
+            charsBuffer = newCharBuffer;
+        }
     }
 
     /**
@@ -250,6 +248,9 @@ public class OutputBuffer {
             currentBuffer.clear();
         }
 
+        if (charsBuffer != null) {
+            charsBuffer.clear();
+        }
     }
 
 
@@ -278,6 +279,10 @@ public class OutputBuffer {
             size += currentBuffer.position();
         }
 
+        if (charsBuffer != null) {
+            size += (charsBuffer.position() << 1);
+        }
+        
         return size;
     }
 
@@ -302,7 +307,14 @@ public class OutputBuffer {
 
         temporaryWriteBuffer.recycle();
 
-        charBuf.position(0);
+        if (charsBuffer != null) {
+            if (charsBuffer.capacity() < MAX_CHAR_BUFFER_SIZE) {
+                charsBuffer.clear();
+            } else {
+                charsBuffer = null;
+            }
+        }
+//        charBuf.position(0);
 
         fileTransferRequested = false;
         encoder = null;
@@ -367,19 +379,6 @@ public class OutputBuffer {
     // ---------------------------------------------------- Writer-Based Methods
 
 
-    public void write(char cbuf[], int off, int len) throws IOException {
-
-        handleAsyncErrors();
-
-        if (closed || len == 0) {
-            return;
-        }
-
-        flushCharsToBuf(CharBuffer.wrap(cbuf, off, len));
-
-    }
-
-
     public void writeChar(int c) throws IOException {
 
         handleAsyncErrors();
@@ -388,12 +387,41 @@ public class OutputBuffer {
             return;
         }
 
-        charBuf.position(0);
-        charBuf.put(0, (char) c);
-        flushCharsToBuf(charBuf);
+        checkCharBuffer();
+
+        if (!charsBuffer.hasRemaining()) {
+            flushCharsToBuf(true);
+        }
+        
+//        charBuf.position(0);
+        charsBuffer.put((char) c);
+//        flushCharsToBuf(charBuf);
     }
 
+    public void write(char cbuf[], int off, int len) throws IOException {
 
+        handleAsyncErrors();
+
+        if (closed || len == 0) {
+            return;
+        }
+
+        checkCharBuffer();
+        
+        final int remaining = charsBuffer.remaining();
+        
+        if (len <= remaining) {
+            charsBuffer.put(cbuf, off, len);
+        } else if (len - remaining < remaining) {
+            charsBuffer.put(cbuf, off, remaining);
+            flushCharsToBuf(true);
+            charsBuffer.put(cbuf, off + remaining, len - remaining);
+        } else {
+            flushCharsToBuf(false);
+            flushCharsToBuf(CharBuffer.wrap(cbuf, off, len), true);
+    }
+    }
+    
     public void write(final char cbuf[]) throws IOException {
         write(cbuf, 0, cbuf.length);
     }
@@ -414,20 +442,26 @@ public class OutputBuffer {
         int offLocal = off;
         int lenLocal = len;
 
-        while (lenLocal > 0) {
-            if (lenLocal > MAX_COPY_BUFFER_SIZE) {
-                copyStringCharsToInternalBuffer(str, offLocal, MAX_COPY_BUFFER_SIZE);
-                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, MAX_COPY_BUFFER_SIZE));
-                offLocal += MAX_COPY_BUFFER_SIZE;
-                lenLocal -= MAX_COPY_BUFFER_SIZE;
-            } else {
-                copyStringCharsToInternalBuffer(str, offLocal, lenLocal);
-                flushCharsToBuf(CharBuffer.wrap(stringCopyBuffer, 0, lenLocal));
-                offLocal += lenLocal;
-                lenLocal = 0;
-            }
-        }
+        checkCharBuffer();
+        
+        do {
+            final int position = charsBuffer.position();
+            final int remaining = charsBuffer.remaining();
+            final int workingLen = Math.min(lenLocal, remaining);
+            
+            str.getChars(offLocal, offLocal + workingLen, charsBuffer.array(),
+                    charsBuffer.arrayOffset() + position);
+            charsBuffer.position(position + workingLen);
+            
+            offLocal += workingLen;
+            lenLocal -= workingLen;
 
+            if (lenLocal > 0) { // If string processing is not entirely complete
+                flushCharsToBuf(false);
+            }
+        } while (lenLocal > 0);
+
+        flushBinaryBuffersIfNeeded();
     }
 
 
@@ -526,11 +560,13 @@ public class OutputBuffer {
         if (fileTransferRequested) {
             throw new IllegalStateException("Only one file transfer allowed per request");
         }
-        if (committed) {
-            throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
-        }
 
+        // clear the internal buffers; sendfile content is exclusive
+        reset();
 
+//        if (committed) {
+//            throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
+//        }
 
         // additional precondition validation performed by FileTransfer
         // constructor
@@ -538,13 +574,6 @@ public class OutputBuffer {
 
         // lock further sendfile requests out
         fileTransferRequested = true;
-
-        // clear the internal buffers; sendfile content is exclusive
-        if (currentBuffer != null) {
-            currentBuffer.clear();
-        } if (compositeBuffer != null) {
-            compositeBuffer.clear();
-        }
 
         response.setContentLengthLong(f.remaining());
         if (response.getContentType() == null) {
@@ -622,7 +651,7 @@ public class OutputBuffer {
         // commit the response (mark it as committed)
         final boolean isJustCommitted = doCommit();
         // Try to commit the content chunk together with headers (if there were not committed before)
-        if (!writeContentChunk(true) && (isJustCommitted || response.isChunked())) {
+        if (!flushAllBuffers(true) && (isJustCommitted || response.isChunked())) {
             // If there is no ready content chunk to commit,
             // but headers were not committed yet, or this is chunked encoding
             // and we need to send trailer
@@ -642,7 +671,7 @@ public class OutputBuffer {
         handleAsyncErrors();
 
         final boolean isJustCommitted = doCommit();
-        if (!writeContentChunk(false) && isJustCommitted) {
+        if (!flushAllBuffers(false) && isJustCommitted) {
             forceCommitHeaders(false);
         }
 
@@ -823,8 +852,16 @@ public class OutputBuffer {
         }
     }
 
-
-    private boolean writeContentChunk(final boolean isLast) throws IOException {
+    private boolean flushAllBuffers(final boolean isLast) throws IOException {
+        if (charsBuffer != null) {
+            flushCharsToBuf(false);
+        }
+        
+        return flushBinaryBuffers(isLast);
+    }
+    
+    private boolean flushBinaryBuffers(final boolean isLast)
+            throws IOException {
         if (!response.isChunkingAllowed()
                 && response.getContentLength() == -1) {
             if (!isLast) {
@@ -872,6 +909,12 @@ public class OutputBuffer {
                   !asyncEnabled);
     }
 
+    private void checkCharBuffer() {
+        if (charsBuffer == null) {
+            charsBuffer = CharBuffer.allocate(bufferSize);
+        }
+    }
+    
     private void checkCurrentBuffer() {
         if (currentBuffer == null) {
             currentBuffer = memoryManager.allocate(bufferSize);
@@ -946,70 +989,69 @@ public class OutputBuffer {
         }
     }
 
-    private void flushCharsToBuf(final CharBuffer charBuf) throws IOException {
+    private void flushCharsToBuf(final boolean canFlushToNet) throws IOException {
+        charsBuffer.flip();
+        flushCharsToBuf(charsBuffer, canFlushToNet);
+        charsBuffer.clear();
+    }
 
-        handleAsyncErrors();
+    private void flushCharsToBuf(final CharBuffer charBuf, final boolean canFlushToNet) throws IOException {
+
+        if (!charBuf.hasRemaining()) return;
+        
+//        handleAsyncErrors();
+        
         // flush the buffer - need to take care of encoding at this point
         final CharsetEncoder enc = getEncoder();
-        checkCurrentBuffer();
-        ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
-        int bufferPos = currentBuffer.position();
-        int byteBufferPos = currentByteBuffer.position();
-
-        CoderResult res = enc.encode(charBuf,
-                                     currentByteBuffer,
-                                     true);
-
-        currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-
-        while (res == CoderResult.OVERFLOW) {
-            finishCurrentBuffer();
+        
+        
+//        checkCurrentBuffer();
+//        ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
+//        int bufferPos = currentBuffer.position();
+//        int byteBufferPos = currentByteBuffer.position();
+//
+//        CoderResult res = enc.encode(charBuf,
+//                                     currentByteBuffer,
+//                                     true);
+//
+//        currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
+        
+        CoderResult res;
+        boolean isOverflow;
+        
+        do {
             checkCurrentBuffer();
-            currentByteBuffer = currentBuffer.toByteBuffer();
-            bufferPos = currentBuffer.position();
-            byteBufferPos = currentByteBuffer.position();
-
+            final ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
+            final int bufferPos = currentBuffer.position();
+            final int byteBufferPos = currentByteBuffer.position();
+            
             res = enc.encode(charBuf, currentByteBuffer, true);
 
             currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-        }
+            
+            isOverflow = (res == CoderResult.OVERFLOW);
+            
+            if (isOverflow) {
+                finishCurrentBuffer();
+            }
+        } while (isOverflow);
 
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
         }
+        
+        if (canFlushToNet) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
+            flushBinaryBuffersIfNeeded();
+        }        
+    }
 
-        if (compositeBuffer != null) {
+    private void flushBinaryBuffersIfNeeded() throws IOException {
+        if (compositeBuffer != null) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
             doCommit();
-            writeContentChunk(false);
-        }
+            flushBinaryBuffers(false);
+        }        
     }
-
-    private void copyStringCharsToInternalBuffer(final String string,
-                                                 final int offset,
-                                                 final int len) {
-        if (stringCopyBuffer == null || len > stringCopyBuffer.length) {
-            stringCopyBuffer = new char[getCopyBufferAllocationLength(len)];
-        }
-        string.getChars(offset, offset + len, stringCopyBuffer, 0);
-    }
-
-
-    private static int getCopyBufferAllocationLength(final int minimumLength) {
-        if (minimumLength >= MAX_COPY_BUFFER_SIZE) {
-            return MAX_COPY_BUFFER_SIZE;
-        }
-
-        int returnLen = MAX_COPY_BUFFER_SIZE;
-        for (int i = 5; i > 0; i--) {
-            final int computedLen = MAX_COPY_BUFFER_SIZE >> i;
-            if (minimumLength <= computedLen) {
-                returnLen = computedLen;
-                break;
-            }
-        }
-        return returnLen;
-    }
-
+    
     private void notifyCommit() throws IOException {
         for (int i = 0, len = lifeCycleListeners.size(); i < len; i++) {
             lifeCycleListeners.get(i).onCommit();
