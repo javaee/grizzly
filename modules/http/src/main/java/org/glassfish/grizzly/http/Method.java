@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,7 +63,14 @@ public final class Method {
         return new Method(methodName);
     }
 
+    /**
+     * @deprecated pls. use {@link #valueOf(org.glassfish.grizzly.http.util.DataChunk)}.
+     */
     public static Method parseDataChunk(final DataChunk methodC) {
+        return valueOf(methodC);
+    }
+    
+    public static Method valueOf(final DataChunk methodC) {
         if (methodC.equals(Method.GET.getMethodString())) {
             return Method.GET;
         } else if (methodC.equals(Method.POST.getMethodString())) {
@@ -84,6 +91,30 @@ public final class Method {
             return Method.PATCH;
         } else {
             return CUSTOM(methodC.toString());
+        }
+    }
+
+    public static Method valueOf(final String method) {
+        if (method.equals(Method.GET.getMethodString())) {
+            return Method.GET;
+        } else if (method.equals(Method.POST.getMethodString())) {
+            return Method.POST;
+        } else if (method.equals(Method.HEAD.getMethodString())) {
+            return Method.HEAD;
+        } else if (method.equals(Method.PUT.getMethodString())) {
+            return Method.PUT;
+        } else if (method.equals(Method.DELETE.getMethodString())) {
+            return Method.DELETE;
+        } else if (method.equals(Method.TRACE.getMethodString())) {
+            return Method.TRACE;
+        } else if (method.equals(Method.CONNECT.getMethodString())) {
+            return Method.CONNECT;
+        } else if (method.equals(Method.OPTIONS.getMethodString())) {
+            return Method.OPTIONS;
+        } else if (method.equals(Method.PATCH.getMethodString())) {
+            return Method.PATCH;
+        } else {
+            return CUSTOM(method.toString());
         }
     }
 

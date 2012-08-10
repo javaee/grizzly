@@ -575,7 +575,7 @@ public class Request {
      * Release all object references, and initialize instance variables, in
      * preparation for reuse of this object.
      */
-    protected final void recycle() {
+    protected void recycle() {
         scheme = null;
         contextPath = "";
         httpHandlerPath = null;
