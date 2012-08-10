@@ -705,8 +705,10 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
             case 2: { // Headers are ready
-                if (httpPacket.getHeaders().size() > 0) {
-                    onHttpHeadersParsed((HttpHeader) httpPacket, ctx);
+                onHttpHeadersParsed((HttpHeader) httpPacket, ctx);
+                if (httpPacket.getHeaders().size() == 0) {
+                    // no headers - do not expect further content
+                    ((HttpHeader) httpPacket).setExpectContent(false);
                 }
                 input.position(parsingState.offset);
                 return true;
