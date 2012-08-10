@@ -297,7 +297,7 @@ public class Response {
      * Release all object references, and initialize instance variables, in
      * preparation for reuse of this object.
      */
-    protected final void recycle() {
+    protected void recycle() {
         delayQueue = null;
         suspendedContext.reset();
         outputBuffer.recycle();
