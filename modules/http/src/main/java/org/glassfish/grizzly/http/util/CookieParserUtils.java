@@ -1012,6 +1012,10 @@ public class CookieParserUtils {
 //                    //                        valueEnd-valueStart );
 //                    continue;
 //                }
+
+                if (CookieUtils.equals("Discard", bytes, nameStart, nameEnd)) {
+                    continue;
+                }
             }
 
             // Normal Cookie
@@ -1270,6 +1274,9 @@ public class CookieParserUtils {
 //                    //                        valueEnd-valueStart );
 //                    continue;
 //                }
+                if (CookieUtils.equals("Discard", buffer, nameStart, nameEnd)) {
+                    continue;
+                }
             }
 
             // Normal Cookie
@@ -1510,9 +1517,9 @@ public class CookieParserUtils {
 //                    continue;
 //                }
 //
-//                if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
-//                    continue;
-//                }
+                if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
+                    continue;
+                }
             }
 
             // Normal Cookie
