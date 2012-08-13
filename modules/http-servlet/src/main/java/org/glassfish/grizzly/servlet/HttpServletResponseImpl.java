@@ -64,6 +64,9 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
@@ -264,6 +267,17 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
 
         response.setContentLength(len);
 
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setContentLengthLong(long len) {
+        if (isCommitted())
+            return;
+
+        response.setContentLengthLong(len);
     }
 
     
@@ -557,6 +571,29 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
 
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getHeader(String string) {
+        return response.getHeader(string);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getHeaderNames() {
+        return new ArrayList(Arrays.asList(response.getHeaderNames()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getHeaders(String string) {
+        return new ArrayList(Arrays.asList(response.getHeaderValues(string)));
+    }
     
     /**
      * {@inheritDoc}
@@ -670,6 +707,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
     }
 
 
+    @Override
     public int getStatus() {
         return response.getStatus();
     }
@@ -728,5 +766,5 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
     @Override
     public Response getInternalResponse() {
         return response;
-    }
+    }    
 }

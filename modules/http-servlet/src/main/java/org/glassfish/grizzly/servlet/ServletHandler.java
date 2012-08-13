@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.DispatcherType;
+import static javax.servlet.DispatcherType.REQUEST;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -68,8 +70,6 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
-
-import static org.glassfish.grizzly.servlet.DispatcherType.REQUEST;
 
 /**
  * HttpHandler implementation that provides an entry point for processing
@@ -208,7 +208,7 @@ public class ServletHandler extends HttpHandler {
             final HttpServletResponseImpl servletResponse = HttpServletResponseImpl.create();
 
             setPathData(request, servletRequest);
-            servletRequest.initialize(request);
+            servletRequest.initialize(request, servletResponse);
             servletResponse.initialize(response);
 
             request.setNote(SERVLET_REQUEST_NOTE, servletRequest);
@@ -253,6 +253,9 @@ public class ServletHandler extends HttpHandler {
             } else {
                 servletInstance.service(servletRequest, servletResponse);
             }
+
+            // Request may want to initialize async processing
+            servletRequest.onAfterService();
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
             customizeErrorPage(response, "Internal Error", 500);

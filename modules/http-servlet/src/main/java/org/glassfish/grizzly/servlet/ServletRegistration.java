@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,26 +40,34 @@
 package org.glassfish.grizzly.servlet;
 
 
-import org.glassfish.grizzly.utils.ArraySet;
-
-import javax.servlet.Servlet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.Servlet;
+import javax.servlet.ServletSecurityElement;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Allows customization of a {@link javax.servlet.Servlet} registered with the {@link WebappContext}.
  *
  * @since 2.2
  */
-public class ServletRegistration extends Registration implements Comparable<ServletRegistration> {
+public class ServletRegistration extends Registration
+        implements javax.servlet.ServletRegistration.Dynamic, Comparable<ServletRegistration> {
 
     protected Class<? extends Servlet> servletClass;
     protected ArraySet<String> urlPatterns = new ArraySet<String>(String.class);
     protected Servlet servlet;
     protected int loadOnStartup = -1;
     protected ExpectationHandler expectationHandler;
+    protected boolean isAsyncSupported;
+
+    /**
+     * The run-as identity for this servlet.
+     */
+    private String runAs = null;
 
     // ------------------------------------------------------------ Constructors
 
@@ -140,6 +148,7 @@ public class ServletRegistration extends Registration implements Comparable<Serv
      * @throws IllegalStateException if the ServletContext from which this
      * ServletRegistration was obtained has already been initialized
      */
+    @Override
     public Set<String> addMapping(String... urlPatterns) {
         if (ctx.deployed) {
             throw new IllegalStateException("WebappContext has already been deployed");
@@ -162,6 +171,7 @@ public class ServletRegistration extends Registration implements Comparable<Serv
      * available mappings of the Servlet represented by this
      * <code>ServletRegistration</code>
      */
+    @Override
     public Collection<String> getMappings() {
         return Collections.unmodifiableList(
                 Arrays.asList(urlPatterns.getArrayCopy()));
@@ -191,6 +201,7 @@ public class ServletRegistration extends Registration implements Comparable<Serv
      * @throws IllegalStateException if the ServletContext from which
      *                               this ServletRegistration was obtained has already been initialized
      */
+    @Override
     public void setLoadOnStartup(int loadOnStartup) {
         if (ctx.deployed) {
             throw new IllegalStateException("WebappContext has already been deployed");
@@ -214,6 +225,46 @@ public class ServletRegistration extends Registration implements Comparable<Serv
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<String> setServletSecurity(ServletSecurityElement constraint) {
+        return Collections.<String>emptySet();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMultipartConfig(MultipartConfigElement multipartConfig) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getRunAsRole() {
+        return runAs;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRunAsRole(String roleName) {
+        this.runAs = roleName;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setAsyncSupported(boolean isAsyncSupported) {
+        this.isAsyncSupported = isAsyncSupported;
+    }
+    
+    /**
      * Set the {@link ExpectationHandler} responsible for processing
      * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
      * 
@@ -232,6 +283,7 @@ public class ServletRegistration extends Registration implements Comparable<Serv
         sb.append(", servletClass=").append(className);
         sb.append(", urlPatterns=").append(Arrays.toString(urlPatterns.getArray()));
         sb.append(", loadOnStartup=").append(loadOnStartup);
+        sb.append(", isAsyncSupported=").append(isAsyncSupported);
         sb.append(" }");
         return sb.toString();
     }

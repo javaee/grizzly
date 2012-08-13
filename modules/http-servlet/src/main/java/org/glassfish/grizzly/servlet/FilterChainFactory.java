@@ -57,14 +57,13 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.util.Globals;
-
+import java.util.List;
+import java.util.Map;
+import javax.servlet.DispatcherType;
 import javax.servlet.Servlet;
 import javax.servlet.ServletRequest;
-import java.lang.String;
-import java.util.Collection;
-import java.util.Map;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.util.Globals;
 
 /**
  * <code>FilterChainFactory</code> is responsible for building a {@link javax.servlet.FilterChain}
@@ -77,18 +76,17 @@ import java.util.Map;
  */
 public class FilterChainFactory {
 
-    private final Collection<FilterRegistration> registrations;
+//    private final Collection<FilterRegistration> registrations;
     private final WebappContext ctx;
 
 
     // ------------------------------------------------------------ Constructors
 
 
-    public FilterChainFactory(final WebappContext ctx,
-                              final Collection<FilterRegistration> registrations) {
+    public FilterChainFactory(final WebappContext ctx) {
 
         this.ctx = ctx;
-        this.registrations = registrations;
+//        this.registrations = registrations;
 
     }
 
@@ -131,57 +129,57 @@ public class FilterChainFactory {
 
 
     // -------------------------------------------------------- Private Methods
-
     private FilterChainImpl buildFilterChain(final Servlet servlet,
-                                                final String requestPath,
-                                                final DispatcherType dispatcherType) {
-           // If there is no servlet to execute, return null
-           if (servlet == null) {
-               return (null);
-           }
+            final String requestPath,
+            final DispatcherType dispatcherType) {
+        // If there is no servlet to execute, return null
+        if (servlet == null) {
+            return (null);
+        }
 
-           // Create and initialize a filter chain object
-           FilterChainImpl filterChain = new FilterChainImpl(servlet, ctx);
+        // Create and initialize a filter chain object
+        FilterChainImpl filterChain = new FilterChainImpl(servlet, ctx);
 
+        final Map<String, ? extends FilterRegistration> registrations =
+                ctx.getFilterRegistrations();
 
-           // If there are no filter mappings, we are done
-           if (registrations.isEmpty()) {
-               return filterChain;
-           }
+        // If there are no filter mappings, we are done
+        if (registrations.isEmpty()) {
+            return filterChain;
+        }
+        
+        final List<FilterMap> filterMaps = ctx.getFilterMaps();
 
-           // Add the relevant path-mapped filters to this filter chain
-           for (final FilterRegistration registration : registrations) {
-               for (final Map.Entry<String[],Byte> entry : registration.urlPatterns.entrySet()) {
-                   if (!registration.isDispatcherSet(entry.getValue(), dispatcherType)) {
-                       continue;
-                   }
-                   if (!matchFiltersURL(entry.getKey(), requestPath)) {
-                       continue;
-                   }
-                filterChain.addFilter(registration);
-               }
-           }
-
+        // Add the relevant path-mapped filters to this filter chain
+        for (final FilterMap filterMap : filterMaps) {
+            if (!filterMap.getDispatcherTypes().contains(dispatcherType)) {
+                continue;
+            }
+            
+            if (!matchFiltersURL(filterMap, requestPath)) {
+                continue;
+            }
+            
+            filterChain.addFilter(registrations.get(filterMap.getFilterName()));
+        }
 
         // Add filters that match on servlet name second
         String servletName = servlet.getServletConfig().getServletName();
-        for (final FilterRegistration registration : registrations) {
-            for (final Map.Entry<String[], Byte> entry : registration.servletNames.entrySet()) {
-                if (!registration.isDispatcherSet(entry.getValue(), dispatcherType)) {
-                    continue;
-                }
-                if (!matchFiltersServlet(entry.getKey(), servletName)) {
-                    continue;
-                }
-
-                filterChain.addFilter(registration);
+        for (final FilterMap filterMap : filterMaps) {
+            if (!filterMap.getDispatcherTypes().contains(dispatcherType)) {
+                continue;
             }
-
+            
+            if (!matchFiltersServlet(filterMap, servletName)) {
+                continue;
+            }
+            
+            filterChain.addFilter(registrations.get(filterMap.getFilterName()));
         }
 
         // Return the completed filter chain
-        return (filterChain);
-       }
+        return filterChain;
+    }
 
 
     private String getRequestPath(ServletRequest request) {
@@ -207,57 +205,67 @@ public class FilterChainFactory {
     }
 
     /**
-     * TODO
-     * @param urlPatterns
-     * @param requestPath
-     * @return
+     * Return <code>true</code> if the context-relative request path matches the
+     * requirements of the specified filter mapping; otherwise, return
+     * <code>null</code>.
+     *
+     * @param filterMap Filter mapping being checked
+     * @param requestPath Context-relative request path of this request
      */
-    private static boolean matchFiltersURL(final String[] urlPatterns,
-                                           final String requestPath) {
+    /* SJSWS 6324431
+     private boolean matchFiltersURL(FilterMap filterMap, String requestPath) {
+     */
+    // START SJSWS 6324431
+    private boolean matchFiltersURL(FilterMap filterMap, String requestPath) {
+        // END SJSWS 6324431
 
-        if (requestPath == null)
-            return (false);
-
-        if (urlPatterns == null || urlPatterns.length == 0) {
+        if (requestPath == null) {
             return false;
         }
-        for (final String urlPattern : urlPatterns) {
-            // Case 1 - Exact Match
-            if (urlPattern.equals(requestPath))
-                return true;
-            // Case 2 - Path Match ("/.../*")
-            if ("/*".equals(urlPattern))
-                return true;
-            if (urlPattern.endsWith("/*")) {
-                if (urlPattern.regionMatches(0,
-                                             requestPath,
-                                             0,
-                                             (urlPattern.length() - 2))) {
-                    if (requestPath.length() == (urlPattern.length() - 2)) {
-                        return true;
-                    } else if ('/' == requestPath.charAt(urlPattern.length() - 2)) {
-                        return true;
-                    }
-                }
-                continue;
-            }
 
-            // Case 3 - Extension Match
-            if (urlPattern.startsWith("*.")) {
-                int slash = requestPath.lastIndexOf('/');
-                int period = requestPath.lastIndexOf('.');
-                if ((slash >= 0) && (period > slash)
-                        && (period != requestPath.length() - 1)
-                        && ((requestPath.length() - period)
-                        == (urlPattern.length() - 1))) {
-                    return (urlPattern.regionMatches(2, requestPath, period + 1,
-                            urlPattern.length() - 2));
-                }
-            }
-
+        // Match on context relative request path
+        String testPath = filterMap.getURLPattern();
+        if (testPath == null) {
+            return false;
         }
 
-        return false;
+        // Case 1 - Exact Match
+        if (testPath.equals(requestPath)) {
+            return true;
+        }
+
+        // Case 2 - Path Match ("/.../*")
+        if (testPath.equals("/*")) {
+            return true;
+        }
+        if (testPath.endsWith("/*")) {
+            if (testPath.regionMatches(0, requestPath, 0,
+                    testPath.length() - 2)) {
+                if (requestPath.length() == (testPath.length() - 2)) {
+                    return true;
+                } else if ('/' == requestPath.charAt(testPath.length() - 2)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Case 3 - Extension Match
+        if (testPath.startsWith("*.")) {
+            int slash = requestPath.lastIndexOf('/');
+            int period = requestPath.lastIndexOf('.');
+            if ((slash >= 0) && (period > slash)
+                    && (period != requestPath.length() - 1)
+                    && ((requestPath.length() - period)
+                    == (testPath.length() - 1))) {
+                return (testPath.regionMatches(2, requestPath, period + 1,
+                        testPath.length() - 2));
+            }
+        }
+
+        // Case 4 - "Default" Match
+        return false; // NOTE - Not relevant for selecting filters
+
     }
 
 
@@ -266,25 +274,22 @@ public class FilterChainFactory {
      * the requirements of the specified filter mapping; otherwise
      * return <code>false</code>.
      *
-     * @param servletNames mapped servlet names
+     * @param filterMap Filter mapping being checked
      * @param servletName Servlet name being checked
      */
-    private boolean matchFiltersServlet(final String[] servletNames,
+    private boolean matchFiltersServlet(FilterMap filterMap, 
                                         String servletName) {
 
-        if (servletName != null) {
-            if (servletNames == null || servletNames.length == 0) {
+        if (servletName == null) {
+            return false;
+        } else {
+            if (servletName.equals(filterMap.getServletName())
+                    || "*".equals(filterMap.getServletName())) {
+                return true;
+            } else {
                 return false;
             }
-            for (final String name : servletNames) {
-                if (servletName.equals(name)
-                        || "*".equals(name)) {
-                    return true;
-                }
-            }
         }
-        return false;
-
     }
 
 }

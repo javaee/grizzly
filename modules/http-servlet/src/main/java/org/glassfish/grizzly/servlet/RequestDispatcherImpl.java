@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,16 +57,15 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.util.Globals;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.DispatcherType;
+import static javax.servlet.DispatcherType.INCLUDE;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -76,8 +75,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import static org.glassfish.grizzly.servlet.DispatcherType.INCLUDE;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.server.util.Globals;
 
 /**
  * Standard implementation of <code>RequestDispatcher</code> that allows a
@@ -164,9 +163,8 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
         this.name = name;
 
         if( logger.isLoggable( Level.FINE ) )
-            logger.fine( "servletPath=" + this.servletPath + ", pathInfo=" +
-                         this.pathInfo + ", queryString=" + queryString +
-                         ", name=" + this.name );
+            logger.log(Level.FINE, "servletPath={0}, pathInfo={1}, queryString={2}, name={3}",
+                    new Object[]{this.servletPath, this.pathInfo, queryString, this.name});
     }
 
     /**
@@ -182,6 +180,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
      * @throws IOException      if an input/output error occurs
      * @throws ServletException if a servlet exception occurs
      */
+    @Override
     public void forward( ServletRequest request, ServletResponse response )
             throws ServletException, IOException {
         dispatch( request, response, DispatcherType.FORWARD );
@@ -256,7 +255,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
                 response.resetBuffer();
             } catch( IllegalStateException e ) {
                 if( logger.isLoggable( Level.FINE ) )
-                    logger.fine( "  Forward resetBuffer() returned ISE: " + e );
+                    logger.log( Level.FINE, "  Forward resetBuffer() returned ISE: {0}", e);
                 throw e;
             }
         }
@@ -388,6 +387,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
      * @throws ServletException if a servlet exception occurs
      */
     @SuppressWarnings( "unchecked" )
+    @Override
     public void include( ServletRequest request, ServletResponse response )
             throws ServletException, IOException {
         if( System.getSecurityManager() != null ) {
@@ -618,16 +618,16 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
         crossContextFlag = !(wrapper.getContextPath().equals( hcurrent.getContextPath()));
 
         // Instantiate a new wrapper and insert it in the chain
-        DispatchedHttpServletRequest wrapper = new DispatchedHttpServletRequest( hcurrent, state.dispatcherType );
+        DispatchedHttpServletRequest wrapperLocal = new DispatchedHttpServletRequest( hcurrent, state.dispatcherType );
         if( previous == null ) {
-            state.outerRequest = wrapper;
+            state.outerRequest = wrapperLocal;
         } else {
-            ( (ServletRequestWrapper)previous ).setRequest( wrapper );
+            ( (ServletRequestWrapper)previous ).setRequest( wrapperLocal );
         }
 
-        state.wrapRequest = wrapper;
+        state.wrapRequest = wrapperLocal;
 
-        return wrapper;
+        return wrapperLocal;
     }
 
     /**
@@ -656,15 +656,15 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
 
         HttpServletResponse hcurrent = (HttpServletResponse)current;
         // Instantiate a new wrapper and insert it in the chain
-        DispatchedHttpServletResponse wrapper = new DispatchedHttpServletResponse( hcurrent,
+        DispatchedHttpServletResponse wrapperLocal = new DispatchedHttpServletResponse( hcurrent,
                                                                                    INCLUDE.equals( state.dispatcherType ) );
         if( previous == null )
-            state.outerResponse = wrapper;
+            state.outerResponse = wrapperLocal;
         else
-            ( (ServletResponseWrapper)previous ).setResponse( wrapper );
-        state.wrapResponse = wrapper;
+            ( (ServletResponseWrapper)previous ).setResponse( wrapperLocal );
+        state.wrapResponse = wrapperLocal;
 
-        return wrapper;
+        return wrapperLocal;
     }
 
     private static void closeResponse( ServletResponse response ) {
@@ -697,6 +697,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             this.dispatcherType = dispatcherType;
         }
 
+        @Override
         public Object run() throws java.lang.Exception {
             doDispatch( request, response, dispatcherType );
             return null;
@@ -713,6 +714,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             this.response = response;
         }
 
+        @Override
         public Object run() throws ServletException, IOException {
             doInclude( request, response );
             return null;

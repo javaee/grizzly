@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,7 @@
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
+import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
@@ -111,5 +112,23 @@ public class ServletInputStreamImpl extends ServletInputStream {
 
     void recycle() {
         inputStream = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isFinished() {
+        return inputStream.isFinished();
+    }
+
+    @Override
+    public boolean isReady() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void setReadListener(ReadListener rl) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

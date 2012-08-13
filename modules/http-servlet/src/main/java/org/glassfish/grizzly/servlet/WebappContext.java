@@ -64,7 +64,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -86,7 +89,9 @@ import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
+import javax.servlet.SessionTrackingMode;
 import javax.servlet.SingleThreadModel;
+import javax.servlet.descriptor.JspConfigDescriptor;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -127,9 +132,12 @@ public class WebappContext implements ServletContext {
     private static final Map<WebappContext, HttpServer> DEPLOYED_APPS =
             new HashMap<WebappContext, HttpServer>();
 
+    private static final Set<SessionTrackingMode> DEFAULT_SESSION_TRACKING_MODES =
+        EnumSet.of(SessionTrackingMode.COOKIE);
+    
     /* Servlet major/minor versions */
-    private static final int MAJOR_VERSION = 2;
-    private static final int MINOR_VERSION = 5;
+    private static final int MAJOR_VERSION = 3;
+    private static final int MINOR_VERSION = 1;
 
     /* Logical name, path spec, and filesystem path of this application */
     private final String displayName;
@@ -137,18 +145,30 @@ public class WebappContext implements ServletContext {
     private final String basePath;
 
     /* Servlet context initialization parameters */
-    private Map<String,String> contextInitParams;
+    private final Map<String,String> contextInitParams =
+            new LinkedHashMap<String, String>(8, 1.0f);
+
+    /**
+     * The security roles for this application
+     */
+    private final List<String> securityRoles = new ArrayList<String>();
 
     /* Registrations */
-    private Map<String,ServletRegistration> servletRegistrations;
-    private LinkedHashMap<String,FilterRegistration> filterRegistrations;
+    private final Map<String, ServletRegistration> servletRegistrations =
+            new HashMap<String,ServletRegistration>(8, 1.0f);
+    
+    private final Map<String, FilterRegistration> filterRegistrations =
+            new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
+    private final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
+            Collections.<String, FilterRegistration>unmodifiableMap(filterRegistrations);
+            
 
     /* ServletHandlers backing the registrations */
     private Set<ServletHandler> servletHandlers;
 
     /* Listeners */
-    private Set<Class<? extends EventListener>> eventListenerClasses;
-    private Set<String> eventListenerClassNames;  // TODO - wire this in
+    private final Set<EventListener> eventListenerInstances =
+            new LinkedHashSet<EventListener>(4, 1.0f);  // TODO - wire this in
     private EventListener[] eventListeners = new EventListener[0];
 
     /* Application start/stop state */
@@ -167,11 +187,18 @@ public class WebappContext implements ServletContext {
 
     /* Thread local data used during request dispatch */
     /* TODO: seems like this may cause a leak - when is this ever cleared? */
-    private ThreadLocal<DispatchData> dispatchData = new ThreadLocal<DispatchData>();
+    private final ThreadLocal<DispatchData> dispatchData = new ThreadLocal<DispatchData>();
 
     /* Request dispatcher helper class */
     private DispatcherHelper dispatcherHelper;
 
+    /**
+     * Session cookie config
+     */
+    private javax.servlet.SessionCookieConfig sessionCookieConfig;
+    
+    private Set<SessionTrackingMode> sessionTrackingModes;
+    
     /**
      * Destroy listener to be registered on {@link ServletHandler} to make sure
      * we undeploy entire application when {@link ServletHandler#destroy()} is invoked.
@@ -185,6 +212,12 @@ public class WebappContext implements ServletContext {
         }
     };
 
+    /**
+     * The list of filter mappings for this application, in the order
+     * they were defined in the deployment descriptor.
+     */
+    private final List<FilterMap> filterMaps = new ArrayList<FilterMap>();
+    
     // ------------------------------------------------------------ Constructors
 
     protected WebappContext() {
@@ -232,11 +265,6 @@ public class WebappContext implements ServletContext {
         this.displayName = displayName;
         this.contextPath = contextPath;
         this.basePath = basePath;
-        contextInitParams = new LinkedHashMap<String, String>(8, 1.0f);
-        servletRegistrations = new HashMap<String,ServletRegistration>(8, 1.0f);
-        filterRegistrations = new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
-        eventListenerClasses = new LinkedHashSet<Class<? extends EventListener>>(4, 1.0f);
-        eventListenerClassNames = new LinkedHashSet<String>(4, 1.0f);
         Mapper.setAllowReplacement(true);
 
     }
@@ -257,7 +285,7 @@ public class WebappContext implements ServletContext {
                                "Starting application [{0}] ...",
                             displayName);
                 }
-            filterChainFactory = new FilterChainFactory(this, filterRegistrations.values());
+            filterChainFactory = new FilterChainFactory(this);
             boolean error = false;
             try {
                 initializeListeners();
@@ -352,7 +380,7 @@ public class WebappContext implements ServletContext {
     }
 
 
-    // --------------------------------------- Pseudo ServletContext 3.0 Methods
+    // --------------------------------------------- Methods from ServletContext
 
 
     /**
@@ -379,6 +407,7 @@ public class WebappContext implements ServletContext {
      * @throws IllegalStateException if this WebappContext has already
      * been initialized
      */
+    @Override
     public FilterRegistration addFilter(final String filterName,
                                         final Class<? extends Filter> filterClass) {
 
@@ -433,6 +462,7 @@ public class WebappContext implements ServletContext {
      *
      * @since Servlet 3.0
      */
+    @Override
     public FilterRegistration addFilter(final String filterName,
                                         final Filter filter) {
         if (deployed) {
@@ -486,6 +516,7 @@ public class WebappContext implements ServletContext {
      * @throws IllegalStateException if this WebappContext has already
      * been initialized
      */
+    @Override
     public FilterRegistration addFilter(final String filterName,
                                         final String className) {
         if (deployed) {
@@ -538,6 +569,7 @@ public class WebappContext implements ServletContext {
      * been initialized
      *
      */
+    @Override
     public ServletRegistration addServlet(final String servletName,
                                           final Class<? extends Servlet> servletClass) {
         if (deployed) {
@@ -593,6 +625,7 @@ public class WebappContext implements ServletContext {
      * implements {@link javax.servlet.SingleThreadModel}
      */
     @SuppressWarnings({"deprecation"})
+    @Override
     public ServletRegistration addServlet(final String servletName,
                                           final Servlet servlet) {
         if (deployed) {
@@ -650,6 +683,7 @@ public class WebappContext implements ServletContext {
      * @throws IllegalStateException if this WebappContext has already
      * been initialized
      */
+    @Override
     public ServletRegistration addServlet(final String servletName,
                                           final String className) {
         if (deployed) {
@@ -684,6 +718,7 @@ public class WebappContext implements ServletContext {
      * filter with the given <tt>filterName</tt>, or null if no
      * FilterRegistration exists under that name
      */
+    @Override
     public FilterRegistration getFilterRegistration(final String name) {
         if (name == null) {
             return null;
@@ -708,8 +743,9 @@ public class WebappContext implements ServletContext {
      * objects corresponding to all filters currently registered with this
      * WebappContext
      */
+    @Override
     public Map<String,? extends FilterRegistration> getFilterRegistrations() {
-        return Collections.unmodifiableMap(filterRegistrations);
+        return unmodifiableFilterRegistrations;
     }
 
     /**
@@ -720,6 +756,7 @@ public class WebappContext implements ServletContext {
      * servlet with the given <tt>servletName</tt>, or null if no
      * ServletRegistration exists under that name
      */
+    @Override
     public ServletRegistration getServletRegistration(final String name) {
         if (name == null) {
             return null;
@@ -746,7 +783,8 @@ public class WebappContext implements ServletContext {
      *
      * @since Servlet 3.0
      */
-    public Map<String,? extends ServletRegistration> getServletRegistrations() {
+    @Override
+    public Map<String, ? extends ServletRegistration> getServletRegistrations() {
         return Collections.unmodifiableMap(servletRegistrations);
     }
 
@@ -777,15 +815,21 @@ public class WebappContext implements ServletContext {
      * @throws IllegalStateException if this WebappContext has already
      * been initialized
      */
-    public void addListener(final Class<? extends EventListener> listener) {
+    @Override
+    public void addListener(final Class<? extends EventListener> listenerClass) {
         if (deployed) {
             throw new IllegalStateException("WebappContext has already been deployed");
         }
-        if (listener == null) {
+        
+        if (listenerClass == null) {
             throw new IllegalArgumentException("'listener' cannot be null");
         }
-        // TODO type checking
-        eventListenerClasses.add(listener);
+        
+        try {
+            addListener(createEventListenerInstance(listenerClass));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -823,19 +867,77 @@ public class WebappContext implements ServletContext {
      * @throws IllegalStateException if this WebappContext has already
      * been initialized
      */
+    @Override
     public void addListener(String className) {
         if (deployed) {
             throw new IllegalStateException("WebappContext has already been deployed");
         }
+
         if (className == null) {
             throw new IllegalArgumentException("'className' cannot be null");
         }
-        // TODO type checking
-        eventListenerClassNames.add(className);
+
+        try {
+            addListener(createEventListenerInstance(className));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
-    // --------------------------------------------- Methods from ServletContext
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <T extends EventListener> void addListener(T eventListener) {
+        if (deployed) {
+            throw new IllegalStateException("WebappContext has already been deployed");
+        }
+        
+        eventListenerInstances.add(eventListener);
+    }
+    
 
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Servlet> T createServlet(Class<T> clazz) throws ServletException {
+        try {
+            return (T) createServletInstance(clazz);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends Filter> T createFilter(Class<T> clazz) throws ServletException {
+        try {
+            return (T) createFilterInstance(clazz);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends EventListener> T createListener(Class<T> clazz) throws ServletException {
+        try {
+            return (T) createEventListenerInstance(clazz);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
+
+
+    @Override
+    public void declareRoles(String... roleNames) {
+        if (deployed) {
+            throw new IllegalStateException("WebappContext has already been deployed");
+        }
+        
+        securityRoles.addAll(Arrays.asList(roleNames));
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -910,6 +1012,22 @@ public class WebappContext implements ServletContext {
      * {@inheritDoc}
      */
     @Override
+    public int getEffectiveMajorVersion() {
+        return MAJOR_VERSION;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getEffectiveMinorVersion() {
+        return MINOR_VERSION;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getMimeType(String file) {
         if (file == null) {
             return (null);
@@ -929,7 +1047,7 @@ public class WebappContext implements ServletContext {
      * {@inheritDoc}
      */
     @Override
-    public Set getResourcePaths(String path) {
+    public Set<String> getResourcePaths(String path) {
         // Validate the path argument
         if (path == null) {
             return null;
@@ -1151,7 +1269,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     @Deprecated
-    public Enumeration getServlets() {
+    public Enumeration<Servlet> getServlets() {
         return new Enumerator<Servlet>(Collections.<Servlet>emptyList());
     }
 
@@ -1162,8 +1280,8 @@ public class WebappContext implements ServletContext {
      */
     @Override
     @Deprecated
-    public Enumeration getServletNames() {
-        return new Enumerator<Servlet>(Collections.<Servlet>emptyList());
+    public Enumeration<String> getServletNames() {
+        return new Enumerator<String>(Collections.<String>emptyList());
     }
 
     /**
@@ -1225,10 +1343,24 @@ public class WebappContext implements ServletContext {
      * {@inheritDoc}
      */
     @Override
-    public Enumeration getInitParameterNames() {
+    public Enumeration<String> getInitParameterNames() {
         return new Enumerator<String>(contextInitParams.keySet());
     }
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean setInitParameter(String name, String value) {
+        if (!deployed) {
+            contextInitParams.put(name, value);
+            return true;
+        }
+        
+        return false;
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -1241,7 +1373,7 @@ public class WebappContext implements ServletContext {
      * {@inheritDoc}
      */
     @Override
-    public Enumeration getAttributeNames() {
+    public Enumeration<String> getAttributeNames() {
         return new Enumerator<String>(attributes.keySet());
     }
 
@@ -1339,6 +1471,68 @@ public class WebappContext implements ServletContext {
         return displayName;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public javax.servlet.SessionCookieConfig getSessionCookieConfig() {
+        if (sessionCookieConfig == null) {
+            sessionCookieConfig = new SessionCookieConfig(this);
+        }
+        return sessionCookieConfig;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSessionTrackingModes(Set<SessionTrackingMode> sessionTrackingModes) {
+        if (sessionTrackingModes.contains(SessionTrackingMode.SSL)) {
+            throw new IllegalArgumentException("SSL tracking mode is not supported");
+        }
+
+        if (deployed) {
+            throw new IllegalArgumentException("WebappContext has already been deployed");
+        }
+
+        this.sessionTrackingModes =
+            Collections.unmodifiableSet(sessionTrackingModes);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
+        return DEFAULT_SESSION_TRACKING_MODES;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
+        return (sessionTrackingModes != null ? sessionTrackingModes :
+            DEFAULT_SESSION_TRACKING_MODES);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public JspConfigDescriptor getJspConfigDescriptor() {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ClassLoader getClassLoader() {
+        return null;
+    }
+
+    
 
     // ------------------------------------------------------- Protected Methods
 
@@ -1408,7 +1602,108 @@ public class WebappContext implements ServletContext {
         return eventListeners;
     }
 
+    /**
+     * Add a filter mapping to this Context.
+     *
+     * @param filterMap The filter mapping to be added
+     *
+     * @param isMatchAfter true if the given filter mapping should be matched
+     * against requests after any declared filter mappings of this servlet
+     * context, and false if it is supposed to be matched before any declared
+     * filter mappings of this servlet context
+     *
+     * @exception IllegalArgumentException if the specified filter name
+     *  does not match an existing filter definition, or the filter mapping
+     *  is malformed
+     *
+     */
+    protected void addFilterMap(FilterMap filterMap, boolean isMatchAfter) {
 
+        // Validate the proposed filter mapping
+        String filterName = filterMap.getFilterName();
+        String servletName = filterMap.getServletName();
+        String urlPattern = filterMap.getURLPattern();
+        if (null == filterRegistrations.get(filterName)) {
+            throw new IllegalArgumentException
+                ("Filter mapping specifies an unknown filter name: " + filterName);
+        }
+        if ((servletName == null) && (urlPattern == null)) {
+            throw new IllegalArgumentException
+                ("Filter mapping must specify either a <url-pattern> or a <servlet-name>");
+        }
+        if ((servletName != null) && (urlPattern != null)) {
+            throw new IllegalArgumentException
+                ("Filter mapping must specify either a <url-pattern> or a <servlet-name>");
+        }
+        // Because filter-pattern is new in 2.3, no need to adjust
+        // for 2.2 backwards compatibility
+        if ((urlPattern != null) && !validateURLPattern(urlPattern)) {
+            throw new IllegalArgumentException
+                ("Invalid <url-pattern> {0} in filter mapping: " + urlPattern);
+        }
+
+        // Add this filter mapping to our registered set
+        if (isMatchAfter) {
+            filterMaps.add(filterMap);
+        } else {
+            filterMaps.add(0, filterMap);
+        }
+
+//        if (notifyContainerListeners) {
+//            fireContainerEvent("addFilterMap", filterMap);
+//        }
+    }
+    
+    protected List<FilterMap> getFilterMaps() {
+        return filterMaps;
+    }
+    
+    /**
+     * Removes any filter mappings from this Context.
+     */
+    protected void removeFilterMaps() {
+        // Inform interested listeners
+//        if (notifyContainerListeners) {
+//            Iterator<FilterMap> i = filterMaps.iterator();
+//            while (i.hasNext()) {
+//                fireContainerEvent("removeFilterMap", i.next());
+//            }
+//        }
+        filterMaps.clear();
+    }    
+    /**
+     * Gets the current servlet name mappings of the Filter with
+     * the given name.
+     */
+    protected Collection<String> getServletNameFilterMappings(String filterName) {
+        HashSet<String> mappings = new HashSet<String>();
+        synchronized (filterMaps) {
+            for (FilterMap fm : filterMaps) {
+                if (filterName.equals(fm.getFilterName()) &&
+                        fm.getServletName() != null) {
+                    mappings.add(fm.getServletName());
+                }
+            }
+        }
+        return mappings;
+    }
+
+    /**
+     * Gets the current URL pattern mappings of the Filter with the given
+     * name.
+     */
+    protected Collection<String> getUrlPatternFilterMappings(String filterName) {
+        HashSet<String> mappings = new HashSet<String>();
+        synchronized (filterMaps) {
+            for (FilterMap fm : filterMaps) {
+                if (filterName.equals(fm.getFilterName()) &&
+                        fm.getURLPattern() != null) {
+                    mappings.add(fm.getURLPattern());
+                }
+            }
+        }
+        return mappings;
+    }
     // --------------------------------------------------------- Private Methods
 
     /**
@@ -1418,6 +1713,8 @@ public class WebappContext implements ServletContext {
         for (final FilterRegistration registration : filterRegistrations.values()) {
             registration.filter.destroy();
         }
+        
+        removeFilterMaps();
     }
 
     /**
@@ -1436,21 +1733,10 @@ public class WebappContext implements ServletContext {
     /**
      *
      */
-    private void initializeListeners() {
-        if (!eventListenerClasses.isEmpty() || !eventListenerClassNames.isEmpty()) {
-            final ArrayList<EventListener> listeners =
-                    new ArrayList<EventListener>(eventListenerClasses.size());
-            for (final String className : eventListenerClassNames) {
-                listeners.add((EventListener) ClassLoaderUtil.load(className));
-            }
-            for (final Class<? extends EventListener> listenerClass : eventListenerClasses) {
-                try {
-                    listeners.add(listenerClass.newInstance());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            eventListeners = listeners.toArray(new EventListener[listeners.size()]);
+    private void initializeListeners() throws ServletException {
+        if (!eventListenerInstances.isEmpty()) {
+            eventListeners = eventListenerInstances.toArray(
+                    new EventListener[eventListenerInstances.size()]);
         }
     }
 
@@ -1458,7 +1744,7 @@ public class WebappContext implements ServletContext {
      *
      * @param server
      */
-    private void initServlets(final HttpServer server) {
+    private void initServlets(final HttpServer server) throws ServletException {
 
         boolean defaultMappingAdded = false;
         if (!servletRegistrations.isEmpty()) {
@@ -1479,19 +1765,8 @@ public class WebappContext implements ServletContext {
                         throw new RuntimeException(e);
                     }
                 } else if (registration.loadOnStartup >= 0) {
-                    Servlet servletInstance;
-                    String servletClassName = registration.className;
-                    Class<? extends Servlet> servletClass = registration.servletClass;
-                    if (servletClassName != null) {
-                        servletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
-                    } else {
-                        try {
-                            servletInstance = servletClass.newInstance();
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
                     try {
+                        Servlet servletInstance = createServletInstance(registration);
                         LOGGER.log(Level.INFO, "Loading Servlet: {0}", servletInstance.getClass().getName());
                         servletInstance.init(sConfig);
                     } catch (Exception e) {
@@ -1594,13 +1869,7 @@ public class WebappContext implements ServletContext {
                 try {
                     Filter f = registration.filter;
                     if (f == null) {
-                        Class<? extends Filter> filterClass =
-                                registration.filterClass;
-                        if (filterClass == null) {
-                            filterClass = (Class<? extends Filter>)
-                                    Thread.currentThread().getContextClassLoader().loadClass(registration.className);
-                        }
-                        f = filterClass.newInstance();
+                        f = createFilterInstance(registration);
                     }
 
                     final FilterConfigImpl filterConfig =
@@ -1613,8 +1882,8 @@ public class WebappContext implements ServletContext {
                                    new Object[] {
                                            displayName,
                                         registration.className,
-                                        registration.urlPatterns.keySet(),
-                                        registration.servletNames.keySet()});
+                                        registration.getUrlPatternMappings(),
+                                        registration.getServletNameMappings()});
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -1732,8 +2001,127 @@ public class WebappContext implements ServletContext {
             }
         }
     }
+    
+    /**
+     * Instantiates the given Servlet class.
+     *
+     * @return the new Servlet instance
+     */
+    protected Servlet createServletInstance(final ServletRegistration registration)
+            throws Exception {
+        String servletClassName = registration.className;
+        Class<? extends Servlet> servletClass = registration.servletClass;
+        if (servletClassName != null) {
+            return (Servlet) ClassLoaderUtil.load(servletClassName);
+        } else {
+            return createServletInstance(servletClass);
+        }
+    }
 
+    /**
+     * Instantiates the given Servlet class.
+     *
+     * @return the new Servlet instance
+     */
+    protected Servlet createServletInstance(Class<? extends Servlet> servletClass)
+            throws Exception {
+        return servletClass.newInstance();
+    }
+    
+    /**
+     * Instantiates the given Filter class.
+     *
+     * @return the new Filter instance
+     */
+    protected Filter createFilterInstance(final FilterRegistration registration)
+            throws Exception {
+        String filterClassName = registration.className;
+        Class<? extends Filter> filterClass = registration.filterClass;
+        if (filterClassName != null) {
+            return (Filter) ClassLoaderUtil.load(filterClassName);
+        } else {
+            return createFilterInstance(filterClass);
+        }
+    }
 
+    /**
+     * Instantiates the given Filter class.
+     *
+     * @return the new Filter instance
+     */
+    protected Filter createFilterInstance(Class<? extends Filter> filterClass)
+            throws Exception {
+        return filterClass.newInstance();
+    }
+    
+    /**
+     * Instantiates the given EventListener class.
+     *
+     * @return the new EventListener instance
+     */
+    protected EventListener createEventListenerInstance(Class<? extends EventListener> eventListenerClass)
+            throws Exception {
+        return eventListenerClass.newInstance();
+    }
+    
+    /**
+     * Instantiates the given EventListener class.
+     *
+     * @return the new EventListener instance
+     */
+    protected EventListener createEventListenerInstance(String eventListenerClassname)
+            throws Exception {
+        return (EventListener) ClassLoaderUtil.load(eventListenerClassname);
+    }
+
+    /**
+     * Validate the syntax of a proposed <code>&lt;url-pattern&gt;</code>
+     * for conformance with specification requirements.
+     *
+     * @param urlPattern URL pattern to be validated
+     */
+    protected boolean validateURLPattern(String urlPattern) {
+        if (urlPattern == null) {
+            return false;
+        }
+        if (urlPattern.isEmpty()) {
+            return true;
+        }
+        if (urlPattern.indexOf('\n') >= 0 || urlPattern.indexOf('\r') >= 0) {
+            LOGGER.log(Level.WARNING, "The URL pattern ''{0}'' contains a CR or LF and so can never be matched", urlPattern);
+            return false;
+        }
+        if (urlPattern.startsWith("*.")) {
+            if (urlPattern.indexOf('/') < 0) {
+                checkUnusualURLPattern(urlPattern);
+                return true;
+            } else
+                return false;
+        }
+        if ( (urlPattern.startsWith("/")) &&
+                (!urlPattern.contains("*."))) {
+            checkUnusualURLPattern(urlPattern);
+            return true;
+        } else
+            return false;
+
+    }
+    
+    /**
+     * Check for unusual but valid <code>&lt;url-pattern&gt;</code>s.
+     * See Bugzilla 34805, 43079 &amp; 43080
+     */
+    private void checkUnusualURLPattern(String urlPattern) {
+        if (LOGGER.isLoggable(Level.INFO)) {
+            if(urlPattern.endsWith("*") && (urlPattern.length() < 2 ||
+                    urlPattern.charAt(urlPattern.length()-2) != '/')) {
+                LOGGER.log(Level.INFO,"Suspicious url pattern: \"{0}" + "\"" +
+                        " in context - see" +
+                        " section SRV.11.2 of the Servlet specification" , urlPattern);
+            }
+        }
+    }    
+    
     // ---------------------------------------------------------- Nested Classes
 
 
