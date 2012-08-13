@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,6 +60,7 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 
@@ -108,5 +109,15 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
 
     void recycle() {
         outputStream = null;
+    }
+
+    @Override
+    public boolean canWrite() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void setWriteListener(WriteListener wl) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

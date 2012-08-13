@@ -57,15 +57,6 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.http.server.util.Globals;
-import org.glassfish.grizzly.http.server.util.ParameterMap;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.Parameters;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import org.glassfish.grizzly.utils.Charsets;
 import java.nio.charset.Charset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -76,7 +67,16 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import javax.servlet.DispatcherType;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import org.glassfish.grizzly.http.server.util.Enumerator;
+import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Wrapper around a <code>javax.servlet.http.HttpServletRequest</code>
@@ -211,20 +211,18 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         }
     }
 
-    @SuppressWarnings( "unchecked" )
     @Override
-    public Enumeration getParameterNames() {
+    public Enumeration<String> getParameterNames() {
         if( !parsedParams )
             parseParameters();
         if( System.getSecurityManager() != null ) {
-            return new Enumerator( AccessController.doPrivileged(
+            return new Enumerator<String>( AccessController.doPrivileged(
                     new GetParameterNamesPrivilegedAction() ) );
         } else {
-            return new Enumerator( mergedParameters.getParameterNames() );
+            return new Enumerator<String>( mergedParameters.getParameterNames() );
         }
     }
 
-    @SuppressWarnings( "unchecked" )
     @Override
     public String[] getParameterValues( String name ) {
         if( !parsedParams )
@@ -246,9 +244,8 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         return ret;
     }
 
-    @SuppressWarnings( "unchecked" )
     @Override
-    public Map getParameterMap() {
+    public Map<String, String[]> getParameterMap() {
         if( !parsedParams )
             parseParameters();
         if( System.getSecurityManager() != null ) {
@@ -342,7 +339,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
     }
 
     @Override
-    public Enumeration getAttributeNames() {
+    public Enumeration<String> getAttributeNames() {
         return new AttributeNamesEnumerator();
     }
 
@@ -440,7 +437,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
      * Utility class used to expose the special attributes as being available
      * as request attributes.
      */
-    private final class AttributeNamesEnumerator implements Enumeration {
+    private final class AttributeNamesEnumerator implements Enumeration<String> {
 
         Enumeration<String> parentEnumeration = null;
         String next = null;
@@ -454,13 +451,15 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             }
         }
 
+        @Override
         public boolean hasMoreElements() {
             return ( specialNames != null && specialNames.hasNext() )
                    || ( next != null )
                    || ( ( next = findNext() ) != null );
         }
 
-        public Object nextElement() {
+        @Override
+        public String nextElement() {
 
             if( specialNames != null && specialNames.hasNext() ) {
                 return specialNames.next();

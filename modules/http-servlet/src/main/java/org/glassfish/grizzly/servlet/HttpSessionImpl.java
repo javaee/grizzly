@@ -181,7 +181,7 @@ public class HttpSessionImpl implements HttpSession {
      * {@inheritDoc}
      */
     @Override
-    public Enumeration getAttributeNames() {
+    public Enumeration<String> getAttributeNames() {
         return session.attributes().keys();
     }
 

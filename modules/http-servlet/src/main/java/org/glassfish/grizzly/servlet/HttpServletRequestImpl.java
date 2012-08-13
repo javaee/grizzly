@@ -62,24 +62,40 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.EventListener;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletInputStream;
+import javax.servlet.AsyncContext;
+import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.Part;
+import javax.servlet.http.ProtocolHandler;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.Session;
+import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.localization.LogMessages;
 
@@ -94,8 +110,33 @@ import org.glassfish.grizzly.localization.LogMessages;
  */
 @SuppressWarnings("deprecation")
 public class HttpServletRequestImpl implements HttpServletRequest, Holders.RequestHolder {
-    private static final Logger logger = Grizzly.logger(HttpServletRequestImpl.class);
+    private static final Logger LOGGER = Grizzly.logger(HttpServletRequestImpl.class);
       
+    // ----------------------------------------------- Class/Instance Variables
+
+    /**
+     * The wrapped request.
+     */
+    protected Request request = null;
+    
+    /**
+     * The corresponding servlet response
+     */
+    protected HttpServletResponseImpl servletResponse;
+
+    /**
+     * Async operation
+     */
+    // Async mode is supported by default for a request, unless the request
+    // has passed a filter or servlet that does not support async
+    // operation, in which case async operation will be disabled
+    private boolean isAsyncSupported = true;
+    private AtomicBoolean asyncStarted = new AtomicBoolean();
+    private AsyncContextImpl asyncContext;
+    // Has AsyncContext.complete been called?
+    private boolean isAsyncComplete;
+    private Thread asyncStartedThread;
+
     private final ServletInputStreamImpl inputStream;
     private ServletReaderImpl reader;
     
@@ -144,18 +185,13 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         this.inputStream = new ServletInputStreamImpl();
     }
 
-    public void initialize(Request request) throws IOException {
+    public void initialize(final Request request, final HttpServletResponseImpl servletResponse)
+            throws IOException {
         this.request = request;
+        this.servletResponse = servletResponse;
         inputStream.initialize(request);
     }
-
-    // ----------------------------------------------- Class/Instance Variables
-
-    /**
-     * The wrapped request.
-     */
-    protected Request request = null;
-
+    
 
     // --------------------------------------------------------- Public Methods
    
@@ -194,7 +230,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Enumeration getAttributeNames() {
+    public Enumeration<String> getAttributeNames() {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -261,6 +297,15 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     }
 
 
+    @Override
+    public long getContentLengthLong() {
+        if (request == null) {
+            throw new IllegalStateException("Null request object");
+        }
+
+        return request.getContentLengthLong();
+    }
+    
     
     /**
      * {@inheritDoc}
@@ -292,12 +337,25 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     void recycle(){
         request = null;
+        servletResponse = null;
         reader = null;
         
         inputStream.recycle();
 
         usingInputStream = false;
         usingReader = false;
+
+        /*
+         * Clear and reinitialize all async related instance vars
+         */
+        if (asyncContext != null) {
+            asyncContext.clear();
+            asyncContext = null;
+        }
+        isAsyncSupported = true;
+        asyncStarted.set(false);
+        isAsyncComplete = false;
+        asyncStartedThread = null;
     }
     
     /**
@@ -326,7 +384,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Enumeration getParameterNames() {
+    public Enumeration<String> getParameterNames() {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -377,9 +435,8 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
-    public Map getParameterMap() {
+    public Map<String, String[]> getParameterMap() {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -541,8 +598,8 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                     listener.attributeAdded(event);
                 }
             } catch (Throwable t) {
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING,
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
                                LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_ADD_ERROR("ServletRequestAttributeListener", listener.getClass().getName()),
                                t);
                 }
@@ -581,7 +638,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                 }
                 listener.attributeRemoved(event);
             } catch (Throwable t) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                            LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_REMOVE_ERROR("ServletRequestAttributeListener", listener.getClass().getName()),
                            t);
             }
@@ -616,7 +673,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Enumeration getLocales() {
+    public Enumeration<Locale> getLocales() {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -793,7 +850,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Enumeration getHeaders(String name) {
+    public Enumeration<String> getHeaders(String name) {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -814,7 +871,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @SuppressWarnings("unchecked")
     @Override
-    public Enumeration getHeaderNames() {
+    public Enumeration<String> getHeaderNames() {
 
         if (request == null) {
             throw new IllegalStateException("Null request object");
@@ -1226,8 +1283,300 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * {@inheritDoc}
      */
     @Override
+    public ServletContext getServletContext() {
+        return contextImpl;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Request getInternalRequest() {
         return request;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AsyncContext startAsync() throws IllegalStateException {
+        return startAsync(this, servletResponse);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AsyncContext startAsync(final ServletRequest servletRequest,
+            final ServletResponse servletResponse)
+            throws IllegalStateException {
+        return startAsync(servletRequest, servletResponse, false);
+    }
+
+    /**
+     * Starts async processing on this request.
+     *
+     * @param servletRequest the ServletRequest with which to initialize
+     * the AsyncContext
+     * @param servletResponse the ServletResponse with which to initialize
+     * the AsyncContext
+     * @param isStartAsyncWithZeroArg true if the zero-arg version of
+     * startAsync was called, false otherwise
+     */
+    private AsyncContext startAsync(ServletRequest servletRequest,
+                ServletResponse servletResponse,
+                boolean isStartAsyncWithZeroArg)
+            throws IllegalStateException {
+
+        if (servletRequest == null || servletResponse == null) {
+            throw new IllegalArgumentException("Null request or response");
+        }
+
+        if (!isAsyncSupported()) {
+            throw new IllegalStateException("Request is within the scope of a "
+                    + "filter or servlet that does not support asynchronous operations");
+        }
+
+        final AsyncContextImpl asyncContextLocal = asyncContext;
+
+        if (asyncContextLocal != null) {
+            if (isAsyncStarted()) {
+                throw new IllegalStateException("ServletRequest.startAsync called"
+                        + " again without any asynchronous dispatch, or called "
+                        + "outside the scope of any such dispatch, or called "
+                        + "again within the scope of the same dispatch");
+            }
+            if (isAsyncComplete) {
+                throw new IllegalStateException("Response already closed");
+            }
+            if (!asyncContextLocal.isStartAsyncInScope()) {
+                throw new IllegalStateException("ServletRequest.startAsync called "
+                        + "outside the scope of an async dispatch");
+            }
+
+            // Reinitialize existing AsyncContext
+            asyncContextLocal.reinitialize(servletRequest, servletResponse,
+                    isStartAsyncWithZeroArg);
+        } else {
+            final AsyncContextImpl asyncContextFinal =
+                    new AsyncContextImpl(this,
+                                         servletRequest,
+                                         servletResponse,
+                                         isStartAsyncWithZeroArg);
+            asyncContext = asyncContextFinal;
+
+            final CompletionHandler<org.glassfish.grizzly.http.server.Response> requestCompletionHandler =
+                    new EmptyCompletionHandler<org.glassfish.grizzly.http.server.Response>() {
+
+                        @Override
+                        public void completed(org.glassfish.grizzly.http.server.Response response) {
+                            asyncContextFinal.notifyAsyncListeners(
+                                    AsyncContextImpl.AsyncEventType.COMPLETE,
+                                    null);
+                        }
+                    };
+
+            final TimeoutHandler timeoutHandler = new TimeoutHandler() {
+
+                @Override
+                public boolean onTimeout(final org.glassfish.grizzly.http.server.Response response) {
+                    return processTimeout();
+                }
+            };
+
+            request.getResponse().suspend(-1, TimeUnit.MILLISECONDS,
+                    requestCompletionHandler, timeoutHandler);
+            asyncStartedThread = Thread.currentThread();
+        }
+
+        asyncStarted.set(true);
+
+        return asyncContext;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isAsyncStarted() {
+        return asyncStarted.get();
+    }
+
+    void setAsyncStarted(boolean asyncStarted) {
+        this.asyncStarted.set(asyncStarted);
+    }
+
+    /**
+     * Disables async support for this request.
+     *
+     * Async support is disabled as soon as this request has passed a filter
+     * or servlet that does not support async (either via the designated
+     * annotation or declaratively).
+     */
+    public void disableAsyncSupport() {
+        isAsyncSupported = false;
+    }
+
+    void setAsyncTimeout(long timeout) {
+        request.getResponse().getSuspendContext().setTimeout(
+                timeout, TimeUnit.MILLISECONDS);;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isAsyncSupported() {
+        return isAsyncSupported;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AsyncContext getAsyncContext() {
+        if (!isAsyncStarted()) {
+            throw new IllegalStateException("The request has not been put into asynchronous mode, must call ServletRequest.startAsync first");
+        }
+
+        return asyncContext;
+    }
+    
+    /*
+     * Invokes any registered AsyncListener instances at their
+     * <tt>onComplete</tt> method
+     */
+    void asyncComplete() {
+        if (isAsyncComplete) {
+            throw new IllegalStateException("Request already released from asynchronous mode");
+        }
+        isAsyncComplete = true;
+        asyncStarted.set(false);
+        
+        if (asyncStartedThread != Thread.currentThread() ||
+                !asyncContext.isOkToConfigure()) {
+            // it's not safe to just mark response as resumed
+            request.getResponse().resume();
+        } else {
+            final Response.SuspendedContextImpl suspendContext =
+                    (Response.SuspendedContextImpl) request.getResponse().getSuspendContext();
+
+            suspendContext.markResumed();
+            suspendContext.getSuspendStatus().reset();
+        }
+    }
+
+    /*
+     * Invokes all registered AsyncListener instances at their
+     * <tt>onTimeout</tt> method.
+     *
+     * This method also performs an error dispatch and completes the response
+     * if none of the listeners have done so.
+     */
+    void asyncTimeout() {
+        if (asyncContext != null) {
+            asyncContext.notifyAsyncListeners(
+                    AsyncContextImpl.AsyncEventType.TIMEOUT, null);
+        }
+        errorDispatchAndComplete(null);
+    }
+    
+    /**
+     * Notifies this Request that the container-initiated dispatch
+     * during which ServletRequest#startAsync was called is about to
+     * return to the container
+     */
+    void onAfterService() {
+        if (asyncContext != null) {
+            asyncContext.setOkToConfigure(false);
+
+            if (asyncStarted.get()) {
+                request.getResponse().getSuspendContext().setTimeout(
+                        asyncContext.getTimeout(), TimeUnit.MILLISECONDS);
+            }
+
+        }
+    }
+
+    private boolean processTimeout() {
+        boolean result = true;
+        final AsyncContextImpl asyncContextLocal = this.asyncContext;
+        try {
+            asyncTimeout();
+        } finally {
+            result = asyncContextLocal != null && !asyncContextLocal.getAndResetDispatchInScope();
+        }
+        
+        return result;
+    }
+
+    void errorDispatchAndComplete(Throwable t) {
+        /*
+         * If no listeners, or none of the listeners called
+         * AsyncContext#complete or any of the AsyncContext#dispatch
+         * methods (in which case asyncStarted would have been set to false),
+         * perform an error dispatch with a status code equal to 500.
+         */
+        if (asyncContext != null
+                && !asyncContext.isDispatchInScope()
+                && !isAsyncComplete && isAsyncStarted()) {
+            servletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+//            response.setError();
+            if (t != null) {
+                setAttribute(RequestDispatcher.ERROR_EXCEPTION, t);
+            }
+            try {
+//                if (hostValve != null) {
+//                    hostValve.postInvoke(this, response);
+//                }
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Unable to perform error dispatch", e);
+            } finally {
+                /*
+                 * If no matching error page was found, or the error page
+                 * did not call AsyncContext#complete or any of the
+                 * AsyncContext#dispatch methods, call AsyncContext#complete
+                 */
+                if (!isAsyncComplete && isAsyncStarted()) {
+                    asyncComplete();
+                }
+            }
+        }
+    }
+    
+    @Override
+    public boolean authenticate(HttpServletResponse hsr) throws IOException, ServletException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void login(String string, String string1) throws ServletException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void logout() throws ServletException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public Collection<Part> getParts() throws IOException, ServletException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public Part getPart(String string) throws IOException, ServletException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void upgrade(ProtocolHandler ph) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public DispatcherType getDispatcherType() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
     // ----------------------------------------------------------- DoPrivileged

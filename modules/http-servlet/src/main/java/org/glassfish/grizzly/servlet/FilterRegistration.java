@@ -39,27 +39,23 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import javax.servlet.Filter;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
 
 /**
  * Allows customization of a {@link Filter} registered with the {@link WebappContext}.
  *
  * @since 2.2
  */
-public class FilterRegistration extends Registration {
+public class FilterRegistration extends Registration implements javax.servlet.FilterRegistration.Dynamic {
 
     protected Class<? extends Filter> filterClass;
-    protected final Map<String[],Byte> servletNames;
-    protected final Map<String[],Byte> urlPatterns;
     protected Filter filter;
-
+    
+    protected boolean isAsyncSupported;
 
     // ------------------------------------------------------------ Constructors
 
@@ -78,8 +74,6 @@ public class FilterRegistration extends Registration {
 
         super(ctx, name, filterClassName);
         initParameters = new HashMap<String, String>(4, 1.0f);
-        servletNames = new HashMap<String[], Byte>(4, 1.0f);
-        urlPatterns = new HashMap<String[], Byte>(4, 1.0f);
 
     }
 
@@ -139,7 +133,32 @@ public class FilterRegistration extends Registration {
      */
     public void addMappingForServletNames(EnumSet<DispatcherType> dispatcherTypes,
                                           String... servletNames) {
-        addMapping(this.servletNames, servletNames, dispatcherTypes, "servletNames");
+        addMappingForServletNames(dispatcherTypes, true, servletNames);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addMappingForServletNames(EnumSet<DispatcherType> dispatcherTypes,
+            boolean isMatchAfter, String... servletNames) {
+        if (ctx.deployed) {
+            throw new IllegalStateException("WebappContext has already been deployed");
+        }
+
+        if ((servletNames==null) || (servletNames.length==0)) {
+            throw new IllegalArgumentException("'servletNames' is null or zero-length");
+        }
+
+        for (String servletName : servletNames) {
+            FilterMap fmap = new FilterMap();
+            fmap.setFilterName(getName());
+            fmap.setServletName(servletName);
+            fmap.setDispatcherTypes(dispatcherTypes);
+
+            ctx.addFilterMap(fmap, isMatchAfter);
+        }
     }
 
     /**
@@ -153,8 +172,9 @@ public class FilterRegistration extends Registration {
      * available servlet name mappings of the Filter represented by this
      * <code>FilterRegistration</code>
      */
+    @Override
     public Collection<String> getServletNameMappings() {
-        return Collections.unmodifiableSet(getUnifiedKeyView(servletNames));
+        return ctx.getServletNameFilterMappings(getName());
     }
 
     /**
@@ -178,7 +198,31 @@ public class FilterRegistration extends Registration {
      */
     public void addMappingForUrlPatterns(EnumSet<DispatcherType> dispatcherTypes,
                                          String... urlPatterns) {
-        addMapping(this.urlPatterns, urlPatterns, dispatcherTypes, "urlPatterns");
+        addMappingForUrlPatterns(dispatcherTypes, true, urlPatterns);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addMappingForUrlPatterns(EnumSet<DispatcherType> dispatcherTypes,
+            boolean isMatchAfter, String... urlPatterns) {
+        if (ctx.deployed) {
+            throw new IllegalStateException("WebappContext has already been deployed");
+        }
+
+        if ((urlPatterns==null) || (urlPatterns.length==0)) {
+            throw new IllegalArgumentException("'urlPatterns' is null or zero-length");
+        }
+
+        for (String urlPattern : urlPatterns) {
+            FilterMap fmap = new FilterMap();
+            fmap.setFilterName(getName());
+            fmap.setURLPattern(urlPattern);
+            fmap.setDispatcherTypes(dispatcherTypes);
+
+            ctx.addFilterMap(fmap, isMatchAfter);
+        }
     }
 
     /**
@@ -192,89 +236,16 @@ public class FilterRegistration extends Registration {
      * available URL pattern mappings of the Filter represented by this
      * <code>FilterRegistration</code>
      */
+    @Override
     public Collection<String> getUrlPatternMappings() {
-        return Collections.unmodifiableSet(getUnifiedKeyView(urlPatterns));
-    }
-
-
-    // ------------------------------------------------------- Protected Methods
-
-
-    /**
-     * Returns the byte representation of all DispatcherTypes specified by
-     * the provided EnumSet.
-     *
-     * @param dispatcherType the DispatcherTypes that need to be applied.
-     *
-     * @return the byte representation of all DispatcherTypes specified by
-     * the provided EnumSet.
-     */
-    protected byte getDispatcherMask(EnumSet<DispatcherType> dispatcherType) {
-        byte types = 0;
-        if (dispatcherType != null && !dispatcherType.isEmpty()) {
-            for (final DispatcherType d : dispatcherType) {
-                types |= d.type();
-            }
-        } else {
-            types |= DispatcherType.REQUEST.type();
-        }
-        return types;
+        return ctx.getUrlPatternFilterMappings(getName());
     }
 
     /**
-     * Returns <code>true</code> if the specified DispatcherType has been
-     * 'encoded' within the provided dispatcherTypeMask.
-     *
-     * @param dispatcherTypeMask byte containing DispatcherType info.
-     * @param dispatcherType the DispatcherType to test.
-     *
-     * @return <code>true</code> if the specified DispatcherType has been
-     * 'encoded' within the provided dispatcherTypeMask.
+     * {@inheritDoc}
      */
-    protected boolean isDispatcherSet(final byte dispatcherTypeMask,
-                                      final DispatcherType dispatcherType) {
-        return ((dispatcherTypeMask & dispatcherType.type()) != 0);
+    @Override
+    public void setAsyncSupported(boolean isAsyncSupported) {
+        this.isAsyncSupported = isAsyncSupported;
     }
-
-
-    // --------------------------------------------------------- Private Methods
-
-
-    /**
-     * Utility method for manipulating the various maps contained within
-     * FilterRegistration.
-     */
-    private void addMapping(final Map<String[],Byte> map,
-                            final String[] mappings,
-                            final EnumSet<DispatcherType> dispatcherTypes,
-                            final String arrayArgumentName) {
-        if (ctx.deployed) {
-            throw new IllegalStateException("WebappContext has already been deployed");
-        }
-        if (mappings == null || mappings.length == 0) {
-            throw new IllegalArgumentException('\'' + arrayArgumentName + "' is null or zero-length");
-        }
-        map.put(mappings, getDispatcherMask(dispatcherTypes));
-    }
-
-    /**
-     * Returns a set of all servlet name or url pattern mappings that have
-     * been defined across all registered Filters.
-     *
-     */
-    private Set<String> getUnifiedKeyView(final Map<String[],Byte> map) {
-        Set<String> names;
-        if (!map.isEmpty()) {
-            names = new LinkedHashSet<String>();
-            for (final String[] mappings : map.keySet()) {
-                for (int i = 0, len = mappings.length; i < len; i++) {
-                    names.add(mappings[i]);
-                }
-            }
-        } else {
-            names = Collections.emptySet();
-        }
-        return names;
-    }
-
 }
