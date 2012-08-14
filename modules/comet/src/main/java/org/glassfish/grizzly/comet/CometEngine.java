@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -112,7 +113,7 @@ public class CometEngine {
     /**
      * The current active {@link CometContext} keyed by context path.
      */
-    protected final ConcurrentHashMap<String, CometContext> activeContexts;
+    protected final Map<String, CometContext> activeContexts;
     /**
      * Is Grizzly ARP enabled? By default we set it to false.
      */

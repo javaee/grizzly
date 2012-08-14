@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.websockets.draft07;
 
 import java.net.URI;
+import java.util.Locale;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
@@ -191,7 +192,11 @@ public class Draft07Handler extends ProtocolHandler {
                         processingFragment = false;
                     }
                     state.recycle();
-
+                    
+                    break;
+                default:
+                    // Should never get here
+                    throw new IllegalStateException("Unexpected state: " + state.state);
             }
         } catch (Exception e) {
             state.recycle();
@@ -256,7 +261,7 @@ public class Draft07Handler extends ProtocolHandler {
                 return new PongFrameType();
             default:
                 throw new ProtocolError(String.format("Unknown frame type: %s, %s",
-                        Integer.toHexString(opcode & 0xFF).toUpperCase(), connection));
+                        Integer.toHexString(opcode & 0xFF).toUpperCase(Locale.US), connection));
         }
     }
 
