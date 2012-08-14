@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 
 /**
  * Chunked transfer encoding implementation.
@@ -361,6 +362,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             if (httpChunkBuffer.isComposite()) {
                 httpChunkBuffer.allowBufferDispose(true);
                 ((CompositeBuffer) httpChunkBuffer).allowInternalBuffersDispose(true);
+                ((CompositeBuffer) httpChunkBuffer).disposeOrder(DisposeOrder.FIRST_TO_LAST);
             }
         }
         
