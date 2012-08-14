@@ -668,7 +668,7 @@ public class GrizzlyOutputBuffer extends Writer
         if (!gotEnc)
             setConverter();
         conv.convert(c, off, len);
-        conv.flushBuffer();	// ???
+//        conv.flushBuffer();	// ???
 
     }
 
