@@ -418,6 +418,8 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
                 specialAttributes.put( DispatcherConstants.ASYNC_PATH_INFO, pathInfo );
                 specialAttributes.put( DispatcherConstants.ASYNC_QUERY_STRING, queryString );
                 break;
+            default:
+                break;
         }
     }
 
@@ -440,8 +442,8 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
      */
     private final class AttributeNamesEnumerator implements Enumeration {
 
-        protected Enumeration<String> parentEnumeration = null;
-        protected String next = null;
+        Enumeration<String> parentEnumeration = null;
+        String next = null;
         private Iterator<String> specialNames = null;
 
         @SuppressWarnings( "unchecked" )

@@ -103,7 +103,7 @@ final class AjpMessageUtils {
 
         offset = decodeHeaders(requestContent, offset, req);
 
-        offset = decodeAttributes(requestContent, offset, req,
+        decodeAttributes(requestContent, offset, req,
                 tomcatAuthentication);
 
         final DataChunk valueDC = req.getHeaders().getValue("host");
@@ -141,13 +141,8 @@ final class AjpMessageUtils {
             // 1 string attributes
             switch (attributeCode) {
                 case AjpConstants.SC_A_CONTEXT:
-                    offset = skipBytes(requestContent, offset);
                     // nothing
-                    break;
-
-                case AjpConstants.SC_A_SERVLET_PATH:
                     offset = skipBytes(requestContent, offset);
-                    // nothing
                     break;
 
                 case AjpConstants.SC_A_REMOTE_USER:

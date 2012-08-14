@@ -1376,20 +1376,20 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }           
     }    
     
-    private static final class GetSessionPrivilegedAction
-            implements PrivilegedAction {
-
-        private final boolean create;
-        
-        public GetSessionPrivilegedAction(boolean create){
-            this.create = create;
-        }
-                
-        @Override
-        public Object run() {  
-            throw new UnsupportedOperationException("Not supported yet.");
-        }           
-    }
+//    private static final class GetSessionPrivilegedAction
+//            implements PrivilegedAction {
+//
+//        private final boolean create;
+//        
+//        public GetSessionPrivilegedAction(boolean create){
+//            this.create = create;
+//        }
+//                
+//        @Override
+//        public Object run() {  
+//            throw new UnsupportedOperationException("Not supported yet.");
+//        }           
+//    }
 
 
 }

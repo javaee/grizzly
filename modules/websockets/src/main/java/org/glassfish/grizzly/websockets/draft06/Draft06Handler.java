@@ -182,6 +182,11 @@ public class Draft06Handler extends ProtocolHandler {
                     }
              
                     state.recycle();
+                    
+                    break;
+                default:
+                    // Should never get here
+                    throw new IllegalStateException("Unexpected state: " + state.state);
             }
         } catch (Exception e) {
             state.recycle();
@@ -251,7 +256,7 @@ public class Draft06Handler extends ProtocolHandler {
         long length = -1;
         byte lengthCode = -1;
         FrameType frameType;
-        boolean masked;
+//        boolean masked;
         Masker masker;
         boolean finalFragment;
         boolean controlFrame;
@@ -261,7 +266,7 @@ public class Draft06Handler extends ProtocolHandler {
             opcode = (byte) -1;
             length = -1;
             lengthCode = -1;
-            masked = false;
+//            masked = false;
             masker = null;
             finalFragment = false;
             controlFrame = false;

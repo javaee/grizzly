@@ -42,6 +42,7 @@ package org.glassfish.grizzly.websockets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,7 +127,7 @@ public class WebSocketEngine {
     public static List<String> toString(byte[] bytes, int start, int end) {
         List<String> list = new ArrayList<String>();
         for (int i = start; i < end; i++) {
-            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase());
+            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase(Locale.US));
         }
         return list;
     }
@@ -275,7 +276,7 @@ public class WebSocketEngine {
     /**
      * WebSocketHolder object, which gets associated with the Grizzly {@link Connection}.
      */
-    public static class WebSocketHolder {
+    public final static class WebSocketHolder {
         public volatile WebSocket webSocket;
         public volatile HandShake handshake;
         public volatile WebSocketApplication application;

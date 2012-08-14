@@ -447,7 +447,7 @@ public class AjpHandlerFilter extends BaseFilter {
             int offset = message.position();
 
             final DataChunk tmpDataChunk = DataChunk.newInstance();
-            offset = AjpMessageUtils.getBytesToDataChunk(message, offset, tmpDataChunk);
+            AjpMessageUtils.getBytesToDataChunk(message, offset, tmpDataChunk);
             
             shutdownSecret = tmpDataChunk.toString();
         }
