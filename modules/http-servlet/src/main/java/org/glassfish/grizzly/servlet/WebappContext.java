@@ -1217,7 +1217,7 @@ public class WebappContext implements ServletContext {
         String pathInfo = mappingData.pathInfo.toString();
 
         // Construct a RequestDispatcher to process this request
-        return new RequestDispatcherImpl(wrapper,
+        return new ApplicationDispatcher(wrapper,
                                          uriDC.toString(),
                                          wrapperPath,
                                          pathInfo,
@@ -1272,7 +1272,7 @@ public class WebappContext implements ServletContext {
 
         ServletHandler wrapper = (ServletHandler) mappingData.wrapper;
         // Construct a RequestDispatcher to process this request
-        return new RequestDispatcherImpl(wrapper, null, null, null, null, name);
+        return new ApplicationDispatcher(wrapper, null, null, null, null, name);
     }
 
     /**

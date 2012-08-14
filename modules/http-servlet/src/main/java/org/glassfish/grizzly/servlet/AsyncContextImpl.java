@@ -52,10 +52,13 @@ import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
+import javax.servlet.DispatcherType;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 class AsyncContextImpl implements AsyncContext {
 
@@ -155,72 +158,69 @@ class AsyncContextImpl implements AsyncContext {
 
     @Override
     public void dispatch() {
-        throw new UnsupportedOperationException("Not supported yet.");
-//        ApplicationDispatcher dispatcher = 
-//            (ApplicationDispatcher)getZeroArgDispatcher(
-//                origRequest, servletRequest, isStartAsyncWithZeroArg);
-//
-//        isDispatchInScope.set(true);
-//        if (dispatcher != null) {
-//            if (isDispatchInProgress.compareAndSet(false, true)) {
-//                pool.execute(new Handler(this, dispatcher, origRequest));
-//            } else {
-//                throw new IllegalStateException(
-//                    STRING_MANAGER.getString("async.dispatchInProgress"));
-//            }
-//        } else {
-//            // Should never happen, because any unmapped paths will be 
-//            // mapped to the DefaultServlet
-//            log.warning("Unable to determine target of zero-arg dispatcher");
-//        }
+        ApplicationDispatcher dispatcher = 
+            (ApplicationDispatcher)getZeroArgDispatcher(
+                origRequest, servletRequest, isStartAsyncWithZeroArg);
+
+        isDispatchInScope.set(true);
+        if (dispatcher != null) {
+            if (isDispatchInProgress.compareAndSet(false, true)) {
+                pool.execute(new Handler(this, dispatcher, origRequest));
+            } else {
+                throw new IllegalStateException("Asynchronous dispatch already "
+                        + "in progress, must call ServletRequest.startAsync first");
+            }
+        } else {
+            // Should never happen, because any unmapped paths will be 
+            // mapped to the DefaultServlet
+            log.warning("Unable to determine target of zero-arg dispatcher");
+        }
     } 
 
     @Override
     public void dispatch(String path) {
-        throw new UnsupportedOperationException("Not supported yet.");
-//        if (path == null) {
-//            throw new IllegalArgumentException("Null path");
-//        }
-//        ApplicationDispatcher dispatcher = (ApplicationDispatcher)
-//            servletRequest.getRequestDispatcher(path);
-//        isDispatchInScope.set(true);
-//        if (dispatcher != null) {
-//            if (isDispatchInProgress.compareAndSet(false, true)) {
-//                pool.execute(new Handler(this, dispatcher, origRequest));
-//            } else {
-//                throw new IllegalStateException(
-//                    STRING_MANAGER.getString("async.dispatchInProgress"));
-//            }
-//        } else {
-//            // Should never happen, because any unmapped paths will be 
-//            // mapped to the DefaultServlet
-//            log.warning("Unable to acquire RequestDispatcher for " +
-//                        path);
-//        }
+        if (path == null) {
+            throw new IllegalArgumentException("Null path");
+        }
+        ApplicationDispatcher dispatcher = (ApplicationDispatcher)
+            servletRequest.getRequestDispatcher(path);
+        isDispatchInScope.set(true);
+        if (dispatcher != null) {
+            if (isDispatchInProgress.compareAndSet(false, true)) {
+                pool.execute(new Handler(this, dispatcher, origRequest));
+            } else {
+                throw new IllegalStateException("Asynchronous dispatch already "
+                        + "in progress, must call ServletRequest.startAsync first");
+            }
+        } else {
+            // Should never happen, because any unmapped paths will be 
+            // mapped to the DefaultServlet
+            log.warning("Unable to acquire RequestDispatcher for " +
+                        path);
+        }
     }
 
     @Override
     public void dispatch(ServletContext context, String path) {
-        throw new UnsupportedOperationException("Not supported yet.");
-//        if (path == null || context == null) {
-//            throw new IllegalArgumentException("Null context or path");
-//        }
-//        ApplicationDispatcher dispatcher = (ApplicationDispatcher)
-//            context.getRequestDispatcher(path);
-//        isDispatchInScope.set(true);
-//        if (dispatcher != null) {
-//            if (isDispatchInProgress.compareAndSet(false, true)) {
-//                pool.execute(new Handler(this, dispatcher, origRequest));
-//            } else {
-//                throw new IllegalStateException(
-//                    STRING_MANAGER.getString("async.dispatchInProgress"));
-//            }
-//        } else {
-//            // Should never happen, because any unmapped paths will be 
-//            // mapped to the DefaultServlet
-//            log.warning("Unable to acquire RequestDispatcher for " + path +
-//                        "in servlet context " + context.getContextPath());
-//        }
+        if (path == null || context == null) {
+            throw new IllegalArgumentException("Null context or path");
+        }
+        ApplicationDispatcher dispatcher = (ApplicationDispatcher)
+            context.getRequestDispatcher(path);
+        isDispatchInScope.set(true);
+        if (dispatcher != null) {
+            if (isDispatchInProgress.compareAndSet(false, true)) {
+                pool.execute(new Handler(this, dispatcher, origRequest));
+            } else {
+                throw new IllegalStateException("Asynchronous dispatch already "
+                        + "in progress, must call ServletRequest.startAsync first");
+            }
+        } else {
+            // Should never happen, because any unmapped paths will be 
+            // mapped to the DefaultServlet
+            log.log(Level.WARNING, "Unable to acquire RequestDispatcher for {0}in servlet context {1}",
+                    new Object[]{path, context.getContextPath()});
+        }
     }
 
     boolean isDispatchInScope() {
@@ -361,8 +361,11 @@ class AsyncContextImpl implements AsyncContext {
         // AsyncContext#hasOriginalRequestAndResponse must return true;
         // false otherwise (i.e., if application-wrapped)
         this.isOriginalRequestAndResponse =
-                (servletRequest instanceof HttpServletRequestImpl) &&
-                (servletResponse instanceof HttpServletResponseImpl);
+                ((servletRequest instanceof HttpServletRequestImpl) &&
+                (servletResponse instanceof HttpServletResponseImpl)) ||
+                ((servletRequest instanceof DispatchedHttpServletRequest) &&
+                (servletResponse instanceof DispatchedHttpServletResponse));
+                
 //                ((servletRequest instanceof RequestFacade ||
 //                servletRequest instanceof ApplicationHttpRequest) &&
 //                (servletResponse instanceof ResponseFacade ||
@@ -371,103 +374,103 @@ class AsyncContextImpl implements AsyncContext {
         this.isStartAsyncWithZeroArg = isStartAsyncWithZeroArg;
     }
 
-//    /**
-//     * Determines the dispatcher of a zero-argument async dispatch for the
-//     * given request.
-//     *
-//     * @return the dispatcher of the zero-argument async dispatch
-//     */
-//    private RequestDispatcher getZeroArgDispatcher(
-//            HttpServletRequestImpl origRequest, ServletRequest servletRequest,
-//            boolean isStartAsyncWithZeroArg) {
-//
-//        String dispatchTarget = null;
-//        boolean isNamed = false;
-//        if ((!isStartAsyncWithZeroArg) &&
-//                servletRequest instanceof HttpServletRequest) {
-//
-//            HttpServletRequest req = (HttpServletRequest)servletRequest;
-//            dispatchTarget = getCombinedPath(req);
-//        } else {
-//            DispatchTargetsInfo dtInfo = (DispatchTargetsInfo)origRequest.getAttribute(
-//                    ApplicationDispatcher.LAST_DISPATCH_REQUEST_PATH_ATTR);
-//            if (dtInfo != null) {
-//                dispatchTarget = dtInfo.getLastDispatchTarget();
-//                isNamed = dtInfo.isLastNamedDispatchTarget();
-//            }
-//            if (dispatchTarget == null) {
-//                dispatchTarget = getCombinedPath(origRequest);
-//            }
-//        }
-//
-//        RequestDispatcher dispatcher = null;
-//        if (dispatchTarget != null) {
-//            dispatcher = ((isNamed) ?
-//                    servletRequest.getServletContext().getNamedDispatcher(dispatchTarget) :
-//                    servletRequest.getRequestDispatcher(dispatchTarget));
-//        }
-//
-//        return dispatcher;
-//    }
+    /**
+     * Determines the dispatcher of a zero-argument async dispatch for the
+     * given request.
+     *
+     * @return the dispatcher of the zero-argument async dispatch
+     */
+    private RequestDispatcher getZeroArgDispatcher(
+            HttpServletRequestImpl origRequest, ServletRequest servletRequest,
+            boolean isStartAsyncWithZeroArg) {
 
-//    private String getCombinedPath(HttpServletRequest req) {
-//        String servletPath = req.getServletPath();
-//        if (servletPath == null) {
-//            return null;
-//        }
-//        String pathInfo = req.getPathInfo();
-//        if (pathInfo == null) {
-//            return servletPath;
-//        }
-//        return servletPath + pathInfo;
-//    }
+        String dispatchTarget = null;
+        boolean isNamed = false;
+        if ((!isStartAsyncWithZeroArg) &&
+                servletRequest instanceof HttpServletRequest) {
 
-//    static class Handler implements Runnable {
-//
-//        private final AsyncContextImpl asyncContext;
-//        private final ApplicationDispatcher dispatcher;
-//        private final HttpServletRequestImpl origRequest;
-//
-//        Handler(AsyncContextImpl asyncContext,
-//                ApplicationDispatcher dispatcher,
-//                HttpServletRequestImpl origRequest) {
-//            this.asyncContext = asyncContext;
-//            this.dispatcher = dispatcher;
-//            this.origRequest = origRequest;
-//        }
-//       
-//        @Override
-//        public void run() {
-//            asyncContext.isStartAsyncInScope.set(Boolean.TRUE);
-//            origRequest.setAttribute(Globals.DISPATCHER_TYPE_ATTR,
-//                                     DispatcherType.ASYNC);
-//            origRequest.setAsyncStarted(false);
-//            int startAsyncCurrent = asyncContext.startAsyncCounter.get();
-//            try {
-//                dispatcher.dispatch(asyncContext.getRequest(),
-//                    asyncContext.getResponse(), DispatcherType.ASYNC);
-//                /* 
-//                 * Close the response after the dispatch target has
-//                 * completed execution, unless the dispatch target has called
-//                 * ServletRequest#startAsync, in which case the AsyncContext's
-//                 * startAsyncCounter will be greater than it was before the
-//                 * dispatch
-//                 */
-//                if (asyncContext.startAsyncCounter.compareAndSet(
-//                        startAsyncCurrent, startAsyncCurrent)) {
-//                    asyncContext.complete();
-//                } else {
-//                    // Reset async timeout
-//                    origRequest.setAsyncTimeout(asyncContext.getTimeout());
-//                }
-//            } catch (Throwable t) {
-//                asyncContext.notifyAsyncListeners(AsyncEventType.ERROR, t);
-//                asyncContext.getOriginalRequest().errorDispatchAndComplete(t);
-//            } finally {
-//                asyncContext.isStartAsyncInScope.set(Boolean.FALSE);
-//            }
-//        }
-//    }
+            HttpServletRequest req = (HttpServletRequest)servletRequest;
+            dispatchTarget = getCombinedPath(req);
+        } else {
+            DispatchTargetsInfo dtInfo = (DispatchTargetsInfo)origRequest.getAttribute(
+                    ApplicationDispatcher.LAST_DISPATCH_REQUEST_PATH_ATTR);
+            if (dtInfo != null) {
+                dispatchTarget = dtInfo.getLastDispatchTarget();
+                isNamed = dtInfo.isLastNamedDispatchTarget();
+            }
+            if (dispatchTarget == null) {
+                dispatchTarget = getCombinedPath(origRequest);
+            }
+        }
+
+        RequestDispatcher dispatcher = null;
+        if (dispatchTarget != null) {
+            dispatcher = ((isNamed) ?
+                    servletRequest.getServletContext().getNamedDispatcher(dispatchTarget) :
+                    servletRequest.getRequestDispatcher(dispatchTarget));
+        }
+
+        return dispatcher;
+    }
+
+    private String getCombinedPath(HttpServletRequest req) {
+        String servletPath = req.getServletPath();
+        if (servletPath == null) {
+            return null;
+        }
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null) {
+            return servletPath;
+        }
+        return servletPath + pathInfo;
+    }
+
+    static class Handler implements Runnable {
+
+        private final AsyncContextImpl asyncContext;
+        private final ApplicationDispatcher dispatcher;
+        private final HttpServletRequestImpl origRequest;
+
+        Handler(AsyncContextImpl asyncContext,
+                ApplicationDispatcher dispatcher,
+                HttpServletRequestImpl origRequest) {
+            this.asyncContext = asyncContext;
+            this.dispatcher = dispatcher;
+            this.origRequest = origRequest;
+        }
+       
+        @Override
+        public void run() {
+            asyncContext.isStartAsyncInScope.set(Boolean.TRUE);
+            origRequest.setAttribute(ApplicationDispatcher.DISPATCHER_TYPE_ATTR,
+                                     DispatcherType.ASYNC);
+            origRequest.setAsyncStarted(false);
+            int startAsyncCurrent = asyncContext.startAsyncCounter.get();
+            try {
+                dispatcher.dispatch(asyncContext.getRequest(),
+                    asyncContext.getResponse(), DispatcherType.ASYNC);
+                /* 
+                 * Close the response after the dispatch target has
+                 * completed execution, unless the dispatch target has called
+                 * ServletRequest#startAsync, in which case the AsyncContext's
+                 * startAsyncCounter will be greater than it was before the
+                 * dispatch
+                 */
+                if (asyncContext.startAsyncCounter.compareAndSet(
+                        startAsyncCurrent, startAsyncCurrent)) {
+                    asyncContext.complete();
+                } else {
+                    // Reset async timeout
+                    origRequest.setAsyncTimeout(asyncContext.getTimeout());
+                }
+            } catch (Throwable t) {
+                asyncContext.notifyAsyncListeners(AsyncEventType.ERROR, t);
+                asyncContext.getOriginalRequest().errorDispatchAndComplete(t);
+            } finally {
+                asyncContext.isStartAsyncInScope.set(Boolean.FALSE);
+            }
+        }
+    }
 
     boolean isStartAsyncInScope() {
         return isStartAsyncInScope.get().booleanValue();
@@ -573,7 +576,7 @@ class AsyncContextImpl implements AsyncContext {
         public Thread newThread(Runnable r) {
 
             final Thread t = defaultFactory.newThread(r);
-            t.setName("glassfish-web-async-thread-" + counter.incrementAndGet());
+            t.setName("grizzly-web-async-thread-" + counter.incrementAndGet());
             return t;
 
         }

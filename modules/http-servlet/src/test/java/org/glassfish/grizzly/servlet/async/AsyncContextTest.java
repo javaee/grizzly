@@ -49,6 +49,8 @@ import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
@@ -113,6 +115,64 @@ public class AsyncContextTest extends HttpServerAbstractTest {
         }
     }
     
+    public void testAsyncListenerOnComplete() throws IOException {
+        System.out.println("testAsyncListenerOnComplete");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            addServlet(ctx, "foobar", "/servletPath/*", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                    if (!req.isAsyncSupported()) {
+                        throw new ServletException("Async not supported when it should");
+                    }
+
+                    AsyncContext ac = req.startAsync(req, resp);
+                    ac.addListener(ac.createListener(MyAsyncListener.class));
+                    ac.complete();
+                }
+            });
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            assertEquals(200, conn.getResponseCode());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            assertEquals("onComplete", reader.readLine());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testAsyncListenerOnTimeout() throws IOException {
+        System.out.println("testAsyncListenerOnTimeout");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            addServlet(ctx, "foobar", "/servletPath/*", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                    if (!req.isAsyncSupported()) {
+                        throw new ServletException("Async not supported when it should");
+                    }
+
+                    AsyncContext ac = req.startAsync(req, resp);
+                    ac.setTimeout(1000);
+                    ac.addListener(ac.createListener(MyAsyncListener.class));
+                }
+            });
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            assertEquals(200, conn.getResponseCode());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            assertEquals("onTimeout", reader.readLine());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
     private ServletRegistration addServlet(final WebappContext ctx,
             final String name,
             final String alias,
@@ -123,5 +183,29 @@ public class AsyncContextTest extends HttpServerAbstractTest {
         reg.addMapping(alias);
 
         return reg;
-    }    
+    }
+    
+    public static class MyAsyncListener implements AsyncListener {
+
+        @Override
+        public void onComplete(AsyncEvent event) throws IOException {
+            event.getAsyncContext().getResponse().getWriter().println("onComplete");
+        }
+
+        @Override
+        public void onTimeout(AsyncEvent event) throws IOException {
+            event.getAsyncContext().getResponse().getWriter().println("onTimeout");
+            event.getAsyncContext().complete();
+        }
+
+        @Override
+        public void onError(AsyncEvent event) throws IOException {
+        }
+
+        @Override
+        public void onStartAsync(AsyncEvent event) throws IOException {
+            event.getAsyncContext().getResponse().getWriter().println("onStartAsync");
+        }
+    }
+    
 }

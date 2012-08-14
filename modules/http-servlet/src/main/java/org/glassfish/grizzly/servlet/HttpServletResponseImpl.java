@@ -583,7 +583,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public Collection<String> getHeaderNames() {
-        return new ArrayList(Arrays.asList(response.getHeaderNames()));
+        return new ArrayList<String>(Arrays.asList(response.getHeaderNames()));
     }
 
     /**
@@ -591,7 +591,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public Collection<String> getHeaders(String string) {
-        return new ArrayList(Arrays.asList(response.getHeaderValues(string)));
+        return new ArrayList<String>(Arrays.asList(response.getHeaderValues(string)));
     }
     
     /**

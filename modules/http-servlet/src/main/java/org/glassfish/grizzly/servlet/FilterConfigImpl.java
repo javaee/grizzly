@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,6 @@ package org.glassfish.grizzly.servlet;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Map;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
@@ -92,7 +91,7 @@ public class FilterConfigImpl implements FilterConfig {
     /**
      * Filter's initParameters.
      */
-    private Map initParameters = null;
+    private Map<String, String> initParameters = null;
     
     
     /**
@@ -135,12 +134,12 @@ public class FilterConfigImpl implements FilterConfig {
      * {@inheritDoc}
      */
     @Override
-    public Enumeration getInitParameterNames() {
+    public Enumeration<String> getInitParameterNames() {
         Map map = initParameters;
         if (map == null) {
-            return (new Enumerator(new ArrayList()));
+            return (new Enumerator<String>(new ArrayList<String>()));
         } else {
-            return (new Enumerator(map.keySet()));
+            return (new Enumerator<String>(map.keySet()));
         }
     }
 
@@ -196,7 +195,7 @@ public class FilterConfigImpl implements FilterConfig {
      * Set the init parameters associated with this associated {@link Filter}.
      * @param initParameters the configuration parameters for this {@link Filter}
      */    
-    protected void setInitParameters(Map initParameters) {
+    protected void setInitParameters(Map<String, String> initParameters) {
         if (initParameters != null && !initParameters.isEmpty()) {
             this.initParameters = initParameters;
         }
