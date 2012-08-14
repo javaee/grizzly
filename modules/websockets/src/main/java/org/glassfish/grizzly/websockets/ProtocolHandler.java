@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -166,9 +166,15 @@ public abstract class ProtocolHandler {
     @SuppressWarnings({"unchecked"})
     private GrizzlyFuture<DataFrame> write(final DataFrame frame,
             final CompletionHandler<DataFrame> completionHandler) {
+        
+        final Connection localConnection = connection;
+        if (localConnection == null) {
+            throw new IllegalStateException("Connection is null");
+        }
+        
         final FutureImpl<DataFrame> localFuture = SafeFutureImpl.<DataFrame>create();
 
-        connection.write(frame, new EmptyCompletionHandler() {
+        localConnection.write(frame, new EmptyCompletionHandler() {
             @Override
             public void completed(final Object result) {
                 if (completionHandler != null) {
@@ -262,7 +268,12 @@ public abstract class ProtocolHandler {
     }
 
     public void doClose() {
-        connection.closeSilently();
+        final Connection localConnection = connection;
+        if (localConnection == null) {
+            throw new IllegalStateException("Connection is null");
+        }
+
+        localConnection.closeSilently();
     }
 
     protected void utf8Decode(boolean finalFragment, byte[] data, DataFrame dataFrame) {

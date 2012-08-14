@@ -190,7 +190,8 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public String[] getValueNames() {
-        return session.attributes().entrySet().toArray(new String[0]);
+        return session.attributes().entrySet().toArray(
+                new String[session.attributes().size()]);
     }
 
     /**

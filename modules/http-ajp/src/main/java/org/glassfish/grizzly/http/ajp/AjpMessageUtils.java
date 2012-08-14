@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -103,7 +103,7 @@ final class AjpMessageUtils {
 
         offset = decodeHeaders(requestContent, offset, req);
 
-        offset = decodeAttributes(requestContent, offset, req,
+        decodeAttributes(requestContent, offset, req,
                 tomcatAuthentication);
 
         final DataChunk valueDC = req.getHeaders().getValue("host");
@@ -141,13 +141,8 @@ final class AjpMessageUtils {
             // 1 string attributes
             switch (attributeCode) {
                 case AjpConstants.SC_A_CONTEXT:
-                    offset = skipBytes(requestContent, offset);
                     // nothing
-                    break;
-
-                case AjpConstants.SC_A_SERVLET_PATH:
                     offset = skipBytes(requestContent, offset);
-                    // nothing
                     break;
 
                 case AjpConstants.SC_A_REMOTE_USER:
