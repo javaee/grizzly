@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.memory;
 
 import java.io.UnsupportedEncodingException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.ThreadCache;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -50,6 +48,8 @@ import java.nio.ByteOrder;
 import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.utils.ArrayUtils;
 
 /**
@@ -1660,10 +1660,18 @@ public class BuffersBuffer extends CompositeBuffer {
         boolean isNulled = false;
 
         if (allowInternalBuffersDispose) {
-            for (int i = buffersSize - 1; i >= 0; i--) {
-                final Buffer buffer = buffers[i];
-                buffer.tryDispose();
-                buffers[i] = null;
+            if (disposeOrder != DisposeOrder.FIRST_TO_LAST) {
+                for (int i = buffersSize - 1; i >= 0; i--) {
+                    final Buffer buffer = buffers[i];
+                    buffer.tryDispose();
+                    buffers[i] = null;
+                }
+            } else {
+                for (int i = 0; i < buffersSize; i++) {
+                    final Buffer buffer = buffers[i];
+                    buffer.tryDispose();
+                    buffers[i] = null;
+                }
             }
 
             isNulled = true;
@@ -1678,7 +1686,7 @@ public class BuffersBuffer extends CompositeBuffer {
         }
 
         buffersSize = 0;
-
+        disposeOrder = DisposeOrder.LAST_TO_FIRST;
         resetLastLocation();
     }
 

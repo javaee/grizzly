@@ -49,6 +49,15 @@ import org.glassfish.grizzly.Buffer;
  */
 public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
     /**
+     * The order in which internal {@link Buffer}s will be disposed.
+     */
+    public enum DisposeOrder {
+        LAST_TO_FIRST, FIRST_TO_LAST
+    }
+    
+    protected DisposeOrder disposeOrder = DisposeOrder.LAST_TO_FIRST;
+    
+    /**
      * Construct <tt>CompositeBuffer</tt>.
      */
     public static CompositeBuffer newBuffer() {
@@ -78,6 +87,21 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
      */
     public abstract CompositeBuffer prepend(Buffer buffer);
 
+    /**
+     * Returns the order in which internal {@link Buffer}s will be disposed.
+     */
+    public DisposeOrder disposeOrder() {
+        return disposeOrder;
+    }
+
+    /**
+     * Sets the order in which internal {@link Buffer}s will be disposed.
+     */
+    public CompositeBuffer disposeOrder(final DisposeOrder disposeOrder) {
+        this.disposeOrder = disposeOrder;
+        return this;
+    }
+    
     @Override
     public abstract Object[] underlying();
 

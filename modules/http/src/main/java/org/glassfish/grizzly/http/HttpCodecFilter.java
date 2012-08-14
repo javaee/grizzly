@@ -40,38 +40,39 @@
 
 package org.glassfish.grizzly.http;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
-import org.glassfish.grizzly.Grizzly;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
-import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.CacheableDataChunk;
+import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.memory.MemoryManager;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.utils.ArraySet;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.ssl.SSLUtils;
-
+import org.glassfish.grizzly.utils.ArraySet;
 import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
-import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -817,6 +818,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 // If during buffer appending - composite buffer was created -
                 // allow buffer disposing
                 encodedBuffer.allowBufferDispose(true);
+                ((CompositeBuffer) encodedBuffer).disposeOrder(DisposeOrder.FIRST_TO_LAST);
             }
         }
 
