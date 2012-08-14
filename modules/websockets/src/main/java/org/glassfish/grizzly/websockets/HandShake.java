@@ -259,7 +259,7 @@ public abstract class HandShake {
 
     public HttpContent composeHeaders() {
         String host = getServerHostName();
-        if (port != 80 || port != 443) {
+        if (port != -1 && port != 80 && port != 443) {
             host += ":" + getPort();
         }
         final HttpRequestPacket.Builder builder = HttpRequestPacket.builder()
@@ -321,11 +321,11 @@ public abstract class HandShake {
 
     private StringBuilder appendPort(StringBuilder builder) {
         if (isSecure()) {
-            if (port != 443) {
+            if (port != 443 && port != -1) {
                 builder.append(':').append(port);
             }
         } else {
-            if (port != 80) {
+            if (port != 80 && port != -1) {
                 builder.append(':').append(port);
             }
         }
