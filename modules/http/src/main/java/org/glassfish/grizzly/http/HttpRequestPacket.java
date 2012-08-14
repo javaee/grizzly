@@ -169,7 +169,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
             return parsedMethod;
         }
 
-        parsedMethod = Method.parseDataChunk(methodC);
+        parsedMethod = Method.valueOf(methodC);
 
         return parsedMethod;
     }
