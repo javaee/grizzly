@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -162,9 +162,11 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
     private boolean authenticate(Request request, Response response,
             OSGiServletContext servletContext) throws IOException {
         
-        HttpServletRequestImpl servletRequest = new OSGiHttpServletRequest(request, servletContext);
         HttpServletResponseImpl servletResponse = HttpServletResponseImpl.create();
         servletResponse.initialize(response);
+        
+        HttpServletRequestImpl servletRequest = new OSGiHttpServletRequest(request,
+                servletResponse, servletContext);
         
         return httpContext.handleSecurity(servletRequest, servletResponse);
     }
@@ -186,10 +188,12 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
     }
 
     private static class OSGiHttpServletRequest extends HttpServletRequestImpl {
+
         public OSGiHttpServletRequest(
-                Request request, OSGiServletContext context) throws IOException {
+                Request request, HttpServletResponseImpl servletResponse,
+                OSGiServletContext context) throws IOException {
             super();
-            initialize(request);
+            initialize(request, servletResponse);
             setContextImpl(context);
         }
     }

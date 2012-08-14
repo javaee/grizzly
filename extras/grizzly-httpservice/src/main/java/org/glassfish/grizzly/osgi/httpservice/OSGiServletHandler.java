@@ -215,7 +215,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
         }
 
         @Override
-        protected void setInitParameters(Map initParameters) {
+        protected void setInitParameters(Map<String, String> initParameters) {
             super.setInitParameters(initParameters);
         }
     }

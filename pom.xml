@@ -402,7 +402,7 @@
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
-                <artifactId>servlet-api</artifactId>
+                <artifactId>javax.servlet-api</artifactId>
                 <version>${servlet-version}</version>
             </dependency>
             <dependency>
@@ -431,7 +431,7 @@
         <hk2.version>2.1.9</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
-        <servlet-version>2.5</servlet-version>
+        <servlet-version>3.1-b01</servlet-version>
         <felix-version>2.3.7</felix-version>
         <cobertura.version>2.4</cobertura.version>
         <gmbal.version>3.0.0-b023</gmbal.version>
