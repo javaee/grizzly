@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 /**
  * Client side connector handler API.
  * <tt>ConnectorHandler</tt> is responsible for creating and initializing
- * {@link Connection}, and optionally connect is to a specific remote
+ * {@link Connection}, and optionally connect it to a specific remote
  * address.
  *
  * @author Alexey Stashok
@@ -53,7 +53,7 @@ import java.util.concurrent.Future;
 public interface ConnectorHandler<E> {
 
     /**
-     * Creates, initializes and connects socket to the specific
+     * Creates, initializes and establishes {@link Connection} to the specific
      * <code>remoteAddress</code>.
      *
      * @param remoteAddress remote address to connect to.
@@ -63,7 +63,7 @@ public interface ConnectorHandler<E> {
     public Future<Connection> connect(E remoteAddress);
 
     /**
-     * Creates, initializes and connects socket to the specific
+     * Creates, initializes and establishes {@link Connection} to the specific
      * <code>remoteAddress</code>.
      *
      * @param remoteAddress remote address to connect to.
