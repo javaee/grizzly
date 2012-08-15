@@ -61,6 +61,7 @@ package org.glassfish.grizzly.servlet;
 import java.io.IOException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 
@@ -72,6 +73,13 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
 
     private NIOOutputStream outputStream;
 
+    private WriteHandler writeHandler = null;
+    private boolean hasSetWriteListener = false;
+    private boolean prevCanWrite = true;
+
+    private static final ThreadLocal<Boolean> CAN_WRITE_SCOPE =
+            new ThreadLocal<Boolean>();
+    
     public ServletOutputStreamImpl() {
     }
 
@@ -107,17 +115,90 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
         outputStream.close();
     }
 
-    void recycle() {
-        outputStream = null;
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean canWrite() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (!prevCanWrite) {
+            return false;
+        }
+        
+        boolean result = outputStream.canWrite();
+        if (!result) {
+            if (hasSetWriteListener) {
+                prevCanWrite = false; // Not data available
+                CAN_WRITE_SCOPE.set(Boolean.TRUE);
+                try {
+                    outputStream.notifyCanWrite(writeHandler);
+                } finally {
+                    CAN_WRITE_SCOPE.remove();
+                }
+                
+            } else {
+                prevCanWrite = true;  // Allow next .isReady() call to check underlying inputStream
+            }
+        }
+        
+        return result;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void setWriteListener(WriteListener wl) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void setWriteListener(WriteListener writeListener) {
+        if (hasSetWriteListener) {
+            throw new IllegalStateException("The WriteListener has already been set.");
+        }
+
+        writeHandler = new WriteHandlerImpl(writeListener);
+        hasSetWriteListener = true;
     }
+    
+    void recycle() {
+        outputStream = null;
+        
+        writeHandler = null;
+        prevCanWrite = true;
+        hasSetWriteListener = false;
+    }
+    
+    class WriteHandlerImpl implements WriteHandler {
+        private WriteListener writeListener = null;
+
+        private WriteHandlerImpl(WriteListener listener) {
+            writeListener = listener;
+        }
+
+        @Override
+        public void onWritePossible() {
+            if (!Boolean.TRUE.equals(CAN_WRITE_SCOPE.get())) {
+                prevCanWrite = true;
+                writeListener.onWritePossible();
+            } else {
+                AsyncContextImpl.pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        prevCanWrite = true;
+                        writeListener.onWritePossible();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onError(final Throwable t) {
+            if (!Boolean.TRUE.equals(CAN_WRITE_SCOPE.get())) {
+                writeListener.onError(t);
+            } else {
+                AsyncContextImpl.pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        writeListener.onError(t);
+                    }
+                });
+            }
+        }
+    }    
 }

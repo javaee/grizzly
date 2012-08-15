@@ -156,6 +156,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
 
     public void initialize(final Response response) throws IOException {
         this.response = response;
+//        response.getOutputBuffer().setAsyncEnabled(false); // switch Grizzly output to blocking mode by default
         outputStream.initialize(response);
 
     }
