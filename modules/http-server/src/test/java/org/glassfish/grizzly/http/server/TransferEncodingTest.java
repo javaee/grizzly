@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,7 @@ import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -105,13 +106,13 @@ public class TransferEncodingTest extends TestCase {
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);
-        final HttpContent response = doTest(httpHandler, request, 10000);
+        final HttpContent response = doTest(httpHandler, request, 10);
 
         assertEquals(msgSize, response.getHttpHeader().getContentLength());
     }
 
     public void testLargeMessageAutoChunking() throws Exception {
-        final int msgSize = 1024 * 10;
+        final int msgSize = 1024 * 24;
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);
@@ -392,7 +393,7 @@ public class TransferEncodingTest extends TestCase {
                 sb.append((char) ('0' + (i % 10)));
             }
 
-            response.getNIOWriter().write(sb.toString());
+            response.getWriter().write(sb.toString());
         }
     }
 
@@ -405,12 +406,10 @@ public class TransferEncodingTest extends TestCase {
 
         @Override
         public void service(Request request, Response response) throws Exception {
-            final StringBuilder sb = new StringBuilder(length);
+            final NIOWriter writer = response.getNIOWriter();
             for (int i = 0; i < length; i++) {
-                sb.append((char) ('0' + (i % 10)));
+                writer.write((char) ('0' + (i % 10)));
             }
-
-            response.getNIOWriter().write(sb.toString());
         }
     }
 

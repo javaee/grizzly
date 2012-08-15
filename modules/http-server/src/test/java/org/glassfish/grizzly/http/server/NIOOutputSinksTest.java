@@ -44,7 +44,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -917,6 +919,8 @@ public class NIOOutputSinksTest extends TestCase {
      */
     public void testProvocativeWrite() throws Exception {
         final int LENGTH = 8192;
+
+        final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
         
         final AtomicInteger sentBytesCount = new AtomicInteger();
         
@@ -986,6 +990,34 @@ public class NIOOutputSinksTest extends TestCase {
                 response.suspend();
                 
                 final NIOOutputStream outputStream = response.getNIOOutputStream();
+                
+                int numberOfExtraWrites = 0;
+                
+                clientTransport.pause();
+                Thread.sleep(500);
+                
+                while (outputStream.canWrite() || numberOfExtraWrites-- > 0) {
+                    byte[] b = new byte[LENGTH];
+                    fill(b);
+                    outputStream.write(b);
+                    outputStream.flush();
+                    sentBytesCount.addAndGet(LENGTH);
+                    Thread.sleep(20);
+                }
+                
+                ses.schedule(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            System.out.println("resuming " + clientTransport.getState().getState());
+                            clientTransport.resume();
+                        } catch (IOException ex) {
+                            Logger.getLogger(NIOOutputSinksTest.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }, 2, TimeUnit.SECONDS);
+                
                 outputStream.notifyCanWrite(new WriteHandler() {
 
                     @Override
@@ -1044,7 +1076,7 @@ public class NIOOutputSinksTest extends TestCase {
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 final int responseContentLength =
-                        parseResult.get(10, TimeUnit.SECONDS);
+                        parseResult.get(10000, TimeUnit.SECONDS);
                 
                 assertEquals(sentBytesCount.get(), responseContentLength);
             } finally {
@@ -1060,6 +1092,7 @@ public class NIOOutputSinksTest extends TestCase {
         } finally {
             clientTransport.stop();
             server.stop();
+            ses.shutdown();
         }
     }
     
