@@ -124,6 +124,8 @@ public class OutputBuffer {
     private final Map<String, CharsetEncoder> encoders =
             new HashMap<String, CharsetEncoder>();
 
+    private char[] charsArray;
+    private int charsArrayLength;
     private CharBuffer charsBuffer;
 
     private MemoryManager memoryManager;
@@ -224,11 +226,12 @@ public class OutputBuffer {
             this.bufferSize = bufferSize;
         }
         
-        if (charsBuffer != null &&
-                charsBuffer.capacity() < bufferSize) {
-            CharBuffer newCharBuffer = CharBuffer.allocate(bufferSize);
-            newCharBuffer.put(charsBuffer);
-            charsBuffer = newCharBuffer;
+        if (charsArray != null &&
+                charsArray.length < bufferSize) {
+            final char[] newCharsArray = new char[bufferSize];
+            System.arraycopy(charsArray, 0, newCharsArray, 0, charsArrayLength);
+            charsBuffer = CharBuffer.wrap(newCharsArray);
+            charsArray = newCharsArray;
         }
     }
 
@@ -248,9 +251,7 @@ public class OutputBuffer {
             currentBuffer.clear();
         }
 
-        if (charsBuffer != null) {
-            charsBuffer.clear();
-        }
+        charsArrayLength = 0;
     }
 
 
@@ -279,9 +280,7 @@ public class OutputBuffer {
             size += currentBuffer.position();
         }
 
-        if (charsBuffer != null) {
-            size += (charsBuffer.position() << 1);
-        }
+        size += (charsArrayLength << 1);
         
         return size;
     }
@@ -307,11 +306,14 @@ public class OutputBuffer {
 
         temporaryWriteBuffer.recycle();
 
-        if (charsBuffer != null) {
-            if (charsBuffer.capacity() < MAX_CHAR_BUFFER_SIZE) {
+        if (charsArray != null) {
+            charsArrayLength = 0;
+            
+            if (charsArray.length < MAX_CHAR_BUFFER_SIZE) {
                 charsBuffer.clear();
             } else {
                 charsBuffer = null;
+                charsArray = null;
             }
         }
 //        charBuf.position(0);
@@ -389,13 +391,11 @@ public class OutputBuffer {
 
         checkCharBuffer();
 
-        if (!charsBuffer.hasRemaining()) {
+        if (charsArrayLength == charsArray.length) {
             flushCharsToBuf(true);
         }
         
-//        charBuf.position(0);
-        charsBuffer.put((char) c);
-//        flushCharsToBuf(charBuf);
+        charsArray[charsArrayLength++] = (char) c;
     }
 
     public void write(char cbuf[], int off, int len) throws IOException {
@@ -408,18 +408,23 @@ public class OutputBuffer {
 
         checkCharBuffer();
         
-        final int remaining = charsBuffer.remaining();
-        
+        final int remaining = charsArray.length - charsArrayLength;
+
         if (len <= remaining) {
-            charsBuffer.put(cbuf, off, len);
+            System.arraycopy(cbuf, off, charsArray, charsArrayLength, len);
+            charsArrayLength += len;
         } else if (len - remaining < remaining) {
-            charsBuffer.put(cbuf, off, remaining);
+            System.arraycopy(cbuf, off, charsArray, charsArrayLength, remaining);
+            charsArrayLength += remaining;
+            
             flushCharsToBuf(true);
-            charsBuffer.put(cbuf, off + remaining, len - remaining);
+            
+            System.arraycopy(cbuf, off + remaining, charsArray, 0, len - remaining);
+            charsArrayLength = len - remaining;
         } else {
             flushCharsToBuf(false);
             flushCharsToBuf(CharBuffer.wrap(cbuf, off, len), true);
-    }
+        }
     }
     
     public void write(final char cbuf[]) throws IOException {
@@ -445,13 +450,12 @@ public class OutputBuffer {
         checkCharBuffer();
         
         do {
-            final int position = charsBuffer.position();
-            final int remaining = charsBuffer.remaining();
+            final int remaining = charsArray.length - charsArrayLength;
             final int workingLen = Math.min(lenLocal, remaining);
             
-            str.getChars(offLocal, offLocal + workingLen, charsBuffer.array(),
-                    charsBuffer.arrayOffset() + position);
-            charsBuffer.position(position + workingLen);
+            str.getChars(offLocal, offLocal + workingLen,
+                    charsArray, charsArrayLength);
+            charsArrayLength += workingLen;
             
             offLocal += workingLen;
             lenLocal -= workingLen;
@@ -853,7 +857,7 @@ public class OutputBuffer {
     }
 
     private boolean flushAllBuffers(final boolean isLast) throws IOException {
-        if (charsBuffer != null) {
+        if (charsArrayLength > 0) {
             flushCharsToBuf(false);
         }
         
@@ -910,8 +914,9 @@ public class OutputBuffer {
     }
 
     private void checkCharBuffer() {
-        if (charsBuffer == null) {
-            charsBuffer = CharBuffer.allocate(bufferSize);
+        if (charsArray == null) {
+            charsArray = new char[bufferSize];
+            charsBuffer = CharBuffer.wrap(charsArray);
         }
     }
     
@@ -990,9 +995,13 @@ public class OutputBuffer {
     }
 
     private void flushCharsToBuf(final boolean canFlushToNet) throws IOException {
-        charsBuffer.flip();
-        flushCharsToBuf(charsBuffer, canFlushToNet);
-        charsBuffer.clear();
+        charsBuffer.limit(charsArrayLength);
+        try {
+            flushCharsToBuf(charsBuffer, canFlushToNet);
+        } finally {
+            charsArrayLength = 0;
+            charsBuffer.clear();
+        }
     }
 
     private void flushCharsToBuf(final CharBuffer charBuf, final boolean canFlushToNet) throws IOException {
