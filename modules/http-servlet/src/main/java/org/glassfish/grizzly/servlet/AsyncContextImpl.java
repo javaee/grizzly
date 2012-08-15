@@ -59,6 +59,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import org.glassfish.grizzly.http.server.util.Globals;
 
 class AsyncContextImpl implements AsyncContext {
 
@@ -195,8 +196,7 @@ class AsyncContextImpl implements AsyncContext {
         } else {
             // Should never happen, because any unmapped paths will be 
             // mapped to the DefaultServlet
-            log.warning("Unable to acquire RequestDispatcher for " +
-                        path);
+            log.log(Level.WARNING, "Unable to acquire RequestDispatcher for {0}", path);
         }
     }
 
@@ -442,7 +442,7 @@ class AsyncContextImpl implements AsyncContext {
         @Override
         public void run() {
             asyncContext.isStartAsyncInScope.set(Boolean.TRUE);
-            origRequest.setAttribute(ApplicationDispatcher.DISPATCHER_TYPE_ATTR,
+            origRequest.setAttribute(Globals.DISPATCHER_TYPE_ATTR,
                                      DispatcherType.ASYNC);
             origRequest.setAsyncStarted(false);
             int startAsyncCurrent = asyncContext.startAsyncCounter.get();

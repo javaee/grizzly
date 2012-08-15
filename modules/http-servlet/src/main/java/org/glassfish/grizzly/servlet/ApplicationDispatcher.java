@@ -98,14 +98,7 @@ final class ApplicationDispatcher implements RequestDispatcher {
         "org.apache.catalina.core.ApplicationDispatcher.lastDispatchRequestPathAttr";
 
     
-    /**
-     * Request dispatcher state.
-     */
-    public static final String DISPATCHER_TYPE_ATTR = 
-        "org.apache.catalina.core.DISPATCHER_TYPE";
-    
-    private final static Logger logger = Grizzly.logger( ApplicationDispatcher.class );
-
+    private final static Logger LOGGER = Grizzly.logger( ApplicationDispatcher.class );
     
     private class PrivilegedDispatch implements PrivilegedExceptionAction<Void> {
 
@@ -205,8 +198,8 @@ final class ApplicationDispatcher implements RequestDispatcher {
         this.queryString = queryString;
         this.name = name;
 
-        if( logger.isLoggable( Level.FINE ) )
-            logger.log(Level.FINE, "servletPath={0}, pathInfo={1}, queryString={2}, name={3}",
+        if( LOGGER.isLoggable( Level.FINE ) )
+            LOGGER.log(Level.FINE, "servletPath={0}, pathInfo={1}, queryString={2}, name={3}",
                     new Object[]{this.servletPath, this.pathInfo, queryString, this.name});
     }
     
@@ -327,16 +320,16 @@ final class ApplicationDispatcher implements RequestDispatcher {
             // Reset any output that has been buffered, but keep
             // headers/cookies
             if( response.isCommitted() ) {
-                if( logger.isLoggable( Level.FINE ) )
-                    logger.fine( "  Forward on committed response --> ISE" );
+                if( LOGGER.isLoggable( Level.FINE ) )
+                    LOGGER.fine( "  Forward on committed response --> ISE" );
                 throw new IllegalStateException( "Cannot forward after response has been committed" );
             }
 
             try {
                 response.resetBuffer();
             } catch( IllegalStateException e ) {
-                if( logger.isLoggable( Level.FINE ) )
-                    logger.log( Level.FINE, "  Forward resetBuffer() returned ISE: {0}", e);
+                if( LOGGER.isLoggable( Level.FINE ) )
+                    LOGGER.log( Level.FINE, "  Forward resetBuffer() returned ISE: {0}", e);
                 throw e;
             }
         }

@@ -77,6 +77,7 @@ public abstract class HttpServerAbstractTest extends TestCase {
     protected HttpURLConnection getConnection(String alias, int port) throws IOException {
         URL url = new URL("http", "localhost", port, alias);
         HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+        urlConn.setReadTimeout(10 * 1000);
         urlConn.connect();
         return urlConn;
     }

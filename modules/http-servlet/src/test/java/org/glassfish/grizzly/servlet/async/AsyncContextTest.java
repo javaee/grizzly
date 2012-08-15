@@ -44,20 +44,27 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.util.EnumSet;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.HttpServerAbstractTest;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
@@ -173,6 +180,94 @@ public class AsyncContextTest extends HttpServerAbstractTest {
         }
     }
 
+    public void testAsyncContextHasOriginalRequestAndResponse() throws IOException {
+        System.out.println("testAsyncListenerOnTimeout");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            addServlet(ctx, "MyServlet", "/test", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    AsyncContext ac = null;
+                    String mode = req.getParameter("mode");
+                    if ("noarg".equals(mode)) {
+                        ac = req.startAsync();
+                    } else if ("original".equals(mode)) {
+                        ac = req.startAsync(req, res);
+                    } else if ("wrap".equals(mode)) {
+                        ac = req.startAsync(req, res);
+                    } else {
+                        throw new ServletException("Invalid mode");
+                    }
+                }
+            });
+            
+            addFilter(ctx, "MyFilter", "/test", new Filter() {
+
+                @Override
+                public void init(FilterConfig filterConfig) throws ServletException {
+                }
+
+                @Override
+                public void doFilter(ServletRequest request,
+                        ServletResponse response, FilterChain chain)
+                        throws IOException, ServletException {
+                    String mode = request.getParameter("mode");
+                    if (!"noarg".equals(mode) && !"original".equals(mode)
+                            && !"wrap".equals(mode)) {
+                        throw new ServletException("Invalid mode");
+                    }
+
+                    if ("wrap".equals(mode)) {
+                        chain.doFilter(
+                                new HttpServletRequestWrapper((HttpServletRequest) request),
+                                response);
+                    } else {
+                        chain.doFilter(request, response);
+                    }
+
+                    AsyncContext ac = request.getAsyncContext();
+                    if ("noarg".equals(mode) && !ac.hasOriginalRequestAndResponse()) {
+                        throw new ServletException(
+                                "AsycContext#hasOriginalRequestAndResponse returned false, "
+                                + "should have returned true");
+                    } else if ("original".equals(mode)
+                            && !ac.hasOriginalRequestAndResponse()) {
+                        throw new ServletException(
+                                "AsycContext#hasOriginalRequestAndResponse returned false, "
+                                + "should have returned true");
+                    } else if ("wrap".equals(mode)
+                            && ac.hasOriginalRequestAndResponse()) {
+                        throw new ServletException(
+                                "AsycContext#hasOriginalRequestAndResponse returned true, "
+                                + "should have returned false");
+                    }
+
+                    ac.complete();
+                }
+
+                @Override
+                public void destroy() {
+                }
+                
+            });
+            ctx.deploy(httpServer);
+            httpServer.start();
+            
+            HttpURLConnection conn1 = getConnection("/contextPath/test?mode=noarg", PORT);
+            assertEquals(200, conn1.getResponseCode());
+
+            HttpURLConnection conn2 = getConnection("/contextPath/test?mode=original", PORT);
+            assertEquals(200, conn2.getResponseCode());
+
+            HttpURLConnection conn3 = getConnection("/contextPath/test?mode=wrap", PORT);
+            assertEquals(200, conn3.getResponseCode());
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
     private ServletRegistration addServlet(final WebappContext ctx,
             final String name,
             final String alias,
@@ -185,6 +280,19 @@ public class AsyncContextTest extends HttpServerAbstractTest {
         return reg;
     }
     
+    private FilterRegistration addFilter(final WebappContext ctx,
+            final String name,
+            final String alias,
+            final Filter filter
+            ) {
+        
+        final FilterRegistration reg = ctx.addFilter(name, filter);
+        reg.addMappingForUrlPatterns(
+                EnumSet.<DispatcherType>of(DispatcherType.REQUEST),
+                alias);
+
+        return reg;
+    }    
     public static class MyAsyncListener implements AsyncListener {
 
         @Override

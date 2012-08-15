@@ -42,12 +42,16 @@ package org.glassfish.grizzly.servlet.async;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.util.Enumeration;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
+import javax.servlet.DispatcherType;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -231,6 +235,217 @@ public class AsyncDispatchTest extends HttpServerAbstractTest {
         }
     }
 
+    public void testAsyncContextMultipleDispatch() throws IOException {
+        System.out.println("testAsyncContextMultipleDispatch");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            
+            addServlet(ctx, "foobar", "/servletPath/*", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    if (!req.isAsyncSupported()) {
+                        throw new ServletException("Async not supported when it should");
+                    }
+
+                    if (req.getDispatcherType() == DispatcherType.REQUEST) {
+                        // Container-initiated dispatch
+                        req.setAttribute("ABC", "DEF");
+                        final AsyncContext ac = req.startAsync();
+                        ac.addListener(new AsyncListener() {
+                            @Override
+                            public void onComplete(AsyncEvent event) throws IOException {
+                                event.getAsyncContext().getResponse().getWriter().println(
+                                        "onComplete");
+                            }
+
+                            @Override
+                            public void onTimeout(AsyncEvent event) throws IOException {
+                                // do nothing
+                            }
+
+                            @Override
+                            public void onError(AsyncEvent event) throws IOException {
+                                // do nothing
+                            }
+
+                            @Override
+                            public void onStartAsync(AsyncEvent event) throws IOException {
+                                event.getAsyncContext().getResponse().getWriter().print(
+                                        "onStartAsync,");
+                                /*
+                                 * ServletRequest#startAsync clears the list of AsyncListener
+                                 * instances registered with the AsyncContext - after calling
+                                 * each AsyncListener at its onStartAsync method, which is the 
+                                 * method we're in.
+                                 * Register ourselves again, so we continue to get notified
+                                 */
+                                event.getAsyncContext().addListener(this);
+                            }
+                        });
+                        Timer asyncTimer = new Timer("AsyncTimer", true);
+                        asyncTimer.schedule(
+                                new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        ac.dispatch();
+                                    }
+                                },
+                                1000);
+                    } else if (req.getDispatcherType() == DispatcherType.ASYNC) {
+                        if ("DEF".equals(req.getAttribute("ABC"))) {
+                            // First async dispatch
+                            req.removeAttribute("ABC");
+                            req.startAsync().dispatch();
+                        } else {
+                            // Second async dispatch
+                            req.startAsync().complete();
+                        }
+                    }
+                }
+            });
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            assertEquals(200, conn.getResponseCode());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            assertEquals("onStartAsync,onStartAsync,onComplete", reader.readLine());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testDispatchForwardAsyncDispatch() throws IOException {
+        System.out.println("testDispatchForwardAsyncDispatch");
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            
+            addServlet(ctx, "test.AsyncDispatch", "/asyncdispatch", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    System.out.println("AD: dispatcher type: " + req.getDispatcherType());
+                    boolean withArgs = Boolean.parseBoolean(req.getParameter("withargs"));
+                    boolean forceAsync = Boolean.parseBoolean(req.getParameter("forceasync"));
+                    if (!req.getDispatcherType().equals(DispatcherType.ASYNC)
+                            || forceAsync) {
+
+                        final AsyncContext ac =
+                                ((withArgs) ? req.startAsync(req, res) : req.startAsync());
+
+                        ac.addListener(new AsyncListener() {
+                            public void onComplete(AsyncEvent event) {
+                                System.out.println("AD: AsyncListener.onComplete");
+                            }
+
+                            public void onError(AsyncEvent event) {
+                                System.out.println("AD: AsyncListener.onError");
+                            }
+
+                            public void onStartAsync(AsyncEvent event) {
+                                System.out.println("AD: AsyncListener.onStartAsync");
+                            }
+
+                            public void onTimeout(AsyncEvent event) {
+                                System.out.println("AD: AsyncListener.onTimeout");
+                            }
+                        });
+
+                        Timer timer = new Timer("AsyncTimer", true);
+                        timer.schedule(
+                                new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        ac.dispatch();
+                                    }
+                                },
+                                3000);
+                    } else {
+                        PrintWriter writer = res.getWriter();
+                        writer.write("Hello from AsyncDispatch\n");
+                    }
+                }
+            });
+            
+            addServlet(ctx, "test.DispatchForward", "/dispatchforward", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    String forwardUrl = "/asyncdispatch";
+                    String withargs = req.getParameter("withargs");
+                    if (withargs != null) {
+                        forwardUrl = forwardUrl + "?withargs=" + withargs;
+                    }
+
+                    if (!req.getDispatcherType().equals(DispatcherType.ASYNC)) {
+                        System.out.println("DF: forwarding " + forwardUrl);
+                        req.getRequestDispatcher(forwardUrl).forward(req, res);
+                    } else {
+                        System.out.println("DF: async dispatch type ...");
+                        PrintWriter writer = res.getWriter();
+                        writer.write("Hello from DispatchForward\n");
+                    }
+                }
+            });
+
+            addServlet(ctx, "test.DispatchForward0", "/dispatchforward0", new HttpServlet() {
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    String forwardUrl = "/dispatchforward";
+
+                    if (!req.getDispatcherType().equals(DispatcherType.ASYNC)) {
+                        System.out.println("DF0: forwarding " + forwardUrl);
+                        req.getRequestDispatcher(forwardUrl).forward(req, res);
+                    } else {
+                        System.out.println("DF0: async dispatch type ...");
+                        PrintWriter writer = res.getWriter();
+                        writer.write("Hello from DispatchForward\n");
+                    }
+                }
+            });
+
+            addServlet(ctx, "test.NamedDispatchForward0", "/nameddispatchforward0", new HttpServlet() {
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                    String servletName = "test.DispatchForward";
+                    if (!req.getDispatcherType().equals(DispatcherType.ASYNC)) {
+                        System.out.println("DF0: named forwarding " + servletName);
+                        getServletContext().getNamedDispatcher(servletName).forward(req, res);
+                    } else {
+                        System.out.println("DF0: async dispatch type ...");
+                        PrintWriter writer = res.getWriter();
+                        writer.write("Hello from DispatchForward0\n");
+                    }
+
+                }
+            });
+            
+            ctx.deploy(httpServer);
+            httpServer.start();
+            
+            assertEquals("Hello from DispatchForward", doTest("/contextPath/dispatchforward"));
+            assertEquals("Hello from AsyncDispatch", doTest("/contextPath/dispatchforward?withargs=true"));
+
+            // double dispatch
+            assertEquals("Hello from DispatchForward", doTest("/contextPath/dispatchforward0"));
+            // named dispatch
+            assertEquals("Hello from DispatchForward0", doTest("/contextPath/nameddispatchforward0"));
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
+    private String doTest(String uri) throws IOException {
+        HttpURLConnection conn = getConnection(uri, PORT);
+        assertEquals(200, conn.getResponseCode());
+        
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+
+        return reader.readLine();
+    }
+    
     private ServletRegistration addServlet(final WebappContext ctx,
             final String name,
             final String alias,
