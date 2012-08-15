@@ -60,6 +60,7 @@ package org.glassfish.grizzly.servlet;
 import java.io.IOException;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 
@@ -71,6 +72,13 @@ public class ServletInputStreamImpl extends ServletInputStream {
 
     private NIOInputStream inputStream;
 
+    private ReadHandler readHandler = null;
+    private boolean hasSetReadListener = false;
+    private boolean prevIsReady = true;
+
+    private static final ThreadLocal<Boolean> IS_READY_SCOPE =
+            new ThreadLocal<Boolean>();
+    
     protected ServletInputStreamImpl() {
     }
 
@@ -112,6 +120,9 @@ public class ServletInputStreamImpl extends ServletInputStream {
 
     void recycle() {
         inputStream = null;
+        prevIsReady = true;
+        hasSetReadListener = false;
+        readHandler = null;
     }
 
     /**
@@ -122,13 +133,98 @@ public class ServletInputStreamImpl extends ServletInputStream {
         return inputStream.isFinished();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isReady() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (!prevIsReady) {
+            return false;
+        }
+        
+        boolean result = inputStream.isReady();
+        if (!result) {
+            if (hasSetReadListener) {
+                prevIsReady = false; // Not data available
+                IS_READY_SCOPE.set(Boolean.TRUE);
+                try {
+                    inputStream.notifyAvailable(readHandler);
+                } finally {
+                    IS_READY_SCOPE.remove();
+                }
+                
+            } else {
+                prevIsReady = true;  // Allow next .isReady() call to check underlying inputStream
+            }
+        }
+        
+        return result;
     }
-
+    
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void setReadListener(ReadListener rl) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void setReadListener(final ReadListener readListener) {
+        if (hasSetReadListener) {
+            throw new IllegalStateException("The ReadListener has already been set");
+        }
+
+        readHandler = new ReadHandlerImpl(readListener);
+        hasSetReadListener = true;
     }
+    
+    class ReadHandlerImpl implements ReadHandler {
+        private ReadListener readListener = null;
+
+        private ReadHandlerImpl(ReadListener listener) {
+            readListener = listener;
+        }
+
+        @Override
+        public void onDataAvailable() {
+            if (!Boolean.TRUE.equals(IS_READY_SCOPE.get())) {
+                prevIsReady = true;
+                readListener.onDataAvailable();
+            } else {
+                AsyncContextImpl.pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        prevIsReady = true;
+                        readListener.onDataAvailable();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onAllDataRead() {
+            if (!Boolean.TRUE.equals(IS_READY_SCOPE.get())) {
+                prevIsReady = true;
+                readListener.onAllDataRead();
+            } else {
+                AsyncContextImpl.pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        prevIsReady = true;
+                        readListener.onAllDataRead();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onError(final Throwable t) {
+            if (!Boolean.TRUE.equals(IS_READY_SCOPE.get())) {
+                readListener.onError(t);
+            } else {
+                AsyncContextImpl.pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        readListener.onError(t);
+                    }
+                });
+            }
+        }
+    }    
 }
