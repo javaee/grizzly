@@ -97,6 +97,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.util.Enumerator;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
@@ -1299,6 +1300,19 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * {@inheritDoc}
      */
     @Override
+    public DispatcherType getDispatcherType() {
+        DispatcherType dispatcher = (DispatcherType) getAttribute(
+                Globals.DISPATCHER_TYPE_ATTR);
+        if (dispatcher == null) {
+            dispatcher = DispatcherType.REQUEST;
+        }
+        return dispatcher;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public AsyncContext startAsync() throws IllegalStateException {
         return startAsync(this, servletResponse);
     }
@@ -1571,11 +1585,6 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     @Override
     public void upgrade(ProtocolHandler ph) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public DispatcherType getDispatcherType() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
     
