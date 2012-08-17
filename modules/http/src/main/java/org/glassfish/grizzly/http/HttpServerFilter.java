@@ -782,7 +782,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         if (Method.GET.equals(method)
                 || Method.HEAD.equals(method)
-                || (!request.containsHeader(Header.TransferEncoding)
+                || (!Method.CONNECT.equals(method)
+                        && !request.containsHeader(Header.TransferEncoding)
                         && request.getContentLength() == -1)) {
             request.setExpectContent(false);
         }
