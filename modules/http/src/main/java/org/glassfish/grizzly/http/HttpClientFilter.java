@@ -292,19 +292,16 @@ public class HttpClientFilter extends HttpCodecFilter {
                 }
 
                 case 2 : { // parse the status code
-                    final int spaceIdx =
-                            findSpace(input, parsingState.offset, packetLimit);
-                    if (spaceIdx == -1) {
-                        parsingState.offset = input.limit();
+                    if (parsingState.offset + 3 > input.limit()) {
                         return false;
                     }
 
                     httpResponse.setStatus(Ascii.parseInt(input,
-                            parsingState.start, spaceIdx - parsingState.start));
+                                                          parsingState.start,
+                                                          3));
 
                     parsingState.start = -1;
-                    parsingState.offset = spaceIdx;
-
+                    parsingState.offset += 3;
                     parsingState.subState++;
                 }
 
