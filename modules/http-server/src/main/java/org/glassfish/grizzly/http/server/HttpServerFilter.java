@@ -64,6 +64,8 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.glassfish.grizzly.http.util.Header;
 
@@ -74,6 +76,8 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class HttpServerFilter extends BaseFilter
         implements JmxMonitoringAware<HttpServerProbe> {
+
+    private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
 
     private final Attribute<Request> httpRequestInProcessAttr;
     final Attribute<Boolean> reregisterForReadAttr;
@@ -157,6 +161,8 @@ public class HttpServerFilter extends BaseFilter
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
 
+                boolean wasSuspended = false;
+                
                 try {
                     ctx.setMessage(handlerResponse);
 
@@ -182,9 +188,15 @@ public class HttpServerFilter extends BaseFilter
                         final Buffer buf = Buffers.wrap(mm, b);
                         handlerResponse.getOutputBuffer().writeBuffer(buf);
                     }
+                } catch (Throwable t) {
+                    LOGGER.log(Level.WARNING, "Unexpected error", t);
+                    throw new IllegalStateException(t);
+                } finally {
+                    // don't forget to invalidate the suspendStatus
+                    wasSuspended = suspendStatus.getAndInvalidate();
                 }
                 
-                if (!suspendStatus.get()) {
+                if (!wasSuspended) {
                     return afterService(ctx, connection,
                             handlerRequest, handlerResponse);
                 } else {

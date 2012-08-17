@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,19 +44,33 @@ package org.glassfish.grizzly.http.server;
  *
  * @author oleksiys
  */
-public class SuspendStatus {
-    private boolean isSuspended;
-
-    public boolean get() {
-        return isSuspended;
+public final class SuspendStatus {
+    private static enum State {
+        NOT_SUSPENDED, SUSPENDED, INVALIDATED;
     }
+    
+    private State state = State.NOT_SUSPENDED;
+    
+    private Thread initThread;
 
-    public void set() {
-        this.isSuspended = true;
+    public SuspendStatus() {
+        initThread = Thread.currentThread();
     }
-
-    public SuspendStatus reset() {
-        isSuspended = false;
-        return this;
+    
+    public void suspend() {
+        if (state != State.NOT_SUSPENDED) {
+            throw new IllegalStateException("Can not suspend. Expected suspend state='" + State.NOT_SUSPENDED + "' but was '" + state +"'");
+        } else if (initThread != Thread.currentThread()) {
+            throw new IllegalStateException("Can not suspend. Processing can be suspended in the HttpHandler.service() thread only.");
+        }
+        
+        state = State.SUSPENDED;
+    }
+    
+    public boolean getAndInvalidate() {
+        final boolean wasSuspended = (state == State.SUSPENDED);
+        state = State.INVALIDATED;
+        initThread = null;
+        return wasSuspended;
     }
 }
