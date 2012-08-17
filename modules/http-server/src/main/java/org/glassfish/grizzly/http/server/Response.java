@@ -260,7 +260,7 @@ public class Response {
 
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
 
-    private final SuspendStatus suspendStatus = new SuspendStatus();
+    private SuspendStatus suspendStatus;
     private boolean sendFileEnabled;
     
     // --------------------------------------------------------- Public Methods
@@ -277,7 +277,8 @@ public class Response {
         outputBuffer.initialize(this, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;
-        return suspendStatus.reset();
+        suspendStatus = new SuspendStatus();
+        return suspendStatus;
     }
 
     /**
@@ -1716,6 +1717,8 @@ public class Response {
         if (!suspendState.compareAndSet(SuspendState.NONE, SuspendState.SUSPENDED)) {
             throw new IllegalStateException("Already Suspended");
         }
+        
+        suspendStatus.suspend();
 
         suspendedContext.completionHandler = completionHandler;
         suspendedContext.timeoutHandler = timeoutHandler;
@@ -1724,8 +1727,6 @@ public class Response {
 
         HttpServerProbeNotifier.notifyRequestSuspend(
                 request.httpServerFilter, connection, request);
-
-        suspendStatus.set();
 
         connection.addCloseListener(suspendedContext);
 
@@ -1916,10 +1917,6 @@ public class Response {
         @Override
         public boolean isSuspended() {
             return Response.this.isSuspended();
-        }
-
-        public SuspendStatus getSuspendStatus() {
-            return suspendStatus;
         }
     }
 
