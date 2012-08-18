@@ -1918,6 +1918,10 @@ public class Response {
         public boolean isSuspended() {
             return Response.this.isSuspended();
         }
+        
+        public SuspendStatus getSuspendStatus() {
+            return suspendStatus;
+        }        
     }
 
     private static class DelayQueueWorker implements
