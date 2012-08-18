@@ -73,4 +73,8 @@ public final class SuspendStatus {
         initThread = null;
         return wasSuspended;
     }
+    
+    public void reset() {
+        state = State.NOT_SUSPENDED;
+    }
 }
