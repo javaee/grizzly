@@ -121,6 +121,8 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Request {
 
     private static final Logger LOGGER = Grizzly.logger(Request.class);
+    
+    private static final Random RANDOM = new Random();
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
@@ -2253,8 +2255,7 @@ public class Request {
             session = new Session(requestedSessionId);
 
         } else {
-            Random r = new Random();
-            requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
+            requestedSessionId = String.valueOf(generateRandomLong());
             session = new Session(requestedSessionId);
         }
         sessions.put(requestedSessionId, session);
@@ -2441,5 +2442,11 @@ public class Request {
         // check the reregisterForReadAttr and enable asynchronous reading.
         ctx.resume();
     }
-
+    
+    /**
+     * Returns pseudorandom positive long value.
+     */
+    private static long generateRandomLong() {
+        return (RANDOM.nextLong() << 1) >>> 1;
+    }
 }
