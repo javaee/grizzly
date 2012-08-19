@@ -225,8 +225,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         final NIOConnection connection = (NIOConnection) queueRecord.getConnection();
         if (connection == null) {
-            onWriteFailure(connection, queueRecord,
-                    new IOException("Connection is null"));
+            queueRecord.notifyFailure(new IOException("Connection is null"));
             return;
         }
 
