@@ -488,7 +488,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
         mergedParameters.setQueryStringEncoding(charset);
 
         DataChunk queryDC = DataChunk.newInstance();
-        queryDC.setString(queryString);
+        queryDC.setString(queryParamString);
         mergedParameters.setQuery(queryDC);
         mergedParameters.handleQueryParameters();
 
@@ -666,7 +666,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
          */
     void setQueryParams(String queryString) {
         this.queryParamString = queryString;
-            }
+    }
 
 
     // ------------------------------------------------------ Protected Methods
