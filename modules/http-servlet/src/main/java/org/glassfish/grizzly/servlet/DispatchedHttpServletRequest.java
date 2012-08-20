@@ -737,8 +737,6 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
                 break;
         default: // REQUEST
                 break;
-            default:
-                break;
         }
     }
 
