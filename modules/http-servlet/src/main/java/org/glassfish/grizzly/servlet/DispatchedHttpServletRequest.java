@@ -126,10 +126,13 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
      */
     public DispatchedHttpServletRequest(HttpServletRequest request,
             WebappContext context,
+            boolean crossContext,
             DispatcherType dispatcherType) {
         super(request);
-        this.dispatcherType = dispatcherType;
         this.context = context;
+        this.crossContext = crossContext;
+        this.dispatcherType = dispatcherType;
+
         setRequest(request);
     }
     
@@ -146,6 +149,12 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
      */
     protected String contextPath = null;
     
+    /**
+     * If this request is cross context, since this changes session access
+     * behavior.
+     */
+    protected boolean crossContext = false;
+
     /**
      * The dispatcher type.
      */
