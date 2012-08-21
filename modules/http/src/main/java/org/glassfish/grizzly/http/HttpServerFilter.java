@@ -690,38 +690,46 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final boolean isHttp11 = (requestProtocol == Protocol.HTTP_1_1);
         
-        // Check if any compression would be applied
-        setContentEncodingsOnSerializing(response);
-        
         HttpContent encodedHttpContent = null;
         
-        final long contentLength = response.getContentLength();
-        
-        // @TODO consider moving underlying "if"-logic to HttpCodecFilter
-        // to make it common for client and server sides.
-        if (entityBody && contentLength == -1L && !response.isChunked()) {
-            // If neither content-length not chunking is explicitly set -
-            // try to apply one of those depending on headers and content
-            if (httpContent != null && httpContent.isLast()) {
-                // if this is first and last data chunk - set the content-length
-                if (!response.getContentEncodings(true).isEmpty()) {
-                    // optimization...
-                    // if content encodings have to be applied - apply them here
-                    // to be able to set correct content-length
-                    encodedHttpContent = encodeContent(connection, httpContent);
-                }
-                
-                response.setContentLength(httpContent.getContent().remaining());
-            } else if (chunkingEnabled && isHttp11) {
-                // otherwise use chunking if possible
-                response.setChunked(true);
-            }
-        }
-
         final Method method = request.getMethod();
-        if (Method.HEAD.equals(method)) {
-            // No entity body
-            response.setExpectContent(false);
+        
+        if (!Method.CONNECT.equals(method)) {
+            // Check if any compression would be applied
+            setContentEncodingsOnSerializing(response);
+
+            final long contentLength = response.getContentLength();
+
+            // @TODO consider moving underlying "if"-logic to HttpCodecFilter
+            // to make it common for client and server sides.
+            if (entityBody && contentLength == -1L && !response.isChunked()) {
+                // If neither content-length not chunking is explicitly set -
+                // try to apply one of those depending on headers and content
+                if (httpContent != null && httpContent.isLast()) {
+                    // if this is first and last data chunk - set the content-length
+                    if (!response.getContentEncodings(true).isEmpty()) {
+                        // optimization...
+                        // if content encodings have to be applied - apply them here
+                        // to be able to set correct content-length
+                        encodedHttpContent = encodeContent(connection, httpContent);
+                    }
+
+                    response.setContentLength(httpContent.getContent().remaining());
+                } else if (chunkingEnabled && isHttp11) {
+                    // otherwise use chunking if possible
+                    response.setChunked(true);
+                }
+            }
+            
+            if (Method.HEAD.equals(method)) {
+                // No entity body
+                response.setExpectContent(false);
+            }
+        } else { // Method.CONNECT
+            // Disable all encodings
+            response.setContentEncodingsSelected(true);
+            response.setContentLength(-1);
+            response.setChunked(false);
         }
 
         final MimeHeaders headers = response.getHeaders();
