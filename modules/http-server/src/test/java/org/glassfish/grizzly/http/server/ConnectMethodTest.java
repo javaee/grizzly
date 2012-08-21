@@ -45,6 +45,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import org.glassfish.grizzly.http.Protocol;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -59,7 +60,16 @@ public class ConnectMethodTest {
     private static final int PORT = 18903;
     
     @Test
-    public void testConnect() throws Exception {
+    public void testConnectHttp10() throws Exception {
+        doTest(Protocol.HTTP_1_0);
+    }
+
+    @Test
+    public void testConnectHttp11() throws Exception {
+        doTest(Protocol.HTTP_1_1);
+    }
+    
+    private void doTest(Protocol protocol) throws Exception {
         final int len = 8192;
         
         final HttpServer server = createWebServer(new HttpHandler() {
@@ -90,8 +100,9 @@ public class ConnectMethodTest {
         Socket s = null;
         
         try {
-            final String connectRequest = "CONNECT myserver HTTP/1.0\r\n" +
+            final String connectRequest = "CONNECT myserver " + protocol.getProtocolString() + "\r\n" +
                     "User-Agent: xyz\r\n" +
+                    "Host: abc.com\r\n" +
                     "Proxy-authorization: basic aGVsbG86d29ybGQr=\r\n" +
                     "\r\n";
             
