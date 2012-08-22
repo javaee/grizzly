@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -185,10 +186,10 @@ public class HttpServerTest extends HttpServerAbstractTest {
     public void testStartContract() throws IOException {
         LOGGER.fine("testStartContract");
         // lock port
-        Socket soc = new Socket();
         int port = PORT + 5;
+        ServerSocket soc = null;
         try {
-            soc.bind(new InetSocketAddress(port));
+            soc = new ServerSocket(port);
         } catch (IOException e) {
             fail("Could not bind to port: " + port + ". " + e.getMessage());
         }
