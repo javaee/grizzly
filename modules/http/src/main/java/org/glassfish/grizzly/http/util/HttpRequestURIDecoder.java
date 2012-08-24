@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+
 import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
@@ -160,6 +161,8 @@ public class HttpRequestURIDecoder {
             final boolean isBackSlashAllowed) {
 
         switch (dataChunk.getType()) {
+            case Bytes:
+                return normalizeBytes(dataChunk.getByteChunk(), isBackSlashAllowed);
             case Buffer:
                 return normalizeBuffer(dataChunk.getBufferChunk(), isBackSlashAllowed);
             case Chars:

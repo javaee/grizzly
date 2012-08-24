@@ -1,5 +1,5 @@
 /*
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+* DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
@@ -48,12 +48,15 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.DataChunk.Type;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HexUtils;
@@ -116,7 +119,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     
     private static final int[] DEC = HexUtils.getDecBytes();
 
-    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
+    private final Attribute<ServerHttpRequestImpl> httpRequestInProcessAttr;
     private final Attribute<KeepAliveContext> keepAliveContextAttr;
 
     private final DelayedExecutor.DelayQueue<KeepAliveContext> keepAliveQueue;
@@ -242,10 +245,19 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.maxRequestHeaders = maxRequestHeaders;
         this.maxResponseHeaders = maxResponseHeaders;
     }
-
+    
     // ----------------------------------------------------------- Configuration
+    
+    public String getDefaultResponseContentType() {
+        return defaultResponseContentType;
+    }
 
-
+    public void setDefaultResponseContentType(String defaultResponseContentType) {
+        this.defaultResponseContentType = defaultResponseContentType;
+    }
+    
+    // ----------------------------------------------------------- Parsing
+    
     /**
      * The method is called, once we have received a {@link Buffer},
      * which has to be transformed into HTTP request packet part.
@@ -266,14 +278,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
-        HttpRequestPacketImpl httpRequest = getHttpRequestInProcess(connection);
+        ServerHttpRequestImpl httpRequest = getHttpRequestInProcess(connection);
         if (httpRequest == null) {
             final boolean isSecureLocal = isSecure(connection);
-            httpRequest = HttpRequestPacketImpl.create();
+            httpRequest = ServerHttpRequestImpl.create();
             httpRequest.initialize(connection, this, input.position(), maxHeadersSize, maxRequestHeaders);
             httpRequest.setSecure(isSecureLocal);
-            final HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
-            response.setUpgrade(httpRequest.getUpgrade());
+            final HttpResponsePacket response = httpRequest.getResponse();
+//            response.setUpgrade(httpRequest.getUpgrade());
             response.setSecure(isSecureLocal);
             response.getHeaders().setMaxNumHeaders(maxResponseHeaders);
             httpRequest.setResponse(response);
@@ -306,211 +318,160 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
 
-    @Override
-    public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws IOException {
-
-        final Connection c = ctx.getConnection();
-        
-        if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
-
-            if (processKeepAlive) {
-                final KeepAliveContext keepAliveContext =
-                        keepAliveContextAttr.get(c);
-                if (keepAliveQueue != null) {
-                    keepAliveQueue.add(keepAliveContext,
-                            keepAlive.getIdleTimeoutInSeconds(),
-                            TimeUnit.SECONDS);
-                }
-                
-                final HttpRequestPacket httpRequest = keepAliveContext.request;
-                final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
-                keepAliveContext.request = null;
-
-                processResponseComplete(ctx, httpRequest, isStayAlive);
-            } else {
-                final HttpRequestPacket httpRequest = getHttpRequestInProcess(c);
-                if (httpRequest != null) {
-                    processResponseComplete(ctx, httpRequest, false);
-                }
-                
-                flushAndClose(ctx);
-            }
-            
-            return ctx.getStopAction();
-        }
-
-        return ctx.getInvokeAction();
-    }
-
-    private void processResponseComplete(final FilterChainContext ctx,
-            final HttpRequestPacket httpRequest, final boolean isStayAlive)
-            throws IOException {
-        
-        final boolean hasTransferEncoding = httpRequest.getTransferEncoding() != null;
-
-        if (httpRequest.isExpectContent()) {
-            if (hasTransferEncoding && !httpRequest.isContentBroken()) {
-                // If transfer encoding is defined and we can determine the message body length
-                // we will check HTTP keep-alive settings once remainder is fully read
-                httpRequest.setSkipRemainder(true);
-            } else {
-                // if we can not determine the message body length - assume this packet as processed
-                httpRequest.setExpectContent(false);
-                // notify processed. If packet has transfer encoding - the notification should be called elsewhere
-                onHttpPacketParsed(httpRequest, ctx);
-                // no matter it's keep-alive or not - we close the connection
-                flushAndClose(ctx);
-            }
-        } else if (!isStayAlive) {
-            // if we don't expect more data on the request and it's not in keep-alive mode
-            // close it
-            flushAndClose(ctx);
-        } /* else {
-            we don't expect more data on the request, but it's keep-alive
-        }*/
-        
-    }
-
-    @Override
-    protected boolean onHttpHeaderParsed(final HttpHeader httpHeader,
-                                         final Buffer buffer,
-                                         final FilterChainContext ctx) {
-
-        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
-
-        // If it's upgraded HTTP - don't check semantics
-        if (!request.getUpgradeDC().isNull()) return false;
-
-
-        prepareRequest(request, buffer.hasRemaining());
-        return request.getProcessingState().error;
-    }
-
-    @Override
-    protected final boolean onHttpPacketParsed(final HttpHeader httpHeader,
-            final FilterChainContext ctx) {
-        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
-
-        final boolean error = request.getProcessingState().error;
-        if (!error) {
-            httpRequestInProcessAttr.remove(ctx.getConnection());
-        }
-        return error;
-    }
-
-    @Override
-    protected void onInitialLineParsed(final HttpHeader httpHeader,
-                                       final FilterChainContext ctx) {
-        // no-op
-
-    }
-
-    @Override
-    protected void onInitialLineEncoded(HttpHeader header, FilterChainContext ctx) {
-
-        // no-op
-
-    }
-
-    @Override
-    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
-                                       final FilterChainContext ctx) {
-        // no-op
-
-    }
-
-    @Override
-    protected void onHttpHeadersEncoded(HttpHeader httpHeader, FilterChainContext ctx) {
-
-        // no-op
-
-    }
-
-    @Override
-    protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
-
-        // no-op
-
-    }
-
-    @Override
-    protected void onHttpContentEncoded(HttpContent content, FilterChainContext ctx) {
-
-        // no-op
-
-    }
-
-    @Override
-    protected void onHttpHeaderError(final HttpHeader httpHeader,
-                               final FilterChainContext ctx,
-                               final Throwable t) throws IOException {
-
-        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
-        final HttpResponsePacket response = request.getResponse();
-
-        // If error response status is not set - use 400
-        if (response.getHttpStatus().getStatusCode() < 400) {
-            // 400 - Bad request
-            HttpStatus.BAD_REQUEST_400.setValues(response);
-        }
-
-        // commit the response
-        final HttpContent errorHttpResponse = customizeErrorResponse(response);
-        final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
-        ctx.write(resBuf);
-        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-    }
-
-    @Override
-    protected void onHttpContentError(final HttpHeader httpHeader,
-            final FilterChainContext ctx,
-            final Throwable t) throws IOException {
-        httpHeader.setContentBroken(true);
+    private ServerHttpRequestImpl getHttpRequestInProcess(final Connection connection) {
+        return httpRequestInProcessAttr.get(connection);
     }
     
     @Override
-    protected Buffer encodeHttpPacket(final FilterChainContext ctx,
-            final HttpPacket input) {
-        final HttpHeader header;
-        HttpContent content;
-        
-        final boolean isHeaderPacket = input.isHeader();        
-        if (isHeaderPacket) {
-            header = (HttpHeader) input;
-            content = null;
-        } else {
-            content = (HttpContent) input;
-            header = content.getHttpHeader();
-        }
-        
-        boolean wasContentAlreadyEncoded = false;
-        final HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
-        if (!response.isCommitted() && response.getUpgrade() == null) {
-            final HttpContent encodedHttpContent = prepareResponse(
-                    ctx.getConnection(), response.getRequest(), response, content);
-            
-            if (encodedHttpContent != null) {
-                content = encodedHttpContent;
-                wasContentAlreadyEncoded = true;
+    final boolean decodeInitialLineFromBytes(final FilterChainContext ctx,
+                                    final HttpPacketParsing httpPacket,
+                                    final HeaderParsingState parsingState,
+                                    final byte[] input,
+                                    final int end) {
+
+        final ServerHttpRequestImpl httpRequest = (ServerHttpRequestImpl) httpPacket;
+
+        final int arrayOffs = parsingState.arrayOffset;
+        final int reqLimit = arrayOffs + parsingState.packetLimit;
+
+        //noinspection LoopStatementThatDoesntLoop
+        while(true) {
+            int subState = parsingState.subState;
+
+            switch(subState) {
+                case 0 : { // parse the method name
+                    final int spaceIdx =
+                            findSpace(input, arrayOffs + parsingState.offset, end, reqLimit);
+                    if (spaceIdx == -1) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    httpRequest.getMethodDC().setBytes(input,
+                            arrayOffs + parsingState.start,
+                            spaceIdx);
+
+                    parsingState.start = -1;
+                    parsingState.offset = spaceIdx - arrayOffs;
+
+                    parsingState.subState++;
+                }
+
+                case 1: { // skip spaces after the method name
+                    final int nonSpaceIdx =
+                            skipSpaces(input, arrayOffs + parsingState.offset,
+                            end, reqLimit) - arrayOffs;
+                    if (nonSpaceIdx < 0) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    parsingState.start = nonSpaceIdx;
+                    parsingState.offset = nonSpaceIdx + 1;
+                    parsingState.subState++;
+                }
+
+                case 2: { // parse the requestURI
+                    if (!parseRequestURI(httpRequest, parsingState, input, end)) {
+                        return false;
+                    }
+                }
+
+                case 3: { // skip spaces after requestURI
+                    final int nonSpaceIdx =
+                            skipSpaces(input, arrayOffs + parsingState.offset, end, reqLimit) - arrayOffs;
+                    if (nonSpaceIdx < 0) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    parsingState.start = nonSpaceIdx;
+                    parsingState.offset = nonSpaceIdx;
+                    parsingState.subState++;
+                }
+
+                case 4: { // HTTP protocol
+                    if (!findEOL(parsingState, input, end)) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    if (parsingState.checkpoint > parsingState.start) {
+                        httpRequest.getProtocolDC().setBytes(
+                                input, arrayOffs + parsingState.start,
+                                arrayOffs + parsingState.checkpoint);
+                    } else {
+                        httpRequest.getProtocolDC().setString("");
+                    }
+
+                    parsingState.subState = 0;
+                    parsingState.start = -1;
+                    parsingState.checkpoint = -1;
+                    onInitialLineParsed(httpRequest, ctx);
+                    return true;
+                }
+
+                default: throw new IllegalStateException();
             }
         }
-
-        final Buffer encoded = super.encodeHttpPacket(ctx, header, content,
-                wasContentAlreadyEncoded);
-        if (!isHeaderPacket) {
-            input.recycle();
-        }
-        return encoded;
     }
+    
+    private static boolean parseRequestURI(final ServerHttpRequestImpl httpRequest,
+            final HeaderParsingState state, final byte[] input, final int end) {
 
+        final int arrayOffs = state.arrayOffset;
+        final int limit = Math.min(end, arrayOffs + state.packetLimit);
+
+        int offset = arrayOffs + state.offset;
+
+        boolean found = false;
+
+        while (offset < limit) {
+            final byte b = input[offset];
+            if (b == Constants.SP || b == Constants.HT) {
+                found = true;
+                break;
+            } else if ((b == Constants.CR)
+                       || (b == Constants.LF)) {
+                // HTTP/0.9 style request
+                found = true;
+                break;
+            } else if ((b == Constants.QUESTION)
+                       && (state.checkpoint == -1)) {
+                state.checkpoint = offset - arrayOffs;
+            }
+
+            offset++;
+        }
+
+        if (found) {
+            int requestURIEnd = offset;
+            if (state.checkpoint != -1) {
+                // cut RequestURI to not include query string
+                requestURIEnd = arrayOffs + state.checkpoint;
+
+                httpRequest.getQueryStringDC().setBytes(input,
+                        requestURIEnd + 1, offset);
+            }
+
+            httpRequest.getRequestURIRef().init(input, arrayOffs + state.start, requestURIEnd);
+
+            state.start = -1;
+            state.checkpoint = -1;
+            state.subState++;
+        }
+
+        state.offset = offset - arrayOffs;
+        return found;
+    }
+    
     @Override
-    final boolean decodeInitialLine(final FilterChainContext ctx,
+    final boolean decodeInitialLineFromBuffer(final FilterChainContext ctx,
                                     final HttpPacketParsing httpPacket,
                                     final HeaderParsingState parsingState,
                                     final Buffer input) {
 
-        final HttpRequestPacketImpl httpRequest = (HttpRequestPacketImpl) httpPacket;
+        final ServerHttpRequestImpl httpRequest = (ServerHttpRequestImpl) httpPacket;
 
         final int reqLimit = parsingState.packetLimit;
 
@@ -593,26 +554,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             }
         }
     }
-
-    @Override
-    Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
-        final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
-        output = put(memoryManager, output, httpResponse.getProtocol().getProtocolBytes());
-        output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpResponse.getHttpStatus().getStatusBytes());
-        output = put(memoryManager, output, Constants.SP);
-        if (httpResponse.isCustomReasonPhraseSet()) {
-            output = put(memoryManager, output,
-                    HttpStatus.filter(httpResponse.getReasonPhraseDC()));
-        } else {
-            output = put(memoryManager, output,
-                    httpResponse.getHttpStatus().getReasonPhraseBytes());
-        }
-
-        return output;
-    }
-
-    private static boolean parseRequestURI(HttpRequestPacketImpl httpRequest,
+    
+    private static boolean parseRequestURI(ServerHttpRequestImpl httpRequest,
             HeaderParsingState state, Buffer input) {
         
         final int limit = Math.min(input.limit(), state.packetLimit);
@@ -659,6 +602,347 @@ public class HttpServerFilter extends HttpCodecFilter {
         state.offset = offset;
         return found;
     }
+    
+    @Override
+    protected boolean onHttpHeaderParsed(final HttpHeader httpHeader,
+                                         final Buffer buffer,
+                                         final FilterChainContext ctx) {
+
+        final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
+
+        // If it's upgraded HTTP - don't check semantics
+        if (!request.getUpgradeDC().isNull()) return false;
+
+
+        prepareRequest(request, buffer.hasRemaining());
+        return request.getProcessingState().error;
+    }
+
+    private void prepareRequest(final ServerHttpRequestImpl request,
+            final boolean hasReadyContent) {
+
+        final ProcessingState state = request.getProcessingState();
+        final HttpResponsePacket response = request.getResponse();
+
+        final Method method = request.getMethod();
+
+        if (Method.GET.equals(method)
+                || Method.HEAD.equals(method)
+                || (!Method.CONNECT.equals(method)
+                        && !request.containsHeader(Header.TransferEncoding)
+                        && request.getContentLength() == -1)) {
+            request.setExpectContent(false);
+        }
+
+        Protocol protocol;
+        try {
+            protocol = request.getProtocol();
+        } catch (IllegalStateException e) {
+            state.error = true;
+            // Send 505; Unsupported HTTP version
+            HttpStatus.HTTP_VERSION_NOT_SUPPORTED_505.setValues(response);
+            protocol = Protocol.HTTP_1_1;
+            request.setProtocol(protocol);
+            
+            return;
+        }
+
+        if (request.getHeaderParsingState().contentLengthsDiffer) {
+            request.getProcessingState().error = true;
+            return;
+        }
+
+        final MimeHeaders headers = request.getHeaders();
+        
+        DataChunk hostDC = null;
+        
+        // Check for a full URI (including protocol://host:port/)
+        
+        final DataChunk uriBC = request.getRequestURIRef().getRequestURIBC();
+        
+        if (uriBC.startsWithIgnoreCase("http", 0)) {
+
+            int pos = uriBC.indexOf("://", 4);
+            int uriBCStart = uriBC.getStart();
+            int slashPos;
+            if (pos != -1) {
+//                final Buffer uriB = uriBC.getBuffer();
+                slashPos = uriBC.indexOf('/', pos + 3);
+                if (slashPos == -1) {
+                    slashPos = uriBC.getLength();
+                    // Set URI as "/"
+                    uriBC.setStart(uriBCStart + pos + 1);
+                    uriBC.setEnd(uriBCStart + pos + 2);
+                } else {
+                    uriBC.setStart(uriBCStart + slashPos);
+                    uriBC.setEnd(uriBC.getEnd());
+                }
+                hostDC = headers.setValue("host");
+                hostDC.set(uriBC, uriBCStart + pos + 3, uriBCStart + slashPos);
+            }
+
+        }
+
+        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+
+        // ------ Set keep-alive flag
+        final DataChunk connectionValueDC = headers.getValue(Header.Connection);
+        final boolean isConnectionClose = (connectionValueDC != null &&
+                connectionValueDC.equalsIgnoreCaseLowerCase(CLOSE_BYTES));
+
+        if (!isConnectionClose) {
+            state.keepAlive = isHttp11 ||
+                    (connectionValueDC != null &&
+                    connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
+        }
+        // --------------------------
+
+        if (hostDC == null) {
+            hostDC = headers.getValue(Header.Host);
+        }
+
+        // Check host header
+        if (hostDC == null && isHttp11) {
+            state.error = true;
+            return;
+        }
+
+        parseHost(hostDC, request, response, state);
+
+        if (isHttp11 && request.serverName().getLength() == 0) {
+            state.error = true;
+            return;
+        }
+        
+        if (request.requiresAcknowledgement()) {
+            // if we have any request content, we can ignore the Expect
+            // request
+            request.requiresAcknowledgement(isHttp11 && !hasReadyContent);
+        }
+
+        request.getResponse().setChunkingAllowed(isChunkingEnabled());
+    }
+    
+    private static void parseHost(final DataChunk hostDC,
+                                  final HttpRequestPacket request,
+                                  final HttpResponsePacket response,
+                                  final ProcessingState state) {
+
+        if (hostDC == null) {
+            // HTTP/1.0
+            // Default is what the socket tells us. Overridden if a host is
+            // found/parsed
+            final Connection connection = request.getConnection();
+            request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
+            final InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
+            // Setting the socket-related fields. The adapter doesn't know
+            // about socket.
+            request.setLocalHost(localAddress.getHostName());
+            request.serverName().setString(localAddress.getHostName());
+            return;
+        }
+
+        if (hostDC.getType() == Type.Bytes) {
+            final ByteChunk valueBC = hostDC.getByteChunk();
+            final int valueS = valueBC.getStart();
+            final int valueL = valueBC.getEnd() - valueS;
+            int colonPos = -1;
+
+            final byte[] valueB = valueBC.getBuffer();
+            final boolean ipv6 = (valueB[valueS] == '[');
+            boolean bracketClosed = false;
+            for (int i = 0; i < valueL; i++) {
+                final byte b = valueB[i + valueS];
+                if (b == ']') {
+                    bracketClosed = true;
+                } else if (b == ':') {
+                    if (!ipv6 || bracketClosed) {
+                        colonPos = i;
+                        break;
+                    }
+                }
+            }
+
+            if (colonPos < 0) {
+                if (!request.isSecure()) {
+                    // 80 - Default HTTTP port
+                    request.setServerPort(80);
+                } else {
+                    // 443 - Default HTTPS port
+                    request.setServerPort(443);
+                }
+                request.serverName().setBytes(valueB, valueS, valueS + valueL);
+            } else {
+                request.serverName().setBytes(valueB, valueS, valueS + colonPos);
+
+                int port = 0;
+                int mult = 1;
+                for (int i = valueL - 1; i > colonPos; i--) {
+                    int charValue = DEC[(int) valueB[i + valueS]];
+                    if (charValue == -1) {
+                        // Invalid character
+                        state.error = true;
+                        // 400 - Bad request
+                        HttpStatus.BAD_REQUEST_400.setValues(response);
+                        return;
+                    }
+                    port = port + (charValue * mult);
+                    mult = 10 * mult;
+                }
+                request.setServerPort(port);
+
+            }
+        } else {
+            final BufferChunk valueBC = hostDC.getBufferChunk();
+            final int valueS = valueBC.getStart();
+            final int valueL = valueBC.getEnd() - valueS;
+            int colonPos = -1;
+
+            final Buffer valueB = valueBC.getBuffer();
+            final boolean ipv6 = (valueB.get(valueS) == '[');
+            boolean bracketClosed = false;
+            for (int i = 0; i < valueL; i++) {
+                final byte b = valueB.get(i + valueS);
+                if (b == ']') {
+                    bracketClosed = true;
+                } else if (b == ':') {
+                    if (!ipv6 || bracketClosed) {
+                        colonPos = i;
+                        break;
+                    }
+                }
+            }
+
+            if (colonPos < 0) {
+                if (!request.isSecure()) {
+                    // 80 - Default HTTTP port
+                    request.setServerPort(80);
+                } else {
+                    // 443 - Default HTTPS port
+                    request.setServerPort(443);
+                }
+                request.serverName().setBuffer(valueB, valueS, valueS + valueL);
+            } else {
+                request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
+
+                int port = 0;
+                int mult = 1;
+                for (int i = valueL - 1; i > colonPos; i--) {
+                    int charValue = DEC[(int) valueB.get(i + valueS)];
+                    if (charValue == -1) {
+                        // Invalid character
+                        state.error = true;
+                        // 400 - Bad request
+                        HttpStatus.BAD_REQUEST_400.setValues(response);
+                        return;
+                    }
+                    port = port + (charValue * mult);
+                    mult = 10 * mult;
+                }
+                request.setServerPort(port);
+
+            }
+        }
+    }
+    
+    @Override
+    protected final boolean onHttpPacketParsed(final HttpHeader httpHeader,
+            final FilterChainContext ctx) {
+        final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
+
+        final boolean error = request.getProcessingState().error;
+        if (!error) {
+            httpRequestInProcessAttr.remove(ctx.getConnection());
+        }
+        return error;
+    }
+
+    @Override
+    protected void onInitialLineParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpHeaderError(final HttpHeader httpHeader,
+                               final FilterChainContext ctx,
+                               final Throwable t) throws IOException {
+
+        final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
+        final HttpResponsePacket response = request.getResponse();
+
+        // If error response status is not set - use 400
+        if (response.getHttpStatus().getStatusCode() < 400) {
+            // 400 - Bad request
+            HttpStatus.BAD_REQUEST_400.setValues(response);
+        }
+
+        // commit the response
+        final HttpContent errorHttpResponse = customizeErrorResponse(response);
+        final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
+        ctx.write(resBuf);
+        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+    }
+
+    @Override
+    protected void onHttpContentError(final HttpHeader httpHeader,
+            final FilterChainContext ctx,
+            final Throwable t) throws IOException {
+        httpHeader.setContentBroken(true);
+    }
+    
+    // ----------------------------------------------------------- Serializing
+    
+    @Override
+    protected Buffer encodeHttpPacket(final FilterChainContext ctx,
+            final HttpPacket input) {
+        final HttpHeader header;
+        HttpContent content;
+        
+        final boolean isHeaderPacket = input.isHeader();        
+        if (isHeaderPacket) {
+            header = (HttpHeader) input;
+            content = null;
+        } else {
+            content = (HttpContent) input;
+            header = content.getHttpHeader();
+        }
+        
+        boolean wasContentAlreadyEncoded = false;
+        final HttpResponsePacket response = (HttpResponsePacket) header;
+        if (!response.isCommitted() && (
+                response.getRequest().getUpgradeDC().isNull() || response.getUpgrade() == null)) {
+            final HttpContent encodedHttpContent = prepareResponse(
+                    ctx.getConnection(), response.getRequest(), response, content);
+            
+            if (encodedHttpContent != null) {
+                content = encodedHttpContent;
+                wasContentAlreadyEncoded = true;
+            }
+        }
+
+        final Buffer encoded = super.encodeHttpPacket(ctx, header, content,
+                wasContentAlreadyEncoded);
+        if (!isHeaderPacket) {
+            input.recycle();
+        }
+        return encoded;
+    }
 
     /**
      * Prepare Http response
@@ -667,7 +951,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      */
     private HttpContent prepareResponse(final Connection connection,
             final HttpRequestPacket request,
-            final HttpResponsePacketImpl response,
+            final HttpResponsePacket response,
             final HttpContent httpContent) {
         final Protocol requestProtocol = request.getProtocol();
 
@@ -740,9 +1024,23 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (contentLanguage != null) {
                 headers.setValue(Header.ContentLanguage).setString(contentLanguage);
             }
-            if (!response.isContentTypeSet() && defaultResponseContentType != null) {
-                response.setDefaultContentType(defaultResponseContentType);
+            
+            String contentType = response.getContentType();
+            if (contentType != null) {
+                final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
+                if (contenTypeValue.isNull()) {
+                    contenTypeValue.setString(contentType);
+                }
+            } else if (defaultResponseContentType != null) {
+                final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
+                if (contenTypeValue.isNull()) {
+                    contenTypeValue.setString(defaultResponseContentType);
+                }
             }
+            
+//            if (!response.isContentTypeSet() && defaultResponseContentType != null) {
+//                response.setDefaultContentType(defaultResponseContentType);
+//            }
         }
 
         if (!response.containsHeader(Header.Date)) {
@@ -764,129 +1062,126 @@ public class HttpServerFilter extends HttpCodecFilter {
             // We processed max allowed HTTP requests over the keep alive connection
             state.keepAlive = false;
         }
-
+        
         // If we know that the request is bad this early, add the
         // Connection: close header.
         state.keepAlive = (state.keepAlive &&
                 !statusDropsConnection(response.getStatus()));
 
         if (!state.keepAlive) {
-            headers.setValue(Header.Connection).setString("close");
+            headers.setValue(Header.Connection).setBytes(CLOSE_BYTES);
         } else if (!isHttp11 && !state.error) {
-            headers.setValue(Header.Connection).setString("Keep-Alive");
+            headers.setValue(Header.Connection).setBytes(KEEPALIVE_BYTES);
         }
 
         return encodedHttpContent;
-    }
-
+    }        
     
-    private void prepareRequest(final HttpRequestPacketImpl request,
-            final boolean hasReadyContent) {
-
-        final ProcessingState state = request.getProcessingState();
-        final HttpResponsePacket response = request.getResponse();
-
-        final Method method = request.getMethod();
-
-        if (Method.GET.equals(method)
-                || Method.HEAD.equals(method)
-                || (!Method.CONNECT.equals(method)
-                        && !request.containsHeader(Header.TransferEncoding)
-                        && request.getContentLength() == -1)) {
-            request.setExpectContent(false);
+    @Override
+    Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
+        final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
+        output = put(memoryManager, output, httpResponse.getProtocol().getProtocolBytes());
+        output = put(memoryManager, output, Constants.SP);
+        output = put(memoryManager, output, httpResponse.getHttpStatus().getStatusBytes());
+        output = put(memoryManager, output, Constants.SP);
+        if (httpResponse.isCustomReasonPhraseSet()) {
+            output = put(memoryManager, output,
+                    HttpStatus.filter(httpResponse.getReasonPhraseDC()));
+        } else {
+            output = put(memoryManager, output,
+                    httpResponse.getHttpStatus().getReasonPhraseBytes());
         }
 
-        Protocol protocol;
-        try {
-            protocol = request.getProtocol();
-        } catch (IllegalStateException e) {
-            state.error = true;
-            // Send 505; Unsupported HTTP version
-            HttpStatus.HTTP_VERSION_NOT_SUPPORTED_505.setValues(response);
-            protocol = Protocol.HTTP_1_1;
-            request.setProtocol(protocol);
-            
-            return;
-        }
-
-        if (request.getHeaderParsingState().contentLengthsDiffer) {
-            request.getProcessingState().error = true;
-            return;
-        }
-
-        final MimeHeaders headers = request.getHeaders();
-
-        DataChunk hostDC = null;
-        
-        // Check for a full URI (including protocol://host:port/)
-        final BufferChunk uriBC =
-                request.getRequestURIRef().getRequestURIBC().getBufferChunk();
-        if (uriBC.startsWithIgnoreCase("http", 0)) {
-
-            int pos = uriBC.indexOf("://", 4);
-            int uriBCStart = uriBC.getStart();
-            int slashPos;
-            if (pos != -1) {
-                final Buffer uriB = uriBC.getBuffer();
-                slashPos = uriBC.indexOf('/', pos + 3);
-                if (slashPos == -1) {
-                    slashPos = uriBC.getLength();
-                    // Set URI as "/"
-                    uriBC.setBufferChunk(uriB, uriBCStart + pos + 1,
-                            uriBCStart + pos + 2);
-                } else {
-                    uriBC.setBufferChunk(uriB,
-                                    uriBCStart + slashPos,
-                                    uriBC.getEnd());
-                }
-                hostDC = headers.setValue("host");
-                hostDC.setBuffer(uriB,
-                                 uriBCStart + pos + 3,
-                                 uriBCStart + slashPos);
-            }
-
-        }
-
-        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
-
-        // ------ Set keep-alive flag
-        final DataChunk connectionValueDC = headers.getValue(Header.Connection);
-        final boolean isConnectionClose = (connectionValueDC != null &&
-                connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(CLOSE_BYTES));
-
-        if (!isConnectionClose) {
-            state.keepAlive = isHttp11 ||
-                    (connectionValueDC != null &&
-                    connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
-        }
-        // --------------------------
-
-        if (hostDC == null) {
-            hostDC = headers.getValue(Header.Host);
-        }
-
-        // Check host header
-        if (hostDC == null && isHttp11) {
-            state.error = true;
-            return;
-        }
-
-        parseHost(hostDC, request, response, state);
-
-        if (isHttp11 && request.serverName().getLength() == 0) {
-            state.error = true;
-            return;
-        }
-        
-        if (request.requiresAcknowledgement()) {
-            // if we have any request content, we can ignore the Expect
-            // request
-            request.requiresAcknowledgement(isHttp11 && !hasReadyContent);
-        }
-
-        request.getResponse().setChunkingAllowed(isChunkingEnabled());
+        return output;
     }
 
+    @Override
+    protected void onInitialLineEncoded(HttpHeader header, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpHeadersEncoded(HttpHeader httpHeader, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpContentEncoded(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final Event event) throws IOException {
+
+        final Connection c = ctx.getConnection();
+        
+        if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
+
+            if (processKeepAlive) {
+                final KeepAliveContext keepAliveContext =
+                        keepAliveContextAttr.get(c);
+                if (keepAliveQueue != null) {
+                    keepAliveQueue.add(keepAliveContext,
+                            keepAlive.getIdleTimeoutInSeconds(),
+                            TimeUnit.SECONDS);
+                }
+                
+                final HttpRequestPacket httpRequest = keepAliveContext.request;
+                final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
+                keepAliveContext.request = null;
+
+                processResponseComplete(ctx, httpRequest, isStayAlive);
+            } else {
+                final HttpRequestPacket httpRequest = getHttpRequestInProcess(c);
+                if (httpRequest != null) {
+                    processResponseComplete(ctx, httpRequest, false);
+                }
+                
+                flushAndClose(ctx);
+            }
+            
+            return ctx.getStopAction();
+        }
+
+        return ctx.getInvokeAction();
+    }
+
+    private void processResponseComplete(final FilterChainContext ctx,
+            final HttpRequestPacket httpRequest, final boolean isStayAlive)
+            throws IOException {
+        
+        final boolean hasTransferEncoding = httpRequest.getTransferEncoding() != null;
+
+        if (httpRequest.isExpectContent()) {
+            if (hasTransferEncoding && !httpRequest.isContentBroken()) {
+                // If transfer encoding is defined and we can determine the message body length
+                // we will check HTTP keep-alive settings once remainder is fully read
+                httpRequest.setSkipRemainder(true);
+            } else {
+                // if we can not determine the message body length - assume this packet as processed
+                httpRequest.setExpectContent(false);
+                // notify processed. If packet has transfer encoding - the notification should be called elsewhere
+                onHttpPacketParsed(httpRequest, ctx);
+                // no matter it's keep-alive or not - we close the connection
+                flushAndClose(ctx);
+            }
+        } else if (!isStayAlive) {
+            // if we don't expect more data on the request and it's not in keep-alive mode
+            // close it
+            flushAndClose(ctx);
+        } /* else {
+            we don't expect more data on the request, but it's keep-alive
+        }*/
+        
+    }
+    
     protected HttpContent customizeErrorResponse(
             final HttpResponsePacket response) {
         
@@ -911,78 +1206,6 @@ public class HttpServerFilter extends HttpCodecFilter {
                status == 505 /* SC_VERSION_NOT_SUPPORTED */;
     }
 
-
-    private static void parseHost(final DataChunk hostDC,
-                                  final HttpRequestPacket request,
-                                  final HttpResponsePacket response,
-                                  final ProcessingState state) {
-
-        if (hostDC == null) {
-            // HTTP/1.0
-            // Default is what the socket tells us. Overridden if a host is
-            // found/parsed
-            final Connection connection = request.getConnection();
-            request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
-            final InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
-            // Setting the socket-related fields. The adapter doesn't know
-            // about socket.
-            request.setLocalHost(localAddress.getHostName());
-            request.serverName().setString(localAddress.getHostName());
-            return;
-        }
-
-        final BufferChunk valueBC = hostDC.getBufferChunk();
-        final int valueS = valueBC.getStart();
-        final int valueL = valueBC.getEnd() - valueS;
-        int colonPos = -1;
-
-        final Buffer valueB = valueBC.getBuffer();
-        final boolean ipv6 = (valueB.get(valueS) == '[');
-        boolean bracketClosed = false;
-        for (int i = 0; i < valueL; i++) {
-            final byte b = valueB.get(i + valueS);
-            if (b == ']') {
-                bracketClosed = true;
-            } else if (b == ':') {
-                if (!ipv6 || bracketClosed) {
-                    colonPos = i;
-                    break;
-                }
-            }
-        }
-
-        if (colonPos < 0) {
-            if (!request.isSecure()) {
-                // 80 - Default HTTTP port
-                request.setServerPort(80);
-            } else {
-                // 443 - Default HTTPS port
-                request.setServerPort(443);
-            }
-            request.serverName().setBuffer(valueB, valueS, valueS + valueL);
-        } else {
-            request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
-
-            int port = 0;
-            int mult = 1;
-            for (int i = valueL - 1; i > colonPos; i--) {
-                int charValue = DEC[(int) valueB.get(i + valueS)];
-                if (charValue == -1) {
-                    // Invalid character
-                    state.error = true; 
-                    // 400 - Bad request
-                    HttpStatus.BAD_REQUEST_400.setValues(response);
-                    return;
-                }
-                port = port + (charValue * mult);
-                mult = 10 * mult;
-            }
-            request.setServerPort(port);
-
-        }
-
-    }
-
     private boolean isKeepAlive(final HttpRequestPacket request,
                                 final KeepAliveContext keepAliveContext) {
 
@@ -1002,10 +1225,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         return isKeepAlive;
     }
 
-    private HttpRequestPacketImpl getHttpRequestInProcess(final Connection connection) {
-        return httpRequestInProcessAttr.get(connection);
-    }
-
     private boolean checkKeepAliveRequestsCount(final Connection connection) {
         final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(connection);
 
@@ -1017,14 +1236,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         final int maxRequestCount = keepAlive.getMaxRequestsCount();
         return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
 
-    }
-
-    public String getDefaultResponseContentType() {
-        return defaultResponseContentType;
-    }
-
-    public void setDefaultResponseContentType(String defaultResponseContentType) {
-        this.defaultResponseContentType = defaultResponseContentType;
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -1087,4 +1298,139 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     } // END KeepAliveResolver
 
+    private static final class ServerHttpRequestImpl extends HttpRequestPacket
+            implements HttpPacketParsing {
+
+        private static final ThreadCache.CachedTypeIndex<ServerHttpRequestImpl> CACHE_IDX =
+                ThreadCache.obtainIndex(ServerHttpRequestImpl.class, 16);
+
+        public static ServerHttpRequestImpl create() {
+            final ServerHttpRequestImpl httpRequestImpl =
+                    ThreadCache.takeFromCache(CACHE_IDX);
+            if (httpRequestImpl != null) {
+                return httpRequestImpl;
+            }
+
+            return new ServerHttpRequestImpl();
+        }
+        
+        /**
+         * Char encoding parsed flag.
+         */
+        private boolean charEncodingParsed = false;
+        private boolean contentTypeParsed;
+        
+        private boolean isHeaderParsed;
+        private final HttpCodecFilter.HeaderParsingState headerParsingState;
+        private final HttpCodecFilter.ContentParsingState contentParsingState;
+        private final ProcessingState processingState;
+
+        private final HttpResponsePacket finalHttpResponse;
+        
+        private ServerHttpRequestImpl() {
+            this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
+            this.contentParsingState = new HttpCodecFilter.ContentParsingState();
+            this.processingState = new ProcessingState();
+            finalHttpResponse = new HttpResponsePacketImpl();
+            isExpectContent = true;
+        }
+
+        public void initialize(final Connection connection,
+                final HttpCodecFilter filter,
+                final int initialOffset,
+                final int maxHeaderSize,
+                final int maxNumberOfHeaders) {
+            headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
+            contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
+            headers.setMaxNumHeaders(maxNumberOfHeaders);
+            setResponse(finalHttpResponse);
+            setConnection(connection);
+        }
+
+        @Override
+        public String getCharacterEncoding() {
+            if (characterEncoding != null || charEncodingParsed) {
+                return characterEncoding;
+            }
+
+            getContentType(); // charEncoding is set as a side-effect of this call
+            charEncodingParsed = true;
+
+            return characterEncoding;
+        }
+
+        @Override
+        public String getContentType() {
+            if (!contentTypeParsed) {
+                contentTypeParsed = true;
+
+                if (contentType == null) {
+                    final DataChunk dc = headers.getValue(Header.ContentType);
+
+                    if (dc != null && !dc.isNull()) {
+                        setContentType(dc.toString());
+                    }
+                }
+            }
+            
+            return super.getContentType();
+        }
+
+        
+        @Override
+        public ProcessingState getProcessingState() {
+            return processingState;
+        }
+
+        @Override
+        public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
+            return headerParsingState;
+        }
+
+        @Override
+        public ContentParsingState getContentParsingState() {
+            return contentParsingState;
+        }
+
+        @Override
+        public boolean isHeaderParsed() {
+            return isHeaderParsed;
+        }
+
+        @Override
+        public void setHeaderParsed(final boolean isHeaderParsed) {
+            if (isHeaderParsed && isExpectContent() && !isChunked) {
+                contentParsingState.chunkRemainder = getContentLength();
+            }
+
+            this.isHeaderParsed = isHeaderParsed;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void reset() {
+            charEncodingParsed = false;
+            contentTypeParsed = false;
+            isHeaderParsed = false;
+            headerParsingState.recycle();
+            contentParsingState.recycle();
+            processingState.recycle();
+            
+            super.reset();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void recycle() {
+            if (isExpectContent()) {
+                return;
+            }
+            reset();
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
+    }
 }

@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -55,9 +54,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
-import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -70,6 +67,9 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  */
 public abstract class HttpHeader extends HttpPacket
         implements MimeHeadersPacket, AttributeStorage {
+    
+    private final static byte[] CHUNKED_ENCODING_BYTES =
+            Constants.CHUNKED_ENCODING.getBytes(Charsets.ASCII_CHARSET);
 
     protected boolean isCommitted;
     protected final MimeHeaders headers = new MimeHeaders();
@@ -78,8 +78,7 @@ public abstract class HttpHeader extends HttpPacket
     protected Protocol parsedProtocol;
 
     protected boolean isChunked;
-    private final Buffer tmpContentLengthBuffer =
-            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[20]);
+    private final byte[] tmpContentLengthBuffer = new byte[20];
     
     protected long contentLength = -1;
 
@@ -90,14 +89,8 @@ public abstract class HttpHeader extends HttpPacket
      */
     protected boolean charsetSet = false;
 
-    /**
-     * Char encoding parsed flag.
-     */
-    private boolean charEncodingParsed = false;
+//    private String defaultContentType;
 
-    private String defaultContentType;
-
-    protected boolean contentTypeParsed;
     protected String contentType;
 
     protected boolean isExpectContent = true;
@@ -121,6 +114,7 @@ public abstract class HttpHeader extends HttpPacket
 
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+    private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;
     
@@ -133,7 +127,11 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public AttributeHolder getAttributes() {
-        return attributes;
+        if (activeAttributes == null) {
+            activeAttributes = attributes;
+        }
+        
+        return activeAttributes;
     }    
 
     /**
@@ -332,21 +330,22 @@ public abstract class HttpHeader extends HttpPacket
      */
     protected void makeContentLengthHeader(final long defaultLength) {
         if (contentLength != -1) {
-            HttpUtils.longToBuffer(contentLength, tmpContentLengthBuffer.clear());
-            headers.setValue(Header.ContentLength).setBuffer(
-                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
-                    tmpContentLengthBuffer.limit());
+            final int start =
+                    HttpUtils.longToBuffer(contentLength, tmpContentLengthBuffer);
+            headers.setValue(Header.ContentLength).setBytes(
+                    tmpContentLengthBuffer, start,
+                    tmpContentLengthBuffer.length);
         } else if (defaultLength != -1) {
-            HttpUtils.longToBuffer(defaultLength, tmpContentLengthBuffer.clear());
+            final int start = HttpUtils.longToBuffer(defaultLength, tmpContentLengthBuffer);
             final int idx = headers.indexOf(Header.ContentLength, 0);
             if (idx == -1) {
-                headers.addValue(Header.ContentLength).setBuffer(
-                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
-                    tmpContentLengthBuffer.limit());
+                headers.addValue(Header.ContentLength).setBytes(
+                    tmpContentLengthBuffer, start,
+                    tmpContentLengthBuffer.length);
             } else if (headers.getValue(idx).isNull()) {
-                headers.getValue(idx).setBuffer(
-                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
-                    tmpContentLengthBuffer.limit());
+                headers.getValue(idx).setBytes(
+                    tmpContentLengthBuffer, start,
+                    tmpContentLengthBuffer.length);
             }
         }
     }
@@ -443,8 +442,8 @@ public abstract class HttpHeader extends HttpPacket
         final int idx = headers.indexOf(Header.TransferEncoding, 0);
         
         if (idx == -1) {
-            headers.addValue(Header.TransferEncoding).setString(
-                    Constants.CHUNKED_ENCODING);
+            headers.addValue(Header.TransferEncoding).setBytes(
+                    CHUNKED_ENCODING_BYTES);
         }
     }
 
@@ -466,15 +465,6 @@ public abstract class HttpHeader extends HttpPacket
      * @return the character encoding of this HTTP message.
      */
     public String getCharacterEncoding() {
-        if (characterEncoding != null || charEncodingParsed) {
-            return characterEncoding;
-        }
-
-        if (isContentTypeSet()) {
-            getContentType(); // charEncoding is set as a side-effect of this call
-            charEncodingParsed = true;
-        }
-
         return characterEncoding;
     }
 
@@ -500,43 +490,42 @@ public abstract class HttpHeader extends HttpPacket
     /**
      * Serializes Content-Type header into passed Buffer
      */
-    protected final Buffer serializeContentType(final MemoryManager memoryManager,
-            Buffer buffer) {
-        
-        final int idx = headers.indexOf(Header.ContentType, 0);
-        final DataChunk value;
-        if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
-            if (contentType == null) {
-                contentType = value.toString();
-            }
-            
-            headers.getAndSetSerialized(idx, true);
-        }
-
-        if (contentType != null) {
-            buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-            buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
-            buffer = put(memoryManager, buffer, contentType);
-
-            if (quotedCharsetValue != null && charsetSet) {
-                buffer = put(memoryManager, buffer, ";charset=");
-                buffer = put(memoryManager, buffer, quotedCharsetValue);
-            }
-            
-            buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
-        } else {
-            final String defaultType = getDefaultContentType();
-            if (defaultType != null) {
-                buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-                buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
-                buffer = put(memoryManager, buffer, defaultType);
-                buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
-            }
-        }
-        
-        return buffer;
-    }
-
+//    protected final Buffer serializeContentType(final MemoryManager memoryManager,
+//            Buffer buffer) {
+//
+//        final int idx = headers.indexOf(Header.ContentType, 0);
+//        final DataChunk value;
+//        if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
+//            if (contentType == null) {
+//                contentType = value.toString();
+//            }
+//            
+//            headers.getAndSetSerialized(idx, true);
+//        }
+//
+//        if (contentType != null) {
+//            buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+//            buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
+//            buffer = put(memoryManager, buffer, contentType);
+//
+//            if (quotedCharsetValue != null && charsetSet) {
+//                buffer = put(memoryManager, buffer, ";charset=");
+//                buffer = put(memoryManager, buffer, quotedCharsetValue);
+//            }
+//            
+//            buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
+//        } else {
+//            final String defaultType = getDefaultContentType();
+//            if (defaultType != null) {
+//                buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+//                buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
+//                buffer = put(memoryManager, buffer, defaultType);
+//                buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
+//            }
+//        }
+//        
+//        return buffer;
+//    }
 
     /**
      * @return <code>true</code> if a content type has been set.
@@ -554,18 +543,6 @@ public abstract class HttpHeader extends HttpPacket
      * @return the content type of this HTTP message.
      */
     public String getContentType() {
-        if (!contentTypeParsed) {
-            contentTypeParsed = true;
-
-            if (contentType == null) {
-                final DataChunk dc = headers.getValue(Header.ContentType);
-
-                if (dc != null && !dc.isNull()) {
-                    setContentType(dc.toString());
-                }
-            }
-        }
-
         String ret = contentType;
 
         if (ret != null
@@ -762,8 +739,7 @@ public abstract class HttpHeader extends HttpPacket
             return parsedProtocol;
         }
 
-        parsedProtocol = Protocol.parseDataChunk(protocolC);
-
+        parsedProtocol = Protocol.valueOf(protocolC);
         return parsedProtocol;
     }
 
@@ -818,7 +794,10 @@ public abstract class HttpHeader extends HttpPacket
         secure = false;
         isSkipRemainder = false;
         isContentBroken = false;
-        attributes.recycle();
+        if (activeAttributes != null) {
+            activeAttributes.recycle();
+            activeAttributes = null;
+        }
         protocolC.recycle();
         parsedProtocol = null;
         contentEncodings.clear();
@@ -827,12 +806,10 @@ public abstract class HttpHeader extends HttpPacket
         isChunked = false;
         contentLength = -1;
         characterEncoding = null;
-        defaultContentType = null;
+//        defaultContentType = null;
         quotedCharsetValue = null;
         charsetSet = false;
-        charEncodingParsed = false;
         contentType = null;
-        contentTypeParsed = false;
         transferEncoding = null;
         isExpectContent = true;
         upgrade.recycle();
@@ -850,13 +827,13 @@ public abstract class HttpHeader extends HttpPacket
         reset();
     }
 
-    protected String getDefaultContentType() {
-        return defaultContentType;
-    }
-
-    protected void setDefaultContentType(String defaultContentType) {
-        this.defaultContentType = defaultContentType;
-    }
+//    protected String getDefaultContentType() {
+//        return defaultContentType;
+//    }
+//
+//    protected void setDefaultContentType(String defaultContentType) {
+//        this.defaultContentType = defaultContentType;
+//    }
 
     /**
      * <tt>HttpHeader</tt> message builder.

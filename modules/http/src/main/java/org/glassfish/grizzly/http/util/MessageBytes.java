@@ -619,7 +619,7 @@ public final class MessageBytes implements Cloneable, Serializable {
             current = current / 10;
             buf[end++] = HexUtils.HEX[digit];
         }
-        byteC.setOffset(0);
+        byteC.setStart(0);
         byteC.setEnd(end);
         // Inverting buffer
         end--;
@@ -661,7 +661,7 @@ public final class MessageBytes implements Cloneable, Serializable {
             current = current / 10;
             buf[end++] = HexUtils.HEX[digit];
         }
-        byteC.setOffset(0);
+        byteC.setStart(0);
         byteC.setEnd(end);
         // Inverting buffer
         end--;

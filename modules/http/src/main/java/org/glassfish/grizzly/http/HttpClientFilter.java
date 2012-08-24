@@ -50,9 +50,12 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import java.util.Queue;
+import org.glassfish.grizzly.ThreadCache;
 
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
@@ -71,8 +74,8 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  */
 public class HttpClientFilter extends HttpCodecFilter {
 
-    private final Attribute<Queue<HttpRequestPacketImpl>> httpRequestQueueAttr;
-    private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;
+    private final Attribute<Queue<HttpRequestPacket>> httpRequestQueueAttr;
+    private final Attribute<ClientHttpResponseImpl> httpResponseInProcessAttr;
 
     /**
      * Constructor, which creates <tt>HttpClientFilter</tt> instance
@@ -105,7 +108,7 @@ public class HttpClientFilter extends HttpCodecFilter {
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
 
         final Connection c = ctx.getConnection();
-        final Queue<HttpRequestPacketImpl> requestQueue = getRequestQueue(c);
+        final Queue<HttpRequestPacket> requestQueue = getRequestQueue(c);
         final Object message = ctx.getMessage();
         //noinspection SuspiciousMethodCalls
         if (requestQueue.isEmpty() || !requestQueue.contains(message)) {
@@ -117,7 +120,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                     header = ((HttpContent) message).getHttpHeader();
                 }
                 if (header.isRequest()) {
-                    requestQueue.offer((HttpRequestPacketImpl) header);
+                    requestQueue.offer((HttpRequestPacket) header);
                 }
             }
         }
@@ -145,10 +148,10 @@ public class HttpClientFilter extends HttpCodecFilter {
         Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
-        HttpResponsePacketImpl httpResponse = httpResponseInProcessAttr.get(connection);
+        ClientHttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
-            httpResponse = HttpResponsePacketImpl.create();
-            final Queue<HttpRequestPacketImpl> requestQueue = getRequestQueue(connection);
+            httpResponse = ClientHttpResponseImpl.create();
+            final Queue<HttpRequestPacket> requestQueue = getRequestQueue(connection);
             httpResponse.setRequest(requestQueue.poll());
             httpResponse.initialize(this, input.position(), maxHeadersSize, MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
             httpResponse.setSecure(isSecure(connection));
@@ -170,7 +173,7 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     protected boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
             final FilterChainContext ctx) {
-        final HttpResponsePacketImpl response = (HttpResponsePacketImpl) httpHeader;
+        final ClientHttpResponseImpl response = (ClientHttpResponseImpl) httpHeader;
         final HttpRequestPacket request = response.getRequest();
         final int statusCode = response.getStatus();
 
@@ -245,9 +248,143 @@ public class HttpClientFilter extends HttpCodecFilter {
 
     }
 
+    @Override
+    protected Buffer encodeHttpPacket(final FilterChainContext ctx,
+            final HttpPacket input) {
+        final HttpHeader header;
+        HttpContent content;
+        
+        final boolean isHeaderPacket = input.isHeader();        
+        if (isHeaderPacket) {
+            header = (HttpHeader) input;
+            content = null;
+        } else {
+            content = (HttpContent) input;
+            header = content.getHttpHeader();
+        }
+        
+        final HttpRequestPacket request = (HttpRequestPacket) header;
+        if (!request.isCommitted()) {
+            prepareRequest(request);
+        }
+
+        return super.encodeHttpPacket(ctx, header, content, false);
+    }
 
     @Override
-    final boolean decodeInitialLine(final FilterChainContext ctx,
+    final boolean decodeInitialLineFromBytes(final FilterChainContext ctx,
+            final HttpPacketParsing httpPacket,
+            final HeaderParsingState parsingState,
+            final byte[] input,
+            final int end) {
+        
+        final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
+        
+        final int arrayOffs = parsingState.arrayOffset;
+        final int packetLimit = arrayOffs + parsingState.packetLimit;
+
+        //noinspection LoopStatementThatDoesntLoop
+        while(true) {
+            int subState = parsingState.subState;
+
+            switch(subState) {
+                case 0: { // HTTP protocol
+                    final int spaceIdx =
+                            findSpace(input, arrayOffs + parsingState.offset, end, packetLimit);
+                    if (spaceIdx == -1) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    httpResponse.getProtocolDC().setBytes(input,
+                            arrayOffs + parsingState.start, spaceIdx);
+
+                    parsingState.start = -1;
+                    parsingState.offset = spaceIdx - arrayOffs;
+
+                    parsingState.subState++;
+                }
+
+                case 1: { // skip spaces after the HTTP protocol
+                    final int nonSpaceIdx =
+                            skipSpaces(input, arrayOffs + parsingState.offset,
+                            end, packetLimit) - arrayOffs;
+                    
+                    if (nonSpaceIdx < 0) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    parsingState.start = nonSpaceIdx;
+                    parsingState.offset = nonSpaceIdx + 1;
+                    parsingState.subState++;
+                }
+
+                case 2 : { // parse the status code
+                    if (parsingState.offset + 3 > end - arrayOffs) {
+                        return false;
+                    }
+
+                    httpResponse.setStatus(Ascii.parseInt(input,
+                                                          arrayOffs + parsingState.start,
+                                                          3));
+
+                    parsingState.start = -1;
+                    parsingState.offset += 3;
+                    parsingState.subState++;
+                }
+
+                case 3: { // skip spaces after the status code
+                    final int nonSpaceIdx =
+                            skipSpaces(input, arrayOffs + parsingState.offset,
+                            end, packetLimit) - arrayOffs;
+                    if (nonSpaceIdx < 0) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+
+                    parsingState.start = nonSpaceIdx;
+                    parsingState.offset = nonSpaceIdx;
+                    parsingState.subState++;
+                }
+
+                case 4: { // HTTP response reason-phrase
+                    if (!findEOL(parsingState, input, end)) {
+                        parsingState.offset = end - arrayOffs;
+                        return false;
+                    }
+                    
+                    httpResponse.getReasonPhraseRawDC().setBytes(
+                            input, arrayOffs + parsingState.start,
+                            arrayOffs + parsingState.checkpoint);
+
+                    parsingState.subState = 0;
+                    parsingState.start = -1;
+                    parsingState.checkpoint = -1;
+                    onInitialLineParsed(httpResponse, ctx);
+                    if (httpResponse.getStatus() == 100) {
+                        // reset the parsing state in preparation to parse
+                        // another initial line which represents the final
+                        // response from the server after it has sent a
+                        // 100-Continue.
+                        parsingState.offset += 2;
+                        parsingState.start = 0;
+//                        input.position(parsingState.offset);
+//                        input.shrink();
+//                        parsingState.offset = 0;
+                        return false;
+                    }
+                    return true;
+                }
+
+                default: throw new IllegalStateException();
+            }
+        }
+    }
+    
+    
+    @Override
+    final boolean decodeInitialLineFromBuffer(final FilterChainContext ctx,
                                     final HttpPacketParsing httpPacket,
                                     final HeaderParsingState parsingState,
                                     final Buffer input) {
@@ -368,14 +505,141 @@ public class HttpClientFilter extends HttpCodecFilter {
         return output;
     }
 
-    private Queue<HttpRequestPacketImpl> getRequestQueue(final Connection c) {
+    private void prepareRequest(final HttpRequestPacket request) {
+        String contentType = request.getContentType();
+        if (contentType != null) {
+            request.getHeaders().setValue(Header.ContentType).setString(contentType);
+        }
+    }
 
-        Queue<HttpRequestPacketImpl> q = httpRequestQueueAttr.get(c);
+    private Queue<HttpRequestPacket> getRequestQueue(final Connection c) {
+
+        Queue<HttpRequestPacket> q = httpRequestQueueAttr.get(c);
         if (q == null) {
-            q = DataStructures.getLTQInstance(HttpRequestPacketImpl.class);
+            q = DataStructures.getLTQInstance(HttpRequestPacket.class);
             httpRequestQueueAttr.set(c, q);
         }
         return q;
 
+    }
+
+    private static final class ClientHttpResponseImpl
+            extends HttpResponsePacket implements HttpPacketParsing {
+
+        private static final ThreadCache.CachedTypeIndex<ClientHttpResponseImpl> CACHE_IDX =
+                ThreadCache.obtainIndex(ClientHttpResponseImpl.class, 16);
+
+        public static ClientHttpResponseImpl create() {
+            final ClientHttpResponseImpl httpResponseImpl =
+                    ThreadCache.takeFromCache(CACHE_IDX);
+            if (httpResponseImpl != null) {
+                return httpResponseImpl;
+            }
+
+            return new ClientHttpResponseImpl();
+        }
+        
+        /**
+         * Char encoding parsed flag.
+         */
+        private boolean charEncodingParsed = false;
+        private boolean contentTypeParsed;
+        
+        private boolean isHeaderParsed;
+        private final HttpCodecFilter.HeaderParsingState headerParsingState;
+        private final HttpCodecFilter.ContentParsingState contentParsingState;
+
+        private ClientHttpResponseImpl() {
+            this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
+            this.contentParsingState = new HttpCodecFilter.ContentParsingState();
+        }
+
+        public void initialize(final HttpCodecFilter filter,
+                final int initialOffset,
+                final int maxHeaderSize,
+                final int maxNumberOfHeaders) {
+            headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
+            headers.setMaxNumHeaders(maxNumberOfHeaders);
+            contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
+        }
+
+        @Override
+        public String getCharacterEncoding() {
+            if (characterEncoding != null || charEncodingParsed) {
+                return characterEncoding;
+            }
+
+            getContentType(); // charEncoding is set as a side-effect of this call
+            charEncodingParsed = true;
+
+            return characterEncoding;
+        }
+
+        @Override
+        public String getContentType() {
+            if (!contentTypeParsed) {
+                contentTypeParsed = true;
+
+                if (contentType == null) {
+                    final DataChunk dc = headers.getValue(Header.ContentType);
+
+                    if (dc != null && !dc.isNull()) {
+                        setContentType(dc.toString());
+                    }
+                }
+            }
+            
+            return super.getContentType();
+        }
+        
+        @Override
+        public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
+            return headerParsingState;
+        }
+
+        @Override
+        public ContentParsingState getContentParsingState() {
+            return contentParsingState;
+        }
+
+        @Override
+        public ProcessingState getProcessingState() {
+            return getRequest().getProcessingState();
+        }
+
+        @Override
+        public boolean isHeaderParsed() {
+            return isHeaderParsed;
+        }
+
+        @Override
+        public void setHeaderParsed(boolean isHeaderParsed) {
+            this.isHeaderParsed = isHeaderParsed;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void reset() {
+            charEncodingParsed = false;
+            contentTypeParsed = false;
+            isHeaderParsed = false;
+            headerParsingState.recycle();
+            contentParsingState.recycle();
+            super.reset();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void recycle() {
+            if (getRequest().isExpectContent()) {
+                return;
+            }
+            reset();
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
     }
 }

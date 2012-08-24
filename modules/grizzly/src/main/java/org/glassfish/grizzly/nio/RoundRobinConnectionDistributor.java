@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -80,11 +80,24 @@ public final class RoundRobinConnectionDistributor
         transport.getSelectorHandler().registerChannelAsync(
                 runner, channel, interestOps, attachment, completionHandler);
     }
-    
+
     private SelectorRunner getSelectorRunner() {
         final SelectorRunner[] runners = getTransportSelectorRunners();
-        final int index = (counter.getAndIncrement() & 0x7fffffff) % runners.length;
+        if (runners.length == 1) {
+            return runners[0];
+        }
         
-        return runners[index];
+        return runners[((counter.getAndIncrement() & 0x7fffffff) % (runners.length - 1)) + 1];
+    }
+    
+    @Override
+    public void registerServiceChannelAsync(
+            final SelectableChannel channel, final int interestOps,
+            final Object attachment,
+            final CompletionHandler<RegisterChannelResult> completionHandler) {
+        
+        transport.getSelectorHandler().registerChannelAsync(
+                getTransportSelectorRunners()[0], channel, interestOps,
+                attachment, completionHandler);
     }
 }

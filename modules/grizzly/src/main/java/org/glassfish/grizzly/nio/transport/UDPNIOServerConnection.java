@@ -78,7 +78,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         final FutureImpl<RegisterChannelResult> future =
                 Futures.createSafeFuture();
 
-        transport.getNIOChannelDistributor().registerChannelAsync(
+        transport.getNIOChannelDistributor().registerServiceChannelAsync(
                 channel,
                 SelectionKey.OP_READ, this,
                 Futures.toCompletionHandler(future,

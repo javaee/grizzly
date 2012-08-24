@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -105,13 +106,13 @@ public class TransferEncodingTest extends TestCase {
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);
-        final HttpContent response = doTest(httpHandler, request, 10000);
+        final HttpContent response = doTest(httpHandler, request, 10);
 
         assertEquals(msgSize, response.getHttpHeader().getContentLength());
     }
 
     public void testLargeMessageAutoChunking() throws Exception {
-        final int msgSize = 1024 * 10;
+        final int msgSize = 1024 * 24;
 
         final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
         final HttpPacket request = createRequest("/index.html", null);
@@ -405,12 +406,10 @@ public class TransferEncodingTest extends TestCase {
 
         @Override
         public void service(Request request, Response response) throws Exception {
-            final StringBuilder sb = new StringBuilder(length);
+            final Writer writer = response.getWriter();
             for (int i = 0; i < length; i++) {
-                sb.append((char) ('0' + (i % 10)));
+                writer.write((char) ('0' + (i % 10)));
             }
-
-            response.getWriter().write(sb.toString());
         }
     }
 

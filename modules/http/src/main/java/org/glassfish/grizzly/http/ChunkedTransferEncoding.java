@@ -50,11 +50,11 @@ import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.memory.MemoryManager;
 
-import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
-import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
+import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
 
 /**
  * Chunked transfer encoding implementation.
@@ -236,7 +236,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 httpPacket.getContentParsingState();
 
         final HttpCodecFilter filter = headerParsingState.codecFilter;
-        final boolean result = filter.parseHeaders(httpHeader,
+        final boolean result = filter.parseHeadersFromBuffer(httpHeader,
                                                    contentParsingState.trailerHeaders,
                                                    headerParsingState,
                                                    input);

@@ -40,17 +40,10 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.utils.Charsets;
-import java.io.CharConversionException;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
-import static org.glassfish.grizzly.http.util.Constants.*;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * {@link Buffer} chunk representation.
@@ -59,10 +52,7 @@ import static org.glassfish.grizzly.http.util.Constants.*;
  * @author Alexey Stashok
  */
 public class BufferChunk implements Chunk {
-    private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();
-
     private Buffer buffer;
-    private boolean disposeOnRecycle;
 
     private int start;
     private int end;
@@ -75,30 +65,14 @@ public class BufferChunk implements Chunk {
 
     public void setBufferChunk(final Buffer buffer,
                                final int start,
-                               final int end,
-                               final boolean disposeOnRecycle) {
-        setBufferChunk(buffer, start, end, end, disposeOnRecycle);
-    }
-
-    public void setBufferChunk(final Buffer buffer,
-                               final int start,
                                final int end) {
-        setBufferChunk(buffer, start, end, end, false);
+        setBufferChunk(buffer, start, end, end);
     }
 
     public void setBufferChunk(final Buffer buffer,
                                final int start,
                                final int end,
                                final int limit) {
-        setBufferChunk(buffer, start, end, limit, false);
-    }
-
-    public void setBufferChunk(final Buffer buffer,
-                               final int start,
-                               final int end,
-                               final int limit,
-                               final boolean disposeOnRecycle) {
-        this.disposeOnRecycle = disposeOnRecycle;
         this.buffer = buffer;
         this.start = start;
         this.end = end;
@@ -172,7 +146,6 @@ public class BufferChunk implements Chunk {
                 // manager, it may be an error to pass a buffer back to itself.
                 final Buffer duplicate = buffer.duplicate();
                 buffer.put(duplicate, absDeleteEnd, diff);
-                duplicate.tryDispose();
                 this.end = absDeleteStart + diff;
             } finally {
                 Buffers.setPositionLimit(buffer, oldPos, oldLim);
@@ -368,10 +341,6 @@ public class BufferChunk implements Chunk {
     }
     
     protected final void reset() {
-        if (disposeOnRecycle) {
-            disposeOnRecycle = false;
-            buffer.tryDispose();
-        }
         buffer = null;        
         start = -1;
         end = -1;
@@ -384,10 +353,9 @@ public class BufferChunk implements Chunk {
     }
 
     /**
-     * {@inheritDoc}
+     * Notify the Chunk that its content is going to be changed directly
      */
-    @Override
-    public void notifyDirectUpdate() {
+    protected void notifyDirectUpdate() {
     }
 
     public static int indexOf(final Buffer buffer, int off, final int end, final char qq) {
@@ -483,64 +451,6 @@ public class BufferChunk implements Chunk {
             }
         }
         return result;
-    }
-
-    /**
-     * Convert a {@link BufferChunk} using the specified encoding.
-     * @param cc char array to put result to.
-     * @param encoding the encoding value
-     * @throws java.lang.Exception
-     */
-    public CharChunk toChars(final CharChunk cc, final Charset encoding)
-            throws CharConversionException {
-
-        final int length = getLength();
-        cc.allocate(length, -1);
-
-        if (Charsets.UTF8_CHARSET.equals(encoding)) {
-            try {
-                final char[] ccBuf = cc.getChars();
-                final int ccStart = cc.getStart();
-
-                final int ccEnd = UTF8_DECODER.convert(this, ccBuf, ccStart);
-                cc.setEnd(ccEnd);
-            } catch (IOException e) {
-                if (!(e instanceof CharConversionException)) {
-                    throw new CharConversionException();
-                }
-
-                throw (CharConversionException) e;
-            }
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
-            return cc;
-        } else if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
-            final ByteBuffer bb = buffer.toByteBuffer(start, end);
-            final char[] ccBuf = cc.getChars();
-            final int ccStart = cc.getStart();
-            final CharBuffer cb = CharBuffer.wrap(ccBuf, ccStart, ccBuf.length - ccStart);
-
-            final CharsetDecoder decoder = Charsets.getCharsetDecoder(encoding);
-            final CoderResult cr = decoder.decode(bb, cb, true);
-
-            if (cr != CoderResult.UNDERFLOW) {
-                throw new CharConversionException("Decoding error");
-            }
-
-            cc.setEnd(cb.position());
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
-
-            return cc;
-        }
-
-        // Default encoding: fast conversion
-        final char[] cbuf = cc.getChars();
-        for (int i = 0; i < length; i++) {
-            cbuf[i] = (char) (buffer.get(i + start) & 0xff);
-        }
-        cc.setEnd(length);
-        
-        return cc;
-//        uri.setChars(cbuf, 0, bc.getLength());
     }
     
     /**

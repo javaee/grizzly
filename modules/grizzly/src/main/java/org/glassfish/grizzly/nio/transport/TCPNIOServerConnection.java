@@ -80,7 +80,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         final FutureImpl<RegisterChannelResult> future =
                 SafeFutureImpl.create();
         
-        transport.getNIOChannelDistributor().registerChannelAsync(
+        transport.getNIOChannelDistributor().registerServiceChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this,
                 new CompletionHandlerAdapter<RegisterChannelResult, RegisterChannelResult>(
                 future, registerCompletionHandler));

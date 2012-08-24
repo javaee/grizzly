@@ -299,10 +299,10 @@ public class TCPNIOUtils {
     public static int readCompositeBuffer(final TCPNIOConnection connection,
             final CompositeBuffer buffer) throws IOException {
         
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread =
-                (currentThread instanceof WorkerThread) &&
-                ((WorkerThread) currentThread).isSelectorThread();
+//        final Thread currentThread = Thread.currentThread();
+//        final boolean isSelectorThread =
+//                (currentThread instanceof WorkerThread) &&
+//                ((WorkerThread) currentThread).isSelectorThread();
         
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
@@ -311,11 +311,11 @@ public class TCPNIOUtils {
         final int size = array.size();
         
         final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, byteBuffers, 0, size);
-        } else {
+//        if (!isSelectorThread) {
+//            read = doReadInLoop(socketChannel, byteBuffers, 0, size);
+//        } else {
             read = (int) socketChannel.read(byteBuffers, 0, size);
-        }
+//        }
         
         array.restore();
         array.recycle();
@@ -335,9 +335,9 @@ public class TCPNIOUtils {
 
     public static int readSimpleBuffer(final TCPNIOConnection connection,
             final Buffer buffer) throws IOException {
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
-                && ((WorkerThread) currentThread).isSelectorThread();
+//        final Thread currentThread = Thread.currentThread();
+//        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
+//                && ((WorkerThread) currentThread).isSelectorThread();
         
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
@@ -345,11 +345,11 @@ public class TCPNIOUtils {
         final int bbOldPos = byteBuffer.position();
         final int read;
         
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, byteBuffer);
-        } else {
+//        if (!isSelectorThread) {
+//            read = doReadInLoop(socketChannel, byteBuffer);
+//        } else {
             read = socketChannel.read(byteBuffer);
-        }
+//        }
         
         if (read > 0) {
             byteBuffer.position(bbOldPos);
@@ -367,20 +367,24 @@ public class TCPNIOUtils {
 
     private static int readSimpleByteBuffer(final TCPNIOConnection tcpConnection,
             final ByteBuffer byteBuffer) throws IOException {
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
-                && ((WorkerThread) currentThread).isSelectorThread();
         
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-        
-        final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, byteBuffer);
-        } else {
-            read = socketChannel.read(byteBuffer);
-        }
-        
-        return read;
+        return socketChannel.read(byteBuffer);
+
+//        final Thread currentThread = Thread.currentThread();
+//        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
+//                && ((WorkerThread) currentThread).isSelectorThread();
+//        
+//        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
+//        
+//        final int read;
+//        if (!isSelectorThread) {
+//            read = doReadInLoop(socketChannel, byteBuffer);
+//        } else {
+//            read = socketChannel.read(byteBuffer);
+//        }
+//        
+//        return read;
     }
 
     private static int doReadInLoop(final SocketChannel socketChannel,

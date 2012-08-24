@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,7 +53,14 @@ public enum Protocol {
     HTTP_1_0 (1, 0),
     HTTP_1_1 (1, 1);
 
+    /**
+     * @deprecated pls. use {@link #valueOf(org.glassfish.grizzly.http.util.DataChunk)}.
+     */
     public static Protocol parseDataChunk(final DataChunk protocolC) {
+        return valueOf(protocolC);
+    }
+    
+    public static Protocol valueOf(final DataChunk protocolC) {
         if (protocolC.getLength() == 0) {
             return Protocol.HTTP_0_9;
         } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
@@ -65,7 +72,7 @@ public enum Protocol {
         }
         
         throw new IllegalStateException("Unknown protocol " + protocolC.toString());
-    }
+    }    
 
     private final String protocolString;
     private final int majorVersion;

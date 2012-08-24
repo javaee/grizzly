@@ -957,7 +957,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                     runner, channel, interestOps, attachment, completionHandler);
         }
 
-        public SelectorRunner getSelectorRunner() {
+        @Override
+        public void registerServiceChannelAsync(
+                final SelectableChannel channel, final int interestOps,
+                final Object attachment,
+                final CompletionHandler<RegisterChannelResult> completionHandler) {
+            final SelectorRunner runner = getSelectorRunner();
+            
+            transport.getSelectorHandler().registerChannelAsync(
+                    runner, channel, interestOps, attachment, completionHandler);
+        }
+
+        
+        private SelectorRunner getSelectorRunner() {
             final SelectorRunner[] runners = getTransportSelectorRunners();
             final int index = counter.getAndIncrement() % runners.length;
 

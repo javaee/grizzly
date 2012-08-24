@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
 import java.io.CharConversionException;
+import org.glassfish.grizzly.Buffer;
 
 /**
  *
@@ -68,18 +68,34 @@ public class URLDecoder {
             final DataChunk dstDataChunk, final boolean allowEncodedSlash)
             throws CharConversionException {
         switch (srcDataChunk.getType()) {
+            case Bytes:
+            {
+                final ByteChunk srcByteChunk = srcDataChunk.getByteChunk();
+                
+                final ByteChunk dstByteChunk = dstDataChunk.getByteChunk();
+
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the ByteChunk length
+                if (dstByteChunk != srcByteChunk) {
+                    dstByteChunk.allocate(srcByteChunk.getLength(), -1);
+                }
+
+                decode(srcByteChunk, dstByteChunk, allowEncodedSlash);
+                return;
+            }
             case Buffer:
             {
                 final BufferChunk srcBufferChunk = srcDataChunk.getBufferChunk();
-                final BufferChunk dstBufferChunk = dstDataChunk.getBufferChunk();
 
                 // If it's the same buffer - we don't want to call allocate,
-                // because it resets the BufferChunk length
-                if (dstBufferChunk != srcBufferChunk) {
-                    dstBufferChunk.allocate(srcBufferChunk.getLength());
+                // because it resets the ByteChunk length
+                if (dstDataChunk != srcDataChunk) {
+                    final ByteChunk dstByteChunk = dstDataChunk.getByteChunk();
+                    dstByteChunk.allocate(srcBufferChunk.getLength(), -1);
+                    decode(srcBufferChunk, dstByteChunk, allowEncodedSlash);
+                } else {
+                    decode(srcBufferChunk, srcBufferChunk, allowEncodedSlash);
                 }
-                
-                decode(srcBufferChunk, dstBufferChunk, allowEncodedSlash);
                 return;
             }
             case String:
@@ -102,6 +118,149 @@ public class URLDecoder {
         }
     }
 
+    /**
+     * URLDecode the {@link ByteChunk}
+     */
+    public static void decode(final ByteChunk byteChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+        decode(byteChunk, byteChunk, allowEncodedSlash);
+    }
+
+    /**
+     * URLDecode the {@link ByteChunk}
+     */
+    public static void decode(final ByteChunk srcByteChunk,
+            final ByteChunk dstByteChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+
+        final byte[] srcBuffer = srcByteChunk.getBuffer();
+        final int srcStart = srcByteChunk.getStart();
+        final int srcEnd = srcByteChunk.getEnd();
+
+        final byte[] dstBuffer = dstByteChunk.getBuffer();
+        int idx = dstByteChunk.getStart();
+        
+        for (int j = srcStart; j < srcEnd; j++, idx++) {
+            final byte b = srcBuffer[j];
+
+            if (b == '+') {
+                dstBuffer[idx] = (byte) ' ';
+            } else if (b != '%') {
+                dstBuffer[idx] = b;
+            } else {
+                // read next 2 digits
+                if (j + 2 >= srcEnd) {
+                    throw new IllegalStateException("Unexpected termination");
+                }
+                byte b1 = srcBuffer[j + 1];
+                byte b2 = srcBuffer[j + 2];
+                
+                if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
+                    throw new IllegalStateException("isHexDigit");
+                }
+
+                j += 2;
+                final int res = x2c(b1, b2);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new CharConversionException("Encoded slashes are not allowed");
+                }
+                dstBuffer[idx] = (byte) res;
+            }
+        }
+
+        dstByteChunk.setEnd(idx);
+    }
+    
+    /**
+     * URLDecode the {@link BufferChunk}
+     */
+    public static void decode(final BufferChunk srcBufferChunk,
+            final ByteChunk dstByteChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+
+        final Buffer srcBuffer = srcBufferChunk.getBuffer();
+        final int srcStart = srcBufferChunk.getStart();
+        final int srcEnd = srcBufferChunk.getEnd();
+
+        final byte[] dstBuffer = dstByteChunk.getBuffer();
+        int idx = dstByteChunk.getStart();
+        
+        for (int j = srcStart; j < srcEnd; j++, idx++) {
+            final byte b = srcBuffer.get(j);
+
+            if (b == '+') {
+                dstBuffer[idx] = (byte) ' ';
+            } else if (b != '%') {
+                dstBuffer[idx] = b;
+            } else {
+                // read next 2 digits
+                if (j + 2 >= srcEnd) {
+                    throw new IllegalStateException("Unexpected termination");
+                }
+                byte b1 = srcBuffer.get(j + 1);
+                byte b2 = srcBuffer.get(j + 2);
+                
+                if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
+                    throw new IllegalStateException("isHexDigit");
+                }
+
+                j += 2;
+                final int res = x2c(b1, b2);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new CharConversionException("Encoded slashes are not allowed");
+                }
+                dstBuffer[idx] = (byte) res;
+            }
+        }
+
+        dstByteChunk.setEnd(idx);
+    }
+
+    /**
+     * URLDecode the {@link ByteChunk}
+     */
+    public static void decode(final ByteChunk srcByteChunk,
+            final BufferChunk dstBufferChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+
+        final byte[] srcBuffer = srcByteChunk.getBuffer();
+        final int srcStart = srcByteChunk.getStart();
+        final int srcEnd = srcByteChunk.getEnd();
+
+        final Buffer dstBuffer = dstBufferChunk.getBuffer();
+
+        int idx = dstBufferChunk.getStart();
+        for (int j = srcStart; j < srcEnd; j++, idx++) {
+            final byte b = srcBuffer[j];
+
+            if (b == '+') {
+                dstBuffer.put(idx , (byte) ' ');
+            } else if (b != '%') {
+                dstBuffer.put(idx, b);
+            } else {
+                // read next 2 digits
+                if (j + 2 >= srcEnd) {
+                    throw new IllegalStateException("Unexpected termination");
+                }
+                byte b1 = srcBuffer[j + 1];
+                byte b2 = srcBuffer[j + 2];
+                
+                if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
+                    throw new IllegalStateException("isHexDigit");
+                }
+
+                j += 2;
+                final int res = x2c(b1, b2);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new CharConversionException("Encoded slashes are not allowed");
+                }
+                dstBuffer.put(idx, (byte) res);
+            }
+        }
+
+        dstBufferChunk.setEnd(idx);
+    }
+    
     /**
      * URLDecode the {@link BufferChunk}
      */

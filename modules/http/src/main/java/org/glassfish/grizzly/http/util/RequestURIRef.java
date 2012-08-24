@@ -40,10 +40,10 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import java.io.CharConversionException;
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.memory.Buffers;
 import static org.glassfish.grizzly.utils.Charsets.*;
 
 /**
@@ -66,34 +66,43 @@ public class RequestURIRef {
     // Original Request URI
     private final DataChunk originalRequestURIDC = DataChunk.newInstance();
     // Actual Request URI
-    private final DataChunk requestURIDC = DataChunk.newInstance(
-            new BufferChunk() {
+    private final DataChunk requestURIDC = new DataChunk() {
+        @Override
+        public void notifyDirectUpdate() {
+            if (type == Type.Buffer) {
+                final int start = getStart();
+                final int end = getEnd();
 
-                @Override
-                public void notifyDirectUpdate() {
-                    super.notifyDirectUpdate();
+                final byte[] bytes = new byte[end - start];
+                
+                final Buffer currentBuffer = getBufferChunk().getBuffer();
+                final int pos = currentBuffer.position();
+                final int lim = currentBuffer.limit();
 
-                    final Buffer currentBuffer = getBuffer();
-                    if (currentBuffer ==
-                            originalRequestURIDC.getBufferChunk().getBuffer()) {
-                        final Buffer newBuffer = Buffers.cloneBuffer(currentBuffer,
-                                getStart(), getEnd());
-                        setBufferChunk(newBuffer,
-                                newBuffer.position(), newBuffer.limit());
-                    }
-                }
-            },
-            new CharChunk(), null);
+                Buffers.setPositionLimit(currentBuffer, start, end);
+                currentBuffer.get(bytes);
+                Buffers.setPositionLimit(currentBuffer, pos, lim);
+
+                setBytes(bytes);
+            }
+        }
+    };
+    
     // Decoded Request URI
     private final DataChunk decodedRequestURIDC = DataChunk.newInstance();
 
-    private Buffer preallocatedDecodedURIBuffer;
+    private byte[] preallocatedDecodedURIBuffer;
 
     public void init(final Buffer input, final int start, final int end) {
         originalRequestURIDC.setBuffer(input, start, end);
         requestURIDC.setBuffer(input, start, end);
     }
 
+    public void init(final byte[] input, final int start, final int end) {
+        originalRequestURIDC.setBytes(input, start, end);
+        requestURIDC.setBytes(input, start, end);
+    }
+    
     public final DataChunk getOriginalRequestURIBC() {
         return originalRequestURIDC;
     }
@@ -124,8 +133,7 @@ public class RequestURIRef {
         }
 
         checkDecodedURICapacity(requestURIDC.getLength());
-        decodedRequestURIDC.setBuffer(preallocatedDecodedURIBuffer, 0,
-                preallocatedDecodedURIBuffer.limit());
+        decodedRequestURIDC.setBytes(preallocatedDecodedURIBuffer);
 
         HttpRequestURIDecoder.decode(requestURIDC, decodedRequestURIDC,
                 isSlashAllowed, isBackSlashAllowed, charset);
@@ -198,13 +206,10 @@ public class RequestURIRef {
     }
 
     private void checkDecodedURICapacity(final int size) {
-        if (preallocatedDecodedURIBuffer == null) {
+        if (preallocatedDecodedURIBuffer == null ||
+                preallocatedDecodedURIBuffer.length < size) {
             // for static allocation it's better to wrap byte[]
-            preallocatedDecodedURIBuffer = Buffers.wrap(null, new byte[size]);
-        } else if (preallocatedDecodedURIBuffer.clear().remaining() < size) {
-            preallocatedDecodedURIBuffer.dispose();
-            // for static allocation it's better to wrap byte[]
-            preallocatedDecodedURIBuffer = Buffers.wrap(null, new byte[size]);
+            preallocatedDecodedURIBuffer = new byte[size];
         }
     }
 }

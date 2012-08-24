@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -92,7 +92,7 @@ public class RequestURITest extends TestCase {
         String line;
         while((line = reader.readLine()) != null) {
             String[] nameValue = line.split("=");
-            assertEquals(2, nameValue.length);
+            assertEquals(line, 2, nameValue.length);
             props.put(nameValue[0], nameValue[1]);
         }
 

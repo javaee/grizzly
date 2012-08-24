@@ -145,7 +145,7 @@ public final class URLEncoder {
 		    }
 		}
 
-		urlEncode( buf, bb.getBuffer(), bb.getOffset(),
+		urlEncode( buf, bb.getBuffer(), bb.getStart(),
 			   bb.getLength(), toHexUpperCase );
 		bb.recycle();
 	    }
