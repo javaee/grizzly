@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -50,6 +51,202 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * @author Alexey Stashok
  */
 public class HttpCodecUtils {
+    
+    public static int checkEOL(final HttpCodecFilter.HeaderParsingState parsingState, final Buffer input) {
+        final int offset = parsingState.offset;
+        final int avail = input.limit() - offset;
+
+        final byte b1;
+        final byte b2;
+
+        if (avail >= 2) { // if more than 2 bytes available
+            final short s = input.getShort(offset);
+            b1 = (byte) (s >>> 8);
+            b2 = (byte) (s & 0xFF);
+        } else if (avail == 1) {  // if one byte available
+            b1 = input.get(offset);
+            b2 = -1;
+        } else {
+            return -2;
+        }
+
+        if (b1 == Constants.CR) {
+            if (b2 == Constants.LF) {
+                parsingState.offset += 2;
+                return 0;
+            } else if (b2 == -1) {
+                return -2;
+            }
+        } else if (b1 == Constants.LF) {
+            parsingState.offset++;
+            return 0;
+        }
+
+        return -1;
+    }
+
+    public static int checkEOL(final HttpCodecFilter.HeaderParsingState parsingState,
+            final byte[] input, final int end) {
+        final int arrayOffs = parsingState.arrayOffset;
+        final int offset = arrayOffs + parsingState.offset;
+        final int avail = end - offset;
+
+        final byte b1;
+        final byte b2;
+
+        if (avail >= 2) { // if more than 2 bytes available
+            b1 = input[offset];
+            b2 = input[offset + 1];
+        } else if (avail == 1) {  // if one byte available
+            b1 = input[offset];
+            b2 = -1;
+        } else {
+            return -2;
+        }
+
+        if (b1 == Constants.CR) {
+            if (b2 == Constants.LF) {
+                parsingState.offset += 2;
+                return 0;
+            } else if (b2 == -1) {
+                return -2;
+            }
+        } else if (b1 == Constants.LF) {
+            parsingState.offset++;
+            return 0;
+        }
+
+        return -1;
+    }
+    
+    public static boolean findEOL(final HttpCodecFilter.HeaderParsingState state, final Buffer input) {
+        int offset = state.offset;
+        final int limit = Math.min(input.limit(), state.packetLimit);
+
+        while(offset < limit) {
+            final byte b = input.get(offset);
+            if (b == Constants.CR) {
+                state.checkpoint = offset;
+            } else if (b == Constants.LF) {
+                if (state.checkpoint == -1) {
+                    state.checkpoint = offset;
+                }
+
+                state.offset = offset + 1;
+                return true;
+            }
+
+            offset++;
+        }
+
+        state.offset = offset;
+        
+        return false;
+    }
+
+    public static boolean findEOL(final HttpCodecFilter.HeaderParsingState state,
+            final byte[] input, final int end) {
+        final int arrayOffs = state.arrayOffset;
+        int offset = arrayOffs + state.offset;
+        
+        final int limit = Math.min(end, arrayOffs + state.packetLimit);
+
+        while(offset < limit) {
+            final byte b = input[offset];
+            if (b == Constants.CR) {
+                state.checkpoint = offset - arrayOffs;
+            } else if (b == Constants.LF) {
+                if (state.checkpoint == -1) {
+                    state.checkpoint = offset - arrayOffs;
+                }
+
+                state.offset = offset + 1 - arrayOffs;
+                return true;
+            }
+
+            offset++;
+        }
+
+        state.offset = offset - arrayOffs;
+        
+        return false;
+    }
+    
+    public static int findSpace(final Buffer input, int offset,
+            final int packetLimit) {
+        final int limit = Math.min(input.limit(), packetLimit);
+        while(offset < limit) {
+            final byte b = input.get(offset);
+            if (b == Constants.SP || b == Constants.HT) {
+                return offset;
+            }
+
+            offset++;
+        }
+
+        return -1;
+    }
+
+    public static int findSpace(final byte[] input, int offset,
+            final int end, final int packetLimit) {
+        final int limit = Math.min(end, packetLimit);
+        while (offset < limit) {
+            final byte b = input[offset];
+            if (b == Constants.SP || b == Constants.HT) {
+                return offset;
+            }
+
+            offset++;
+        }
+
+        return -1;
+    }
+    
+    public static int skipSpaces(final Buffer input, int offset,
+            final int packetLimit) {
+        final int limit = Math.min(input.limit(), packetLimit);
+        while(offset < limit) {
+            final byte b = input.get(offset);
+            if (b != Constants.SP && b != Constants.HT) {
+                return offset;
+            }
+
+            offset++;
+        }
+
+        return -1;
+    }
+
+    public static int skipSpaces(final byte[] input, int offset,
+            final int end, final int packetLimit) {
+        final int limit = Math.min(end, packetLimit);
+        while (offset < limit) {
+            final byte b = input[offset];
+            if (b != Constants.SP && b != Constants.HT) {
+                return offset;
+            }
+
+            offset++;
+        }
+
+        return -1;
+    }
+
+    public static int indexOf(final Buffer input, int offset,
+            final byte b, final int packetLimit) {
+        final int limit = Math.min(input.limit(), packetLimit);
+        while(offset < limit) {
+            final byte currentByte = input.get(offset);
+            if (currentByte == b) {
+                return offset;
+            }
+
+            offset++;
+        }
+
+        return -1;
+    }
+    
     public static Buffer getLongAsBuffer(final MemoryManager memoryManager,
             final long length) {
         final Buffer b = memoryManager.allocate(20);
@@ -63,7 +260,11 @@ public class HttpCodecUtils {
 
         if (chunk.isNull()) return dstBuffer;
 
-        if (chunk.getType() == DataChunk.Type.Buffer) {
+        if (chunk.getType() == DataChunk.Type.Bytes) {
+            final ByteChunk byteChunk = chunk.getByteChunk();
+            return put(memoryManager, dstBuffer, byteChunk.getBuffer(),
+                    byteChunk.getStart(), byteChunk.getLength());
+        } else if (chunk.getType() == DataChunk.Type.Buffer) {
             final BufferChunk bc = chunk.getBufferChunk();
             final int length = bc.getLength();
             if (dstBuffer.remaining() < length) {
@@ -85,17 +286,34 @@ public class HttpCodecUtils {
             dstBuffer = resizeBuffer(memoryManager, dstBuffer, size);
         }
 
-        // Make sure custom Strings do not contain service symbols
-        final int len = s.length();
-        for (int i = 0; i < len; i++) {
-            char c = s.charAt(i);
-            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
-                c = ' ';
-            }
-
-            final byte b = (byte) c;
+        if (dstBuffer.hasArray()) {
+            final byte[] array = dstBuffer.array();
+            final int arrayOffs = dstBuffer.arrayOffset();
+            int pos = arrayOffs + dstBuffer.position();
             
-            dstBuffer.put(b);
+            // Make sure custom Strings do not contain service symbols
+            for (int i = 0; i < size; i++) {
+                char c = s.charAt(i);
+                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                    c = ' ';
+                }
+
+                array[pos++] = (byte) c;
+            }
+            
+            dstBuffer.position(pos - arrayOffs);
+        } else {
+            // Make sure custom Strings do not contain service symbols
+            for (int i = 0; i < size; i++) {
+                char c = s.charAt(i);
+                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                    c = ' ';
+                }
+
+                final byte b = (byte) c;
+
+                dstBuffer.put(b);
+            }
         }
         
 //        dstBuffer.put8BitString(s);
@@ -105,12 +323,17 @@ public class HttpCodecUtils {
 
     public static Buffer put(final MemoryManager memoryManager,
             Buffer dstBuffer, final byte[] array) {
+        return put(memoryManager, dstBuffer, array, 0, array.length);
+    }
 
-        if (dstBuffer.remaining() < array.length) {
-            dstBuffer = resizeBuffer(memoryManager, dstBuffer, array.length);
+    public static Buffer put(final MemoryManager memoryManager,
+            Buffer dstBuffer, final byte[] array, final int off, final int len) {
+
+        if (dstBuffer.remaining() < len) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, len);
         }
 
-        dstBuffer.put(array);
+        dstBuffer.put(array, off, len);
 
         return dstBuffer;
     }

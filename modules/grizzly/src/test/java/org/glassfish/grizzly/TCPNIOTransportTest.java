@@ -40,17 +40,9 @@
 
 package org.glassfish.grizzly;
 
-import java.nio.channels.SelectableChannel;
-import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.SelectableChannel;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -60,11 +52,26 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
@@ -74,14 +81,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.SelectorRunner;
-
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
@@ -1021,7 +1020,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                     runner, channel, interestOps, attachment, completionHandler);
         }
 
-        public SelectorRunner getSelectorRunner() {
+        @Override
+        public void registerServiceChannelAsync(
+                final SelectableChannel channel, final int interestOps,
+                final Object attachment,
+                final CompletionHandler<RegisterChannelResult> completionHandler) {
+            final SelectorRunner runner = getSelectorRunner();
+            
+            transport.getSelectorHandler().registerChannelAsync(
+                    runner, channel, interestOps, attachment, completionHandler);
+        }
+
+        
+        private SelectorRunner getSelectorRunner() {
             final SelectorRunner[] runners = getTransportSelectorRunners();
             final int index = counter.getAndIncrement() % runners.length;
 

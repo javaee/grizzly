@@ -878,7 +878,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                         final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
                         read = readSimpleByteBuffer(tcpConnection,
                                 directByteBuffer, isSelectorThread);
-
+                        
                         directByteBuffer.flip();
 
                         buffer = memoryManager.allocate(read);

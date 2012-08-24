@@ -94,11 +94,11 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
             if (bufferSize == 0) {
                 written = 0;
-            } else {
-                
+            } else {                
+
                 final DirectByteBufferRecord directByteBufferRecord =
                         TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
-
+                
                 try {
                     final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
                     final SocketChannel socketChannel = (SocketChannel) connection.getChannel();

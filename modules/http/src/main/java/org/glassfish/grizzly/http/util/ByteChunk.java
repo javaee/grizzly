@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,10 +60,11 @@ package org.glassfish.grizzly.http.util;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.glassfish.grizzly.utils.Charsets;
 
 /*
  * In a server it is very important to be able to operate on
@@ -91,7 +92,7 @@ import java.util.Arrays;
  * @author Costin Manolache
  * @author Remy Maucherat
  */
-public final class ByteChunk implements Cloneable, Serializable {
+public final class ByteChunk implements Chunk, Cloneable, Serializable {
 
     private static final long serialVersionUID = -1L;
 
@@ -141,6 +142,9 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     private boolean optimizedWrite=true;
 
+    private String cachedString;
+    private Charset cachedStringCharset;
+    
     /**
      * Creates a new, uninitialized ByteChunk object.
      */
@@ -168,17 +172,32 @@ public final class ByteChunk implements Cloneable, Serializable {
      * Resets the message buff to an uninitialized state.
      */
     public void recycle() {
-        //	buff = null;
+//        buff = null;
         charset=null;
         start=0;
         end=0;
         isSet=false;
     }
 
+    public void recycleAndReset() {
+        buff = null;
+        charset=null;
+        start=0;
+        end=0;
+        isSet=false;
+        resetStringCache();
+    }
+    
     public void reset() {
         buff=null;
+        resetStringCache();
     }
 
+    protected final void resetStringCache() {
+        cachedString = null;
+        cachedStringCharset = null;
+    }
+    
     // -------------------- Setup --------------------
 
     public void allocate( int initial, int limit  ) {
@@ -190,6 +209,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         start=0;
         end=0;
         isSet=true;
+        resetStringCache();
     }
 
     /**
@@ -204,6 +224,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         start = off;
         end = start+ len;
         isSet=true;
+        resetStringCache();
     }
 
     public void setOptimizedWrite(boolean optimizedWrite) {
@@ -216,6 +237,7 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     public void setCharset(Charset charset) {
         this.charset = charset;
+        resetStringCache();
     }
 
     /**
@@ -236,23 +258,33 @@ public final class ByteChunk implements Cloneable, Serializable {
      * Returns the start offset of the bytes.
      * For output this is the end of the buffer.
      */
+    @Override
     public int getStart() {
         return start;
     }
 
     public int getOffset() {
-        return start;
+        return getStart();
     }
-
+    
+    @Override
+    public void setStart(int start) {
+        if (end < start) {
+            end = start;
+        }
+        this.start = start;
+        resetStringCache();
+    }
+    
     public void setOffset(int off) {
-        if (end < off ) end=off;
-            start=off;
-    }
+        setStart(off);
+    }    
 
     /**
      * Returns the length of the bytes.
      * XXX need to clean this up
      */
+    @Override
     public int getLength() {
         return end-start;
     }
@@ -266,6 +298,7 @@ public final class ByteChunk implements Cloneable, Serializable {
      */
     public void setLimit(int limit) {
         this.limit=limit;
+        resetStringCache();
     }
 
     public int getLimit() {
@@ -288,20 +321,79 @@ public final class ByteChunk implements Cloneable, Serializable {
         this.out=out;
     }
 
+    @Override
     public int getEnd() {
         return end;
     }
 
+    @Override
     public void setEnd( int i ) {
         end=i;
+        resetStringCache();
     }
 
+    /**
+     * Notify the Chunk that its content is going to be changed directly
+     */
+    protected void notifyDirectUpdate() {
+    }
+
+    @Override
+    public int indexOf(final String s, int fromIdx) {
+        // Works only for UTF
+        final int strLen = s.length();
+        if (strLen == 0) {
+            return fromIdx;
+        }
+
+        int absFromIdx = fromIdx + start;
+        
+        if (strLen > (end - absFromIdx)) return -1;
+
+        int strOffs = 0;
+        final int lastOffs = end - strLen;
+
+        while (absFromIdx <= lastOffs + strOffs) {
+            final byte b = buff[absFromIdx];
+            if (b == s.charAt(strOffs)) {
+                strOffs++;
+                if (strOffs == strLen) {
+                    return absFromIdx - strLen -start + 1;
+                }
+            } else {
+                strOffs = 0;
+            }
+
+            absFromIdx++;
+        }
+        return -1;
+    }
+
+    @Override
+    public void delete(final int start, final int end) {
+        resetStringCache();
+        
+        final int absDeleteStart = this.start + start;
+        final int absDeleteEnd = this.start + end;
+        
+        final int diff = this.end - absDeleteEnd;
+        if (diff == 0) {
+            this.end = absDeleteStart;
+        } else {
+            System.arraycopy(buff, absDeleteEnd, buff, absDeleteStart, diff);
+            this.end = absDeleteStart + diff;
+        }
+    }
+
+    
     // -------------------- Adding data to the buffer --------------------
     public void append( char c ) throws IOException {
         append( (byte)c);
     }
 
     public void append( byte b ) throws IOException {
+        resetStringCache();
+
         makeSpace( 1 );
 
         // couldn't make space
@@ -318,6 +410,8 @@ public final class ByteChunk implements Cloneable, Serializable {
     /** Add data to the buffer
      */
     public void append( byte src[], int off, int len ) throws IOException {
+        resetStringCache();
+
         // will grow, up to limit
         makeSpace( len );
 
@@ -378,6 +472,8 @@ public final class ByteChunk implements Cloneable, Serializable {
     public int substract()
         throws IOException {
 
+        resetStringCache();
+
         if ((end - start) == 0) {
             if (in == null)
                 return -1;
@@ -392,6 +488,8 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     public int substract(ByteChunk src)
         throws IOException {
+
+        resetStringCache();
 
         if ((end - start) == 0) {
             if (in == null)
@@ -410,6 +508,8 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     public int substract( byte src[], int off, int len )
         throws IOException {
+
+        resetStringCache();
 
         if ((end - start) == 0) {
             if (in == null)
@@ -510,19 +610,56 @@ public final class ByteChunk implements Cloneable, Serializable {
     public String toString() {
         if (null == buff || end - start == 0) {
             return "";
+        } else if (cachedString != null) {
+            return cachedString;
         }
-        return StringCache.toString(this);
+//        return StringCache.toString(this);
+        cachedString = toStringInternal();
+        return cachedString;
     }
 
+    @Override
+    public String toString(int start, int end) {
+        if (start == this.start && end == this.end) {
+            return toString();
+        } else if (null == buff) {
+            return null;
+        } else if (end - start == 0) {
+            return "";
+        }
+
+        if (charset == null) {
+            charset = DEFAULT_CHARSET;
+        }
+
+        try {
+            return new String(buff, this.start + start, end - start, charset.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Unexpected error", e);
+        }
+    }
+
+    public String toString(Charset charset) {
+        if (charset == null) {
+            charset = this.charset != null ? this.charset : Charsets.UTF8_CHARSET;
+        }
+
+        if (cachedString != null && charset.equals(cachedStringCharset)) {
+            return cachedString;
+        }
+
+        cachedString = charset.decode(ByteBuffer.wrap(buff, start, end - start)).toString();
+        cachedStringCharset = charset;
+        
+        return cachedString;
+    }
+    
     public String toStringInternal() {
         if (charset == null) {
             charset = DEFAULT_CHARSET;
         }
 
-        CharBuffer cb;
-        cb = charset.decode(ByteBuffer.wrap(buff, start, end - start));
-        return cb.toString();
-
+        return toString(charset);
     }
 
     public int getInt() {
@@ -602,7 +739,7 @@ public final class ByteChunk implements Cloneable, Serializable {
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
      */
-    public boolean equalsIgnoreCase(String s) {
+    public boolean equalsIgnoreCase(final String s) {
         byte[] b = buff;
         int blen = end-start;
         if (b == null || blen != s.length()) {
@@ -617,6 +754,26 @@ public final class ByteChunk implements Cloneable, Serializable {
         return true;
     }
 
+    public boolean equalsIgnoreCase(final byte[] b) {
+        final byte[] a = buff;
+        final int blen = end - start;
+        if (a == null || blen != b.length) {
+            return false;
+        }
+
+        int boff = start;
+        for (int i = 0; i < blen; i++) {
+            if (Ascii.toLower(a[boff++]) != Ascii.toLower(b[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public boolean equalsIgnoreCaseLowerCase(byte[] cmpTo) {
+        return equalsIgnoreCaseLowerCase(buff, start, end, cmpTo);
+    }
+    
     public boolean equals( ByteChunk bb ) {
         return equals( bb.getBytes(), bb.getStart(), bb.getLength());
     }
@@ -667,21 +824,29 @@ public final class ByteChunk implements Cloneable, Serializable {
      * @param s the string
      */
     public boolean startsWith(String s) {
-        // Works only if enc==UTF
+        return startsWith(s, 0);
+    }
+
+    /**
+     * Returns true if the message bytes starts with the specified string.
+     * @param s the string
+     * @param offset The position
+     */
+    public boolean startsWith(String s, int offset) {
         byte[] b = buff;
-        int blen = s.length();
-        if (b == null || blen > end-start) {
+        int len = s.length();
+        if (b == null || len+offset > end-start) {
             return false;
         }
-        int boff = start;
-        for (int i = 0; i < blen; i++) {
-            if (b[boff++] != s.charAt(i)) {
+        int off = start+offset;
+        for (int i = 0; i < len; i++) {
+            if (b[off++] != s.charAt(i)) {
             return false;
             }
         }
         return true;
     }
-
+    
     /* Returns true if the message bytes start with the specified byte array */
     public boolean startsWith(byte[] b2) {
         byte[] b1 = buff;
@@ -699,7 +864,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         }
         return true;
     }
-
+    
     /**
      * Returns true if the message bytes starts with the specified string.
      * @param s the string
@@ -751,11 +916,57 @@ public final class ByteChunk implements Cloneable, Serializable {
         return hashBytesIC( buff, start, end-start );
     }
 
+    /**
+     * Compares the buffer chunk to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param buffer the <code>byte[]</code> to compare
+     * @param start buffer start
+     * @param end buffer end
+     * @param cmpTo byte[] to compare against
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public static boolean equalsIgnoreCaseLowerCase(final byte[] buffer,
+            final int start, final int end, final byte[] cmpTo) {
+        final int len = end - start;
+        if (len != cmpTo.length) {
+            return false;
+        }
+
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(buffer[i + start]) != cmpTo[i]) {
+                return false;
+            }
+        }
+
+        return true;        
+    }
+    
+    public static boolean startsWith(final byte[] buffer, final int start,
+            final int end, final byte[] cmpTo) {
+        final int len = end - start;
+        
+        if (len < cmpTo.length) {
+            return false;
+        }
+
+        for (int i = 0; i < cmpTo.length; i++) {
+            if (buffer[start + i] != cmpTo[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
     private static int hashBytes(byte[] buff, int start, int bytesLen ) {
         int max=start+bytesLen;
         int code=0;
         for (int i = start; i < max ; i++) {
-            code = code * 37 + buff[i];
+            code = code * 31 + buff[i];
         }
         return code;
     }
@@ -764,7 +975,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         int max=start+bytesLen;
         int code=0;
         for (int i = start; i < max ; i++) {
-            code = code * 37 + Ascii.toLower(bytes[i]);
+            code = code * 31 + Ascii.toLower(bytes[i]);
         }
         return code;
     }

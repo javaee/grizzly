@@ -41,13 +41,13 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
  *
  * @author oleksiys
  */
-class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketParsing {
+class HttpResponsePacketImpl extends HttpResponsePacket {
+
     private static final ThreadCache.CachedTypeIndex<HttpResponsePacketImpl> CACHE_IDX =
             ThreadCache.obtainIndex(HttpResponsePacketImpl.class, 16);
 
@@ -58,36 +58,16 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
             return httpResponseImpl;
         }
 
-        return new HttpResponsePacketImpl();
-    }
-
-    private boolean isHeaderParsed;
-    
-    private final HttpCodecFilter.HeaderParsingState headerParsingState;
-    private final HttpCodecFilter.ContentParsingState contentParsingState;
-
-    private HttpResponsePacketImpl() {
-        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
-        this.contentParsingState = new HttpCodecFilter.ContentParsingState();
-    }
-
-    public void initialize(final HttpCodecFilter filter,
-                           final int initialOffset,
-                           final int maxHeaderSize,
-                           final int maxNumberOfHeaders) {
-        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
-        headers.setMaxNumHeaders(maxNumberOfHeaders);
-        contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
+        return new HttpResponsePacketImpl() {
+            @Override
+            public void recycle() {
+                super.recycle();
+                ThreadCache.putToCache(CACHE_IDX, this);
+            }
+        };
     }
     
-    @Override
-    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
-        return headerParsingState;
-    }
-
-    @Override
-    public ContentParsingState getContentParsingState() {
-        return contentParsingState;
+    protected HttpResponsePacketImpl() {
     }
 
     @Override
@@ -95,24 +75,14 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
         return getRequest().getProcessingState();
     }
 
-    @Override
-    public boolean isHeaderParsed() {
-        return isHeaderParsed;
-    }
-
-    @Override
-    public void setHeaderParsed(boolean isHeaderParsed) {
-        this.isHeaderParsed = isHeaderParsed;
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     protected void reset() {
-        headerParsingState.recycle();
-        contentParsingState.recycle();
-        isHeaderParsed = false;
+//        headerParsingState.recycle();
+//        contentParsingState.recycle();
+//        isHeaderParsed = false;
         super.reset();
     }
 
@@ -125,6 +95,5 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
             return;
         }
         reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

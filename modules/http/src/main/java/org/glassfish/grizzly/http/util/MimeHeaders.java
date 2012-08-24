@@ -363,11 +363,22 @@ public class MimeHeaders {
      */
     public DataChunk addValue(final Header header) {
         MimeHeaderField mh = createHeader();
-        mh.getName().setBuffer(header.toBuffer(), true);
+        mh.getName().setBytes(header.toByteArray());
         return mh.getValue();
     }
 
     /** Create a new named header using un-translated byte[].
+    The conversion to chars can be delayed until
+    encoding is known.
+     */
+    public DataChunk addValue(final byte[] buffer, final int startN,
+            final int len) {
+        MimeHeaderField mhf = createHeader();
+        mhf.getName().setBytes(buffer, startN, startN + len);
+        return mhf.getValue();
+    }
+
+    /** Create a new named header using un-translated Buffer.
     The conversion to chars can be delayed until
     encoding is known.
      */
@@ -419,7 +430,8 @@ public class MimeHeaders {
             }
         }
         MimeHeaderField mh = createHeader();
-        mh.getName().setBuffer(header.toBuffer(), true);
+        mh.getName().setBytes(header.toByteArray());
+        
         return mh.getValue();
     }
 

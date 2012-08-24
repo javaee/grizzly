@@ -132,7 +132,7 @@ public class Request {
             return request;
         }
 
-        return new Request();
+        return new Request(new Response());
     }
 
     /**
@@ -477,21 +477,22 @@ public class Request {
     /**
      * The response with which this request is associated.
      */
-    protected Response response = null;
+    protected final Response response;
 
     // ----------------------------------------------------------- Constructors
 
 
-    protected Request() {
+    protected Request(final Response response) {
+        this.response = response;
     }
 
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(final Response response,
+    public void initialize(/*final Response response,*/
                            final HttpRequestPacket request,
                            final FilterChainContext ctx,
                            final HttpServerFilter httpServerFilter) {
-        this.response = response;
+//        this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
@@ -604,7 +605,7 @@ public class Request {
 
         request.recycle();
         request = null;
-        response = null;
+//        response = null;
         ctx = null;
         httpServerFilter = null;
 
@@ -2338,21 +2339,31 @@ public class Request {
 
         sessionParsed = true;
         final DataChunk uriDC = request.getRequestURIRef().getRequestURIBC();
-
+        
+        final boolean isUpdated;
+        
         switch (uriDC.getType()) {
+            case Bytes:
+                isUpdated = parseSessionId(uriDC.getByteChunk());
+                break;
             case Buffer:
-                parseSessionId(uriDC.getBufferChunk());
-                return;
+                isUpdated = parseSessionId(uriDC.getBufferChunk());
+                break;
             case Chars:
-                parseSessionId(uriDC.getCharChunk());
-                return;
+                isUpdated = parseSessionId(uriDC.getCharChunk());
+                break;
             default:
                 throw new IllegalStateException("Unexpected DataChunk type: " + uriDC.getType());
+        }
+        
+        if (isUpdated) {
+            uriDC.notifyDirectUpdate();
         }
     }
 
 
-    private void parseSessionId(final Chunk uriChunk) {
+    private boolean parseSessionId(final Chunk uriChunk) {
+        boolean isUpdated = false;
         final int semicolon = uriChunk.indexOf(match, 0);
 
         if (semicolon > 0) {
@@ -2361,8 +2372,9 @@ public class Request {
 
             final int sessionIdStart = semicolon + match.length();
             final int semicolon2 = uriChunk.indexOf(';', sessionIdStart);
-
-            final int end = semicolon2 >= 0 ? semicolon2 : uriChunk.getLength();
+            
+            isUpdated = semicolon2 >= 0;
+            final int end = isUpdated ? semicolon2 : uriChunk.getLength();
 
             final String sessionId = uriChunk.toString(sessionIdStart, end);
 
@@ -2378,16 +2390,13 @@ public class Request {
 
             setRequestedSessionURL(true);
 
-            if (semicolon2 >= 0) {
-                uriChunk.notifyDirectUpdate();
-            }
-
             uriChunk.delete(semicolon, end);
         } else {
             setRequestedSessionId(null);
             setRequestedSessionURL(false);
         }
-
+        
+        return isUpdated;
     }
 
     /**

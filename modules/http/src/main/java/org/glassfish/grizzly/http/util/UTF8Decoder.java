@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,11 +59,11 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
-import org.glassfish.grizzly.Grizzly;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Moved from ByteChunk - code to convert from UTF8 bytes to chars.
@@ -96,7 +96,7 @@ public final class UTF8Decoder extends B2CConverter {
     @Override
     public void convert(ByteChunk mb, CharChunk cb)
             throws IOException {
-        int bytesOff = mb.getOffset();
+        int bytesOff = mb.getStart();
         int bytesLen = mb.getLength();
         byte bytes[] = mb.getBytes();
 
@@ -195,129 +195,241 @@ public final class UTF8Decoder extends B2CConverter {
         }
     }
 
-    public void convert(BufferChunk bc, CharChunk cc)
-            throws IOException {
-        final int bytesOff = bc.getStart();
-        final int bytesLen = bc.getLength();
-        final Buffer bytes = bc.getBuffer();
-
-        int j = bytesOff;
-        int end = j + bytesLen;
-
-        while (j < end) {
-            int b0 = 0xff & bytes.get(j);
-
-            if ((b0 & 0x80) == 0) {
-                cc.append((char) b0);
-                j++;
-                continue;
-            }
-
-            // 2 byte ?
-            if (j++ >= end) {
-                // ok, just ignore - we could throw exception
-                throw new CharConversionException("Conversion error - EOF ");
-            }
-            int b1 = 0xff & bytes.get(j);
-
-            // ok, let's the fun begin - we're handling UTF8
-            if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
-                int ch = ((0x1f & b0) << 6) + (0x3f & b1);
-                if (debug > 0) {
-                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
-                }
-
-                cc.append((char) ch);
-                j++;
-                continue;
-            }
-
-            if (j++ >= end) {
-                return;
-            }
-            int b2 = 0xff & bytes.get(j);
-
-            if ((b0 & 0xf0) == 0xe0) {
-                if ((b0 == 0xED && b1 >= 0xA0)
-                        || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
-                    if (debug > 0) {
-                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
-                    }
-
-                    throw new CharConversionException("Conversion error 2");
-                }
-
-                int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
-                cc.append((char) ch);
-                if (debug > 0) {
-                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
-                            + ((char) ch));
-                }
-                j++;
-                continue;
-            }
-
-            if (j++ >= end) {
-                return;
-            }
-            int b3 = 0xff & bytes.get(j);
-
-            if ((0xf8 & b0) == 0xf0) {
-                if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
-                    if (debug > 0) {
-                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
-                    }
-                    throw new CharConversionException("Conversion error ");
-                }
-                int ch = ((0x0f & b0) << 18) + ((0x3f & b1) << 12)
-                        + ((0x3f & b2) << 6) + (0x3f & b3);
-
-                if (debug > 0) {
-                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
-                            + ch + ((char) ch));
-                }
-
-                if (ch < 0x10000) {
-                    cc.append((char) ch);
-                } else {
-                    cc.append((char) (((ch - 0x00010000) >> 10)
-                            + 0xd800));
-                    cc.append((char) (((ch - 0x00010000) & 0x3ff)
-                            + 0xdc00));
-                }
-                j++;
-            } else {
-                // XXX Throw conversion exception !!!
-                if (debug > 0) {
-                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
-                }
-                throw new CharConversionException("Conversion error 4");
-            }
-        }
-    }
+//    public void convert(BufferChunk bc, CharChunk cc)
+//            throws IOException {
+//        final int bytesOff = bc.getStart();
+//        final int bytesLen = bc.getLength();
+//        final Buffer bytes = bc.getBuffer();
+//
+//        int j = bytesOff;
+//        int end = j + bytesLen;
+//
+//        while (j < end) {
+//            int b0 = 0xff & bytes.get(j);
+//
+//            if ((b0 & 0x80) == 0) {
+//                cc.append((char) b0);
+//                j++;
+//                continue;
+//            }
+//
+//            // 2 byte ?
+//            if (j++ >= end) {
+//                // ok, just ignore - we could throw exception
+//                throw new CharConversionException("Conversion error - EOF ");
+//            }
+//            int b1 = 0xff & bytes.get(j);
+//
+//            // ok, let's the fun begin - we're handling UTF8
+//            if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
+//                int ch = ((0x1f & b0) << 6) + (0x3f & b1);
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
+//                }
+//
+//                cc.append((char) ch);
+//                j++;
+//                continue;
+//            }
+//
+//            if (j++ >= end) {
+//                return;
+//            }
+//            int b2 = 0xff & bytes.get(j);
+//
+//            if ((b0 & 0xf0) == 0xe0) {
+//                if ((b0 == 0xED && b1 >= 0xA0)
+//                        || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
+//                    if (debug > 0) {
+//                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
+//                    }
+//
+//                    throw new CharConversionException("Conversion error 2");
+//                }
+//
+//                int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
+//                cc.append((char) ch);
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
+//                            + ((char) ch));
+//                }
+//                j++;
+//                continue;
+//            }
+//
+//            if (j++ >= end) {
+//                return;
+//            }
+//            int b3 = 0xff & bytes.get(j);
+//
+//            if ((0xf8 & b0) == 0xf0) {
+//                if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
+//                    if (debug > 0) {
+//                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+//                    }
+//                    throw new CharConversionException("Conversion error ");
+//                }
+//                int ch = ((0x0f & b0) << 18) + ((0x3f & b1) << 12)
+//                        + ((0x3f & b2) << 6) + (0x3f & b3);
+//
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
+//                            + ch + ((char) ch));
+//                }
+//
+//                if (ch < 0x10000) {
+//                    cc.append((char) ch);
+//                } else {
+//                    cc.append((char) (((ch - 0x00010000) >> 10)
+//                            + 0xd800));
+//                    cc.append((char) (((ch - 0x00010000) & 0x3ff)
+//                            + 0xdc00));
+//                }
+//                j++;
+//            } else {
+//                // XXX Throw conversion exception !!!
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+//                }
+//                throw new CharConversionException("Conversion error 4");
+//            }
+//        }
+//    }
+//
+//    /**
+//     * Converts the {@link BufferChunk} to char[] using UTF8 encoding.
+//     * @param bc source {@link BufferChunk}
+//     * @param c dest. char array
+//     * @param offset initial offset in the dest. char array
+//     * @return the "end" offset in the char array. (last char was added at c[end - 1])
+//     * @throws IOException
+//     */
+//    public int convert(final BufferChunk bc, final char[] c, int offset)
+//            throws IOException {
+//        final int bytesOff = bc.getStart();
+//        final int bytesLen = bc.getLength();
+//        final Buffer bytes = bc.getBuffer();
+//
+//        int j = bytesOff;
+//        int end = j + bytesLen;
+//
+//        while (j < end) {
+//            int b0 = 0xff & bytes.get(j);
+//
+//            if ((b0 & 0x80) == 0) {
+//                c[offset++] = (char) b0;
+//                j++;
+//                continue;
+//            }
+//
+//            // 2 byte ?
+//            if (j++ >= end) {
+//                // ok, just ignore - we could throw exception
+//                throw new CharConversionException("Conversion error - EOF ");
+//            }
+//            int b1 = 0xff & bytes.get(j);
+//
+//            // ok, let's the fun begin - we're handling UTF8
+//            if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
+//                int ch = ((0x1f & b0) << 6) + (0x3f & b1);
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
+//                }
+//
+//                c[offset++] = (char) ch;
+//                j++;
+//                continue;
+//            }
+//
+//            if (j++ >= end) {
+//                return offset;
+//            }
+//            int b2 = 0xff & bytes.get(j);
+//
+//            if ((b0 & 0xf0) == 0xe0) {
+//                if ((b0 == 0xED && b1 >= 0xA0)
+//                        || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
+//                    if (debug > 0) {
+//                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
+//                    }
+//
+//                    throw new CharConversionException("Conversion error 2");
+//                }
+//
+//                int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
+//                c[offset++] = (char) ch;
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
+//                            + ((char) ch));
+//                }
+//                j++;
+//                continue;
+//            }
+//
+//            if (j++ >= end) {
+//                return offset;
+//            }
+//            int b3 = 0xff & bytes.get(j);
+//
+//            if ((0xf8 & b0) == 0xf0) {
+//                if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
+//                    if (debug > 0) {
+//                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+//                    }
+//                    throw new CharConversionException("Conversion error ");
+//                }
+//                int ch = ((0x0f & b0) << 18) + ((0x3f & b1) << 12)
+//                        + ((0x3f & b2) << 6) + (0x3f & b3);
+//
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
+//                            + ch + ((char) ch));
+//                }
+//
+//                if (ch < 0x10000) {
+//                    c[offset++] = (char) ch;
+//                } else {
+//                    c[offset++] = (char) (((ch - 0x00010000) >> 10) + 0xd800);
+//                    c[offset++] = (char) (((ch - 0x00010000) & 0x3ff) + 0xdc00);
+//                }
+//                j++;
+//            } else {
+//                // XXX Throw conversion exception !!!
+//                if (debug > 0) {
+//                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+//                }
+//                throw new CharConversionException("Conversion error 4");
+//            }
+//        }
+//        
+//        return offset;
+//    }
 
     /**
-     * Converts the {@link BufferChunk} to char[] using UTF8 encoding.
-     * @param bc source {@link BufferChunk}
+     * Converts the {@link Buffer} to char[] using UTF8 encoding.
+     * @param buffer source {@link Buffer}
+     * @param srcOff offset in source {@link Buffer}
      * @param c dest. char array
-     * @param offset initial offset in the dest. char array
+     * @param dstOff initial offset in the dest. char array
+     * @param length number of bytes to convert
      * @return the "end" offset in the char array. (last char was added at c[end - 1])
      * @throws IOException
      */
-    public int convert(final BufferChunk bc, final char[] c, int offset)
+    public int convert(final Buffer buffer, final int srcOff,
+            final char[] c, int dstOff, final int length)
             throws IOException {
-        final int bytesOff = bc.getStart();
-        final int bytesLen = bc.getLength();
-        final Buffer bytes = bc.getBuffer();
+//        final int bytesOff = bc.getStart();
+//        final int bytesLen = bc.getLength();
+//        final Buffer bytes = bc.getBuffer();
 
-        int j = bytesOff;
-        int end = j + bytesLen;
+        int j = srcOff;
+        int end = j + length;
 
         while (j < end) {
-            int b0 = 0xff & bytes.get(j);
+            int b0 = 0xff & buffer.get(j);
 
             if ((b0 & 0x80) == 0) {
-                c[offset++] = (char) b0;
+                c[dstOff++] = (char) b0;
                 j++;
                 continue;
             }
@@ -327,7 +439,7 @@ public final class UTF8Decoder extends B2CConverter {
                 // ok, just ignore - we could throw exception
                 throw new CharConversionException("Conversion error - EOF ");
             }
-            int b1 = 0xff & bytes.get(j);
+            int b1 = 0xff & buffer.get(j);
 
             // ok, let's the fun begin - we're handling UTF8
             if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
@@ -336,15 +448,15 @@ public final class UTF8Decoder extends B2CConverter {
                     log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
                 }
 
-                c[offset++] = (char) ch;
+                c[dstOff++] = (char) ch;
                 j++;
                 continue;
             }
 
             if (j++ >= end) {
-                return offset;
+                return dstOff;
             }
-            int b2 = 0xff & bytes.get(j);
+            int b2 = 0xff & buffer.get(j);
 
             if ((b0 & 0xf0) == 0xe0) {
                 if ((b0 == 0xED && b1 >= 0xA0)
@@ -357,7 +469,7 @@ public final class UTF8Decoder extends B2CConverter {
                 }
 
                 int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
-                c[offset++] = (char) ch;
+                c[dstOff++] = (char) ch;
                 if (debug > 0) {
                     log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
                             + ((char) ch));
@@ -367,9 +479,9 @@ public final class UTF8Decoder extends B2CConverter {
             }
 
             if (j++ >= end) {
-                return offset;
+                return dstOff;
             }
-            int b3 = 0xff & bytes.get(j);
+            int b3 = 0xff & buffer.get(j);
 
             if ((0xf8 & b0) == 0xf0) {
                 if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
@@ -387,10 +499,10 @@ public final class UTF8Decoder extends B2CConverter {
                 }
 
                 if (ch < 0x10000) {
-                    c[offset++] = (char) ch;
+                    c[dstOff++] = (char) ch;
                 } else {
-                    c[offset++] = (char) (((ch - 0x00010000) >> 10) + 0xd800);
-                    c[offset++] = (char) (((ch - 0x00010000) & 0x3ff) + 0xdc00);
+                    c[dstOff++] = (char) (((ch - 0x00010000) >> 10) + 0xd800);
+                    c[dstOff++] = (char) (((ch - 0x00010000) & 0x3ff) + 0xdc00);
                 }
                 j++;
             } else {
@@ -402,7 +514,119 @@ public final class UTF8Decoder extends B2CConverter {
             }
         }
         
-        return offset;
+        return dstOff;
+    }
+
+    /**
+     * Converts the {@link Buffer} to char[] using UTF8 encoding.
+     * @param buffer source {@link Buffer}
+     * @param srcOff offset in source {@link Buffer}
+     * @param c dest. char array
+     * @param dstOff initial offset in the dest. char array
+     * @param length number of bytes to convert
+     * @return the "end" offset in the char array. (last char was added at c[end - 1])
+     * @throws IOException
+     */
+    public int convert(final byte[] buffer, final int srcOff,
+            final char[] c, int dstOff, final int length)
+            throws IOException {
+//        final int bytesOff = bc.getStart();
+//        final int bytesLen = bc.getLength();
+//        final Buffer bytes = bc.getBuffer();
+
+        int j = srcOff;
+        int end = j + length;
+
+        while (j < end) {
+            int b0 = 0xff & buffer[j];
+
+            if ((b0 & 0x80) == 0) {
+                c[dstOff++] = (char) b0;
+                j++;
+                continue;
+            }
+
+            // 2 byte ?
+            if (j++ >= end) {
+                // ok, just ignore - we could throw exception
+                throw new CharConversionException("Conversion error - EOF ");
+            }
+            int b1 = 0xff & buffer[j];
+
+            // ok, let's the fun begin - we're handling UTF8
+            if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
+                int ch = ((0x1f & b0) << 6) + (0x3f & b1);
+                if (debug > 0) {
+                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
+                }
+
+                c[dstOff++] = (char) ch;
+                j++;
+                continue;
+            }
+
+            if (j++ >= end) {
+                return dstOff;
+            }
+            int b2 = 0xff & buffer[j];
+
+            if ((b0 & 0xf0) == 0xe0) {
+                if ((b0 == 0xED && b1 >= 0xA0)
+                        || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
+                    if (debug > 0) {
+                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
+                    }
+
+                    throw new CharConversionException("Conversion error 2");
+                }
+
+                int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
+                c[dstOff++] = (char) ch;
+                if (debug > 0) {
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
+                            + ((char) ch));
+                }
+                j++;
+                continue;
+            }
+
+            if (j++ >= end) {
+                return dstOff;
+            }
+            int b3 = 0xff & buffer[j];
+
+            if ((0xf8 & b0) == 0xf0) {
+                if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
+                    if (debug > 0) {
+                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+                    }
+                    throw new CharConversionException("Conversion error ");
+                }
+                int ch = ((0x0f & b0) << 18) + ((0x3f & b1) << 12)
+                        + ((0x3f & b2) << 6) + (0x3f & b3);
+
+                if (debug > 0) {
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
+                            + ch + ((char) ch));
+                }
+
+                if (ch < 0x10000) {
+                    c[dstOff++] = (char) ch;
+                } else {
+                    c[dstOff++] = (char) (((ch - 0x00010000) >> 10) + 0xd800);
+                    c[dstOff++] = (char) (((ch - 0x00010000) & 0x3ff) + 0xdc00);
+                }
+                j++;
+            } else {
+                // XXX Throw conversion exception !!!
+                if (debug > 0) {
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
+                }
+                throw new CharConversionException("Conversion error 4");
+            }
+        }
+        
+        return dstOff;
     }
 
     private static final int debug = 1;
