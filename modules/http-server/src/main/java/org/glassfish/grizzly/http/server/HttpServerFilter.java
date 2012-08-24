@@ -152,9 +152,9 @@ public class HttpServerFilter extends BaseFilter
                 handlerRequest = Request.create();
                 handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
                 httpRequestInProcessAttr.set(connection, handlerRequest);
-                final Response handlerResponse = Response.create();
+                final Response handlerResponse = handlerRequest.getResponse();
 
-                handlerRequest.initialize(handlerResponse, request, ctx, this);
+                handlerRequest.initialize(/*handlerResponse, */request, ctx, this);
                 final SuspendStatus suspendStatus = handlerResponse.initialize(
                         handlerRequest, response, ctx, suspendedResponseQueue, this);
 

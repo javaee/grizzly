@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,32 +51,37 @@ import org.glassfish.grizzly.Buffer;
  * 
  * @author Alexey Stashok
  */
-public class DataChunk {
+public class DataChunk implements Chunk {
 
-    public enum Type {None, Buffer, Chars, String}
+    public enum Type {None, Bytes, Buffer, Chars, String}
     
     public static DataChunk newInstance() {
-        return newInstance(new BufferChunk(), new CharChunk(), null);
+        return newInstance(new ByteChunk(), new BufferChunk(), new CharChunk(), null);
     }
 
-    public static DataChunk newInstance(final BufferChunk bufferChunk,
+    public static DataChunk newInstance(final ByteChunk byteChunk,
+            final BufferChunk bufferChunk,
             final CharChunk charChunk, final String stringValue) {
-        return new DataChunk(bufferChunk, charChunk, stringValue);
+        return new DataChunk(byteChunk, bufferChunk, charChunk, stringValue);
     }
     
     Type type = Type.None;
 
+    final ByteChunk byteChunk;
     final BufferChunk bufferChunk;
     final CharChunk charChunk;
     
     String stringValue;
 
     protected DataChunk() {
-        this(new BufferChunk(), new CharChunk(), null);
+        this(new ByteChunk(), new BufferChunk(), new CharChunk(), null);
     }
 
-    protected DataChunk(final BufferChunk bufferChunk,
-            final CharChunk charChunk, final String stringValue) {
+    protected DataChunk(final ByteChunk byteChunk,
+            final BufferChunk bufferChunk,
+            final CharChunk charChunk,
+            final String stringValue) {
+        this.byteChunk = byteChunk;
         this.bufferChunk = bufferChunk;
         this.charChunk = charChunk;
         this.stringValue = stringValue;
@@ -90,12 +95,19 @@ public class DataChunk {
         return type;
     }
 
-    public void set(DataChunk value) {
+    public void set(final DataChunk value) {
 //        reset();
 
-        switch(value.getType()) {
+        switch (value.getType()) {
+            case Bytes: {
+                final ByteChunk anotherByteChunk = value.byteChunk;
+                setBytesInternal(anotherByteChunk.getBytes(),
+                        anotherByteChunk.getStart(),
+                        anotherByteChunk.getLimit());
+                break;
+            }
             case Buffer: {
-            final BufferChunk anotherBufferChunk = value.bufferChunk;
+                final BufferChunk anotherBufferChunk = value.bufferChunk;
                 setBufferInternal(anotherBufferChunk.getBuffer(),
                         anotherBufferChunk.getStart(),
                         anotherBufferChunk.getEnd());
@@ -116,9 +128,43 @@ public class DataChunk {
 
         onContentChanged();
     }
+    
+    public void set(final DataChunk value, final int start, final int end) {
+//        reset();
 
+        switch (value.getType()) {
+            case Bytes: {
+                final ByteChunk anotherByteChunk = value.byteChunk;
+                setBytesInternal(anotherByteChunk.getBytes(), start, end);
+                break;
+            }
+            case Buffer: {
+                final BufferChunk anotherBufferChunk = value.bufferChunk;
+                setBufferInternal(anotherBufferChunk.getBuffer(), start, end);
+                break;
+            }
+            case String: {
+                setStringInternal(value.stringValue.substring(start, end));
+                break;
+            }
+            case Chars: {
+                final CharChunk anotherCharChunk = value.charChunk;
+                setCharsInternal(anotherCharChunk.getChars(), start, end);
+                break;
+            }
+        }
+
+        onContentChanged();
+    }
+
+    /**
+     * Notify the Chunk that its content is going to be changed directly
+     */
     public void notifyDirectUpdate() {
         switch (type) {
+            case Bytes:
+                byteChunk.notifyDirectUpdate();
+                return;
             case Buffer:
                 bufferChunk.notifyDirectUpdate();
                 return;
@@ -141,14 +187,6 @@ public class DataChunk {
         setBufferInternal(buffer, buffer.position(), buffer.limit());
     }
 
-    public void setBuffer(final Buffer buffer, final boolean disposeOnRecycle) {
-        setBufferInternal(buffer,
-                          buffer.position(),
-                          buffer.limit(),
-                          disposeOnRecycle);
-    }
-
-
     public CharChunk getCharChunk() {
         return charChunk;
     }
@@ -157,6 +195,18 @@ public class DataChunk {
         setCharsInternal(chars, position, limit);
     }
 
+    public ByteChunk getByteChunk() {
+        return byteChunk;
+    }
+    
+    public void setBytes(final byte[] bytes) {
+        setBytesInternal(bytes, 0, bytes.length);
+    }
+    
+    public void setBytes(final byte[] bytes, final int position, final int limit) {
+        setBytesInternal(bytes, position, limit);
+    }
+    
     public void setString(String string) {
         setStringInternal(string);
     }
@@ -166,13 +216,26 @@ public class DataChunk {
      */
     public void duplicate(final DataChunk src) {
         switch (src.getType()) {
-            case Buffer:
+            case Bytes: {
+                final ByteChunk bc = src.getByteChunk();
+                byteChunk.allocate(2 * bc.getLength(), -1);
+                try {
+                    byteChunk.append(bc);
+                } catch (IOException ignored) {
+                    // should never occur
+                }
+
+                switchToByteChunk();
+                break;
+            }
+            case Buffer: {
                 final BufferChunk bc = src.getBufferChunk();
                 bufferChunk.allocate(2 * bc.getLength());
                 bufferChunk.append(bc);
                 switchToBufferChunk();
                 break;
-            case Chars:
+            }
+            case Chars: {
                 final CharChunk cc = src.getCharChunk();
                 charChunk.allocate(2 * cc.getLength(), -1);
                 try {
@@ -183,18 +246,26 @@ public class DataChunk {
 
                 switchToCharChunk();
                 break;
-            case String:
+            }
+            case String: {
                 setString(src.toString());
                 break;
-            default:
+            }
+            default: {
                 recycle();
+            }
         }
     }
 
     public void toChars(final Charset charset) throws CharConversionException {
         switch (type) {
+            case Bytes:
+                charChunk.set(byteChunk, charset);
+                setChars(charChunk.getChars(), charChunk.getStart(), charChunk.getEnd());
+                return;
             case Buffer:
-                bufferChunk.toChars(charChunk, charset);
+                charChunk.set(bufferChunk, charset);
+//                bufferChunk.toChars(charChunk, charset);
                 setChars(charChunk.getChars(), charChunk.getStart(), charChunk.getEnd());
                 return;
             case String:
@@ -214,6 +285,8 @@ public class DataChunk {
 
     public String toString(Charset charset) {
         switch (type) {
+            case Bytes:
+                return byteChunk.toString(charset);
             case Buffer:
                 return bufferChunk.toString(charset);
             case String:
@@ -233,8 +306,11 @@ public class DataChunk {
      *
      * @return the <tt>DataChunk</tt> length.
      */
+    @Override
     public int getLength() {
         switch (type) {
+            case Bytes:
+                return byteChunk.getLength();
             case Buffer:
                 return bufferChunk.getLength();
             case String:
@@ -252,8 +328,11 @@ public class DataChunk {
      *
      * @return the <tt>DataChunk</tt> start position.
      */
+    @Override
     public int getStart() {
         switch (type) {
+            case Bytes:
+                return byteChunk.getStart();
             case Buffer:
                 return bufferChunk.getStart();
             case Chars:
@@ -264,13 +343,39 @@ public class DataChunk {
         }
     }
 
+
+    /**
+     * Sets the <tt>DataChunk</tt> start position.
+     *
+     * @param start the <tt>DataChunk</tt> start position.
+     */
+    @Override
+    public void setStart(int start) {
+        switch (type) {
+            case Bytes:
+                byteChunk.setStart(start);
+                break;
+            case Buffer:
+                bufferChunk.setStart(start);
+                break;
+            case Chars:
+                charChunk.setStart(start);
+                break;
+            default:
+                break;
+        }
+    }
+
     /**
      * Returns the <tt>DataChunk</tt> end position.
      *
      * @return the <tt>DataChunk</tt> end position.
      */
+    @Override
     public int getEnd() {
         switch (type) {
+            case Bytes:
+                return byteChunk.getEnd();
             case Buffer:
                 return bufferChunk.getEnd();
             case Chars:
@@ -281,13 +386,39 @@ public class DataChunk {
         }
     }
 
+
+    /**
+     * Sets the <tt>DataChunk</tt> end position.
+     *
+     * @param end the <tt>DataChunk</tt> end position.
+     */
+    @Override
+    public void setEnd(int end) {
+        switch (type) {
+            case Bytes:
+                byteChunk.setEnd(end);
+                break;
+            case Buffer:
+                bufferChunk.setEnd(end);
+                break;
+            case Chars:
+                charChunk.setEnd(end);
+                break;
+            default:
+                break;
+        }
+    }
+
     /**
      * Returns true if the message bytes starts with the specified string.
      * @param c the character
      * @param fromIndex The start position
      */
+    @Override
     public final int indexOf(final char c, final int fromIndex) {
         switch (type) {
+            case Bytes:
+                return byteChunk.indexOf(c, fromIndex);
             case Buffer:
                 return bufferChunk.indexOf(c, fromIndex);
             case String:
@@ -305,8 +436,11 @@ public class DataChunk {
      * @param s the string
      * @param fromIndex The start position
      */
+    @Override
     public final int indexOf(final String s, final int fromIndex) {
         switch (type) {
+            case Bytes:
+                return byteChunk.indexOf(s, fromIndex);
             case Buffer:
                 return bufferChunk.indexOf(s, fromIndex);
             case String:
@@ -319,8 +453,12 @@ public class DataChunk {
         }
     }
 
+    @Override
     public final void delete(final int from, final int to) {
         switch (type) {
+            case Bytes:
+                byteChunk.delete(from, to);
+                return;
             case Buffer:
                 bufferChunk.delete(from, to);
                 return;
@@ -334,12 +472,33 @@ public class DataChunk {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public java.lang.String toString(int start, int end) {
+        switch (type) {
+            case Bytes:
+                return byteChunk.toString(start, end);
+            case Buffer:
+                return bufferChunk.toString(start, end);
+            case String:
+                return stringValue;
+            case Chars:
+                return charChunk.toString(start, end);
+            default:
+                return null;
+        }
+    }
+    
+    /**
      * Compares the message bytes to the specified String object.
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
      */
     public boolean equals(final String s) {
         switch (type) {
+            case Bytes:
+                return byteChunk.equals(s);
             case Buffer:
                 return bufferChunk.equals(s);
             case String:
@@ -359,6 +518,8 @@ public class DataChunk {
     @Override
     public int hashCode() {
         switch (type) {
+            case Bytes:
+                return byteChunk.hash();
             case Buffer:
                 return bufferChunk.hash();
             case String:
@@ -378,6 +539,8 @@ public class DataChunk {
      */
     public boolean equalsIgnoreCase(final String s) {
         switch (type) {
+            case Bytes:
+                return byteChunk.equalsIgnoreCase(s);
             case Buffer:
                 return bufferChunk.equalsIgnoreCase(s);
             case String:
@@ -401,6 +564,8 @@ public class DataChunk {
      */
     public final boolean equalsIgnoreCase(final byte[] b) {
         switch (type) {
+            case Bytes:
+                return byteChunk.equalsIgnoreCase(b);
             case Buffer:
                 return bufferChunk.equalsIgnoreCase(b);
             case String:
@@ -425,6 +590,8 @@ public class DataChunk {
      */
     public final boolean equalsIgnoreCaseLowerCase(final byte[] b) {
         switch (type) {
+            case Bytes:
+                return byteChunk.equalsIgnoreCaseLowerCase(b);
             case Buffer:
                 return bufferChunk.equalsIgnoreCaseLowerCase(b);
             case String:
@@ -448,6 +615,8 @@ public class DataChunk {
      */
     public final boolean startsWith(final String s, final int pos) {
         switch (type) {
+            case Bytes:
+                return byteChunk.startsWith(s, pos);
             case Buffer:
                 return bufferChunk.startsWith(s, pos);
             case String:
@@ -481,6 +650,8 @@ public class DataChunk {
      */
     public final boolean startsWithIgnoreCase(final String s, final int pos) {
         switch (type) {
+            case Bytes:
+                return byteChunk.startsWithIgnoreCase(s, pos);
             case Buffer:
                 return bufferChunk.startsWithIgnoreCase(s, pos);
             case String:
@@ -505,7 +676,8 @@ public class DataChunk {
     
     public final boolean isNull() {
         return type == Type.None ||
-                (bufferChunk.isNull() && stringValue == null && charChunk.isNull());
+                (byteChunk.isNull() && bufferChunk.isNull() &&
+                stringValue == null && charChunk.isNull());
     }
 
     protected void resetBuffer() {
@@ -516,17 +688,24 @@ public class DataChunk {
         charChunk.recycle();
     }
 
+    protected void resetByteChunk() {
+        byteChunk.recycleAndReset();
+    }
+
     protected void resetString() {
         stringValue = null;
     }
     
     protected void reset() {
         stringValue = null;
-        if (type == Type.Chars) {
-            charChunk.recycle();
+        if (type == Type.Bytes) {
+            byteChunk.recycleAndReset();  
         } else if (type == Type.Buffer) {
             bufferChunk.recycle();
+        } else if (type == Type.Chars) {
+            charChunk.recycle();
         }
+        
         type = Type.None;
     }
 
@@ -574,17 +753,17 @@ public class DataChunk {
         return true;
     }
 
-    private void setBufferInternal(final Buffer buffer,
+    private void setBytesInternal(final byte[] array,
                                    final int position,
                                    final int limit) {
-        setBufferInternal(buffer, position, limit, false);
+        byteChunk.setBytes(array, position, limit - position);
+        switchToByteChunk();
     }
 
     private void setBufferInternal(final Buffer buffer,
                                    final int position,
-                                   final int limit,
-                                   final boolean disposeOnRecycle) {
-        bufferChunk.setBufferChunk(buffer, position, limit, disposeOnRecycle);
+                                   final int limit) {
+        bufferChunk.setBufferChunk(buffer, position, limit, limit);
         switchToBufferChunk();
     }
 
@@ -600,8 +779,22 @@ public class DataChunk {
         switchToString();
     }
 
+    private void switchToByteChunk() {
+        if (type == Type.Buffer) {
+            resetBuffer();
+        } else if (type == Type.Chars) {
+            resetCharChunk();
+        }
+        
+        resetString();
+        type = Type.Bytes;
+        onContentChanged();
+    }
+
     private void switchToBufferChunk() {
-        if (type == Type.Chars) {
+        if (type == Type.Bytes) {
+            resetByteChunk();
+        } else if (type == Type.Chars) {
             resetCharChunk();
         }
         resetString();
@@ -611,7 +804,9 @@ public class DataChunk {
     }
 
     private void switchToCharChunk() {
-        if (type == Type.Buffer) {
+        if (type == Type.Bytes) {
+            resetByteChunk();
+        } else if (type == Type.Buffer) {
             resetBuffer();
         }
         
@@ -621,7 +816,9 @@ public class DataChunk {
     }
 
     private void switchToString() {
-        if (type == Type.Chars) {
+        if (type == Type.Bytes) {
+            resetByteChunk();
+        } else if (type == Type.Chars) {
             resetCharChunk();
         } else if (type == Type.Buffer) {
             resetBuffer();

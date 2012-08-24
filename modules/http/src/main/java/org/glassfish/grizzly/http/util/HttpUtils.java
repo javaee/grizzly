@@ -224,6 +224,41 @@ public class HttpUtils {
         }
 
     /**
+     * Converts the specified long as a string representation to the provided byte buffer.
+     *
+     * This code is based off {@link Long#toString()}
+     *
+     * @param value the long to convert.
+     * @param buffer the buffer to write the conversion result to.
+     */
+    public static int longToBuffer(long value, final byte[] buffer) {
+        int i = buffer.length;
+        
+        if (value == 0) {
+            buffer[--i] = (byte) '0';
+            return i;
+        }
+        
+        final int radix = 10;
+        final boolean negative;
+        if (value < 0) {
+            negative = true;
+            value = -value;
+        } else {
+            negative = false;
+        }
+        
+        do {
+            final int ch = '0' + (int) (value % radix);
+            buffer[--i] = (byte) ch;
+        } while ((value /= radix) != 0);
+        if (negative) {
+            buffer[--i] = (byte) '-';
+        }
+        return i;
+    }
+
+    /**
      * Converts the specified long as a string representation to the provided buffer.
      *
      * This code is based off {@link Long#toString()}

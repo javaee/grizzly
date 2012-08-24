@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,15 +39,10 @@
  */
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.utils.Charsets;
 import java.util.Arrays;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.memory.HeapBuffer;
-
 import java.util.Map;
 import java.util.TreeMap;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Enumeration of all headers as defined in <code>RFC 2616</code>.
@@ -181,14 +176,12 @@ public enum Header {
 
     /**
      * <p>
-     * Returns a {@link Buffer} wrapping the US-ASCII encoded byte representation
-     * of this <code>Header</code>.
+     * Returns the US-ASCII encoded byte representation of this <code>Header</code>.
      * </p>
-     * @return a {@link Buffer} wrapping the US-ASCII encoded byte representation
-     * of this <code>Header</code>.
+     * @return the US-ASCII encoded byte representation of this <code>Header</code>.
      */
-    public final Buffer toBuffer() {
-        return RecyclableHeapBuffer.create(headerNameBytes);
+    public final byte[] toByteArray() {
+        return headerNameBytes;
     }
 
     /**
@@ -237,70 +230,70 @@ public enum Header {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static final class RecyclableHeapBuffer extends HeapBuffer implements Cacheable {
-
-        private static final ThreadCache.CachedTypeIndex<RecyclableHeapBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(RecyclableHeapBuffer.class, 64);
-
-        // -------------------------------------------------------- Constructors
-
-
-        RecyclableHeapBuffer(byte[] heap, int offset, int cap) {
-            super(heap, offset, cap);
-            allowBufferDispose(true);
-        }
-
-
-        // --------------------------------------------- Methods from HeapBuffer
-
-        @Override
-        public boolean isReadOnly() {
-            return true;
-        }
-
-        @Override
-        public void dispose() {
-            recycle();
-        }
-
-        // ---------------------------------------------- Methods from Cacheable
-
-
-        @Override
-        public void recycle() {
-            this.heap = null;
-            this.byteBuffer = null;
-            this.offset = 0;
-            this.cap = 0;
-            this.lim = 0;
-            ThreadCache.putToCache(CACHE_IDX, this);
-        }
-
-
-        // ----------------------------------------------------- Private Methods
-
-
-        private static RecyclableHeapBuffer create(final byte[] heap) {
-
-            RecyclableHeapBuffer b = ThreadCache.takeFromCache(CACHE_IDX);
-            if (b == null) {
-                b = new RecyclableHeapBuffer(heap, 0, heap.length);
-            } else {
-                b.init(heap);
-            }
-            return b;
-
-        }
-
-        private void init(byte[] heap) {
-
-            this.heap = heap;
-            this.offset = 0;
-            this.cap = heap.length;
-            this.lim = cap;
-
-        }
-
-    }
+//    private static final class RecyclableHeapBuffer extends HeapBuffer implements Cacheable {
+//
+//        private static final ThreadCache.CachedTypeIndex<RecyclableHeapBuffer> CACHE_IDX =
+//            ThreadCache.obtainIndex(RecyclableHeapBuffer.class, 64);
+//
+//        // -------------------------------------------------------- Constructors
+//
+//
+//        RecyclableHeapBuffer(byte[] heap, int offset, int cap) {
+//            super(heap, offset, cap);
+//            allowBufferDispose(true);
+//        }
+//
+//
+//        // --------------------------------------------- Methods from HeapBuffer
+//
+//        @Override
+//        public boolean isReadOnly() {
+//            return true;
+//        }
+//
+//        @Override
+//        public void dispose() {
+//            recycle();
+//        }
+//
+//        // ---------------------------------------------- Methods from Cacheable
+//
+//
+//        @Override
+//        public void recycle() {
+//            this.heap = null;
+//            this.byteBuffer = null;
+//            this.offset = 0;
+//            this.cap = 0;
+//            this.lim = 0;
+//            ThreadCache.putToCache(CACHE_IDX, this);
+//        }
+//
+//
+//        // ----------------------------------------------------- Private Methods
+//
+//
+//        private static RecyclableHeapBuffer create(final byte[] heap) {
+//
+//            RecyclableHeapBuffer b = ThreadCache.takeFromCache(CACHE_IDX);
+//            if (b == null) {
+//                b = new RecyclableHeapBuffer(heap, 0, heap.length);
+//            } else {
+//                b.init(heap);
+//            }
+//            return b;
+//
+//        }
+//
+//        private void init(byte[] heap) {
+//
+//            this.heap = heap;
+//            this.offset = 0;
+//            this.cap = heap.length;
+//            this.lim = cap;
+//
+//        }
+//
+//    }
 
 }

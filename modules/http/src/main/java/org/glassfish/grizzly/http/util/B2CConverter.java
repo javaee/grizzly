@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -145,7 +145,7 @@ public class B2CConverter {
             }
 
             byte[] barr = bb.getBuffer();
-            int boff = bb.getOffset();
+            int boff = bb.getStart();
             ByteBuffer tmp_bb = ByteBuffer.wrap(barr, boff, limit);
 
             char[] carr = cb.getBuffer();
@@ -175,7 +175,7 @@ public class B2CConverter {
                 cr = decoder.decode(tmp_bb, tmp_cb, false);
                 cb.setEnd(tmp_cb.position());
             }
-            bb.setOffset(tmp_bb.position());
+            bb.setStart(tmp_bb.position());
             if (tmp_bb.hasRemaining()) {
                 remainder.put(tmp_bb);
             }

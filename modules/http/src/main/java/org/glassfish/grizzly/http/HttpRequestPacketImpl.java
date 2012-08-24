@@ -40,15 +40,13 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
  *
  * @author Alexey Stashok
  */
-class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsing {
+class HttpRequestPacketImpl extends HttpRequestPacket /* implements HttpPacketParsing*/ {
     private static final ThreadCache.CachedTypeIndex<HttpRequestPacketImpl> CACHE_IDX =
             ThreadCache.obtainIndex(HttpRequestPacketImpl.class, 16);
 
@@ -59,71 +57,77 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
             return httpRequestImpl;
         }
 
-        return new HttpRequestPacketImpl();
+        return new HttpRequestPacketImpl() {
+            @Override
+            public void recycle() {
+                super.recycle();
+                ThreadCache.putToCache(CACHE_IDX, this);
+            }
+        };
     }
 
-    private boolean isHeaderParsed;
-    
-    private final HttpCodecFilter.HeaderParsingState headerParsingState;
-    private final HttpCodecFilter.ContentParsingState contentParsingState;
+//    private boolean isHeaderParsed;
+//    
+//    private final HttpCodecFilter.HeaderParsingState headerParsingState;
+//    private final HttpCodecFilter.ContentParsingState contentParsingState;
     private final ProcessingState processingState;
 
-    private HttpRequestPacketImpl() {
-        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
-        this.contentParsingState = new HttpCodecFilter.ContentParsingState();
+    protected HttpRequestPacketImpl() {
+//        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
+//        this.contentParsingState = new HttpCodecFilter.ContentParsingState();
         this.processingState = new ProcessingState();
         isExpectContent = true;
     }
 
-    public void initialize(final Connection connection,
-                           final HttpCodecFilter filter,
-                           final int initialOffset,
-                           final int maxHeaderSize,
-                           final int maxNumberOfHeaders) {
-        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
-        contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
-        headers.setMaxNumHeaders(maxNumberOfHeaders);
-        setConnection(connection);
-    }
+//    public void initialize(final Connection connection,
+//                           final HttpCodecFilter filter,
+//                           final int initialOffset,
+//                           final int maxHeaderSize,
+//                           final int maxNumberOfHeaders) {
+//        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
+//        contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
+//        headers.setMaxNumHeaders(maxNumberOfHeaders);
+//        setConnection(connection);
+//    }
 
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
     }
 
-    @Override
-    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
-        return headerParsingState;
-    }
-
-    @Override
-    public ContentParsingState getContentParsingState() {
-        return contentParsingState;
-    }
-
-    @Override
-    public boolean isHeaderParsed() {
-        return isHeaderParsed;
-    }
-
-    @Override
-    public void setHeaderParsed(final boolean isHeaderParsed) {
-        if (isHeaderParsed && isExpectContent() && !isChunked) {
-            contentParsingState.chunkRemainder = getContentLength();
-        }
-        
-        this.isHeaderParsed = isHeaderParsed;
-    }
+//    @Override
+//    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
+//        return headerParsingState;
+//    }
+//
+//    @Override
+//    public ContentParsingState getContentParsingState() {
+//        return contentParsingState;
+//    }
+//
+//    @Override
+//    public boolean isHeaderParsed() {
+//        return isHeaderParsed;
+//    }
+//
+//    @Override
+//    public void setHeaderParsed(final boolean isHeaderParsed) {
+//        if (isHeaderParsed && isExpectContent() && !isChunked) {
+//            contentParsingState.chunkRemainder = getContentLength();
+//        }
+//        
+//        this.isHeaderParsed = isHeaderParsed;
+//    }
 
     /**
      * {@inheritDoc}
      */
     @Override
     protected void reset() {
-        headerParsingState.recycle();
-        contentParsingState.recycle();
+//        headerParsingState.recycle();
+//        contentParsingState.recycle();
         processingState.recycle();
-        isHeaderParsed = false;
+//        isHeaderParsed = false;
         isExpectContent = true;
         super.reset();
     }
@@ -137,6 +141,6 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
             return;
         }
         reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
+//        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

@@ -121,19 +121,19 @@ public class Response {
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
 
-    private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
-            ThreadCache.obtainIndex(Response.class, 16);
+//    private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
+//            ThreadCache.obtainIndex(Response.class, 16);
     private static final ThreadLocal<Response> current = new ThreadLocal<Response>();
 
-    public static Response create() {
-        final Response response =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (response != null) {
-            return response;
-        }
-
-        return new Response();
-    }
+//    public static Response create() {
+//        final Response response =
+//                ThreadCache.takeFromCache(CACHE_IDX);
+//        if (response != null) {
+//            return response;
+//        }
+//
+//        return new Response();
+//    }
 
     static DelayQueue<Response> createDelayQueue(DelayedExecutor delayedExecutor) {
         return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
@@ -325,9 +325,8 @@ public class Response {
         }
 
         cacheEnabled = false;
-
-        ThreadCache.putToCache(CACHE_IDX, this);
-
+//
+//        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
