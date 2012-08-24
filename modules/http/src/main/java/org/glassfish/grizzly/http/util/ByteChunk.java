@@ -372,12 +372,16 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
     @Override
     public void delete(final int start, final int end) {
         resetStringCache();
-        final int diff = this.end - end;
+
+        final int absDeleteStart = this.start + start;
+        final int absDeleteEnd = this.start + end;
+
+        final int diff = this.end - absDeleteEnd;
         if (diff == 0) {
-            this.end = start;
+            this.end = absDeleteStart;
         } else {
-            System.arraycopy(buff, end, buff, start, diff);
-            this.end = start + diff;
+            System.arraycopy(buff, absDeleteEnd, buff, absDeleteStart, diff);
+            this.end = absDeleteStart + diff;
         }
     }
 

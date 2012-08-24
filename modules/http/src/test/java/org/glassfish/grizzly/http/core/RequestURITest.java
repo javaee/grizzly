@@ -129,7 +129,7 @@ public class RequestURITest extends TestCase {
         assertEquals(DataChunk.Type.Bytes, actualRequestURIBC.getType());
         
         final ByteChunk actualByteChunk = actualRequestURIBC.getByteChunk();
-        actualByteChunk.delete(actualByteChunk.getStart(), actualByteChunk.getStart() + 7);
+        actualByteChunk.delete(0, 7);
 
         assertEquals(url, originalRequestURIBC.toString());
         assertEquals(url.substring(7), actualRequestURIBC.toString());
