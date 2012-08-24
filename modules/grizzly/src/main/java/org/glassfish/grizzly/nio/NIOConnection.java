@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,6 +110,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
             DataStructures.getLTQInstance(CloseListener.class);
+    
+    final List tmpWriteQueueList = new ArrayList();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.

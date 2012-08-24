@@ -80,12 +80,6 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
-    /**
-     * Cached {@link List} instance index.
-     */
-    private static final ThreadCache.CachedTypeIndex<List> TMP_LIST_IDX =
-            ThreadCache.obtainIndex(AbstractNIOAsyncQueueWriter.class + ".list", List.class, 1);
-    
     private final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
             new ThreadLocal<Reentrant>() {
 
@@ -363,6 +357,97 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
     
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public AsyncResult processAsync(final Context context) {
+//        final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
+//        final NIOConnection nioConnection = (NIOConnection) context.getConnection();
+//        if (!nioConnection.isOpen()) {
+//            return AsyncResult.COMPLETE;
+//        }
+//        
+//        final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
+//                nioConnection.getAsyncWriteQueue();
+//        
+//        boolean done = false;
+//        AsyncWriteQueueRecord queueRecord = null;
+//        try {
+//            while ((queueRecord = aggregate(writeTaskQueue)) != null) {
+//
+//                if (isLogFine) {
+//                    doFineLog("AsyncQueueWriter.processAsync doWrite"
+//                            + "connection={0} record={1}",
+//                            nioConnection, queueRecord);
+//                }                 
+//
+//                final int written = queueRecord.remaining() > 0
+//                        ? (int) write0(nioConnection, queueRecord)
+//                        : 0;
+//                
+//                final boolean isFinished = queueRecord.isFinished();
+//                
+//                // If we can write directly - do it w/o creating queue record (simple)
+//                final int bytesToRelease = !queueRecord.isEmptyRecord()
+//                        ? written
+//                        : (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
+//
+//
+//
+//                if (isFinished) {
+//                    // Is here a chance that queue becomes empty?
+//                    // If yes - we need to switch to manual io event processing
+//                    // mode to *disable WRITE interest for SameThreadStrategy*,
+//                    // so we don't have either neverending WRITE events processing
+//                    // or stuck, when other thread tried to add data to the queue.
+//                    if (!context.isManualIOEventControl() &&
+//                            writeTaskQueue.spaceInBytes() - bytesToRelease <= 0) {
+//                        context.setManualIOEventControl();
+//                        }
+//                    }
+//                    
+//                done = (writeTaskQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
+//                    
+//                if (isFinished) {
+//                    finishQueueRecord(nioConnection, queueRecord);
+//                    
+//                    if (done) {
+//                        return AsyncResult.COMPLETE;
+//                    }
+//                } else { // if there is still some data in current message
+//                    queueRecord.notifyIncomplete();
+//                    writeTaskQueue.setCurrentElement(queueRecord);
+//                    if (isLogFine) {
+//                        doFineLog("AsyncQueueWriter.processAsync onReadyToWrite "
+//                                + "connection={0} peekRecord={1}",
+//                                nioConnection, queueRecord);
+//                    }
+//
+//                    // If connection is closed - this will fail,
+//                    // and onWriteFailure called properly
+//                    return AsyncResult.INCOMPLETE;
+//                }
+//            }
+//
+//            if (!done) {
+//                // Counter shows there should be some elements in queue,
+//                // but seems write() method still didn't add them to a queue
+//                // so we can release the thread for now
+//                return AsyncResult.EXPECTING_MORE;
+//                }
+//        } catch (IOException e) {
+//            if (isLogFine) {
+//                LOGGER.log(Level.FINEST, "AsyncQueueWriter.processAsync "
+//                        + "exception connection=" + nioConnection + " peekRecord=" +
+//                        queueRecord, e);
+//            }
+//            onWriteFailure(nioConnection, queueRecord, e);
+//        }
+//        
+//        return AsyncResult.COMPLETE;
+//    }
+
     /**
      * {@inheritDoc}
      */
@@ -377,7 +462,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
         
-        List<AsyncWriteQueueRecord> notificationList = null;
+        List<AsyncWriteQueueRecord> notificationList = null;                
         int bytesReleased = 0;
         
         boolean done = true;
@@ -406,14 +491,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (done) {
                     if (notificationList == null) {
                         // Try to obtain List object from the thread-local cache
-                        notificationList = ThreadCache.getFromCache(TMP_LIST_IDX);
-                        if (notificationList == null) {
-                            // If there is no List object available in cache - create and add it
-                            notificationList = new ArrayList<AsyncWriteQueueRecord>(2);
-                            ThreadCache.putToCache(TMP_LIST_IDX, notificationList);
-                        } else {
-                            notificationList.clear();
-                        }
+                        notificationList = nioConnection.tmpWriteQueueList;
                     }
                     
                     // Store all the finished records in the list for future notification
@@ -469,8 +547,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                         final AsyncWriteQueueRecord record = notificationList.get(i);
                         finishQueueRecord(nioConnection, record);
                     }
-                    
-                    notificationList.clear();
                 }
                 
                 return AsyncResult.TERMINATE;
@@ -484,6 +560,10 @@ public abstract class AbstractNIOAsyncQueueWriter
                         queueRecord, e);
             }
             onWriteFailure(nioConnection, queueRecord, e);
+        } finally {
+            if (notificationList != null) {
+                notificationList.clear();
+            }
         }
         
         return AsyncResult.COMPLETE;
