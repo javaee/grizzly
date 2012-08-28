@@ -58,15 +58,15 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.CookieParserUtils;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.ByteChunk;
+import org.glassfish.grizzly.http.util.CookieParserUtils;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
  * A collection of cookies - reusable and tuned for server side performance.
@@ -199,7 +199,16 @@ public final class Cookies {
             }
 
             // Uncomment to test the new parsing code
-            if (cookieValue.getType() == DataChunk.Type.Buffer) {
+            if (cookieValue.getType() == DataChunk.Type.Bytes) {
+                if (logger.isLoggable(Level.FINE)) {
+                    log("Parsing b[]: " + cookieValue.toString());
+                }
+
+                final ByteChunk byteChunk = cookieValue.getByteChunk();
+                CookieParserUtils.parseClientCookies(this, byteChunk.getBuffer(),
+                        byteChunk.getStart(),
+                        byteChunk.getLength());
+            } else if (cookieValue.getType() == DataChunk.Type.Buffer) {
                 if (logger.isLoggable(Level.FINE)) {
                     log("Parsing b[]: " + cookieValue.toString());
                 }
