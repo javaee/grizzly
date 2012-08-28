@@ -120,7 +120,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         @Override
-        public Long getTimeoutMillis(final Worker element) {
+        public long getTimeoutMillis(final Worker element) {
             return element.transactionExpirationTime;
         }
 

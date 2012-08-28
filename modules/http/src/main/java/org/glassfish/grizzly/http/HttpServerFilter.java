@@ -1287,7 +1287,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         @Override
-        public Long getTimeoutMillis(KeepAliveContext element) {
+        public long getTimeoutMillis(KeepAliveContext element) {
             return element.keepAliveTimeoutMillis;
         }
 

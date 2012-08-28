@@ -54,17 +54,31 @@ public class DataStructures {
     private final static Class<?> LTQclass;
 
     static {
+        String className = null;
+        
         Class<?> c = null;
         try {
             JdkVersion jdkVersion = JdkVersion.getJdkVersion();
             JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
-            c = getAndVerify((minimumVersion.compareTo(jdkVersion) <= 0)
+            
+            className = (minimumVersion.compareTo(jdkVersion) <= 0)
                     ? "java.util.concurrent.LinkedTransferQueue"
-                    : "org.glassfish.grizzly.utils.LinkedTransferQueue");
+                    : "maskedclasses.LinkedTransferQueue";
+            
+            c = getAndVerify(className);
             Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);
         } catch (Throwable t) {
             Grizzly.logger(DataStructures.class).log(Level.FINE,
-                    "failed loading datastructure class:" + c, t);
+                    "failed loading datastructure class:" + className +
+                    " fallback to embedded one", t);
+            
+            try {
+                className = "org.glassfish.grizzly.utils.LinkedTransferQueue";
+                c = getAndVerify(className);
+            } catch (Throwable t2) {
+                Grizzly.logger(DataStructures.class).log(Level.FINE,
+                        "failed loading datastructure class:" + className, t);
+            }
         }
         LTQclass = c;
     }

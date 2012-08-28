@@ -540,8 +540,9 @@ public abstract class HttpHeader extends HttpPacket
         if (ret != null
                 && quotedCharsetValue != null
                 && charsetSet) {
-
-            ret = ret + ";charset=" + quotedCharsetValue;
+            final StringBuilder sb =
+                    new StringBuilder(ret.length() + quotedCharsetValue.length() + 9);
+            ret = sb.append(ret).append(";charset=").append(quotedCharsetValue).toString();
         }
 
         return ret;

@@ -106,9 +106,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
         final Selector selector = selectorRunner.getSelector();
         final boolean hasSelectedKeys;
         final boolean hasPostponedTasks =
-                selectorRunner.getPostponedTasks().isEmpty();
+                !selectorRunner.getPostponedTasks().isEmpty();
         
-        if (hasPostponedTasks) {
+        if (!hasPostponedTasks) {
             hasSelectedKeys = selector.select(selectTimeout) > 0;
         } else {
             hasSelectedKeys = selector.selectNow() > 0;
@@ -245,8 +245,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             // it's faster than using pending task queue, which is thread-safe
             final Queue<SelectorHandlerTask> postponedTasks =
                     selectorRunner.getPostponedTasks();
-            postponedTasks.offer(new RunnableTask(task,
-                    completionHandler));
+            postponedTasks.offer(new RunnableTask(task, completionHandler));
             
         } else {
             addPendingTask(selectorRunner, new RunnableTask(task,

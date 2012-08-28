@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -109,7 +110,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isStandalone;
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
-            DataStructures.getLTQInstance(CloseListener.class);
+            new ConcurrentLinkedQueue<CloseListener>();
     
     final List tmpWriteQueueList = new ArrayList();
     

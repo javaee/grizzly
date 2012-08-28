@@ -562,10 +562,8 @@ public final class SelectorRunner implements Runnable {
         return key;
     }
 
-    final void workaroundSelectorSpin()
-            throws IOException {
-        spinnedSelectorsHistory.put(getSelector(),
-                System.currentTimeMillis());
+    final void workaroundSelectorSpin() throws IOException {
+        spinnedSelectorsHistory.put(getSelector(), System.currentTimeMillis());
         switchToNewSelector();
     }
 

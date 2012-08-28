@@ -1005,23 +1005,24 @@ public final class TCPNIOTransport extends NIOTransport implements
     
     private int doReadInLoop(final SocketChannel socketChannel,
             final ByteBuffer byteBuffer) throws IOException {
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
-            read += readNow;
-            if (!byteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
-                return read;
-            }
-        }
-
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
-
-        return read;
+//        int read = 0;
+//        int readAttempt = 0;
+//        int readNow;
+//        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
+//            read += readNow;
+//            if (!byteBuffer.hasRemaining()
+//                    || ++readAttempt >= maxReadAttempts) {
+//                return read;
+//            }
+//        }
+//
+//        if (read == 0) {
+//            // Assign last readNow (may be -1)
+//            read = readNow;
+//        }
+//
+//        return read;
+        return socketChannel.read(byteBuffer);
     }
     
     private int doReadInLoop(final SocketChannel socketChannel,

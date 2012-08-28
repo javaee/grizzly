@@ -570,11 +570,12 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     public static final class FiltersState {
+        private static final int OPERATIONS_NUM = Operation.values().length;
 
         private final FilterStateElement[][] state;
 
         public FiltersState(int filtersNum) {
-            this.state = new FilterStateElement[Operation.values().length][filtersNum];
+            this.state = new FilterStateElement[OPERATIONS_NUM][filtersNum];
         }
 
         public FilterStateElement getState(final Operation operation,
