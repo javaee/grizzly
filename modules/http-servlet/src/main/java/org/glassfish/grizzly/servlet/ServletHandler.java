@@ -208,7 +208,7 @@ public class ServletHandler extends HttpHandler {
             final HttpServletResponseImpl servletResponse = HttpServletResponseImpl.create();
 
             setPathData(request, servletRequest);
-            servletRequest.initialize(request, servletResponse);
+            servletRequest.initialize(request, servletResponse, servletCtx);
             servletResponse.initialize(response, servletRequest);
 
             request.setNote(SERVLET_REQUEST_NOTE, servletRequest);
@@ -218,7 +218,6 @@ public class ServletHandler extends HttpHandler {
             
             loadServlet();
 
-            servletRequest.setContextImpl(servletCtx);
             servletRequest.initSession();
             setDispatcherPath(request, getCombinedPath(servletRequest));
 

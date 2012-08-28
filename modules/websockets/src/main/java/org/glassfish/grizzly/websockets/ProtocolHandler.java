@@ -66,6 +66,7 @@ public abstract class ProtocolHandler {
     protected byte inFragmentedType;
     protected byte outFragmentedType;
     protected final boolean maskData;
+    protected FilterChainContext ctx;
     protected boolean processingFragment;
     protected Charset utf8 = new StrictUtf8();
         protected CharsetDecoder currentDecoder = utf8.newDecoder();
@@ -96,6 +97,14 @@ public abstract class ProtocolHandler {
 
     public void setConnection(Connection handler) {
         this.connection = handler;
+    }
+
+    public FilterChainContext getFilterChainContext() {
+        return ctx;
+    }
+
+    public void setFilterChainContext(FilterChainContext ctx) {
+        this.ctx = ctx;
     }
 
     public WebSocket getWebSocket() {

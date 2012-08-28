@@ -199,11 +199,14 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         this.inputStream = new ServletInputStreamImpl(this);
     }
 
-    public void initialize(final Request request, final HttpServletResponseImpl servletResponse)
+    public void initialize(final Request request, 
+                           final HttpServletResponseImpl servletResponse,
+                           WebappContext context)
             throws IOException {
         this.request = request;
-        this.servletResponse = servletResponse;
-        inputStream.initialize();
+        request.getInputBuffer().setAsyncEnabled(false); // switch Grizzly input to blocking mode by default
+        inputStream.initialize(request);
+        contextImpl = context;
     }
     
 
