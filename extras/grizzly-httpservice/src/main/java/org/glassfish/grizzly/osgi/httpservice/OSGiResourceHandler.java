@@ -189,8 +189,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
         public OSGiHttpServletRequest(
                 Request request, OSGiServletContext context) throws IOException {
             super();
-            initialize(request);
-            setContextImpl(context);
+            initialize(request, context);
         }
     }
 }
