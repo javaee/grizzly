@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,7 +79,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
     
     private long initialMessageSize;
-    private int momentumQueueSize = -1;
     private boolean isEmptyRecord;
     private Object dstAddress;
     private PushBackHandler pushBackHandler;
@@ -95,7 +94,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         super(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
-        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
         this.pushBackHandler = pushBackHandler;
     }
@@ -109,7 +107,6 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         super.set(connection, message, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
-        this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
         this.pushBackHandler = pushBackHandler;
     }

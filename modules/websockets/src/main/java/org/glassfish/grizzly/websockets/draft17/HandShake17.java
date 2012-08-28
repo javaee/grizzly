@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,13 +39,11 @@
  */
 package org.glassfish.grizzly.websockets.draft17;
 
+import java.net.URI;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.draft08.HandShake08;
-
-import java.net.URI;
 
 import static org.glassfish.grizzly.websockets.WebSocketEngine.ORIGIN_HEADER;
 import static org.glassfish.grizzly.websockets.WebSocketEngine.SEC_WS_ORIGIN_HEADER;
