@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -425,6 +426,113 @@ public class FilterChainTest extends TestCase {
         }
     }
 
+    public void testInvokeActionWithRemainder() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final MemoryManager mm = transport.getMemoryManager();
+
+        final Buffer msg = Buffers.wrap(mm, new byte[] {0xA});
+        final int msgSize = msg.remaining();
+
+        final AtomicInteger serverEchoCounter = new AtomicInteger();
+        
+        final Attribute<Integer> invocationCounterAttr =
+                AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                "testInvokeActionWithRemainder.counter");
+        
+        final FilterChain filterChain = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new BaseFilter() {
+                    @Override
+                    public NextAction handleRead(final FilterChainContext ctx)
+                            throws IOException {
+                        final Connection connection = ctx.getConnection();
+                        final Buffer message = ctx.getMessage();
+                        
+                        Integer counter = invocationCounterAttr.get(connection);
+                        if (counter == null) {
+                            invocationCounterAttr.set(connection, Integer.valueOf(1));
+                            assertNotNull(message);
+                            ctx.setMessage(null);
+                            
+                            return ctx.getInvokeAction(message);
+                        } else if (counter == 1) {
+                            invocationCounterAttr.set(connection, Integer.valueOf(2));
+                            assertNotNull(message);
+                            
+                            return ctx.getInvokeAction();
+                        }
+                        
+                        fail("unexpected counter value: " + counter);
+                        
+                        return super.handleRead(ctx);
+                    }
+                })
+                .add(new EchoFilter() {
+                    @Override
+                    public NextAction handleRead(final FilterChainContext ctx)
+                            throws IOException {
+                        final Connection connection = ctx.getConnection();
+                        final Buffer message = ctx.getMessage();
+                        
+                        Integer counter = invocationCounterAttr.get(connection);
+                        if (Integer.valueOf(1).equals(counter)) {
+                            assertNull(message);
+                            
+                            return ctx.getStopAction();
+                        } else if (Integer.valueOf(2).equals(counter)) {
+                            assertNotNull(message);
+                            serverEchoCounter.addAndGet(message.remaining());
+                            
+                            return super.handleRead(ctx);
+                        }
+                        
+                        fail("unexpected counter value: " + counter);
+                        
+                        return super.handleRead(ctx);
+                    }
+                })
+                .build();
+
+        transport.setProcessor(filterChain);
+
+        Connection connection = null;
+        
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
+
+            final FilterChain clientChain = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new EchoResultFilter(msgSize, resultEcho))
+                    .build();
+
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChain)
+                    .build();
+
+            Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.write(msg);
+
+            assertEquals((Integer) msgSize, resultEcho.get(10, TimeUnit.SECONDS));
+            assertEquals(msgSize, serverEchoCounter.get());
+
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
+    
     private static class BufferStateFilter extends BaseFilter {
 
         private final FutureImpl<Boolean> part1Future;
