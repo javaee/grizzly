@@ -775,6 +775,10 @@ final class ApplicationDispatcher implements RequestDispatcher {
             current = ((ServletRequestWrapper) current).getRequest();
         }
 
+        if (current == null) {
+            throw new IllegalStateException("Can't retrieve container request from " + state.outerRequest);
+        }
+        
         // Instantiate a new wrapper at this point and insert it in the chain
         ServletRequest wrapperLocal = null;
         

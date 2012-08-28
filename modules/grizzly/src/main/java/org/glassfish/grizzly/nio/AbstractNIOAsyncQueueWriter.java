@@ -189,10 +189,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 connection, message, currentResult, completionHandler,
                 dstAddress, lifeCycleHandler,
                 !message.hasRemaining() || message.isExternal());
-
+        
         if (connection == null) {
-            onWriteFailure(connection, queueRecord,
-                    new IOException("Connection is null"));
+            queueRecord.notifyFailure(new IOException("Connection is null"));
             return;
         }
 
