@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractWriter;
@@ -459,7 +458,6 @@ public abstract class AbstractNIOAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
         
-        List<AsyncWriteQueueRecord> notificationList = null;                
         int bytesReleased = 0;
         
         boolean done = true;
@@ -486,14 +484,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 bytesReleased += bytesToRelease;
 
                 if (done) {
-                    if (notificationList == null) {
-                        // Try to obtain List object from the thread-local cache
-                        notificationList = nioConnection.tmpWriteQueueList;
-                    }
-                    
-                    // Store all the finished records in the list for future notification
-                    notificationList.add(queueRecord);
-                    
+                    finishQueueRecord(nioConnection, queueRecord);
                 } else { // if there is still some data in current message
                     queueRecord.notifyIncomplete();
                     writeTaskQueue.setCurrentElement(queueRecord);
@@ -529,23 +520,14 @@ public abstract class AbstractNIOAsyncQueueWriter
             final AsyncResult result = !done ? AsyncResult.INCOMPLETE :
                     (!isComplete ? AsyncResult.EXPECTING_MORE : AsyncResult.COMPLETE);
 
-            if (bytesReleased > 0 || notificationList != null) {
+            if (bytesReleased > 0) {
                 // Finish the context processing (enable OP_WRITE if needed),
                 // so following notification calls will not block the async write
                 // queue write process
                 context.complete(result.toProcessorResult());
                 
-                if (bytesReleased > 0) {
-                    writeTaskQueue.doNotify();
-                }
-            
-                if (notificationList != null) {
-                    for (int i = 0; i < notificationList.size(); i++) {
-                        final AsyncWriteQueueRecord record = notificationList.get(i);
-                        finishQueueRecord(nioConnection, record);
-                    }
-                }
-                
+                writeTaskQueue.doNotify();
+
                 return AsyncResult.TERMINATE;
             }
             
@@ -557,10 +539,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                         queueRecord, e);
             }
             onWriteFailure(nioConnection, queueRecord, e);
-        } finally {
-            if (notificationList != null) {
-                notificationList.clear();
-            }
         }
         
         return AsyncResult.COMPLETE;

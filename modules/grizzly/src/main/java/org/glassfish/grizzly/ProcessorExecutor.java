@@ -86,6 +86,15 @@ public final class ProcessorExecutor {
             complete0(context, result);
             
         } catch (Throwable t) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING,
+                        "Error during Processor execution. "
+                        + "Connection=" + context.getConnection()
+                        + " ioEvent=" + context.getIoEvent()
+                        + " processor=" + context.getProcessor(),
+                        t);
+            }
+            
             try {
                 error(context, t);
             } catch (Exception ignored) {
@@ -168,14 +177,9 @@ public final class ProcessorExecutor {
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
-        try {
-            if (processingHandler != null) {
-                processingHandler.onError(context, description);
-            }
-        } finally {
-            context.recycle();
+        if (processingHandler != null) {
+            processingHandler.onError(context, description);
         }
-
     }
 
     private static void notRun(final Context context) throws IOException {
