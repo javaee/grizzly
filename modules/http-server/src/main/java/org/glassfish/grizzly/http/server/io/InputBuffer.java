@@ -226,7 +226,7 @@ public class InputBuffer {
             checkHttpTrailer(content);
             inputContentBuffer = content.getContent();
             contentRead = content.isLast();
-            content.recycle();
+            //content.recycle();
             inputContentBuffer.allowBufferDispose(true);
         }
 
