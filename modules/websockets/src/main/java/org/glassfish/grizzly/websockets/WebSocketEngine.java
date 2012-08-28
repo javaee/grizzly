@@ -185,6 +185,7 @@ public class WebSocketEngine {
                     return false;
                 }
                 final Connection connection = ctx.getConnection();
+                protocolHandler.setFilterChainContext(ctx);
                 protocolHandler.setConnection(connection);
                 socket = app.createSocket(protocolHandler, request, app);
                 WebSocketHolder holder =
