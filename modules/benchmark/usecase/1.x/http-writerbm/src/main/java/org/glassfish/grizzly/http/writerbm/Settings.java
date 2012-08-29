@@ -49,7 +49,7 @@ public class Settings {
     private String host = "localhost";
     private int port = 9011;
 
-    private int workerThreads = 5;
+    private int workerThreads = 1;
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 

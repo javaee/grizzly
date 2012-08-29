@@ -51,7 +51,6 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -143,7 +142,7 @@ final class Server {
                 ? selectorCount
                 : settings.getWorkerThreads());
         settings.setWorkerThreads(poolSize);
-        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy().
+        final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig().copy().
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
         tpc.setMemoryManager(transport.getMemoryManager());
@@ -173,10 +172,6 @@ final class Server {
         @Override
         public void service(Request request, Response response)
         throws Exception {
-
-            if (!settings.isChunked()) {
-                response.setContentLength(request.getContentLength());
-            }
 
             Writer out = response.getWriter();
 
@@ -239,12 +234,7 @@ final class Server {
         @Override
         public void service(final Request request, final Response response)
         throws Exception {
-
-            if (!settings.isChunked()) {
-                response.setContentLength(request.getContentLength());
-            }
-
-            Writer out = response.getNIOWriter();
+            Writer out = response.getWriter();
 
 //            Session session;
 

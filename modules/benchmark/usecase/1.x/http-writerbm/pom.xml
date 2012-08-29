@@ -81,7 +81,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>1.9.51-SNAPSHOT</version>
+            <version>1.9.52-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

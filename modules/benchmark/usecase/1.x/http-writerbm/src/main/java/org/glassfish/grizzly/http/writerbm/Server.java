@@ -68,6 +68,8 @@ final class Server {
         final SelectorThread selector = httpServer.getSelectorThread();
         StatsThreadPool pool = new StatsThreadPool(poolSize, poolSize, -1, StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT, TimeUnit.MILLISECONDS);
         pool.start();
+        selector.setCoreThreads(poolSize);
+        selector.setMaxThreads(poolSize);
         selector.setThreadPool(pool);
         selector.setUseChunking(settings.isChunked());
         final Controller controller = new Controller();

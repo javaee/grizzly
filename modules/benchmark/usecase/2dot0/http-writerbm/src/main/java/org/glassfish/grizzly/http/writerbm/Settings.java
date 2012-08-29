@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http.writerbm;
 
 import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
+
 
 /**
  *
@@ -52,17 +52,18 @@ public class Settings {
     private String host = "0.0.0.0";
     private int port = 9011;
 
-    private int workerThreads = 5;
+    private int workerThreads = 1;
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 
-    private Class<? extends IOStrategy> strategyClass = WorkerThreadIOStrategy.class;
+    private Class<? extends IOStrategy> strategyClass = org.glassfish.grizzly.strategies.WorkerThreadIOStrategy.class;
+//    private Class<? extends IOStrategy> strategyClass = org.glassfish.grizzly.strategies.SameThreadIOStrategy.class;
 
     private boolean isMonitoringMemory = false;
 
     private boolean blocking = false;
 
-    private boolean chunked = true;
+    private boolean chunked = false;
 
     private Settings() {
     }
