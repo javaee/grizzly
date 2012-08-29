@@ -100,6 +100,19 @@ public class CookieParserUtils {
      * JVK
      */
     public static void parseClientCookies(Cookies cookies,
+                                          byte[] bytes,
+                                          int off,
+                                          int len) {
+        parseClientCookies(cookies, bytes, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+    }
+
+    /**
+     * Parses a cookie header after the initial "Cookie:"
+     * [WS][$]token[WS]=[WS](token|QV)[;|,]
+     * RFC 2965
+     * JVK
+     */
+    public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
 
         if (len <= 0 || buffer == null) {
@@ -108,9 +121,8 @@ public class CookieParserUtils {
 
         if (buffer.hasArray()) {
             parseClientCookies(cookies,
-                               buffer,
                                buffer.array(),
-                               off,
+                               buffer.arrayOffset() + off,
                                len,
                                versionOneStrictCompliance);
             return;
@@ -331,22 +343,18 @@ public class CookieParserUtils {
      * RFC 2965
      * JVK
      */
-    private static void parseClientCookies(Cookies cookies,
-                                           Buffer buffer,
-                                           byte[] bytes,
-                                           int off,
-                                           int len,
-                                           boolean versionOneStrictCompliance) {
+    public static void parseClientCookies(Cookies cookies,
+                                          byte[] bytes,
+                                          int off,
+                                          int len,
+                                          boolean versionOneStrictCompliance) {
 
-        if (len <= 0 || buffer == null || bytes == null) {
+        if (len <= 0 || bytes == null) {
             throw new IllegalArgumentException();
         }
-        // keep note of the array offset - we need it for translation
-        // into the byte[] but it's also needed when translating positions
-        // *back* into the buffer.
-        int arrayOffset = buffer.arrayOffset();
-        int end = off + arrayOffset + len;
-        int pos = off + arrayOffset;
+
+        int end = off + len;
+        int pos = off;
         int nameStart;
         int nameEnd;
         int valueStart;
@@ -510,14 +518,16 @@ public class CookieParserUtils {
 
                 // Domain is more common, so it goes first
                 if (CookieUtils.equals("Domain", bytes, nameStart, nameEnd)) {
-                    lazyCookie.getDomain().setBuffer(buffer,
-                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getDomain().setBytes(bytes,
+                            valueStart,
+                            valueEnd);
                     continue;
                 }
 
                 if (CookieUtils.equals("Path", bytes, nameStart, nameEnd)) {
-                    lazyCookie.getPath().setBuffer(buffer,
-                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getPath().setBytes(bytes,
+                            valueStart,
+                            valueEnd);
                     continue;
                 }
 
@@ -538,10 +548,10 @@ public class CookieParserUtils {
                 lazyCookie = cookie.getLazyCookieState();
 
                 cookie.setVersion(version);
-                lazyCookie.getName().setBuffer(buffer, nameStart - arrayOffset, nameEnd - arrayOffset);
+                lazyCookie.getName().setBytes(bytes, nameStart, nameEnd);
 
                 if (valueStart != -1) { // Normal AVPair
-                    lazyCookie.getValue().setBuffer(buffer, valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getValue().setBytes(bytes, valueStart, valueEnd);
                     if (isQuoted) {
                         // We know this is a byte value so this is safe
                         unescapeDoubleQuotes(lazyCookie.getValue());
@@ -777,23 +787,18 @@ public class CookieParserUtils {
         }
     }
 
-    private static void parseServerCookies(Cookies cookies,
-                                           Buffer buffer,
-                                           byte[] bytes,
-                                           int off,
-                                           int len,
-                                           boolean versionOneStrictCompliance) {
+    public static void parseServerCookies(Cookies cookies,
+                                          byte[] bytes,
+                                          int off,
+                                          int len,
+                                          boolean versionOneStrictCompliance) {
 
-        if (len <= 0 || buffer == null || bytes == null) {
+        if (len <= 0 || bytes == null) {
             throw new IllegalArgumentException();
         }
 
-        // keep note of the array offset - we need it for translation
-        // into the byte[] but it's also needed when translating positions
-        // *back* into the buffer.
-        int arrayOffset = buffer.arrayOffset();
-        int end = off + arrayOffset + len;
-        int pos = off + arrayOffset;
+        int end = off + len;
+        int pos = off;
         int nameStart;
         int nameEnd;
         int valueStart;
@@ -929,16 +934,18 @@ public class CookieParserUtils {
                 // Domain is more common, so it goes first
                 if (lazyCookie.getDomain().isNull() &&
                         equalsIgnoreCase("Domain", bytes, nameStart, nameEnd)) {
-                    lazyCookie.getDomain().setBuffer(buffer,
-                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getDomain().setBytes(bytes,
+                            valueStart,
+                            valueEnd);
                     continue;
                 }
 
                 // Path
                 if (lazyCookie.getPath().isNull() &&
                         equalsIgnoreCase("Path", bytes, nameStart, nameEnd)) {
-                    lazyCookie.getPath().setBuffer(buffer,
-                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getPath().setBytes(bytes,
+                            valueStart,
+                            valueEnd);
                     continue;
                 }
 
@@ -958,17 +965,18 @@ public class CookieParserUtils {
                 // Comment
                 if (lazyCookie.getComment().isNull() &&
                         CookieUtils.equals("Comment", bytes, nameStart, nameEnd)) {
-                    lazyCookie.getComment().setBuffer(buffer,
-                            valueStart - arrayOffset, valueEnd - arrayOffset);
+                    lazyCookie.getComment().setBytes(bytes,
+                            valueStart,
+                            valueEnd);
                     continue;
                 }
 
                 // Max-Age
                 if (cookie.getMaxAge() == -1 &&
                         CookieUtils.equals("Max-Age", bytes, nameStart, nameEnd)) {
-                    cookie.setMaxAge(Ascii.parseInt(buffer,
-                            valueStart - arrayOffset,
-                            valueEnd - valueStart - arrayOffset));
+                    cookie.setMaxAge(Ascii.parseInt(bytes,
+                                                    valueStart,
+                                                    (valueEnd - valueStart)));
                     continue;
                 }
 
@@ -979,10 +987,10 @@ public class CookieParserUtils {
                         valueEnd = getTokenEndPosition(bytes, valueEnd + 1, end, false);
                         pos = valueEnd + 1;
 
-                        final String expiresDate =
-                                buffer.toStringContent(Charsets.ASCII_CHARSET,
-                                        valueStart,
-                                        valueEnd);
+                        final String expiresDate = new String(bytes,
+                                                              valueStart,
+                                                              valueEnd - valueStart,
+                                                              Charsets.ASCII_CHARSET);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
                         cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
@@ -1022,10 +1030,10 @@ public class CookieParserUtils {
             cookie = cookies.getNextUnusedCookie();
             lazyCookie = cookie.getLazyCookieState();
 
-            lazyCookie.getName().setBuffer(buffer, nameStart - arrayOffset, nameEnd - arrayOffset);
+            lazyCookie.getName().setBytes(bytes, nameStart, nameEnd);
 
             if (valueStart != -1) { // Normal AVPair
-                lazyCookie.getValue().setBuffer(buffer, valueStart - arrayOffset, valueEnd - arrayOffset);
+                lazyCookie.getValue().setBytes(bytes, valueStart, valueEnd);
                 if (isQuoted) {
                     // We know this is a byte value so this is safe
                     unescapeDoubleQuotes(lazyCookie.getValue());
@@ -1046,9 +1054,8 @@ public class CookieParserUtils {
 
         if (buffer.hasArray()) {
             parseServerCookies(cookies,
-                               buffer,
                                buffer.array(),
-                               off,
+                               buffer.arrayOffset() + off,
                                len,
                                versionOneStrictCompliance);
             return;
@@ -1552,6 +1559,9 @@ public class CookieParserUtils {
      */
     public static void unescapeDoubleQuotes(DataChunk dc) {
         switch (dc.getType()) {
+            case Bytes:
+                unescapeDoubleQuotes(dc.getByteChunk());
+                return;
             case Buffer:
                 unescapeDoubleQuotes(dc.getBufferChunk());
                 return;
@@ -1559,7 +1569,6 @@ public class CookieParserUtils {
                 final String s = dc.toString();
                 dc.setString(unescapeDoubleQuotes(s, 0, s.length()));
                 return;
-            case Chars:
 
             default: throw new NullPointerException();
 
@@ -1587,6 +1596,34 @@ public class CookieParserUtils {
                 src++;
             }
             buffer.put(dest, buffer.get(src));
+            dest++;
+            src++;
+        }
+
+        bc.setEnd(dest);
+    }
+
+    /**
+     * Unescapes any double quotes in the given cookie value.
+     *
+     * @param bc The cookie value to modify
+     */
+    public static void unescapeDoubleQuotes(ByteChunk bc) {
+
+        if (bc == null || bc.getLength() == 0) {
+            return;
+        }
+
+        int src = bc.getStart();
+        int end = bc.getEnd();
+        int dest = src;
+        byte[] bytes = bc.getBytes();
+
+        while (src < end) {
+            if (bytes[src] == '\\' && src < end && bytes[src + 1] == '"') {
+                src++;
+            }
+            bytes[dest] = bytes[src];
             dest++;
             src++;
         }

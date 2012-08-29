@@ -58,7 +58,6 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -69,8 +68,6 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * A collection of cookies - reusable and tuned for server side performance.
@@ -219,14 +216,11 @@ public final class Cookies {
                         log("Parsing byte[]: " + cookieValue.toString());
                     }
                     ByteChunk bc = cookieValue.getByteChunk();
-                    Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
-                                            bc.getBytes(),
-                                            bc.getStart(),
-                                            bc.getLength());
+
                     CookieParserUtils.parseClientCookies(this,
-                                                         b,
-                                                         b.position(),
-                                                         b.remaining());
+                                                         bc.getBytes(),
+                                                         bc.getStart(),
+                                                         bc.getLength());
                     break;
                 default:
                     throw new IllegalStateException("Server side cookie parsing for type " + type.name() + ", hasn't been implemented");
