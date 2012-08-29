@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.config;
 
-import com.sun.hk2.component.Holder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -52,6 +51,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.inject.Provider;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 import org.glassfish.grizzly.config.dom.NetworkListener;
@@ -62,6 +63,8 @@ import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.hk2.api.TypeLiteral;
+import org.glassfish.hk2.utilities.BuilderHelper;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -75,21 +78,23 @@ public class SSLConfigurator extends SSLEngineConfigurator {
      * SSL settings
      */
     private final Ssl ssl;
-    protected final Holder<SSLImplementation> sslImplementation;
+    protected final Provider<SSLImplementation> sslImplementation;
 
     @SuppressWarnings("unchecked")
     public SSLConfigurator(final Habitat habitat, final Ssl ssl) {
         this.ssl = ssl;
-        Holder<SSLImplementation> sslImplementationLocal =
-            habitat.getInhabitantByContract(
-                                            SSLImplementation.class.getName(),
-                                            ssl.getClassname());
-        if (sslImplementationLocal == null) {
+        
+        Provider<SSLImplementation> sslImplementationLocal;
+        if (habitat.getBestDescriptor(BuilderHelper.createNameAndContractFilter(SSLImplementation.class.getName(),ssl.getClassname())) != null) {
+            sslImplementationLocal = habitat.getService((new TypeLiteral<Provider<SSLImplementation>>() {}).getType(),
+                    ssl.getClassname());
+        }
+        else {
             final SSLImplementation impl = lookupSSLImplementation(habitat, ssl);
             if (impl == null) {
                 throw new IllegalStateException("Can not configure SSLImplementation");
             }
-            sslImplementationLocal = new Holder<SSLImplementation>() {
+            sslImplementationLocal = new Provider<SSLImplementation>() {
                 @Override
                 public SSLImplementation get() {
                     return impl;
