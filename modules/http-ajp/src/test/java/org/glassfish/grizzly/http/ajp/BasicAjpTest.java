@@ -40,34 +40,37 @@
 
 package org.glassfish.grizzly.http.ajp;
 
-import org.glassfish.grizzly.ssl.SSLSupport;
-import java.util.Map;
-import java.util.Set;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.impl.FutureImpl;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.ssl.SSLSupport;
 import org.junit.Assert;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 /**
@@ -76,6 +79,7 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 public class BasicAjpTest extends AjpTestBase {
+    private static final Logger LOGGER = Grizzly.logger(BasicAjpTest.class);
     @Test
     public void test100ContinuePost() throws IOException, InstantiationException, Exception {
         HttpHandler httpHanlder = new HttpHandler() {
@@ -373,8 +377,9 @@ public class BasicAjpTest extends AjpTestBase {
     }
     
     @Test
-    public void testRemoteAddress() throws Exception {
-        final String expectedAddr = "10.163.27.8";
+    public void testAddresses() throws Exception {
+        final String expectedRemoteAddr = "10.163.27.8";
+        final String expectedLocalAddr = "10.163.25.1";
         final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
 
         startHttpServer(new HttpHandler() {
@@ -382,19 +387,35 @@ public class BasicAjpTest extends AjpTestBase {
             @Override
             public void service(Request request, Response response) throws Exception {
                 boolean isOk = false;
-                String result;
+                final StringBuilder errorBuilder = new StringBuilder();
                 try {
-                    result = request.getRemoteAddr();
-                    isOk = expectedAddr.equals(result);
+                    String result = request.getRemoteAddr();
+                    isOk = expectedRemoteAddr.equals(result);
+                    if (!isOk) {
+                        errorBuilder.append("Remote host don't match. Expected ")
+                                .append(expectedRemoteAddr).append(" but was ")
+                                .append(result).append('\n');
+                    }
+                    
+                    String localName = request.getLocalName();
+                    String localAddr = request.getLocalAddr();
+                    isOk = expectedLocalAddr.equals(localName) &&
+                            localName.equals(localAddr);
+                    if (!isOk) {
+                        errorBuilder.append("Local address and host don't match. Expected=")
+                                .append(expectedLocalAddr).append(" Addr=")
+                                .append(localAddr).append(" name=")
+                                .append(localName).append('\n');
+                    }
                 } catch (Exception e) {
-                    result = e.toString();
+                    errorBuilder.append(e.toString());
                 }
                 
                 if (isOk) {
                     response.setStatus(200, "FINE");
                 } else {
-                    response.setStatus(500, "Remote host don't match. Expected " +
-                            expectedAddr + " but was " + result);
+                    LOGGER.warning(errorBuilder.toString());
+                    response.setStatus(500, "ERROR");
                 }
             }
 
