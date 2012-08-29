@@ -61,7 +61,7 @@ public class GrizzlyConfig {
 
     public GrizzlyConfig(String file) {
         habitat = Utils.getHabitat(file);
-        config = habitat.getComponent(NetworkConfig.class);
+        config = habitat.getService(NetworkConfig.class);
     }
 
     public NetworkConfig getConfig() {
