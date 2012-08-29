@@ -222,7 +222,8 @@ public class AjpProcessorTask extends ProcessorTask {
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE) {
             // Has been set
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE) {
-            // Has been set
+            final AjpHttpRequest req = (AjpHttpRequest) param;
+            req.localAddr().setString(req.localName().toString());
         } else if (actionCode == ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE) {
             // Has been set
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {

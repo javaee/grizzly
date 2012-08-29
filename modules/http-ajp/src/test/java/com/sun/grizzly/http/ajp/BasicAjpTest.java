@@ -50,11 +50,15 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.net.SSLSupport;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.Channel;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,6 +66,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Test simple Ajp communication usecases.
@@ -70,7 +77,9 @@ import java.util.concurrent.TimeUnit;
  * @author Justin Lee
  */
 public class BasicAjpTest extends AbstractTest {
-
+    
+    private static final Logger LOGGER = Logger.getLogger(BasicAjpTest.class.getName());
+    
     @Test
     public void testStaticRequests() throws IOException, InstantiationException {
         final int oldMaxBufferedBytes = SocketChannelOutputBuffer.getMaxBufferedBytes();
@@ -633,25 +642,42 @@ public class BasicAjpTest extends AbstractTest {
     
     @Test
     public void testRemoteAddress() throws Exception {
-        final String expectedAddr = "10.163.27.8";
+        final String expectedRemoteAddr = "10.163.27.8";
+        final String expectedLocalAddr = "10.163.25.1";
         configureHttpServer(new GrizzlyAdapter() {
 
             public void service(GrizzlyRequest request, GrizzlyResponse response)
                     throws Exception {
                 boolean isOk = false;
-                String result;
+                final StringBuilder errorBuilder = new StringBuilder();
                 try {
-                    result = request.getRemoteAddr();
-                    isOk = expectedAddr.equals(result);
+                    String result = request.getRemoteAddr();
+                    isOk = expectedRemoteAddr.equals(result);
+                    if (!isOk) {
+                        errorBuilder.append("Remote host don't match. Expected ")
+                                .append(expectedRemoteAddr).append(" but was ")
+                                .append(result).append('\n');
+                    }
+                    
+                    String localName = request.getLocalName();
+                    String localAddr = request.getLocalAddr();
+                    isOk = expectedLocalAddr.equals(localName) &&
+                            localName.equals(localAddr);
+                    if (!isOk) {
+                        errorBuilder.append("Local address and host don't match. Expected=")
+                                .append(expectedLocalAddr).append(" Addr=")
+                                .append(localAddr).append(" name=")
+                                .append(localName).append('\n');
+                    }
                 } catch (Exception e) {
-                    result = e.toString();
+                    errorBuilder.append(e.toString());
                 }
                 
                 if (isOk) {
                     response.setStatus(200, "FINE");
                 } else {
-                    response.setStatus(500, "Remote host don't match. Expected " +
-                            expectedAddr + " but was " + result);
+                    LOGGER.warning(errorBuilder.toString());
+                    response.setStatus(500, "ERROR");
                 }
             }
         });
