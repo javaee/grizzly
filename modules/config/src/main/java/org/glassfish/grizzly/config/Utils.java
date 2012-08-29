@@ -48,6 +48,7 @@ import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.api.ServiceLocatorFactory;
 import org.glassfish.hk2.bootstrap.HK2Populator;
 import org.glassfish.hk2.bootstrap.impl.ClasspathDescriptorFileFinder;
+import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigParser;
 import org.jvnet.hk2.config.DomDocument;
@@ -101,7 +102,8 @@ public class Utils {
                     XMLInputFactory.class.getClassLoader());
             final DomDocument document = parser.parse(xif.createXMLStreamReader(inputStream));
 
-            habitat.addComponent(document);
+            ServiceLocatorUtilities.addOneConstant(habitat, document);
+            
             return habitat;
         } catch (Exception e) {
             e.printStackTrace();
@@ -127,7 +129,7 @@ public class Utils {
 
             try {
                 HK2Populator.populate(serviceLocator,
-                        new ClasspathDescriptorFileFinder(Utils.class.getClassLoader()));
+                        new ClasspathDescriptorFileFinder(Utils.class.getClassLoader()), null);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -176,7 +178,7 @@ public class Utils {
                                         Object[] args) {
             boolean isInitialized = false;
     
-            E instance = habitat.getComponent(clazz, name);
+            E instance = habitat.getService(clazz, name);
             if (instance == null) {
                 try {
                     if (argTypes == null || argTypes.length == 0) {
