@@ -147,6 +147,11 @@ public final class AjpHttpRequest extends HttpRequestPacket {
      */
     @Override
     public DataChunk localAddr() {
+        if (localAddressC.isNull()) {
+            // Copy the addr from localName
+            localAddressC.setString(localNameC.toString());
+        }
+        
         return localAddressC;
     }
 

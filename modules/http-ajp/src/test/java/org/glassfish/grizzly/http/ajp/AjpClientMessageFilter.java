@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,14 +57,14 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * @author Alexey Stashok
  */
 public class AjpClientMessageFilter extends BaseFilter {
-    private final Attribute<ParsingState> parsingStateAttribute =
+    private final Attribute<AjpClientMessageFilter.ParsingState> parsingStateAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             AjpClientMessageFilter.class + ".parsingStateAttribute",
-            new NullaryFunction<ParsingState>() {
+            new NullaryFunction<AjpClientMessageFilter.ParsingState>() {
 
                 @Override
-                public ParsingState evaluate() {
-                    return new ParsingState();
+                public AjpClientMessageFilter.ParsingState evaluate() {
+                    return new AjpClientMessageFilter.ParsingState();
                 }
             });
 
@@ -73,7 +73,7 @@ public class AjpClientMessageFilter extends BaseFilter {
         final Buffer buffer = ctx.getMessage();
         final Connection connection = ctx.getConnection();
 
-        final ParsingState parsingState = parsingStateAttribute.get(connection);
+        final AjpClientMessageFilter.ParsingState parsingState = parsingStateAttribute.get(connection);
 
         // Have we read the AJP message header?
         if (!parsingState.isHeaderParsed) {

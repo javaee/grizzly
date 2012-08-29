@@ -213,7 +213,7 @@ final class AjpMessageUtils {
         return offset;
     }
 
-    private static int decodeHeaders(final Buffer requestContent, int offset,
+    static int decodeHeaders(final Buffer requestContent, int offset,
             final AjpHttpRequest req) {
         // Decode headers
         final MimeHeaders headers = req.getHeaders();
@@ -344,7 +344,7 @@ final class AjpMessageUtils {
         return length == 0xFFFF || length == -1;
     }
 
-    private static int readShort(final Buffer buffer, final int offset) {
+    static int readShort(final Buffer buffer, final int offset) {
         return buffer.getShort(offset) & 0xFFFF;
     }
 
