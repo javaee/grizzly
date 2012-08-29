@@ -52,6 +52,7 @@ my $BM = '';
 my $GITSSH = "ssh://$ENV{'java_net_id'}\@git.java.net/grizzly~git";
 my $GITREADONLY = "git://java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
+my $G2DOT0BRANCH = "master";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
 
@@ -78,7 +79,7 @@ sub checkoutGrizzly {
    }
    if (-e "2dot0") {
        chdir("2dot0");
-       my @args = ("git", "pull", "--rebase", "origin", "master");
+       my @args = ("git", "pull", "--rebase", "origin", "$G2DOT0BRANCH");
        system(@args) == 0 or die "git pull/update failed: $?";
        chdir("..");
    } else {
@@ -88,6 +89,8 @@ sub checkoutGrizzly {
        }
        my @args = ("git", "clone", "$GITPATH", "2dot0");
        system(@args) == 0 or die "git clone of Grizzly 2.0 failed: $?";
+       my @args = ("git", "checkout", "$G2DOT0BRANCH");
+       system(@args) == 0 or die "git checkout failed: $?";
    }  
 }
 
