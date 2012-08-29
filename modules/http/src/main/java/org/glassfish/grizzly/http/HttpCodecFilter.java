@@ -1413,7 +1413,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                         encodedBuffer, content);
             }
 
-            if (encodedBuffer.isComposite()) {
+            if (encodedBuffer != null && encodedBuffer.isComposite()) {
                 // If during buffer appending - composite buffer was created -
                 // allow buffer disposing
                 encodedBuffer.allowBufferDispose(true);

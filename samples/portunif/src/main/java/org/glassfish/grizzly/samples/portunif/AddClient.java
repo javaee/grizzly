@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,6 +61,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.samples.portunif.addservice.AddClientMessageFilter;
 import org.glassfish.grizzly.samples.portunif.addservice.AddRequestMessage;
 import org.glassfish.grizzly.samples.portunif.addservice.AddResponseMessage;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Client app, which tests deployed ADD-service.
@@ -101,7 +102,8 @@ public class AddClient {
 
             // Read user input and communicate the ADD-service
             String line;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    System.in, Charsets.ASCII_CHARSET));
             while ((line = reader.readLine()) != null) {
                 if ("q".equals(line)) {
                     break;

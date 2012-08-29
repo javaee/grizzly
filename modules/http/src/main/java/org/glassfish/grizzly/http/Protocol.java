@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http;
 
 import java.io.UnsupportedEncodingException;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Predefined HTTP protocol versions
@@ -84,9 +85,9 @@ public enum Protocol {
         this.minorVersion = minorVersion;
         this.protocolString = "HTTP/" + majorVersion + '.' + minorVersion;
         try {
-            protocolBytes = protocolString.getBytes("US-ASCII");
+            protocolBytes = protocolString.getBytes(Charsets.ASCII_CHARSET.name());
         } catch (UnsupportedEncodingException ignored) {
-            protocolBytes = protocolString.getBytes();
+            // Should never get here
         }
     }
 

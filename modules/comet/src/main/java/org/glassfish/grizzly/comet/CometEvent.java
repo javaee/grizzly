@@ -39,14 +39,12 @@
  */
 package org.glassfish.grizzly.comet;
 
-import java.io.Serializable;
-
 /**
  * Simple event class used to pass information between {@link CometHandler} and the Comet implementation.
  *
  * @author Jeanfrancois Arcand
  */
-public class CometEvent<E> implements Serializable {
+public class CometEvent<E> {
     public enum Type {
         INTERRUPT,
         NOTIFY,

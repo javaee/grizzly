@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Simple GIOP client
@@ -91,7 +92,7 @@ public class GIOPClient {
             connection = future.get(10, TimeUnit.SECONDS);
 
             // Initialize sample GIOP message
-            byte[] testMessage = "GIOP test".getBytes();
+            byte[] testMessage = "GIOP test".getBytes(Charsets.ASCII_CHARSET);
             GIOPMessage sentMessage = new GIOPMessage((byte) 1, (byte) 2,
                     (byte) 0x0F, (byte) 0, testMessage);
 

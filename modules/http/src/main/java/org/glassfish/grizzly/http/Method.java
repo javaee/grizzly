@@ -119,7 +119,7 @@ public final class Method {
         try {
             this.methodBytes = methodString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            this.methodBytes = methodString.getBytes();
+            // Should never get here
         }
     }
 

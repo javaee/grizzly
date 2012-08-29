@@ -744,9 +744,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             specialAttributes.put(AsyncContext.ASYNC_QUERY_STRING,
                                   queryString);
                 break;
-        default: // REQUEST
-                break;
-            default:
+            default: // REQUEST
                 break;
         }
     }

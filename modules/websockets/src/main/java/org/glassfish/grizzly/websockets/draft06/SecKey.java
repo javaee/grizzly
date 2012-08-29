@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 import org.glassfish.grizzly.http.util.Base64Utils;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.websockets.HandshakeException;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
@@ -97,7 +98,7 @@ public class SecKey {
         final MessageDigest instance;
         try {
             instance = MessageDigest.getInstance("SHA-1");
-            instance.update(key.getBytes());
+            instance.update(key.getBytes(Charsets.ASCII_CHARSET));
             final byte[] digest = instance.digest();
             if(digest.length != 20) {
                 throw new HandshakeException("Invalid key length.  Should be 20: " + digest.length);

@@ -1265,7 +1265,8 @@ public class Response {
                 getWriter().flush();
             } catch (IllegalStateException ise1) {
                 try {
-                   getOutputStream().write(sb.toString().getBytes());
+                   getOutputStream().write(sb.toString().getBytes(
+                           org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET));
                 } catch (IllegalStateException ise2) {
                    // ignore; the RFC says "SHOULD" so it is acceptable
                    // to omit the body in case of an error

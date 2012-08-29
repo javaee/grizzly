@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,19 +40,20 @@
 
 package org.glassfish.grizzly.samples.simpleauth;
 
-import java.util.logging.Level;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.StringFilter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Client implementation, which sends a message to a {@link Server} and checks
@@ -109,7 +110,8 @@ public class Client {
 
             final Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
             
-            BufferedReader reader  = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader reader  = new BufferedReader(new InputStreamReader(
+                    System.in, Charsets.ASCII_CHARSET));
 
             while (true) {
                 System.out.print("Type the message (Empty line for quit): ");

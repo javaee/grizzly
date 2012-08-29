@@ -295,7 +295,7 @@ public final class MessageBytes implements Cloneable, Serializable {
         }
         toString();
         type=T_BYTES;
-        byte bb[] = strValue.getBytes();
+        byte bb[] = strValue.getBytes(byteC.getCharset());
         byteC.setBytes(bb, 0, bb.length);
     }
 
