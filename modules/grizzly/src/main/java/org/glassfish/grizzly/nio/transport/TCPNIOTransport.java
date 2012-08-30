@@ -204,9 +204,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 processor = new StandaloneProcessor();
             }
 
-            if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
-            }
+            final int selectorRunnersCount = getSelectorRunnersCount();
 
             if (nioChannelDistributor == null) {
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
@@ -259,6 +257,14 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
+    @Override
+    protected int getDefaultSelectorRunnersCount() {
+        // Consider ACCEPTOR will occupy one selector thread, and depending
+        // on usecase it might be idle for most of the time -
+        // so allocate one more extra thread to process channel events
+        return Runtime.getRuntime().availableProcessors() + 1;
+    }
+    
     private void listenServerConnections() {
         for (TCPNIOServerConnection serverConnection : serverConnections) {
             try {

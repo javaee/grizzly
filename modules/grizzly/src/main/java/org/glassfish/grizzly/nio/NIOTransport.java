@@ -40,12 +40,12 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.AbstractTransport;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.TransportProbe;
 import java.io.IOException;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Random;
+import org.glassfish.grizzly.AbstractTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.TransportProbe;
 
 /**
  *
@@ -57,7 +57,7 @@ public abstract class NIOTransport extends AbstractTransport {
     protected SelectorHandler selectorHandler;
     protected SelectionKeyHandler selectionKeyHandler;
 
-    protected int selectorRunnersCount;
+    private int selectorRunnersCount = -1;
     
     protected SelectorRunner[] selectorRunners;
     
@@ -67,8 +67,6 @@ public abstract class NIOTransport extends AbstractTransport {
     
     public NIOTransport(final String name) {
         super(name);
-
-        selectorRunnersCount = Runtime.getRuntime().availableProcessors();
     }
 
     public SelectionKeyHandler getSelectionKeyHandler() {
@@ -90,6 +88,10 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     public int getSelectorRunnersCount() {
+        if (selectorRunnersCount <= 0) {
+            selectorRunnersCount = getDefaultSelectorRunnersCount();
+        }
+        
         return selectorRunnersCount;
     }
 
@@ -253,4 +255,8 @@ public abstract class NIOTransport extends AbstractTransport {
     @Override
     protected abstract void closeConnection(Connection connection)
             throws IOException;
+
+    protected int getDefaultSelectorRunnersCount() {
+        return Runtime.getRuntime().availableProcessors();
+    }
 }
