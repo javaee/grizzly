@@ -253,6 +253,28 @@ public class ChunkedTransferEncodingTest {
     }
 
     @SuppressWarnings("unchecked")
+    @Test
+    public void testInvalidHexByteInChunkLength() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("POST / HTTP/1.1\r\n");
+        sb.append("Host: localhost:").append(PORT).append("\r\n");
+        sb.append("Transfer-Encoding: chunked\r\n\r\n");
+        sb.append("ÁÁÁ\r\b");
+        Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
+                                sb.toString(),
+                                Charsets.ASCII_CHARSET);
+        Future f = connection.write(b);
+        f.get(10, TimeUnit.SECONDS);
+        Future<Boolean> result = resultQueue.poll(10, TimeUnit.SECONDS);
+        try {
+            result.get(10, TimeUnit.SECONDS);
+            fail("Expected HttpBrokenContentException to be thrown on server side");
+        } catch (ExecutionException ee) {
+            assertEquals(HttpBrokenContentException.class, ee.getCause().getClass());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private void doHttpRequestTest(
             int packetsNum,
             boolean hasContent,
