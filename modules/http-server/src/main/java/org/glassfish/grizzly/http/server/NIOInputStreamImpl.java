@@ -87,7 +87,7 @@ final class NIOInputStreamImpl extends NIOInputStream implements Cacheable {
      * {@inheritDoc}
      */
     @Override public long skip(long n) throws IOException {
-        return inputBuffer.skip(n, true);
+        return inputBuffer.skip(n);
     }
 
     /**

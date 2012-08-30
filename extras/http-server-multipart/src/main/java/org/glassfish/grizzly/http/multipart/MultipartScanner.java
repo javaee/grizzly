@@ -116,7 +116,7 @@ public class MultipartScanner {
                 throw new IllegalStateException("Boundary not found");
             }
 
-            final NIOInputStream nioInputStream = request.getNIOInputStream();
+            final NIOInputStream nioInputStream = request.getInputStream();
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(request,
                     partHandler, completionHandler,

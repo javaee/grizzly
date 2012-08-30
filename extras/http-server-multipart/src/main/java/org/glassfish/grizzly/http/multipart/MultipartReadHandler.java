@@ -96,7 +96,7 @@ public class MultipartReadHandler implements ReadHandler {
         this.requestCompletionHandler = completionHandler;
         this.multipartContext = multipartContext;
         this.boundary = multipartContext.getBoundary();
-        this.parentInputStream = request.getNIOInputStream();
+        this.parentInputStream = request.getInputStream();
 
         multipartMixedCompletionHandler = null;
         multipartMixedEntry = null;
@@ -348,7 +348,7 @@ public class MultipartReadHandler implements ReadHandler {
         if (isMultipartMixed) {
             multipartEntry.initialize(multipartMixedEntry.getNIOInputStream());
         } else {
-            multipartEntry.initialize(request.getNIOInputStream());
+            multipartEntry.initialize(request.getInputStream());
         }
         
         final String contentType = multipartEntry.getHeader(Header.ContentType);

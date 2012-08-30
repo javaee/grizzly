@@ -115,7 +115,7 @@ public class MultipartBasicTest {
                         @Override
                         public void completed(Request result) {
                             try {
-                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -125,7 +125,7 @@ public class MultipartBasicTest {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -186,7 +186,7 @@ public class MultipartBasicTest {
                         @Override
                         public void completed(Request result) {
                             try {
-                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -196,7 +196,7 @@ public class MultipartBasicTest {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -252,7 +252,7 @@ public class MultipartBasicTest {
                         @Override
                         public void completed(Request result) {
                             try {
-                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -262,7 +262,7 @@ public class MultipartBasicTest {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getNIOOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
+                                response.getOutputStream().write(("FALSE: " + throwable).getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();

@@ -98,9 +98,9 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
     }
     
     private void write(String s) throws IOException {
-        getResponse().getNIOWriter().write(BasicCometTest.onInterrupt);
+        getResponse().getWriter().write(BasicCometTest.onInterrupt);
         
         // forcing chunking
-        getResponse().getNIOWriter().flush();
+        getResponse().getWriter().flush();
     }
 }

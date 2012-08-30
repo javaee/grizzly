@@ -141,7 +141,7 @@ public class DownloadHttpHandlerSample {
             response.setBufferSize(0);
             
             // put the stream in non-blocking mode
-            final NIOOutputStream output = response.getNIOOutputStream();
+            final NIOOutputStream output = response.getOutputStream();
             
             // get file path
             final String path = request.getDecodedRequestURI();

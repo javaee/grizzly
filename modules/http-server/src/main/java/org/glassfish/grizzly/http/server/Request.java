@@ -558,7 +558,7 @@ public class Request {
     }
 
     protected void onAfterService() {
-        if (asyncInput() && !inputBuffer.isFinished()) {
+        if (!inputBuffer.isFinished()) {
             inputBuffer.terminate();
         }
 
@@ -894,22 +894,29 @@ public class Request {
 
     /**
      * <p>
-     * Return the {@link InputStream} for this {@link Request}.  This stream
-     * will block when reading content.
+     * Return the {@link InputStream} for this {@link Request}.
      * </p>
+     * 
+     * By default the returned {@link NIOInputStream} will work as blocking
+     * {@link InputStream}, but it will be possible to call {@link NIOInputStream#isReady()},
+     * {@link NIOInputStream#available()}, or {@link NIOInputStream#notifyAvailable(org.glassfish.grizzly.ReadHandler)}
+     * to avoid blocking.
      *
-     * @return the {@link InputStream} for this {@link Request}.
+     * @return the {@link NIOInputStream} for this {@link Request}.
      *
      * @exception IllegalStateException if {@link #getReader()} or
      *  {@link #getNIOReader()} has already been called for this request.
      *
-     * @see #getNIOInputStream()
-     *
      * @since 2.2
      */
-    public InputStream getInputStream() {
+    public NIOInputStream getInputStream() {
 
-        return getInputStream0(true);
+        if (usingReader)
+            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
+
+        usingInputStream = true;
+        inputStream.setInputBuffer(inputBuffer);
+        return inputStream;
 
     }
 
@@ -929,21 +936,10 @@ public class Request {
      *
      * @exception IllegalStateException if {@link #getReader()} or
      *  {@link #getNIOReader()} has already been called for this request.
+     * @deprecated pls. use {@link #getInputStream()}
      */
     public NIOInputStream getNIOInputStream() {
-        return getInputStream0(false);
-    }
-
-    private NIOInputStream getInputStream0(final boolean blocking) {
-
-        if (usingReader)
-            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
-
-        usingInputStream = true;
-        inputBuffer.setAsyncEnabled(!blocking);
-        inputStream.setInputBuffer(inputBuffer);
-        return inputStream;
-
+        return getInputStream();
     }
 
 
@@ -951,6 +947,7 @@ public class Request {
      * @return <code>true</code> if the current input source is operating in
      * non-blocking mode. In other words {@link #getNIOInputStream()} or
      *  {@link #getNIOReader()} were invoked.
+     * @deprecated will always return true
      */
     public boolean asyncInput() {
 
@@ -1092,19 +1089,29 @@ public class Request {
 
     /**
      * <p>
-     * Returns the {@link Reader} associated with this {@link Request}.  This
-     * {@link Reader} will block while reading content.
+     * Returns the {@link Reader} associated with this {@link Request}.
      * </p>
-     *
-     * @return the {@link Reader} associated with this {@link Request}.
+     * 
+     * By default the returned {@link NIOReader} will work as blocking
+     * {@link java.io.Reader}, but it will be possible to call {@link NIOReader#isReady()}
+     * or {@link NIOReader#notifyAvailable(org.glassfish.grizzly.ReadHandler)}
+     * to avoid blocking.
+     * 
+     * @return the {@link NIOReader} associated with this {@link Request}.
      *
      * @throws IllegalStateException if {@link #getInputStream()} or
      *  {@link #getNIOInputStream()} has already been called for this request.
      *
      * @since 2.2
      */
-    public Reader getReader() {
-        return getReader0(true);
+    public NIOReader getReader() {
+        if (usingInputStream)
+            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
+
+        usingReader = true;
+        inputBuffer.processingChars();
+        reader.setInputBuffer(inputBuffer);
+        return reader;
     }
 
     /**
@@ -1115,22 +1122,10 @@ public class Request {
      *
      * @throws IllegalStateException if {@link #getInputStream()} or
      *  {@link #getNIOInputStream()} has already been called for this request.
+     * @deprecated pls. use {@link #getReader()}
      */
     public NIOReader getNIOReader() {
-        return getReader0(false);
-    }
-
-    private NIOReader getReader0(final boolean blocking) {
-
-        if (usingInputStream)
-            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
-
-        usingReader = true;
-        inputBuffer.processingChars();
-        inputBuffer.setAsyncEnabled(!blocking);
-        reader.setInputBuffer(inputBuffer);
-        return reader;
-
+        return getReader();
     }
 
 
@@ -2016,7 +2011,7 @@ public class Request {
      * @param len how much of the POST body to skip.
      */
     protected void skipPostBody(final int len) throws IOException {
-        inputBuffer.skip(len, false);
+        inputBuffer.skip(len);
     }
 
     /**

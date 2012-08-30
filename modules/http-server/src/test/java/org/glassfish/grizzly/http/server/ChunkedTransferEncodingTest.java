@@ -391,8 +391,8 @@ public class ChunkedTransferEncodingTest {
                             final Response response)
                 throws Exception {
 
-            final NIOInputStream reader = request.getNIOInputStream();
-            final NIOOutputStream writer = response.getNIOOutputStream();                
+            final NIOInputStream reader = request.getInputStream();
+            final NIOOutputStream writer = response.getOutputStream();                
 
             response.suspend();
 

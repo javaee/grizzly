@@ -151,12 +151,6 @@ public class OutputBuffer {
     private boolean fileTransferRequested;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
-
-    /**
-     * Flag indicating whether or not async operations are being used on the
-     * input streams.
-     */
-    private boolean asyncEnabled;
     
     private boolean sendfileEnabled;
 
@@ -185,7 +179,6 @@ public class OutputBuffer {
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(false));
-        asyncEnabled = !IS_BLOCKING;
     }
 
     /**
@@ -198,10 +191,11 @@ public class OutputBuffer {
      * fashion, otherwise returns <code>false</code>.
      *
      * @since 2.1.2
+     * @deprecated will always return true
      */
     @SuppressWarnings({"UnusedDeclaration"})
     public boolean isAsyncEnabled() {
-        return asyncEnabled;
+        return true;
     }
 
 
@@ -211,10 +205,10 @@ public class OutputBuffer {
      * @param asyncEnabled <code>true</code> if this <code>OutputBuffer<code>
      *  will write content without blocking.
      *
-     *  @since 2.1.2
+     * @since 2.1.2
+     * @deprecated <tt>OutputBuffer</tt> always supports async mode
      */
     public void setAsyncEnabled(boolean asyncEnabled) {
-        this.asyncEnabled = asyncEnabled;
     }
 
 
@@ -388,7 +382,7 @@ public class OutputBuffer {
      */
     public void acknowledge() throws IOException {
 
-        ctx.write(response, !asyncEnabled);
+        ctx.write(response, IS_BLOCKING);
 
     }
 
@@ -797,7 +791,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection)
      */
     public boolean canWrite() {
-        if (!asyncEnabled || isNonBlockingWriteGuaranteed) {
+        if (IS_BLOCKING || isNonBlockingWriteGuaranteed) {
             return true;
         }        
         
@@ -854,8 +848,8 @@ public class OutputBuffer {
             return;
         }
         
-        // This point might be reached if asyncEnabled only
-        assert asyncEnabled;
+        // This point might be reached if OutputBuffer is in non-blocking mode
+        assert !IS_BLOCKING;
         
         final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
         
@@ -917,7 +911,7 @@ public class OutputBuffer {
     private void blockAfterWriteIfNeeded()
             throws IOException {
         
-        if (!asyncEnabled || isNonBlockingWriteGuaranteed || isLastWriteNonBlocking) {
+        if (IS_BLOCKING || isNonBlockingWriteGuaranteed || isLastWriteNonBlocking) {
             return;
         }
         
@@ -1010,7 +1004,7 @@ public class OutputBuffer {
                   builder.build(),
                   onAsyncErrorCompletionHandler,
                   messageCloner,
-                  !asyncEnabled);
+                  IS_BLOCKING);
     }
 
     private void checkCharBuffer() {
@@ -1078,10 +1072,10 @@ public class OutputBuffer {
             if (response != null) {
                 final HttpContent.Builder builder = response.httpContentBuilder();
                 builder.last(true);
-                ctx.write(builder.build(), !asyncEnabled);
+                ctx.write(builder.build(), IS_BLOCKING);
             }
         } else {
-            ctx.write(response, !asyncEnabled);
+            ctx.write(response, IS_BLOCKING);
         }
     }
 

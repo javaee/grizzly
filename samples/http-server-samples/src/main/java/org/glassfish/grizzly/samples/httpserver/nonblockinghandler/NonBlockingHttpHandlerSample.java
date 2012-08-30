@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -96,7 +96,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
  *       NoneBlockingEchoHandler: This {@link HttpHandler} is installed to the
  *                                {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
  *                                with the path <code>/echo</code>.  The handler uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
- *                                returned by {@link org.glassfish.grizzly.http.server.Request#getNIOReader()} in non-blocking
+ *                                returned by {@link org.glassfish.grizzly.http.server.Request#getReader()} in non-blocking
  *                                mode.  As data is received asynchronously, the {@link ReadHandler} callbacks are
  *                                invoked at this time data is then written to the response.
  *    </li>
@@ -319,8 +319,8 @@ public class NonBlockingHttpHandlerSample {
                             final Response response) throws Exception {
 
             final char[] buf = new char[128];
-            final NIOReader in = request.getNIOReader(); // put the stream in non-blocking mode
-            final NIOWriter out = response.getNIOWriter();
+            final NIOReader in = request.getReader(); // return the non-blocking InputStream
+            final NIOWriter out = response.getWriter();
 
             response.suspend();
 

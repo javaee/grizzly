@@ -373,7 +373,7 @@ public class TransferEncodingTest extends TestCase {
                 sb.append((char) ('0' + (i % 10)));
             }
             
-            response.getNIOWriter().write(sb.toString());
+            response.getWriter().write(sb.toString());
         }
 
     }
@@ -406,7 +406,7 @@ public class TransferEncodingTest extends TestCase {
 
         @Override
         public void service(Request request, Response response) throws Exception {
-            final NIOWriter writer = response.getNIOWriter();
+            final NIOWriter writer = response.getWriter();
             for (int i = 0; i < length; i++) {
                 writer.write((char) ('0' + (i % 10)));
             }
@@ -422,8 +422,8 @@ public class TransferEncodingTest extends TestCase {
 
             response.suspend();
 
-            final NIOInputStream inputStream = request.getNIOInputStream();
-            final NIOOutputStream outputStream = response.getNIOOutputStream();
+            final NIOInputStream inputStream = request.getInputStream();
+            final NIOOutputStream outputStream = response.getOutputStream();
             
             inputStream.notifyAvailable(new ReadHandler() {
 

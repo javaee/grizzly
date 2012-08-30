@@ -239,9 +239,4 @@ public class ServletReaderImpl extends BufferedReader {
         return result;
 
     }
-
-//    public NIOReader getNIOReader(){
-//        return (NIOReader) ib;
-//    }
-
 }
