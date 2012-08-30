@@ -47,6 +47,7 @@ import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
@@ -162,7 +163,11 @@ public abstract class HttpHandler {
             request.parseSessionId();
             service(request, response);
         } catch (Exception t) {
-            LOGGER.log(Level.WARNING, "service exception", t);
+            if (t instanceof HttpBrokenContentException) {
+                LOGGER.log(Level.FINE, "service exception", t);
+            } else {
+                LOGGER.log(Level.WARNING, "service exception", t);
+            }
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
         }
