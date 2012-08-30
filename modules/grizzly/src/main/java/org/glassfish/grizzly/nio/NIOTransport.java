@@ -65,7 +65,7 @@ public abstract class NIOTransport extends AbstractTransport {
     
     protected SelectorHandler selectorHandler;
 
-    protected int selectorRunnersCount;
+    private int selectorRunnersCount = -1;
     
     protected SelectorRunner[] selectorRunners;
     
@@ -85,8 +85,6 @@ public abstract class NIOTransport extends AbstractTransport {
     
     public NIOTransport(final String name) {
         super(name);
-
-        selectorRunnersCount = Runtime.getRuntime().availableProcessors();
     }
 
     /**
@@ -162,6 +160,10 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     public int getSelectorRunnersCount() {
+        if (selectorRunnersCount <= 0) {
+            selectorRunnersCount = getDefaultSelectorRunnersCount();
+        }
+        
         return selectorRunnersCount;
     }
 
@@ -415,4 +417,7 @@ public abstract class NIOTransport extends AbstractTransport {
         }
     }
     
+    protected int getDefaultSelectorRunnersCount() {
+        return Runtime.getRuntime().availableProcessors();
+    }
 }

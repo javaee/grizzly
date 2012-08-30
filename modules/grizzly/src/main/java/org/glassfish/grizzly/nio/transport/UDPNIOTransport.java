@@ -450,9 +450,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 throw new IllegalStateException("No processor available.");
             }
 
-            if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
-            }
+            final int selectorRunnersCount = getSelectorRunnersCount();
 
             if (nioChannelDistributor == null) {
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
