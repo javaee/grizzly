@@ -259,7 +259,7 @@ public class ChunkedTransferEncodingTest {
         sb.append("POST / HTTP/1.1\r\n");
         sb.append("Host: localhost:").append(PORT).append("\r\n");
         sb.append("Transfer-Encoding: chunked\r\n\r\n");
-        sb.append((char) 193).append("\r\b");
+        sb.append((char) 193).append("\r\n");
         
         Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
                                 sb.toString(),
