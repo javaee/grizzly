@@ -342,7 +342,7 @@ public class ChunkedInputFilter implements InputFilter {
                 trailer = true;
             } else if (!trailer) { 
                 //don't read data after the trailer
-                if (HexUtils.DEC[buf[pos]] != -1) {
+                if (HexUtils.DEC[buf[pos] & 0xFF] != -1) {
                     readDigit = true;
                     result *= 16;
                     result += HexUtils.DEC[buf[pos]];
