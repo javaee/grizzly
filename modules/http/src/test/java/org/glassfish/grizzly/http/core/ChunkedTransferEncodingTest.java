@@ -77,12 +77,13 @@ import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.Pair;
 import org.glassfish.grizzly.utils.TransferQueue;
 import org.junit.After;
-import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+
+import static org.junit.Assert.*;
 
 /**
  * Chunked Transfer-Encoding tests.
@@ -258,7 +259,8 @@ public class ChunkedTransferEncodingTest {
         sb.append("POST / HTTP/1.1\r\n");
         sb.append("Host: localhost:").append(PORT).append("\r\n");
         sb.append("Transfer-Encoding: chunked\r\n\r\n");
-        sb.append("ÁÁÁ\r\b");
+        sb.append((char) 193).append("\r\b");
+        
         Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
                                 sb.toString(),
                                 Charsets.ASCII_CHARSET);
