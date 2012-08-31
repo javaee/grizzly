@@ -75,7 +75,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -115,7 +114,7 @@ import static org.glassfish.grizzly.http.util.Constants.*;
 public class Response {
 
     enum SuspendState {
-        NONE, SUSPENDED, RESUMING, RESUMED, CANCELLED
+        NONE, SUSPENDED, RESUMING, RESUMED, CANCELLING, CANCELLED
     }
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
@@ -134,7 +133,8 @@ public class Response {
 //        return new Response();
 //    }
 
-    static DelayQueue<Response> createDelayQueue(DelayedExecutor delayedExecutor) {
+    static DelayQueue<SuspendTimeout> createDelayQueue(
+            final DelayedExecutor delayedExecutor) {
         return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
                 new DelayQueueResolver());
     }
@@ -252,10 +252,9 @@ public class Response {
     protected final MessageBytes redirectURLCC = MessageBytes.newInstance();
 
 
-    protected DelayedExecutor.DelayQueue<Response> delayQueue;
+    protected DelayedExecutor.DelayQueue<SuspendTimeout> delayQueue;
 
-    final AtomicReference<SuspendState> suspendState =
-            new AtomicReference<SuspendState>(SuspendState.NONE);
+    SuspendState suspendState = SuspendState.NONE;
 
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
 
@@ -267,7 +266,7 @@ public class Response {
     public SuspendStatus initialize(final Request request,
                            final HttpResponsePacket response,
                            final FilterChainContext ctx,
-                           final DelayedExecutor.DelayQueue<Response> delayQueue,
+                           final DelayedExecutor.DelayQueue<SuspendTimeout> delayQueue,
                            final HttpServerFilter serverFilter) {
         this.request = request;
         this.response = response;
@@ -302,7 +301,7 @@ public class Response {
      */
     protected void recycle() {
         delayQueue = null;
-        suspendedContext.reset();
+//        suspendedContext.reset();
         outputBuffer.recycle();
         outputStream.recycle();
         writer.recycle();
@@ -315,7 +314,7 @@ public class Response {
         sendFileEnabled = false;
         response = null;
         ctx = null;
-        suspendState.set(SuspendState.NONE);
+        suspendState = SuspendState.NONE;
         if (!cookies.isEmpty()) {
             for (Cookie cookie : cookies) {
                 cookie.recycle();
@@ -1623,8 +1622,13 @@ public class Response {
     public boolean isSuspended() {
         checkResponse();
 
-        final SuspendState state = suspendState.get();
-        return state == SuspendState.SUSPENDED || state == SuspendState.RESUMING;
+        final SuspendState state;
+        synchronized(suspendedContext) {
+            state = suspendState;
+        }
+        
+        return state == SuspendState.SUSPENDED || state == SuspendState.RESUMING
+                || state == SuspendState.CANCELLING;
     }
 
     /**
@@ -1708,31 +1712,31 @@ public class Response {
 
         checkResponse();
 
-        if (!suspendState.compareAndSet(SuspendState.NONE, SuspendState.SUSPENDED)) {
+        if (suspendState != SuspendState.NONE) {
             throw new IllegalStateException("Already Suspended");
         }
-        
+
+        suspendState = SuspendState.SUSPENDED;
+
         suspendStatus.suspend();
 
-        suspendedContext.completionHandler = completionHandler;
-        suspendedContext.timeoutHandler = timeoutHandler;
+        suspendedContext.init(completionHandler, timeoutHandler);
 
         final Connection connection = ctx.getConnection();
 
         HttpServerProbeNotifier.notifyRequestSuspend(
                 request.httpServerFilter, connection, request);
 
-        connection.addCloseListener(suspendedContext);
+        connection.addCloseListener(suspendedContext.closeListener);
 
         if (timeout > 0) {
             final long timeoutMillis =
                     TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-            suspendedContext.delayMillis = timeoutMillis;
 
-
-            delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
+            delayQueue.add(suspendedContext.suspendTimeout,
+                    timeoutMillis, TimeUnit.MILLISECONDS);
+            suspendedContext.suspendTimeout.delayMillis = timeoutMillis;
         }
-
     }
 
     /**
@@ -1755,6 +1759,8 @@ public class Response {
      * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
      * will first be invoked, then the {@link Response#finish()}.
      * Those operations commit the response.
+     * 
+     * @deprecated pls. use {@link #resume()}
      */
     public void cancel() {
         checkResponse();
@@ -1786,26 +1792,31 @@ public class Response {
         return sendFileEnabled;
     }
 
-    public final class SuspendedContextImpl implements SuspendContext,
-            CloseListener {
+    public final class SuspendedContextImpl implements SuspendContext {
 
-        volatile CompletionHandler<Response> completionHandler;
-        volatile TimeoutHandler timeoutHandler;
-        long delayMillis;
-        volatile long timeoutTimeMillis;
-
+        private int modCount;
+        
+        CompletionHandler<Response> completionHandler;
+        SuspendTimeout suspendTimeout;
+        
+        private CloseListener closeListener;
+        
         /**
          * Marks {@link Response} as resumed, but doesn't resume associated
          * {@link FilterChainContext} invocation.
          */
-        public void markResumed() {
-            if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
+        public synchronized void markResumed() {
+            modCount++;
+            
+            if (suspendState != SuspendState.SUSPENDED) {
                 throw new IllegalStateException("Not Suspended");
             }
+            
+            suspendState = SuspendState.RESUMING;
 
             final Connection connection = ctx.getConnection();
 
-            connection.removeCloseListener(this);
+            connection.removeCloseListener(closeListener);
 
             if (completionHandler != null) {
                 completionHandler.completed(Response.this);
@@ -1813,34 +1824,136 @@ public class Response {
 
             reset();
 
-            suspendState.set(SuspendState.RESUMED);
+            suspendState = SuspendState.RESUMED;
 
             HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
                     connection, request);
         }
 
         /**
-         * Marks {@link Response} as cancelled, but doesn't resume associated
+         * Marks {@link Response} as cancelled, if expectedModCount corresponds
+         * to the current modCount. This method doesn't resume associated
          * {@link FilterChainContext} invocation.
          */
-        public void markCancelled() {
-            if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
+        protected synchronized boolean markCancelled(final int expectedModCount) {
+            if (modCount != expectedModCount) {
+                return false;
+            }
+            
+            modCount++;
+            
+            if (suspendState != SuspendState.SUSPENDED) {
                 throw new IllegalStateException("Not Suspended");
             }
 
+            suspendState = SuspendState.CANCELLING;
+            
             final Connection connection = ctx.getConnection();
 
-            connection.removeCloseListener(this);
+            connection.removeCloseListener(closeListener);
 
             if (completionHandler != null) {
                 completionHandler.cancelled();
             }
 
-            suspendState.set(SuspendState.CANCELLED);
+            suspendState = SuspendState.CANCELLED;
             reset();
 
             HttpServerProbeNotifier.notifyRequestCancel(
                     request.httpServerFilter, connection, request);
+            
+            return true;
+        }
+        
+        /**
+         * Marks {@link Response} as cancelled, but doesn't resume associated
+         * {@link FilterChainContext} invocation.
+         * @deprecated
+         */
+        public synchronized void markCancelled() {
+            markCancelled(modCount);
+        }
+
+        private void init(final CompletionHandler<Response> completionHandler,
+                final TimeoutHandler timeoutHandler) {
+            this.completionHandler = completionHandler;
+            this.suspendTimeout = new SuspendTimeout(modCount, timeoutHandler);
+            closeListener = new SuspendCloseListener(modCount);
+        }
+        
+        void reset() {
+            suspendTimeout.reset();
+            suspendTimeout = null;
+            completionHandler = null;
+            closeListener = null;
+        }
+
+        @Override
+        public CompletionHandler<Response> getCompletionHandler() {
+            return completionHandler;
+        }
+
+        @Override
+        public TimeoutHandler getTimeoutHandler() {
+            return suspendTimeout.timeoutHandler;
+        }
+
+        @Override
+        public long getTimeout(final TimeUnit timeunit) {
+            return suspendTimeout.getTimeout(timeunit);
+        }
+
+        @Override
+        public void setTimeout(final long timeout, final TimeUnit timeunit) {
+            synchronized (suspendedContext) {
+                if (suspendState != SuspendState.SUSPENDED ||
+                        suspendTimeout == null) {
+                    return;
+                }
+                
+                suspendTimeout.setTimeout(timeout, timeunit);
+            }
+        }
+
+        @Override
+        public boolean isSuspended() {
+            return Response.this.isSuspended();
+        }
+        
+        public SuspendStatus getSuspendStatus() {
+            return suspendStatus;
+        }        
+        
+        private class SuspendCloseListener implements Connection.CloseListener {
+            private final int expectedModCount;
+
+            public SuspendCloseListener(int expectedModCount) {
+                this.expectedModCount = expectedModCount;
+            }
+            
+            @Override
+            public void onClosed(final Connection connection,
+                    final CloseType closeType) throws IOException {
+                checkResponse();
+
+                if (suspendedContext.markCancelled(expectedModCount)) {
+                    ctx.resume();
+                }
+            }
+        }
+    }
+
+    protected class SuspendTimeout {
+        private final int expectedModCount;
+
+        TimeoutHandler timeoutHandler;
+        long delayMillis;
+        
+        volatile long timeoutTimeMillis;
+
+        private SuspendTimeout(int modCount, TimeoutHandler timeoutHandler) {
+            this.expectedModCount = modCount;
+            this.timeoutHandler = timeoutHandler;
         }
 
         boolean onTimeout() {
@@ -1852,7 +1965,11 @@ public class Response {
                         request.httpServerFilter, ctx.getConnection(), request);
 
                 try {
-                    cancel();
+                    checkResponse();
+
+                    if (suspendedContext.markCancelled(expectedModCount)) {
+                        ctx.resume();
+                    }
                 } catch (Exception ignored) {
                 }
 
@@ -1862,30 +1979,7 @@ public class Response {
             }
         }
 
-        void reset() {
-            timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
-            completionHandler = null;
-            timeoutHandler = null;
-        }
-
-        @Override
-        public void onClosed(final Connection connection,
-                final CloseType closeType) throws IOException {
-            cancel();
-        }
-
-        @Override
-        public CompletionHandler<Response> getCompletionHandler() {
-            return completionHandler;
-        }
-
-        @Override
-        public TimeoutHandler getTimeoutHandler() {
-            return timeoutHandler;
-        }
-
-        @Override
-        public long getTimeout(final TimeUnit timeunit) {
+        private long getTimeout(TimeUnit timeunit) {
             if (delayMillis > 0) {
                 return timeunit.convert(delayMillis, TimeUnit.MILLISECONDS);
             } else {
@@ -1893,48 +1987,39 @@ public class Response {
             }
         }
 
-        @Override
-        public void setTimeout(final long timeout, final TimeUnit timeunit) {
-            if (suspendState.get() != SuspendState.SUSPENDED) {
-                return;
-            }
-
+        private void setTimeout(long timeout, TimeUnit timeunit) {
             if (timeout > 0) {
                 delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
             } else {
                 delayMillis = DelayedExecutor.UNSET_TIMEOUT;
             }
 
-            delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
+            delayQueue.add(this, delayMillis, TimeUnit.MILLISECONDS);
         }
 
-        @Override
-        public boolean isSuspended() {
-            return Response.this.isSuspended();
+        private void reset() {
+            timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+            timeoutHandler = null;
         }
-        
-        public SuspendStatus getSuspendStatus() {
-            return suspendStatus;
-        }        
     }
-
+    
     private static class DelayQueueWorker implements
-            DelayedExecutor.Worker<Response> {
+            DelayedExecutor.Worker<SuspendTimeout> {
 
         @Override
-        public boolean doWork(final Response element) {
-            return element.suspendedContext.onTimeout();
+        public boolean doWork(final SuspendTimeout element) {
+            return element.onTimeout();
         }
         
     }
 
     private static class DelayQueueResolver implements
-            DelayedExecutor.Resolver<Response> {
+            DelayedExecutor.Resolver<SuspendTimeout> {
 
         @Override
-        public boolean removeTimeout(final Response element) {
-            if (element.suspendedContext.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
-                element.suspendedContext.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+        public boolean removeTimeout(final SuspendTimeout element) {
+            if (element.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                element.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
                 return true;
             }
 
@@ -1942,13 +2027,13 @@ public class Response {
         }
 
         @Override
-        public long getTimeoutMillis(final Response element) {
-            return element.suspendedContext.timeoutTimeMillis;
+        public long getTimeoutMillis(final SuspendTimeout element) {
+            return element.timeoutTimeMillis;
         }
 
         @Override
-        public void setTimeoutMillis(final Response element, final long timeoutMillis) {
-            element.suspendedContext.timeoutTimeMillis = timeoutMillis;
+        public void setTimeoutMillis(final SuspendTimeout element, final long timeoutMillis) {
+            element.timeoutTimeMillis = timeoutMillis;
         }
 
     }

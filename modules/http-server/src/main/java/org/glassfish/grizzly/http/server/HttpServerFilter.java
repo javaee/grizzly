@@ -82,7 +82,7 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     final Attribute<Boolean> reregisterForReadAttr;
     
-    private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
+    private final DelayedExecutor.DelayQueue<Response.SuspendTimeout> suspendedResponseQueue;
 
     private volatile HttpHandler httpHandler;
 
@@ -312,7 +312,7 @@ public class HttpServerFilter extends BaseFilter
         // Suspend state is cancelled - it means normal processing might have
         // been broken. We don't want to reuse Request and Response in this state,
         // cause there still might be threads referencing them.
-        if (response.suspendState.get() != Response.SuspendState.CANCELLED) {
+        if (response.suspendState != Response.SuspendState.CANCELLED) {
             response.recycle();
             request.recycle();
         }
