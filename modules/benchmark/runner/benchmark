@@ -52,7 +52,7 @@ my $BM = '';
 my $GITSSH = "ssh://$ENV{'java_net_id'}\@git.java.net/grizzly~git";
 my $GITREADONLY = "git://java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
-my $G2DOT0BRANCH = "master";
+my $G2DOT0BRANCH = "2.3.x";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
 
@@ -89,8 +89,10 @@ sub checkoutGrizzly {
        }
        my @args = ("git", "clone", "$GITPATH", "2dot0");
        system(@args) == 0 or die "git clone of Grizzly 2.0 failed: $?";
+       chdir("2dot0");
        my @args = ("git", "checkout", "$G2DOT0BRANCH");
        system(@args) == 0 or die "git checkout failed: $?";
+       chdir("..");
    }  
 }
 
@@ -100,7 +102,7 @@ sub buildGrizzly {
     print $pwd;
     chdir($G2DOT0);
     print `pwd`;
-    my @args = ("mvn", "-DskipTests=true", "clean", "install");
+    my @args = ("mvn", "-U", "-DskipTests=true", "clean", "install");
     system(@args) == 0 or die "Build of Grizzly 2.0 failed: $?";
     chdir($pwd);
 }
