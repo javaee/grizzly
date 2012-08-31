@@ -52,7 +52,7 @@ my $BM = '';
 my $GITSSH = "ssh://$ENV{'java_net_id'}\@git.java.net/grizzly~git";
 my $GITREADONLY = "git://java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
-my $G2DOT0BRANCH = "2.3.x";
+my $G2DOT0BRANCH = "master";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
 
