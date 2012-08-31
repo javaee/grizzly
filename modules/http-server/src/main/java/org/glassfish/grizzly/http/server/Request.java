@@ -105,6 +105,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.utils.Charsets;
 
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
@@ -788,8 +789,19 @@ public class Request {
      * 
      * @return a String containing the name or path of the HttpHandler being
      * called, as specified in the request URL
+     * @throws IllegalStateException if HttpHandler path was not set explicitly
+     *          and attempt to URI-decode {@link RequestURIRef#getDecodedURI()}
+     *          failed.
      */
     public String getHttpHandlerPath() {
+        if (httpHandlerPath == null) {
+            try {
+                httpHandlerPath = getRequest().getRequestURIRef().getDecodedURI();
+            } catch (CharConversionException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        
         return httpHandlerPath;
     }
 
