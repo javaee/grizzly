@@ -1407,7 +1407,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                    encodedHttpContent,
                                                    contentEncoder);
             onHttpContentEncoded(encodedHttpContent, ctx);
-            
+
             if (content != null && content.hasRemaining()) {
                 encodedBuffer = Buffers.appendBuffers(memoryManager,
                         encodedBuffer, content);

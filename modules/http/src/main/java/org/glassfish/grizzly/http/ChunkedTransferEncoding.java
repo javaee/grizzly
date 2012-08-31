@@ -288,7 +288,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                             if (DEC[b & 0xFF] != -1) {
                                 value = value * 16 + (DEC[b]);
                             } else {
-                                throw new HttpBrokenContentException("Invalid byte representing a hex value encountered: " + b);
+                                throw new HttpBrokenContentException("Invalid byte representing a hex value within a chunk length encountered : " + b);
                             }
                         } else {
                             throw new HttpBrokenContentException("Unexpected HTTP chunk header");

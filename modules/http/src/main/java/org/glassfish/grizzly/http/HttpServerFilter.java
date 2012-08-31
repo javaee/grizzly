@@ -886,24 +886,22 @@ public class HttpServerFilter extends HttpCodecFilter {
         final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
         final HttpResponsePacket response = request.getResponse();
 
-        // If error response status is not set - use 400
-        if (response.getHttpStatus().getStatusCode() < 400) {
-            // 400 - Bad request
-            HttpStatus.BAD_REQUEST_400.setValues(response);
-        }
-
-        // commit the response
-        final HttpContent errorHttpResponse = customizeErrorResponse(response);
-        final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
-        ctx.write(resBuf);
-        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+        sendBadRequestResponse(ctx, response);
     }
+
+
 
     @Override
     protected void onHttpContentError(final HttpHeader httpHeader,
             final FilterChainContext ctx,
             final Throwable t) throws IOException {
+        final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
+        final HttpResponsePacket response = request.getResponse();
+        if (!response.isCommitted()) {
+            sendBadRequestResponse(ctx, response);
+        }
         httpHeader.setContentBroken(true);
+
     }
     
     // ----------------------------------------------------------- Serializing
@@ -1236,6 +1234,25 @@ public class HttpServerFilter extends HttpCodecFilter {
         final int maxRequestCount = keepAlive.getMaxRequestsCount();
         return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
 
+    }
+
+    private void sendBadRequestResponse(final FilterChainContext ctx,
+                                        final HttpResponsePacket response) {
+        if (response.getHttpStatus().getStatusCode() < 400) {
+            // 400 - Bad request
+            HttpStatus.BAD_REQUEST_400.setValues(response);
+        }
+        commitAndCloseAsError(ctx, response);
+    }
+
+    /*
+     * caller has the responsibility to set the status of th response.
+     */
+    private void commitAndCloseAsError(FilterChainContext ctx, HttpResponsePacket response) {
+        final HttpContent errorHttpResponse = customizeErrorResponse(response);
+        final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
+        ctx.write(resBuf);
+        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
     }
 
     // ---------------------------------------------------------- Nested Classes
