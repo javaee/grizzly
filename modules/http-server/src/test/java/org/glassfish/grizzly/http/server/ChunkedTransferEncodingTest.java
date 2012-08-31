@@ -44,6 +44,7 @@ import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.HttpHeader;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.InputStream;
 import java.util.List;
 import org.glassfish.grizzly.Grizzly;
@@ -262,7 +263,7 @@ public class ChunkedTransferEncodingTest {
                 }
             } else {
                 Throwable t = echoHandler.errors.poll(10, TimeUnit.SECONDS);
-                assertTrue("Unexpected exception " + t, t instanceof HttpBrokenContentException);
+                assertTrue("Unexpected exception " + t, (isAsyncHttpHandler) ? t instanceof EOFException : t instanceof HttpBrokenContentException);
                 assertTrue("there are other errors: " + echoHandler.errors, echoHandler.errors.isEmpty());
             }
         }

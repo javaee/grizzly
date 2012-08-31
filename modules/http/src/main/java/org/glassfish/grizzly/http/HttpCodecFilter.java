@@ -1407,13 +1407,13 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                    encodedHttpContent,
                                                    contentEncoder);
             onHttpContentEncoded(encodedHttpContent, ctx);
-            
+
             if (content != null && content.hasRemaining()) {
                 encodedBuffer = Buffers.appendBuffers(memoryManager,
                         encodedBuffer, content);
             }
 
-            if (encodedBuffer.isComposite()) {
+            if (encodedBuffer != null && encodedBuffer.isComposite()) {
                 // If during buffer appending - composite buffer was created -
                 // allow buffer disposing
                 encodedBuffer.allowBufferDispose(true);
