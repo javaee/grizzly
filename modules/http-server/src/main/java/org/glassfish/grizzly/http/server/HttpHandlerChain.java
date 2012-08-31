@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.util.Map;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 import org.glassfish.grizzly.http.server.jmx.Monitorable;
@@ -52,6 +53,7 @@ import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
@@ -62,10 +64,6 @@ import org.glassfish.grizzly.http.server.util.DispatcherHelper;
  * to their associated {@link HttpHandler} at runtime using the mapping
  * information configured when invoking the {@link HttpHandlerChain#addHandler
  * (org.glassfish.grizzly.http.server.HttpHandler, java.lang.String[])}
- *
- *
- * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
- *  is performed when dynamically adding and removing {@link HttpHandler}
  *
  * @author Jeanfrancois Arcand
  */
@@ -79,6 +77,9 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     private final ConcurrentHashMap<String, HttpHandler> handlersByName =
             new ConcurrentHashMap<String, HttpHandler>();
 
+    private final ReentrantReadWriteLock mapperUpdateLock =
+            new ReentrantReadWriteLock();
+    
     /**
      * The list of {@link HttpHandler} instance.
      */
@@ -86,10 +87,24 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             new ConcurrentHashMap<HttpHandler, String[]>();
     private final ConcurrentHashMap<HttpHandler, JmxObject> monitors =
             new ConcurrentHashMap<HttpHandler, JmxObject>();
+    
+    /**
+     * Number of registered HttpHandlers
+     */
+    private int handlersCount;
+    
+    /**
+     * The root {@link HttpHandler}, used in cases when HttpHandlerChain has
+     * only one {@link HttpHandler} registered and this {@link HttpHandler} is
+     * registered as root resource.
+     */
+    private volatile HttpHandler rootHttpHandler;
+    
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
      */
     private final Mapper mapper;
+    
     /**
      * DispatchHelper, which maps path or name to the Mapper entry
      */
@@ -124,21 +139,33 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     // ------------------------------------------- Methods from JmxEventListener
     @Override
     public void jmxEnabled() {
-        for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
-            final HttpHandler httpHandler = entry.getKey();
-            if (httpHandler instanceof Monitorable) {
-                registerJmxForHandler(httpHandler);
+        mapperUpdateLock.readLock().lock();
+        
+        try {
+            for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
+                final HttpHandler httpHandler = entry.getKey();
+                if (httpHandler instanceof Monitorable) {
+                    registerJmxForHandler(httpHandler);
+                }
             }
+        } finally {
+            mapperUpdateLock.readLock().unlock();
         }
     }
 
     @Override
     public void jmxDisabled() {
-        for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
-            final HttpHandler httpHandler = entry.getKey();
-            if (httpHandler instanceof Monitorable) {
-                deregisterJmxForHandler(httpHandler);
+        mapperUpdateLock.readLock().lock();
+        
+        try {
+            for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
+                final HttpHandler httpHandler = entry.getKey();
+                if (httpHandler instanceof Monitorable) {
+                    deregisterJmxForHandler(httpHandler);
+                }
             }
+        } finally {
+            mapperUpdateLock.readLock().unlock();
         }
     }
 
@@ -154,15 +181,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     // ---------------------------------------------------------- Public Methods
     
-    @Override
-    public void start() {
-        for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
-            final HttpHandler httpHandler = entry.getKey();
-            httpHandler.start();
-        }
-        started = true;
-    }
-
     /**
      * Map the {@link Request} to the proper {@link HttpHandler}
      * @param request The {@link Request}
@@ -171,9 +189,17 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     @Override
     public void service(final Request request, final Response response) throws Exception {
         try {
+            final HttpHandler rootHttpHandlerLocal = rootHttpHandler;
+            
+            if (rootHttpHandlerLocal != null) {
+                // use default path values (don't call updatePaths)
+                rootHttpHandlerLocal.doHandle(request, response);
+                return;
+            }
+            
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
-              final MappingData mappingData = request.obtainMappingData();
+            final MappingData mappingData = request.obtainMappingData();
 
             mapper.mapUriWithSemicolon(request.getRequest().serverName(),
                     decodedURI,
@@ -191,8 +217,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
                 updatePaths(request, mappingData);
 
-                // We already decoded the URL.
-                httpHandler.setDecodeUrl(false);
                 httpHandler.doHandle(request, response);
             } else {
                 response.setStatus(HttpStatus.NOT_FOUND_404);
@@ -219,59 +243,77 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      * @param mappings an array of mapping.
      */
     public void addHandler(HttpHandler httpHandler, String[] mappings) {
-        if (mappings.length == 0) {
-            addHandler(httpHandler, new String[]{""});
-        } else {
-            if (started) {
-                httpHandler.start();
-                if (httpHandler instanceof Monitorable) {
-                    registerJmxForHandler(httpHandler);
-                }
-            }
-
-            handlers.put(httpHandler, mappings);
-            
-            final String name = httpHandler.getName();
-            if (name != null) {
-                handlersByName.put(name, httpHandler);
-            }
-
-            for (String mapping : mappings) {
-
-                final String ctx = getContextPath(mapping);
-                final String wrapper = getWrapperPath(ctx, mapping);
-                if (ctx.length() != 0) {
-                    mapper.addContext(LOCAL_HOST, ctx, httpHandler,
-                            new String[]{"index.html", "index.htm"}, null);
-                } else {
-                    if (!isRootConfigured && wrapper.startsWith("*.")) {
-                        isRootConfigured = true;
-                        final HttpHandler a = new HttpHandler() {
-
-                            @Override
-                            public void service(Request request, Response response) {
-                                try {
-                                    customizedErrorPage(request, response);
-                                } catch (Exception ignored) {
-                                }
-                            }
-                        };
-                        mapper.addContext(LOCAL_HOST, ctx, a,
-                                new String[]{"index.html", "index.htm"}, null);
-                    } else {
-                        mapper.addContext(LOCAL_HOST, ctx, httpHandler,
-                                new String[]{"index.html", "index.htm"}, null);
+        mapperUpdateLock.writeLock().lock();
+        
+        try {
+            if (mappings.length == 0) {
+                addHandler(httpHandler, new String[]{""});
+            } else {
+                if (started) {
+                    httpHandler.start();
+                    if (httpHandler instanceof Monitorable) {
+                        registerJmxForHandler(httpHandler);
                     }
                 }
-                mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
+
+                if (handlers.put(httpHandler, mappings) == null) {
+                    handlersCount++;
+                }
+
+                final String name = httpHandler.getName();
+                if (name != null) {
+                    handlersByName.put(name, httpHandler);
+                }
+
+                httpHandler.setDispatcherHelper(dispatchHelper);
+
+                for (String mapping : mappings) {
+
+                    final String ctx = getContextPath(mapping);
+                    final String wrapper = getWrapperPath(ctx, mapping);
+                    if (ctx.length() != 0) {
+                        mapper.addContext(LOCAL_HOST, ctx, httpHandler,
+                                new String[]{"index.html", "index.htm"}, null);
+                    } else {
+                        if (!isRootConfigured && wrapper.startsWith("*.")) {
+                            isRootConfigured = true;
+                            final HttpHandler a = new HttpHandler() {
+
+                                @Override
+                                public void service(Request request, Response response) {
+                                    try {
+                                        customizedErrorPage(request, response);
+                                    } catch (Exception ignored) {
+                                    }
+                                }
+                            };
+                            mapper.addContext(LOCAL_HOST, ctx, a,
+                                    new String[]{"index.html", "index.htm"}, null);
+                        } else {
+                            mapper.addContext(LOCAL_HOST, ctx, httpHandler,
+                                    new String[]{"index.html", "index.htm"}, null);
+                        }
+                    }
+                    mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
 
 
-//                String ctx = getContextPath(mapping);
-//                mapper.addContext(LOCAL_HOST, ctx, httpHandler,
-//                        new String[]{"index.html", "index.htm"}, null);
-//                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpHandler);
+    //                String ctx = getContextPath(mapping);
+    //                mapper.addContext(LOCAL_HOST, ctx, httpHandler,
+    //                        new String[]{"index.html", "index.htm"}, null);
+    //                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpHandler);
+                }
+                
+                // Check if the only one HttpHandler is registered
+                // and if it's a root HttpHandler - apply optimization
+                if (handlersCount == 1 && mappings.length == 1 &&
+                        ("".equals(mappings[0]) ||  "/".equals(mappings[0]))) {
+                    rootHttpHandler = httpHandler;
+                } else {
+                    rootHttpHandler = null;
+                }
             }
-            httpHandler.setDispatcherHelper(dispatchHelper);
+        } finally {
+            mapperUpdateLock.writeLock().lock();
         }
 
     }
@@ -285,36 +327,88 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             throw new IllegalStateException();
         }
         
-        final String name = httpHandler.getName();
-        if (name != null) {
-            handlersByName.remove(name);
-        }
-
-        String[] mappings = handlers.remove(httpHandler);
-        if (mappings != null) {
-            for (String mapping : mappings) {
-                String ctx = getContextPath(mapping);
-                mapper.removeContext(LOCAL_HOST, ctx);
+        mapperUpdateLock.writeLock().lock();
+        
+        try {
+            final String name = httpHandler.getName();
+            if (name != null) {
+                handlersByName.remove(name);
             }
-            deregisterJmxForHandler(httpHandler);
-            httpHandler.destroy();
 
+            String[] mappings = handlers.remove(httpHandler);
+            if (mappings != null) {
+                for (String mapping : mappings) {
+                    String ctx = getContextPath(mapping);
+                    mapper.removeContext(LOCAL_HOST, ctx);
+                }
+                deregisterJmxForHandler(httpHandler);
+                httpHandler.destroy();
+                
+                // Check if the only one HttpHandler left
+                // and if it's a root HttpHandler - apply optimization
+                handlersCount--;
+                if (handlersCount == 1) {
+                    final Map.Entry<HttpHandler, String[]> entry =
+                            handlers.entrySet().iterator().next();
+                    final HttpHandler lastHttpHandler = entry.getKey();
+                    final String[] lastHttpHandlerMappings = entry.getValue();
+                    if (lastHttpHandlerMappings.length == 1
+                            && ("".equals(lastHttpHandlerMappings[0]) ||
+                            "/".equals(lastHttpHandlerMappings[0]))) {
+                        rootHttpHandler = httpHandler;
+                    } else {
+                        rootHttpHandler = null;
+                    }
+                } else {
+                    rootHttpHandler = null;
+                }
+            }
+            
+            return (mappings != null);
+        } finally {
+            mapperUpdateLock.writeLock().lock();
         }
-
-        return (mappings != null);
     }
 
     public void removeAllHttpHandlers() {
-        for (final HttpHandler handler : handlers.keySet()) {
-            removeHttpHandler(handler);
+        mapperUpdateLock.writeLock().lock();
+        
+        try {
+            for (final HttpHandler handler : handlers.keySet()) {
+                removeHttpHandler(handler);
+            }
+        } finally {
+            mapperUpdateLock.writeLock().lock();
         }
     }
     
     @Override
-    public void destroy() {
-        for (Entry<HttpHandler, String[]> handler : handlers.entrySet()) {
-            final HttpHandler a = handler.getKey();
-            a.destroy();
+    public synchronized void start() {
+        mapperUpdateLock.readLock().lock();
+        
+        try {
+            for (Entry<HttpHandler, String[]> entry : handlers.entrySet()) {
+                final HttpHandler httpHandler = entry.getKey();
+                httpHandler.start();
+            }
+        } finally {
+            mapperUpdateLock.readLock().lock();
+        }
+        
+        started = true;
+    }
+
+    @Override
+    public synchronized void destroy() {
+        mapperUpdateLock.readLock().lock();
+        
+        try {
+            for (Entry<HttpHandler, String[]> handler : handlers.entrySet()) {
+                final HttpHandler a = handler.getKey();
+                a.destroy();
+            }
+        } finally {
+            mapperUpdateLock.readLock().lock();
         }
         started = false;
     }
@@ -329,12 +423,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     }
 
     private void deregisterJmxForHandler(final HttpHandler httpHandler) {
-
         final JmxObject jmx = monitors.remove(httpHandler);
         if (jmx != null) {
             httpServer.jmxManager.deregister(jmx);
         }
-
     }
 
     private String getWrapperPath(String ctx, String mapping) {
