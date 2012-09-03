@@ -39,6 +39,10 @@
  */
 package org.glassfish.grizzly.servlet;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.http.server.Request;
@@ -90,4 +94,23 @@ public class ServletUtils {
         throw new IllegalArgumentException("Passed HttpServletResponse is not based on Grizzly");
     }
     
+    /**
+     * Returns a set of all servlet name or url pattern mappings that have
+     * been defined across all registered Filters.
+     *
+     */
+    static Set<String> getUnifiedKeyView(final Map<String[],Byte> map) {
+        Set<String> names;
+        if (!map.isEmpty()) {
+            names = new LinkedHashSet<String>();
+            for (final String[] mappings : map.keySet()) {
+                for (int i = 0, len = mappings.length; i < len; i++) {
+                    names.add(mappings[i]);
+                }
+            }
+        } else {
+            names = Collections.emptySet();
+        }
+        return names;
+    }    
 }

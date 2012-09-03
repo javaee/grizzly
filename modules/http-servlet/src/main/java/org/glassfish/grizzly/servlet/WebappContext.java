@@ -100,6 +100,7 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.localization.LogMessages;
+import static org.glassfish.grizzly.servlet.ServletUtils.*;
 
 /**
  * <p>
@@ -1613,8 +1614,8 @@ public class WebappContext implements ServletContext {
                                    new Object[] {
                                            displayName,
                                         registration.className,
-                                        registration.urlPatterns.keySet(),
-                                        registration.servletNames.keySet()});
+                                        getUnifiedKeyView(registration.urlPatterns),
+                                        getUnifiedKeyView(registration.servletNames)});
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);

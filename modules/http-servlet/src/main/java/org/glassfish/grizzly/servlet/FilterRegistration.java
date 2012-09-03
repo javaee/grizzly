@@ -39,15 +39,14 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import javax.servlet.Filter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
+import javax.servlet.Filter;
 
+import static org.glassfish.grizzly.servlet.ServletUtils.*;
 /**
  * Allows customization of a {@link Filter} registered with the {@link WebappContext}.
  *
@@ -256,25 +255,4 @@ public class FilterRegistration extends Registration {
         }
         map.put(mappings, getDispatcherMask(dispatcherTypes));
     }
-
-    /**
-     * Returns a set of all servlet name or url pattern mappings that have
-     * been defined across all registered Filters.
-     *
-     */
-    private Set<String> getUnifiedKeyView(final Map<String[],Byte> map) {
-        Set<String> names;
-        if (!map.isEmpty()) {
-            names = new LinkedHashSet<String>();
-            for (final String[] mappings : map.keySet()) {
-                for (int i = 0, len = mappings.length; i < len; i++) {
-                    names.add(mappings[i]);
-                }
-            }
-        } else {
-            names = Collections.emptySet();
-        }
-        return names;
-    }
-
 }
