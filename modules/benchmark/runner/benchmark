@@ -133,7 +133,9 @@ sub parseCommandLine {
 sub parseBenchmarks {
     open(BM, $BM);
     while (my $line = <BM>) {
-        push(@RUNS, $line);
+	if($line !~ m/^[#]/) {
+            push(@RUNS, $line);
+	}
     } 
     close(BM);
 }
