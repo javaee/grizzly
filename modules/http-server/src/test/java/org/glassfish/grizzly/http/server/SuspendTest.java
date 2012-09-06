@@ -70,6 +70,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.After;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -242,6 +243,36 @@ public class SuspendTest {
         runTest();
     }
 
+    @Test
+    public void testResumeAfterClose() throws Exception {
+        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+
+        
+        startHttpServer(new TestStaticHttpHandler() {
+
+            @Override
+            public void service(final Request req, final Response res) {
+                res.suspend();
+                scheduledThreadPool.schedule(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            req.getRequest().getConnection().closeSilently();
+                            res.resume();
+                            resultFuture.result(Boolean.TRUE);
+                        } catch (Throwable t) {
+                            resultFuture.failure(t);
+                        }
+                    }
+                }, 2, TimeUnit.SECONDS);
+            }
+        });
+        
+        runClient(testString, false, null);
+        assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+    }
+    
     @Test
     public void testSuspendResumedCompletionHandler() throws Exception {
         startHttpServer(new TestStaticHttpHandler() {

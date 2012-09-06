@@ -249,7 +249,7 @@ public class Response {
     /**
      * Recyclable buffer to hold the redirect URL.
      */
-    protected final MessageBytes redirectURLCC = MessageBytes.newInstance();
+    protected final CharChunk redirectURLCC = new CharChunk();
 
 
     protected DelayedExecutor.DelayQueue<SuspendTimeout> delayQueue;
@@ -797,6 +797,10 @@ public class Response {
     /**
      * Set the content length (in bytes) for this Response.
      *
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
+     * 
      * @param length The new content length
      */
     public void setContentLengthLong(final long length) {
@@ -815,18 +819,14 @@ public class Response {
     /**
      * Set the content length (in bytes) for this Response.
      *
+     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * content-length value will be reset to <tt>-1</tt> and
+     * <tt>Content-Length</tt> header (if present) will be removed.
+     *
      * @param length The new content length
      */
     public void setContentLength(final int length) {
-        checkResponse();
-        if (isCommitted())
-            return;
-
-        if (usingWriter)
-            return;
-
-        response.setContentLength(length);
-
+        setContentLengthLong(length);
     }
 
 
@@ -1453,13 +1453,14 @@ public class Response {
         if (leadingSlash
             || (!leadingSlash && (location.indexOf("://") == -1))) {
 
-            redirectURLCC.recycle();
-
             String scheme = request.getScheme();
 
             String name = request.getServerName();
             int port = request.getServerPort();
-            CharChunk cc = redirectURLCC.getCharChunk();
+            
+            redirectURLCC.recycle();
+            final CharChunk cc = redirectURLCC;
+            
             try {
                 cc.append(scheme, 0, scheme.length());
                 cc.append("://", 0, 3);
@@ -1503,7 +1504,7 @@ public class Response {
             }
 
             if (normalize){
-                HttpRequestURIDecoder.normalize(redirectURLCC);
+                HttpRequestURIDecoder.normalizeChars(cc);
             }
 
             return cc.toString();
@@ -1623,7 +1624,7 @@ public class Response {
         checkResponse();
 
         final SuspendState state;
-        synchronized(suspendedContext) {
+        synchronized (suspendedContext) {
             state = suspendState;
         }
         
@@ -1809,6 +1810,10 @@ public class Response {
             modCount++;
             
             if (suspendState != SuspendState.SUSPENDED) {
+                if (suspendState == SuspendState.CANCELLED) { // Siletly return if processing has been cancelled
+                    return;
+                }
+                
                 throw new IllegalStateException("Not Suspended");
             }
             
