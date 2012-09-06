@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.utils;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Grizzly;
 
@@ -56,7 +57,7 @@ public class DataStructures {
     static {
         String className = null;
         
-        Class<?> c = null;
+        Class<?> c;
         try {
             JdkVersion jdkVersion = JdkVersion.getJdkVersion();
             JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
@@ -72,14 +73,9 @@ public class DataStructures {
                     "failed loading datastructure class:" + className +
                     " fallback to embedded one", t);
             
-            try {
-                className = "org.glassfish.grizzly.utils.LinkedTransferQueue";
-                c = getAndVerify(className);
-            } catch (Throwable t2) {
-                Grizzly.logger(DataStructures.class).log(Level.FINE,
-                        "failed loading datastructure class:" + className, t);
-            }
+            c = LinkedBlockingQueue.class; // fallback to LinkedBlockingQueue
         }
+        
         LTQclass = c;
     }
 

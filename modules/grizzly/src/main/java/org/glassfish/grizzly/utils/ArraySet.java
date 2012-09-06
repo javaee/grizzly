@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,7 +54,6 @@ import java.util.Set;
  */
 public class ArraySet<T> implements Set<T> {
 
-    private final T[] emptyArray;
     private volatile T[] array;
     private final Object sync = new Object();
     private final Class<T> clazz;
@@ -68,7 +67,6 @@ public class ArraySet<T> implements Set<T> {
     @SuppressWarnings("unchecked")
     public ArraySet(final Class<T> clazz, final boolean replaceElementIfEquals) {
         this.clazz = clazz;
-        emptyArray = (T[]) Array.newInstance(clazz, 0);
         this.replaceElementIfEquals = replaceElementIfEquals;
     }
 
@@ -83,7 +81,7 @@ public class ArraySet<T> implements Set<T> {
      */
     @SuppressWarnings("unchecked")
     public final boolean addAll(final T... elements) {
-        if (elements.length == 0) {
+        if (elements == null || elements.length == 0) {
             return false;
         }
 
@@ -244,7 +242,7 @@ public class ArraySet<T> implements Set<T> {
     @SuppressWarnings("unchecked")
     public final T[] obtainArrayCopy() {
         final T[] localArray = array;
-        if (localArray == null) return emptyArray;
+        if (localArray == null) return (T[]) Array.newInstance(clazz, 0);
 
         return Arrays.copyOf(localArray, localArray.length);
     }

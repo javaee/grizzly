@@ -128,8 +128,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             currentResult.setMessage(message);
             currentResult.setWrittenSize(currentResult.getWrittenSize()
                     + written);
-            currentResult.setDstAddress(
-                    connection.getPeerAddress());
+            currentResult.setDstAddressHolder(
+                    ((TCPNIOConnection) connection).peerSocketAddressHolder);
         }
 
         return written;

@@ -48,6 +48,7 @@ import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.utils.conditions.Condition;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -82,7 +83,7 @@ public final class StateHolder<E> {
     public StateHolder(E initialState) {
         state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
-        conditionListeners = DataStructures.getLTQInstance();
+        conditionListeners = new ConcurrentLinkedQueue<ConditionElement<E>>();
     }
 
     /**

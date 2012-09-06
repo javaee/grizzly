@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.utils.Holder;
+
 /**
  * Result of write operation, returned by {@link Writable}.
  *
@@ -68,7 +70,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
         if (writeResult != null) {
             writeResult.connection = connection;
             writeResult.message = message;
-            writeResult.dstAddress = dstAddress;
+            writeResult.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
             writeResult.writtenSize = writeSize;
             writeResult.isRecycled = false;
 
@@ -98,7 +100,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      *  Destination address.
      */
 
-    private L dstAddress;
+    private Holder<L> dstAddressHolder;
 
     /**
      * Number of bytes written.
@@ -113,7 +115,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
             long writeSize) {
         this.connection = connection;
         this.message = message;
-        this.dstAddress = dstAddress;
+        this.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
         this.writtenSize = writeSize;
     }
 
@@ -155,7 +157,17 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      */
     public final L getDstAddress() {
         checkRecycled();
-        return dstAddress;
+        return dstAddressHolder != null ? dstAddressHolder.get() : null;
+    }
+
+    /**
+     * Get the destination address, the message was written to.
+     *
+     * @return the destination address, the message was written to.
+     */
+    public final Holder<L> getDstAddressHolder() {
+        checkRecycled();
+        return dstAddressHolder;
     }
 
     /**
@@ -165,7 +177,17 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      */
     public final void setDstAddress(L dstAddress) {
         checkRecycled();
-        this.dstAddress = dstAddress;
+        this.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
+    }
+
+    /**
+     * Set the destination address, the message was written to.
+     *
+     * @param dstAddressHolder the destination address, the message was written to.
+     */
+    public final void setDstAddressHolder(Holder<L> dstAddressHolder) {
+        checkRecycled();
+        this.dstAddressHolder = dstAddressHolder;
     }
 
     /**
@@ -196,7 +218,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
     private void reset() {
         connection = null;
         message = null;
-        dstAddress = null;
+        dstAddressHolder = null;
         writtenSize = 0;
     }
     

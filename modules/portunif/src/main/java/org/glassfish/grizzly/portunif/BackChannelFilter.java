@@ -80,7 +80,7 @@ public class BackChannelFilter extends BaseFilter {
         final ReadResult readResult = suspendedParentContext.read();
 
         ctx.setMessage(readResult.getMessage());
-        ctx.setAddress(readResult.getSrcAddress());
+        ctx.setAddressHolder(readResult.getSrcAddressHolder());
 
         readResult.recycle();
 

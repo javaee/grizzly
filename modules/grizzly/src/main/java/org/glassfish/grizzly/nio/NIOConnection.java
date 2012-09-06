@@ -66,8 +66,8 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -83,8 +83,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final short MAX_ZERO_READ_COUNT = 100;
     
     protected final NIOTransport transport;
-    protected volatile int readBufferSize;
-    protected volatile int writeBufferSize;
     protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
@@ -111,8 +109,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
-    
-    final List tmpWriteQueueList = new ArrayList();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -173,26 +169,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public Transport getTransport() {
         return transport;
-    }
-
-    @Override
-    public int getReadBufferSize() {
-        return readBufferSize;
-    }
-
-    @Override
-    public void setReadBufferSize(int readBufferSize) {
-        this.readBufferSize = readBufferSize;
-    }
-
-    @Override
-    public int getWriteBufferSize() {
-        return writeBufferSize;
-    }
-
-    @Override
-    public void setWriteBufferSize(int writeBufferSize) {
-        this.writeBufferSize = writeBufferSize;
     }
 
     /**
@@ -908,6 +884,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 storage.volatileFlag++;
                 return state;
             }
+        }
+    }
+    
+    protected static abstract class SettableIntHolder extends Holder.LazyIntHolder {
+        @Override
+        public synchronized void setInt(int value) {
+            super.setInt(value);
         }
     }
 }

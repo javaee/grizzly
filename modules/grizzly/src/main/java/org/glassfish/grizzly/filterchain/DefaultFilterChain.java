@@ -357,7 +357,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 final FilterChainContext retContext = future.get();
                 ReadResult rr = ReadResult.create(connection);
                 rr.setMessage(retContext.getMessage());
-                rr.setSrcAddress(retContext.getAddress());
+                rr.setSrcAddressHolder(retContext.getAddressHolder());
 
                 future.recycle(false);
 

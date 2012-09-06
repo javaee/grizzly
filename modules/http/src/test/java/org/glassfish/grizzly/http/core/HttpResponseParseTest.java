@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -299,6 +299,26 @@ public class HttpResponseParseTest extends TestCase {
 
         @Override
         public SocketAddress getLocalAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public int getReadBufferSize() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setReadBufferSize(int readBufferSize) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public int getWriteBufferSize() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setWriteBufferSize(int writeBufferSize) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }

@@ -97,7 +97,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             buffer.trim();
             
             ctx.setMessage(buffer);
-            ctx.setAddress(connection.getPeerAddress());
+            ctx.setAddressHolder(connection.peerSocketAddressHolder);
         }
 
         return ctx.getInvokeAction();

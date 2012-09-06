@@ -73,7 +73,9 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
         attributeValues = new Object[4];
-        i2v = ensureSize(new int[0], 16);
+        i2v = new int[4];
+        i2v[0] = i2v[1] = i2v[2] = i2v[3] = -1;
+        
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     

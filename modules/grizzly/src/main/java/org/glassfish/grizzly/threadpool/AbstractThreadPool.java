@@ -150,7 +150,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         this.config = config;
-        monitoringConfig.addProbes(config.getInitialMonitoringConfig().getProbes());
+        if (config.getInitialMonitoringConfig().hasProbes()) {
+            monitoringConfig.addProbes(config.getInitialMonitoringConfig().getProbes());
+        }
         
         if (config.getThreadFactory() == null) {
             config.setThreadFactory(getDefaultThreadFactory());

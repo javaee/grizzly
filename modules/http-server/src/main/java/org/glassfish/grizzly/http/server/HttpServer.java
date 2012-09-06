@@ -653,31 +653,36 @@ public class HttpServer {
                     compressionLevel = CompressionLevel.OFF;
                 }
             }
-            final String compressableMimeTypesString = listener.getCompressableMimeTypes();
-            final String noCompressionUserAgentsString = listener.getNoCompressionUserAgents();
-            final String[] compressableMimeTypes =
-                    ((compressableMimeTypesString != null)
-                            ? compressableMimeTypesString.split(",")
-                            : new String[0]);
-            final String[] noCompressionUserAgents =
-                    ((noCompressionUserAgentsString != null)
-                            ? noCompressionUserAgentsString.split(",")
-                            : new String[0]);
-            final ContentEncoding gzipContentEncoding = new GZipContentEncoding(
-                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
-                new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                    compressableMimeTypes,
-                    noCompressionUserAgents,
-                    GZipContentEncoding.getGzipAliases()));
-            final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                    compressableMimeTypes,
-                    noCompressionUserAgents,
-                    LZMAContentEncoding.getLzmaAliases()));
-            final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
-            set.add(gzipContentEncoding);
-            set.add(lzmaEncoding);
-            return set;
+            
+            if (compressionLevel != CompressionLevel.OFF) {
+                final String compressableMimeTypesString = listener.getCompressableMimeTypes();
+                final String noCompressionUserAgentsString = listener.getNoCompressionUserAgents();
+                final String[] compressableMimeTypes =
+                        ((compressableMimeTypesString != null)
+                                ? compressableMimeTypesString.split(",")
+                                : new String[0]);
+                final String[] noCompressionUserAgents =
+                        ((noCompressionUserAgentsString != null)
+                                ? noCompressionUserAgentsString.split(",")
+                                : new String[0]);
+                final ContentEncoding gzipContentEncoding = new GZipContentEncoding(
+                    GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
+                    GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
+                    new CompressionEncodingFilter(compressionLevel, compressionMinSize,
+                        compressableMimeTypes,
+                        noCompressionUserAgents,
+                        GZipContentEncoding.getGzipAliases()));
+                final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
+                        compressableMimeTypes,
+                        noCompressionUserAgents,
+                        LZMAContentEncoding.getLzmaAliases()));
+                final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
+                set.add(gzipContentEncoding);
+                set.add(lzmaEncoding);
+                return set;
+            } else {
+                return Collections.<ContentEncoding>emptySet();
+            }
         }
 
     @SuppressWarnings("unchecked")

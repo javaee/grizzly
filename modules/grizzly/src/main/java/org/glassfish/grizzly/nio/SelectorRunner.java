@@ -53,10 +53,16 @@ import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -101,7 +107,7 @@ public final class SelectorRunner implements Runnable {
         return new SelectorRunner(transport,
                 Selectors.newSelector(transport.getSelectorProvider()));
     }
-
+    
     private SelectorRunner(final NIOTransport transport,
             final Selector selector) {
         this.transport = transport;
@@ -112,6 +118,25 @@ public final class SelectorRunner implements Runnable {
         evenPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
         oddPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
         currentPostponedTasks = evenPostponedTasks;
+    }
+
+    void addPendingTask(final SelectorHandlerTask task) {
+
+        pendingTasks.offer(task);
+
+        wakeupSelector();
+    }
+
+    public void wakeupSelector() {
+        final Selector localSelector = getSelector();
+        if (localSelector != null &&
+                selectorWakeupFlag.compareAndSet(false, true)) {
+            try {
+                localSelector.wakeup();
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error during selector wakeup", e);
+            }
+        }
     }
 
     public NIOTransport getTransport() {
@@ -219,18 +244,6 @@ public final class SelectorRunner implements Runnable {
         abortTasksInQueue(pendingTasks);
         abortTasksInQueue(evenPostponedTasks);
         abortTasksInQueue(oddPostponedTasks);
-    }
-
-    public void wakeupSelector() {
-        final Selector localSelector = getSelector();
-        if (localSelector != null &&
-                selectorWakeupFlag.compareAndSet(false, true)) {
-            try {
-                localSelector.wakeup();
-            } catch (Exception e) {
-                logger.log(Level.FINE, "Error during selector wakeup", e);
-            }
-        }
     }
 
     @Override
@@ -361,9 +374,11 @@ public final class SelectorRunner implements Runnable {
     }
 
     private boolean iterateKeys() {
-        while (iterator.hasNext()) {
+        final Iterator<SelectionKey> it = iterator;
+
+        while (it.hasNext()) {
             try {
-                key = iterator.next();
+                key = it.next();
                 keyReadyOps = key.readyOps();
                 if (!iterateKeyEvents()) {
                     return false;
@@ -383,18 +398,19 @@ public final class SelectorRunner implements Runnable {
     private boolean iterateKeyEvents()
             throws IOException {
 
+        final SelectionKey keyLocal = key;
         final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
         final IOStrategy ioStrategy = transport.getIOStrategy();
         final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
         final NIOConnection connection =
-                selectionKeyHandler.getConnectionForKey(key);
+                selectionKeyHandler.getConnectionForKey(keyLocal);
 
         for (IOEvent ioEvent : ioEvents) {
             NIOConnection.notifyIOEventReady(connection, ioEvent);
             
             final int interest = ioEvent.getSelectionKeyInterest();
             keyReadyOps &= (~interest);
-            if (selectionKeyHandler.onProcessInterest(key, interest)) {
+            if (selectionKeyHandler.onProcessInterest(keyLocal, interest)) {
                 if (!ioStrategy.executeIoEvent(connection, ioEvent)) {
                     return false;
                 }

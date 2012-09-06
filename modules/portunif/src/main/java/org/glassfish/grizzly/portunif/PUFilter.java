@@ -241,7 +241,7 @@ public class PUFilter extends BaseFilter {
         final Context context = filterChainContext.getInternalContext();
         context.setIoEvent(IOEvent.READ);
         context.setProcessingHandler(new InternalProcessingHandler(ctx));
-        filterChainContext.setAddress(ctx.getAddress());
+        filterChainContext.setAddressHolder(ctx.getAddressHolder());
         filterChainContext.setMessage(ctx.getMessage());
         return filterChainContext;
     }

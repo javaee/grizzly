@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,12 +44,20 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.filterchain.*;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -98,11 +106,12 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         if (readResult.getReadSize() > 0) {
             final Buffer buffer = readResult.getMessage();
             buffer.trim();
-            final SocketAddress address = readResult.getSrcAddress();
+            final Holder<SocketAddress> addressHolder =
+                    readResult.getSrcAddressHolder();
             readResult.recycle();
 
             ctx.setMessage(buffer);
-            ctx.setAddress(address);
+            ctx.setAddressHolder(addressHolder);
 
             if (!connection.isConnected()) {
                 connection.enableIOEvent(IOEvent.READ);

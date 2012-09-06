@@ -52,6 +52,7 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -143,11 +144,12 @@ public final class FilterChainContext implements AttributeStorage {
      * Context associated event, if EVENT operation
      */
     protected FilterChainEvent event;
-    
+
     /**
-     * Context associated source address
+     * {@link Holder}, which contains address, associated with the
+     * current {@link org.glassfish.grizzly.IOEvent} processing.
      */
-    private Object address;
+    private Holder<?> addressHolder;
 
     /**
      * Index of the currently executing {@link Filter} in
@@ -302,6 +304,32 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
+     * Get a {@link Holder}, which contains address, associated with the
+     * current {@link org.glassfish.grizzly.IOEvent} processing.
+     * 
+     * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
+     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * 
+     * @return {@link Holder}, which contains address, associated with the
+     * current {@link org.glassfish.grizzly.IOEvent} processing.
+     */
+    public Holder<?> getAddressHolder() {
+        return addressHolder;
+    }
+
+
+    /**
+     * Set address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
+     * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
+     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     *
+     * @param addressHolder {@link Holder}, which contains address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
+     */
+    public void setAddressHolder(final Holder<?> addressHolder) {
+        this.addressHolder = addressHolder;
+    }
+
+    /**
      * Get address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
      * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
@@ -309,9 +337,9 @@ public final class FilterChainContext implements AttributeStorage {
      * @return address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
     public Object getAddress() {
-        return address;
+        return addressHolder != null ? addressHolder.get() : null;
     }
-
+    
     /**
      * Set address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
@@ -319,8 +347,8 @@ public final class FilterChainContext implements AttributeStorage {
      *
      * @param address address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
-    public void setAddress(Object address) {
-        this.address = address;
+    public void setAddress(final Object address) {
+        addressHolder = Holder.<Object>staticHolder(address);
     }
 
     protected final Runnable getRunnable() {
@@ -409,7 +437,7 @@ public final class FilterChainContext implements AttributeStorage {
     public NextAction getForkAction() {
         final FilterChainContext contextCopy = copy();
         // Copy doesn't copy address
-        contextCopy.setAddress(address);
+        contextCopy.addressHolder = addressHolder;
         
         return new ForkAction(contextCopy);
     }
@@ -516,11 +544,11 @@ public final class FilterChainContext implements AttributeStorage {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
         
-        newContext.setOperation(Operation.READ);
-        newContext.getTransportContext().configureBlocking(true);
-        newContext.setStartIdx(0);
-        newContext.setFilterIdx(0);
-        newContext.setEndIdx(filterIdx);
+        newContext.operation = Operation.READ;
+        newContext.transportFilterContext.configureBlocking(true);
+        newContext.startIdx = 0;
+        newContext.filterIdx = 0;
+        newContext.endIdx = filterIdx;
         newContext.customAttributes = getAttributes();
 
         final ReadResult rr = getFilterChain().read(newContext);
@@ -664,16 +692,16 @@ public final class FilterChainContext implements AttributeStorage {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
 
-        newContext.setOperation(Operation.WRITE);
-        newContext.getTransportContext().configureBlocking(blocking);
-        newContext.setMessage(message);
-        newContext.setAddress(address);
+        newContext.operation = Operation.WRITE;
+        newContext.transportFilterContext.configureBlocking(blocking);
+        newContext.message = message;
+        newContext.addressHolder = addressHolder;
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.pushBackHandler = pushBackHandler;
         newContext.transportFilterContext.cloner = cloner;
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
+        newContext.startIdx = filterIdx - 1;
+        newContext.filterIdx = filterIdx - 1;
+        newContext.endIdx = -1;
         newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -683,13 +711,13 @@ public final class FilterChainContext implements AttributeStorage {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
 
-        newContext.setOperation(Operation.EVENT);
+        newContext.operation = Operation.EVENT;
         newContext.event = TransportFilter.createFlushEvent(completionHandler);
-        newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
-        newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
+        newContext.transportFilterContext.configureBlocking(transportFilterContext.isBlocking());
+        newContext.addressHolder = addressHolder;
+        newContext.startIdx = filterIdx - 1;
+        newContext.filterIdx = filterIdx - 1;
+        newContext.endIdx = -1;
         newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -707,10 +735,10 @@ public final class FilterChainContext implements AttributeStorage {
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
-        newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx + 1);
-        newContext.setFilterIdx(filterIdx + 1);
-        newContext.setEndIdx(endIdx);
+        newContext.addressHolder = addressHolder;
+        newContext.startIdx = filterIdx + 1;
+        newContext.filterIdx = filterIdx + 1;
+        newContext.endIdx = endIdx;
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
 
@@ -728,10 +756,10 @@ public final class FilterChainContext implements AttributeStorage {
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
-        newContext.setAddress(address);
-        newContext.setStartIdx(filterIdx - 1);
-        newContext.setFilterIdx(filterIdx - 1);
-        newContext.setEndIdx(-1);
+        newContext.addressHolder = addressHolder;
+        newContext.startIdx =filterIdx - 1;
+        newContext.filterIdx = filterIdx - 1;
+        newContext.endIdx = -1;
         newContext.customAttributes = getAttributes();
         newContext.operationCompletionHandler = completionHandler;
 
@@ -832,7 +860,7 @@ public final class FilterChainContext implements AttributeStorage {
         cachedStopAction.reset();
         message = null;
         event = null;
-        address = null;
+        addressHolder = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
         operationCompletionHandler = null;
@@ -930,8 +958,10 @@ public final class FilterChainContext implements AttributeStorage {
             final List<CompletionListener> completionListeners) {
         final int size = completionListeners.size();
         for (int i = size - 1; i >= 0; i--) {
-            completionListeners.remove(i).onComplete(context);
+            completionListeners.get(i).onComplete(context);
         }
+        
+        completionListeners.clear();
     }
     
     static void notifyCopy(

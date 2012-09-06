@@ -1,7 +1,9 @@
+package org.glassfish.grizzly.utils;
+
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,66 +40,21 @@
  * holder.
  */
 
-package org.glassfish.grizzly.monitoring;
-
-import org.glassfish.grizzly.utils.ArraySet;
-
 /**
- * Monitoring configuration.
+ * General initializer interface.
  *
- * @author Alexey Stashok
+ * It might be useful abstraction, which helps to create and initialize certain
+ * values lazily.
+ *
+ * @see org.glassfish.grizzly.attributes.Attribute
+ * @see org.glassfish.grizzly.attributes.AttributeHolder
+ * @see org.glassfish.grizzly.utils.Holder
+ * 
+ * @author Ken Cavanaugh
  */
-public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
-
-    private final ArraySet<E> monitoringProbes;
-
-    public MonitoringConfigImpl(final Class<E> clazz) {
-        monitoringProbes = new ArraySet<E>(clazz);
-    }
-
+public interface NullaryFunction<T> {
     /**
-     * {@inheritDoc}
+     * Initializes and returns the value.
      */
-    @Override
-    public final void addProbes(final E... probes) {
-        monitoringProbes.addAll(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final boolean removeProbes(final E... probes) {
-        return monitoringProbes.removeAll(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final E[] getProbes() {
-        return monitoringProbes.obtainArrayCopy();
-    }
-
-    /**
-     * Get the monitoring probes array (direct).
-     *
-     * @return the monitoring probes array (direct).
-     */
-    public final E[] getProbesUnsafe() {
-        return monitoringProbes.getArray();
-    }
-
-    @Override
-    public boolean hasProbes() {
-        return !monitoringProbes.isEmpty();
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final void clearProbes() {
-        monitoringProbes.clear();
-    }
+    public T evaluate();
 }

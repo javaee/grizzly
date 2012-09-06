@@ -460,11 +460,19 @@ public class OutputBuffer {
 
         updateNonBlockingStatus();
         
+        checkCharBuffer();
+        
+        if (charsArray.length - charsArrayLength >= len) {
+            str.getChars(off, off + len,
+                    charsArray, charsArrayLength);
+            charsArrayLength += len;
+            
+            return;
+        }
+        
         int offLocal = off;
         int lenLocal = len;
 
-        checkCharBuffer();
-        
         do {
             final int remaining = charsArray.length - charsArrayLength;
             final int workingLen = Math.min(lenLocal, remaining);
@@ -1108,36 +1116,31 @@ public class OutputBuffer {
         final CharsetEncoder enc = getEncoder();
 
 
-//        checkCurrentBuffer();
-//        ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
-//        int bufferPos = currentBuffer.position();
-//        int byteBufferPos = currentByteBuffer.position();
-//
-//        CoderResult res = enc.encode(charBuf,
-//                                     currentByteBuffer,
-//                                     true);
-//
-//        currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
+        checkCurrentBuffer();
+        ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
+        int bufferPos = currentBuffer.position();
+        int byteBufferPos = currentByteBuffer.position();
 
-        CoderResult res;
-        boolean isOverflow;
-        
-        do {
+        CoderResult res = enc.encode(charBuf,
+                                     currentByteBuffer,
+                                     true);
+
+        currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
+
+        while (res == CoderResult.OVERFLOW) {
             checkCurrentBuffer();
-            final ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
-            final int bufferPos = currentBuffer.position();
-            final int byteBufferPos = currentByteBuffer.position();
+            currentByteBuffer = currentBuffer.toByteBuffer();
+            bufferPos = currentBuffer.position();
+            byteBufferPos = currentByteBuffer.position();
 
             res = enc.encode(charBuf, currentByteBuffer, true);
 
             currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
 
-            isOverflow = (res == CoderResult.OVERFLOW);
-
-            if (isOverflow) {
+            if (res == CoderResult.OVERFLOW) {
                 finishCurrentBuffer();
             }
-        } while (isOverflow);
+        } 
 
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");

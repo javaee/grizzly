@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,9 +41,8 @@
 package org.glassfish.grizzly.threadpool;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Minimalistic fixed thread pool to allow for nice scalability if a
@@ -60,7 +59,7 @@ public class FixedThreadPool extends AbstractThreadPool {
 
         this.workQueue = config.getQueue() != null ?
             (BlockingQueue<Runnable>) config.getQueue() :
-            (BlockingQueue<Runnable>) config.setQueue(DataStructures.getLTQInstance(Runnable.class)).getQueue();
+            (BlockingQueue<Runnable>) config.setQueue(new LinkedBlockingQueue<Runnable>()).getQueue();
         
         int poolSize = config.getMaxPoolSize();
 

@@ -66,21 +66,21 @@ public final class Method {
     public static Method valueOf(final DataChunk methodC) {
         if (methodC.equals(Method.GET.getMethodString())) {
             return Method.GET;
-        } else if (methodC.equals(Method.POST.getMethodString())) {
+        } else if (methodC.equals(Method.POST.getMethodBytes())) {
             return Method.POST;
-        } else if (methodC.equals(Method.HEAD.getMethodString())) {
+        } else if (methodC.equals(Method.HEAD.getMethodBytes())) {
             return Method.HEAD;
-        } else if (methodC.equals(Method.PUT.getMethodString())) {
+        } else if (methodC.equals(Method.PUT.getMethodBytes())) {
             return Method.PUT;
-        } else if (methodC.equals(Method.DELETE.getMethodString())) {
+        } else if (methodC.equals(Method.DELETE.getMethodBytes())) {
             return Method.DELETE;
-        } else if (methodC.equals(Method.TRACE.getMethodString())) {
+        } else if (methodC.equals(Method.TRACE.getMethodBytes())) {
             return Method.TRACE;
-        } else if (methodC.equals(Method.CONNECT.getMethodString())) {
+        } else if (methodC.equals(Method.CONNECT.getMethodBytes())) {
             return Method.CONNECT;
-        } else if (methodC.equals(Method.OPTIONS.getMethodString())) {
+        } else if (methodC.equals(Method.OPTIONS.getMethodBytes())) {
             return Method.OPTIONS;
-        } else if (methodC.equals(Method.PATCH.getMethodString())) {
+        } else if (methodC.equals(Method.PATCH.getMethodBytes())) {
             return Method.PATCH;
         } else {
             return CUSTOM(methodC.toString());

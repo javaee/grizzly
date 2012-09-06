@@ -1393,7 +1393,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             return super.getContentType();
         }
 
-        
         @Override
         public ProcessingState getProcessingState() {
             return processingState;

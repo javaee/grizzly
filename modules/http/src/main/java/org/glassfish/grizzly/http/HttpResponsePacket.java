@@ -40,12 +40,9 @@
 
 package org.glassfish.grizzly.http;
 
+import java.util.Locale;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
-
-import java.util.Locale;
-
-import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
@@ -356,107 +353,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
     }
 
     /**
-     * @inheritDoc
-     */
-    @Override
-    public String getHeader(final String name) {
-        if (name == null) {
-            return null;
-        }
-        String result = handleGetSpecialHeader(name);
-        return ((result != null) ? result : super.getHeader(name));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override
-    public String getHeader(final Header header) {
-        if (header == null) {
-            return null;
-        }
-        String result = handleGetSpecialHeader(header);
-        return ((result != null) ? result : super.getHeader(header));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override
-    public boolean containsHeader(final String name) {
-        if (name == null) {
-            return false;
-        }
-        final String result = handleGetSpecialHeader(name);
-        return ((result != null) || super.containsHeader(name));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override
-    public boolean containsHeader(final Header header) {
-        if (header == null) {
-            return false;
-        }
-        final String result = handleGetSpecialHeader(header);
-        return ((result != null) || super.containsHeader(header));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override public void setHeader(final String name, final String value) {
-        if (name == null || value == null) {
-            return;
-        }
-        if (handleSetSpecialHeaders(name, value)) return;
-        super.setHeader(name, value);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override public void setHeader(final Header header, final String value) {
-        if (header == null || value == null) {
-            return;
-        }
-        final String name = header.toString();
-        if (handleSetSpecialHeaders(name, value)) {
-            return;
-        }
-        super.setHeader(header, value);
-    }
-
-    
-    /**
-     * @inheritDoc
-     */
-    @Override public void addHeader(final String name, final String value) {
-        if (name == null || value == null) {
-            return;
-        }
-        if (handleSetSpecialHeaders(name, value)) {
-            return;
-        }
-        super.addHeader(name, value);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    @Override
-    public void addHeader(Header header, String value) {
-        if (header == null || value == null) {
-            return;
-        }
-        if (handleSetSpecialHeaders(header, value)) {
-            return;
-        }
-        super.addHeader(header, value);
-    }
-
-    /**
      * @return the {@link Locale} of this response.
      */
     public Locale getLocale() {
@@ -521,116 +417,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
         this.request = request;
     }
 
-
-    // --------------------------------------------------------- Private Methods
-
-    private String getValueBasedOnHeader(final Header header) {
-        if (Header.ContentType.equals(header)) {
-            final String value = getContentType();
-            if (value != null) {
-                return value;
-            }
-        }
-        if (Header.ContentLength.equals(header)) {
-            final long value = getContentLength();
-            if (value >= 0) {
-                return Long.toString(value);
-            }
-        }
-        return null;
-    }
-
-    private String getValueBasedOnHeader(final String name) {
-        if (Header.ContentType.toString().equalsIgnoreCase(name)) {
-            final String value = getContentType();
-            if (value != null) {
-                return value;
-            }
-        }
-        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
-            final long value = getContentLength();
-            if (value >= 0) {
-                return Long.toString(value);
-            }
-        }
-        return null;
-    }
-
-
-    /**
-     * Set internal fields for special header names.
-     * Called from set/addHeader.
-     * Return true if the header is special, no need to set the header.
-     */
-    private boolean setValueBasedOnHeader(final String name, final String value) {
-        if (Header.ContentType.toString().equalsIgnoreCase(name)) {
-            setContentType(value);
-            return true;
-        }
-        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
-            try {
-                final long cLL = Long.parseLong(value);
-                setContentLengthLong(cLL);
-                return true;
-            } catch (NumberFormatException ex) {
-                // Do nothing - the spec doesn't have any "throws"
-                // and the user might know what he's doing
-                return false;
-            }
-        }
-        //if (name.equalsIgnoreCase("Content-Language")) {
-        //    // TODO XXX XXX Need to construct Locale or something else
-        //}
-        return false;
-    }
-
-    /**
-     * Set internal fields for special header names.
-     * Called from set/addHeader.
-     * Return true if the header is special, no need to set the header.
-     */
-    private boolean setValueBasedOnHeader(final Header header, final String value) {
-        if (Header.ContentType.equals(header)) {
-            setContentType(value);
-            return true;
-        }
-        if (Header.ContentLength.equals(header)) {
-            try {
-                final long cLL = Long.parseLong(value);
-                setContentLengthLong(cLL);
-                return true;
-            } catch (NumberFormatException ex) {
-                // Do nothing - the spec doesn't have any "throws"
-                // and the user might know what he's doing
-                return false;
-            }
-        }
-        //if (name.equalsIgnoreCase("Content-Language")) {
-        //    // TODO XXX XXX Need to construct Locale or something else
-        //}
-        return false;
-    }
-
-    private String handleGetSpecialHeader(final String name) {
-        return ((isSpecialHeader(name)) ? getValueBasedOnHeader(name) : null);
-    }
-
-    private String handleGetSpecialHeader(final Header header) {
-        return ((isSpecialHeader(header.toString())) ? getValueBasedOnHeader(header) : null);
-    }
-
-    private boolean handleSetSpecialHeaders(final String name, final String value) {
-        return isSpecialHeader(name) && setValueBasedOnHeader(name, value);
-    }
-
-    private boolean handleSetSpecialHeaders(final Header header, final String value) {
-        return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value);
-    }
-
-    private boolean isSpecialHeader(final String name) {
-        final char c = name.charAt(0);
-        return (c == 'C' || c == 'c');
-    }
 
     // ---------------------------------------------------------- Nested Classes
 
