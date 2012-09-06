@@ -63,11 +63,11 @@ public enum Protocol {
     public static Protocol valueOf(final DataChunk protocolC) {
         if (protocolC.getLength() == 0) {
             return Protocol.HTTP_0_9;
-        } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolBytes())) {
             return Protocol.HTTP_1_1;
-        } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolBytes())) {
             return Protocol.HTTP_1_0;
-        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolBytes())) {
             return Protocol.HTTP_0_9;
         }
         

@@ -328,8 +328,10 @@ public abstract class AbstractTransport implements Transport {
     public void setWorkerThreadPool(final ExecutorService threadPool) {
         managedWorkerPool = false;
         if (threadPool instanceof MonitoringAware) {
-            ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
-                    .addProbes(threadPoolMonitoringConfig.getProbes());
+            if (threadPoolMonitoringConfig.hasProbes()) {
+                ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
+                        .addProbes(threadPoolMonitoringConfig.getProbes());
+            }
         }
 
         setWorkerThreadPool0(threadPool);

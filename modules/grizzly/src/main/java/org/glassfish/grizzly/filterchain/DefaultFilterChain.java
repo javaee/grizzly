@@ -59,12 +59,12 @@ import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Default {@link FilterChain} implementation
@@ -376,7 +376,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 final FilterChainContext retContext = future.get();
                 ReadResult rr = ReadResult.create(connection);
                 rr.setMessage(retContext.getMessage());
-                rr.setSrcAddress(retContext.getAddress());
+                rr.setSrcAddressHolder(retContext.getAddressHolder());
 
                 future.recycle(false);
 

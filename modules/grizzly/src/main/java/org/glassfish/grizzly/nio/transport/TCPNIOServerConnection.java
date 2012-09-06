@@ -40,19 +40,25 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
+import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  *
@@ -151,31 +157,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     }
     
     @Override
-    public void setReadBufferSize(final int readBufferSize) {
-        final ServerSocket socket = ((ServerSocketChannel) channel).socket();
-
-        try {
-            final int socketReadBufferSize = socket.getReceiveBufferSize();
-            if (readBufferSize != -1) {
-                if (readBufferSize > socketReadBufferSize) {
-                    socket.setReceiveBufferSize(readBufferSize);
-                }
-            }
-
-            this.readBufferSize = readBufferSize;
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
-                    e);
-        }
-    }
-
-    @Override
-    public void setWriteBufferSize(final int writeBufferSize) {
-        this.writeBufferSize = writeBufferSize;
-    }
-
-    @Override
     public void preClose() {
         if (acceptListener != null) {
             acceptListener.failure(new IOException("Connection is closed"));
@@ -240,7 +221,42 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                 completionHandler);
 
         return connection;
-    }    
+    }
+    
+    @Override
+    public void setReadBufferSize(final int readBufferSize) {
+        throw new IllegalStateException("Use TCPNIOTransport.setReadBufferSize()");
+    }
+
+    @Override
+    public void setWriteBufferSize(final int writeBufferSize) {
+        throw new IllegalStateException("Use TCPNIOTransport.setWriteBufferSize()");
+    }
+
+    @Override
+    public int getReadBufferSize() {
+        return transport.getReadBufferSize();
+    }
+
+    @Override
+    public int getWriteBufferSize() {
+        return transport.getWriteBufferSize();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void resetProperties() {
+        localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+                new NullaryFunction<SocketAddress>() {
+
+            @Override
+            public SocketAddress evaluate() {
+                return ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
+            }
+        });
+
+        peerSocketAddressHolder = Holder.<SocketAddress>staticHolder(null);
+    }
     
     protected final class RegisterAcceptedChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {

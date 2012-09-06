@@ -716,24 +716,23 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
      */
-    public boolean equals(String s) {
-        // XXX ENCODING - this only works if encoding is UTF8-compat
-        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
-
-        byte[] b = buff;
-        int blen = end-start;
-        if (b == null || blen != s.length()) {
-            return false;
-        }
-        int boff = start;
-        for (int i = 0; i < blen; i++) {
-            if (b[boff++] != s.charAt(i)) {
-            return false;
-            }
-        }
-        return true;
+    public boolean equals(final String s) {
+        return equals(buff, start, end - start, s);
     }
 
+    /**
+     * Compares the message bytes to the specified byte array.
+
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public final boolean equals(final byte[] bytes) {
+        return equals(buff, start, end - start, bytes, 0, bytes.length);
+    }
+    
     /**
      * Compares the message bytes to the specified String object.
      * @param s the String to compare
@@ -916,6 +915,48 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
         return hashBytesIC( buff, start, end-start );
     }
 
+    public static boolean equals(final byte[] b1, final int b1Offs, final int b1Len,
+            final byte[] b2, final int b2Offs, final int b2Len) {
+        // XXX ENCODING - this only works if encoding is UTF8-compat
+        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
+
+        if (b1Len != b2Len) {
+            return false;
+        }
+        
+        if (b1 == b2) {
+            return true;
+        }
+        
+        if (b1 == null || b2 == null) {
+            return false;
+        }
+
+        for (int i = 0; i < b1Len; i++) {
+            if (b1[i + b1Offs] != b2[i + b2Offs]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public static boolean equals(final byte[] b, int offs, final int len,
+            final String s) {
+        // XXX ENCODING - this only works if encoding is UTF8-compat
+        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
+
+        if (b == null || len != s.length()) {
+            return false;
+        }
+        
+        for (int i = 0; i < len; i++) {
+            if (b[offs++] != s.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+        
+    }
     /**
      * Compares the buffer chunk to the specified byte array representing
      * lower-case ASCII characters.

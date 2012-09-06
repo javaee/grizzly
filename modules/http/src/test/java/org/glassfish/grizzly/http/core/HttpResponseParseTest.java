@@ -305,6 +305,26 @@ public class HttpResponseParseTest extends TestCase {
         public SocketAddress getLocalAddress() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
+
+        @Override
+        public int getReadBufferSize() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setReadBufferSize(int readBufferSize) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public int getWriteBufferSize() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setWriteBufferSize(int writeBufferSize) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
     }
 
 }

@@ -47,9 +47,13 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.memory.*;
-import org.glassfish.grizzly.threadpool.WorkerThread;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.memory.BufferArray;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.Exceptions;
 
 /**
@@ -236,9 +240,9 @@ public class TCPNIOUtils {
         Throwable error = null;
         Buffer buffer = null;
         
-        final int receiveBufferSize = connection.getReadBufferSize();
-        
         try {
+            final int receiveBufferSize = connection.getReadBufferSize();
+        
             if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
                 final CachedIORecord ioRecord = obtainCachedIORecord();
                 final ByteBuffer directByteBuffer =

@@ -1,7 +1,9 @@
+package org.glassfish.grizzly.utils;
+
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,24 +40,21 @@
  * holder.
  */
 
-package org.glassfish.grizzly.attributes;
-
 /**
- * {@link Attribute} initializer.
+ * General initializer interface.
  *
- * Is used by {@link Attribute#get(AttributeHolder)}, if there is no attribute
- * value stored in {@link AttributeHolder}, or attribute value is <tt>null</tt>.
+ * It might be useful abstraction, which helps to create and initialize certain
+ * values lazily.
  *
- * @see Attribute
- * @see AttributeHolder
+ * @see org.glassfish.grizzly.attributes.Attribute
+ * @see org.glassfish.grizzly.attributes.AttributeHolder
+ * @see org.glassfish.grizzly.utils.Holder
  * 
  * @author Ken Cavanaugh
  */
 public interface NullaryFunction<T> {
     /**
-     * Returns default {@link Attribute} value.
-     *
-     * @return default {@link Attribute} value.
+     * Initializes and returns the value.
      */
     public T evaluate();
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,10 +45,10 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Client side AJP filter, which deserializes AJP message by parsing magic bytes

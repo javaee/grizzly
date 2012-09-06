@@ -41,20 +41,20 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -65,8 +65,11 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 public class TCPNIOConnection extends NIOConnection {
     private static final Logger LOGGER = Grizzly.logger(TCPNIOConnection.class);
 
-    private SocketAddress localSocketAddress;
-    private SocketAddress peerSocketAddress;
+    Holder<SocketAddress> localSocketAddressHolder;
+    Holder<SocketAddress> peerSocketAddressHolder;
+
+    private int readBufferSize = -1;
+    private int writeBufferSize = -1;
 
     private final AtomicReference<CompletionHandler<Connection>> connectHandlerRef =
             new AtomicReference<CompletionHandler<Connection>>();
@@ -76,8 +79,6 @@ public class TCPNIOConnection extends NIOConnection {
         super(transport);
         
         this.channel = channel;
-
-        resetProperties();
     }
 
     @Override
@@ -109,7 +110,7 @@ public class TCPNIOConnection extends NIOConnection {
      */
     @Override
     public SocketAddress getPeerAddress() {
-        return peerSocketAddress;
+        return peerSocketAddressHolder.get();
     }
     
     /**
@@ -120,7 +121,7 @@ public class TCPNIOConnection extends NIOConnection {
      */
     @Override
     public SocketAddress getLocalAddress() {
-        return localSocketAddress;
+        return localSocketAddressHolder.get();
     }
 
     protected void resetProperties() {
@@ -133,62 +134,108 @@ public class TCPNIOConnection extends NIOConnection {
                     .getMaxPendingBytesPerConnection();
             
             setMaxAsyncWriteQueueSize(
-                    transportMaxAsyncWriteQueueSize == AsyncQueueWriter.AUTO_SIZE ?
-                    getWriteBufferSize() * 4 :
-                    transportMaxAsyncWriteQueueSize);
-            
-            if (channel instanceof SocketChannel) {
-                localSocketAddress =
-                        ((SocketChannel) channel).socket().getLocalSocketAddress();
-                peerSocketAddress =
-                        ((SocketChannel) channel).socket().getRemoteSocketAddress();
-            } else if (channel instanceof ServerSocketChannel) {
-                localSocketAddress =
-                        ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
-                peerSocketAddress = null;
-            }
+                    transportMaxAsyncWriteQueueSize == AsyncQueueWriter.AUTO_SIZE
+                    ? getWriteBufferSize() * 4
+                    : transportMaxAsyncWriteQueueSize);
+
+            localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+                    new NullaryFunction<SocketAddress>() {
+                        @Override
+                        public SocketAddress evaluate() {
+                            return ((SocketChannel) channel).socket().getLocalSocketAddress();
+                        }
+                    });
+
+            peerSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+                    new NullaryFunction<SocketAddress>() {
+                        @Override
+                        public SocketAddress evaluate() {
+                            return ((SocketChannel) channel).socket().getRemoteSocketAddress();
+                        }
+                    });
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getReadBufferSize() {
+        if (readBufferSize >= 0) {
+            return readBufferSize;
+        }
+        
+        try {
+            readBufferSize = ((SocketChannel) channel).socket().getReceiveBufferSize();
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_GET_READBUFFER_SIZE_EXCEPTION(),
+                    e);
+            readBufferSize = 0;
+        }
+        
+        return readBufferSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setReadBufferSize(final int readBufferSize) {
-        final Socket socket = ((SocketChannel) channel).socket();
-
-        try {
-            final int socketReadBufferSize = socket.getReceiveBufferSize();
-            if (readBufferSize != -1) {
-                if (readBufferSize > socketReadBufferSize) {
-                    socket.setReceiveBufferSize(readBufferSize);
+        if (readBufferSize > 0) {
+            try {
+                final int currentReadBufferSize = ((SocketChannel) channel).socket().getReceiveBufferSize();
+                if (readBufferSize > currentReadBufferSize) {
+                    ((SocketChannel) channel).socket().setReceiveBufferSize(readBufferSize);
                 }
-                super.setReadBufferSize(readBufferSize);
-            } else {
-                super.setReadBufferSize(socketReadBufferSize);
+                
+                this.readBufferSize = readBufferSize;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
+                        e);
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
-                    e);
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getWriteBufferSize() {
+        if (writeBufferSize >= 0) {
+            return writeBufferSize;
+        }
+        
+        try {
+            writeBufferSize = ((SocketChannel) channel).socket().getSendBufferSize();
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_GET_WRITEBUFFER_SIZE_EXCEPTION(),
+                    e);
+            writeBufferSize = 0;
+        }
+        
+        return writeBufferSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setWriteBufferSize(int writeBufferSize) {
-        final Socket socket = ((SocketChannel) channel).socket();
-
-        try {
-            final int socketWriteBufferSize = socket.getSendBufferSize();
-            if (writeBufferSize != -1) {
-                if (writeBufferSize > socketWriteBufferSize) {
-                    socket.setSendBufferSize(writeBufferSize);
+        if (writeBufferSize > 0) {
+            try {
+                final int currentSendBufferSize = ((SocketChannel) channel).socket().getSendBufferSize();
+                if (writeBufferSize > currentSendBufferSize) {
+                    ((SocketChannel) channel).socket().setSendBufferSize(writeBufferSize);
                 }
-                super.setWriteBufferSize(writeBufferSize);
-            } else {
-                super.setWriteBufferSize(socketWriteBufferSize);
+                this.writeBufferSize = writeBufferSize;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_CONNECTION_SET_WRITEBUFFER_SIZE_EXCEPTION(),
+                        e);
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_WRITEBUFFER_SIZE_EXCEPTION(),
-                    e);
         }
     }
     
@@ -273,8 +320,8 @@ public class TCPNIOConnection extends NIOConnection {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("TCPNIOConnection");
-        sb.append("{localSocketAddress=").append(localSocketAddress);
-        sb.append(", peerSocketAddress=").append(peerSocketAddress);
+        sb.append("{localSocketAddress=").append(localSocketAddressHolder);
+        sb.append(", peerSocketAddress=").append(peerSocketAddressHolder);
         sb.append('}');
         return sb.toString();
     }

@@ -164,7 +164,7 @@ public abstract class AbstractSocketConnectorHandler
      * 
      * @param connection {@link Connection} to pre-configure.
      */
-    protected void preConfigure(final Connection connection) {
+    protected void preConfigure(final Connection<?> connection) {
         connection.setProcessor(getProcessor());
         
         final MonitoringConfig<ConnectionProbe> monitoringConfig =

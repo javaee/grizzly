@@ -745,8 +745,11 @@ public class BuffersBuffer extends CompositeBuffer {
     }
 
     private void recalcIndex(final int index) {
-        final int idx = ArrayUtils.binarySearch(bufferBounds, 0,
+        final int idx = index < bufferBounds[0]
+                ? 0 
+                : ArrayUtils.binarySearch(bufferBounds, 0,
                 buffersSize - 1, index + 1);
+        
         activeBuffer = buffers[idx];
 
         upperBound = bufferBounds[idx];

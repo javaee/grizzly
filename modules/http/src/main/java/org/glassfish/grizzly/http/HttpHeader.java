@@ -108,7 +108,8 @@ public abstract class HttpHeader extends HttpPacket
     protected final DataChunk upgrade = DataChunk.newInstance();
 
     private TransferEncoding transferEncoding;
-    private final List<ContentEncoding> contentEncodings = new ArrayList<ContentEncoding>();
+    private final List<ContentEncoding> contentEncodings =
+            new ArrayList<ContentEncoding>(2);
     // <tt>true</tt>, if content encodings for this headers were chosen
     private boolean isContentEncodingsSelected;
 
@@ -361,14 +362,6 @@ public abstract class HttpHeader extends HttpPacket
      * in case of fixed-length HTTP message.
      */
     public long getContentLength() {
-        if (contentLength == -1) {
-            final DataChunk contentLengthChunk =
-                    headers.getValue(Header.ContentLength);
-            if (contentLengthChunk != null) {
-                contentLength = Ascii.parseLong(contentLengthChunk);
-            }
-        }
-
         return contentLength;
     }
 
@@ -645,7 +638,12 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public String getHeader(String name) {
-        return headers.getHeader(name);
+        if (name == null) {
+            return null;
+        }
+        
+        String result = handleGetSpecialHeader(name);
+        return (result != null) ? result : headers.getHeader(name);
     }
 
     /**
@@ -653,7 +651,11 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public String getHeader(final Header header) {
-        return headers.getHeader(header);
+        if (header == null) {
+            return null;
+        }
+        String result = handleGetSpecialHeader(header);
+        return (result != null) ? result : headers.getHeader(header);
     }
 
     /**
@@ -661,6 +663,11 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void setHeader(String name, String value) {
+        if (name == null || value == null) {
+            return;
+        }
+        if (handleSetSpecialHeaders(name, value)) return;
+
         headers.setValue(name).setString(value);
     }
 
@@ -669,6 +676,14 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void setHeader(Header header, String value) {
+        if (header == null || value == null) {
+            return;
+        }
+        final String name = header.toString();
+        if (handleSetSpecialHeaders(name, value)) {
+            return;
+        }
+
         headers.setValue(header).setString(value);
     }
 
@@ -677,6 +692,13 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(String name, String value) {
+        if (name == null || value == null) {
+            return;
+        }
+        if (handleSetSpecialHeaders(name, value)) {
+            return;
+        }
+        
         headers.addValue(name).setString(value);
     }
 
@@ -685,6 +707,13 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(Header header, String value) {
+        if (header == null || value == null) {
+            return;
+        }
+        if (handleSetSpecialHeaders(header, value)) {
+            return;
+        }
+
         headers.addValue(header).setString(value);
     }
 
@@ -693,7 +722,12 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public boolean containsHeader(String name) {
-        return headers.getHeader(name) != null;
+        if (name == null) {
+            return false;
+        }
+        final String result = handleGetSpecialHeader(name);
+        
+        return result != null || headers.getHeader(name) != null;
     }
 
     /**
@@ -701,7 +735,11 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public boolean containsHeader(final Header header) {
-        return (headers.getHeader(header) != null);
+        if (header == null) {
+            return false;
+        }
+        final String result = handleGetSpecialHeader(header);
+        return result != null || headers.getHeader(header) != null;
     }
 
     /**
@@ -827,6 +865,116 @@ public abstract class HttpHeader extends HttpPacket
         reset();
     }
 
+    protected final String handleGetSpecialHeader(final String name) {
+        return ((isSpecialHeader(name)) ? getValueBasedOnHeader(name) : null);
+    }
+
+    protected final String handleGetSpecialHeader(final Header header) {
+        return ((isSpecialHeader(header.toString())) ? getValueBasedOnHeader(header) : null);
+    }
+
+    protected final boolean handleSetSpecialHeaders(final String name, final String value) {
+        return isSpecialHeader(name) && setValueBasedOnHeader(name, value);
+    }
+
+    protected final boolean handleSetSpecialHeaders(final Header header, final String value) {
+        return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value);
+    }
+
+    protected static boolean isSpecialHeader(final String name) {
+        final char c = name.charAt(0);
+        return (c == 'C' || c == 'c');
+    }
+    
+    // --------------------------------------------------------- Private Methods
+
+    private String getValueBasedOnHeader(final Header header) {
+        if (Header.ContentType.equals(header)) {
+            final String value = getContentType();
+            if (value != null) {
+                return value;
+            }
+        }
+        if (Header.ContentLength.equals(header)) {
+            final long value = getContentLength();
+            if (value >= 0) {
+                return Long.toString(value);
+            }
+        }
+        return null;
+    }
+
+    private String getValueBasedOnHeader(final String name) {
+        if (Header.ContentType.toString().equalsIgnoreCase(name)) {
+            final String value = getContentType();
+            if (value != null) {
+                return value;
+            }
+        }
+        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
+            final long value = getContentLength();
+            if (value >= 0) {
+                return Long.toString(value);
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * Set internal fields for special header names.
+     * Called from set/addHeader.
+     * Return true if the header is special, no need to set the header.
+     */
+    private boolean setValueBasedOnHeader(final String name, final String value) {
+        if (Header.ContentType.toString().equalsIgnoreCase(name)) {
+            setContentType(value);
+            return true;
+        }
+        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
+            try {
+                final long cLL = Long.parseLong(value);
+                setContentLengthLong(cLL);
+                return true;
+            } catch (NumberFormatException ex) {
+                // Do nothing - the spec doesn't have any "throws"
+                // and the user might know what he's doing
+                return false;
+            }
+        }
+        //if (name.equalsIgnoreCase("Content-Language")) {
+        //    // TODO XXX XXX Need to construct Locale or something else
+        //}
+        return false;
+    }
+
+    /**
+     * Set internal fields for special header names.
+     * Called from set/addHeader.
+     * Return true if the header is special, no need to set the header.
+     */
+    private boolean setValueBasedOnHeader(final Header header, final String value) {
+        if (Header.ContentType.equals(header)) {
+            setContentType(value);
+            return true;
+        }
+        if (Header.ContentLength.equals(header)) {
+            try {
+                final long cLL = Long.parseLong(value);
+                setContentLengthLong(cLL);
+                return true;
+            } catch (NumberFormatException ex) {
+                // Do nothing - the spec doesn't have any "throws"
+                // and the user might know what he's doing
+                return false;
+            }
+        }
+        //if (name.equalsIgnoreCase("Content-Language")) {
+        //    // TODO XXX XXX Need to construct Locale or something else
+        //}
+        return false;
+    }
+    
 //    protected String getDefaultContentType() {
 //        return defaultContentType;
 //    }

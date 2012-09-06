@@ -70,12 +70,13 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -91,8 +92,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final short MAX_ZERO_READ_COUNT = 100;
     
     protected final NIOTransport transport;
-    protected volatile int readBufferSize;
-    protected volatile int writeBufferSize;
     protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
@@ -151,6 +150,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public Transport getTransport() {
         return transport;
     }
+
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link NIOConnection}.
@@ -158,9 +158,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @return the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link NIOConnection}.
      */
-    public int getReadBufferSize() {
-        return readBufferSize;
-    }
+    public abstract int getReadBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -169,9 +167,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param readBufferSize the default size of {@link Buffer}s, which will
      * be allocated for reading data from {@link NIOConnection}.
      */
-    public void setReadBufferSize(final int readBufferSize) {
-        this.readBufferSize = readBufferSize;
-    }
+    public abstract void setReadBufferSize(final int readBufferSize);
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
@@ -180,9 +176,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @return the default size of {@link Buffer}s, which will be allocated for
      * writing data to {@link NIOConnection}.
      */
-    public int getWriteBufferSize() {
-        return writeBufferSize;
-    }
+    public abstract int getWriteBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -191,9 +185,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param writeBufferSize the default size of {@link Buffer}s, which will
      * be allocated for writing data to {@link NIOConnection}.
      */
-    public void setWriteBufferSize(final int writeBufferSize) {
-        this.writeBufferSize = writeBufferSize;
-    }
+    public abstract void setWriteBufferSize(final int writeBufferSize);
 
     /**
      * Get the max size (in bytes) of asynchronous write queue associated
@@ -944,6 +936,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 storage.volatileFlag++;
                 return state;
             }
+        }
+    }
+    
+    protected static abstract class SettableIntHolder extends Holder.LazyIntHolder {
+        @Override
+        public synchronized void setInt(int value) {
+            super.setInt(value);
         }
     }
 }

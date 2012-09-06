@@ -286,7 +286,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                             return true;
                         } else if (parsingState.checkpoint == -1) {
                             if (DEC[b & 0xFF] != -1) {
-                                value = value * 16 + (DEC[b]);
+                                value = value * 16 + (DEC[b & 0xFF]);
                             } else {
                                 throw new HttpBrokenContentException("Invalid byte representing a hex value within a chunk length encountered : " + b);
                             }

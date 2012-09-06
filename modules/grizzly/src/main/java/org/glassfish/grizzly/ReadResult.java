@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,9 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.Readable;
+import org.glassfish.grizzly.utils.Holder;
+
 /**
  * Result of read operation, returned by {@link Readable}.
  * 
@@ -68,7 +71,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
         if (readResult != null) {
             readResult.connection = connection;
             readResult.message = message;
-            readResult.srcAddress = srcAddress;
+            readResult.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
             readResult.readSize = readSize;
             readResult.isRecycled = false;
             
@@ -97,7 +100,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      *  Source address.
      */
 
-    private L srcAddress;
+    private Holder<L> srcAddressHolder;
 
     /**
      * Number of bytes read.
@@ -112,7 +115,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
             int readSize) {
         this.connection = connection;
         this.message = message;
-        this.srcAddress = srcAddress;
+        this.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
         this.readSize = readSize;
     }
 
@@ -154,7 +157,17 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     public final L getSrcAddress() {
         checkRecycled();
-        return srcAddress;
+        return srcAddressHolder != null ? srcAddressHolder.get() : null;
+    }
+
+    /**
+     * Get the source address, the message was read from.
+     *
+     * @return the source address, the message was read from.
+     */
+    public final Holder<L> getSrcAddressHolder() {
+        checkRecycled();
+        return srcAddressHolder;
     }
 
     /**
@@ -164,7 +177,17 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     public final void setSrcAddress(L srcAddress) {
         checkRecycled();
-        this.srcAddress = srcAddress;
+        this.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
+    }
+
+    /**
+     * Set the source address, the message was read from.
+     *
+     * @param srcAddressHolder the source address, the message was read from.
+     */
+    public final void setSrcAddressHolder(Holder<L> srcAddressHolder) {
+        checkRecycled();
+        this.srcAddressHolder = srcAddressHolder;
     }
 
     /**
@@ -190,7 +213,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
     private void reset() {
         connection = null;
         message = null;
-        srcAddress = null;
+        srcAddressHolder = null;
         readSize = 0;
     }
 

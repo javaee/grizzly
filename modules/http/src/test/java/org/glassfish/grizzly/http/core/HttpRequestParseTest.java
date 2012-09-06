@@ -368,5 +368,23 @@ public class HttpRequestParseTest extends TestCase {
         public SocketAddress getLocalAddress() {
             return localAddress;
         }
+
+        @Override
+        public int getReadBufferSize() {
+            return 65536;
+        }
+
+        @Override
+        public void setReadBufferSize(int readBufferSize) {
+        }
+
+        @Override
+        public int getWriteBufferSize() {
+            return 65536;
+        }
+
+        @Override
+        public void setWriteBufferSize(int writeBufferSize) {
+        }
     }
 }

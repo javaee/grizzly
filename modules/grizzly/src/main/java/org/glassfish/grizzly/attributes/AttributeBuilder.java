@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.attributes;
 
+import org.glassfish.grizzly.utils.NullaryFunction;
+
 /**
  * <tt>AttributeBuilder</tt> is responsible for creating and indexing
  * {@link Attribute}s.

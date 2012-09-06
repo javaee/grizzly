@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -55,6 +54,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -82,23 +82,23 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             transport.read(connection, null, readResult);
 
         } else {
-            readResult =
-                    transport.getTemporarySelectorIO().getReader().read(
+            readResult = transport.getTemporarySelectorIO().getReader().read(
                     connection, null);
         }
 
         if (readResult.getReadSize() > 0) {
             final Buffer buffer = readResult.getMessage();
             buffer.trim();
-            final SocketAddress address = readResult.getSrcAddress();
+            final Holder<SocketAddress> addressHolder =
+                    readResult.getSrcAddressHolder();
             readResult.recycle();
 
             ctx.setMessage(buffer);
-            ctx.setAddress(address);
+            ctx.setAddressHolder(addressHolder);
 
-            if (!connection.isConnected()) {
-                connection.registerKeyInterest(SelectionKey.OP_READ);
-            }
+//            if (!connection.isConnected()) {
+//                connection.registerKeyInterest(SelectionKey.OP_READ);
+//            }
         } else {
             readResult.recycle();
             return ctx.getStopAction();

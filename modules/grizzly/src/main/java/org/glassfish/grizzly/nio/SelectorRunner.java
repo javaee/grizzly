@@ -107,7 +107,7 @@ public final class SelectorRunner implements Runnable {
         return new SelectorRunner(transport,
                 Selectors.newSelector(transport.getSelectorProvider()));
     }
-
+    
     private SelectorRunner(final NIOTransport transport,
             final Selector selector) {
         this.transport = transport;
@@ -118,6 +118,25 @@ public final class SelectorRunner implements Runnable {
         evenPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
         oddPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
         currentPostponedTasks = evenPostponedTasks;
+    }
+
+    void addPendingTask(final SelectorHandlerTask task) {
+
+        pendingTasks.offer(task);
+
+        wakeupSelector();
+    }
+
+    public void wakeupSelector() {
+        final Selector localSelector = getSelector();
+        if (localSelector != null &&
+                selectorWakeupFlag.compareAndSet(false, true)) {
+            try {
+                localSelector.wakeup();
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error during selector wakeup", e);
+            }
+        }
     }
 
     public NIOTransport getTransport() {
@@ -224,18 +243,6 @@ public final class SelectorRunner implements Runnable {
         abortTasksInQueue(pendingTasks);
         abortTasksInQueue(evenPostponedTasks);
         abortTasksInQueue(oddPostponedTasks);
-    }
-
-    public void wakeupSelector() {
-        final Selector localSelector = getSelector();
-        if (localSelector != null &&
-                selectorWakeupFlag.compareAndSet(false, true)) {
-            try {
-                localSelector.wakeup();
-            } catch (Exception e) {
-                logger.log(Level.FINE, "Error during selector wakeup", e);
-            }
-        }
     }
 
     @Override
@@ -370,9 +377,11 @@ public final class SelectorRunner implements Runnable {
     }
 
     private boolean iterateKeys() {
-        while (iterator.hasNext()) {
+        final Iterator<SelectionKey> it = iterator;
+
+        while (it.hasNext()) {
             try {
-                key = iterator.next();
+                key = it.next();
                 keyReadyOps = key.readyOps();
                 if (!iterateKeyEvents()) {
                     return false;
@@ -408,7 +417,7 @@ public final class SelectorRunner implements Runnable {
             keyReadyOps &= (~SelectionKey.OP_WRITE);
             if (!transport.processOpWrite(connection)) {
                 return false;
-            }
+                }
             
             return true;
         }
@@ -583,10 +592,8 @@ public final class SelectorRunner implements Runnable {
         return key;
     }
 
-    final void workaroundSelectorSpin()
-            throws IOException {
-        spinnedSelectorsHistory.put(getSelector(),
-                System.currentTimeMillis());
+    final void workaroundSelectorSpin() throws IOException {
+        spinnedSelectorsHistory.put(getSelector(), System.currentTimeMillis());
         switchToNewSelector();
     }
 

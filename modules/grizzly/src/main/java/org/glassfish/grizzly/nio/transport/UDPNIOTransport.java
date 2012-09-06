@@ -463,8 +463,10 @@ public final class UDPNIOTransport extends NIOTransport implements
 
             if (workerThreadPool == null) {
                 if (workerPoolConfig != null) {
-                    workerPoolConfig.getInitialMonitoringConfig().addProbes(
-                        getThreadPoolMonitoringConfig().getProbes());
+                    if (getThreadPoolMonitoringConfig().hasProbes()) {
+                        workerPoolConfig.getInitialMonitoringConfig().addProbes(
+                                getThreadPoolMonitoringConfig().getProbes());
+                    }
                     workerPoolConfig.setMemoryManager(memoryManager);
                     setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
                 }
@@ -641,8 +643,6 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     private int readConnected(final UDPNIOConnection connection, Buffer buffer,
             final ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        final SocketAddress peerAddress = connection.getPeerAddress();
-
         final int read;
 
         final int oldPos = buffer.position();
@@ -670,7 +670,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         if (hasRead && currentResult != null) {
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + read);
-            currentResult.setSrcAddress(peerAddress);
+            currentResult.setSrcAddressHolder(connection.peerSocketAddressHolder);
         }
 
         return read;
@@ -724,11 +724,11 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         final boolean isAllocate = (buffer == null && currentResult != null);
 
-        if (isAllocate) {
-            buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
-        }
-
         try {
+            if (isAllocate) {
+                buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
+            }
+
             if (connection.isConnected()) {
                 read = readConnected(connection, buffer, currentResult);
             } else {
@@ -739,7 +739,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         } catch (Exception e) {
             read = -1;
         } finally {
-            if (isAllocate) {
+            if (isAllocate && buffer != null) {
                 if (read <= 0) {
                     buffer.dispose();
                 } else {
@@ -801,8 +801,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             currentResult.setMessage(message);
             currentResult.setWrittenSize(currentResult.getWrittenSize()
                     + written);
-            currentResult.setDstAddress(
-                    connection.getPeerAddress());
+            currentResult.setDstAddressHolder(connection.peerSocketAddressHolder);
         }
 
         return written;
@@ -825,7 +824,9 @@ public final class UDPNIOTransport extends NIOTransport implements
     protected void configureNIOConnection(UDPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setProcessor(processor);
-        connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
+        if (connectionMonitoringConfig.hasProbes()) {
+            connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
+        }
     }
 
     /**

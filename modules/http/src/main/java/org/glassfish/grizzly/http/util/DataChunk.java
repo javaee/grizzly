@@ -126,7 +126,7 @@ public class DataChunk implements Chunk {
             }
         }
 
-        onContentChanged();
+//        onContentChanged();
     }
     
     public void set(final DataChunk value, final int start, final int end) {
@@ -154,7 +154,7 @@ public class DataChunk implements Chunk {
             }
         }
 
-        onContentChanged();
+//        onContentChanged();
     }
 
     /**
@@ -298,8 +298,8 @@ public class DataChunk implements Chunk {
         }
     }
 
-    protected void onContentChanged() {
-    }
+//    protected void onContentChanged() {
+//    }
 
     /**
      * Returns the <tt>DataChunk</tt> length.
@@ -511,6 +511,27 @@ public class DataChunk implements Chunk {
         }
     }
 
+    /**
+     * Compares the message data to the specified byte[].
+     * @param bytes the byte[] to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equals(final byte[] bytes) {
+        switch (type) {
+            case Bytes:
+                return byteChunk.equals(bytes);
+            case Buffer:
+                return bufferChunk.equals(bytes);
+            case String:
+                return ByteChunk.equals(bytes, 0, bytes.length, stringValue);
+            case Chars:
+                return charChunk.equals(bytes);
+
+            default:
+                return false;
+        }
+    }
+    
     /**
      * Returns DataChunk hash code.
      * @return DataChunk hash code.
@@ -788,7 +809,7 @@ public class DataChunk implements Chunk {
         
         resetString();
         type = Type.Bytes;
-        onContentChanged();
+//        onContentChanged();
     }
 
     private void switchToBufferChunk() {
@@ -800,7 +821,7 @@ public class DataChunk implements Chunk {
         resetString();
         
         type = Type.Buffer;
-        onContentChanged();
+//        onContentChanged();
     }
 
     private void switchToCharChunk() {
@@ -812,7 +833,7 @@ public class DataChunk implements Chunk {
         
         resetString();
         type = Type.Chars;
-        onContentChanged();
+//        onContentChanged();
     }
 
     private void switchToString() {
@@ -825,7 +846,7 @@ public class DataChunk implements Chunk {
         }
 
         type = Type.String;
-        onContentChanged();
+//        onContentChanged();
     }
 
     final static class Immutable extends DataChunk {

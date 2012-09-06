@@ -42,8 +42,8 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
@@ -64,7 +64,7 @@ public final class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter
             WritableMessage message, WriteResult<WritableMessage, SocketAddress> currentResult)
             throws IOException {
 
-        return transport.write(connection, message, currentResult);
+        return transport.write((TCPNIOConnection) connection, message, currentResult);
     }
 
     @Override

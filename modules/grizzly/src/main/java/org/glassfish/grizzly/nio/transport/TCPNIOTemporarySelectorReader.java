@@ -69,7 +69,7 @@ public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader
             final int readBytes = buffer.position() - oldPosition;
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + readBytes);
-            currentResult.setSrcAddress(connection.getPeerAddress());
+            currentResult.setSrcAddressHolder(((TCPNIOConnection) connection).peerSocketAddressHolder);
 
             return readBytes;
         }

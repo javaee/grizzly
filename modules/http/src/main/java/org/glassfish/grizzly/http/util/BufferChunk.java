@@ -268,6 +268,29 @@ public class BufferChunk implements Chunk {
         return true;
     }
 
+    /**
+     * Compares the message Buffer to the specified byte array.
+
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equals(final byte[] b) {
+        if (getLength() != b.length) {
+            return false;
+        }
+
+        for (int i = start; i < end; i++) {
+            if (buffer.get(i) != b[(i - start)]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
     public boolean equalsIgnoreCase(CharSequence s) {
         if (getLength() != s.length()) {
             return false;

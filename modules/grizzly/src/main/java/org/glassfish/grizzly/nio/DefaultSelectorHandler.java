@@ -135,19 +135,28 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (isSelectorRunnerThread(selectorRunner)) {
             registerKey0(key, interest);
         } else {
-            addPendingTaskOptimized(selectorRunner,
-                    new RegisterKeyTask(key, interest));
+            selectorRunner.addPendingTask(new RegisterKeyTask(key, interest));
         }
     }
 
+    private static void registerKey0(final SelectionKey selectionKey, final int interest) {
+        if (selectionKey.isValid()) {
+            final int currentOps = selectionKey.interestOps();
+            if ((currentOps & interest) != interest) {
+                selectionKey.interestOps(currentOps | interest);
+            }
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deregisterKeyInterest(final SelectorRunner selectorRunner,
                                       final SelectionKey key, final int interest) throws IOException {
-        if (isSelectorRunnerThread(selectorRunner)) {
-            deregisterKey0(key, interest);
-        } else {
-            addPendingTaskOptimized(selectorRunner,
-                    new DeRegisterKeyTask(key, interest));
+        final int currentOps = key.interestOps();
+        if ((currentOps & interest) != 0) {
+            key.interestOps(currentOps & (~interest));
         }
     }
 
@@ -263,7 +272,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             return;
         }
 
-        addPendingTaskOptimized(selectorRunner, task);
+        selectorRunner.addPendingTask(task);
         
         if (selectorRunner.isStop() &&
                 selectorRunner.getPendingTasks().remove(task)) {
@@ -271,21 +280,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void addPendingTaskOptimized(final SelectorRunner selectorRunner,
-            final SelectorHandlerTask task) {
-
-        final Queue<SelectorHandlerTask> pendingTasks =
-                selectorRunner.getPendingTasks();
-        pendingTasks.offer(task);
-
-        selectorRunner.wakeupSelector();
-    }
-
     private boolean processPendingTasks(final SelectorRunner selectorRunner)
             throws IOException {
 
-        return processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks())
-                && processPendingTaskQueue(selectorRunner, selectorRunner.obtainPostponedTasks());
+        return processPendingTaskQueue(selectorRunner, selectorRunner.obtainPostponedTasks())
+                && processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks());
     }
 
     private boolean processPendingTaskQueue(final SelectorRunner selectorRunner,
@@ -301,25 +300,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         return true;
     }
 
-    private void registerKey0(final SelectionKey selectionKey, final int interest) {
-        if (selectionKey.isValid()) {
-            final int currentOps = selectionKey.interestOps();
-            if ((currentOps & interest) != interest) {
-                selectionKey.interestOps(currentOps | interest);
-            }
-        }
-    }
-
-    private void deregisterKey0(final SelectionKey selectionKey, final int interest) {
-        if (selectionKey.isValid()) {
-            final int currentOps = selectionKey.interestOps();
-            if ((currentOps & interest) != 0) {
-                selectionKey.interestOps(currentOps & (~interest));
-            }
-        }
-    }
-
-    private void registerChannel0(final SelectorRunner selectorRunner,
+    private static void registerChannel0(final SelectorRunner selectorRunner,
             final SelectableChannel channel, final int interest,
             final Object attachment,
             final CompletionHandler<RegisterChannelResult> completionHandler) {
@@ -368,7 +349,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void failChannelRegistration(
+    private static void failChannelRegistration(
             final CompletionHandler<RegisterChannelResult> completionHandler,
             final Throwable error) {
 
@@ -377,7 +358,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void deregisterChannel0(final SelectorRunner selectorRunner,
+    private static void deregisterChannel0(final SelectorRunner selectorRunner,
                                     final SelectableChannel channel,
                                     final CompletionHandler<RegisterChannelResult> completionHandler) {
 
@@ -426,12 +407,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private boolean isSelectorRunnerThread(final SelectorRunner selectorRunner) {
+    private static boolean isSelectorRunnerThread(final SelectorRunner selectorRunner) {
         return selectorRunner != null &&
                 Thread.currentThread() == selectorRunner.getRunnerThread();
     }
 
-    protected final class RegisterKeyTask implements SelectorHandlerTask {
+    protected static final class RegisterKeyTask implements SelectorHandlerTask {
         private final SelectionKey selectionKey;
         private final int interest;
 
@@ -457,33 +438,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    protected final class DeRegisterKeyTask implements SelectorHandlerTask {
-        private final SelectionKey selectionKey;
-        private final int interest;
-
-        public DeRegisterKeyTask(SelectionKey selectionKey, int interest) {
-            this.selectionKey = selectionKey;
-            this.interest = interest;
-        }
-
-        @Override
-        public boolean run(final SelectorRunner selectorRunner) throws IOException {
-            SelectionKey localSelectionKey = selectionKey;
-            if (IS_WORKAROUND_SELECTOR_SPIN) {
-                localSelectionKey = selectorRunner.checkIfSpinnedKey(selectionKey);
-            }
-
-            deregisterKey0(localSelectionKey, interest);
-
-            return true;
-        }
-
-        @Override
-        public void cancel() {
-        }
-    }
-
-    protected final class RegisterChannelOperation implements SelectorHandlerTask {
+    protected static final class RegisterChannelOperation implements SelectorHandlerTask {
         private final SelectableChannel channel;
         private final int interest;
         private final Object attachment;
@@ -502,30 +457,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
         public boolean run(final SelectorRunner selectorRunner) throws IOException {
             registerChannel0(selectorRunner, channel, interest,
                     attachment, completionHandler);
-            return true;
-        }
-
-        @Override
-        public void cancel() {
-            if (completionHandler != null) {
-                completionHandler.failed(new IOException("Selector is closed"));
-            }
-        }
-    }
-
-    protected final class DeregisterChannelOperation implements SelectorHandlerTask {
-        private final SelectableChannel channel;
-        private final CompletionHandler<RegisterChannelResult> completionHandler;
-
-        private DeregisterChannelOperation(final SelectableChannel channel,
-                                           final CompletionHandler<RegisterChannelResult> completionHandler) {
-            this.channel = channel;
-            this.completionHandler = completionHandler;
-        }
-
-        @Override
-        public boolean run(final SelectorRunner selectorRunner) throws IOException {
-            deregisterChannel0(selectorRunner, channel, completionHandler);
             return true;
         }
 
@@ -565,6 +496,31 @@ public class DefaultSelectorHandler implements SelectorHandler {
             }
             
             return continueExecution;
+        }
+
+        @Override
+        public void cancel() {
+            if (completionHandler != null) {
+                completionHandler.failed(new IOException("Selector is closed"));
+            }
+        }
+    }
+    
+
+    protected static final class DeregisterChannelOperation implements SelectorHandlerTask {
+        private final SelectableChannel channel;
+        private final CompletionHandler<RegisterChannelResult> completionHandler;
+
+        private DeregisterChannelOperation(final SelectableChannel channel,
+                                           final CompletionHandler<RegisterChannelResult> completionHandler) {
+            this.channel = channel;
+            this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
+            deregisterChannel0(selectorRunner, channel, completionHandler);
+            return true;
         }
 
         @Override

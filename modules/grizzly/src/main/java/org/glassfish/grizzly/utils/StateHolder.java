@@ -41,14 +41,15 @@
 package org.glassfish.grizzly.utils;
 
 import java.util.Collection;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.utils.conditions.Condition;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.utils.conditions.Condition;
 
 /**
  * Class, which holds the state.
@@ -78,7 +79,7 @@ public final class StateHolder<E> {
     public StateHolder(E initialState) {
         state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
-        conditionListeners = DataStructures.getLTQInstance();
+        conditionListeners = new ConcurrentLinkedQueue<ConditionElement<E>>();
     }
 
     /**

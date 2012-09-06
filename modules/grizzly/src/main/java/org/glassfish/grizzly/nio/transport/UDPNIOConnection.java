@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -49,10 +48,12 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -63,8 +64,12 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 public class UDPNIOConnection extends NIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnection.class);
-    private SocketAddress localSocketAddress;
-    private SocketAddress peerSocketAddress;
+    
+    Holder<SocketAddress> localSocketAddressHolder;
+    Holder<SocketAddress> peerSocketAddressHolder;
+
+    private int readBufferSize = -1;
+    private int writeBufferSize = -1;
 
     public UDPNIOConnection(UDPNIOTransport transport,
             DatagramChannel channel) {
@@ -101,7 +106,7 @@ public class UDPNIOConnection extends NIOConnection {
      */
     @Override
     public SocketAddress getPeerAddress() {
-        return peerSocketAddress;
+        return peerSocketAddressHolder.get();
     }
 
     /**
@@ -112,11 +117,11 @@ public class UDPNIOConnection extends NIOConnection {
      */
     @Override
     public SocketAddress getLocalAddress() {
-        return localSocketAddress;
+        return localSocketAddressHolder.get();
     }
 
     protected final void resetProperties() {
-        if (channel != null) {
+        if (channel != null) {           
             setReadBufferSize(transport.getReadBufferSize());
             setWriteBufferSize(transport.getWriteBufferSize());
 
@@ -129,52 +134,104 @@ public class UDPNIOConnection extends NIOConnection {
                     getWriteBufferSize() * 4 :
                     transportMaxAsyncWriteQueueSize);
             
-            localSocketAddress =
-                    ((DatagramChannel) channel).socket().getLocalSocketAddress();
-            peerSocketAddress =
-                    ((DatagramChannel) channel).socket().getRemoteSocketAddress();
+            localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+                    new NullaryFunction<SocketAddress>() {
+                        @Override
+                        public SocketAddress evaluate() {
+                            return ((DatagramChannel) channel).socket().getLocalSocketAddress();
+                        }
+                    });
+
+            peerSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+                    new NullaryFunction<SocketAddress>() {
+                        @Override
+                        public SocketAddress evaluate() {
+                            return ((DatagramChannel) channel).socket().getRemoteSocketAddress();
+                        }
+                    });
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getReadBufferSize() {
+        if (readBufferSize >= 0) {
+            return readBufferSize;
+        }
+        
+        try {
+            readBufferSize = ((DatagramChannel) channel).socket().getReceiveBufferSize();
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_GET_READBUFFER_SIZE_EXCEPTION(),
+                    e);
+            readBufferSize = 0;
+        }
+        
+        return readBufferSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setReadBufferSize(final int readBufferSize) {
-        final DatagramSocket socket = ((DatagramChannel) channel).socket();
-
-        try {
-            final int socketReadBufferSize = socket.getReceiveBufferSize();
-            if (readBufferSize != -1) {
-                if (readBufferSize > socketReadBufferSize) {
-                    socket.setReceiveBufferSize(readBufferSize);
+        if (readBufferSize > 0) {
+            try {
+                final int currentReadBufferSize = ((DatagramChannel) channel).socket().getReceiveBufferSize();
+                if (readBufferSize > currentReadBufferSize) {
+                    ((DatagramChannel) channel).socket().setReceiveBufferSize(readBufferSize);
                 }
-                super.setReadBufferSize(readBufferSize);
-            } else {
-                super.setReadBufferSize(socketReadBufferSize);
+                
+                this.readBufferSize = readBufferSize;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
+                        e);
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_READBUFFER_SIZE_EXCEPTION(),
-                    e);
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getWriteBufferSize() {
+        if (writeBufferSize >= 0) {
+            return writeBufferSize;
+        }
+        
+        try {
+            writeBufferSize = ((DatagramChannel) channel).socket().getSendBufferSize();
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE,
+                    LogMessages.WARNING_GRIZZLY_CONNECTION_GET_WRITEBUFFER_SIZE_EXCEPTION(),
+                    e);
+            writeBufferSize = 0;
+        }
+        
+        return writeBufferSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setWriteBufferSize(int writeBufferSize) {
-        final DatagramSocket socket = ((DatagramChannel) channel).socket();
-
-        try {
-            final int socketWriteBufferSize = socket.getSendBufferSize();
-            if (writeBufferSize != -1) {
-                if (writeBufferSize > socketWriteBufferSize) {
-                    socket.setSendBufferSize(writeBufferSize);
+        if (writeBufferSize > 0) {
+            try {
+                final int currentSendBufferSize = ((DatagramChannel) channel).socket().getSendBufferSize();
+                if (writeBufferSize > currentSendBufferSize) {
+                    ((DatagramChannel) channel).socket().setSendBufferSize(writeBufferSize);
                 }
-                super.setWriteBufferSize(writeBufferSize);
-            } else {
-                super.setWriteBufferSize(socketWriteBufferSize);
+                this.writeBufferSize = writeBufferSize;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_CONNECTION_SET_WRITEBUFFER_SIZE_EXCEPTION(),
+                        e);
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    LogMessages.WARNING_GRIZZLY_CONNECTION_SET_WRITEBUFFER_SIZE_EXCEPTION(),
-                    e);
         }
     }
 
@@ -215,8 +272,8 @@ public class UDPNIOConnection extends NIOConnection {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("UDPNIOConnection");
-        sb.append("{localSocketAddress=").append(localSocketAddress);
-        sb.append(", peerSocketAddress=").append(peerSocketAddress);
+        sb.append("{localSocketAddress=").append(localSocketAddressHolder);
+        sb.append(", peerSocketAddress=").append(peerSocketAddressHolder);
         sb.append('}');
         return sb.toString();
     }

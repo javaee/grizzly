@@ -220,8 +220,10 @@ public class TCPNIOTransport extends NIOTransport
 
             if (workerThreadPool == null) {
                 if (workerPoolConfig != null) {
-                    workerPoolConfig.getInitialMonitoringConfig().addProbes(
-                        getThreadPoolMonitoringConfig().getProbes());
+                    if (getThreadPoolMonitoringConfig().hasProbes()) {
+                        workerPoolConfig.getInitialMonitoringConfig().addProbes(
+                            getThreadPoolMonitoringConfig().getProbes());
+                    }
                     workerPoolConfig.setMemoryManager(memoryManager);
                     setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
                 }
@@ -628,7 +630,9 @@ public class TCPNIOTransport extends NIOTransport
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setProcessor(processor);
-        connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
+        if (connectionMonitoringConfig.hasProbes()) {
+            connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
+        }
     }
     
     /**
@@ -861,13 +865,13 @@ public class TCPNIOTransport extends NIOTransport
         return buffer;
     }
 
-    public int write(final Connection connection, final WritableMessage message)
+    public int write(final TCPNIOConnection connection, final WritableMessage message)
             throws IOException {
         return write(connection, message, null);
     }
 
     @SuppressWarnings("unchecked")
-    public int write(final Connection connection, final WritableMessage message,
+    public int write(final TCPNIOConnection connection, final WritableMessage message,
             final WriteResult currentResult) throws IOException {
 
         final int written;
@@ -895,8 +899,8 @@ public class TCPNIOTransport extends NIOTransport
                         currentResult.setMessage(message);
                         currentResult.setWrittenSize(currentResult.getWrittenSize()
                                 + written);
-                        currentResult.setDstAddress(
-                                connection.getPeerAddress());
+                        currentResult.setDstAddressHolder(
+                                connection.peerSocketAddressHolder);
                     }
                 }
             } catch (IOException e) {

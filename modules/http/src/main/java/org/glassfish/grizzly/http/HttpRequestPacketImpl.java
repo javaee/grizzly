@@ -46,7 +46,7 @@ import org.glassfish.grizzly.ThreadCache;
  *
  * @author Alexey Stashok
  */
-class HttpRequestPacketImpl extends HttpRequestPacket /* implements HttpPacketParsing*/ {
+class HttpRequestPacketImpl extends HttpRequestPacket {
     private static final ThreadCache.CachedTypeIndex<HttpRequestPacketImpl> CACHE_IDX =
             ThreadCache.obtainIndex(HttpRequestPacketImpl.class, 16);
 
@@ -66,58 +66,17 @@ class HttpRequestPacketImpl extends HttpRequestPacket /* implements HttpPacketPa
         };
     }
 
-//    private boolean isHeaderParsed;
-//    
-//    private final HttpCodecFilter.HeaderParsingState headerParsingState;
-//    private final HttpCodecFilter.ContentParsingState contentParsingState;
     private final ProcessingState processingState;
 
     protected HttpRequestPacketImpl() {
-//        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
-//        this.contentParsingState = new HttpCodecFilter.ContentParsingState();
         this.processingState = new ProcessingState();
         isExpectContent = true;
     }
-
-//    public void initialize(final Connection connection,
-//                           final HttpCodecFilter filter,
-//                           final int initialOffset,
-//                           final int maxHeaderSize,
-//                           final int maxNumberOfHeaders) {
-//        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
-//        contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
-//        headers.setMaxNumHeaders(maxNumberOfHeaders);
-//        setConnection(connection);
-//    }
 
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
     }
-
-//    @Override
-//    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
-//        return headerParsingState;
-//    }
-//
-//    @Override
-//    public ContentParsingState getContentParsingState() {
-//        return contentParsingState;
-//    }
-//
-//    @Override
-//    public boolean isHeaderParsed() {
-//        return isHeaderParsed;
-//    }
-//
-//    @Override
-//    public void setHeaderParsed(final boolean isHeaderParsed) {
-//        if (isHeaderParsed && isExpectContent() && !isChunked) {
-//            contentParsingState.chunkRemainder = getContentLength();
-//        }
-//        
-//        this.isHeaderParsed = isHeaderParsed;
-//    }
 
     /**
      * {@inheritDoc}

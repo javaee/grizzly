@@ -39,14 +39,15 @@
  */
 package org.glassfish.grizzly;
 
-import static junit.framework.Assert.assertEquals;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import org.glassfish.grizzly.utils.NullaryFunction;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
 
 public class TestDefaults {
 

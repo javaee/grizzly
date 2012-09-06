@@ -50,13 +50,13 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.glassfish.grizzly.ThreadCache;
 
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -516,7 +516,7 @@ public class HttpClientFilter extends HttpCodecFilter {
 
         Queue<HttpRequestPacket> q = httpRequestQueueAttr.get(c);
         if (q == null) {
-            q = DataStructures.getLTQInstance(HttpRequestPacket.class);
+            q = new ConcurrentLinkedQueue<HttpRequestPacket>();
             httpRequestQueueAttr.set(c, q);
         }
         return q;
