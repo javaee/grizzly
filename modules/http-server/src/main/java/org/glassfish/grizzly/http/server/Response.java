@@ -95,7 +95,6 @@ import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.UEncoder;
 import org.glassfish.grizzly.utils.DelayedExecutor;
@@ -1750,9 +1749,9 @@ public class Response {
     public void resume() {
         checkResponse();
 
-        suspendedContext.markResumed();
-        
-        ctx.resume();
+        if (suspendedContext.markResumed()) {
+            ctx.resume();
+        }
     }
 
     /**
@@ -1806,12 +1805,12 @@ public class Response {
          * Marks {@link Response} as resumed, but doesn't resume associated
          * {@link FilterChainContext} invocation.
          */
-        public synchronized void markResumed() {
+        public synchronized boolean markResumed() {
             modCount++;
             
             if (suspendState != SuspendState.SUSPENDED) {
                 if (suspendState == SuspendState.CANCELLED) { // Siletly return if processing has been cancelled
-                    return;
+                    return false;
                 }
                 
                 throw new IllegalStateException("Not Suspended");
@@ -1833,6 +1832,8 @@ public class Response {
 
             HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
                     connection, request);
+            
+            return true;
         }
 
         /**
