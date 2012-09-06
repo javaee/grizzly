@@ -72,7 +72,7 @@ class AsyncContextImpl implements AsyncContext {
         Logger.getLogger(AsyncContextImpl.class.getName());
 
     // Default timeout for async operations
-    private static final long DEFAULT_ASYNC_TIMEOUT_MILLIS = 30000L;
+    private static final long DEFAULT_ASYNC_TIMEOUT_MILLIS = -1; // No timeout by default
 
     // Thread pool for async dispatches
     static final ExecutorService pool =
