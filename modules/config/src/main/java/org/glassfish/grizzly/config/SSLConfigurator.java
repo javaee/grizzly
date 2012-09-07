@@ -63,8 +63,7 @@ import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.hk2.api.TypeLiteral;
-import org.glassfish.hk2.utilities.BuilderHelper;
+import org.glassfish.hk2.api.ServiceHandle;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -85,11 +84,16 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         this.ssl = ssl;
         
         Provider<SSLImplementation> sslImplementationLocal;
-        if (habitat.getBestDescriptor(BuilderHelper.createNameAndContractFilter(SSLImplementation.class.getName(),ssl.getClassname())) != null) {
-            sslImplementationLocal = habitat.getService((new TypeLiteral<Provider<SSLImplementation>>() {}).getType(),
-                    ssl.getClassname());
-        }
-        else {
+        final ServiceHandle<SSLImplementation> handle = habitat.getServiceHandle(SSLImplementation.class, ssl.getClassname());
+        if (handle != null) {
+            sslImplementationLocal = new Provider<SSLImplementation>() {
+                @Override
+                public SSLImplementation get() {
+                    return handle.getService();
+                }
+            };
+
+        } else {
             final SSLImplementation impl = lookupSSLImplementation(habitat, ssl);
             if (impl == null) {
                 throw new IllegalStateException("Can not configure SSLImplementation");
