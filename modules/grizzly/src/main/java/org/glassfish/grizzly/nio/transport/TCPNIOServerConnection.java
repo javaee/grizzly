@@ -216,6 +216,8 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
             connection.setProcessor(processor);
         }
 
+        connection.resetProperties();
+        
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
                 completionHandler);
@@ -284,7 +286,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                 final TCPNIOConnection connection =
                         (TCPNIOConnection) transport.getConnectionForKey(acceptedConnectionKey);
 
-                connection.resetProperties();
                 if (listener != null) {
                     listener.result(connection);
                 }
