@@ -406,7 +406,7 @@ public class TransferEncodingTest extends TestCase {
 
         @Override
         public void service(Request request, Response response) throws Exception {
-            final NIOWriter writer = response.getWriter();
+            final NIOWriter writer = response.getNIOWriter();
             for (int i = 0; i < length; i++) {
                 writer.write((char) ('0' + (i % 10)));
             }
@@ -422,8 +422,8 @@ public class TransferEncodingTest extends TestCase {
 
             response.suspend();
 
-            final NIOInputStream inputStream = request.getInputStream();
-            final NIOOutputStream outputStream = response.getOutputStream();
+            final NIOInputStream inputStream = request.getNIOInputStream();
+            final NIOOutputStream outputStream = response.getNIOOutputStream();
             
             inputStream.notifyAvailable(new ReadHandler() {
 

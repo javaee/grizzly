@@ -210,7 +210,7 @@ public class MutlipartEntryInputStreamTest {
                     response.suspend();
 
                     MultipartScanner.scan(request, new TestMultipartEntryHandler(
-                            response.getOutputStream()),
+                            response.getNIOOutputStream()),
                             new ResumeCompletionHandler(response));
                 }
             }, "/");

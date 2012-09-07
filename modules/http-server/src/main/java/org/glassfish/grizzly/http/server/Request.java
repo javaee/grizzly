@@ -921,15 +921,8 @@ public class Request {
      *
      * @since 2.2
      */
-    public NIOInputStream getInputStream() {
-
-        if (usingReader)
-            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
-
-        usingInputStream = true;
-        inputStream.setInputBuffer(inputBuffer);
-        return inputStream;
-
+    public InputStream getInputStream() {
+        return getNIOInputStream();
     }
 
     /**
@@ -948,10 +941,14 @@ public class Request {
      *
      * @exception IllegalStateException if {@link #getReader()} or
      *  {@link #getNIOReader()} has already been called for this request.
-     * @deprecated pls. use {@link #getInputStream()}
      */
     public NIOInputStream getNIOInputStream() {
-        return getInputStream();
+        if (usingReader)
+            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
+
+        usingInputStream = true;
+        inputStream.setInputBuffer(inputBuffer);
+        return inputStream;
     }
 
 
@@ -1116,14 +1113,8 @@ public class Request {
      *
      * @since 2.2
      */
-    public NIOReader getReader() {
-        if (usingInputStream)
-            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
-
-        usingReader = true;
-        inputBuffer.processingChars();
-        reader.setInputBuffer(inputBuffer);
-        return reader;
+    public Reader getReader() {
+        return getNIOReader();
     }
 
     /**
@@ -1134,10 +1125,15 @@ public class Request {
      *
      * @throws IllegalStateException if {@link #getInputStream()} or
      *  {@link #getNIOInputStream()} has already been called for this request.
-     * @deprecated pls. use {@link #getReader()}
      */
     public NIOReader getNIOReader() {
-        return getReader();
+        if (usingInputStream)
+            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
+
+        usingReader = true;
+        inputBuffer.processingChars();
+        reader.setInputBuffer(inputBuffer);
+        return reader;
     }
 
 

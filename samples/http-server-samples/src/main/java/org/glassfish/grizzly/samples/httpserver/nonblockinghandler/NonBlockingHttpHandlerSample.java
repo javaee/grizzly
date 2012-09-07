@@ -319,8 +319,8 @@ public class NonBlockingHttpHandlerSample {
                             final Response response) throws Exception {
 
             final char[] buf = new char[128];
-            final NIOReader in = request.getReader(); // return the non-blocking InputStream
-            final NIOWriter out = response.getWriter();
+            final NIOReader in = request.getNIOReader(); // return the non-blocking InputStream
+            final NIOWriter out = response.getNIOWriter();
 
             response.suspend();
 

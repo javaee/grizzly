@@ -241,7 +241,7 @@ public class StaticHttpHandler extends HttpHandler {
         
         response.suspend();
         
-        final NIOOutputStream outputStream = response.getOutputStream();
+        final NIOOutputStream outputStream = response.getNIOOutputStream();
         
         outputStream.notifyCanWrite(
                 new NonBlockingDownloadHandler(response, outputStream,

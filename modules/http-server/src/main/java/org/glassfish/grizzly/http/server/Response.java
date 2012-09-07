@@ -594,10 +594,14 @@ public class Response {
      *
      * @throws IllegalStateException if {@link #getWriter()} or {@link #getNIOWriter()}
      *  were already invoked.
-     * @deprecated pls. use {@link #getOutputStream()}
      */
     public NIOOutputStream getNIOOutputStream() {
-        return getOutputStream();
+        if (usingWriter)
+            throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
+
+        usingOutputStream = true;
+        outputStream.setOutputBuffer(outputBuffer);
+        return outputStream;
     }
 
     /**
@@ -617,13 +621,8 @@ public class Response {
      *
      * @since 2.1.2
      */
-    public NIOOutputStream getOutputStream() {
-        if (usingWriter)
-            throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
-
-        usingOutputStream = true;
-        outputStream.setOutputBuffer(outputBuffer);
-        return outputStream;
+    public OutputStream getOutputStream() {
+        return getNIOOutputStream();
     }
 
     /**
@@ -653,7 +652,25 @@ public class Response {
      * @throws IllegalStateException if {@link #getOutputStream()} or
      *  {@link #getNIOOutputStream()} were already invoked.
      */
-    public NIOWriter getWriter() {
+    public Writer getWriter() {
+        return getNIOWriter();
+    }
+
+
+    /**
+     * <p>
+     * Return the {@link NIOWriter} associated with this {@link Response}.
+     * The {@link NIOWriter} will write content in a non-blocking manner.
+     * </p>
+     *
+     * @return the {@link NIOWriter} associated with this {@link Response}.
+     *
+     * @throws IllegalStateException if {@link #getOutputStream()} or
+     *  {@link #getNIOOutputStream()} were already invoked.
+     *
+     * @since 2.1.2
+     */
+    public NIOWriter getNIOWriter() {
         if (usingOutputStream)
             throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 
@@ -675,25 +692,6 @@ public class Response {
         outputBuffer.prepareCharacterEncoder();
         writer.setOutputBuffer(outputBuffer);
         return writer;
-    }
-
-
-    /**
-     * <p>
-     * Return the {@link NIOWriter} associated with this {@link Response}.
-     * The {@link NIOWriter} will write content in a non-blocking manner.
-     * </p>
-     *
-     * @return the {@link NIOWriter} associated with this {@link Response}.
-     *
-     * @throws IllegalStateException if {@link #getOutputStream()} or
-     *  {@link #getNIOOutputStream()} were already invoked.
-     *
-     * @since 2.1.2
-     * @deprecated pls. use {@link #getWriter()}
-     */
-    public NIOWriter getNIOWriter() {
-        return getWriter();
     }
 
     /**

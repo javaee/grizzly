@@ -229,7 +229,7 @@ public class MutlipartEntryReaderTest {
                     response.setCharacterEncoding("UTF-8");
                     
                     MultipartScanner.scan(request,
-                            new TestMultipartEntryHandler(response.getWriter()),
+                            new TestMultipartEntryHandler(response.getNIOWriter()),
                             new ResumeCompletionHandler(response));
                 }
             }, "/");

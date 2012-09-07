@@ -115,7 +115,7 @@ public class UploadHttpHandlerSample {
         public void service(final Request request,
                             final Response response) throws Exception {
 
-            final NIOInputStream in = request.getInputStream(); // get non-blocking InputStream
+            final NIOInputStream in = request.getNIOInputStream(); // get non-blocking InputStream
             
             final FileChannel fileChannel = new FileOutputStream(
                     "./" + counter.incrementAndGet() + ".upload").getChannel();

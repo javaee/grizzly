@@ -141,7 +141,7 @@ public class DownloadHttpHandlerSample {
             response.setBufferSize(0);
             
             // put the stream in non-blocking mode
-            final NIOOutputStream output = response.getOutputStream();
+            final NIOOutputStream output = response.getNIOOutputStream();
             
             // get file path
             final String path = request.getDecodedRequestURI();
@@ -177,7 +177,7 @@ public class DownloadHttpHandlerSample {
 
                     if (isWriteMore) {
                         // if there are more bytes to be sent - reregister this WriteHandler
-                        output.notifyCanWrite(this, CHUNK_SIZE);
+                        output.notifyCanWrite(this);
                     }
                 }
 
@@ -248,7 +248,7 @@ public class DownloadHttpHandlerSample {
                         response.finish();                    
                     }                    
                 }
-            }, CHUNK_SIZE);
+            });
         }
     } // END NonBlockingDownloadHandler    
 }

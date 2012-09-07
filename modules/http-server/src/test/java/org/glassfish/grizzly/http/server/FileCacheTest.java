@@ -159,7 +159,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final NIOWriter writer = res.getWriter();
+                    final NIOWriter writer = res.getNIOWriter();
                     writer.write(error == null
                             ? "Hello not cached data"
                             : "Error happened: " + error);
@@ -318,7 +318,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final NIOWriter writer = res.getWriter();
+                    final NIOWriter writer = res.getNIOWriter();
                     writer.write(error == null
                             ? "Hello not cached data"
                             : "Error happened: " + error);

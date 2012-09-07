@@ -156,7 +156,7 @@ public class NIOOutputSinksTest extends TestCase {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
-                final NIOOutputStream out = response.getOutputStream();
+                final NIOOutputStream out = response.getNIOOutputStream();
 
                 while (out.canWrite()) {
                     byte[] b = new byte[LENGTH];
@@ -317,7 +317,7 @@ public class NIOOutputSinksTest extends TestCase {
                 clientTransport.pause();
 
                 response.setContentType("text/plain");
-                final NIOWriter out = response.getWriter();
+                final NIOWriter out = response.getNIOWriter();
                 Connection c = request.getContext().getConnection();
                 final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
 
@@ -479,7 +479,7 @@ public class NIOOutputSinksTest extends TestCase {
 
                 //clientTransport.pause();
                 response.setContentType("text/plain");
-                final NIOWriter out = response.getWriter();
+                final NIOWriter out = response.getNIOWriter();
 
                 char[] c = new char[LENGTH];
                 Arrays.fill(c, 'a');
@@ -593,7 +593,7 @@ public class NIOOutputSinksTest extends TestCase {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
-                final NIOOutputStream out = response.getOutputStream();
+                final NIOOutputStream out = response.getNIOOutputStream();
                 
                 // in order to enable direct writes - set the buffer size less than byte[] length
                 response.setBufferSize(LENGTH / 8);
@@ -702,7 +702,7 @@ public class NIOOutputSinksTest extends TestCase {
                 response.suspend();
                 
                 //clientTransport.pause();
-                final NIOOutputStream outputStream = response.getOutputStream();
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
                 outputStream.notifyCanWrite(new WriteHandler() {
 
                     @Override
@@ -840,7 +840,7 @@ public class NIOOutputSinksTest extends TestCase {
             public void service(final Request request, final Response response) throws Exception {
                 response.suspend();
                 
-                final NIOOutputStream outputStream = response.getOutputStream();
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
                 outputStream.notifyCanWrite(new WriteHandler() {
 
                     @Override
@@ -989,7 +989,7 @@ public class NIOOutputSinksTest extends TestCase {
             public void service(final Request request, final Response response) throws Exception {
                 response.suspend();
                 
-                final NIOOutputStream outputStream = response.getOutputStream();
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
                 
                 int numberOfExtraWrites = 0;
                 
