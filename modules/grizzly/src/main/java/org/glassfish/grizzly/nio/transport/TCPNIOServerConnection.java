@@ -189,6 +189,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             connection.setProcessorSelector(processorSelector);
         }
 
+        connection.resetProperties();
+        
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
                 completionHandler);
@@ -252,7 +254,6 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
         }
 
-        acceptedConnection.resetProperties();
         notifyProbesAccept(this, acceptedConnection);
     }
     
