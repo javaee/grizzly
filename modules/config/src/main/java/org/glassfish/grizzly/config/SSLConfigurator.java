@@ -101,6 +101,10 @@ public class SSLConfigurator extends SSLEngineConfigurator {
                 }
             };
         }
+
+        if (sslImplementationLocal == null) {
+            throw new IllegalStateException("Can not create SSLConfigurator. SSLImplementation is null");
+        }
         
         sslImplementation = sslImplementationLocal;
         needClientAuth = isNeedClientAuth(ssl);
