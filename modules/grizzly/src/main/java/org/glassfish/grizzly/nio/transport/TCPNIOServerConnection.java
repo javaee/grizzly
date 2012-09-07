@@ -252,6 +252,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
         }
 
+        acceptedConnection.resetProperties();
         notifyProbesAccept(this, acceptedConnection);
     }
     
@@ -319,7 +320,6 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 final TCPNIOConnection connection =
                         (TCPNIOConnection) selectionKeyHandler.getConnectionForKey(acceptedConnectionKey);
 
-                connection.resetProperties();
                 if (listener != null) {
                     listener.result(connection);
                 }
