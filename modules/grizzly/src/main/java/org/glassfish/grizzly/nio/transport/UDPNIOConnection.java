@@ -134,7 +134,7 @@ public class UDPNIOConnection extends NIOConnection {
                     getWriteBufferSize() * 4 :
                     transportMaxAsyncWriteQueueSize);
             
-            localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+            localSocketAddressHolder = Holder.lazyHolder(
                     new NullaryFunction<SocketAddress>() {
                         @Override
                         public SocketAddress evaluate() {
@@ -142,7 +142,7 @@ public class UDPNIOConnection extends NIOConnection {
                         }
                     });
 
-            peerSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+            peerSocketAddressHolder = Holder.lazyHolder(
                     new NullaryFunction<SocketAddress>() {
                         @Override
                         public SocketAddress evaluate() {

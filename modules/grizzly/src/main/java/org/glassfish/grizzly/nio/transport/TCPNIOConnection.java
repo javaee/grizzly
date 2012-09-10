@@ -138,7 +138,7 @@ public class TCPNIOConnection extends NIOConnection {
                     ? getWriteBufferSize() * 4
                     : transportMaxAsyncWriteQueueSize);
 
-            localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+            localSocketAddressHolder = Holder.lazyHolder(
                     new NullaryFunction<SocketAddress>() {
                         @Override
                         public SocketAddress evaluate() {
@@ -146,7 +146,7 @@ public class TCPNIOConnection extends NIOConnection {
                         }
                     });
 
-            peerSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+            peerSocketAddressHolder = Holder.lazyHolder(
                     new NullaryFunction<SocketAddress>() {
                         @Override
                         public SocketAddress evaluate() {
