@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -52,7 +51,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -82,7 +80,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 ((TCPNIOTransport) transport).selectorRegistrationHandler;
 
         final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.<RegisterChannelResult>create();
+                SafeFutureImpl.create();
         
         transport.getNIOChannelDistributor().registerServiceChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this,
@@ -280,16 +278,16 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     @Override
     @SuppressWarnings("unchecked")
     protected void resetProperties() {
-        localSocketAddressHolder = Holder.<SocketAddress>lazyHolder(
+        localSocketAddressHolder = Holder.lazyHolder(
                 new NullaryFunction<SocketAddress>() {
 
-            @Override
-            public SocketAddress evaluate() {
-                return ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
-            }
-        });
+                    @Override
+                    public SocketAddress evaluate() {
+                        return ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
+                    }
+                });
 
-        peerSocketAddressHolder = Holder.<SocketAddress>staticHolder(null);
+        peerSocketAddressHolder = Holder.staticHolder(null);
     }
 
     

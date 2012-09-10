@@ -43,8 +43,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -221,7 +219,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         
         final FutureImpl<RegisterChannelResult> future =
-                Futures.<RegisterChannelResult>createSafeFuture();
+                Futures.createSafeFuture();
         
         selectorHandler.registerChannelAsync(
             selectorRunner, channel, 0, this, Futures.toCompletionHandler(future));
@@ -329,7 +327,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read() {
         final FutureImpl<ReadResult<M, SocketAddress>> future =
-                Futures.<ReadResult<M, SocketAddress>>createSafeFuture();
+                Futures.createSafeFuture();
         read(Futures.toCompletionHandler(future));
         
         return future;
@@ -346,7 +344,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(final M message) {
         final FutureImpl<WriteResult<M, SocketAddress>> future =
-                Futures.<WriteResult<M, SocketAddress>>createSafeFuture();
+                Futures.createSafeFuture();
         write(null, message, Futures.toCompletionHandler(future), null);
         
         return future;
