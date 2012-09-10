@@ -192,13 +192,16 @@ public class TCPNIOConnection extends NIOConnection {
      */
     @Override
     public void setReadBufferSize(final int readBufferSize) {
-        if (writeBufferSizeHolder == null) {
+        if (readBufferSizeHolder == null) {
             throw new IllegalStateException("TCPNIOConnection is not initialized");
         }
         
         if (readBufferSize > 0) {
             try {
-                ((SocketChannel) channel).socket().setReceiveBufferSize(readBufferSize);
+                final int currentReadBufferSize = ((SocketChannel) channel).socket().getReceiveBufferSize();
+                if (readBufferSize > currentReadBufferSize) {
+                    ((SocketChannel) channel).socket().setReceiveBufferSize(readBufferSize);
+                }
                 readBufferSizeHolder.setInt(readBufferSize);
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING,
@@ -228,7 +231,10 @@ public class TCPNIOConnection extends NIOConnection {
         
         if (writeBufferSize > 0) {
             try {
-                ((SocketChannel) channel).socket().setSendBufferSize(writeBufferSize);
+                final int currentSendBufferSize = ((SocketChannel) channel).socket().getSendBufferSize();
+                if (writeBufferSize > currentSendBufferSize) {
+                    ((SocketChannel) channel).socket().setSendBufferSize(writeBufferSize);
+                }
                 writeBufferSizeHolder.setInt(writeBufferSize);
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING,

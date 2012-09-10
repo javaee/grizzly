@@ -188,13 +188,16 @@ public class UDPNIOConnection extends NIOConnection {
      */
     @Override
     public void setReadBufferSize(final int readBufferSize) {
-        if (writeBufferSizeHolder == null) {
+        if (readBufferSizeHolder == null) {
             throw new IllegalStateException("TCPNIOConnection is not initialized");
         }
         
         if (readBufferSize > 0) {
             try {
-                ((DatagramChannel) channel).socket().setReceiveBufferSize(readBufferSize);
+                final int currentReadBufferSize = ((DatagramChannel) channel).socket().getReceiveBufferSize();
+                if (readBufferSize > currentReadBufferSize) {
+                    ((DatagramChannel) channel).socket().setReceiveBufferSize(readBufferSize);
+                }
                 readBufferSizeHolder.setInt(readBufferSize);
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING,
@@ -224,7 +227,10 @@ public class UDPNIOConnection extends NIOConnection {
         
         if (writeBufferSize > 0) {
             try {
-                ((DatagramChannel) channel).socket().setSendBufferSize(writeBufferSize);
+                final int currentSendBufferSize = ((DatagramChannel) channel).socket().getSendBufferSize();
+                if (writeBufferSize > currentSendBufferSize) {
+                    ((DatagramChannel) channel).socket().setSendBufferSize(writeBufferSize);
+                }
                 writeBufferSizeHolder.setInt(writeBufferSize);
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING,
