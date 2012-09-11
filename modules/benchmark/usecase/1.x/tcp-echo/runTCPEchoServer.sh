@@ -39,7 +39,9 @@
 # holder.
 #
 
-java -cp ../lib/framework.jar:../lib/utils.jar:./build/classes org.glassfish.grizzly.benchmark.TCPEchoServer $@
+java -Xmx1024m -server -jar ./target/grizzly-tcp-echo-benchmark1.x-1.0-SNAPSHOT.jar $@
+
+# java -cp ../lib/framework.jar:../lib/utils.jar:./build/classes org.glassfish.grizzly.benchmark.TCPEchoServer $@
 
 #java -cp ../lib/framework.jar:../lib/utils.jar:./build/classes -Djava.util.logging.config.file=./logging.properties org.glassfish.grizzly.benchmark.TCPEchoServer $@
 
