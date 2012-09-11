@@ -87,7 +87,7 @@ public class SendFileTest extends TestCase {
     @SuppressWarnings("unchecked")
     public void testSimpleSendFileViaStaticResourceAdapter() throws Exception {
         HttpServer server = createServer(null, false, false);
-        File control = generateTempFile(1024);
+        File control = generateTempFile(1024, "tmp2");
         final ReusableFuture<File> result = new ReusableFuture<File>();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
@@ -628,7 +628,11 @@ public class SendFileTest extends TestCase {
 
 
     private static File generateTempFile(final int size) throws IOException {
-        final File f = File.createTempFile("grizzly-temp-" + size, ".tmp");
+        return generateTempFile(size, "tmp");
+    }
+    
+    private static File generateTempFile(final int size, final String ext) throws IOException {
+        final File f = File.createTempFile("grizzly-temp-" + size, "." + ext);
         Random r = new Random();
         byte[] data = new byte[8192];
         r.nextBytes(data);
