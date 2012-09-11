@@ -740,7 +740,7 @@ public class OutputBuffer {
      * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      */
     public boolean canWrite() {
-        if (isNonBlockingWriteGuaranteed) {
+        if (IS_BLOCKING || isNonBlockingWriteGuaranteed) {
             return true;
         }
         
@@ -789,6 +789,9 @@ public class OutputBuffer {
             return;
         }
         
+        // This point might be reached if OutputBuffer is in non-blocking mode
+        assert !IS_BLOCKING;
+        
         if (asyncWriteHandler == null) {
             asyncWriteHandler = new InternalWriteHandler();
         }
@@ -801,10 +804,6 @@ public class OutputBuffer {
         }
     }
 
-//    private int getMaxAsyncWriteQueueSize() {
-//        return ctx.getConnection().getMaxAsyncWriteQueueSize();
-//    }
-//
     /**
      * Notify WriteHandler asynchronously
      */
@@ -850,7 +849,7 @@ public class OutputBuffer {
     private void blockAfterWriteIfNeeded()
             throws IOException {
         
-        if (isNonBlockingWriteGuaranteed || isLastWriteNonBlocking) {
+        if (IS_BLOCKING || isNonBlockingWriteGuaranteed || isLastWriteNonBlocking) {
             return;
         }
         

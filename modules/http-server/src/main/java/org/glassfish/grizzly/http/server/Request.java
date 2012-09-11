@@ -574,7 +574,7 @@ public class Request {
     }
 
     protected void onAfterService() {
-        if (/*asyncInput() &&*/ !inputBuffer.isFinished()) {
+        if (!inputBuffer.isFinished()) {
             inputBuffer.terminate();
         }
 
@@ -923,7 +923,12 @@ public class Request {
      * <p>
      * Return the {@link NIOInputStream} for this {@link Request}.
      * </p>
-     *
+     * 
+     * By default the returned {@link NIOInputStream} will work as blocking
+     * {@link InputStream}, but it will be possible to call {@link NIOInputStream#isReady()},
+     * {@link NIOInputStream#available()}, or {@link NIOInputStream#notifyAvailable(org.glassfish.grizzly.ReadHandler)}
+     * to avoid blocking.
+     * 
      * @return the {@link NIOInputStream} for this {@link Request}.
      *
      * @exception IllegalStateException if {@link #getReader()}
@@ -933,51 +938,14 @@ public class Request {
      */
     public NIOInputStream getInputStream() {
 
-        return getInputStream0(/*true*/);
-
-    }
-
-    /**
-     * @deprecated use {@link #getInputStream()}
-     * 
-     * <p>
-     * Return the {@link NIOInputStream} for this {@link Request}.   This stream
-     * will not block when reading content.
-     * </p>
-     *
-     * @return the {@link NIOInputStream} for this {@link Request}.
-     *
-     * @exception IllegalStateException if {@link #getReader()}
-     *   has already been called for this request.
-     */
-    public NIOInputStream getNIOInputStream() {
-        return getInputStream0(/*false*/);
-    }
-
-    private NIOInputStream getInputStream0(/*final boolean blocking*/) {
-
         if (usingReader)
             throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
 
         usingInputStream = true;
-//        inputBuffer.setAsyncEnabled(!blocking);
         inputStream.setInputBuffer(inputBuffer);
         return inputStream;
 
     }
-
-
-    /**
-     * @return <code>true</code> if the current input source is operating in
-     * non-blocking mode. In other words {@link #getNIOInputStream()} or
-     *  {@link #getNIOReader()} were invoked.
-     */
-//    public boolean asyncInput() {
-//
-//        return inputBuffer.isAsyncEnabled();
-//
-//    }
-
 
     /**
      * @return <code>true</code> if this request requires acknowledgment.
@@ -1114,7 +1082,12 @@ public class Request {
      * <p>
      * Returns the {@link NIOReader} associated with this {@link Request}.
      * </p>
-     *
+     * 
+     * By default the returned {@link NIOReader} will work as blocking
+     * {@link java.io.Reader}, but it will be possible to call {@link NIOReader#isReady()}
+     * or {@link NIOReader#notifyAvailable(org.glassfish.grizzly.ReadHandler)}
+     * to avoid blocking.
+     * 
      * @return the {@link NIOReader} associated with this {@link Request}.
      *
      * @throws IllegalStateException if {@link #getInputStream()}
@@ -1123,37 +1096,14 @@ public class Request {
      * @since 2.2
      */
     public NIOReader getReader() {
-        return getReader0(/*true*/);
-    }
-
-    /**
-     * @deprecated use {@link #getReader()}
-     * 
-     * <p>
-     * Returns the {@link NIOReader} associated with this {@link Request}.
-     * This {@link NIOReader} will not block while reading content.
-     * </p>
-     *
-     * @throws IllegalStateException if {@link #getInputStream()}
-     *   has already been called for this request.
-     */
-    public NIOReader getNIOReader() {
-        return getReader0(/*false*/);
-    }
-
-    private NIOReader getReader0(/*final boolean blocking*/) {
-
         if (usingInputStream)
             throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
 
         usingReader = true;
         inputBuffer.processingChars();
-//        inputBuffer.setAsyncEnabled(!blocking);
         reader.setInputBuffer(inputBuffer);
         return reader;
-
     }
-
 
     /**
      * Return the remote IP address making this Request.
@@ -1908,8 +1858,7 @@ public class Request {
 
     /**
      * @return the {@link InputBuffer} associated with this request, which is the
-     * source for {@link #getInputStream()}, {@link #getReader()},
-     * {@link #getNIOInputStream()}, and {@link #getNIOReader()}
+     * source for {@link #getInputStream()}, {@link #getReader()}.
      */
     public InputBuffer getInputBuffer() {
 

@@ -586,25 +586,15 @@ public class Response {
     }
 
     /**
-     * @deprecated use {@link #getInputStream()}
+     * <p>
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * </p>
+     *
+     * By default the returned {@link NIOOutputStream} will work as blocking
+     * {@link OutputStream}, but it will be possible to call {@link NIOOutputStream#canWrite()} or
+     * {@link NIOOutputStream#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
+     * avoid blocking.
      * 
-     * <p>
-     * Return the {@link NIOOutputStream} associated with this {@link Response}.
-     * This {@link NIOOutputStream} will write content in a non-blocking manner.
-     * </p>
-     *
-    * @throws IllegalStateException if {@link #getWriter()} or {@link #getNIOWriter()}
-     *  were already invoked.
-     */
-    public NIOOutputStream getNIOOutputStream() {
-        return getOutputStream0(/*false*/);
-    }
-
-    /**
-     * <p>
-     * Return the {@link NIOOutputStream} associated with this {@link Response}.
-     * </p>
-     *
      * @return the {@link NIOOutputStream} associated with this {@link Response}.
      *
      * @throws IllegalStateException if {@link #getWriter()}
@@ -613,16 +603,11 @@ public class Response {
      * @since 2.1.2
      */
     public NIOOutputStream getOutputStream() {
-        return getOutputStream0(/*true*/);
-    }
-
-    private NIOOutputStream getOutputStream0(/*final boolean blocking*/) {
 
         if (usingWriter)
             throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
-//        outputBuffer.setAsyncEnabled(!blocking);
         outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
 
@@ -647,36 +632,16 @@ public class Response {
      * Return the {@link NIOWriter} associated with this {@link Response}.
      * </p>
      *
+     * By default the returned {@link NIOWriter} will work as blocking
+     * {@link Writer}, but it will be possible to call {@link NIOWriter#canWrite()} or
+     * {@link NIOWriter#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
+     * avoid blocking.
+     * 
      * @throws IllegalStateException if {@link #getOutputStream()} has been
      *              already invoked.
      */
     public NIOWriter getWriter() {
 
-        return getWriter0(/*true*/);
-
-    }
-
-
-    /**
-     * @deprecated use {@link #getWriter()}
-     * 
-     * <p>
-     * Return the {@link NIOWriter} associated with this {@link Response}.
-     * The {@link NIOWriter} will write content in a non-blocking manner.
-     * </p>
-     *
-     * @return the {@link NIOWriter} associated with this {@link Response}.
-     *
-     * @throws IllegalStateException if {@link #getOutputStream()}
-     *   has been already invoked.
-     *
-     * @since 2.1.2
-     */
-    public NIOWriter getNIOWriter() {
-        return getWriter0(/*false*/);
-    }
-
-    private NIOWriter getWriter0(/*final boolean blocking*/) {
         if (usingOutputStream)
             throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 
@@ -696,7 +661,6 @@ public class Response {
 
         usingWriter = true;
         outputBuffer.prepareCharacterEncoder();
-//        outputBuffer.setAsyncEnabled(!blocking);
         writer.setOutputBuffer(outputBuffer);
         return writer;
 
