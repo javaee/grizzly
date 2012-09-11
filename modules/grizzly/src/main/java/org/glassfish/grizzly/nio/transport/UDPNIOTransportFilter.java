@@ -113,9 +113,9 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             ctx.setMessage(buffer);
             ctx.setAddressHolder(addressHolder);
 
-            if (!connection.isConnected()) {
-                connection.enableIOEvent(IOEvent.READ);
-            }
+//            if (!connection.isConnected()) {
+//                connection.enableIOEvent(IOEvent.READ);
+//            }
         } else {
             readResult.recycle();
             return ctx.getStopAction();
