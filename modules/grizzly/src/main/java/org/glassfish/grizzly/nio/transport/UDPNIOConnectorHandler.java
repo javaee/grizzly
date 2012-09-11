@@ -105,9 +105,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             socket.setReuseAddress(isReuseAddress);
 
-            if (localAddress != null) {
-                socket.bind(localAddress);
-            }
+            socket.bind(localAddress);
 
             datagramChannel.configureBlocking(false);
 

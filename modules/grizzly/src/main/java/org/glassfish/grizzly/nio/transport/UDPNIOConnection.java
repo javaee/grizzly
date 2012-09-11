@@ -40,9 +40,18 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -52,7 +61,9 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.JdkVersion;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
@@ -64,6 +75,66 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 public class UDPNIOConnection extends NIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnection.class);
+
+    private static final boolean IS_MULTICAST_SUPPORTED;
+    private static final Method JOIN_METHOD;
+    private static final Method JOIN_WITH_SOURCE_METHOD;
+    private static final Method MK_GET_NETWORK_INTERFACE_METHOD;
+    private static final Method MK_GET_SOURCE_ADDRESS_METHOD;
+    private static final Method MK_DROP_METHOD;
+    private static final Method MK_BLOCK_METHOD;
+    private static final Method MK_UNBLOCK_METHOD;
+    
+    static {
+        JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+        JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
+        
+            
+        boolean isInitialized = false;
+        Method join = null, joinWithSource = null,
+                mkGetNetworkInterface = null, mkGetSourceAddress = null,
+                mkDrop = null, mkBlock = null, mkUnblock = null;
+        if (minimumVersion.compareTo(jdkVersion) <= 0) { // If JDK version is >= 1.7
+            try {
+                join = DatagramChannel.class.getMethod("join",
+                        InetAddress.class, NetworkInterface.class);
+                joinWithSource = DatagramChannel.class.getMethod("join",
+                        InetAddress.class, NetworkInterface.class, InetAddress.class);
+                
+                final Class membershipKeyClass = loadClass("java.nio.channels.MembershipKey");
+                
+                mkGetNetworkInterface = membershipKeyClass.getDeclaredMethod("networkInterface");
+                mkGetSourceAddress = membershipKeyClass.getDeclaredMethod("sourceAddress");
+                mkDrop = membershipKeyClass.getDeclaredMethod("drop");
+                
+                mkBlock = membershipKeyClass.getDeclaredMethod("block", InetAddress.class);
+                mkUnblock = membershipKeyClass.getDeclaredMethod("unblock", InetAddress.class);
+                isInitialized = true;
+            } catch (Throwable t) {
+                LOGGER.log(Level.WARNING, "Can't initialize reflection methods for DatagramChannel multicasting", t);
+            }
+        }
+        
+        if (isInitialized) {
+            IS_MULTICAST_SUPPORTED = true;
+            JOIN_METHOD = join;
+            JOIN_WITH_SOURCE_METHOD = joinWithSource;
+            MK_GET_NETWORK_INTERFACE_METHOD = mkGetNetworkInterface;
+            MK_GET_SOURCE_ADDRESS_METHOD = mkGetSourceAddress;
+            MK_DROP_METHOD = mkDrop;
+            MK_BLOCK_METHOD = mkBlock;
+            MK_UNBLOCK_METHOD = mkUnblock;
+        } else {
+            IS_MULTICAST_SUPPORTED = false;
+            JOIN_METHOD = JOIN_WITH_SOURCE_METHOD =
+                    MK_GET_NETWORK_INTERFACE_METHOD =
+                    MK_GET_SOURCE_ADDRESS_METHOD = MK_DROP_METHOD =
+                    MK_BLOCK_METHOD = MK_UNBLOCK_METHOD = null;
+        }
+    }
+    
+    private final Object multicastSync;
+    private Map<InetAddress, Set<Object>> membershipKeysMap;
     
     Holder<SocketAddress> localSocketAddressHolder;
     Holder<SocketAddress> peerSocketAddressHolder;
@@ -78,12 +149,297 @@ public class UDPNIOConnection extends NIOConnection {
         this.channel = channel;
 
         resetProperties();
+        
+        multicastSync = IS_MULTICAST_SUPPORTED ? new Object() : null;
     }
 
     public boolean isConnected() {
         return channel != null && ((DatagramChannel) channel).isConnected();
     }
 
+    /**
+     * Joins a multicast group to begin receiving all datagrams sent to the
+     * group. If this connection is currently a member of the group on the given
+     * interface to receive all datagrams then this method call has no effect.
+     * Otherwise this connection joins the requested group and channel's
+     * membership in not source-specific.
+     *
+     * A multicast connection may join several multicast groups, including the
+     * same group on more than one interface. An implementation may impose a
+     * limit on the number of groups that may be joined at the same time.
+     *
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     *
+     * @throws IOException
+     */
+    public void join(final InetAddress group,
+            final NetworkInterface networkInterface) throws IOException {
+        join(group, networkInterface, null);
+    }
+
+    /**
+     * Joins a multicast group to begin receiving datagrams sent to the group
+     * from a given source address. If this connection is currently a member of
+     * the group on the given interface to receive datagrams from the given
+     * source address then this method call has no effect. Otherwise
+     * this connection joins the group and depending on the source parameter
+     * value (whether it's not null or null value) the connection's membership
+     * is or is not source-specific.
+     *
+     * Membership is cumulative and this method may be invoked again with the
+     * same group and interface to allow receiving datagrams sent by other
+     * source addresses to the group.
+     *
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * @param source The source address
+     */
+    public void join(final InetAddress group,
+            final NetworkInterface networkInterface, final InetAddress source)
+            throws IOException {
+        
+        if (!IS_MULTICAST_SUPPORTED) {
+            throw new UnsupportedOperationException("JDK 1.7+ required");
+        }
+        
+        if (group == null) {
+            throw new IllegalArgumentException("group parameter can't be null");
+        }
+
+        if (networkInterface == null) {
+            throw new IllegalArgumentException("networkInterface parameter can't be null");
+        }
+
+        synchronized (multicastSync) {
+            Object membershipKey = join0((DatagramChannel) channel,
+                    group, networkInterface, source);
+
+            if (membershipKeysMap == null) {
+                membershipKeysMap = new HashMap<InetAddress, Set<Object>>();
+            }
+            
+            Set<Object> keySet = membershipKeysMap.get(group);
+            if (keySet == null) {
+                keySet = new HashSet<Object>();
+                membershipKeysMap.put(group, keySet);
+            }
+            
+            keySet.add(membershipKey);
+        }
+    }
+
+    /**
+     * Drops non-source specific membership in a multicast group.
+     * If this connection doesn't have non-source specific membership in the group
+     * on the given interface to receive datagrams then this method call
+     * has no effect. Otherwise this connection drops the group membership.
+     * 
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * 
+     * @throws IOException 
+     */
+    public void drop(final InetAddress group,
+            final NetworkInterface networkInterface) throws IOException {
+        drop(group, networkInterface, null);
+    }
+    
+    /**
+     * Drops membership in a multicast group.
+     * If the source parameter is null - this method call is equivalent to
+     * {@link #drop(java.net.InetAddress, java.net.NetworkInterface)}.
+     * 
+     * If the source parameter is not null and this connection doesn't have 
+     * source specific membership in the group on the given interface to
+     * receive datagrams then this method call has no effect.
+     * Otherwise this connection drops the source specific group membership.
+     * 
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * @param source The source address
+     * 
+     * @throws IOException 
+     */
+    public void drop(final InetAddress group,
+            final NetworkInterface networkInterface, final InetAddress source)
+            throws IOException {
+        
+        if (!IS_MULTICAST_SUPPORTED) {
+            throw new UnsupportedOperationException("JDK 1.7+ required");
+        }
+        
+        if (group == null) {
+            throw new IllegalArgumentException("group parameter can't be null");
+        }
+
+        if (networkInterface == null) {
+            throw new IllegalArgumentException("networkInterface parameter can't be null");
+        }
+
+        synchronized (multicastSync) {
+            final Set<Object> keys;
+            if (membershipKeysMap != null &&
+                    (keys = membershipKeysMap.get(group)) != null) {
+                for (final Iterator<Object> it = keys.iterator(); it.hasNext(); ) {
+                    final Object key = it.next();
+                    
+                    if (networkInterface.equals(networkInterface0(key))) {
+                        if ((source == null && sourceAddress0(key) == null) ||
+                                (source != null && source.equals(sourceAddress0(key)))) {
+                            drop0(key);
+                            it.remove();
+                        }
+                    }
+                    
+                    if (keys.isEmpty()) {
+                        membershipKeysMap.remove(group);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Drops all active membership in a multicast group.
+     * If this connection doesn't have any type of membership in the group
+     * on the given interface to receive datagrams then this method call
+     * has no effect. Otherwise this connection drops all types of the group membership.
+     * 
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * 
+     * @throws IOException 
+     */
+    public void dropAll(final InetAddress group,
+            final NetworkInterface networkInterface)
+            throws IOException {
+        
+        if (!IS_MULTICAST_SUPPORTED) {
+            throw new UnsupportedOperationException("JDK 1.7+ required");
+        }
+        
+        if (group == null) {
+            throw new IllegalArgumentException("group parameter can't be null");
+        }
+
+        if (networkInterface == null) {
+            throw new IllegalArgumentException("networkInterface parameter can't be null");
+        }
+
+        synchronized (multicastSync) {
+            final Set<Object> keys;
+            if (membershipKeysMap != null &&
+                    (keys = membershipKeysMap.get(group)) != null) {
+                for (final Iterator<Object> it = keys.iterator(); it.hasNext(); ) {
+                    final Object key = it.next();
+                    
+                    if (networkInterface.equals(networkInterface0(key))) {
+                        drop0(key);
+                        it.remove();
+                    }
+                }
+                
+                if (keys.isEmpty()) {
+                    membershipKeysMap.remove(group);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Blocks multicast datagrams from the given source address. 
+     * 
+     * If this connection has non-source specific membership in the group
+     * on the given interface then this method blocks multicast datagrams from
+     * the given source address.  If the given source address is already blocked
+     * then this method has no effect.
+     * 
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * @param source The source address to block
+     * 
+     * @throws IOException 
+     */
+    public void block(final InetAddress group,
+            final NetworkInterface networkInterface, final InetAddress source)
+            throws IOException {
+        
+        if (!IS_MULTICAST_SUPPORTED) {
+            throw new UnsupportedOperationException("JDK 1.7+ required");
+        }
+        
+        if (group == null) {
+            throw new IllegalArgumentException("group parameter can't be null");
+        }
+
+        if (networkInterface == null) {
+            throw new IllegalArgumentException("networkInterface parameter can't be null");
+        }
+
+        synchronized (multicastSync) {
+            final Set<Object> keys;
+            if (membershipKeysMap != null &&
+                    (keys = membershipKeysMap.get(group)) != null) {
+                for (final Iterator<Object> it = keys.iterator(); it.hasNext(); ) {
+                    final Object key = it.next();
+                    
+                    if (networkInterface.equals(networkInterface0(key))
+                            && sourceAddress0(key) == null) {
+                        block0(key, source);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Unblocks multicast datagrams from the given source address. 
+     * 
+     * If this connection has non-source specific membership in the group
+     * on the given interface and specified source address was previously blocked
+     * using {@link #block(java.net.InetAddress, java.net.NetworkInterface, java.net.InetAddress)} method
+     * then this method unblocks multicast datagrams from the given source address.
+     * If the given source address wasn't blocked then this method has no effect.
+     * 
+     * @param group The multicast address to join
+     * @param networkInterface The network interface on which to join the group
+     * @param source The source address to block
+     * 
+     * @throws IOException 
+     */
+    public void unblock(final InetAddress group,
+            final NetworkInterface networkInterface, final InetAddress source)
+            throws IOException {
+        
+        if (!IS_MULTICAST_SUPPORTED) {
+            throw new UnsupportedOperationException("JDK 1.7+ required");
+        }
+        
+        if (group == null) {
+            throw new IllegalArgumentException("group parameter can't be null");
+        }
+
+        if (networkInterface == null) {
+            throw new IllegalArgumentException("networkInterface parameter can't be null");
+        }
+
+        synchronized (multicastSync) {
+            final Set<Object> keys;
+            if (membershipKeysMap != null &&
+                    (keys = membershipKeysMap.get(group)) != null) {
+                for (final Iterator<Object> it = keys.iterator(); it.hasNext(); ) {
+                    final Object key = it.next();
+                    
+                    if (networkInterface.equals(networkInterface0(key))
+                            && sourceAddress0(key) == null) {
+                        unblock0(key, source);
+                    }
+                }
+            }
+        }
+    }
+    
     @Override
     protected void setSelectionKey(SelectionKey selectionKey) {
         super.setSelectionKey(selectionKey);
@@ -276,5 +632,64 @@ public class UDPNIOConnection extends NIOConnection {
         sb.append(", peerSocketAddress=").append(peerSocketAddressHolder);
         sb.append('}');
         return sb.toString();
+    }
+
+    private static Object join0(final DatagramChannel channel,
+            final InetAddress group, final NetworkInterface networkInterface,
+            final InetAddress source) throws IOException {
+        
+        return source == null
+                ? invoke(channel, JOIN_METHOD, group, networkInterface)
+                : invoke(channel, JOIN_WITH_SOURCE_METHOD, group, networkInterface, source);
+    }
+
+    private static NetworkInterface networkInterface0(final Object membershipKey)
+            throws IOException {
+        
+        return  (NetworkInterface) invoke(membershipKey, MK_GET_NETWORK_INTERFACE_METHOD);
+    }
+    
+    private static InetAddress sourceAddress0(final Object membershipKey)
+            throws IOException {
+        
+        return  (InetAddress) invoke(membershipKey, MK_GET_SOURCE_ADDRESS_METHOD);
+    }
+
+    private static void drop0(final Object membershipKey)
+            throws IOException {
+        
+        invoke(membershipKey, MK_DROP_METHOD);
+    }
+
+    private static void block0(final Object membershipKey,
+            final InetAddress sourceAddress) throws IOException {
+        
+        invoke(membershipKey, MK_BLOCK_METHOD, sourceAddress);
+    }
+    
+    private static void unblock0(final Object membershipKey,
+            final InetAddress sourceAddress) throws IOException {
+        
+        invoke(membershipKey, MK_UNBLOCK_METHOD, sourceAddress);
+    }
+
+    private static Object invoke(final Object object, final Method method,
+            final Object... params) throws IOException {
+        try {
+            return method.invoke(object, params);
+        } catch (InvocationTargetException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            } else {
+                throw Exceptions.makeIOException(t);
+            }
+        } catch (Throwable t) {
+            throw Exceptions.makeIOException(t);
+        }
+    }
+    
+    private static Class<?> loadClass(final String cname) throws Throwable {
+        return ClassLoader.getSystemClassLoader().loadClass(cname);
     }
 }
