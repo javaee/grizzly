@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -128,8 +128,9 @@ public final class SilentConnectionFilter extends BaseFilter {
         }
 
         @Override
-        public Long getTimeoutMillis(Connection connection) {
-            return silentConnectionAttr.get(connection);
+        public long getTimeoutMillis(Connection connection) {
+            final Long timeout = silentConnectionAttr.get(connection);
+            return timeout != null ? timeout.longValue() : DelayedExecutor.UNSET_TIMEOUT;
         }
 
         @Override

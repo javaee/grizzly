@@ -41,8 +41,9 @@
 package org.glassfish.grizzly.utils;
 
 import java.util.Iterator;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -57,8 +58,8 @@ public class DelayedExecutor {
 
     private final DelayedRunnable runnable = new DelayedRunnable();
     
-    private final BlockingQueue<DelayQueue> queues =
-             DataStructures.getLTQInstance(DelayQueue.class);
+    private final Queue<DelayQueue> queues =
+             new ConcurrentLinkedQueue<DelayQueue>();
 
     private final Object sync = new Object();
 
@@ -113,12 +114,9 @@ public class DelayedExecutor {
         return queue;
     }
 
-    private static boolean wasModified(final Long l1, final Long l2) {
-        if (l1 != null) {
-            return !l1.equals(l2);
+    private static boolean wasModified(final long l1, final long l2) {
+        return l1 != l2;
         }
-        return l2 != null && !l2.equals(l1);
-    }
 
     private class DelayedRunnable implements Runnable {
 
@@ -135,9 +133,9 @@ public class DelayedExecutor {
 
                     for (Iterator it = delayQueue.queue.keySet().iterator(); it.hasNext(); ) {
                         final Object element = it.next();
-                        final Long timeoutMillis = resolver.getTimeoutMillis(element);
+                        final long timeoutMillis = resolver.getTimeoutMillis(element);
                         
-                        if (timeoutMillis == null || timeoutMillis == UNSET_TIMEOUT) {
+                        if (timeoutMillis == UNSET_TIMEOUT) {
                             it.remove();
                             if (wasModified(timeoutMillis,
                                     resolver.getTimeoutMillis(element))) {                                
@@ -208,7 +206,7 @@ public class DelayedExecutor {
     public interface Resolver<E> {
         public boolean removeTimeout(E element);
         
-        public Long getTimeoutMillis(E element);
+        public long getTimeoutMillis(E element);
         
         public void setTimeoutMillis(E element, long timeoutMillis);
     }

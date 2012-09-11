@@ -317,7 +317,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         return handleRead(ctx, httpRequest);
     }
 
-
     private ServerHttpRequestImpl getHttpRequestInProcess(final Connection connection) {
         return httpRequestInProcessAttr.get(connection);
     }
@@ -1304,7 +1303,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         @Override
-        public Long getTimeoutMillis(KeepAliveContext element) {
+        public long getTimeoutMillis(KeepAliveContext element) {
             return element.keepAliveTimeoutMillis;
         }
 
@@ -1393,7 +1392,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             return super.getContentType();
         }
 
-        
         @Override
         public ProcessingState getProcessingState() {
             return processingState;

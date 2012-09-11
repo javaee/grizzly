@@ -1913,7 +1913,7 @@ public class Response {
         }
 
         @Override
-        public Long getTimeoutMillis(final Response element) {
+        public long getTimeoutMillis(final Response element) {
             return element.suspendedContext.timeoutTimeMillis;
         }
 

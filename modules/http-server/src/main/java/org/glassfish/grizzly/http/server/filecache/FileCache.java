@@ -904,7 +904,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         }
 
         @Override
-        public Long getTimeoutMillis(FileCacheEntry element) {
+        public long getTimeoutMillis(FileCacheEntry element) {
             return element.timeoutMillis;
         }
 
