@@ -137,13 +137,11 @@ public final class ProcessorExecutor {
         
         final Context processingContext = newContext == null ? context : newContext;
         
-        try {
-            if (processingHandler != null) {
-                processingHandler.onComplete(processingContext);
-            }
-        } finally {
-            processingContext.recycle();
+        if (processingHandler != null) {
+            processingHandler.onComplete(processingContext);
         }
+        
+        processingContext.recycle();
     }
 
 //    private static void reregister(final Context context, final Object data)
@@ -197,14 +195,12 @@ public final class ProcessorExecutor {
     private static void notRun(final Context context) throws IOException {
         final EventProcessingHandler processingHandler =
                 context.getProcessingHandler();
-        try {
-            if (processingHandler != null) {
-                processingHandler.onNotRun(context);
-            }
-        } finally {
-            context.recycle();
-        }
 
+        if (processingHandler != null) {
+            processingHandler.onNotRun(context);
+        }
+        
+        context.recycle();
     }
 
 }
