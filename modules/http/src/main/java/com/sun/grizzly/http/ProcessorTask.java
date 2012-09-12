@@ -2211,10 +2211,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         return request;
     }
 
-    public Response getResponse() {
-        return response;
-    }
-
 
     /**
      * Recycle this object.

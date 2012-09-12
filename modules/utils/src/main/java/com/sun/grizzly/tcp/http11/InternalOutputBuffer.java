@@ -638,7 +638,9 @@ public class InternalOutputBuffer
     public int doWrite(ByteChunk chunk, Response res)
             throws IOException {
 
-        res.doNotifyWriteListener();
+        if (response.isSuspended()) {
+            response.action(ActionCode.RESET_SUSPEND_TIMEOUT, null);
+        }
 
         if (!committed) {
 
