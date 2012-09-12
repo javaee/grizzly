@@ -100,6 +100,15 @@ public class Response<A> {
      * Default locale as mandated by the spec.
      */
     private static Locale DEFAULT_LOCALE = Locale.getDefault();
+
+    private static final WriteListener SUSPENDED_WRITE_LISTENER =
+            new WriteListener() {
+                public void onWrite(Response response) {
+                    if (response.isSuspended()) {
+                        response.action(ActionCode.RESET_SUSPEND_TIMEOUT, response);
+                    }
+                }
+            };
     
     
     // --------------------------------------------------- Suspend/Resume ---- /
@@ -196,6 +205,8 @@ public class Response<A> {
             Boolean.getBoolean("com.sun.grizzly.discardDisconnect");
 
     private boolean allowCustomReasonPhrase = true;
+
+    private WriteListener writeListener;
     
     
     // ------------------------------------------------------------- Properties
@@ -678,9 +689,7 @@ public class Response<A> {
     public void doWrite(ByteChunk chunk/*byte buffer[], int pos, int count*/)
         throws IOException{
         
-        if (isSuspended){
-            action(ActionCode.RESET_SUSPEND_TIMEOUT,this);
-        }
+        doNotifyWriteListener();
         
         outputBuffer.doWrite(chunk, this);
         bytesWritten+=chunk.getLength();
@@ -709,6 +718,8 @@ public class Response<A> {
 
         isSuspended = false;
         ra = null;
+        writeListener = null;
+
     }
 
     public long getBytesWritten() {
@@ -769,6 +780,7 @@ public class Response<A> {
             }
             
             isSuspended = false;
+            writeListener = null;
 
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
 
@@ -917,6 +929,7 @@ public class Response<A> {
                 throw new IllegalStateException("Already Suspended");
             }
             isSuspended = true;
+            writeListener = SUSPENDED_WRITE_LISTENER;
 
             if (ra == null) {
                 ra = new ResponseAttachment(timeout, attachment, competionHandler, this);
@@ -1128,5 +1141,26 @@ public class Response<A> {
             throw new IllegalStateException("Not Supported");
         }
     }
+
+    public final void setWriteListener(final WriteListener writeListener) {
+        this.writeListener = writeListener;
+    }
+
+
+    public final void doNotifyWriteListener() {
+        if (writeListener != null) {
+            writeListener.onWrite(this);
+        }
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static interface WriteListener {
+
+        void onWrite(final Response response);
+
+    } // END WriteListener
     
 }

@@ -39,6 +39,7 @@
  */
 package com.sun.grizzly.comet;
 
+import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
@@ -319,7 +320,7 @@ public class CometEngine {
          * If the returned CometContext is null, it means we need to 
          * execute a synchronous request. 
          */
-        CometTask cometTask = updatedContexts.get();
+        final CometTask cometTask = updatedContexts.get();
         if (cometTask != null) {
             //need to impl thread local that gets and sets null in one efficient operation
             updatedContexts.set(null);
@@ -344,7 +345,14 @@ public class CometEngine {
                     return false;
                 }
             }
-            
+
+            apt.getAsyncExecutor().getProcessorTask().getResponse().setWriteListener(
+                    new Response.WriteListener() {
+                        public void onWrite(Response response) {
+                            cometTask.setTimeout(System.currentTimeMillis());
+                        }
+                    }
+            );
             mainKey.attach(cometTask);
             cometContext.initialize(cometTask.getCometHandler());
             cometContext.addActiveHandler(cometTask);
