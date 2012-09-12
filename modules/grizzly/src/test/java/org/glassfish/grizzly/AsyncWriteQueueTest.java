@@ -497,7 +497,7 @@ public class AsyncWriteQueueTest {
             final Thread currentThread = Thread.currentThread();
             threadsHistory.add(currentThread);
             
-            Buffer buffer = Buffers.wrap(mm, "" + ((char) ('A' + packetCounter.getAndIncrement())));
+            Buffer buffer = Buffers.EMPTY_BUFFER;
 
             con.write(buffer,
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
@@ -523,7 +523,7 @@ public class AsyncWriteQueueTest {
                         }
                     });
 
-            assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+            assertTrue(resultFuture.get(1000, TimeUnit.SECONDS));
 
             int counter = 0;
             while (!threadsHistory.isEmpty()) {

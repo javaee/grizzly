@@ -233,7 +233,7 @@ public interface Writer<L> {
          * {@link #getMaxReentrants()} limit, or <tt>false</tt> otherwise.
          */
         public boolean inc() {
-            return ++counter < maxWriteReentrants;
+            return ++counter <= maxWriteReentrants;
         }
 
         /**
@@ -243,7 +243,7 @@ public interface Writer<L> {
          * {@link #getMaxReentrants()} limit, or <tt>false</tt> otherwise.
          */
         public boolean dec() {
-            return --counter < maxWriteReentrants;
+            return --counter <= maxWriteReentrants;
         }
 
         /**
