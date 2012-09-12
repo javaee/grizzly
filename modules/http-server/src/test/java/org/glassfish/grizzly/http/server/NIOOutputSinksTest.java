@@ -689,13 +689,20 @@ public class NIOOutputSinksTest extends TestCase {
         });
         
         final int maxAllowedReentrants = listener.getTransport().getAsyncQueueIO().getWriter().getMaxWriteReentrants();
-        final Queue<Thread> threadsHistory = new ConcurrentLinkedQueue<Thread>();
+        final Queue<Integer> reentrantsHistory = new ConcurrentLinkedQueue<Integer>();
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 
             int reentrants = maxAllowedReentrants;
+            final ThreadLocal<Integer> reentrantsCounter = new ThreadLocal<Integer>() {
+
+                @Override
+                protected Integer initialValue() {
+                    return 0;
+                }
+            };
             
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -708,7 +715,10 @@ public class NIOOutputSinksTest extends TestCase {
                     @Override
                     public void onWritePossible() throws Exception {
                         if (reentrants-- >= 0) {
-                            threadsHistory.offer(Thread.currentThread());
+                            final Integer reentrantNum = reentrantsCounter.get();
+                            reentrantsHistory.offer(reentrantNum);
+                            reentrantsCounter.set(reentrantNum + 1);
+                            
                             outputStream.notifyCanWrite(this);
                         } else {
                             finish(200);
@@ -741,17 +751,14 @@ public class NIOOutputSinksTest extends TestCase {
                 final HttpHeader header = parseResult.get(10, TimeUnit.SECONDS);
                 assertEquals(200, ((HttpResponsePacket) header).getStatus());
                 
-                Thread t = null;
-                for (int i = 0; i < maxAllowedReentrants; i++) {
-                    if (t == null) {
-                        t = threadsHistory.poll();
-                    } else {
-                        assertEquals("(Unexpected): Different threads were used", threadsHistory.poll(), t);
-                    }
+                int expectedCounter = 0;
+                
+                for (int i = 0; i < maxAllowedReentrants; i++, expectedCounter++) {
+                    assertEquals("(Unexpected): Reentrant counter mismatch",
+                            (Integer) expectedCounter, reentrantsHistory.poll());
                 }
                 
-                assertNotNull(t);
-                assertNotSame("The last thread has to be different", t, threadsHistory.poll());
+                assertEquals("The last thread has to have 0 counter", (Integer) 0, reentrantsHistory.poll());
             } finally {
                 // Close the client connection
                 if (connection != null) {

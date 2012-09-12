@@ -290,7 +290,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final Reentrant reentrants = getWriteReentrant();
         
         try {
-            if (reentrants.incAndGet() >= maxWriteReentrants) {
+            if (reentrants.incAndGet() > maxWriteReentrants) {
                 // Max number of reentrants is reached
                 
                 queueRecord.setMessage(
