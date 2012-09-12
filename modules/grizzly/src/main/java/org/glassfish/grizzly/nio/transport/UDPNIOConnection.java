@@ -72,6 +72,7 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class UDPNIOConnection extends NIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnection.class);

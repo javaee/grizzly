@@ -154,7 +154,7 @@ public abstract class ChatCommand {
             
             // Send the message
             connection.write(peerAddr, msg,
-                    Futures.toCompletionHandler(writeFuture));
+                    Futures.toCompletionHandler(writeFuture), null);
             
             // Block until the message is sent
             writeFuture.get(10, TimeUnit.SECONDS);
@@ -215,7 +215,7 @@ public abstract class ChatCommand {
             
             // Send the greeting message to group
             connection.write(peerAddr, "joined the group " + groupAddr,
-                    Futures.toCompletionHandler(writeFuture));
+                    Futures.toCompletionHandler(writeFuture), null);
             
             // Block until the message is sent
             writeFuture.get(10, TimeUnit.SECONDS);
@@ -274,7 +274,7 @@ public abstract class ChatCommand {
 
                 // Send the leave message to the group
                 connection.write(peerAddr, "left the group " + groupAddr,
-                        Futures.toCompletionHandler(writeFuture));
+                        Futures.toCompletionHandler(writeFuture), null);
 
                 // Block until the message is sent
                 writeFuture.get(10, TimeUnit.SECONDS);
