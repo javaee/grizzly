@@ -334,6 +334,13 @@ public class CometEngine {
             cometTask.setAsyncProcessorTask(apt);
             if (cometContext.getExpirationDelay() > 0) {
                 cometTask.setTimeout(System.currentTimeMillis());
+                apt.getAsyncExecutor().getProcessorTask().getResponse().setWriteListener(
+                        new Response.WriteListener() {
+                            public void onWrite(Response response) {
+                                cometTask.setTimeout(System.currentTimeMillis());
+                            }
+                        }
+                );
             }
             
             SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
@@ -346,13 +353,6 @@ public class CometEngine {
                 }
             }
 
-            apt.getAsyncExecutor().getProcessorTask().getResponse().setWriteListener(
-                    new Response.WriteListener() {
-                        public void onWrite(Response response) {
-                            cometTask.setTimeout(System.currentTimeMillis());
-                        }
-                    }
-            );
             mainKey.attach(cometTask);
             cometContext.initialize(cometTask.getCometHandler());
             cometContext.addActiveHandler(cometTask);
