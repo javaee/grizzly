@@ -156,7 +156,7 @@ public class MulticastChat {
             connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
             
             // Prepare the console reader
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, Charset.forName("UTF-8")));
             printCommands();
             
             do {
