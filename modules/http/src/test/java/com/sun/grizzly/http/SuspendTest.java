@@ -684,6 +684,9 @@ public class SuspendTest {
             Utils.dumpErr(("GET / HTTP/1.1\n"));
             os.write(("GET / HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            // force the connection closed so BufferedReader, used below,
+            // can reliably return no matter which transfer encoding is used.
+            os.write(("Connection: close\n").getBytes());
             os.write("\n".getBytes());
             os.flush();
 
