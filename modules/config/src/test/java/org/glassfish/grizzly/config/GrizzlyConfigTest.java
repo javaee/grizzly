@@ -45,6 +45,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
+import org.glassfish.grizzly.config.dom.NetworkAddressValidator;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -54,6 +55,9 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created Jan 5, 2009
@@ -79,7 +83,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
             Assert.assertEquals("<html><body>You've found the server on port 38084</body></html>", content3);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -94,19 +100,21 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
+            assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
             found = false;
             for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from Transport", found);
+            assertTrue("Should find the NetworkListener in the list of references from Transport", found);
             found = false;
             for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
+            assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -145,7 +153,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             Assert.assertEquals("<html><body>You've found the server on port 38085</body></html>",
                     getContent(new URL("https://localhost:38085").openConnection()));
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -166,7 +176,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
             grizzlyConfig.setupNetwork();
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -176,8 +188,23 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
             grizzlyConfig.setupNetwork();
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
+    }
+
+    @Test
+    public void testNetworkAddressValidator() {
+        NetworkAddressValidator validator = new NetworkAddressValidator();
+        assertTrue(validator.isValid("${SOME_PROP}", null));
+        assertFalse(validator.isValid("$SOME_PROP}", null));
+        assertFalse(validator.isValid("${SOME_PROP", null));
+        assertFalse(validator.isValid("{SOME_PROP}", null));
+        assertTrue(validator.isValid("127.0.0.1", null));
+        assertFalse(validator.isValid("127.0.0.", null));
+        assertTrue(validator.isValid("::1", null));
+        assertFalse(validator.isValid(":1", null));
     }
     
     @Test
@@ -197,7 +224,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             Assert.assertEquals(WorkerThreadIOStrategy.class, genericGrizzlyListener2.getTransport().getIOStrategy().getClass());
             
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
     
@@ -223,7 +252,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             Assert.assertEquals("http", content);
             Assert.assertEquals("https", content2);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
