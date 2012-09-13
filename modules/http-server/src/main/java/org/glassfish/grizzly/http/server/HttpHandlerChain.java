@@ -313,7 +313,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
             }
         } finally {
-            mapperUpdateLock.writeLock().lock();
+            mapperUpdateLock.writeLock().unlock();
         }
 
     }
@@ -366,7 +366,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             
             return (mappings != null);
         } finally {
-            mapperUpdateLock.writeLock().lock();
+            mapperUpdateLock.writeLock().unlock();
         }
     }
 
@@ -378,7 +378,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 removeHttpHandler(handler);
             }
         } finally {
-            mapperUpdateLock.writeLock().lock();
+            mapperUpdateLock.writeLock().unlock();
         }
     }
     
@@ -392,7 +392,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 httpHandler.start();
             }
         } finally {
-            mapperUpdateLock.readLock().lock();
+            mapperUpdateLock.readLock().unlock();
         }
         
         started = true;
@@ -408,7 +408,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 a.destroy();
             }
         } finally {
-            mapperUpdateLock.readLock().lock();
+            mapperUpdateLock.readLock().unlock();
         }
         started = false;
     }
