@@ -486,19 +486,29 @@ public class AsyncWriteQueueTest {
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
-            final int maxReentrants = 10;
+            final int maxAllowedReentrants = 10;
+            final int reentrantsToTest = maxAllowedReentrants * 3;
+            
+            final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
+
             Writer.Reentrant.setMaxReentrants(10);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
             final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
-            final Queue<Thread> threadsHistory = new ConcurrentLinkedQueue<Thread>();
 
-            final Thread currentThread = Thread.currentThread();
-            threadsHistory.add(currentThread);
-            
             Buffer buffer = Buffers.EMPTY_BUFFER;
 
+            final ThreadLocal<Integer> reentrantsCounter = new ThreadLocal<Integer>() {
+                @Override
+                protected Integer initialValue() {
+                    return -1;
+                }
+            };
+            
+            reentrantsCounter.set(0);
+
+            try {
             con.write(buffer,
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
 
@@ -507,11 +517,24 @@ public class AsyncWriteQueueTest {
                                 WriteResult<WritableMessage, SocketAddress> result) {
 
                             final int packetNum = packetCounter.incrementAndGet();
-                            if (packetNum <= maxReentrants + 1) {
-                                threadsHistory.add(Thread.currentThread());
-                                Buffer bufferInner = Buffers.wrap(mm, ""
-                                        + ((char) ('A' + packetNum)));
-                                con.write(bufferInner, this);
+                            if (packetNum <= reentrantsToTest) {
+                                
+                                final int reentrantNum = reentrantsCounter.get() + 1;
+                                try {
+                                    reentrantsCounter.set(reentrantNum);
+                                    
+                                    if (reentrantNum > maxReentrantsNoticed.get()) {
+                                        maxReentrantsNoticed.set(reentrantNum);
+                                    }
+                                    
+                                    Buffer bufferInner = Buffers.wrap(mm, ""
+                                            + ((char) ('A' + packetNum)));
+                                    con.write(bufferInner, this);
+                                } finally {
+                                    reentrantsCounter.set(reentrantNum - 1);
+                                }
+                                
+                                
                             } else {
                                 resultFuture.result(Boolean.TRUE);
                             }
@@ -522,21 +545,15 @@ public class AsyncWriteQueueTest {
                             resultFuture.failure(throwable);
                         }
                     });
-
-            assertTrue(resultFuture.get(1000, TimeUnit.SECONDS));
-
-            int counter = 0;
-            while (!threadsHistory.isEmpty()) {
-                final Thread t = threadsHistory.poll();
-                if (!threadsHistory.isEmpty()) {
-                    // not last thread in history (should be main/current)
-                    assertSame("counter=" + counter, currentThread, t);
-                } else {
-                    // the last thread in history (should *not* be main/current)
-                    assertNotSame("counter=" + counter, currentThread, t);
-                }
-                counter++;
+            } finally {
+                reentrantsCounter.remove();
             }
+            
+            assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+
+            assertTrue("maxReentrantNoticed=" + maxReentrantsNoticed + " maxAllowed=" + maxAllowedReentrants,
+                    maxReentrantsNoticed.get() <= maxAllowedReentrants);
+
         } finally {
             if (connection != null) {
                 connection.closeSilently();
