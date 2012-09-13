@@ -54,7 +54,7 @@ import javax.validation.Payload;
 @Documented
 @Constraint(validatedBy = NetworkAddressValidator.class)
 public @interface NetworkAddress {
-    String message() default "must be a valid network address";
+    String message() default "must be a valid network address or property substitution (a string starting with \"${\" and ending with \"}\"";
 
     Class<? extends Payload>[] payload() default {};
 

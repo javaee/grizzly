@@ -45,6 +45,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+
+import org.glassfish.grizzly.config.dom.NetworkAddressValidator;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -80,7 +82,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
             assertEquals("<html><body>You've found the server on port 38084</body></html>", content3);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -107,7 +111,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             }
             assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -146,7 +152,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             assertEquals("<html><body>You've found the server on port 38085</body></html>",
                     getContent(new URL("https://localhost:38085").openConnection()));
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -167,7 +175,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
             grizzlyConfig.setupNetwork();
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -177,8 +187,23 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
             grizzlyConfig.setupNetwork();
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
+    }
+
+    @Test
+    public void testNetworkAddressValidator() {
+        NetworkAddressValidator validator = new NetworkAddressValidator();
+        assertTrue(validator.isValid("${SOME_PROP}", null));
+        assertFalse(validator.isValid("$SOME_PROP}", null));
+        assertFalse(validator.isValid("${SOME_PROP", null));
+        assertFalse(validator.isValid("{SOME_PROP}", null));
+        assertTrue(validator.isValid("127.0.0.1", null));
+        assertFalse(validator.isValid("127.0.0.", null));
+        assertTrue(validator.isValid("::1", null));
+        assertFalse(validator.isValid(":1", null));
     }
     
     @Test
@@ -198,7 +223,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             assertEquals(WorkerThreadIOStrategy.class, genericGrizzlyListener2.getTransport().getIOStrategy().getClass());
             
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
     
@@ -238,7 +265,9 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             assertEquals("https", content3);
             assertEquals("httpglassfish", content4);
         } finally {
-            grizzlyConfig.shutdown();
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
