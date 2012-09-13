@@ -41,6 +41,7 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.config.dom.Http;
+import com.sun.grizzly.config.dom.NetworkAddressValidator;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
@@ -79,6 +80,20 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         } finally {
             grizzlyConfig.shutdown();
         }
+    }
+
+
+    @Test
+    public void testNetworkAddressValidator() {
+        NetworkAddressValidator validator = new NetworkAddressValidator();
+        assertTrue(validator.isValid("${SOME_PROP}", null));
+        assertFalse(validator.isValid("$SOME_PROP}", null));
+        assertFalse(validator.isValid("${SOME_PROP", null));
+        assertFalse(validator.isValid("{SOME_PROP}", null));
+        assertTrue(validator.isValid("127.0.0.1", null));
+        assertFalse(validator.isValid("127.0.0.", null));
+        assertTrue(validator.isValid("::1", null));
+        assertFalse(validator.isValid(":1", null));
     }
 
     @Test
