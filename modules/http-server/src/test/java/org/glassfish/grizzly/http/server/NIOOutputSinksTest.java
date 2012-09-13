@@ -689,18 +689,18 @@ public class NIOOutputSinksTest extends TestCase {
         });
         
         final int maxAllowedReentrants = listener.getTransport().getAsyncQueueIO().getWriter().getMaxWriteReentrants();
-        final Queue<Integer> reentrantsHistory = new ConcurrentLinkedQueue<Integer>();
+        final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 
-            int reentrants = maxAllowedReentrants;
+            int reentrants = maxAllowedReentrants * 3;
             final ThreadLocal<Integer> reentrantsCounter = new ThreadLocal<Integer>() {
 
                 @Override
                 protected Integer initialValue() {
-                    return 0;
+                    return -1;
                 }
             };
             
@@ -710,31 +710,45 @@ public class NIOOutputSinksTest extends TestCase {
                 
                 //clientTransport.pause();
                 final NIOOutputStream outputStream = response.getNIOOutputStream();
-                outputStream.notifyCanWrite(new WriteHandler() {
+                reentrantsCounter.set(0);
+                
+                try {
+                    outputStream.notifyCanWrite(new WriteHandler() {
 
-                    @Override
-                    public void onWritePossible() throws Exception {
-                        if (reentrants-- >= 0) {
-                            final Integer reentrantNum = reentrantsCounter.get();
-                            reentrantsHistory.offer(reentrantNum);
-                            reentrantsCounter.set(reentrantNum + 1);
-                            
-                            outputStream.notifyCanWrite(this);
-                        } else {
-                            finish(200);
+                        @Override
+                        public void onWritePossible() throws Exception {
+                            if (reentrants-- >= 0) {
+                                final int reentrantNum = reentrantsCounter.get() + 1;
+                                
+                                try {
+                                    reentrantsCounter.set(reentrantNum);
+
+                                    if (reentrantNum > maxReentrantsNoticed.get()) {
+                                        maxReentrantsNoticed.set(reentrantNum);
+                                    }
+
+                                    outputStream.notifyCanWrite(this);
+                                } finally {
+                                    reentrantsCounter.set(reentrantNum - 1);
+                                }
+                            } else {
+                                finish(200);
+                            }
                         }
-                    }
 
-                    @Override
-                    public void onError(Throwable t) {
-                        finish(500);
-                    }
-                    
-                    private void finish(int code) {
-                        response.setStatus(code);
-                        response.resume();
-                    }
-                });
+                        @Override
+                        public void onError(Throwable t) {
+                            finish(500);
+                        }
+
+                        private void finish(int code) {
+                            response.setStatus(code);
+                            response.resume();
+                        }
+                    });
+                } finally {
+                    reentrantsCounter.remove();
+                }
             }
         };
 
@@ -750,15 +764,9 @@ public class NIOOutputSinksTest extends TestCase {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 final HttpHeader header = parseResult.get(10, TimeUnit.SECONDS);
                 assertEquals(200, ((HttpResponsePacket) header).getStatus());
-                
-                int expectedCounter = 0;
-                
-                for (int i = 0; i < maxAllowedReentrants; i++, expectedCounter++) {
-                    assertEquals("(Unexpected): Reentrant counter mismatch",
-                            (Integer) expectedCounter, reentrantsHistory.poll());
-                }
-                
-                assertEquals("The last thread has to have 0 counter", (Integer) 0, reentrantsHistory.poll());
+
+                assertTrue("maxReentrantNoticed=" + maxReentrantsNoticed + " maxAllowed=" + maxAllowedReentrants,
+                        maxReentrantsNoticed.get() <= maxAllowedReentrants);
             } finally {
                 // Close the client connection
                 if (connection != null) {
