@@ -107,6 +107,7 @@ public class InvalidRequestTest extends TestCase {
             sb.append("POST /index.html/cometd HTTP/1.1\r\n");
             sb.append("Host: localhost\r\n");
             sb.append("Content-type: text/json;charset=utf-8\r\n");
+            sb.append("Connection: close\r\n");
             sb.append("Content-Length: 109\r\n\r\n");
             sb.append("[{\"channel\": \"/meta/handshake\", \"clientId\": \"f81ba786e99809b0\", \"connectionType\": \"long-polling\", \"id\": \"1\"}]\r\n\r\n");
             os.write(sb.toString().getBytes());
