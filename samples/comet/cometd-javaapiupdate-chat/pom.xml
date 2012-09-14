@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.52-SNAPSHOT</version>
+        <version>1.9.52</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-cometd-bayeux</artifactId>
     <packaging>war</packaging>
-    <version>1.9.52-SNAPSHOT</version>
+    <version>1.9.52</version>
     <name>grizzly-cometd-example-bayeux</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
