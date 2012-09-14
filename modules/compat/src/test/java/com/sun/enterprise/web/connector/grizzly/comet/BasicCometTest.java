@@ -148,6 +148,7 @@ public class BasicCometTest extends TestCase {
             public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
                 CometEngine.getEngine().getCometContext("GrizzlyAdapter").notify("Ping");
                 response.getWriter().write("Done");
+                response.getWriter().flush();
             }
         }, new String[] {"/notify"});
 
@@ -156,6 +157,7 @@ public class BasicCometTest extends TestCase {
             @Override
             public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
                 response.getWriter().write("Static");
+                response.getWriter().flush();
             }
         }, new String[] {"/static"});
         
@@ -238,6 +240,7 @@ public class BasicCometTest extends TestCase {
             public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
                 CometEngine.getEngine().getCometContext("GrizzlyAdapter").notify("Ping");
                 response.getWriter().write("Done");
+                response.getWriter().flush();
             }
         }, new String[] {"/notify"});
 
@@ -246,6 +249,7 @@ public class BasicCometTest extends TestCase {
             @Override
             public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
                 response.getWriter().write("Static");
+                response.getWriter().flush();
             }
         }, new String[] {"/static"});
         
@@ -425,6 +429,7 @@ public class BasicCometTest extends TestCase {
             Utils.dumpOut("     -> onEvent Handler:"+this.hashCode());
             response.addHeader("onEvent", event.attachment().toString());
             response.getWriter().print("onEvent");
+            response.getWriter().flush();
             if (resume) {
                 event.getCometContext().resumeCometHandler(this);
             }
