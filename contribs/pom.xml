@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.52</version>
+        <version>1.9.53-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-contribs</artifactId>
     <packaging>pom</packaging>
-    <version>1.9.52</version>
+    <version>1.9.53-SNAPSHOT</version>
     <name>grizzly-contribs</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
