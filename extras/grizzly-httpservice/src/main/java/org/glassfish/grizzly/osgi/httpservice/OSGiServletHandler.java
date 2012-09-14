@@ -172,10 +172,10 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
 
     }
 
-    @Override
-    protected void setPathData(Request from, HttpServletRequestImpl to) {
-        to.setServletPath(getServletPath());
-    }
+//    @Override
+//    protected void setPathData(Request from, HttpServletRequestImpl to) {
+//        to.setServletPath(getServletPath());
+//    }
 
     // --------------------------------------------------------- Private Methods
 

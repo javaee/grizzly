@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
 /**
@@ -119,6 +120,8 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
 
                 ((OSGiHandler) httpHandler).getProcessingLock().lock();
                 try {
+                    updateMappingInfo(request, alias, originalAlias);
+                    
                     httpHandler.service(request, response);
                 } finally {
                     ((OSGiHandler) httpHandler).getProcessingLock().unlock();
@@ -396,5 +399,24 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
                                      "AuthorisationFilter",
                                      Collections.<String, String>emptyMap());
         return osgiServletHandler;
+    }
+
+    private void updateMappingInfo(final Request request,
+            final String alias, final String originalAlias) {
+        
+        final MappingData mappingData = request.obtainMappingData();
+        mappingData.contextPath.setString("/");
+        mappingData.wrapperPath.setString(alias);
+        
+        if (alias.length() != originalAlias.length()) {
+            String pathInfo = originalAlias.substring(alias.length());
+            if (pathInfo.charAt(0) != '/') {
+                pathInfo = "/" + pathInfo;
+            }
+            
+            mappingData.pathInfo.setString(pathInfo);
+        }
+        
+        updatePaths(request, mappingData);
     }
 }
