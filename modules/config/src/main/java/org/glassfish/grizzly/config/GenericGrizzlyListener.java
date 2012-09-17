@@ -171,7 +171,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         if (localTransport != null) {
             localTransport.stop();
         }
-        transport = null;
         rootFilterChain = null;
     }
 
