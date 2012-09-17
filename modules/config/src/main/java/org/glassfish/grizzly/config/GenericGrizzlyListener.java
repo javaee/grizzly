@@ -159,8 +159,11 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     @Override
     public void stop() throws IOException {
         stopDelayedExecutor();
-        transport.stop();
+        final NIOTransport localTransport = transport;
         transport = null;
+        if (localTransport != null) {
+            localTransport.stop();
+        }
         rootFilterChain = null;
     }
 
