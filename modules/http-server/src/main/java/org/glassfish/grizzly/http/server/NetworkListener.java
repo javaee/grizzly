@@ -63,26 +63,40 @@ import org.glassfish.grizzly.utils.ArraySet;
 
 public class NetworkListener {
     private static final Logger LOGGER = Grizzly.logger(NetworkListener.class);
+
     /**
      * The default network host to which the {@link HttpServer} will bind to in order to service <code>HTTP</code>
      * requests.
      */
     public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
+
     /**
      * The default network port to which the {@link HttpServer} will bind to in order to service <code>HTTP</code>
      * requests.
      */
     public static final int DEFAULT_NETWORK_PORT = 8080;
+
+    /**
+     * The default time, in seconds, for which a request must complete processing.
+     */
+    public static final int DEFAULT_TRANSACTION_TIMEOUT = 300;
+
     /**
      * The network host to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
      * If not explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
      */
     private String host = DEFAULT_NETWORK_HOST;
+
     /**
      * The network port to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
      * If not explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
     private int port = DEFAULT_NETWORK_PORT;
+
+    /**
+     * The time, in seconds, for which a request must complete processing.
+     */
+    private int transactionTimeout = DEFAULT_TRANSACTION_TIMEOUT;
 
     /**
      * The network port range to which the <code>HttpServer<code> will bind to
@@ -162,7 +176,6 @@ public class NetworkListener {
     private boolean disableUploadTimeout;
     private boolean traceEnabled;
     private String uriEncoding;
-    private int transactionTimeout;
     private Boolean sendFileEnabled;
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
@@ -819,10 +832,22 @@ public class NetworkListener {
         this.uriEncoding = uriEncoding;
     }
 
+    /**
+     * @return The timeout, in seconds, within which a request must complete
+     *  its processing. If not explicitly set, this will return
+     *  {@link #DEFAULT_TRANSACTION_TIMEOUT}.
+     */
     public int getTransactionTimeout() {
         return transactionTimeout;
     }
 
+    /**
+     * Sets the time, in seconds, within which a request must complete its
+     * processing.  A value less than or equal to zero will disable this
+     * timeout.
+     *
+     * @param transactionTimeout timeout in seconds
+     */
     public void setTransactionTimeout(final int transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
     }
