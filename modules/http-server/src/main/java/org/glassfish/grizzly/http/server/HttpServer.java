@@ -61,6 +61,7 @@ import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -81,6 +82,7 @@ import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
@@ -118,7 +120,7 @@ public class HttpServer {
 
     private volatile ExecutorService auxExecutorService;
 
-    private volatile DelayedExecutor delayedExecutor;
+    volatile DelayedExecutor delayedExecutor;
 
     protected volatile GrizzlyJmxManager jmxManager;
 
@@ -228,10 +230,6 @@ public class HttpServer {
         }
         return listener;
 
-    }
-
-    DelayedExecutor getDelayedExecutor() {
-        return delayedExecutor;
     }
 
     /**
@@ -376,6 +374,7 @@ public class HttpServer {
             }
 
             delayedExecutor.stop();
+            delayedExecutor.destroy();
             delayedExecutor = null;
             
             stopAuxThreadPool();
@@ -594,14 +593,14 @@ public class HttpServer {
             httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
-
+            final Transport transport = listener.getTransport();
             final FileCache fileCache = listener.getFileCache();
-            fileCache.initialize(listener.getTransport().getMemoryManager(), delayedExecutor);
+            fileCache.initialize(transport.getMemoryManager(), delayedExecutor);
             final FileCacheFilter fileCacheFilter = new FileCacheFilter(fileCache);
             fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
-            
+
             final ServerFilterConfiguration config = new ServerFilterConfiguration(serverConfig);
 
             final HttpServerFilter webServerFilter = new HttpServerFilter(
@@ -634,6 +633,20 @@ public class HttpServer {
 
             chain = builder.build();
             listener.setFilterChain(chain);
+
+            final int transactionTimeout = listener.getTransactionTimeout();
+            if (transactionTimeout >= 0) {
+                ThreadPoolConfig threadPoolConfig = transport.getWorkerThreadPoolConfig();
+
+                if (threadPoolConfig != null) {
+                    threadPoolConfig.setTransactionTimeout(
+                            delayedExecutor,
+                            transactionTimeout,
+                            TimeUnit.SECONDS);
+                }
+
+            }
+
         }
         configureMonitoring(listener);
     }
@@ -682,7 +695,7 @@ public class HttpServer {
                 set.add(lzmaEncoding);
                 return set;
             } else {
-                return Collections.<ContentEncoding>emptySet();
+                return Collections.emptySet();
             }
         }
 

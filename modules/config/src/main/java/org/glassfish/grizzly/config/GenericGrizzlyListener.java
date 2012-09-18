@@ -502,6 +502,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         delayedExecutor = null;
         if (localDelayedExecutor != null) {
             localDelayedExecutor.stop();
+            localDelayedExecutor.destroy();
         }
         final ExecutorService localThreadPool = auxExecutorService;
         auxExecutorService = null;

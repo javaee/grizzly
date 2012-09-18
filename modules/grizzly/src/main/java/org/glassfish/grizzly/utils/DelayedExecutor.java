@@ -99,6 +99,13 @@ public class DelayedExecutor {
         }
     }
 
+    public void destroy() {
+        stop();
+        synchronized(sync) {
+            queues.clear();
+        }
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     public ExecutorService getThreadPool() {
         return threadPool;

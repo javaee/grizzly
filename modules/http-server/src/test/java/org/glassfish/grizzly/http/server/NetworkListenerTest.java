@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,10 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.glassfish.grizzly.PortRange;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -98,6 +102,48 @@ public class NetworkListenerTest {
             assertTrue(listener.getPort() <= PORT + RANGE);
         } finally {
             httpServer.stop();
+        }
+    }
+
+    @Test
+    public void testTransactionTimeoutGetSet() throws IOException {
+        NetworkListener l = new NetworkListener("test");
+        assertEquals(-1, l.getTransactionTimeout());
+        l.setTransactionTimeout(Integer.MIN_VALUE);
+        assertEquals(Integer.MIN_VALUE, l.getTransactionTimeout());
+        l.setTransactionTimeout(Integer.MAX_VALUE);
+        assertEquals(Integer.MAX_VALUE, l.getTransactionTimeout());
+    }
+
+    @Test
+    public void testTransactionTimeout() throws IOException {
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        final NetworkListener listener = server.getListener("grizzly");
+        listener.setTransactionTimeout(5);
+        final AtomicReference<Exception> timeoutFailed = new AtomicReference<Exception>();
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        Thread.sleep(15000);
+                        timeoutFailed.compareAndSet(null, new IllegalStateException());
+                    }
+                }, "/test"
+        );
+        try {
+            server.start();
+            URL url = new URL("http://localhost:" + PORT + "/test");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            final long start = System.currentTimeMillis();
+            c.connect();
+            c.getResponseCode(); // cause the client to block
+            final long stop = System.currentTimeMillis();
+            assertNull(timeoutFailed.get());
+            assertTrue((stop - start) < 15000);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.stop();
         }
     }
 }

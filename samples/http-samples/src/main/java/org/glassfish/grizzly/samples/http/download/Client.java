@@ -141,6 +141,7 @@ public class Client {
             // stop the transport
             transport.stop();
             timeoutExecutor.stop();
+            timeoutExecutor.destroy();
             logger.info("Stopped transport...");
         }
     }
