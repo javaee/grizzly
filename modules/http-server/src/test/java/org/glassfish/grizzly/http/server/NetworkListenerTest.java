@@ -108,7 +108,7 @@ public class NetworkListenerTest {
     @Test
     public void testTransactionTimeoutGetSet() throws IOException {
         NetworkListener l = new NetworkListener("test");
-        assertEquals(NetworkListener.DEFAULT_TRANSACTION_TIMEOUT, l.getTransactionTimeout());
+        assertEquals(-1, l.getTransactionTimeout());
         l.setTransactionTimeout(Integer.MIN_VALUE);
         assertEquals(Integer.MIN_VALUE, l.getTransactionTimeout());
         l.setTransactionTimeout(Integer.MAX_VALUE);
