@@ -373,6 +373,7 @@ public class HttpServer {
             }
 
             delayedExecutor.stop();
+            delayedExecutor.destroy();
             delayedExecutor = null;
             
             stopAuxThreadPool();
