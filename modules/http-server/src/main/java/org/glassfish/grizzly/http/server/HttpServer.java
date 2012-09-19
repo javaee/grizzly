@@ -637,14 +637,13 @@ public class HttpServer {
             if (transactionTimeout >= 0) {
                 ThreadPoolConfig threadPoolConfig = transport.getWorkerThreadPoolConfig();
 
-                if (threadPoolConfig == null) {
-                    threadPoolConfig = transport.getKernelThreadPoolConfig();
+                if (threadPoolConfig != null) {
+                    threadPoolConfig.setTransactionTimeout(
+                            delayedExecutor,
+                            transactionTimeout,
+                            TimeUnit.SECONDS);
                 }
-                assert threadPoolConfig != null;
-                threadPoolConfig.setTransactionTimeout(
-                        delayedExecutor,
-                        transactionTimeout,
-                        TimeUnit.SECONDS);
+
             }
 
         }

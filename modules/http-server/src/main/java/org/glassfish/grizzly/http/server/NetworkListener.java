@@ -77,11 +77,6 @@ public class NetworkListener {
     public static final int DEFAULT_NETWORK_PORT = 8080;
 
     /**
-     * The default time, in seconds, for which a request must complete processing.
-     */
-    public static final int DEFAULT_TRANSACTION_TIMEOUT = 300;
-
-    /**
      * The network host to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
      * If not explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
      */
@@ -96,7 +91,7 @@ public class NetworkListener {
     /**
      * The time, in seconds, for which a request must complete processing.
      */
-    private int transactionTimeout = DEFAULT_TRANSACTION_TIMEOUT;
+    private int transactionTimeout = -1;
 
     /**
      * The network port range to which the <code>HttpServer<code> will bind to
@@ -834,8 +829,8 @@ public class NetworkListener {
 
     /**
      * @return The timeout, in seconds, within which a request must complete
-     *  its processing. If not explicitly set, this will return
-     *  {@link #DEFAULT_TRANSACTION_TIMEOUT}.
+     *  its processing. If not explicitly set, no trasaction timeout will
+     *  be enforced.
      */
     public int getTransactionTimeout() {
         return transactionTimeout;
@@ -844,7 +839,8 @@ public class NetworkListener {
     /**
      * Sets the time, in seconds, within which a request must complete its
      * processing.  A value less than or equal to zero will disable this
-     * timeout.
+     * timeout. Note that this configuration option is only considered when the
+     * transport is configured to use the {@link org.glassfish.grizzly.strategies.WorkerThreadIOStrategy}.
      *
      * @param transactionTimeout timeout in seconds
      */
