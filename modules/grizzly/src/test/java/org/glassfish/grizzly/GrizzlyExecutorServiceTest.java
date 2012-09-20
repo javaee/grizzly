@@ -76,7 +76,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         final ThreadPoolConfig config1 = r.getConfiguration();
         assertTrue(config1.getMaxPoolSize() == threads);
         assertTrue(config1.getQueueLimit() == cfg.getQueueLimit());
-        assertTrue(config1.getQueue().getClass().getSimpleName().contains("LinkedBlockingQueue"));
+        assertTrue(config1.getQueue().getClass().getSimpleName().contains("LinkedTransferQueue"));
 
         doTest(r.reconfigure(r.getConfiguration().setQueueLimit(tasks)),tasks);
         final ThreadPoolConfig config2 = r.getConfiguration();
