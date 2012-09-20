@@ -46,9 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -73,11 +71,12 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StringFilter;
-import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+
+import static org.junit.Assert.*;
 
 /**
  * AsyncWriteQueue tests.
@@ -491,7 +490,7 @@ public class AsyncWriteQueueTest {
             
             final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
 
-            Writer.Reentrant.setMaxReentrants(10);
+            Writer.Reentrant.setMaxReentrants(maxAllowedReentrants);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
