@@ -43,6 +43,7 @@ package org.glassfish.grizzly.threadpool;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Minimalistic fixed thread pool to allow for nice scalability if a
@@ -59,7 +60,8 @@ public class FixedThreadPool extends AbstractThreadPool {
 
         this.workQueue = config.getQueue() != null ?
             (BlockingQueue<Runnable>) config.getQueue() :
-            (BlockingQueue<Runnable>) config.setQueue(new LinkedBlockingQueue<Runnable>()).getQueue();
+            (BlockingQueue<Runnable>) config.setQueue(
+                DataStructures.getLTQInstance(Runnable.class)).getQueue();
         
         int poolSize = config.getMaxPoolSize();
 
