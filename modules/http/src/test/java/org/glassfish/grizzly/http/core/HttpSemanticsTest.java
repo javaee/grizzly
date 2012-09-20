@@ -76,9 +76,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.external.statistics.annotations.Reset;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -88,7 +86,6 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
     private HttpServerFilter httpServerFilter =
             new HttpServerFilter(false, 8192, new KeepAlive(), null);
 
@@ -479,13 +476,6 @@ public class HttpSemanticsTest extends TestCase {
         
     // --------------------------------------------------------- Private Methods
 
-    
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
 
     private HttpRequestPacket createHttpRequest() {
         return HttpRequestPacket.builder()
@@ -539,7 +529,6 @@ public class HttpSemanticsTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -649,8 +638,7 @@ public class HttpSemanticsTest extends TestCase {
                 }
                 testResult.result(Boolean.TRUE);
             } catch (Throwable t) {
-                testResult.result(Boolean.FALSE);
-                exception.result(t);
+                testResult.failure(t);
             }
         }
 
