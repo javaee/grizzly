@@ -65,6 +65,7 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk.Type;
+import org.glassfish.grizzly.http.util.HttpUtils;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -1032,7 +1033,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             } else if (defaultResponseContentType != null) {
                 final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
                 if (contenTypeValue.isNull()) {
-                    contenTypeValue.setString(defaultResponseContentType);
+                    contenTypeValue.setString(HttpUtils.composeContentType(
+                            defaultResponseContentType,
+                            response.getCharacterEncoding()));
                 }
             }
             

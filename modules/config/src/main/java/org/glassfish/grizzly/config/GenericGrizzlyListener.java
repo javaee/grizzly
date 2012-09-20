@@ -540,7 +540,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             new org.glassfish.grizzly.http.HttpServerFilter(
                 Boolean.parseBoolean(http.getChunkingEnabled()),
                 Integer.parseInt(http.getHeaderBufferLengthBytes()),
-                http.getForcedResponseType(),
+                http.getDefaultResponseType(),
                 configureKeepAlive(http),
                 delayedExecutor,
                 maxRequestHeaders,

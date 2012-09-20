@@ -143,11 +143,9 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
      * encoding, language, charset
      */
-    @Deprecated
     @Attribute
     String getDefaultResponseType();
 
-    @Deprecated
     void setDefaultResponseType(String defaultResponseType);
 
     /**

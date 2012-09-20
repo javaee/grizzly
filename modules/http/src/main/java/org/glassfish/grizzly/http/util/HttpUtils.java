@@ -55,6 +55,58 @@ public class HttpUtils {
 
     // ---------------------------------------------------------- Public Methods
 
+    public static String composeContentType(final String contentType,
+            final String characterEncoding) {
+        
+        if (characterEncoding == null) {
+            return contentType;
+        }
+
+        /*
+         * Remove the charset param (if any) from the Content-Type
+         */
+        boolean hasCharset = false;
+        int semicolonIndex = -1;
+        int index = contentType.indexOf(';');
+        while (index != -1) {
+            int len = contentType.length();
+            semicolonIndex = index;
+            index++;
+            while (index < len && contentType.charAt(index) == ' ') {
+                index++;
+            }
+            if (index+8 < len
+                    && contentType.charAt(index) == 'c'
+                    && contentType.charAt(index+1) == 'h'
+                    && contentType.charAt(index+2) == 'a'
+                    && contentType.charAt(index+3) == 'r'
+                    && contentType.charAt(index+4) == 's'
+                    && contentType.charAt(index+5) == 'e'
+                    && contentType.charAt(index+6) == 't'
+                    && contentType.charAt(index+7) == '=') {
+                hasCharset = true;
+                break;
+            }
+            index = contentType.indexOf(';', index);
+        }
+
+        String newContentType;
+        if (hasCharset) { // Some character encoding is specified in content-type
+            newContentType = contentType.substring(0, semicolonIndex);
+            String tail = contentType.substring(index+8);
+            int nextParam = tail.indexOf(';');
+            if (nextParam != -1) {
+                newContentType += tail.substring(nextParam);
+            }
+        } else {
+            newContentType = contentType;
+        }
+        
+        final StringBuilder sb =
+                new StringBuilder(newContentType.length() + characterEncoding.length() + 9);
+        return sb.append(newContentType).append(";charset=").append(characterEncoding).toString();
+    }
+    
     public static float convertQValueToFloat(final DataChunk dc,
                                              final int startIdx,
                                              final int stopIdx) {

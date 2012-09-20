@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,7 +76,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.external.statistics.annotations.Reset;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -87,7 +89,8 @@ public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
-
+    private HttpServerFilter httpServerFilter =
+            new HttpServerFilter(false, 8192, new KeepAlive(), null);
 
     // ------------------------------------------------------------ Test Methods
 
@@ -418,7 +421,62 @@ public class HttpSemanticsTest extends TestCase {
         result.setStatusMessage("bad request");
         doTest(request, result);
 
-    }    
+    }
+    
+    public void testDefaultContentTypeWithProvidedCharset() throws Throwable {
+        final BaseFilter serverResponseFilter = new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent httpContent = ctx.getMessage();
+
+                if (!httpContent.isLast()) {
+                    return ctx.getStopAction(httpContent);
+                }
+
+                HttpRequestPacket request =
+                        (HttpRequestPacket) httpContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                HttpStatus.OK_200.setValues(response);
+                response.setCharacterEncoding("Big5");
+                //                response.setContentType("text/html;charset=\"Big5\"");
+                response.setContentLength(0);
+                ctx.write(response);
+                return ctx.getStopAction();
+            }
+        };
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("Content-Length", "0");
+        result.setStatusMessage("ok");
+
+        result.addHeader("!Content-Type", "text/html;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType(null);
+        doTest(createHttpRequest(), result, serverResponseFilter);
+        
+        result.addHeader("Content-Type", "text/html;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType("text/html");
+        doTest(createHttpRequest(), result, serverResponseFilter);
+
+        result.addHeader("Content-Type", "text/html;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType("text/html; charset=iso-8859-1");
+        doTest(createHttpRequest(), result, serverResponseFilter);
+        
+        result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType("text/html; charset=iso-8859-1;a=b;c=d");
+        doTest(createHttpRequest(), result, serverResponseFilter);
+        
+        result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType("text/html;a=b;charset=iso-8859-1;c=d");
+        doTest(createHttpRequest(), result, serverResponseFilter);
+        
+        result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
+        httpServerFilter.setDefaultResponseContentType("text/html;a=b;c=d;charset=iso-8859-1");
+        doTest(createHttpRequest(), result, serverResponseFilter);
+    }
+        
     // --------------------------------------------------------- Private Methods
 
     
@@ -429,13 +487,23 @@ public class HttpSemanticsTest extends TestCase {
         }
     }
 
+    private HttpRequestPacket createHttpRequest() {
+        return HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+    }
+    
     private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
     throws Throwable {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
-        filterChainBuilder.add(new HttpServerFilter(false, 8192, new KeepAlive(), null));
+        filterChainBuilder.add(httpServerFilter);
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 
@@ -572,8 +640,10 @@ public class HttpSemanticsTest extends TestCase {
                             assertEquals(entry.getValue().toLowerCase(),
                                          response.getHeader(entry.getKey()).toLowerCase());
                         } else {
-                            assertFalse("Header should not be present: " + entry.getKey().substring(1),
-                                       response.containsHeader(entry.getKey().substring(1)));
+                            final String headerName = entry.getKey().substring(1);
+                            assertFalse("Header should not be present: " + headerName +
+                                    " but header exists w/ value=" + response.getHeader(headerName),
+                                       response.containsHeader(headerName));
                         }
                     }
                 }
@@ -632,6 +702,11 @@ public class HttpSemanticsTest extends TestCase {
         }
 
         public void addHeader(String name, String value) {
+            if (name.startsWith("!")) {
+                expectedHeaders.remove(name.substring(1));
+            } else {
+                expectedHeaders.remove("!" + name);
+            }
             expectedHeaders.put(name, value);
         }
 
