@@ -889,7 +889,7 @@ public class Response {
      */
     public String getHeader(String name) {
         checkResponse();
-        return response.getHeaders().getHeader(name);
+        return response.getHeader(name);
     }
 
 
