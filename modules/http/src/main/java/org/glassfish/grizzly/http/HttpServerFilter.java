@@ -40,23 +40,15 @@
 
 package org.glassfish.grizzly.http;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.DataChunk.Type;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HexUtils;
@@ -64,6 +56,16 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DelayedExecutor;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.http.util.ByteChunk;
+import org.glassfish.grizzly.http.util.DataChunk.Type;
+import org.glassfish.grizzly.http.util.HttpUtils;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -1031,7 +1033,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             } else if (defaultResponseContentType != null) {
                 final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
                 if (contenTypeValue.isNull()) {
-                    contenTypeValue.setString(defaultResponseContentType);
+                    contenTypeValue.setString(HttpUtils.composeContentType(
+                            defaultResponseContentType,
+                            response.getCharacterEncoding()));
                 }
             }
             
