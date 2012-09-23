@@ -130,7 +130,7 @@ public class FixedThreadPool extends AbstractThreadPool {
             ThreadPoolMonitoringProbe probe) {
         super(probe, name, threadfactory,poolsize);
         this.workQueue = workQueue != null ? workQueue
-                : new LinkedBlockingQueue<Runnable>();
+                : DataStructures.getLTQinstance(Runnable.class);
         synchronized (statelock) {
             while (poolsize-- > 0) {
                 doStartWorker();
