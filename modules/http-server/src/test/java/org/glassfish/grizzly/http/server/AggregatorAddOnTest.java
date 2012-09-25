@@ -315,7 +315,7 @@ public class AggregatorAddOnTest {
             public void service(final Request request, final Response response)
                     throws Exception {
                 byte[] inArray = new byte[4096];
-                final NIOInputStream in = request.getNIOInputStream();
+                final NIOInputStream in = request.getInputStream();
                 
                 final int inSize = in.available();
                 int remaining = inSize;
@@ -329,7 +329,7 @@ public class AggregatorAddOnTest {
                     remaining -= readNow;
                 }
                 
-                if (!request.getNIOInputStream().isFinished()) {
+                if (!in.isFinished()) {
                     throw new Exception("InputStream supposed to be finished");
                 }
                 
