@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,33 +37,58 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.server.util;
 
-package org.glassfish.grizzly.websockets;
-
+import java.io.IOException;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 /**
- * WebSockets {@link AddOn} for the {@link HttpServer}.
+ * AggregatorAddOn installs {@link AggregatorFilter} into HttpServer FilterChain.
+ * {@link AggregatorFilter} is responsible for aggregating input HTTP message
+ * payload (either request or response) and pass it to the next filter in chain
+ * only when entire HTTP message (including payload) is read.
  * 
  * @author Alexey Stashok
  */
-public class WebSocketAddOn implements AddOn {
+public class AggregatorAddOn implements AddOn {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+    public void setup(final NetworkListener networkListener,
+            final FilterChainBuilder builder) {
+        
         // Get the index of HttpServerFilter in the HttpServer filter chain
         final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
 
         if (httpServerFilterIdx >= 0) {
-            // Insert the WebSocketFilter right before HttpServerFilter
-            builder.add(httpServerFilterIdx, new WebSocketFilter());
+            // Insert the AggregatorFilter right before HttpServerFilter
+            builder.add(httpServerFilterIdx, new AggregatorFilter());
+        }     
+    }
+    
+    private static class AggregatorFilter extends BaseFilter {
+
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            final Object message = ctx.getMessage();
+            
+            // If the input message is not HttpContent or it's last HttpContent message -
+            // pass the message to a next filter
+            if (!(message instanceof HttpContent) || ((HttpContent) message).isLast()) {
+                return ctx.getInvokeAction();
+            }
+            
+            // if it's HttpContent chunk (not last) - save it and stop filter chain processing.
+            return ctx.getStopAction(message);
         }
     }
 }

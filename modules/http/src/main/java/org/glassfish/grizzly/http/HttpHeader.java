@@ -48,7 +48,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -152,6 +151,16 @@ public abstract class HttpHeader extends HttpPacket
     public final boolean isHeader() {
         return true;
     }
+
+    /**
+     * Returns <tt>this</tt> HttpHeader object.
+     * @return <tt>this</tt> HttpHeader object.
+     */
+    @Override
+    public HttpHeader getHttpHeader() {
+        return this;
+    }
+
 
     public abstract ProcessingState getProcessingState();
 
