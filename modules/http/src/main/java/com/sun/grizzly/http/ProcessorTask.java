@@ -106,8 +106,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.StringTokenizer;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -374,8 +373,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     protected AsyncHandler asyncHandler;
 
 
-    private final Semaphore asyncSemaphore = new Semaphore(1);
-
+    private final AtomicBoolean terminateFlag = new AtomicBoolean();
 
     private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
 
@@ -684,6 +682,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         if (request.getServerPort() == 0) {
             request.setServerPort(selectorThread.getPort());
         }
+        
+        terminateFlag.set(false);
     }
 
 
@@ -1014,24 +1014,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      * fully processed.
      */
     public void terminateProcess(){
-        try {
-            // Only one thread can invoke that method. Since we cannot
-            // control how Grizzly ARP extension handle their asynchronous
-            // behavior, we must make sure we are never called twice.
-             if (asyncSemaphore.tryAcquire(0, TimeUnit.SECONDS)) {
-                if (getTaskListener() != null){
-                    event.setStatus(error?TaskEvent.ERROR:TaskEvent.COMPLETED);
-                    getTaskListener().taskEvent(event);
-                }
+//         Only one thread can invoke that method. Since we cannot
+//         control how Grizzly ARP extension handle their asynchronous
+//         behavior, we must make sure we are never called twice.
+         if (terminateFlag.compareAndSet(false, true)) {
+            if (getTaskListener() != null) {
+                event.setStatus(error ? TaskEvent.ERROR : TaskEvent.COMPLETED);
+                getTaskListener().taskEvent(event);
             }
-        } catch (InterruptedException ex) {
-            if (logger.isLoggable(Level.WARNING)){
-                logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_TERMINATE_PROCESSES_INTERRUPT(),
-                           ex);
-            }
-        } finally {
-            asyncSemaphore.release();
         }
     }
 

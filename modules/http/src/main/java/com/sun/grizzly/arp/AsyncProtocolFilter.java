@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -254,7 +254,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
                     if (selectorThread.isAsyncHttpWriteEnabled()) {
                         flushAsyncWriteQueueAndClose(selectorHandler, processorSelectionKey);
                     } else {
-                        selectorHandler.getSelectionKeyHandler().cancel(processorSelectionKey);
+                        selectorHandler.addPendingKeyCancel(processorSelectionKey);
                     }
                 }
             } finally {
