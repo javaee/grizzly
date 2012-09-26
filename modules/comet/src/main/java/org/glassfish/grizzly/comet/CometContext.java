@@ -58,6 +58,7 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  * The main object used by {@link CometHandler} and Servlet to push information amongst suspended request/response. The
@@ -153,7 +154,7 @@ public class CometContext<E> {
      * init of default values. used by constructor and the cache recycle mechanism
      */
     private void initDefaultValues() {
-        expirationDelay = 30 * 1000;
+        expirationDelay = -1;
     }
 
     /**
@@ -240,6 +241,9 @@ public class CometContext<E> {
             c.addCloseListener(ccHandler);
             response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, ccHandler, new CometTimeoutHandler(handler));
             if (isDetectClosedConnections) {
+                // If Detect connection close mode is on - disable keep-alive for this connection
+                response.addHeader(Header.Connection, "close");
+                
                 // Initialize asynchronous reading to be notified when connection
                 // is getting closed by peer
                 response.getRequest().initiateAsyncronousDataReceiving();

@@ -334,6 +334,7 @@ public class BasicCometTest extends TestCase {
         httpServer.getServerConfiguration().addHttpHandler(httpHandler, alias);
         HttpURLConnection conn = getConnection(alias, 2000);
         conn.getContent();
+        assertEquals("close", conn.getHeaderField("Connection"));
         final CountDownCometHandler cometHandler = (CountDownCometHandler) httpHandler.cometHandler;
         assertTrue("Should see onInitialize() get called", cometHandler.onInitialize.await(10, TimeUnit.SECONDS));
         cometContext.notify(onEvent);
