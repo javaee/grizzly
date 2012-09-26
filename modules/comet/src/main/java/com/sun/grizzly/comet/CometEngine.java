@@ -298,7 +298,9 @@ public class CometEngine {
             isCometSupported = true;
         }
 
-        String topic = apt.getAsyncExecutor().getProcessorTask().getRequestURI();
+        final ProcessorTask processorTask = apt.getAsyncExecutor().getProcessorTask();
+
+        String topic = processorTask.getRequestURI();
         CometContext cometContext = topic == null ? null : activeContexts.get(topic);
 
         /* If the cometContext is null, it means the context has never
@@ -335,8 +337,11 @@ public class CometEngine {
                 cometTask.setTimeout(System.currentTimeMillis());
             }
             
-            SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
+            SelectionKey mainKey = processorTask.getSelectionKey();
             if (mainKey.isValid() && cometTask.isDetectConnectionClose()) {
+                
+                // If Detect connection close mode is on - disable keep-alive for this connection
+                processorTask.getRequest().getResponse().addHeader("Connection", "close");
                 try {
                     mainKey.interestOps(SelectionKey.OP_READ);
                 } catch (Exception e) {
