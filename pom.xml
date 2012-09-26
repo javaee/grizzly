@@ -428,7 +428,7 @@
     </dependencies>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hk2.version>2.1.28</hk2.version>
+        <hk2.version>2.1.31</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>3.1-b01</servlet-version>
