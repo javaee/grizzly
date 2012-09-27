@@ -176,6 +176,8 @@ public class HttpServerFilter extends BaseFilter
                         }
                     }
                 } catch (Exception t) {
+                    LOGGER.log(Level.FINE, "Exception during HttpHandler invokation", t);
+                    
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
