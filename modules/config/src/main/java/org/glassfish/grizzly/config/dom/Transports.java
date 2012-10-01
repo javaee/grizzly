@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
@@ -50,7 +49,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
 import java.util.List;
 
 @Configured
-public interface Transports extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Transports extends ConfigBeanProxy, PropertyBag {
     /**
      * Defines public SelectionKey handler, which could be referenced within transport
      */

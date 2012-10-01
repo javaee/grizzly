@@ -44,7 +44,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -56,7 +55,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * Binds protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface NetworkListener extends ConfigBeanProxy, PropertyBag {
     boolean ENABLED = true;
     boolean JK_ENABLED = false;
     String DEFAULT_ADDRESS = "0.0.0.0";

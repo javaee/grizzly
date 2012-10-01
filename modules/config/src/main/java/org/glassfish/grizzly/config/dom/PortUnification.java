@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -54,7 +53,7 @@ import java.util.List;
  * Defines logic of hosting several protocol on a single tcp port.
  */
 @Configured
-public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface PortUnification extends ConfigBeanProxy, PropertyBag {
     boolean STICKY_ENABLED = true;
 
     /**

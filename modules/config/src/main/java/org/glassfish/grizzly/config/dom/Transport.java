@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -55,7 +54,7 @@ import java.util.List;
  * Defines one specific transport and its properties
  */
 @Configured
-public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Transport extends ConfigBeanProxy, PropertyBag {
     boolean DISPLAY_CONFIGURATION = false;
     boolean ENABLE_SNOOP = false;
     boolean TCP_NO_DELAY = true;

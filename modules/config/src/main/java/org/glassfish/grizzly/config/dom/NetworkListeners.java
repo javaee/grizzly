@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
@@ -53,7 +52,7 @@ import java.util.List;
  * Contains set of network-listener, which bind protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListeners extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface NetworkListeners extends ConfigBeanProxy, PropertyBag {
     /**
      * Defines public thread-pool(s), which could be referenced within network-listener element(s)
      */

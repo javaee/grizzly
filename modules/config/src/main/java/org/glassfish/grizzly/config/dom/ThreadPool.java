@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -53,7 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configured
-public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ThreadPool extends ConfigBeanProxy, PropertyBag {
     int IDLE_THREAD_TIMEOUT = 900;
     int MAX_QUEUE_SIZE = 4096;
     int MAX_THREADPOOL_SIZE = 5;

@@ -42,7 +42,6 @@ package org.glassfish.grizzly.config.dom;
 
 import javax.validation.constraints.Pattern;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -52,7 +51,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * Define SSL processing parameters
  */
 @Configured
-public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Ssl extends ConfigBeanProxy, PropertyBag {
     boolean ALLOW_LAZY_INIT = true;
     boolean CLIENT_AUTH_ENABLED = false;
     boolean SSL2_ENABLED = false;

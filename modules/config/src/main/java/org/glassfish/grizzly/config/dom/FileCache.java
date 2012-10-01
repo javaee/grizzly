@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -52,7 +51,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Configured
-public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface FileCache extends ConfigBeanProxy, PropertyBag {
     boolean ENABLED = false;
     int MAX_AGE = 30;
     int MAX_CACHE_SIZE = 10485760;
