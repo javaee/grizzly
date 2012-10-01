@@ -157,6 +157,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public void setStatus(final HttpStatus status) {
         this.httpStatus = status;
+        this.reasonPhraseC.recycle();
     }
 
     /**

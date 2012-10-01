@@ -261,6 +261,7 @@ public class OutputBuffer {
         }
 
         charsArrayLength = 0;
+        encoder = null;
     }
 
 

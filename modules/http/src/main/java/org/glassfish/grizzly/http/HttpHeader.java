@@ -471,8 +471,11 @@ public abstract class HttpHeader extends HttpPacket
 
         if (isCommitted())
             return;
-        if (charset == null)
-            return;
+        if (charset == null) {
+            characterEncoding = null;
+            quotedCharsetValue = null;
+            charsetSet = false;
+        }
 
         characterEncoding = charset;
         // START SJSAS 6316254

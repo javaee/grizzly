@@ -314,17 +314,14 @@ public class Response {
         response = null;
         ctx = null;
         suspendState = SuspendState.NONE;
-        if (!cookies.isEmpty()) {
-            for (Cookie cookie : cookies) {
-                cookie.recycle();
-            }
-            cookies.clear();
-        }
+        recycleAndClearCookies();
 
         cacheEnabled = false;
 //
 //        ThreadCache.putToCache(CACHE_IDX, this);
     }
+
+
 
 
     // ------------------------------------------------------- Response Methods
@@ -730,9 +727,23 @@ public class Response {
      */
     public void reset() {
         checkResponse();
+        if (isCommitted()) {
+            throw new IllegalStateException();
+        }
+
         response.getHeaders().clear();
+        recycleAndClearCookies();
+        response.setContentLanguage(null);
+        if (response.getContentLength() > 0) {
+            response.setContentLengthLong(-1L);
+        }
+        response.setCharacterEncoding(null);
         response.setStatus(null);
+        response.setContentType(null);
+        response.setLocale(null);
         outputBuffer.reset();
+        usingWriter = false;
+        usingOutputStream = false;
     }
 
 
@@ -1788,6 +1799,15 @@ public class Response {
 
     public boolean isSendFileEnabled() {
         return sendFileEnabled;
+    }
+
+    private void recycleAndClearCookies() {
+        if (!cookies.isEmpty()) {
+            for (Cookie cookie : cookies) {
+                cookie.recycle();
+            }
+            cookies.clear();
+        }
     }
 
     public final class SuspendedContextImpl implements SuspendContext {
