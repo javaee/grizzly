@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -51,7 +50,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * Defines protocol chain instantiation and releasing logic
  */
 @Configured
-public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, PropertyBag {
 
     /**
      * Protocol chain instance handler implementation class

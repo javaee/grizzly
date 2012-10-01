@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -53,7 +52,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * specific protocol.
  */
 @Configured
-public interface ProtocolFinder extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolFinder extends ConfigBeanProxy, PropertyBag {
     /**
      * Finder name, which could be used as reference
      */

@@ -44,7 +44,6 @@ import javax.validation.constraints.Pattern;
 
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -58,7 +57,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Configured
-public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Http extends ConfigBeanProxy, PropertyBag {
     boolean AUTH_PASS_THROUGH_ENABLED = false;
     boolean CHUNKING_ENABLED = true;
     boolean COMET_SUPPORT_ENABLED = false;

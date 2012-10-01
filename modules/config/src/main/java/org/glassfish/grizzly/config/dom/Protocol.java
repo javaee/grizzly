@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -55,7 +54,7 @@ import java.util.List;
  * Defines one single high-level protocol like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Protocol extends ConfigBeanProxy, PropertyBag {
     boolean SECURITY_ENABLED = false;
 
     /**

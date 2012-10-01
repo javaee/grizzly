@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
@@ -53,7 +52,7 @@ import java.util.List;
  * Contains the description of higher level protocols like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocols extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Protocols extends ConfigBeanProxy, PropertyBag {
     /**
      * List of Protocol implementations
      */

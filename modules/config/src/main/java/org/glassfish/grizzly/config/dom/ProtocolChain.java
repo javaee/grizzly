@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -55,7 +54,7 @@ import java.util.List;
  * Defines the type of protocol chain and describes protocol filters, which will participate in request processing
  */
 @Configured
-public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolChain extends ConfigBeanProxy, PropertyBag {
     String TYPE = "STATELESS";
     String TYPE_PATTERN = "STATELESS|STATEFUL";
 
