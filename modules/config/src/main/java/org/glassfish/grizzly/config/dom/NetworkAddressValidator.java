@@ -50,18 +50,15 @@ public class NetworkAddressValidator implements ConstraintValidator<NetworkAddre
     }
 
     public boolean isValid(final String s, final ConstraintValidatorContext constraintValidatorContext) {
-        if (s == null || s.length() == 0) {
-            return false;
-        }
-        if (s.charAt(0) == '$'  && s.charAt(1) == '{' && s.charAt(s.length() - 1) == '}') {
-            return true;
-        }
         try {
             //noinspection ResultOfMethodCallIgnored
             InetAddress.getByName(s);
             return true;
         } catch (UnknownHostException e) {
-            return false;
+            return s != null
+                    && s.charAt(0) == '$'
+                    && s.charAt(1) == '{'
+                    && s.charAt(s.length() - 1) == '}';
         }
     }
 }
