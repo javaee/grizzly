@@ -92,6 +92,13 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 false);
     }
 
+    public PooledMemoryManager(final boolean direct) {
+        this(DEFAULT_BUFFER_SIZE,
+                Runtime.getRuntime().availableProcessors(),
+                DEFAULT_HEAP_USAGE_PERCENTAGE,
+                direct);
+    }
+
     public PooledMemoryManager(final int bufferSize,
                                final int numberOfPools,
                                final float percentOfHeap,
@@ -131,7 +138,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         if (size < 0) {
             throw new IllegalArgumentException("Requested allocation size must be greater than or equal to zero.");
         }
-        return allocateAtLeast(size);
+        return allocateAtLeast(size).limit(size);
     }
 
     /**
@@ -156,9 +163,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             b = allocateComposite(size);
         }
         b.clear();
-        if (b.limit() != size) {
-            b.limit(size);
-        }
         return b;
     }
 
@@ -213,10 +217,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             for (int i = 0; i < bufferDiffCount; i++) {
                 PoolableByteBufferWrapper p = pool.poll();
                 if (p == null) {
-                    p = new PoolableByteBufferWrapper(ByteBuffer.allocate(bufferSize), pool);
-                    ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
-                } else {
-                    ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+                    p = pool.allocate();
                 }
                 p.allowBufferDispose(true);
                 p.free = false;
@@ -312,26 +313,19 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     }
 
     private int estimateBufferArraySize(final int allocationRequest) {
-        return (int) Math.ceil((float) allocationRequest / (float) bufferSize);
+        return allocationRequest / bufferSize + (allocationRequest % bufferSize != 0 ? 1 : 0);
+//        return (int) Math.ceil((float) allocationRequest / (float) bufferSize);
     }
 
     private Buffer allocateSingle() {
-        Buffer b;
         final BufferPool pool = getPool();
         PoolableByteBufferWrapper p = pool.poll();
         if (p == null) {
-            p = new PoolableByteBufferWrapper(((direct)
-                                            ? ByteBuffer.allocateDirect(bufferSize)
-                                            : ByteBuffer.allocate(bufferSize)),
-                                                                  pool);
-            ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
-        } else {
-            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+            p = pool.allocate();
         }
         p.allowBufferDispose(true);
         p.free = false;
-        b = p;
-        return b;
+        return p;
     }
 
     private Buffer allocateComposite(final int size) {
@@ -340,13 +334,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         for (int i = 0, len = buffers.length; i < len; i++) {
             PoolableByteBufferWrapper p = pool.poll();
             if (p == null) {
-                p = new PoolableByteBufferWrapper(((direct)
-                                                            ? ByteBuffer.allocateDirect(bufferSize)
-                                                            : ByteBuffer.allocate(bufferSize)),
-                                                                                  pool);
-                ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
-            } else {
-                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+                p = pool.allocate();
             }
             p.free = false;
             p.allowBufferDispose(true);
@@ -364,7 +352,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         return ((valueToCheck & (valueToCheck - 1)) == 0);
     }
 
-    public static class BufferPool implements Iterable<PoolableByteBufferWrapper> {
+    public class BufferPool implements Iterable<PoolableByteBufferWrapper> {
 
         private final ConcurrentLinkedQueue<PoolableByteBufferWrapper> pool;
 
@@ -378,11 +366,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             pool = new ConcurrentLinkedQueue<PoolableByteBufferWrapper>();
             long mem = 0;
             while (mem < totalPoolSize) {
-                PoolableByteBufferWrapper b =
-                        new PoolableByteBufferWrapper(((direct)
-                                ? ByteBuffer.allocateDirect(bufferSize)
-                                : ByteBuffer.allocate(bufferSize)),
-                                                      this);
+                PoolableByteBufferWrapper b = allocate();
                 b.allowBufferDispose(true);
                 pool.offer(b);
                 mem += bufferSize;
@@ -394,11 +378,21 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
 
         public final PoolableByteBufferWrapper poll() {
-            return pool.poll();
+            final PoolableByteBufferWrapper buffer = pool.poll();
+            if (buffer != null) {
+                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+            }
+            
+            return buffer;
         }
 
         public final boolean offer(final PoolableByteBufferWrapper b) {
-            return pool.offer(b);
+            if (pool.offer(b)) {
+                ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig, bufferSize);
+                return true;
+            }
+            
+            return false;
         }
 
         public final int size() {
@@ -409,6 +403,17 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             pool.clear();
         }
 
+        public PoolableByteBufferWrapper allocate() {
+            final PoolableByteBufferWrapper buffer = new PoolableByteBufferWrapper(
+                    (direct
+                    ? ByteBuffer.allocateDirect(bufferSize)
+                    : ByteBuffer.allocate(bufferSize)),
+                    this);
+            ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
+            return buffer;
+        }
+        
+        @Override
         public Iterator<PoolableByteBufferWrapper> iterator() {
             return pool.iterator();
         }

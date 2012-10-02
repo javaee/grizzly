@@ -443,7 +443,11 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
 
         @Override
         public HeapBuffer reduceLastAllocated(final HeapBuffer heapBuffer) {
-            pos = heapBuffer.offset + heapBuffer.cap;
+            final int newPos = heapBuffer.offset + heapBuffer.cap;
+            
+            ProbeNotifier.notifyBufferReleasedToPool(mm.monitoringConfig, pos - newPos);
+
+            pos = newPos;
 
             return null;
         }

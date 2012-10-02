@@ -78,12 +78,18 @@ public class ByteBufferManager extends AbstractThreadLocalMemoryManager<ByteBuff
     /**
      * Is direct ByteBuffer should be used?
      */
-    protected boolean isDirect;
+    protected final boolean isDirect;
 
     protected final int maxSmallBufferSize;
 
     public ByteBufferManager() {
         this(false,
+             AbstractThreadLocalMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+             DEFAULT_SMALL_BUFFER_SIZE);
+    }
+
+    public ByteBufferManager(final boolean isDirect) {
+        this(isDirect,
              AbstractThreadLocalMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
              DEFAULT_SMALL_BUFFER_SIZE);
     }
@@ -152,17 +158,6 @@ public class ByteBufferManager extends AbstractThreadLocalMemoryManager<ByteBuff
      */
     public boolean isDirect() {
         return isDirect;
-    }
-
-    /**
-     * Set <tt>true</tt>, if <tt>ByteBufferManager</tt> works with direct
-     * {@link ByteBuffer}s, or <tt>false</tt> otherwise.
-     *
-     * @param isDirect <tt>true</tt>, if <tt>ByteBufferManager</tt> works with
-     * direct {@link ByteBuffer}s, or <tt>false</tt> otherwise.
-     */
-    public void setDirect(boolean isDirect) {
-        this.isDirect = isDirect;
     }
 
     /**
