@@ -475,6 +475,7 @@ public abstract class HttpHeader extends HttpPacket
             characterEncoding = null;
             quotedCharsetValue = null;
             charsetSet = false;
+            return;
         }
 
         characterEncoding = charset;
