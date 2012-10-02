@@ -75,6 +75,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -1056,16 +1057,29 @@ public class OutputBuffer {
 
 
         checkCurrentBuffer();
+        
+        final CoderResult res = !currentBuffer.isComposite()
+                ? convertToSimpleBuffer(charBuf, enc)
+                : convertToCompositeBuffer(charBuf, enc);
+
+        if (res != CoderResult.UNDERFLOW) {
+            throw new IOException("Encoding error");
+        }
+
+        if (canFlushToNet) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
+            flushBinaryBuffersIfNeeded();
+        }
+    }
+
+    private CoderResult convertToSimpleBuffer(final CharBuffer charBuf,
+            final CharsetEncoder enc) {
         ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
         int bufferPos = currentBuffer.position();
         int byteBufferPos = currentByteBuffer.position();
-
         CoderResult res = enc.encode(charBuf,
                                      currentByteBuffer,
                                      true);
-
         currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
-
         while (res == CoderResult.OVERFLOW) {
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
@@ -1079,17 +1093,52 @@ public class OutputBuffer {
             if (res == CoderResult.OVERFLOW) {
                 finishCurrentBuffer();
             }
-        } 
-
-        if (res != CoderResult.UNDERFLOW) {
-            throw new IOException("Encoding error");
         }
-
-        if (canFlushToNet) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
-            flushBinaryBuffersIfNeeded();
-        }
+        return res;
     }
+    
+    private CoderResult convertToCompositeBuffer(final CharBuffer charBuf,
+            final CharsetEncoder enc) {
+        final BufferArray bufferArray = BufferArray.create();
 
+        ByteBuffer currentByteBuffer;
+        CoderResult res;
+        
+        int bufferIdx = 0;
+        Buffer[] bufferArray0 = null;
+        
+        do {
+            if (bufferIdx == 0) {
+                currentBuffer.toBufferArray(bufferArray);
+                bufferArray0 = bufferArray.getArray();
+            }
+            
+
+            currentByteBuffer = bufferArray0[bufferIdx].toByteBuffer();
+            
+            int bufferPos = currentBuffer.position();
+            int byteBufferPos = currentByteBuffer.position();
+
+            res = enc.encode(charBuf, currentByteBuffer, true);
+            currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
+            currentByteBuffer.position(byteBufferPos);
+            
+            if (res == CoderResult.OVERFLOW) {
+                bufferIdx++;
+                
+                if (bufferIdx == bufferArray.size()) {
+                    bufferIdx = 0;
+                    finishCurrentBuffer();
+                    checkCurrentBuffer();
+                }
+            }
+        } while(res == CoderResult.OVERFLOW);
+        
+        bufferArray.recycle();
+        
+        return res;
+    }
+    
     private void flushBinaryBuffersIfNeeded() throws IOException {
         if (compositeBuffer != null) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
             doCommit();

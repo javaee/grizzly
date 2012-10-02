@@ -270,8 +270,7 @@ public class NIOInputSourcesTest extends TestCase {
         HttpServer httpServer = createWebServer(httpHandler);
         
         Transport transport = httpServer.getListeners().iterator().next().getTransport();
-        final ByteBufferManager memoryManager = new ByteBufferManager();
-        memoryManager.setDirect(true);
+        final ByteBufferManager memoryManager = new ByteBufferManager(true);
         
         transport.setMemoryManager(memoryManager);
         doTest(httpServer, httpHandler, request, expected, testResult, strategy, 30);
