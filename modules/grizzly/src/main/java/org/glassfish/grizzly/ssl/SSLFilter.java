@@ -47,9 +47,12 @@ import java.nio.ByteBuffer;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -102,6 +105,9 @@ public class SSLFilter extends BaseFilter {
     protected volatile int maxPendingBytes = Integer.MAX_VALUE;
 
     protected WeakReference<FilterChain> filterChainRef;
+    
+    protected final Set<HandshakeListener> handshakeListeners =
+            Collections.newSetFromMap(new ConcurrentHashMap<HandshakeListener, Boolean>());
     
     // ------------------------------------------------------------ Constructors
 
@@ -164,7 +170,14 @@ public class SSLFilter extends BaseFilter {
         filterChainRef = new WeakReference<FilterChain>(filterChain);
     }
 
-
+    public void addHandshakeListener(final HandshakeListener listener) {
+        handshakeListeners.add(listener);
+    }
+    
+    public void removeHandshakeListener(final HandshakeListener listener) {
+        handshakeListeners.remove(listener);
+    }
+    
     // ----------------------------------------------------- Methods from Filter
 
 
@@ -193,6 +206,7 @@ public class SSLFilter extends BaseFilter {
                 sslEngine = serverSSLEngineConfigurator.createSSLEngine();
                 sslEngine.beginHandshake();
                 setSSLEngine(connection, sslEngine);
+                notifyHandshakeStart(connection);
             }
 
             final Buffer buffer = doHandshakeStep(sslEngine, ctx, (Buffer) ctx.getMessage());
@@ -201,7 +215,7 @@ public class SSLFilter extends BaseFilter {
             
             final boolean isHandshaking = isHandshaking(sslEngine);
             if (!isHandshaking) {
-                notifyHandshakeCompleted(connection, sslEngine);
+                notifyHandshakeComplete(connection, sslEngine);
 
                 if (hasRemaining) {
                     ctx.setMessage(buffer);
@@ -330,6 +344,8 @@ public class SSLFilter extends BaseFilter {
             sslEngineConfigurator.configure(sslEngine);
             sslEngine.beginHandshake();
         }
+
+        notifyHandshakeStart(connection);
 
         if (completionHandler != null) {
             handshakeCompletionHandlerAttr.set(connection, completionHandler);
@@ -653,6 +669,7 @@ public class SSLFilter extends BaseFilter {
         sslEngine.getSession().invalidate();
         try {
                 sslEngine.beginHandshake();
+                notifyHandshakeStart(c);
             } catch (SSLHandshakeException e) {
                 // If we catch SSLHandshakeException at this point it may be due
                 // to an older SSL peer that hasn't made its SSL/TLS renegotiation
@@ -864,7 +881,15 @@ public class SSLFilter extends BaseFilter {
         }
     }
 
-    private void notifyHandshakeCompleted(final Connection connection,
+    private void notifyHandshakeStart(final Connection connection) {
+        if (!handshakeListeners.isEmpty()) {
+            for (final HandshakeListener listener : handshakeListeners) {
+                listener.onStart(connection);
+            }
+        }
+    }
+    
+    private void notifyHandshakeComplete(final Connection connection,
                                           final SSLEngine sslEngine) {
 
         final CompletionHandler<SSLEngine> completionHandler =
@@ -873,6 +898,12 @@ public class SSLFilter extends BaseFilter {
             connection.removeCloseListener(closeListener);
             completionHandler.completed(sslEngine);
             handshakeCompletionHandlerAttr.remove(connection);
+        }
+        
+        if (!handshakeListeners.isEmpty()) {
+            for (final HandshakeListener listener : handshakeListeners) {
+                listener.onComplete(connection);
+            }
         }
     }
 
@@ -1040,4 +1071,9 @@ public class SSLFilter extends BaseFilter {
         }
 
     } // END CertificateEvent
+    
+    public static interface HandshakeListener {
+        public void onStart(Connection connection);
+        public void onComplete(Connection connection);
+    }
 }

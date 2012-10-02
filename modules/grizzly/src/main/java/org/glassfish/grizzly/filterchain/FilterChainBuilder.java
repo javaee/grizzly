@@ -87,6 +87,10 @@ public abstract class FilterChainBuilder {
         return this;
     }
 
+    public Filter get(int index) {
+        return patternFilterChain.get(index);
+    }
+
     public FilterChainBuilder set(int index, Filter filter) {
         patternFilterChain.set(index, filter);
         return this;
