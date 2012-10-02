@@ -74,7 +74,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*</Export-Package>
+                        <Export-Package>org.glassfish.grizzly.*,maskedclasses.*</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                         <Main-Class>org.glassfish.grizzly.http.writerbm.Server</Main-Class>
                     </instructions>

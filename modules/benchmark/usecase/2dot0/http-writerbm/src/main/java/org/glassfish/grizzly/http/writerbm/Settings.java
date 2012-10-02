@@ -40,7 +40,11 @@
 
 package org.glassfish.grizzly.http.writerbm;
 
+import java.util.Locale;
 import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 
 
 /**
@@ -59,12 +63,18 @@ public class Settings {
     private Class<? extends IOStrategy> strategyClass = org.glassfish.grizzly.strategies.WorkerThreadIOStrategy.class;
 //    private Class<? extends IOStrategy> strategyClass = org.glassfish.grizzly.strategies.SameThreadIOStrategy.class;
 
+    private Class<? extends MemoryManager> memoryManagerClass = HeapMemoryManager.class;
+    
     private boolean isMonitoringMemory = false;
-
-    private boolean blocking = false;
 
     private boolean chunked = false;
 
+    private boolean binary = false;
+    
+    private Ratio asyncSyncRatio = new Ratio(0, 1);
+
+    private BufferType bufferType = BufferType.HEAP;
+    
     private Settings() {
     }
 
@@ -102,12 +112,25 @@ public class Settings {
                             value + " was not found. Default IOStrategy: " +
                             settings.strategyClass + " will be used instead.");
                 }
+            } else if ("-memoryManager".equalsIgnoreCase(param)) {
+                try {
+                    settings.setMemoryManagerClass(
+                            (Class<? extends MemoryManager>) Class.forName(value));
+                } catch (Exception e) {
+                    System.out.println("Warning MemoryManager class: " +
+                            value + " was not found. Default MemoryManager: " +
+                            settings.memoryManagerClass + " will be used instead.");
+                }
             } else if ("-monitorMemory".equalsIgnoreCase(param)) {
                 settings.setMonitoringMemory(Boolean.valueOf(value));
-            } else if ("-blocking".equalsIgnoreCase(param)) {
-                settings.setBlocking(Boolean.valueOf(value));
             } else if ("-chunked".equalsIgnoreCase(param)) {
                 settings.setChunked(Boolean.valueOf(value));
+            } else if ("-binary".equalsIgnoreCase(param)) {
+                settings.setBinary(Boolean.valueOf(value));
+            } else if ("-asyncSyncRatio".equalsIgnoreCase(param)) {
+                settings.setAsyncSyncRatio(Ratio.valueOf(value));
+            } else if ("-bufferType".equalsIgnoreCase(param)) {
+                settings.setBufferType(BufferType.valueOf(value.toUpperCase(Locale.US)));
             }
         }
 
@@ -115,7 +138,7 @@ public class Settings {
     }
 
     public static void help() {
-        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -strategy=<STRATEGY>");
+        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -memoryManager=<MEMORY_MANAGER> -strategy=<STRATEGY> -asyncSyncRatio=<RATIO>");
     }
 
     public String getHost() {
@@ -158,20 +181,20 @@ public class Settings {
         this.strategyClass = strategyClass;
     }
 
+    public Class<? extends MemoryManager> getMemoryManagerClass() {
+        return memoryManagerClass;
+    }
+
+    public void setMemoryManagerClass(Class<? extends MemoryManager> memoryManagerClass) {
+        this.memoryManagerClass = memoryManagerClass;
+    }
+    
     public boolean isMonitoringMemory() {
         return isMonitoringMemory;
     }
 
     public void setMonitoringMemory(boolean isMonitoringMemory) {
         this.isMonitoringMemory = isMonitoringMemory;
-    }
-
-    public boolean isBlocking() {
-        return blocking;
-    }
-
-    public void setBlocking(boolean blocking) {
-        this.blocking = blocking;
     }
 
     public boolean isChunked() {
@@ -182,6 +205,30 @@ public class Settings {
         this.chunked = chunked;
     }
 
+    public boolean isBinary() {
+        return binary;
+    }
+
+    public void setBinary(boolean binary) {
+        this.binary = binary;
+    }
+
+    public Ratio getAsyncSyncRatio() {
+        return asyncSyncRatio;
+    }
+
+    public void setAsyncSyncRatio(Ratio asyncSyncRatio) {
+        this.asyncSyncRatio = asyncSyncRatio;
+    }
+
+    public BufferType getBufferType() {
+        return bufferType;
+    }
+
+    public void setBufferType(BufferType bufferType) {
+        this.bufferType = bufferType;
+    }
+    
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -192,10 +239,17 @@ public class Settings {
         sb.append("\nWorker threads: ").append(workerThreads - selectorThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
         sb.append("\nIOStrategy class: ").append(strategyClass);
+        sb.append("\nMemoryManager class: ").append(memoryManagerClass);
+        sb.append("\nbufferType: ").append(bufferType != null ? bufferType : "default");
         sb.append("\nMonitoring memory: ").append(isMonitoringMemory);
-        sb.append("\nStream Write Method: ").append((blocking) ? "blocking" : "non-blocking");
         sb.append("\nChunked Transfer Encoding: ").append(chunked);
+        sb.append("\nasync/sync ratio: ").append(asyncSyncRatio);
+        sb.append("\nbinary: ").append(isBinary());
 
         return sb.toString();
+    }
+    
+    public enum BufferType {
+        HEAP, DIRECT;
     }
 }
