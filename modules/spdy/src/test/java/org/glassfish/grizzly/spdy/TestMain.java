@@ -47,12 +47,21 @@ import java.util.List;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
  *
@@ -75,16 +84,36 @@ public class TestMain {
         }
         
         final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator, clientSSLEngineConfigurator);
+        
+        final GrizzlyExecutorService threadPool =
+                GrizzlyExecutorService.createInstance(ThreadPoolConfig.newConfig().setMaxPoolSize(1024));
+        
+        final DelayedExecutor delayedExecutor = new DelayedExecutor(threadPool);
+        
+        final ServerFilterConfiguration httpServerConfig =
+                new ServerFilterConfiguration("spdy server", "1.0");
+        final HttpServerFilter httpServerFilter = new HttpServerFilter(
+                httpServerConfig, delayedExecutor);
+        
+        httpServerFilter.setHttpHandler(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                System.out.println(request.getRequest());
+            }
+        });
                 
         FilterChain chain = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .add(sslFilter)
                 .add(new FramesDecoderFilter())
-                .add(new SpdyHandlerFilter())
+                .add(new SpdyHandlerFilter(threadPool))
+                .add(httpServerFilter)
                 .build();
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
                 .setProcessor(chain)
+                .setIOStrategy(SameThreadIOStrategy.getInstance())
                 .build();
 
         NextProtoNegSupport.getInstance().configure(sslFilter);
@@ -116,6 +145,8 @@ public class TestMain {
             System.in.read();
         } finally {
             transport.stop();
+            delayedExecutor.destroy();
+            threadPool.shutdownNow();
         }
     }
     

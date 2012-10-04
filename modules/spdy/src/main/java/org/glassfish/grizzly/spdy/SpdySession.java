@@ -39,20 +39,106 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
 
 /**
  *
  * @author oleksiys
  */
-class SpdySession {
+final class SpdySession {
+    private final boolean isServer;
     private Inflater inflater;
+    private Deflater deflater;
+
+    private int lastPeerStreamId;
+    private int lastLocalStreamId;
     
-    Inflater getInflater() {
+    private FilterChain upstreamChain;
+    private FilterChain downstreamChain;
+    
+    private Map<Integer, SpdyStream> streamsMap =
+            new ConcurrentHashMap<Integer, SpdyStream>();
+    
+    public SpdySession() {
+        this(true);
+    }
+    
+    public SpdySession(final boolean isServer) {
+        this.isServer = isServer;
+    }
+    
+    public SpdyStream getStream(final int streamId) {
+        return streamsMap.get(streamId);
+    }
+    
+    public Inflater getInflater() {
         if (inflater == null) {
             inflater = new Inflater();
         }
         
         return inflater;
+    }
+    
+    public Deflater getDeflater() {
+        if (deflater == null) {
+            deflater = new Deflater();
+        }
+        
+        return deflater;
+    }
+
+    public boolean isServer() {
+        return isServer;
+    }
+
+    SpdyStream acceptStream(final FilterChainContext context,
+            final SpdyRequest spdyRequest,
+            final int streamId, final int associatedToStreamId, 
+            final int priority, final int slot) {
+        
+        final FilterChainContext upstreamContext =
+                getUpstreamChain(context).obtainFilterChainContext(
+                context.getConnection());
+        final FilterChainContext downstreamContext =
+                getDownstreamChain(context).obtainFilterChainContext(
+                context.getConnection());
+        
+        upstreamContext.getInternalContext().setEvent(IOEvent.READ);
+        upstreamContext.setMessage(HttpContent.builder(spdyRequest).build());
+        upstreamContext.setAddressHolder(context.getAddressHolder());
+        
+        final SpdyStream spdyStream = new SpdyStream(spdyRequest,
+                upstreamContext, downstreamContext, streamId, associatedToStreamId,
+                priority, slot);
+        
+        streamsMap.put(streamId, spdyStream);
+        lastPeerStreamId = streamId;
+        
+        return spdyStream;
+    }
+    
+    private FilterChain getUpstreamChain(final FilterChainContext context) {
+        if (upstreamChain == null) {
+            upstreamChain = (FilterChain) context.getFilterChain().subList(
+                    context.getFilterIdx(), context.getEndIdx());
+        }
+        
+        return upstreamChain;
+    }
+    
+    private FilterChain getDownstreamChain(final FilterChainContext context) {
+        if (downstreamChain == null) {
+            downstreamChain = (FilterChain) context.getFilterChain().subList(
+                    context.getStartIdx(), context.getFilterIdx());
+        }
+        
+        return downstreamChain;
     }
 }

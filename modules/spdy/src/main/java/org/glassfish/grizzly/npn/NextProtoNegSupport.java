@@ -42,6 +42,8 @@ package org.glassfish.grizzly.npn;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -95,9 +97,11 @@ public class NextProtoNegSupport {
     
     private final Map<Object, ServerSideNegotiator> serverSideNegotiators = 
             new WeakHashMap<Object, ServerSideNegotiator>();
+    private final ReadWriteLock serverSideLock = new ReentrantReadWriteLock();
     
     private final Map<Object, ClientSideNegotiator> clientSideNegotiators = 
             new WeakHashMap<Object, ClientSideNegotiator>();
+    private final ReadWriteLock clientSideLock = new ReentrantReadWriteLock();
 
     private final SSLFilter.HandshakeListener handshakeListener = 
             new SSLFilter.HandshakeListener() {
@@ -108,18 +112,32 @@ public class NextProtoNegSupport {
             assert sslEngine != null;
             
             if (sslEngine.getUseClientMode()) {
-                ClientSideNegotiator negotiator = clientSideNegotiators.get(connection);
-                if (negotiator == null) {
-                    negotiator = clientSideNegotiators.get(connection.getTransport());
+                ClientSideNegotiator negotiator;
+                clientSideLock.readLock().lock();
+                
+                try {
+                    negotiator = clientSideNegotiators.get(connection);
+                    if (negotiator == null) {
+                        negotiator = clientSideNegotiators.get(connection.getTransport());
+                    }
+                } finally {
+                    clientSideLock.readLock().unlock();
                 }
                 
                 if (negotiator != null) {
                     JettyBridge.putClientProvider(sslEngine, negotiator);
                 }
             } else {
-                ServerSideNegotiator negotiator = serverSideNegotiators.get(connection);
-                if (negotiator == null) {
-                    negotiator = serverSideNegotiators.get(connection.getTransport());
+                ServerSideNegotiator negotiator;
+                serverSideLock.readLock().lock();
+                
+                try {
+                    negotiator = serverSideNegotiators.get(connection);
+                    if (negotiator == null) {
+                        negotiator = serverSideNegotiators.get(connection.getTransport());
+                    }
+                } finally {
+                    serverSideLock.readLock().unlock();
                 }
                 
                 if (negotiator != null) {
@@ -143,24 +161,47 @@ public class NextProtoNegSupport {
     
     public void setServerSideNegotiator(final Transport transport,
             final ServerSideNegotiator negotiator) {
-        serverSideNegotiators.put(transport, negotiator);
+        putServerSideNegotiator(transport, negotiator);
     }
     
     public void setServerSideNegotiator(final Connection connection,
             final ServerSideNegotiator negotiator) {
-        serverSideNegotiators.put(connection, negotiator);
+        putServerSideNegotiator(connection, negotiator);
     }
 
+    
     public void setClientSideNegotiator(final Transport transport,
             final ClientSideNegotiator negotiator) {
-        clientSideNegotiators.put(transport, negotiator);
+        putClientSideNegotiator(transport, negotiator);
     }
 
     public void setClientSideNegotiator(final Connection connection,
             final ClientSideNegotiator negotiator) {
-        clientSideNegotiators.put(connection, negotiator);
+        putClientSideNegotiator(connection, negotiator);
     }
 
+    private void putServerSideNegotiator(final Object object,
+            final ServerSideNegotiator negotiator) {
+        serverSideLock.writeLock().lock();
+
+        try {
+            serverSideNegotiators.put(object, negotiator);
+        } finally {
+            serverSideLock.writeLock().unlock();
+        }
+    }
+
+    private void putClientSideNegotiator(final Object object,
+            final ClientSideNegotiator negotiator) {
+        clientSideLock.writeLock().lock();
+
+        try {
+            clientSideNegotiators.put(object, negotiator);
+        } finally {
+            clientSideLock.writeLock().unlock();
+        }
+    }
+    
     public interface ServerSideNegotiator {
         public List<String> supportedProtocols();
         public void onSuccess(String protocol);

@@ -41,17 +41,31 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.util.ByteChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -64,6 +78,8 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * @author oleksiys
  */
 public class SpdyHandlerFilter extends BaseFilter {
+    private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
+    
     private static final int SYN_STREAM_FRAME = 1;
     private static final int SYN_REPLY_FRAME = 2;
     private static final int RST_STREAM_FRAME = 3;
@@ -98,14 +114,27 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     });
     
+    private final ExecutorService threadPool;
+
+    public SpdyHandlerFilter(ExecutorService threadPool) {
+        this.threadPool = threadPool;
+    }
+    
+    
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
-        if (ctx.getMessage() instanceof Buffer) {
-            final Buffer frameBuffer = ctx.getMessage();
+        final Object message = ctx.getMessage();
+        
+        if (message instanceof HttpPacket) { // It's SpdyStream upstream filter chain invocation. Skip this filter for now.
+            return ctx.getInvokeAction();
+        }
+        
+        if (message instanceof Buffer) {
+            final Buffer frameBuffer = (Buffer) message;
             processInFrame(ctx, frameBuffer);
         } else {
-            final ArrayList<Buffer> framesList = ctx.getMessage();
+            final ArrayList<Buffer> framesList = (ArrayList<Buffer>) message;
             final int sz = framesList.size();
             for (int i = 0; i < sz; i++) {
                 processInFrame(ctx, framesList.get(i));
@@ -180,8 +209,6 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         try {
             decoded = inflate(spdySession, context.getMemoryManager(), payload);
-
-            
         } catch (DataFormatException dfe) {
             sendRstStream(context, streamId, PROTOCOL_ERROR, null);
             return;
@@ -189,25 +216,139 @@ public class SpdyHandlerFilter extends BaseFilter {
             frame.dispose();
         }
         
-        final int headersCount = decoded.getInt();
-        System.out.println("headerCount=" + headersCount);
+        assert decoded.hasArray();
+        
+        final SpdyRequest spdyRequest = SpdyRequest.create();
+        final MimeHeaders mimeHeaders = spdyRequest.getHeaders();
+        
+        final byte[] headersArray = decoded.array();
+        int position = decoded.arrayOffset() + decoded.position();
+        
+        final int headersCount = getInt(headersArray, position);
+        position += 4;
+        
         for (int i = 0; i < headersCount; i++) {
-            int position = decoded.position();
-
-            final int headerNameSize = decoded.getInt(position);
-            final String name = decoded.toStringContent(Charsets.ASCII_CHARSET,
-                    position + 4, position + headerNameSize + 4);            
-            position += headerNameSize + 4;
+            final boolean isServiceHeader = (headersArray[position + 4] == ':');
             
-            final int headerValueSize = decoded.getInt(position);
-            final String value = decoded.toStringContent(Charsets.ASCII_CHARSET,
-                    position + 4, position + headerValueSize + 4);
-            position += headerValueSize + 4;
-            
-            decoded.position(position);
-            
-            System.out.println("Header[name=" + name + " value=" + value + "]");
+            if (isServiceHeader) {
+                position = processServiceHeader(spdyRequest, headersArray, position);
+            } else {
+                position = processNormalHeader(mimeHeaders, headersArray, position);
+            }
         }
+        
+        final SpdyStream spdyStream = spdySession.acceptStream(context,
+                spdyRequest, streamId, associatedToStreamId, priority, slot);
+        
+        threadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                ProcessorExecutor.execute(
+                        spdyStream.getUpstreamContext().getInternalContext());
+            }
+        });
+    }
+    
+    private int processServiceHeader(final SpdyRequest spdyRequest,
+            final byte[] headersArray, final int position) {
+
+        final int nameSize = getInt(headersArray, position);
+        final int valueSize = getInt(headersArray, position + nameSize + 4);
+        
+        final int nameStart = position + 5; // Skip headerNameSize and following ':'
+        final int valueStart = position + nameSize + 8;
+        final int valueEnd = valueStart + valueSize;
+
+        switch (nameSize - 1) {
+            case 4: {
+                if (checkArraysContent(headersArray, nameStart,
+                        Constants.HOST_HEADER_BYTES)) {
+                    spdyRequest.getHeaders().addValue(Header.Host)
+                            .setBytes(headersArray, valueStart, valueEnd);
+                    
+                    return valueEnd;
+                } else if (checkArraysContent(headersArray, nameStart,
+                        Constants.PATH_HEADER_BYTES)) {
+                    
+                    int questionIdx = -1;
+                    for (int i = 0; i < valueSize; i++) {
+                        if (headersArray[valueStart + i] == '?') {
+                            questionIdx = i + valueStart;
+                            break;
+                        }
+                    }
+                    
+                    if (questionIdx == -1) {
+                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, valueEnd);
+                    } else {
+                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
+                                .setBytes(headersArray, valueStart, questionIdx);
+                        if (questionIdx < valueEnd - 1) {
+                            spdyRequest.getQueryStringDC()
+                                    .setBytes(headersArray, questionIdx + 1, valueEnd);
+                        }
+                    }
+                    
+                    return valueEnd;
+                }
+                
+                break;
+            } case 6: {
+                if (checkArraysContent(headersArray, nameStart,
+                        Constants.METHOD_HEADER_BYTES)) {
+                    spdyRequest.getMethodDC().setBytes(
+                            headersArray, valueStart, valueEnd);
+                    
+                    return valueEnd;
+                } else if (checkArraysContent(headersArray, nameStart,
+                        Constants.SCHEMA_HEADER_BYTES)) {
+                    
+                    spdyRequest.setSecure(valueSize == 5); // support http and https only
+                    return valueEnd;
+                }
+            } case 7: {
+                if (checkArraysContent(headersArray, nameStart,
+                                Constants.VERSION_HEADER_BYTES)) {
+                    spdyRequest.getProtocolDC().setBytes(
+                            headersArray, valueStart, valueEnd);
+                    
+                    return valueEnd;
+                }
+            }
+        }
+        
+        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
+                new Object[]{new String(headersArray, position, nameSize, Charsets.ASCII_CHARSET),
+                    new String(headersArray, valueStart, valueSize, Charsets.ASCII_CHARSET)});
+        
+        return valueEnd;
+    }
+    
+    private int processNormalHeader(final MimeHeaders mimeHeaders,
+            final byte[] headersArray, int position) {
+            
+        final int headerNameSize = getInt(headersArray, position);
+        position += 4;
+
+        final DataChunk valueChunk =
+                mimeHeaders.addValue(headersArray, position, headerNameSize);
+
+        position += headerNameSize;
+
+        final int headerValueSize = getInt(headersArray, position);
+        position += 4;
+
+        for (int i = 0; i < headerValueSize; i++) {
+            final byte b = headersArray[position + i];
+            if (b == 0) {
+                headersArray[position + i] = ',';
+            }
+        }
+        
+        final int end = position + headerValueSize;
+
+        valueChunk.setBytes(headersArray, position, end);
+        return end;
     }
     
     private void processDataFrame(Buffer frame, int streamId, int flags, int length) {
@@ -220,10 +361,27 @@ public class SpdyHandlerFilter extends BaseFilter {
                 + (buffer.get() & 0xFF);        
     }
     
+    private static int getInt(final byte[] array, final int position) {
+        return ((array[position] & 0xFF) << 24) +
+                ((array[position + 1] & 0xFF) << 16) +
+                ((array[position + 2] & 0xFF) << 8) +
+                (array[position + 3] & 0xFF);
+    }
+    
+    private static boolean checkArraysContent(final byte[] b1, final int pos,
+            final byte[] b2) {
+        for (int i = 0; i < b2.length; i++) {
+            if (b1[pos + i] != b2[i]) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
     private static void sendRstStream(final FilterChainContext ctx,
             final int streamId, final int statusCode,
             final CompletionHandler<WriteResult> completionHandler) {
-        final Connection connection = ctx.getConnection();
+        
         final Buffer rstStreamBuffer = ctx.getMemoryManager().allocate(16);
         rstStreamBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | RST_STREAM_FRAME); // "C", version, RST_STREAM_FRAME
         rstStreamBuffer.putInt(8); // Flags, Length

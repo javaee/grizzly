@@ -39,11 +39,19 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import org.glassfish.grizzly.utils.Charsets;
+
 /**
  *
  * @author oleksiys
  */
 public class Constants {
+    static byte[] HOST_HEADER_BYTES = "host".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] METHOD_HEADER_BYTES = "method".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] PATH_HEADER_BYTES = "path".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] SCHEMA_HEADER_BYTES = "scheme".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] VERSION_HEADER_BYTES = "version".getBytes(Charsets.ASCII_CHARSET);
+    
     public static final byte[] SPDY_ZLIB_DICTIONARY = {
         0x00, 0x00, 0x00, 0x07, 0x6f, 0x70, 0x74, 0x69, // - - - - o p t i
         0x6f, 0x6e, 0x73, 0x00, 0x00, 0x00, 0x04, 0x68, // o n s - - - - h
