@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http.ajp;
 
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
@@ -48,8 +49,13 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import java.io.EOFException;
 import java.io.IOException;
+import java.nio.channels.SelectableChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AjpInputBuffer extends InternalInputBuffer {
+    private static final Logger LOGGER = SelectorThread.logger();
+    
     private static final byte[] GET_BODY_CHUNK_PACKET;
     
     static {
@@ -87,14 +93,14 @@ public class AjpInputBuffer extends InternalInputBuffer {
         
         final int magic = AjpMessageUtils.getShort(buf, pos);
         if (magic != 0x1234) {
-            throw new IllegalStateException("Invalid packet magic number: " +
+            throw new IOException(ajpProcessorTask.getSelectionKey().channel() + ": Invalid packet magic number: " +
                     Integer.toHexString(magic) + " pos=" + pos + " lastValid=" + lastValid + " end=" + end);
         }
         
         final int size = AjpMessageUtils.getShort(buf, pos + 2);
         
         if (size + AjpConstants.H_SIZE > AjpConstants.MAX_PACKET_SIZE) {
-            throw new IllegalStateException("The message is too large. " +
+            throw new IOException(ajpProcessorTask.getSelectionKey().channel() + ": The message is too large. " +
                     (size + AjpConstants.H_SIZE) + ">" +
                     AjpConstants.MAX_PACKET_SIZE);
         }
@@ -103,6 +109,11 @@ public class AjpInputBuffer extends InternalInputBuffer {
         
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
         ajpRequest.setLength(size);
+        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "{0}: Header parsed. Size={1}",
+                    new Object[] {ajpProcessorTask.getSelectionKey().channel(), size});
+        }
     }
 
     @Override
@@ -137,8 +148,15 @@ public class AjpInputBuffer extends InternalInputBuffer {
         
         thisPacketEnd = pos + length;
         
-        ajpRequest.setType(ajpRequest.isForwardRequestProcessing() ?
-                AjpConstants.JK_AJP13_DATA : buf[pos++] & 0xFF);
+        final int type = ajpRequest.isForwardRequestProcessing() ?
+              AjpConstants.JK_AJP13_DATA : buf[pos++] & 0xFF;
+        
+        ajpRequest.setType(type);
+        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "{0}: Payload parsed. Type={1}",
+                    new Object[] {ajpProcessorTask.getSelectionKey().channel(), type});
+        }
     }
 
     protected void parseAjpHttpHeaders() {
@@ -172,10 +190,15 @@ public class AjpInputBuffer extends InternalInputBuffer {
 
     @Override
     protected final boolean fill() throws IOException {
-        throw new IllegalStateException("Should never be called for AJP");
+        throw new IOException("No I/O stream for AJP (should never be called)");
     }
 
     protected boolean ensureAvailable(final int length) throws IOException {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "{0}: ensureAvailable:start. length={1}, pos={2}, lastValid={3}, end={4}, thisPacketEnd={5}",
+                    new Object[] {getChannel(), length, pos, lastValid, end, thisPacketEnd});
+        }
+        
         if (isIOExceptionOccurred) {
             return false;
         }
@@ -234,6 +257,11 @@ public class AjpInputBuffer extends InternalInputBuffer {
                 lastValid += readNow;
             }
         } finally {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "{0}: ensureAvailable:exit. error={1}, pos={2}, lastValid={3}, end={4}, thisPacketEnd={5}",
+                        new Object[]{getChannel(), error, pos, lastValid, end, thisPacketEnd});
+
+            }
             if (error) {
                 ajpProcessorTask.error();  // Notify ProcessorTask about the error
                 isIOExceptionOccurred = true;
@@ -269,11 +297,11 @@ public class AjpInputBuffer extends InternalInputBuffer {
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
         
         if (ajpRequest.getLength() != available()) {
-            throw new IllegalStateException("Unexpected: read more data than JK_AJP13_DATA has");
+            throw new IOException("Unexpected: read more data than JK_AJP13_DATA has");
         }
 
         if (ajpRequest.getType() != AjpConstants.JK_AJP13_DATA) {
-            throw new IllegalStateException("Expected message type is JK_AJP13_DATA");
+            throw new IOException("Expected message type is JK_AJP13_DATA");
         }
         
         // Skip the content length field - we know the size from the packet header
@@ -283,9 +311,19 @@ public class AjpInputBuffer extends InternalInputBuffer {
     }
     
     private void requestDataChunk() throws IOException {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "{0}: requestDataChunk. pos={1}, lastValid={2}, end={3}, thisPacketEnd={4}",
+                    new Object[]{ajpProcessorTask.getSelectionKey().channel(), pos, lastValid, end, thisPacketEnd});
+        }
         ((AjpOutputBuffer) request.getResponse().getOutputBuffer())
                 .writeEncodedAjpMessage(GET_BODY_CHUNK_PACKET, 0,
                 GET_BODY_CHUNK_PACKET.length, true);
+    }
+    
+    private SelectableChannel getChannel() {
+        return ajpProcessorTask != null &&
+                ajpProcessorTask.getSelectionKey() != null ?
+                ajpProcessorTask.getSelectionKey().channel() : null;
     }
     
     // ------------------------------------- InputStreamInputBuffer Inner Class

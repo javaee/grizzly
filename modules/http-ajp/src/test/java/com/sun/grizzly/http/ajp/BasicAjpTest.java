@@ -58,6 +58,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.nio.channels.Channel;
 import java.util.Arrays;
 import java.util.Collections;
@@ -461,6 +462,42 @@ public class BasicAjpTest extends AbstractTest {
             send(dataPacketArray);
 
             AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+            Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+            closeClient();
+        }
+    }
+
+    @Test
+    public void testStabilityAfterWrongMagic() throws Exception {
+        GrizzlyAdapter a = new GrizzlyAdapter() {
+
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+                response.setStatus(200, "FINE");
+            }
+
+        };
+
+        configureHttpServer(a);
+
+        // Send junk data
+        final Socket s = new Socket("localhost", PORT);
+        try {
+            s.getOutputStream().write("junkjunkjunk".getBytes());
+            s.getOutputStream().flush();
+            while (s.getInputStream().read() != -1) {}
+        } finally {
+            s.close();
+        }
+        
+        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "/bob", PORT, 0);
+
+        for (int i = 0; i < 1024; i++) {
+            send(forward.toByteArray());
+            AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+
+            Assert.assertEquals(200, ajpResponse.getResponseCode());
             Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
             closeClient();
         }

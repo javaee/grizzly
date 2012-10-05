@@ -62,7 +62,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AjpProcessorTask extends ProcessorTask {
-    private final static Logger logger = SelectorThread.logger();
+    private final static Logger LOGGER = SelectorThread.logger();
     
     private final AjpConfiguration ajpConfiguration;
     
@@ -104,8 +104,13 @@ public class AjpProcessorTask extends ProcessorTask {
 
     @Override
     public boolean parseRequest() throws Exception {
-        ((AjpInputBuffer) inputBuffer).readAjpMessageHeader();
-        
+        try {
+            ((AjpInputBuffer) inputBuffer).readAjpMessageHeader();
+        } catch (Throwable t) {
+            error = true;
+            response.setStatus(400); // Bad request
+            return true;
+        }
         return super.parseRequest();
     }
 
@@ -113,52 +118,49 @@ public class AjpProcessorTask extends ProcessorTask {
     public void invokeAdapter() {
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
 
-        switch (ajpRequest.getType()) {
-            case AjpConstants.JK_AJP13_FORWARD_REQUEST:
-            {
-                ajpRequest.setForwardRequestProcessing(true);
-                if (ajpRequest.isExpectContent()) {
-                    try {
+        try {
+            switch (ajpRequest.getType()) {
+                case AjpConstants.JK_AJP13_FORWARD_REQUEST: {
+                    ajpRequest.setForwardRequestProcessing(true);
+                    if (ajpRequest.isExpectContent()) {
                         // if expect content - parse following data chunk
                         ((AjpInputBuffer) request.getInputBuffer()).parseDataChunk();
+                    }
+
+                    super.invokeAdapter();
+                    break;
+                }
+                case AjpConstants.JK_AJP13_SHUTDOWN: {
+                    processShutdown();
+                    break;
+                }
+                case AjpConstants.JK_AJP13_CPING_REQUEST: {
+                    try {
+                        processCPing();
                     } catch (IOException e) {
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.log(Level.FINE,
-                                    "Exception during parsing data chunk on connection: "
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE,
+                                    "Exception during sending CPONG reply on connection: "
                                     + key.channel(), e);
                         }
 
-                        error = true;                        
+                        error = true;
                     }
+
+                    break;
                 }
-                
-                super.invokeAdapter();
-                break;
-            }   
-            case AjpConstants.JK_AJP13_SHUTDOWN:
-            {
-                processShutdown();
-                break;
-            }
-            case AjpConstants.JK_AJP13_CPING_REQUEST:
-            {
-                try {
-                    processCPing();
-                } catch (IOException e) {
-                    if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE,
-                                "Exception during sending CPONG reply on connection: " + 
-                                key.channel(), e);
-                    }
-                    
+                default:
                     error = true;
-                }
-                
-                break;
+                    LOGGER.log(Level.WARNING, "Invalid packet type: {0}", ajpRequest.getType());
             }
-            default:
-                error = true;
-                logger.log(Level.WARNING, "Invalid packet type: {0}", ajpRequest.getType());
+        } catch (Throwable e) {
+            if (LOGGER.isLoggable(Level.INFO)) {
+                LOGGER.log(Level.INFO,
+                        "Exception during parsing data chunk on connection: "
+                        + key.channel(), e);
+            }
+
+            error = true;
         }
     }
 
@@ -194,7 +196,7 @@ public class AjpProcessorTask extends ProcessorTask {
                         }
                     }
                 } catch (java.security.cert.CertificateException e) {
-                    logger.log(Level.SEVERE, "Certificate convertion failed", e);
+                    LOGGER.log(Level.SEVERE, "Certificate convertion failed", e);
                     return;
                 }
 
@@ -212,8 +214,8 @@ public class AjpProcessorTask extends ProcessorTask {
                                                req.remoteAddr().toString()).
                                                getHostName());
                 } catch(IOException iex) {
-                    if(logger.isLoggable(Level.FINEST)) {
-                        logger.log(Level.FINEST, "Unable to resolve {0}", req.remoteAddr());
+                    if(LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "Unable to resolve {0}", req.remoteAddr());
                     }
                 }
             }
@@ -335,7 +337,7 @@ public class AjpProcessorTask extends ProcessorTask {
             try {
                 handler.onShutdown(key.channel());
             } catch (Exception e) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Exception during ShutdownHandler execution", e);
             }
         }
@@ -362,8 +364,8 @@ public class AjpProcessorTask extends ProcessorTask {
     @Override
     public void setBufferSize(int requestBufferSize) {
         if (requestBufferSize < AjpConstants.MAX_PACKET_SIZE * 2) {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "Buffer size is set to {0} instead of {1} for performance reasons",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Buffer size is set to {0} instead of {1} for performance reasons",
                         new Object[]{AjpConstants.MAX_PACKET_SIZE * 2, requestBufferSize});
             }
             
