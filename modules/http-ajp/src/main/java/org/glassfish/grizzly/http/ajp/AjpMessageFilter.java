@@ -40,6 +40,8 @@
 package org.glassfish.grizzly.http.ajp;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -56,6 +58,9 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * @author Alexey Stashok
  */
 public class AjpMessageFilter extends BaseFilter {
+    private static final Logger LOGGER =
+            Grizzly.logger(AjpMessageFilter.class);
+
     private final Attribute<ParsingState> parsingStateAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             AjpMessageFilter.class + ".parsingStateAttribute",
@@ -74,51 +79,61 @@ public class AjpMessageFilter extends BaseFilter {
 
         final ParsingState parsingState = parsingStateAttribute.get(connection);
 
-        // Have we read the AJP message header?
-        if (!parsingState.isHeaderParsed) {
-            if (buffer.remaining() < AjpConstants.H_SIZE) {
+        try {
+            // Have we read the AJP message header?
+            if (!parsingState.isHeaderParsed) {
+                if (buffer.remaining() < AjpConstants.H_SIZE) {
+                    return ctx.getStopAction(buffer);
+                }
+
+                final int start = buffer.position();
+
+                final int mark = buffer.getShort(start);
+
+                if (mark != 0x1234 && mark != 0x4142) {
+                    throw new IllegalStateException("Unexpected mark=" + mark);
+                }
+
+                parsingState.length = buffer.getShort(start + 2);
+                parsingState.isHeaderParsed = true;
+
+                if (parsingState.length + AjpConstants.H_SIZE >
+                        AjpConstants.MAX_PACKET_SIZE) {
+                    throw new IllegalStateException("The message is too large. " +
+                            (parsingState.length + AjpConstants.H_SIZE) + ">" +
+                            AjpConstants.MAX_PACKET_SIZE);
+                }
+            }
+
+            // Do we have the entire content?
+            if (buffer.remaining() < AjpConstants.H_SIZE + parsingState.length) {
                 return ctx.getStopAction(buffer);
             }
 
+            // Message is ready
+
             final int start = buffer.position();
 
-            final int mark = buffer.getShort(start);
+            // Split off the remainder
+            final Buffer remainder = buffer.split(start + parsingState.length +
+                    AjpConstants.H_SIZE);
 
-            if (mark != 0x1234 && mark != 0x4142) {
-                throw new IllegalStateException("Unexpected mark=" + mark);
+            // Skip the Ajp message header
+            buffer.position(start + 4);
+
+            parsingState.parsed();
+
+            // Invoke the next filter
+            return ctx.getInvokeAction(remainder.hasRemaining() ? remainder : null);
+        } catch (Exception e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Exception during AJP packet decoding:", e);
             }
-
-            parsingState.length = buffer.getShort(start + 2);
-            parsingState.isHeaderParsed = true;
-
-            if (parsingState.length + AjpConstants.H_SIZE >
-                    AjpConstants.MAX_PACKET_SIZE) {
-                throw new IllegalStateException("The message is too large. " +
-                        (parsingState.length + AjpConstants.H_SIZE) + ">" +
-                        AjpConstants.MAX_PACKET_SIZE);
-            }
-        }
-
-        // Do we have the entire content?
-        if (buffer.remaining() < AjpConstants.H_SIZE + parsingState.length) {
-            return ctx.getStopAction(buffer);
-        }
-
-        // Message is ready
-
-        final int start = buffer.position();
-
-        // Split off the remainder
-        final Buffer remainder = buffer.split(start + parsingState.length +
-                AjpConstants.H_SIZE);
-
-        // Skip the Ajp message header
-        buffer.position(start + 4);
+        }        
         
-        parsingState.parsed();
-
-        // Invoke the next filter
-        return ctx.getInvokeAction(remainder.hasRemaining() ? remainder : null);
+        // On error
+        ctx.getConnection().closeSilently();
+        return ctx.getStopAction();
     }
 
     static final class ParsingState {

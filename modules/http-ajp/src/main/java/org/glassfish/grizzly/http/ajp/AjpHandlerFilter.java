@@ -186,41 +186,52 @@ public class AjpHandlerFilter extends BaseFilter {
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final Buffer message = ctx.getMessage();
 
-        if (message == NEED_MORE_DATA_MESSAGE) {
-            // Upper layer tries to read additional data
-            // We need to send request to a server to obtain another data chunk.
-            sendMoreDataRequestIfNeeded(ctx);
-            return ctx.getStopAction();
+        try {
+            if (message == NEED_MORE_DATA_MESSAGE) {
+                // Upper layer tries to read additional data
+                // We need to send request to a server to obtain another data chunk.
+                sendMoreDataRequestIfNeeded(ctx);
+                return ctx.getStopAction();
+            }
+
+            final int type = extractType(ctx.getConnection(), message);
+
+            switch (type) {
+                case AjpConstants.JK_AJP13_FORWARD_REQUEST:
+                {
+                    return processForwardRequest(ctx, message);
+                }
+                case AjpConstants.JK_AJP13_DATA:
+                {
+                    return processData(ctx, message);
+                }
+
+                case AjpConstants.JK_AJP13_SHUTDOWN:
+                {
+                    return processShutdown(ctx, message);
+                }
+
+                case AjpConstants.JK_AJP13_CPING_REQUEST:
+                {
+                    return processCPing(ctx, message);
+                }
+
+                default:
+                {
+                    throw new IllegalStateException("Unknown message " + type);
+                }
+
+            }
+        } catch (Exception e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Exception during AJP message processing:", e);
+            }
         }
-
-        final int type = extractType(ctx.getConnection(), message);
-
-        switch (type) {
-            case AjpConstants.JK_AJP13_FORWARD_REQUEST:
-            {
-                return processForwardRequest(ctx, message);
-            }
-            case AjpConstants.JK_AJP13_DATA:
-            {
-                return processData(ctx, message);
-            }
-
-            case AjpConstants.JK_AJP13_SHUTDOWN:
-            {
-                return processShutdown(ctx, message);
-            }
-
-            case AjpConstants.JK_AJP13_CPING_REQUEST:
-            {
-                return processCPing(ctx, message);
-            }
-
-            default:
-            {
-                throw new IllegalStateException("Unknown message " + type);
-            }
-
-        }
+        
+        
+        // On error
+        ctx.getConnection().closeSilently();
+        return ctx.getStopAction();
     }
 
     /**

@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.ajp;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -133,6 +134,42 @@ public class BasicAjpTest extends AjpTestBase {
         AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
         Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
         Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+    }
+    
+    @Test
+    public void testStabilityAfterWrongMagic() throws Exception {
+        HttpHandler a = new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response)
+                    throws Exception {
+                response.setStatus(200, "FINE");
+            }
+
+        };
+
+        startHttpServer(a);
+
+        // Send junk data
+        final Socket s = new Socket("localhost", PORT);
+        try {
+            s.getOutputStream().write("junkjunkjunk".getBytes());
+            s.getOutputStream().flush();
+            while (s.getInputStream().read() != -1) {}
+        } finally {
+            s.close();
+        }
+        
+        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "/bob", PORT, 0);
+
+        for (int i = 0; i < 1024; i++) {
+            send(forward.toByteArray());
+            AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+
+            Assert.assertEquals(200, ajpResponse.getResponseCode());
+            Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+            closeClient();
+        }
     }
     
     @Test
