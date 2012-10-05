@@ -42,7 +42,6 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -70,8 +69,8 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 public class TestMain {
     public static void main(String[] args) throws IOException {
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        SSLEngineConfigurator clientSSLEngineConfigurator = null;
-        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+        SSLEngineConfigurator clientSSLEngineConfigurator;
+        SSLEngineConfigurator serverSSLEngineConfigurator;
 
         if (sslContextConfigurator.validateConfiguration(true)) {
             clientSSLEngineConfigurator =
@@ -82,7 +81,7 @@ public class TestMain {
         } else {
             throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
         }
-        
+
         final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator, clientSSLEngineConfigurator);
         
         final GrizzlyExecutorService threadPool =
@@ -120,7 +119,7 @@ public class TestMain {
         NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
                 new NextProtoNegSupport.ServerSideNegotiator() {
 
-            private final List<String> supportedProtocols = Arrays.asList("spdy/3", "spdy/2", "http/1.1");
+            private final List<String> supportedProtocols = Arrays.asList("spdy/3", "http/1.1");
             @Override
             public List<String> supportedProtocols() {
                 return supportedProtocols;
@@ -142,6 +141,7 @@ public class TestMain {
             transport.start();
             
             System.out.println("Press enter to stop.");
+            //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } finally {
             transport.stop();

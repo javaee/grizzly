@@ -123,6 +123,7 @@
         <module>portunif</module>
         <module>http-ajp</module>
         <module>config</module>
+        <!--<module>spdy</module>-->
         <module>bundles</module>
     </modules>
 </project>
