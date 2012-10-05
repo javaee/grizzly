@@ -39,57 +39,10 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.ProcessingState;
-
 /**
  *
  * @author oleksiys
  */
-public class SpdyRequest extends HttpRequestPacket implements SpdyPacket {
-    private static final Logger LOGGER = Grizzly.logger(SpdyRequest.class);
+public interface SpdyPacket {
     
-    private static final ThreadCache.CachedTypeIndex<SpdyRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(SpdyRequest.class, 2);
-
-    public static SpdyRequest create() {
-        SpdyRequest httpRequestImpl =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (httpRequestImpl == null) {
-            httpRequestImpl = new SpdyRequest();
-        }
-
-        return httpRequestImpl.init();
-    }
-    
-    private final ProcessingState processingState = new ProcessingState();
-    
-    private final SpdyResponse spdyResponse = new SpdyResponse();
-    
-    @Override
-    public ProcessingState getProcessingState() {
-        return processingState;
-    }
-
-    private SpdyRequest init() {
-        setResponse(spdyResponse);
-        return this;
-    }
-    
-    @Override
-    protected void reset() {
-        processingState.recycle();
-        
-        super.reset();
-    }
-
-    @Override
-    public void recycle() {
-        reset();
-
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }    
 }

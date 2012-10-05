@@ -49,20 +49,18 @@ import java.util.zip.Inflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.util.ByteChunk;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -142,6 +140,92 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
         
         return ctx.getStopAction();
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        final Object message = ctx.getMessage();
+        
+        if (HttpPacket.isHttp(message)
+                && (((HttpPacket) message).getHttpHeader() instanceof SpdyPacket)) {
+            // Get HttpPacket
+            final HttpPacket input = (HttpPacket) ctx.getMessage();
+            // Get Connection
+            final Connection connection = ctx.getConnection();
+
+            try {
+                // transform HttpPacket into Buffer
+                final Buffer output = encodeSpdyPacket(ctx, input);
+
+                if (output != null) {
+//                    HttpProbeNotifier.notifyDataSent(this, connection, output);
+
+                    ctx.setMessage(output);
+                    // Invoke next filter in the chain.
+                    return ctx.getInvokeAction();
+                }
+
+                return ctx.getStopAction();
+            } catch (RuntimeException re) {
+//                HttpProbeNotifier.notifyProbesError(this, connection, input, re);
+                throw re;
+            }
+        }
+
+        return ctx.getInvokeAction();
+    }
+
+    private Buffer encodeSpdyPacket(FilterChainContext ctx, HttpPacket input) {
+        final HttpHeader header = input.getHttpHeader();
+        final HttpContent content = HttpContent.isContent(input) ? (HttpContent) input : null;
+        
+        Buffer headerBuffer = null;
+        
+        if (!header.isCommitted()) {
+            final boolean isLast = !header.isExpectContent() ||
+                    (content != null && content.isLast() &&
+                    !content.getContent().hasRemaining());
+            
+            if (!header.isRequest()) {
+                headerBuffer = encodeSynReply(ctx, (HttpResponsePacket) header, isLast);
+            } else {
+                throw new IllegalStateException("Not implemented yet");
+            }
+        }
+        
+        Buffer contentBuffer = null;
+        if (HttpContent.isContent(input)) {
+            contentBuffer = encodeSpdyData(ctx, input);
+        }
+        
+        final Buffer resultBuffer = Buffers.appendBuffers(ctx.getMemoryManager(),
+                                     headerBuffer, contentBuffer, true);
+        if (resultBuffer.isComposite()) {
+            ((CompositeBuffer) resultBuffer).disposeOrder(
+                    CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
+        }
+        
+        return resultBuffer;
+    }
+    
+    private Buffer encodeSynReply(final FilterChainContext ctx,
+            final HttpResponsePacket response, final boolean isLast) {
+        final MemoryManager mm = ctx.getMemoryManager();
+        
+        Buffer outputBuffer = allocateHeapBuffer(mm, 2048);
+        
+        outputBuffer = encodeServiceHeaders(response, outputBuffer);
+        
+        return outputBuffer;
+    }
+
+    private Buffer encodeServiceHeaders(final HttpResponsePacket response,
+            final Buffer outputBuffer) {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    private Buffer encodeSpdyData(FilterChainContext ctx, HttpPacket input) {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     private void processInFrame(final FilterChainContext context,

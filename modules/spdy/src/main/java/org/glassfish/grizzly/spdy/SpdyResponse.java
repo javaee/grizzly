@@ -46,7 +46,7 @@ import org.glassfish.grizzly.http.ProcessingState;
  *
  * @author oleksiys
  */
-public class SpdyResponse extends HttpResponsePacket {
+public class SpdyResponse extends HttpResponsePacket implements SpdyPacket {
     final ProcessingState processingState = new ProcessingState();
 
     @Override
