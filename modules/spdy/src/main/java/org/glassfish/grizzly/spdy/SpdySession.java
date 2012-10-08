@@ -42,11 +42,12 @@ package org.glassfish.grizzly.spdy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.Deflater;
-import java.util.zip.Inflater;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 
 /**
  *
@@ -54,7 +55,10 @@ import org.glassfish.grizzly.http.HttpContent;
  */
 final class SpdySession {
     private final boolean isServer;
-    private Inflater inflater;
+    private final Connection connection;
+    
+    private SpdyInflaterOutputStream inflaterOutputStream;
+    
     private Deflater deflater;
 
     private int lastPeerStreamId;
@@ -66,11 +70,13 @@ final class SpdySession {
     private Map<Integer, SpdyStream> streamsMap =
             new ConcurrentHashMap<Integer, SpdyStream>();
     
-    public SpdySession() {
-        this(true);
+    public SpdySession(final Connection connection) {
+        this(connection, true);
     }
     
-    public SpdySession(final boolean isServer) {
+    public SpdySession(final Connection connection,
+            final boolean isServer) {
+        this.connection = connection;
         this.isServer = isServer;
     }
     
@@ -78,12 +84,14 @@ final class SpdySession {
         return streamsMap.get(streamId);
     }
     
-    public Inflater getInflater() {
-        if (inflater == null) {
-            inflater = new Inflater();
+    public SpdyInflaterOutputStream getInflaterOutputStream() {
+        if (inflaterOutputStream == null) {
+            inflaterOutputStream = new SpdyInflaterOutputStream(
+                    connection.getTransport().getMemoryManager(),
+                    Constants.SPDY_ZLIB_DICTIONARY);
         }
         
-        return inflater;
+        return inflaterOutputStream;
     }
     
     public Deflater getDeflater() {

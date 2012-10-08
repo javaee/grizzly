@@ -68,8 +68,8 @@ import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  *
@@ -151,12 +151,7 @@ public class SpdyHandlerFilter extends BaseFilter {
 
     private final Attribute<SpdySession> spdySessionAttr =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            SpdySession.class.getName(), new NullaryFunction<SpdySession>() {
-        @Override
-        public SpdySession evaluate() {
-            return new SpdySession();
-        }
-    });
+            SpdySession.class.getName());
 
     private final ExecutorService threadPool;
 
@@ -169,6 +164,8 @@ public class SpdyHandlerFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
+        checkSpdySession(ctx.getConnection());
+        
         final Object message = ctx.getMessage();
 
         if (message instanceof HttpPacket) { // It's SpdyStream upstream filter chain invocation. Skip this filter for now.
@@ -257,18 +254,28 @@ public class SpdyHandlerFilter extends BaseFilter {
     
     private Buffer encodeSynReply(final FilterChainContext ctx,
             final HttpResponsePacket response, final boolean isLast) {
+        
+        final SpdySession spdySession = spdySessionAttr.get(ctx.getConnection());
+        
         final MemoryManager mm = ctx.getMemoryManager();
         
         Buffer outputBuffer = allocateHeapBuffer(mm, 2048);
         
-        outputBuffer = encodeServiceHeaders(response, outputBuffer);
+        outputBuffer = encodeHeaders(spdySession, response, outputBuffer);
         
         return outputBuffer;
     }
 
-    private Buffer encodeServiceHeaders(final HttpResponsePacket response,
+    private Buffer encodeHeaders(final SpdySession spdySession,
+            final HttpResponsePacket response,
             final Buffer outputBuffer) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        
+        response.getHeaders().removeHeader(Header.Connection);
+        response.getHeaders().removeHeader(Header.KeepAlive);
+        response.getHeaders().removeHeader(Header.ProxyConnection);
+        response.getHeaders().removeHeader(Header.TransferEncoding);
+        
+        return null;
     }
 
     private Buffer encodeSpdyData(FilterChainContext ctx, HttpPacket input) {
@@ -405,11 +412,8 @@ public class SpdyHandlerFilter extends BaseFilter {
                     sb.append(SYN_STREAM_FLAG_TEXT[2]);
                 }
             }
-            LOGGER.info("{SYN_STREAM : flags=" + sb.toString()
-                    + " streamID=" + streamId
-                    + " associatedToStreamId=" + associatedToStreamId
-                    + " priority=" + priority
-                    + " slot=" + slot+ '}');
+            LOGGER.log(Level.INFO, "'{'SYN_STREAM : flags={0} streamID={1} associatedToStreamId={2} priority={3} slot={4}'}'",
+                    new Object[]{sb.toString(), streamId, associatedToStreamId, priority, slot});
         }
 
         final SpdySession spdySession = spdySessionAttr.get(context.getConnection());
@@ -422,8 +426,10 @@ public class SpdyHandlerFilter extends BaseFilter {
         final Buffer decoded;
 
         try {
-            decoded = inflate(spdySession, context.getMemoryManager(), payload);
-        } catch (DataFormatException dfe) {
+            final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
+            inflaterOutputStream.write(frame);
+            decoded = inflaterOutputStream.checkpoint();
+        } catch (IOException dfe) {
             sendRstStream(context, streamId, PROTOCOL_ERROR, null);
             return;
         } finally {
@@ -606,127 +612,18 @@ public class SpdyHandlerFilter extends BaseFilter {
         ctx.write(rstStreamBuffer, completionHandler);
     }
 
-    private static Buffer inflate(final SpdySession spdySession,
-            final MemoryManager memoryManager, final Buffer payload) throws DataFormatException {
-
-        final Inflater inflater = spdySession.getInflater();
-
-        if (!payload.isComposite()) {
-            return inflateSimpleBuffer(inflater, memoryManager, payload, null);
-        } else {
-            final BufferArray bufferArray = payload.toBufferArray();
-            final Buffer[] array = bufferArray.getArray();
-
-            final int sz = bufferArray.size();
-
-            Buffer resultBuffer = null;
-            for (int i = 0; i < sz; i++) {
-                final Buffer simplePayloadBuffer = array[i];
-                resultBuffer = inflateSimpleBuffer(inflater,
-                        memoryManager,
-                        simplePayloadBuffer,
-                        resultBuffer);
-            }
-
-            bufferArray.recycle();
-
-            return resultBuffer;
-        }
-    }
-
-    private static Buffer inflateSimpleBuffer(final Inflater inflater,
-            final MemoryManager memoryManager, final Buffer payload,
-            Buffer outputBuffer)
-            throws DataFormatException {
-
-        CompositeBuffer compositeOutputBuffer = null;
-        Buffer currentOutputBuffer = null;
-        Buffer prevOutputBuffer = null;
-        if (outputBuffer != null) {
-            if (!outputBuffer.isComposite()) {
-                currentOutputBuffer = outputBuffer;
-            } else {
-                compositeOutputBuffer = (CompositeBuffer) outputBuffer;
-            }
-        }
-
-        if (payload.hasArray()) {
-            inflater.setInput(payload.array(),
-                    payload.arrayOffset() + payload.position(),
-                    payload.remaining());
-
-            currentOutputBuffer = allocateHeapBuffer(memoryManager,
-                    payload.remaining() * 3);
-
-            do {
-                if (!currentOutputBuffer.hasRemaining()) {
-                    currentOutputBuffer.flip();
-
-                    if (prevOutputBuffer != null) {
-                        if (compositeOutputBuffer == null) {
-                            compositeOutputBuffer = CompositeBuffer.newBuffer(memoryManager, prevOutputBuffer);
-                        } else {
-                            compositeOutputBuffer.append(prevOutputBuffer);
-                        }
-                    }
-
-                    prevOutputBuffer = currentOutputBuffer;
-
-                    currentOutputBuffer = allocateHeapBuffer(memoryManager,
-                            inflater.getRemaining() * 3);
-                }
-
-                final int lastInflated = inflater.inflate(
-                        currentOutputBuffer.array(),
-                        currentOutputBuffer.arrayOffset() + currentOutputBuffer.position(),
-                        currentOutputBuffer.remaining());
-
-                if (lastInflated == 0) {
-                    if (!inflater.needsDictionary()) {
-                        if (currentOutputBuffer.position() == 0) {
-                            currentOutputBuffer.dispose();
-                            currentOutputBuffer = null;
-                        } else {
-                            currentOutputBuffer.trim();
-                        }
-
-                        break;
-                    }
-                    inflater.setDictionary(Constants.SPDY_ZLIB_DICTIONARY);
-                } else {
-                    currentOutputBuffer.position(currentOutputBuffer.position() + lastInflated);
-                }
-            } while (true);
-        } else {
-
-        }
-
-        assert inflater.getRemaining() == 0;
-
-        if (compositeOutputBuffer != null) {
-            compositeOutputBuffer.append(prevOutputBuffer);
-            if (currentOutputBuffer != null) {
-                compositeOutputBuffer.append(currentOutputBuffer);
-            }
-
-            return compositeOutputBuffer;
-        } else if (prevOutputBuffer != null) {
-            if (currentOutputBuffer == null) {
-                return prevOutputBuffer;
-            }
-
-            return CompositeBuffer.newBuffer(memoryManager,
-                    prevOutputBuffer, currentOutputBuffer);
-        }
-
-        return currentOutputBuffer;
-    }
-
     private static Buffer allocateHeapBuffer(final MemoryManager mm, final int size) {
         if (!mm.willAllocateDirect(size)) {
             return mm.allocateAtLeast(size);
         } else {
             return Buffers.wrap(mm, new byte[size]);
+        }
+    }
+
+    private void checkSpdySession(final Connection connection) {
+        SpdySession spdySession = spdySessionAttr.get(connection);
+        if (spdySession == null) {
+            spdySessionAttr.set(connection, new SpdySession(connection));
         }
     }
 }

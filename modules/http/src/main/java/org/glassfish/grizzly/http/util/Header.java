@@ -101,7 +101,8 @@ public enum Header {
     Via("Via"),
     Warnings("Warning"),
     WWWAuthenticate("WWW-Authenticate"),
-    XPoweredBy("X-Powered-By");
+    XPoweredBy("X-Powered-By"),
+    KeepAlive("Keep-Alive");
 
 
     // ----------------------------------------------------------------- Statics

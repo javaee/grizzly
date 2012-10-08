@@ -1315,16 +1315,8 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
     
     protected Buffer encodeHttpPacket(final FilterChainContext ctx, final HttpPacket input) {
-        final boolean isHeader = input.isHeader();
-        final HttpContent httpContent;
-        final HttpHeader httpHeader;
-        if (isHeader) {
-            httpContent = null;
-            httpHeader = (HttpHeader) input;
-        } else {
-            httpContent = (HttpContent) input;
-            httpHeader = httpContent.getHttpHeader();
-        }
+        final HttpContent httpContent = input.isHeader() ? null : (HttpContent) input;
+        final HttpHeader httpHeader = input.getHttpHeader();
 
         return encodeHttpPacket(ctx, httpHeader, httpContent, false);
     }
