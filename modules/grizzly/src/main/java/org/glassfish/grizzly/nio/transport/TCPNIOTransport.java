@@ -48,6 +48,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -390,11 +391,13 @@ public final class TCPNIOTransport extends NIOTransport implements
     public TCPNIOServerConnection bind(final SocketAddress socketAddress,
             final int backlog)
             throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
+        
         TCPNIOServerConnection serverConnection = null;
         final ServerSocketChannel serverSocketChannel =
                 selectorProvider.openServerSocketChannel();
+        
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             final ServerSocket serverSocket = serverSocketChannel.socket();
             serverSocket.setReuseAddress(reuseAddress);
@@ -431,6 +434,64 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TCPNIOServerConnection bindToInherited() throws IOException {
+        TCPNIOServerConnection serverConnection = null;
+        final Channel inheritedChannel = System.inheritedChannel();
+        
+        if (inheritedChannel == null) {
+            throw new IOException("Inherited channel is not set");
+        }
+        if (!(inheritedChannel instanceof ServerSocketChannel)) {
+            throw new IOException("Inherited channel is not java.nio.channels.ServerSocketChannel, but " + inheritedChannel.getClass().getName());
+        }
+        
+        final ServerSocketChannel serverSocketChannel = (ServerSocketChannel) inheritedChannel;
+        
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
+        try {
+            
+            final ServerSocket serverSocket = serverSocketChannel.socket();
+            
+            serverSocket.setReuseAddress(reuseAddress);
+
+            serverSocket.setSoTimeout(serverSocketSoTimeout);
+            
+            serverSocketChannel.configureBlocking(false);
+
+            serverConnection = obtainServerNIOConnection(serverSocketChannel);
+            serverConnections.add(serverConnection);
+            serverConnection.resetProperties();
+
+            if (!isStopped()) {
+                listenServerConnection(serverConnection);
+            }
+
+            return serverConnection;
+        } catch (Exception e) {
+            if (serverConnection != null) {
+                serverConnections.remove(serverConnection);
+
+                serverConnection.closeSilently();
+            } else {
+                try {
+                    serverSocketChannel.close();
+                } catch (IOException ignored) {
+                }
+            }
+            
+            throw Exceptions.makeIOException(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    
     /**
      * {@inheritDoc}
      */
@@ -460,7 +521,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         throw ioException;
     }
-
+    
     /**
      * {@inheritDoc}
      */
