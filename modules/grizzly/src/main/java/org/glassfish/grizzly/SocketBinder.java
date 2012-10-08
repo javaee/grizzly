@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -116,6 +116,16 @@ public interface SocketBinder {
      */
     public Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
 
+    /**
+     * Binds the Transport to the channel inherited from the entity that
+     * created this Java virtual machine.
+     * 
+     * @return bound {@link Connection}
+     * 
+     * @throws IOException 
+     */
+    public Connection bindToInherited() throws IOException;
+    
     /**
      * Unbinds bound {@link Transport} connection.
      * @param connection {@link Connection}

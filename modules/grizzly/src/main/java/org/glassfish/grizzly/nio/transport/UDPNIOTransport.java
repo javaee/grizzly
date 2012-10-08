@@ -44,6 +44,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -192,12 +193,12 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
             throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
         final DatagramChannel serverDatagramChannel =
                 selectorProvider.openDatagramChannel();
         UDPNIOServerConnection serverConnection = null;
 
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             final DatagramSocket socket = serverDatagramChannel.socket();
             try {
@@ -244,6 +245,67 @@ public final class UDPNIOTransport extends NIOTransport implements
         }
     }
 
+    @Override
+    public Connection bindToInherited() throws IOException {
+        final Channel inheritedChannel = System.inheritedChannel();
+        
+        if (inheritedChannel == null) {
+            throw new IOException("Inherited channel is not set");
+        }
+        if (!(inheritedChannel instanceof DatagramChannel)) {
+            throw new IOException("Inherited channel is not java.nio.channels.DatagramChannel, but " + inheritedChannel.getClass().getName());
+        }
+
+        final DatagramChannel serverDatagramChannel = (DatagramChannel) inheritedChannel;
+        UDPNIOServerConnection serverConnection = null;
+
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
+        try {
+            final DatagramSocket socket = serverDatagramChannel.socket();
+            try {
+                socket.setReuseAddress(reuseAddress);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
+            }
+
+            try {
+                socket.setSoTimeout(serverSocketSoTimeout);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
+            }
+            
+            serverDatagramChannel.configureBlocking(false);
+
+            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
+            serverConnections.add(serverConnection);
+
+            if (!isStopped()) {
+                serverConnection.register();
+            }
+
+            return serverConnection;
+        } catch (Exception e) {
+            if (serverConnection != null) {
+                serverConnections.remove(serverConnection);
+
+                serverConnection.closeSilently();
+            } else {
+                try {
+                    serverDatagramChannel.close();
+                } catch (IOException ignored) {
+                }
+            }
+
+            throw Exceptions.makeIOException(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    
     /**
      * {@inheritDoc}
      */
