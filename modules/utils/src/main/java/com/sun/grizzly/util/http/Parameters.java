@@ -111,12 +111,9 @@ public final class Parameters {
     MessageBytes decodedQuery = MessageBytes.newInstance();
 
     // Garbage-less parameter merging.
-    // In a sub-request with parameters, the new parameters
-    // will be stored in child. When a getParameter happens,
-    // the 2 are merged togheter. The child will be altered
-    // to contain the merged values - the parent is allways the
-    // original request.
-    private Parameters child = null;
+    // When a getParameter happens, the 2 are merged together.
+    // The child will be altered to contain the merged values -
+    // the parent is always the original request.
     private Parameters parent = null;
     private Parameters currentChild = null;
 
@@ -169,65 +166,6 @@ public final class Parameters {
         decodedQuery.recycle();
     }
 
-    // -------------------- Sub-request support --------------------
-
-    @SuppressWarnings("UnusedDeclaration")
-    public Parameters getCurrentSet() {
-        if (currentChild == null) {
-            return this;
-        }
-        return currentChild;
-    }
-
-    /**
-     * Create ( or reuse ) a child that will be used during a sub-request.
-     * All future changes ( setting query string, adding parameters )
-     * will affect the child ( the parent request is never changed ).
-     * Both setters and getters will return the data from the deepest
-     * child, merged with data from parents.
-     */
-    public void push() {
-        // We maintain a linked list, that will grow to the size of the
-        // longest include chain.
-        // The list has 2 points of interest:
-        // - request.parameters() is the original request and head,
-        // - request.parameters().currentChild() is the current set.
-        // The ->child and parent<- links are preserved ( currentChild is not
-        // the last in the list )
-
-        // create a new element in the linked list
-        // note that we reuse the child, if any - pop will not
-        // set child to null !
-        if (currentChild == null) {
-            currentChild = new Parameters();
-            currentChild.setURLDecoder(urlDec);
-            currentChild.parent = this;
-            return;
-        }
-        if (currentChild.child == null) {
-            currentChild.child = new Parameters();
-            currentChild.setURLDecoder(urlDec);
-            currentChild.child.parent = currentChild;
-        } // it is not null if this object already had a child
-        // i.e. a deeper include() ( we keep it )
-
-        // the head will be the new element.
-        currentChild = currentChild.child;
-        currentChild.setEncoding(encoding);
-    }
-
-    /**
-     * Discard the last child. This happens when we return from a
-     * sub-request and the parameters are locally modified.
-     */
-    public void pop() {
-        if (currentChild == null) {
-            throw new RuntimeException("Attempt to pop without a push");
-        }
-        currentChild.recycle();
-        currentChild = currentChild.parent;
-        // don't remove the top.
-    }
 
     // -------------------- Data access --------------------
     // Access to the current name/values, no side effect ( processing ).
@@ -650,82 +588,7 @@ public final class Parameters {
         return bc.toString();
     }
 
-    public void processParameters(char chars[], int start, int len) {
-        int end = start + len;
-        int pos = start;
-
-        if (debug > 0) {
-            log("Chars: " + new String(chars, start, len));
-        }
-        do {
-            boolean noEq = false;
-            int nameStart = pos;
-            int valStart = -1;
-            int valEnd = -1;
-
-            int nameEnd = CharChunk.indexOf(chars, nameStart, end, '=');
-            int nameEnd2 = CharChunk.indexOf(chars, nameStart, end, '&');
-            if ((nameEnd2 != -1) &&
-                    (nameEnd == -1 || nameEnd > nameEnd2)) {
-                nameEnd = nameEnd2;
-                noEq = true;
-                valStart = nameEnd;
-                valEnd = nameEnd;
-                if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + new String(chars, nameStart,
-                            nameEnd - nameStart));
-                }
-            }
-            if (nameEnd == -1) {
-                nameEnd = end;
-            }
-
-            if (!noEq) {
-                valStart = (nameEnd < end) ? nameEnd + 1 : end;
-                valEnd = CharChunk.indexOf(chars, valStart, end, '&');
-                if (valEnd == -1) {
-                    valEnd = (valStart < end) ? end : valStart;
-                }
-            }
-
-            pos = valEnd + 1;
-
-            if (nameEnd <= nameStart) {
-                continue;
-                // invalid chunk - no name, it's better to ignore
-                // XXX log it ?
-            }
-
-            try {
-                tmpNameC.append(chars, nameStart, nameEnd - nameStart);
-                tmpValueC.append(chars, valStart, valEnd - valStart);
-
-                if (debug > 0) {
-                    log(tmpNameC + "= " + tmpValueC);
-                }
-
-                if (urlDec == null) {
-                    urlDec = new UDecoder();
-                }
-
-                urlDec.convert(tmpNameC);
-                urlDec.convert(tmpValueC);
-
-                if (debug > 0) {
-                    log(tmpNameC + "= " + tmpValueC);
-                }
-
-                addParameter(tmpNameC.toString(), tmpValueC.toString());
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-
-            tmpNameC.recycle();
-            tmpValueC.recycle();
-
-        } while (pos < end);
-    }
-
+    @SuppressWarnings("UnusedDeclaration")
     public void processParameters(MessageBytes data) {
         processParameters(data, encoding);
     }
@@ -735,18 +598,12 @@ public final class Parameters {
             return;
         }
 
-        if (data.getType() == MessageBytes.T_BYTES) {
-            ByteChunk bc = data.getByteChunk();
-            processParameters(bc.getBytes(), bc.getOffset(),
-                    bc.getLength(), getCharset(encoding));
-        } else {
-            if (data.getType() != MessageBytes.T_CHARS) {
-                data.toChars();
-            }
-            CharChunk cc = data.getCharChunk();
-            processParameters(cc.getChars(), cc.getOffset(),
-                    cc.getLength());
+        if (data.getType() != MessageBytes.T_BYTES) {
+            data.toBytes();
         }
+        ByteChunk bc = data.getByteChunk();
+        processParameters(bc.getBytes(), bc.getOffset(),
+                bc.getLength(), getCharset(encoding));
     }
 
     /**
