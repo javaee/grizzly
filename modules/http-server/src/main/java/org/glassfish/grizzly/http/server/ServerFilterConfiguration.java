@@ -60,6 +60,9 @@ public class ServerFilterConfiguration {
     private boolean passTraceRequest;
     private int maxRequestParameters = MAX_REQUEST_PARAMETERS;
     
+    // "reuse session IDs when creating sessions"
+    private boolean isReuseSessionID;
+    
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
      * up by framework during runtime.
@@ -84,6 +87,7 @@ public class ServerFilterConfiguration {
         this.traceEnabled = configuration.traceEnabled;
         this.passTraceRequest = configuration.passTraceRequest;
         this.maxRequestParameters = configuration.maxRequestParameters;
+        this.isReuseSessionID = configuration.isReuseSessionID;
     }
     
     /**
@@ -276,6 +280,23 @@ public class ServerFilterConfiguration {
         }
     }
 
+    /**
+     * Returns the "reuse session IDs when creating sessions"
+     * 
+     * @since 2.2.19
+     */
+    public boolean isReuseSessionID() {
+        return isReuseSessionID;
+    }
+
+    /**
+     * Sets the "reuse session IDs when creating sessions"
+     * 
+     * @since 2.2.19
+     */
+    public void setReuseSessionID(boolean isReuseSessionID) {
+        this.isReuseSessionID = isReuseSessionID;
+    }
 
     // --------------------------------------------------------- Private Methods
 

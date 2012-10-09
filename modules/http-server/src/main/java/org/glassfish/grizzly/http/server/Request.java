@@ -226,7 +226,7 @@ public class Request {
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
-            return new SchedulerThread(r, "Grizzly");
+            return new SchedulerThread(r, "Grizzly-HttpSession-Expirer");
         }
     });
 
@@ -2252,9 +2252,9 @@ public class Request {
             return null;
         }
 
-        if (requestedSessionId != null) {
+        if (requestedSessionId != null &&
+                httpServerFilter.getConfiguration().isReuseSessionID()) {
             session = new Session(requestedSessionId);
-
         } else {
             requestedSessionId = String.valueOf(generateRandomLong());
             session = new Session(requestedSessionId);
