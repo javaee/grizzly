@@ -727,18 +727,12 @@ public final class Parameters {
             return;
         }
 
-        if (data.getType() == MessageBytes.T_BYTES) {
-            ByteChunk bc = data.getByteChunk();
-            processParameters(bc.getBytes(), bc.getOffset(),
-                    bc.getLength(), getCharset(encoding));
-        } else {
-            if (data.getType() != MessageBytes.T_CHARS) {
-                data.toChars();
-            }
-            CharChunk cc = data.getCharChunk();
-            processParameters(cc.getChars(), cc.getOffset(),
-                    cc.getLength());
+        if (data.getType() != MessageBytes.T_BYTES) {
+            data.toBytes();
         }
+        ByteChunk bc = data.getByteChunk();
+        processParameters(bc.getBytes(), bc.getOffset(),
+                bc.getLength(), getCharset(encoding));
     }
 
     /**
