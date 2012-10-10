@@ -152,9 +152,9 @@ final class SpdySession {
         
         final FilterChainContext downstreamContext =
                 getDownstreamChain(context).obtainFilterChainContext(
-                context.getConnection(), context.getFilterIdx() - 1,
+                context.getConnection(), context.getFilterIdx(),
                 context.getStartIdx(),
-                context.getFilterIdx() - 1);
+                context.getFilterIdx());
         
         upstreamContext.getInternalContext().setEvent(IOEvent.READ);
         upstreamContext.setMessage(HttpContent.builder(spdyRequest).build());
@@ -170,7 +170,7 @@ final class SpdySession {
         return spdyStream;
     }
     
-    private FilterChain getUpstreamChain(final FilterChainContext context) {
+    FilterChain getUpstreamChain(final FilterChainContext context) {
         if (upstreamChain == null) {
             upstreamChain = (FilterChain) context.getFilterChain().subList(
                     context.getFilterIdx(), context.getEndIdx());
@@ -179,7 +179,7 @@ final class SpdySession {
         return upstreamChain;
     }
     
-    private FilterChain getDownstreamChain(final FilterChainContext context) {
+    FilterChain getDownstreamChain(final FilterChainContext context) {
         if (downstreamChain == null) {
             downstreamChain = (FilterChain) context.getFilterChain().subList(
                     context.getStartIdx(), context.getFilterIdx());

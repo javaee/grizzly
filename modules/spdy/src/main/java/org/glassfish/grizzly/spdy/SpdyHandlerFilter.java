@@ -168,7 +168,7 @@ public class SpdyHandlerFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
-        checkSpdySession(ctx.getConnection());
+        final SpdySession spdySession = checkSpdySession(ctx.getConnection());
         
         final Object message = ctx.getMessage();
 
@@ -178,12 +178,12 @@ public class SpdyHandlerFilter extends BaseFilter {
 
         if (message instanceof Buffer) {
             final Buffer frameBuffer = (Buffer) message;
-            processInFrame(ctx, frameBuffer);
+            processInFrame(spdySession, ctx, frameBuffer);
         } else {
             final ArrayList<Buffer> framesList = (ArrayList<Buffer>) message;
             final int sz = framesList.size();
             for (int i = 0; i < sz; i++) {
-                processInFrame(ctx, framesList.get(i));
+                processInFrame(spdySession, ctx, framesList.get(i));
             }
         }
 
@@ -483,8 +483,8 @@ public class SpdyHandlerFilter extends BaseFilter {
         return resultBuffer;
     }
 
-    private void processInFrame(final FilterChainContext context,
-            final Buffer frame) {
+    private void processInFrame(final SpdySession spdySession,
+            final FilterChainContext context, final Buffer frame) {
 
         final long header = frame.getLong();
 
@@ -497,7 +497,8 @@ public class SpdyHandlerFilter extends BaseFilter {
             final int type = first32 & 0xFFFF;
             final int flags = second32 >>> 24;
             final int length = second32 & 0xFFFFFF;
-            processControlFrame(context, frame, version, type, flags, length);
+            processControlFrame(spdySession, context, frame, version, type,
+                    flags, length);
         } else {
             final int streamId = first32 & 0x7FFFFFFF;
             final int flags = second32 >>> 24;
@@ -506,21 +507,27 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     }
 
-    private void processControlFrame(final FilterChainContext context,
-            final Buffer frame, final int version, final int type,
-            final int flags, final int length) {
+    private void processControlFrame(final SpdySession spdySession,
+            final FilterChainContext context, final Buffer frame,
+            final int version, final int type, final int flags, final int length) {
 
         switch(type) {
             case SYN_STREAM_FRAME: {
-                processSynStream(context, frame, version, type, flags, length);
+                processSynStream(spdySession, context, frame, version, type, flags, length);
                 break;
             }
             case SETTINGS_FRAME: {
-                processSettingsFrame(context, frame, version, type, flags, length);
+                processSettingsFrame(spdySession, context, frame, version, type, flags, length);
                 break;
             }
-            case SYN_REPLY_FRAME:
-            case PING_FRAME:
+            case SYN_REPLY_FRAME: {
+                break;
+            }
+            case PING_FRAME: {
+                processPingFrame(spdySession, context, frame, version, type, flags, length);
+                break;
+            }
+                
             case RST_STREAM_FRAME:
             case GOAWAY_FRAME:
             case HEADERS_FRAME:
@@ -533,14 +540,15 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     }
 
-    private void processSettingsFrame(final FilterChainContext context,
+    private void processSettingsFrame(final SpdySession spdySession,
+                                      final FilterChainContext context,
                                       final Buffer frame,
                                       final int version,
                                       final int type,
                                       final int flags,
                                       final int length) {
 
-        boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
+        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
 
         final int numEntries = frame.getInt();
         StringBuilder sb = null;
@@ -582,8 +590,34 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     }
 
+    private void processPingFrame(final SpdySession spdySession,
+                                      final FilterChainContext context,
+                                      final Buffer frame,
+                                      final int version,
+                                      final int type,
+                                      final int flags,
+                                      final int length) {
+        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
 
-    private void processSynStream(final FilterChainContext context,
+        final int numEntries = frame.getInt();
+        if (log) {
+            final StringBuilder sb = new StringBuilder(32);
+            sb.append("\n{PING : id=")
+                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFl)
+                    .append("}\n");
+            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+        }
+        
+        frame.flip();
+        
+        // Send the same ping message back
+        spdySession.getDownstreamChain(context).write(
+                context.getConnection(),
+                null, frame, null, null);
+    }
+
+    private void processSynStream(final SpdySession spdySession,
+            final FilterChainContext context,
             final Buffer frame, final int version, final int type,
             final int flags, final int length) {
 
@@ -616,8 +650,6 @@ public class SpdyHandlerFilter extends BaseFilter {
             LOGGER.log(Level.INFO, "'{'SYN_STREAM : flags={0} streamID={1} associatedToStreamId={2} priority={3} slot={4}'}'",
                     new Object[]{sb.toString(), streamId, associatedToStreamId, priority, slot});
         }
-
-        final SpdySession spdySession = spdySessionAttr.get(context.getConnection());
 
         Buffer payload = frame;
         if (frame.isComposite()) {
@@ -822,10 +854,13 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     }
 
-    private void checkSpdySession(final Connection connection) {
+    private SpdySession checkSpdySession(final Connection connection) {
         SpdySession spdySession = spdySessionAttr.get(connection);
         if (spdySession == null) {
-            spdySessionAttr.set(connection, new SpdySession(connection));
+            spdySession = new SpdySession(connection);
+            spdySessionAttr.set(connection, spdySession);
         }
+        
+        return spdySession;
     }
 }
