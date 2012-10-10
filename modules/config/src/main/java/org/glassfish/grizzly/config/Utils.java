@@ -49,7 +49,6 @@ import org.glassfish.hk2.api.ServiceLocatorFactory;
 import org.glassfish.hk2.bootstrap.HK2Populator;
 import org.glassfish.hk2.bootstrap.impl.ClasspathDescriptorFileFinder;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
-import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigParser;
 import org.jvnet.hk2.config.DomDocument;
 
@@ -73,7 +72,7 @@ import org.glassfish.grizzly.Grizzly;
 public class Utils {
     private static final Logger LOGGER = Grizzly.logger(Utils.class);
 
-    public static Habitat getHabitat(final String fileURL) {
+    public static ServiceLocator getServiceLocator(final String fileURL) {
         URL url = Utils.class.getClassLoader().getResource(fileURL);
         if (url == null) {
             try {
@@ -82,9 +81,9 @@ public class Utils {
                 throw new GrizzlyConfigException(e.getMessage());
             }
         }
-        Habitat habitat;
+        ServiceLocator habitat;
         try {
-            habitat = getHabitat(url.openStream(), url.toString());
+            habitat = getServiceLocator(url.openStream(), url.toString());
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
@@ -92,9 +91,9 @@ public class Utils {
         return habitat;
     }
 
-    public static Habitat getHabitat(final InputStream inputStream, String name) {
+    public static ServiceLocator getServiceLocator(final InputStream inputStream, String name) {
         try {
-            final Habitat habitat = getNewHabitat(name);
+            final ServiceLocator habitat = getNewServiceLocator(name);
             final ConfigParser parser = new ConfigParser(habitat);
             XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
                     ? XMLInputFactory.newFactory()
@@ -111,8 +110,8 @@ public class Utils {
         }
     }
 
-    public static Habitat getNewHabitat(String name) {
-        Habitat habitat = null;
+    public static ServiceLocator getNewServiceLocator(String name) {
+        ServiceLocator habitat = null;
 
         if (ServiceLocatorFactory.getInstance().find(name) == null) {
             ServiceLocator serviceLocator = ServiceLocatorFactory.getInstance()
@@ -125,7 +124,7 @@ public class Utils {
 
             config.commit();
 
-            habitat = new Habitat(null, name); // implicitly binds in ServiceLocator
+            habitat = ServiceLocatorFactory.getInstance().create(name);
 
             try {
                 HK2Populator.populate(serviceLocator,
@@ -135,7 +134,7 @@ public class Utils {
             }
         }
 
-        return (habitat != null) ? habitat : new Habitat(null, name);
+        return (habitat != null) ? habitat : ServiceLocatorFactory.getInstance().create(name);
     }
     
     @SuppressWarnings("UnusedDeclaration")
@@ -146,15 +145,15 @@ public class Utils {
     /**
      * Load or create an Object with the specific service name and class name.
      *
-     * @param habitat the HK2 {@link Habitat}
-     * @param clazz the class as mapped within the {@link Habitat}
+     * @param habitat the HK2 {@link ServiceLocator}
+     * @param clazz the class as mapped within the {@link ServiceLocator}
      * @param name the service name
      * @param realClassName the class name of the service
      * @return a service matching based on name and realClassName input
      *  arguments.
      */
     @SuppressWarnings({"unchecked"})
-    public static <E> E newInstance(Habitat habitat, Class<E> clazz,
+    public static <E> E newInstance(ServiceLocator habitat, Class<E> clazz,
             final String name, final String realClassName) {
         return newInstance(habitat, clazz, name, realClassName, null, null);
     }
@@ -162,15 +161,15 @@ public class Utils {
     /**
          * Load or create an Object with the specific service name and class name.
          *
-         * @param habitat the HK2 {@link Habitat}
-         * @param clazz the class as mapped within the {@link Habitat}
+         * @param habitat the HK2 {@link ServiceLocator}
+         * @param clazz the class as mapped within the {@link ServiceLocator}
          * @param name the service name
          * @param realClassName the class name of the service
          * @return a service matching based on name and realClassName input
          *  arguments.
          */
         @SuppressWarnings({"unchecked"})
-        public static <E> E newInstance(Habitat habitat, 
+        public static <E> E newInstance(ServiceLocator habitat, 
                                         Class<E> clazz,
                                         final String name, 
                                         final String realClassName, 

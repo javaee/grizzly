@@ -99,7 +99,7 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -172,7 +172,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     @Override
-    public void processDynamicConfigurationChange(Habitat habitat,
+    public void processDynamicConfigurationChange(ServiceLocator habitat,
         PropertyChangeEvent[] events) {
     }
 
@@ -214,7 +214,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     @Override
-    public void configure(final Habitat habitat,
+    public void configure(final ServiceLocator habitat,
         final NetworkListener networkListener) throws IOException {
         setName(networkListener.getName());
         setAddress(InetAddress.getByName(networkListener.getAddress()));
@@ -271,7 +271,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return UDPNIOTransportBuilder.newInstance().build();
     }
 
-    protected void configureProtocol(final Habitat habitat,
+    protected void configureProtocol(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final Protocol protocol,
             final FilterChainBuilder filterChainBuilder) {
@@ -285,7 +285,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 filterChainBuilder);
     }
 
-    protected void configureSubProtocol(final Habitat habitat,
+    protected void configureSubProtocol(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final Protocol protocol,
             final FilterChainBuilder filterChainBuilder) {
@@ -381,7 +381,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected static void configureSsl(final Habitat habitat,
+    protected static void configureSsl(final ServiceLocator habitat,
                                        final Ssl ssl,
                                        final FilterChainBuilder filterChainBuilder) {
         final SSLEngineConfigurator serverConfig = new SSLConfigurator(habitat, ssl);
@@ -398,7 +398,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     @SuppressWarnings({"unchecked"})
-    private static boolean configureElement(Habitat habitat,
+    private static boolean configureElement(ServiceLocator habitat,
             NetworkListener networkListener, ConfigBeanProxy configuration,
             Object instance) {
         
@@ -412,7 +412,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return false;
     }
 
-    protected void configureThreadPool(final Habitat habitat,
+    protected void configureThreadPool(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final ThreadPool threadPool) {
         
@@ -512,7 +512,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     @SuppressWarnings({"deprecation"})
-    protected void configureHttpProtocol(final Habitat habitat,
+    protected void configureHttpProtocol(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final Http http, final FilterChainBuilder filterChainBuilder) {
         transactionTimeoutMillis = Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
@@ -575,7 +575,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         configureAjpSupport(habitat, networkListener, http, filterChainBuilder);
     }
 
-    protected void configureCometSupport(final Habitat habitat,
+    protected void configureCometSupport(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final Http http, final FilterChainBuilder filterChainBuilder) {
 
@@ -589,7 +589,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected void configureWebSocketSupport(final Habitat habitat,
+    protected void configureWebSocketSupport(final ServiceLocator habitat,
                                              final Http http,
                                              final FilterChainBuilder filterChainBuilder) {
         final boolean websocketsSupportEnabled = Boolean.parseBoolean(http.getWebsocketsSupportEnabled());
@@ -615,7 +615,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected void configureAjpSupport(final Habitat habitat,
+    protected void configureAjpSupport(final ServiceLocator habitat,
             final NetworkListener networkListener,
             final Http http, final FilterChainBuilder filterChainBuilder) {
 
@@ -637,18 +637,18 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     /**
      * Load {@link AddOn} with the specific service name and classname.
      */
-    private AddOn loadAddOn(Habitat habitat, String name, String addOnClassName) {
+    private AddOn loadAddOn(ServiceLocator habitat, String name, String addOnClassName) {
         return Utils.newInstance(habitat, AddOn.class, name, addOnClassName);
     }
 
     /**
      * Load {@link Filter} with the specific service name and classname.
      */
-    private Filter loadFilter(Habitat habitat, String name, String filterClassName) {
+    private Filter loadFilter(ServiceLocator habitat, String name, String filterClassName) {
         return Utils.newInstance(habitat, Filter.class, name, filterClassName);
     }
     
-    private Filter loadFilter(Habitat habitat,
+    private Filter loadFilter(ServiceLocator habitat,
                               String name, 
                               String filterClassName, 
                               Class<?>[] ctorArgTypes, 

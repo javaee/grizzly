@@ -51,16 +51,16 @@ import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.memory.AbstractThreadLocalMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 
 public class GrizzlyConfig {
     private static final Logger logger = Logger.getLogger(GrizzlyConfig.class.getName());
     private final NetworkConfig config;
-    private final Habitat habitat;
+    private final ServiceLocator habitat;
     private final List<GrizzlyListener> listeners = new ArrayList<GrizzlyListener>();
 
     public GrizzlyConfig(String file) {
-        habitat = Utils.getHabitat(file);
+        habitat = Utils.getServiceLocator(file);
         config = habitat.getService(NetworkConfig.class);
     }
 

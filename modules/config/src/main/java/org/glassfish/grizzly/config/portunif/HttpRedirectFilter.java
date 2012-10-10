@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.ssl.SSLUtils;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -77,7 +77,7 @@ public class HttpRedirectFilter extends BaseFilter implements
      * @param configuration filter configuration
      */
     @Override
-    public void configure(Habitat habitat, NetworkListener networkListener,
+    public void configure(ServiceLocator habitat, NetworkListener networkListener,
             ConfigBeanProxy configuration) {
         
         if (configuration instanceof HttpRedirect) {

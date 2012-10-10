@@ -64,7 +64,7 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.hk2.api.ServiceHandle;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 
 /**
  * @author oleksiys
@@ -80,7 +80,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
     protected final Provider<SSLImplementation> sslImplementation;
 
     @SuppressWarnings("unchecked")
-    public SSLConfigurator(final Habitat habitat, final Ssl ssl) {
+    public SSLConfigurator(final ServiceLocator habitat, final Ssl ssl) {
         this.ssl = ssl;
         
         Provider<SSLImplementation> sslImplementationLocal;
@@ -106,10 +106,6 @@ public class SSLConfigurator extends SSLEngineConfigurator {
             };
         }
 
-        if (sslImplementationLocal == null) {
-            throw new IllegalStateException("Can not create SSLConfigurator. SSLImplementation is null");
-        }
-        
         sslImplementation = sslImplementationLocal;
         needClientAuth = isNeedClientAuth(ssl);
         wantClientAuth = isWantClientAuth(ssl);
@@ -275,6 +271,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         LOGGER.log(Level.FINE, msg, name.toString());
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isAllowLazyInit() {
         return ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit());
     }
@@ -286,11 +283,8 @@ public class SSLConfigurator extends SSLEngineConfigurator {
 
     private static boolean isWantClientAuth(final Ssl ssl) {
         final String auth = ssl.getClientAuth();
-        if (auth != null) {
-            return "want".equalsIgnoreCase(auth.trim());
-        }
+        return auth != null && "want".equalsIgnoreCase(auth.trim());
 
-        return false;
     }
 
     private static boolean isNeedClientAuth(final Ssl ssl) {
@@ -299,15 +293,12 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         }
 
         final String auth = ssl.getClientAuth();
-        if (auth != null) {
-            return "need".equalsIgnoreCase(auth.trim());
-        }
+        return auth != null && "need".equalsIgnoreCase(auth.trim());
 
-        return false;
     }
 
     private static SSLImplementation lookupSSLImplementation(
-            final Habitat habitat, final Ssl ssl) {
+            final ServiceLocator habitat, final Ssl ssl) {
 
         try {
             final String sslImplClassName = ssl.getClassname();

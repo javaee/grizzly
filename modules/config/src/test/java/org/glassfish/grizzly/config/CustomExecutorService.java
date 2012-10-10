@@ -45,7 +45,7 @@ import java.util.concurrent.*;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 
 /**
  * Custom {@link ExecutorService} implementation.
@@ -57,7 +57,7 @@ public class CustomExecutorService implements ExecutorService, ConfigAwareElemen
     
 
     @Override
-    public void configure(Habitat habitat, NetworkListener networkListener,
+    public void configure(ServiceLocator habitat, NetworkListener networkListener,
             ThreadPool configuration) {
         internalExecutorService = new ThreadPoolExecutor(
                 toInt(configuration.getMinThreadPoolSize()),
