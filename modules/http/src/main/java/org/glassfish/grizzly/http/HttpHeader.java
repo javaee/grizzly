@@ -71,7 +71,7 @@ public abstract class HttpHeader extends HttpPacket
             Constants.CHUNKED_ENCODING.getBytes(Charsets.ASCII_CHARSET);
 
     protected boolean isCommitted;
-    protected final MimeHeaders headers = new MimeHeaders();
+    protected final MimeHeaders headers;
     
     protected final DataChunk protocolC = DataChunk.newInstance();
     protected Protocol parsedProtocol;
@@ -117,6 +117,14 @@ public abstract class HttpHeader extends HttpPacket
     private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;
+
+    public HttpHeader() {
+        this(new MimeHeaders());
+    }
+
+    protected HttpHeader(MimeHeaders headers) {
+        this.headers = headers;
+    }
     
     void setHeaderBuffer(final Buffer headerBuffer) {
         this.headerBuffer = headerBuffer;

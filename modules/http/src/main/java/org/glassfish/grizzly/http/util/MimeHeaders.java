@@ -140,11 +140,11 @@ public class MimeHeaders {
     /**
      * The header fields.
      */
-    private MimeHeaderField[] headers = new MimeHeaderField[DEFAULT_HEADER_SIZE];
+    protected MimeHeaderField[] headers = new MimeHeaderField[DEFAULT_HEADER_SIZE];
     /**
      * The current number of header fields.
      */
-    private int count;
+    protected int count;
 
     private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
 
@@ -241,7 +241,7 @@ public class MimeHeaders {
 
         return value;
     }
-
+    
     /**
      * Find the index of a header with the given name.
      */
@@ -325,7 +325,7 @@ public class MimeHeaders {
      * Adds a partially constructed field to the header.  This
      * field has not had its name or value initialized.
      */
-    private MimeHeaderField createHeader() {
+    protected MimeHeaderField createHeader() {
         if (maxNumHeaders >= 0 && count == maxNumHeaders) {
             throw new MaxHeaderCountExceededException();
         }
@@ -565,7 +565,7 @@ public class MimeHeaders {
      * reset and swap with last header
      * @param idx the index of the header to remove.
      */
-    void removeHeader(int idx) {
+    protected void removeHeader(int idx) {
         MimeHeaderField mh = headers[idx];
 
         mh.recycle();
@@ -593,162 +593,164 @@ public class MimeHeaders {
         }
 
     } // END MaxHeaderCountExceededException
+    
+    /**
+     * Enumerate the distinct header names. Each nextElement() is O(n) ( a
+     * comparation is done with all previous elements ). This is less frequesnt
+     * than add() - we want to keep add O(1).
+     */
+    class NamesIterator implements Iterator<String> {
 
-}
+        int pos;
+        int size;
+        int currentPos;
+        String next;
+        final MimeHeaders headers;
 
-/**
- * Enumerate the distinct header names.
- * Each nextElement() is O(n) ( a comparation is
- * done with all previous elements ).
- * This is less frequesnt than add() - we want to keep add O(1).
- */
-class NamesIterator implements Iterator<String> {
+        NamesIterator(MimeHeaders headers) {
+            this.headers = headers;
+            pos = 0;
+            size = headers.size();
+            findNext();
+        }
 
-    int pos;
-    int size;
-    int currentPos;
-    String next;
-    final MimeHeaders headers;
-
-    NamesIterator(MimeHeaders headers) {
-        this.headers = headers;
-        pos = 0;
-        size = headers.size();
-        findNext();
-    }
-
-    private void findNext() {
-        next = null;
-        for (; pos < size; pos++) {
-            next = headers.getName(pos).toString();
-            for (int j = 0; j < pos; j++) {
-                if (headers.getName(j).equalsIgnoreCase(next)) {
-                    // duplicate.
-                    next = null;
+        private void findNext() {
+            next = null;
+            for (; pos < size; pos++) {
+                next = headers.getName(pos).toString();
+                for (int j = 0; j < pos; j++) {
+                    if (headers.getName(j).equalsIgnoreCase(next)) {
+                        // duplicate.
+                        next = null;
+                        break;
+                    }
+                }
+                if (next != null) {
+                    // it's not a duplicate
                     break;
                 }
             }
-            if (next != null) {
-                // it's not a duplicate
-                break;
-            }
+            // next time findNext is called it will try the
+            // next element
+            pos++;
         }
-        // next time findNext is called it will try the
-        // next element
-        pos++;
-    }
 
-    @Override
-    public boolean hasNext() {
-        return next != null;
-    }
-
-    @Override
-    public String next() {
-        currentPos = pos - 1;
-        final String current = next;
-        findNext();
-        return current;
-    }
-
-    @Override
-    public void remove() {
-        if (currentPos < 0) throw new IllegalStateException("No current element");
-        headers.removeHeader(currentPos);
-        pos = currentPos;
-        currentPos = -1;
-        size--;
-        findNext();
-    }
-}
-
-/** Enumerate the values for a (possibly ) multiple
-value element.
- */
-class ValuesIterator implements Iterator<String> {
-
-    int pos;
-    int size;
-    int currentPos;
-    DataChunk next;
-    final MimeHeaders headers;
-    final String name;
-
-    ValuesIterator(MimeHeaders headers, String name) {
-        this.name = name;
-        this.headers = headers;
-        pos = 0;
-        size = headers.size();
-        findNext();
-    }
-
-    private void findNext() {
-        next = null;
-        for (; pos < size; pos++) {
-            final DataChunk n1 = headers.getName(pos);
-            if (n1.equalsIgnoreCase(name)) {
-                next = headers.getValue(pos);
-                break;
-            }
+        @Override
+        public boolean hasNext() {
+            return next != null;
         }
-        pos++;
+
+        @Override
+        public String next() {
+            currentPos = pos - 1;
+            final String current = next;
+            findNext();
+            return current;
+        }
+
+        @Override
+        public void remove() {
+            if (currentPos < 0) {
+                throw new IllegalStateException("No current element");
+            }
+            headers.removeHeader(currentPos);
+            pos = currentPos;
+            currentPos = -1;
+            size--;
+            findNext();
+        }
     }
 
-    @Override
-    public boolean hasNext() {
-        return next != null;
-    }
-
-    @Override
-    public String next() {
-        currentPos = pos - 1;
-        final String current = next.toString();
-        findNext();
-        return current;
-    }
-
-    @Override
-    public void remove() {
-        if (currentPos < 0) throw new IllegalStateException("No current element");
-        headers.removeHeader(currentPos);
-        pos = currentPos;
-        currentPos = -1;
-        size--;
-        findNext();
-    }
-}
-
-class MimeHeaderField {
-
-    protected final DataChunk nameB = DataChunk.newInstance();
-    protected final DataChunk valueB = DataChunk.newInstance();
-
-    private boolean isSerialized;
     /**
-     * Creates a new, uninitialized header field.
+     * Enumerate the values for a (possibly ) multiple value element.
      */
-    public MimeHeaderField() {
+    class ValuesIterator implements Iterator<String> {
+
+        int pos;
+        int size;
+        int currentPos;
+        DataChunk next;
+        final MimeHeaders headers;
+        final String name;
+
+        ValuesIterator(MimeHeaders headers, String name) {
+            this.name = name;
+            this.headers = headers;
+            pos = 0;
+            size = headers.size();
+            findNext();
+        }
+
+        private void findNext() {
+            next = null;
+            for (; pos < size; pos++) {
+                final DataChunk n1 = headers.getName(pos);
+                if (n1.equalsIgnoreCase(name)) {
+                    next = headers.getValue(pos);
+                    break;
+                }
+            }
+            pos++;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public String next() {
+            currentPos = pos - 1;
+            final String current = next.toString();
+            findNext();
+            return current;
+        }
+
+        @Override
+        public void remove() {
+            if (currentPos < 0) {
+                throw new IllegalStateException("No current element");
+            }
+            headers.removeHeader(currentPos);
+            pos = currentPos;
+            currentPos = -1;
+            size--;
+            findNext();
+        }
     }
 
-    public void recycle() {
-        isSerialized = false;
-        nameB.recycle();
-        valueB.recycle();
-    }
+    protected class MimeHeaderField {
 
-    public DataChunk getName() {
-        return nameB;
-    }
+        protected final DataChunk nameB = DataChunk.newInstance();
+        protected final DataChunk valueB = DataChunk.newInstance();
+        private boolean isSerialized;
 
-    public DataChunk getValue() {
-        return valueB;
-    }
+        /**
+         * Creates a new, uninitialized header field.
+         */
+        public MimeHeaderField() {
+        }
 
-    public boolean isSerialized() {
-        return isSerialized;
-    }
+        public void recycle() {
+            isSerialized = false;
+            nameB.recycle();
+            valueB.recycle();
+        }
 
-    public void setSerialized(boolean isSerialized) {
-        this.isSerialized = isSerialized;
+        public DataChunk getName() {
+            return nameB;
+        }
+
+        public DataChunk getValue() {
+            return valueB;
+        }
+
+        public boolean isSerialized() {
+            return isSerialized;
+        }
+
+        public void setSerialized(boolean isSerialized) {
+            this.isSerialized = isSerialized;
+        }
     }
 }

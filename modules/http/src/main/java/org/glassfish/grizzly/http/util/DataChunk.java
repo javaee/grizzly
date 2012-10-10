@@ -491,6 +491,39 @@ public class DataChunk implements Chunk {
     }
     
     /**
+     * Compares this DataChunk and the passed object.
+     * 
+     * @param object the Object to compare
+     * @return true if the passed object represents another DataChunk and its
+     * content is equal to this DataChunk's content.
+     */
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof DataChunk)) {
+            return false;
+        }
+        
+        final DataChunk anotherChunk = (DataChunk) object;
+        if (isNull() || anotherChunk.isNull()) {
+            return isNull() == anotherChunk.isNull();
+        }
+        
+        switch (type) {
+            case Bytes:
+                return anotherChunk.equals(byteChunk);
+            case Buffer:
+                return anotherChunk.equals(bufferChunk);
+            case String:
+                return anotherChunk.equals(stringValue);
+            case Chars:
+                return anotherChunk.equals(charChunk);
+
+            default:
+                return false;
+        }
+    }
+    
+    /**
      * Compares the message bytes to the specified String object.
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
@@ -512,20 +545,229 @@ public class DataChunk implements Chunk {
     }
 
     /**
+     * Compares the message data to the specified ByteChunk.
+     * @param byteChunkToCheck the ByteChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equals(final ByteChunk byteChunkToCheck) {
+        return equals(byteChunkToCheck.getBuffer(), byteChunkToCheck.getStart(),
+                byteChunkToCheck.getLength());
+    }
+
+    
+    /**
+     * Compares the message data to the specified BufferChunk.
+     * @param bufferChunkToCheck the BufferChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equals(final BufferChunk bufferChunkToCheck) {
+        switch (type) {
+            case Bytes:
+                return bufferChunkToCheck.equals(byteChunk.getBuffer(),
+                        byteChunk.getStart(), byteChunk.getLength());
+            case Buffer:
+                return bufferChunkToCheck.equals(bufferChunk);
+            case String:
+                return bufferChunkToCheck.equals(stringValue);
+            case Chars:
+                return bufferChunkToCheck.equals(charChunk.getBuffer(),
+                        charChunk.getStart(), charChunk.getLength());
+
+            default:
+                return false;
+        }        
+    }
+    
+    /**
+     * Compares the message data to the specified CharChunk.
+     * @param charChunkToCheck the CharChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equals(final CharChunk charChunkToCheck) {
+        switch (type) {
+            case Bytes:
+                return charChunkToCheck.equals(byteChunk.getBuffer(),
+                        byteChunk.getStart(), byteChunk.getLength());
+            case Buffer:
+                return bufferChunk.equals(charChunkToCheck.getBuffer(),
+                        charChunkToCheck.getStart(), charChunkToCheck.getLength());
+            case String:
+                return charChunkToCheck.equals(stringValue);
+            case Chars:
+                return charChunk.equals(charChunkToCheck.getBuffer(),
+                        charChunkToCheck.getStart(), charChunkToCheck.getLength());
+
+            default:
+                return false;
+        }        
+    }
+    
+    /**
      * Compares the message data to the specified byte[].
      * @param bytes the byte[] to compare
      * @return true if the comparison succeeded, false otherwise
      */
     public boolean equals(final byte[] bytes) {
+        return equals(bytes, 0, bytes.length);
+    }
+    
+    /**
+     * Compares the message data to the specified byte[].
+     * @param bytes the byte[] to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equals(final byte[] bytes, final int start, final int len) {
         switch (type) {
             case Bytes:
-                return byteChunk.equals(bytes);
+                return byteChunk.equals(bytes, start, len);
             case Buffer:
-                return bufferChunk.equals(bytes);
+                return bufferChunk.equals(bytes, start, len);
             case String:
-                return ByteChunk.equals(bytes, 0, bytes.length, stringValue);
+                return ByteChunk.equals(bytes, start, len, stringValue);
             case Chars:
-                return charChunk.equals(bytes);
+                return charChunk.equals(bytes, start, len);
+
+            default:
+                return false;
+        }
+    }
+    
+    /**
+     * Compares this DataChunk and the passed object ignoring case considerations.
+     * 
+     * @param object the Object to compare
+     * @return true if the passed object represents another DataChunk and its
+     * content is equal to this DataChunk's content ignoring case considerations.
+     */
+    public boolean equalsIgnoreCase(final Object object) {
+        if (!(object instanceof DataChunk)) {
+            return false;
+        }
+        
+        final DataChunk anotherChunk = (DataChunk) object;
+        if (isNull() || anotherChunk.isNull()) {
+            return isNull() == anotherChunk.isNull();
+        }
+        
+        switch (type) {
+            case Bytes:
+                return anotherChunk.equalsIgnoreCase(byteChunk);
+            case Buffer:
+                return anotherChunk.equalsIgnoreCase(bufferChunk);
+            case String:
+                return anotherChunk.equalsIgnoreCase(stringValue);
+            case Chars:
+                return anotherChunk.equalsIgnoreCase(charChunk);
+
+            default:
+                return false;
+        }
+    }
+    
+    /**
+     * Compares the message bytes to the specified String object ignoring case considerations.
+     * 
+     * @param s the String to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final String s) {
+        switch (type) {
+            case Bytes:
+                return byteChunk.equalsIgnoreCase(s);
+            case Buffer:
+                return bufferChunk.equalsIgnoreCase(s);
+            case String:
+                return stringValue.equalsIgnoreCase(s);
+            case Chars:
+                return charChunk.equalsIgnoreCase(s);
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Compares the message data to the specified ByteChunk ignoring case considerations.
+     * @param byteChunkToCheck the ByteChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final ByteChunk byteChunkToCheck) {
+        return equalsIgnoreCase(byteChunkToCheck.getBuffer(), byteChunkToCheck.getStart(),
+                byteChunkToCheck.getLength());
+    }
+
+    
+    /**
+     * Compares the message data to the specified BufferChunk ignoring case considerations.
+     * @param bufferChunkToCheck the BufferChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final BufferChunk bufferChunkToCheck) {
+        switch (type) {
+            case Bytes:
+                return bufferChunkToCheck.equalsIgnoreCase(byteChunk.getBuffer(),
+                        byteChunk.getStart(), byteChunk.getLength());
+            case Buffer:
+                return bufferChunkToCheck.equalsIgnoreCase(bufferChunk);
+            case String:
+                return bufferChunkToCheck.equalsIgnoreCase(stringValue);
+            case Chars:
+                return bufferChunkToCheck.equalsIgnoreCase(charChunk.getBuffer(),
+                        charChunk.getStart(), charChunk.getLength());
+
+            default:
+                return false;
+        }        
+    }
+    
+    /**
+     * Compares the message data to the specified CharChunk ignoring case considerations.
+     * @param charChunkToCheck the CharChunk to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final CharChunk charChunkToCheck) {
+        switch (type) {
+            case Bytes:
+                return charChunkToCheck.equalsIgnoreCase(byteChunk.getBuffer(),
+                        byteChunk.getStart(), byteChunk.getLength());
+            case Buffer:
+                return bufferChunk.equalsIgnoreCase(charChunkToCheck.getBuffer(),
+                        charChunkToCheck.getStart(), charChunkToCheck.getLength());
+            case String:
+                return charChunkToCheck.equalsIgnoreCase(stringValue);
+            case Chars:
+                return charChunk.equalsIgnoreCase(charChunkToCheck.getBuffer(),
+                        charChunkToCheck.getStart(), charChunkToCheck.getLength());
+
+            default:
+                return false;
+        }        
+    }
+    
+    /**
+     * Compares the message data to the specified byte[] ignoring case considerations.
+     * @param bytes the byte[] to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final byte[] bytes) {
+        return equalsIgnoreCase(bytes, 0, bytes.length);
+    }
+    
+    /**
+     * Compares the message data to the specified byte[] ignoring case considerations.
+     * @param bytes the byte[] to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public boolean equalsIgnoreCase(final byte[] bytes, final int start, final int len) {
+        switch (type) {
+            case Bytes:
+                return byteChunk.equalsIgnoreCase(bytes, start, len);
+            case Buffer:
+                return bufferChunk.equalsIgnoreCase(bytes, start, len);
+            case String:
+                return ByteChunk.equalsIgnoreCase(bytes, start, len, stringValue);
+            case Chars:
+                return charChunk.equalsIgnoreCase(bytes, start, len);
 
             default:
                 return false;
@@ -549,53 +791,6 @@ public class DataChunk implements Chunk {
                 return charChunk.hash();
             default:
                 return 0;
-        }
-    }
-
-
-    /**
-     * Compares the message bytes to the specified String object.
-     * @param s the String to compare
-     * @return true if the comparison succeeded, false otherwise
-     */
-    public boolean equalsIgnoreCase(final String s) {
-        switch (type) {
-            case Bytes:
-                return byteChunk.equalsIgnoreCase(s);
-            case Buffer:
-                return bufferChunk.equalsIgnoreCase(s);
-            case String:
-                return stringValue.equalsIgnoreCase(s);
-            case Chars:
-                return charChunk.equalsIgnoreCase(s);
-
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Compares the message bytes to the specified String object.
-     *
-     * @param b the <code>byte[]</code> to compare
-     *
-     * @return true if the comparison succeeded, false otherwise
-     *
-     * @since 2.1.2
-     */
-    public final boolean equalsIgnoreCase(final byte[] b) {
-        switch (type) {
-            case Bytes:
-                return byteChunk.equalsIgnoreCase(b);
-            case Buffer:
-                return bufferChunk.equalsIgnoreCase(b);
-            case String:
-                return equalsIgnoreCase(stringValue, b);
-            case Chars:
-                return charChunk.equalsIgnoreCase(b);
-
-            default:
-                return false;
         }
     }
 

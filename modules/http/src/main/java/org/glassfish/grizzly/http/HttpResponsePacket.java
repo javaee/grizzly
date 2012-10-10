@@ -115,6 +115,10 @@ public abstract class HttpResponsePacket extends HttpHeader {
     // ----------------------------------------------------------- Constructors
     protected HttpResponsePacket() {
     }
+    
+    protected HttpResponsePacket(final MimeHeaders mimeHeaders) {
+        super(mimeHeaders);
+    }
 
     // -------------------- State --------------------
 
