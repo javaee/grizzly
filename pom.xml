@@ -396,16 +396,19 @@
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>hk2</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>config-types</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>osgi-adapter</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>stax</groupId>
