@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2006-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 
 /**
  * <p>The GrizzlyServiceListener is responsible of mapping incoming requests to the proper Container or Grizzly
@@ -58,6 +58,7 @@ import org.jvnet.hk2.component.Habitat;
  * @author Jeanfrancois Arcand
  * @author Justin Lee
  */
+@SuppressWarnings("UnusedDeclaration")
 public interface GrizzlyListener {
     
     void start() throws IOException;
@@ -80,9 +81,9 @@ public interface GrizzlyListener {
     
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
-    void configure(Habitat habitat, NetworkListener networkListener) throws IOException;
+    void configure(ServiceLocator habitat, NetworkListener networkListener) throws IOException;
 
-    void processDynamicConfigurationChange(Habitat habitat, PropertyChangeEvent[] events);
+    void processDynamicConfigurationChange(ServiceLocator habitat, PropertyChangeEvent[] events);
 
     <T> T getAdapter(Class<T> adapterClass);
 }

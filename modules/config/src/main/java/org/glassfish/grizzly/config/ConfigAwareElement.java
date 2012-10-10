@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.config;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
-import org.jvnet.hk2.component.Habitat;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -51,5 +51,5 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
  * @author Alexey Stashok
  */
 public interface ConfigAwareElement<E extends ConfigBeanProxy> {
-    public void configure(Habitat habitat, NetworkListener networkListener, E configuration);
+    public void configure(ServiceLocator habitat, NetworkListener networkListener, E configuration);
 }
