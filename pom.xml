@@ -374,26 +374,31 @@
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>core</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>hk2-locator</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>hk2-config</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>config-types</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>osgi-adapter</artifactId>
                 <version>${hk2.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.mojo</groupId>
