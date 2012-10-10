@@ -39,14 +39,20 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.io.DataOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 
 /**
@@ -58,9 +64,11 @@ final class SpdySession {
     private final Connection connection;
     
     private SpdyInflaterOutputStream inflaterOutputStream;
-    
-    private Deflater deflater;
+    private SpdyDeflaterOutputStream deflaterOutputStream;
+    private DataOutputStream deflaterDataOutputStream;
 
+    private int deflaterCompressionLevel = Deflater.DEFAULT_COMPRESSION;
+    
     private int lastPeerStreamId;
     private int lastLocalStreamId;
     
@@ -69,6 +77,8 @@ final class SpdySession {
     
     private Map<Integer, SpdyStream> streamsMap =
             new ConcurrentHashMap<Integer, SpdyStream>();
+    
+    final List tmpList = new ArrayList();
     
     public SpdySession(final Connection connection) {
         this(connection, true);
@@ -93,13 +103,37 @@ final class SpdySession {
         
         return inflaterOutputStream;
     }
-    
-    public Deflater getDeflater() {
-        if (deflater == null) {
-            deflater = new Deflater();
+
+    public int getDeflaterCompressionLevel() {
+        return deflaterCompressionLevel;
+    }
+
+    public void setDeflaterCompressionLevel(int deflaterCompressionLevel) {
+        if (deflaterOutputStream != null) {
+            throw new IllegalStateException("Deflater has been initialized already");
         }
         
-        return deflater;
+        this.deflaterCompressionLevel = deflaterCompressionLevel;
+    }    
+
+    public SpdyDeflaterOutputStream getDeflaterOutputStream() {
+        if (deflaterOutputStream == null) {
+            deflaterOutputStream = new SpdyDeflaterOutputStream(
+                    connection.getTransport().getMemoryManager(),
+                    deflaterCompressionLevel,
+                    Constants.SPDY_ZLIB_DICTIONARY);
+        }
+        
+        return deflaterOutputStream;
+    }
+    
+    public DataOutputStream getDeflaterDataOutputStream() {
+        if (deflaterDataOutputStream == null) {
+            deflaterDataOutputStream = new DataOutputStream(
+                    getDeflaterOutputStream());
+        }
+        
+        return deflaterDataOutputStream;
     }
 
     public boolean isServer() {
@@ -114,15 +148,19 @@ final class SpdySession {
         final FilterChainContext upstreamContext =
                 getUpstreamChain(context).obtainFilterChainContext(
                 context.getConnection());
+        
+        
         final FilterChainContext downstreamContext =
                 getDownstreamChain(context).obtainFilterChainContext(
-                context.getConnection());
+                context.getConnection(), context.getFilterIdx() - 1,
+                context.getStartIdx(),
+                context.getFilterIdx() - 1);
         
         upstreamContext.getInternalContext().setEvent(IOEvent.READ);
         upstreamContext.setMessage(HttpContent.builder(spdyRequest).build());
         upstreamContext.setAddressHolder(context.getAddressHolder());
         
-        final SpdyStream spdyStream = new SpdyStream(spdyRequest,
+        final SpdyStream spdyStream = new SpdyStream(this, spdyRequest,
                 upstreamContext, downstreamContext, streamId, associatedToStreamId,
                 priority, slot);
         

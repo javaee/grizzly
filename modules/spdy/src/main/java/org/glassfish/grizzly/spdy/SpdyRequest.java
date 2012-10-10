@@ -69,6 +69,8 @@ public class SpdyRequest extends HttpRequestPacket implements SpdyPacket {
     
     private final SpdyResponse spdyResponse = new SpdyResponse();
     
+    private SpdyStream spdyStream;
+    
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
@@ -76,7 +78,17 @@ public class SpdyRequest extends HttpRequestPacket implements SpdyPacket {
 
     private SpdyRequest init() {
         setResponse(spdyResponse);
+        spdyResponse.setRequest(this);
         return this;
+    }
+
+    void setSpdyStream(final SpdyStream spdyStream) {
+        this.spdyStream = spdyStream;
+    }
+
+    @Override
+    public SpdyStream getSpdyStream() {
+        return spdyStream;
     }
     
     @Override

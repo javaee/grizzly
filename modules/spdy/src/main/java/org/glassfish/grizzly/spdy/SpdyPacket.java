@@ -44,5 +44,5 @@ package org.glassfish.grizzly.spdy;
  * @author oleksiys
  */
 public interface SpdyPacket {
-    
+    public SpdyStream getSpdyStream();
 }

@@ -41,6 +41,7 @@ package org.glassfish.grizzly.spdy;
 
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.ProcessingState;
+import org.glassfish.grizzly.spdy.compression.SpdyMimeHeaders;
 
 /**
  *
@@ -49,8 +50,17 @@ import org.glassfish.grizzly.http.ProcessingState;
 public class SpdyResponse extends HttpResponsePacket implements SpdyPacket {
     final ProcessingState processingState = new ProcessingState();
 
+    protected SpdyResponse() {
+        super(new SpdyMimeHeaders());
+    }
+    
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
     }
+    
+    @Override
+    public SpdyStream getSpdyStream() {
+        return ((SpdyRequest) getRequest()).getSpdyStream();
+    }    
 }

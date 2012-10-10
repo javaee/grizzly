@@ -54,12 +54,15 @@ public class SpdyStream {
     private final int associatedToStreamId;
     private final int priority;
     private final int slot;
+    private final SpdySession spdySession;
                     
-    SpdyStream(final SpdyRequest spdyRequest,
+    SpdyStream(final SpdySession spdySession,
+            final SpdyRequest spdyRequest,
             final FilterChainContext upstreamContext,
             final FilterChainContext downstreamContext,
             final int streamId, final int associatedToStreamId,
             final int priority, final int slot) {
+        this.spdySession = spdySession;
         this.spdyRequest = spdyRequest;
         this.upstreamContext = upstreamContext;
         this.downstreamContext = downstreamContext;
@@ -69,6 +72,10 @@ public class SpdyStream {
         this.slot = slot;
     }
 
+    SpdySession getSpdySession() {
+        return spdySession;
+    }
+    
     public SpdyRequest getSpdyRequest() {
         return spdyRequest;
     }

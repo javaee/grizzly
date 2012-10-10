@@ -99,6 +99,7 @@ public class TestMain {
             @Override
             public void service(Request request, Response response) throws Exception {
                 System.out.println(request.getRequest());
+                response.getWriter().write("Hello");
             }
         });
                 
