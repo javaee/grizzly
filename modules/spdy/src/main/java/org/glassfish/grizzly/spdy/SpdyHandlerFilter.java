@@ -61,6 +61,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -265,6 +266,8 @@ public class SpdyHandlerFilter extends BaseFilter {
             final SpdyResponse response,
             final boolean isLast) throws IOException {
         
+        prepareResponse(response);
+        
         final SpdyStream spdyStream = response.getSpdyStream();
         final SpdySession spdySession = spdyStream.getSpdySession();
         
@@ -286,6 +289,10 @@ public class SpdyHandlerFilter extends BaseFilter {
         return resultBuffer;
     }
 
+    private void prepareResponse(final SpdyResponse response) {
+        response.setProtocol(Protocol.HTTP_1_1);
+    }
+    
     @SuppressWarnings("unchecked")
     private Buffer encodeHeaders(final SpdySession spdySession,
             final HttpResponsePacket response,
