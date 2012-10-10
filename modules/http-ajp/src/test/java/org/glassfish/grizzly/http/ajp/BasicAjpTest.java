@@ -426,7 +426,7 @@ public class BasicAjpTest extends AjpTestBase {
         final Buffer request = Buffers.wrap(mm,
                 Utils.loadResourceFile("peer-addr-check.dat"));
         
-        Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
+        Buffer responseBuffer = send("localhost", PORT, request).get(60, TimeUnit.SECONDS);
 
         // Successful response length is 37 bytes.  This includes the status
         // line and a content-length
