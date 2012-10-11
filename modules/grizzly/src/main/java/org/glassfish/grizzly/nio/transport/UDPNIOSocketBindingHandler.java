@@ -142,18 +142,21 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
         udpTransport.unbind(connection);
     }
 
+    public static Builder builder(final UDPNIOTransport transport) {
+        return new UDPNIOSocketBindingHandler.Builder(transport);
+    }
+
 
     // ----------------------------------------------------------- Inner Classes
 
 
-    @SuppressWarnings("UnusedDeclaration")
-    public class UDPNIOSocketBindingHandlerBuilder extends Builder<UDPNIOSocketBindingHandlerBuilder> {
+    public static class Builder extends AbstractSocketBindingHandler.Builder<Builder> {
 
 
         // -------------------------------------------------------- Constructors
 
 
-        public UDPNIOSocketBindingHandlerBuilder(UDPNIOTransport transport) {
+        public Builder(UDPNIOTransport transport) {
             super(new UDPNIOSocketBindingHandler(transport));
         }
 

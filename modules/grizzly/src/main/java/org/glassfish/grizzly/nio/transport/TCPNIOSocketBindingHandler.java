@@ -132,18 +132,21 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
         tcpTransport.unbind(connection);
     }
 
+    public static Builder builder(final TCPNIOTransport transport) {
+       return new TCPNIOSocketBindingHandler.Builder(transport);
+    }
+
 
     // ----------------------------------------------------------- Inner Classes
 
 
-    @SuppressWarnings("UnusedDeclaration")
-    public class TCPNIOSocketBindingHandlerBuilder extends Builder<TCPNIOSocketBindingHandlerBuilder> {
+    public static class Builder extends AbstractSocketBindingHandler.Builder<Builder> {
 
 
         // -------------------------------------------------------- Constructors
 
 
-        public TCPNIOSocketBindingHandlerBuilder(TCPNIOTransport transport) {
+        public Builder(TCPNIOTransport transport) {
             super(new TCPNIOSocketBindingHandler(transport));
         }
 
@@ -151,7 +154,7 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
             return (TCPNIOSocketBindingHandler) bindingHandler;
         }
 
-    } // END TCPNIOSocketBindingHandlerBuilder
+    } // END Builder
 
 
 }
