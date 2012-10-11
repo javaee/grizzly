@@ -365,6 +365,8 @@ public class SuspendTest {
                             write(res, testData);
                         } catch (Throwable ex) {
                             ex.printStackTrace();
+                        } finally {
+                            res.resume();
                         }
                     }
                 });
@@ -390,6 +392,8 @@ public class SuspendTest {
                             write(res, responseData.get());
                         } catch (Throwable ex) {
                             ex.printStackTrace();
+                        } finally {
+                            res.resume();
                         }
                     }
                 }, new TimeoutHandler() {
@@ -527,6 +531,8 @@ public class SuspendTest {
                                 res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
+                            } finally {
+                                res.resume();
                             }
                         }
                     });

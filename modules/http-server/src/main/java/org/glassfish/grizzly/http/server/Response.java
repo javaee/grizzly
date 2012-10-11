@@ -86,6 +86,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
@@ -1662,6 +1663,7 @@ public class Response {
      * times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
      *
+     * @deprecated timeout parameters don't make any sense without CompletionHandler
      */
     public void suspend(final long timeout, final TimeUnit timeunit) {
         suspend(timeout, timeunit, null);
@@ -1758,9 +1760,8 @@ public class Response {
     public void resume() {
         checkResponse();
 
-        if (suspendedContext.markResumed()) {
-            ctx.resume();
-        }
+        suspendedContext.markResumed();
+        ctx.resume();
     }
 
     /**
@@ -1827,7 +1828,8 @@ public class Response {
             modCount++;
             
             if (suspendState != SuspendState.SUSPENDED) {
-                if (suspendState == SuspendState.CANCELLED) { // Siletly return if processing has been cancelled
+                if (suspendState == SuspendState.CANCELLED ||
+                        suspendState == SuspendState.CANCELLING) { // Siletly return if processing has been cancelled
                     return false;
                 }
                 
@@ -1885,6 +1887,11 @@ public class Response {
 
             HttpServerProbeNotifier.notifyRequestCancel(
                     request.httpServerFilter, connection, request);
+            
+            final InputBuffer inputBuffer = request.getInputBuffer();
+            if (!inputBuffer.isFinished()) {
+                inputBuffer.terminate();
+            }
             
             return true;
         }
@@ -1961,7 +1968,7 @@ public class Response {
                 checkResponse();
 
                 if (suspendedContext.markCancelled(expectedModCount)) {
-                    ctx.resume();
+//                    ctx.resume();
                 }
             }
         }
@@ -1992,7 +1999,7 @@ public class Response {
                     checkResponse();
 
                     if (suspendedContext.markCancelled(expectedModCount)) {
-                        ctx.resume();
+//                        ctx.resume();
                     }
                 } catch (Exception ignored) {
                 }
