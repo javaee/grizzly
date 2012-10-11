@@ -39,74 +39,22 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.ProcessingState;
-
 /**
  *
  * @author oleksiys
  */
-public class SpdyRequest extends HttpRequestPacket implements SpdyPacket {
-    private static final Logger LOGGER = Grizzly.logger(SpdyRequest.class);
+public class SpdyStreamException extends Exception {
+    private final int statusCode;
     
-    private static final ThreadCache.CachedTypeIndex<SpdyRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(SpdyRequest.class, 2);
-
-    public static SpdyRequest create() {
-        SpdyRequest httpRequestImpl =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (httpRequestImpl == null) {
-            httpRequestImpl = new SpdyRequest();
-        }
-
-        return httpRequestImpl.init();
-    }
-    
-    private final ProcessingState processingState = new ProcessingState();
-    
-    private final SpdyResponse spdyResponse = new SpdyResponse();
-    
-    private SpdyStream spdyStream;
-    
-    @Override
-    public ProcessingState getProcessingState() {
-        return processingState;
+    public SpdyStreamException() {
+        this(Constants.PROTOCOL_ERROR);
     }
 
-    private SpdyRequest init() {
-        setResponse(spdyResponse);
-        spdyResponse.setRequest(this);
-        return this;
+    public SpdyStreamException(final int code) {
+        this.statusCode = code;
     }
 
-    void setSpdyStream(final SpdyStream spdyStream) {
-        this.spdyStream = spdyStream;
-    }
-
-    @Override
-    public SpdyStream getSpdyStream() {
-        return spdyStream;
-    }
-    
-    @Override
-    protected void reset() {
-        processingState.recycle();
-        
-        super.reset();
-    }
-
-    @Override
-    public void recycle() {
-        reset();
-
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
-
-    @Override
-    protected void setExpectContent(final boolean isExpectContent) {
-        super.setExpectContent(isExpectContent);
+    public int getStatusCode() {
+        return statusCode;
     }
 }

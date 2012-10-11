@@ -39,6 +39,12 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 
 /**
@@ -55,7 +61,11 @@ public class SpdyStream {
     private final int priority;
     private final int slot;
     private final SpdySession spdySession;
-                    
+    
+    private boolean isInputClosed;
+    private final AtomicBoolean isOutputClosed = new AtomicBoolean();
+    private final AtomicInteger completeCloseIndicator = new AtomicInteger();
+    
     SpdyStream(final SpdySession spdySession,
             final SpdyRequest spdyRequest,
             final FilterChainContext upstreamContext,
@@ -79,7 +89,7 @@ public class SpdyStream {
     public SpdyRequest getSpdyRequest() {
         return spdyRequest;
     }
-
+    
     public int getStreamId() {
         return streamId;
     }
@@ -96,6 +106,21 @@ public class SpdyStream {
         return slot;
     }
 
+    public boolean isClosed() {
+        return completeCloseIndicator.get() >= 2;
+    }
+    
+    void writeDownStream(final Buffer frame) {
+        writeDownStream(frame, null);
+    }
+    
+    void writeDownStream(final Buffer frame,
+            final CompletionHandler<WriteResult> completionHandler) {
+        
+        // Check if we can write (RST flag etc...)
+        downstreamContext.write(frame, completionHandler);
+    }
+    
     FilterChainContext getUpstreamContext() {
         return upstreamContext;
     }
@@ -103,4 +128,27 @@ public class SpdyStream {
     FilterChainContext getDownstreamContext() {
         return downstreamContext;
     }
+    
+    void closeInput() {
+        if (!isInputClosed) {
+            isInputClosed = true;
+            if (completeCloseIndicator.incrementAndGet() == 2) {
+                closeStream();
+            }
+        }
+    }
+    
+    void closeOutput() {
+        if (isOutputClosed.compareAndSet(false, true)) {
+            if (completeCloseIndicator.incrementAndGet() == 2) {
+                closeStream();
+            }
+        }
+    }
+
+    
+    private void closeStream() {
+        spdySession.deregisterStream(this);
+    }
+    
 }

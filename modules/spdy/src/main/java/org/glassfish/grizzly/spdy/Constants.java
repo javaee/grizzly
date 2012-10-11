@@ -46,6 +46,75 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author oleksiys
  */
 public class Constants {
+    static final int SPDY_VERSION = 3;
+
+    static final int SYN_STREAM_FRAME = 1;
+    static final int SYN_REPLY_FRAME = 2;
+    static final int RST_STREAM_FRAME = 3;
+    static final int SETTINGS_FRAME = 4;
+    static final int PING_FRAME = 6;
+    static final int GOAWAY_FRAME = 7;
+    static final int HEADERS_FRAME = 8;
+    static final int WINDOW_UPDATE_FRAME = 9;
+    static final int CREDENTIAL_FRAME = 11;
+
+    static final int PROTOCOL_ERROR = 1;
+    static final int INVALID_STREAM = 2;
+    static final int REFUSED_STREAM = 3;
+    static final int UNSUPPORTED_VERSION = 4;
+    static final int CANCEL = 5;
+    static final int INTERNAL_ERROR = 6;
+    static final int FLOW_CONTROL_ERROR = 7;
+    static final int STREAM_IN_USE = 8;
+    static final int STREAM_ALREADY_CLOSED = 9;
+    static final int INVALID_CREDENTIALS = 10;
+    static final int FRAME_TOO_LARGE = 11;
+
+    /*
+     *    1 - SETTINGS_UPLOAD_BANDWIDTH allows the sender to send its expected upload bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum upload channel capacity.
+     *    2 - SETTINGS_DOWNLOAD_BANDWIDTH allows the sender to send its expected download bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum download channel capacity.
+     *    3 - SETTINGS_ROUND_TRIP_TIME allows the sender to send its expected round-trip-time on this channel. The round trip time is defined as the minimum amount of time to send a control frame from this client to the remote and receive a response. The value is represented in milliseconds.
+     *    4 - SETTINGS_MAX_CONCURRENT_STREAMS allows the sender to inform the remote endpoint the maximum number of concurrent streams which it will allow. By default there is no limit. For implementors it is recommended that this value be no smaller than 100.
+     *    5 - SETTINGS_CURRENT_CWND allows the sender to inform the remote endpoint of the current TCP CWND value.
+     *    6 - SETTINGS_DOWNLOAD_RETRANS_RATE allows the sender to inform the remote endpoint the retransmission rate (bytes retransmitted / total bytes transmitted).
+     *    7 - SETTINGS_INITIAL_WINDOW_SIZE allows the sender to inform the remote endpoint the initial window size (in bytes) for new streams.
+     *    8 - SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE allows the server to inform the client if the new size of the client certificate vector.
+     */
+    static final int UPLOAD_BANDWIDTH               = 1;
+    static final int DOWNLOAD_BANDWIDTH             = 2;
+    static final int ROUND_TRIP_TIME                = 3;
+    static final int MAX_CONCURRENT_STREAMS         = 4;
+    static final int CURRENT_CWND                   = 5;
+    static final int DOWNLOAD_RETRANS_RATE          = 6;
+    static final int INITIAL_WINDOW_SIZE            = 7;
+    static final int CLIENT_CERTIFICATE_VECTOR_SIZE = 8;
+
+    static final String[] OPTION_TEXT = {
+            "",
+            "UPLOAD_BANDWIDTH",
+            "DOWNLOAD_BANDWIDTH",
+            "ROUND_TRIP_TIME",
+            "MAX_CONCURRENT_STREAMS",
+            "CURRENT_CWND",
+            "DOWNLOAD_RETRANS_RATE",
+            "INITIAL_WINDOW_SIZE",
+            "CLIENT_CERTIFICATE_VECTOR_SIZE"
+    };
+
+
+    /*
+     * 0x01 = FLAG_FIN - marks this frame as the last frame to be transmitted on this stream and puts the sender in the half-closed (Section 2.3.6) state.
+     * 0x02 = FLAG_UNIDIRECTIONAL - a stream created with this flag puts the recipient in the half-closed (Section 2.3.6) state.
+     */
+    static final byte SYN_STREAM_FLAG_FIN            = 1;
+    static final byte SYN_STREAM_FLAG_UNIDIRECTIONAL = 2;
+
+    static final String[] SYN_STREAM_FLAG_TEXT = {
+            "",
+            "FIN",
+            "UNIDIRECTIONAL"
+    };
+    
     static byte[] HOST_HEADER_BYTES = "host".getBytes(Charsets.ASCII_CHARSET);
     static byte[] METHOD_HEADER_BYTES = "method".getBytes(Charsets.ASCII_CHARSET);
     static byte[] PATH_HEADER_BYTES = "path".getBytes(Charsets.ASCII_CHARSET);

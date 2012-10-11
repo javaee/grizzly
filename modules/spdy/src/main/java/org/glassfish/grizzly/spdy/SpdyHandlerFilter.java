@@ -75,83 +75,13 @@ import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyMimeHeaders;
 import org.glassfish.grizzly.utils.Charsets;
 
+import static org.glassfish.grizzly.spdy.Constants.*;
 /**
  *
  * @author oleksiys
  */
 public class SpdyHandlerFilter extends BaseFilter {
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
-
-    private static final int SYN_STREAM_FRAME = 1;
-    private static final int SYN_REPLY_FRAME = 2;
-    private static final int RST_STREAM_FRAME = 3;
-    private static final int SETTINGS_FRAME = 4;
-    private static final int PING_FRAME = 6;
-    private static final int GOAWAY_FRAME = 7;
-    private static final int HEADERS_FRAME = 8;
-    private static final int WINDOW_UPDATE_FRAME = 9;
-    private static final int CREDENTIAL_FRAME = 11;
-
-    private static final int PROTOCOL_ERROR = 1;
-    private static final int INVALID_STREAM = 2;
-    private static final int REFUSED_STREAM = 3;
-    private static final int UNSUPPORTED_VERSION = 4;
-    private static final int CANCEL = 5;
-    private static final int INTERNAL_ERROR = 6;
-    private static final int FLOW_CONTROL_ERROR = 7;
-    private static final int STREAM_IN_USE = 8;
-    private static final int STREAM_ALREADY_CLOSED = 9;
-    private static final int INVALID_CREDENTIALS = 10;
-    private static final int FRAME_TOO_LARGE = 11;
-
-    /*
-     *    1 - SETTINGS_UPLOAD_BANDWIDTH allows the sender to send its expected upload bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum upload channel capacity.
-     *    2 - SETTINGS_DOWNLOAD_BANDWIDTH allows the sender to send its expected download bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum download channel capacity.
-     *    3 - SETTINGS_ROUND_TRIP_TIME allows the sender to send its expected round-trip-time on this channel. The round trip time is defined as the minimum amount of time to send a control frame from this client to the remote and receive a response. The value is represented in milliseconds.
-     *    4 - SETTINGS_MAX_CONCURRENT_STREAMS allows the sender to inform the remote endpoint the maximum number of concurrent streams which it will allow. By default there is no limit. For implementors it is recommended that this value be no smaller than 100.
-     *    5 - SETTINGS_CURRENT_CWND allows the sender to inform the remote endpoint of the current TCP CWND value.
-     *    6 - SETTINGS_DOWNLOAD_RETRANS_RATE allows the sender to inform the remote endpoint the retransmission rate (bytes retransmitted / total bytes transmitted).
-     *    7 - SETTINGS_INITIAL_WINDOW_SIZE allows the sender to inform the remote endpoint the initial window size (in bytes) for new streams.
-     *    8 - SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE allows the server to inform the client if the new size of the client certificate vector.
-     */
-    private static final int UPLOAD_BANDWIDTH               = 1;
-    private static final int DOWNLOAD_BANDWIDTH             = 2;
-    private static final int ROUND_TRIP_TIME                = 3;
-    private static final int MAX_CONCURRENT_STREAMS         = 4;
-    private static final int CURRENT_CWND                   = 5;
-    private static final int DOWNLOAD_RETRANS_RATE          = 6;
-    private static final int INITIAL_WINDOW_SIZE            = 7;
-    private static final int CLIENT_CERTIFICATE_VECTOR_SIZE = 8;
-
-    private static final String[] OPTION_TEXT = {
-            "",
-            "UPLOAD_BANDWIDTH",
-            "DOWNLOAD_BANDWIDTH",
-            "ROUND_TRIP_TIME",
-            "MAX_CONCURRENT_STREAMS",
-            "CURRENT_CWND",
-            "DOWNLOAD_RETRANS_RATE",
-            "INITIAL_WINDOW_SIZE",
-            "CLIENT_CERTIFICATE_VECTOR_SIZE"
-    };
-
-
-    /*
-     * 0x01 = FLAG_FIN - marks this frame as the last frame to be transmitted on this stream and puts the sender in the half-closed (Section 2.3.6) state.
-     * 0x02 = FLAG_UNIDIRECTIONAL - a stream created with this flag puts the recipient in the half-closed (Section 2.3.6) state.
-     */
-    private static final byte SYN_STREAM_FLAG_FIN            = 1;
-    private static final byte SYN_STREAM_FLAG_UNIDIRECTIONAL = 2;
-
-    private static final String[] SYN_STREAM_FLAG_TEXT = {
-            "",
-            "FIN",
-            "UNIDIRECTIONAL"
-    };
-
-
-
-    private static final int SPDY_VERSION = 3;
 
     private final Attribute<SpdySession> spdySessionAttr =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
@@ -168,7 +98,7 @@ public class SpdyHandlerFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
-        final SpdySession spdySession = checkSpdySession(ctx.getConnection());
+        final SpdySession spdySession = checkSpdySession(ctx);
         
         final Object message = ctx.getMessage();
 
@@ -190,16 +120,396 @@ public class SpdyHandlerFilter extends BaseFilter {
         return ctx.getStopAction();
     }
 
+    private void processInFrame(final SpdySession spdySession,
+            final FilterChainContext context, final Buffer frame) {
+
+        final long header = frame.getLong();
+
+        final int first32 = (int) (header >>> 32);
+        final int second32 = (int) (header & 0xFFFFFFFF);
+
+        final boolean isControlMessage = (first32 & 0x80000000) != 0;
+        if (isControlMessage) {
+            final int version = (first32 >>> 16) & 0x7FFF;
+            final int type = first32 & 0xFFFF;
+            final int flags = second32 >>> 24;
+            final int length = second32 & 0xFFFFFF;
+            processControlFrame(spdySession, context, frame, version, type,
+                    flags, length);
+        } else {
+            final int streamId = first32 & 0x7FFFFFFF;
+            final int flags = second32 >>> 24;
+            final int length = second32 & 0xFFFFFF;
+            final SpdyStream spdyStream = spdySession.getStream(streamId);
+            
+            processDataFrame(spdyStream, frame, flags, length);
+        }
+    }
+
+    private void processControlFrame(final SpdySession spdySession,
+            final FilterChainContext context, final Buffer frame,
+            final int version, final int type, final int flags, final int length) {
+
+        switch(type) {
+            case SYN_STREAM_FRAME: {
+                processSynStream(spdySession, context, frame, version, type, flags, length);
+                break;
+            }
+            case SETTINGS_FRAME: {
+                processSettingsFrame(spdySession, context, frame, version, type, flags, length);
+                break;
+            }
+            case SYN_REPLY_FRAME: {
+                break;
+            }
+            case PING_FRAME: {
+                processPingFrame(spdySession, context, frame, version, type, flags, length);
+                break;
+            }
+            case RST_STREAM_FRAME: {
+                break;
+            }
+            case GOAWAY_FRAME: {
+                processGoAwayFrame(spdySession, context, frame, version, type, flags, length);
+                break;
+            }
+            case HEADERS_FRAME:
+            case CREDENTIAL_FRAME:
+            case WINDOW_UPDATE_FRAME:
+
+            default: {
+                System.out.println("Unknown control-frame [version=" + version + " type=" + type + " flags=" + flags + " length=" + length + "]");
+            }
+        }
+    }
+
+    private void processGoAwayFrame(final SpdySession spdySession,
+                                      final FilterChainContext context,
+                                      final Buffer frame,
+                                      final int version,
+                                      final int type,
+                                      final int flags,
+                                      final int length) {
+        
+        final int lastGoodStreamId = frame.getInt() & 0x7FFFFFFF;
+        
+        final int statusCode;
+        if (frame.hasRemaining()) {
+            statusCode = frame.getInt();
+        } else { // most probably firefox bug: for SPDY/3 it doesn't send the statusCode
+            statusCode = 0;
+        }
+        
+        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+            final StringBuilder sb = new StringBuilder(64);
+            sb.append("\n{GOAWAY : lastGoodStreamId=")
+                    .append(lastGoodStreamId)
+                    .append(" statusCode=")
+                    .append(statusCode)
+                    .append("}\n");
+            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+        }
+        
+        frame.dispose();
+        
+        spdySession.setGoAway(lastGoodStreamId);
+    }
+    
+    private void processSettingsFrame(final SpdySession spdySession,
+                                      final FilterChainContext context,
+                                      final Buffer frame,
+                                      final int version,
+                                      final int type,
+                                      final int flags,
+                                      final int length) {
+
+        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
+
+        final int numEntries = frame.getInt();
+        StringBuilder sb = null;
+        if (log) {
+            sb = new StringBuilder(64);
+            sb.append("\n{SETTINGS : count=").append(numEntries);
+        }
+        for (int i = 0; i < numEntries; i++) {
+            final int eHeader = frame.getInt();
+            final int eFlags = eHeader >>> 24;
+            final int eId = eHeader & 0xFFFFFF;
+            final int value = frame.getInt();
+            if (log) {
+                sb.append("\n    {SETTING : flags=")
+                        .append(eFlags)
+                        .append(" id=")
+                        .append(OPTION_TEXT[eId])
+                        .append(" value=")
+                        .append(value)
+                        .append('}');
+            }
+            switch (eId) {
+                case UPLOAD_BANDWIDTH:
+                case DOWNLOAD_BANDWIDTH:
+                case ROUND_TRIP_TIME:
+                case MAX_CONCURRENT_STREAMS:
+                case CURRENT_CWND:
+                case DOWNLOAD_RETRANS_RATE:
+                case INITIAL_WINDOW_SIZE:
+                case CLIENT_CERTIFICATE_VECTOR_SIZE:
+                default:
+                    LOGGER.log(Level.WARNING, "Setting specified but not handled: {0}", eId);
+            }
+
+        }
+        if (log) {
+            sb.append("\n}\n");
+            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+        }
+    }
+
+    private void processPingFrame(final SpdySession spdySession,
+                                      final FilterChainContext context,
+                                      final Buffer frame,
+                                      final int version,
+                                      final int type,
+                                      final int flags,
+                                      final int length) {
+        final int numEntries = frame.getInt();
+        
+        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+            final StringBuilder sb = new StringBuilder(32);
+            sb.append("\n{PING : id=")
+                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFl)
+                    .append("}\n");
+            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+        }
+        
+        frame.flip();
+        
+        // Send the same ping message back
+        spdySession.writeDownStream(frame);
+    }
+
+    private void processSynStream(final SpdySession spdySession,
+            final FilterChainContext context,
+            final Buffer frame, final int version, final int type,
+            final int flags, final int length) {
+
+        final int streamId = frame.getInt() & 0x7FFFFFFF;
+        final int associatedToStreamId = frame.getInt() & 0x7FFFFFFF;
+        int tmpInt = frame.getShort() & 0xFFFF;
+        final int priority = tmpInt >> 13;
+        final int slot = tmpInt & 0xFF;
+
+        if (version != SPDY_VERSION) {
+            sendRstStream(context, streamId, UNSUPPORTED_VERSION, null);
+            return;
+        }
+
+        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
+            StringBuilder sb = new StringBuilder();
+            if (flags == 0) {
+                sb.append("NONE");
+            } else {
+                if ((flags & 0x01) == SYN_STREAM_FLAG_FIN) {
+                    sb.append(SYN_STREAM_FLAG_TEXT[1]);
+                }
+                if ((flags & 0x02) == SYN_STREAM_FLAG_UNIDIRECTIONAL) {
+                    if (sb.length() == 0) {
+                        sb.append(',');
+                    }
+                    sb.append(SYN_STREAM_FLAG_TEXT[2]);
+                }
+            }
+            LOGGER.log(Level.INFO, "'{'SYN_STREAM : flags={0} streamID={1} associatedToStreamId={2} priority={3} slot={4}'}'",
+                    new Object[]{sb.toString(), streamId, associatedToStreamId, priority, slot});
+        }
+        
+        final SpdyRequest spdyRequest = SpdyRequest.create();
+        final SpdyStream spdyStream = spdySession.acceptStream(context,
+                spdyRequest, streamId, associatedToStreamId, priority, slot);
+        
+        if (spdyStream == null) { // GOAWAY has been sent, so ignoring this request
+            spdyRequest.recycle();
+            frame.dispose();
+            return;
+        }
+        
+        spdyRequest.setSpdyStream(spdyStream);
+
+        
+        if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
+            spdyRequest.setExpectContent(false);
+            spdyStream.closeInput();
+        }
+        
+        Buffer payload = frame;
+        if (frame.isComposite()) {
+            payload = frame.slice();
+        }
+
+        final Buffer decoded;
+
+        try {
+            final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
+            inflaterOutputStream.write(payload);
+            decoded = inflaterOutputStream.checkpoint();
+        } catch (IOException dfe) {
+            sendRstStream(context, streamId, PROTOCOL_ERROR, null);
+            return;
+        } finally {
+            frame.dispose();
+        }
+
+        assert decoded.hasArray();
+
+        final MimeHeaders mimeHeaders = spdyRequest.getHeaders();
+
+        final byte[] headersArray = decoded.array();
+        int position = decoded.arrayOffset() + decoded.position();
+
+        final int headersCount = getInt(headersArray, position);
+        position += 4;
+
+        for (int i = 0; i < headersCount; i++) {
+            final boolean isServiceHeader = (headersArray[position + 4] == ':');
+
+            if (isServiceHeader) {
+                position = processServiceHeader(spdyRequest, headersArray, position);
+            } else {
+                position = processNormalHeader(mimeHeaders, headersArray, position);
+            }
+        }
+        
+        threadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                ProcessorExecutor.execute(
+                        spdyStream.getUpstreamContext().getInternalContext());
+            }
+        });
+    }
+
+    private int processServiceHeader(final SpdyRequest spdyRequest,
+            final byte[] headersArray, final int position) {
+
+        final int nameSize = getInt(headersArray, position);
+        final int valueSize = getInt(headersArray, position + nameSize + 4);
+
+        final int nameStart = position + 5; // Skip headerNameSize and following ':'
+        final int valueStart = position + nameSize + 8;
+        final int valueEnd = valueStart + valueSize;
+
+        switch (nameSize - 1) {
+            case 4: {
+                if (checkArraysContent(headersArray, nameStart,
+                        Constants.HOST_HEADER_BYTES)) {
+                    spdyRequest.getHeaders().addValue(Header.Host)
+                            .setBytes(headersArray, valueStart, valueEnd);
+
+                    return valueEnd;
+                } else if (checkArraysContent(headersArray, nameStart,
+                        Constants.PATH_HEADER_BYTES)) {
+
+                    int questionIdx = -1;
+                    for (int i = 0; i < valueSize; i++) {
+                        if (headersArray[valueStart + i] == '?') {
+                            questionIdx = i + valueStart;
+                            break;
+                        }
+                    }
+
+                    if (questionIdx == -1) {
+                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, valueEnd);
+                    } else {
+                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
+                                .setBytes(headersArray, valueStart, questionIdx);
+                        if (questionIdx < valueEnd - 1) {
+                            spdyRequest.getQueryStringDC()
+                                    .setBytes(headersArray, questionIdx + 1, valueEnd);
+                        }
+                    }
+
+                    return valueEnd;
+                }
+
+                break;
+            } case 6: {
+                if (checkArraysContent(headersArray, nameStart,
+                        Constants.METHOD_HEADER_BYTES)) {
+                    spdyRequest.getMethodDC().setBytes(
+                            headersArray, valueStart, valueEnd);
+
+                    return valueEnd;
+                } else if (checkArraysContent(headersArray, nameStart,
+                        Constants.SCHEMA_HEADER_BYTES)) {
+
+                    spdyRequest.setSecure(valueSize == 5); // support http and https only
+                    return valueEnd;
+                }
+            } case 7: {
+                if (checkArraysContent(headersArray, nameStart,
+                                Constants.VERSION_HEADER_BYTES)) {
+                    spdyRequest.getProtocolDC().setBytes(
+                            headersArray, valueStart, valueEnd);
+
+                    return valueEnd;
+                }
+            }
+        }
+
+        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
+                new Object[]{new String(headersArray, position, nameSize, Charsets.ASCII_CHARSET),
+                    new String(headersArray, valueStart, valueSize, Charsets.ASCII_CHARSET)});
+
+        return valueEnd;
+    }
+
+    private int processNormalHeader(final MimeHeaders mimeHeaders,
+            final byte[] headersArray, int position) {
+
+        final int headerNameSize = getInt(headersArray, position);
+        position += 4;
+
+        final DataChunk valueChunk =
+                mimeHeaders.addValue(headersArray, position, headerNameSize);
+
+        position += headerNameSize;
+
+        final int headerValueSize = getInt(headersArray, position);
+        position += 4;
+
+        for (int i = 0; i < headerValueSize; i++) {
+            final byte b = headersArray[position + i];
+            if (b == 0) {
+                headersArray[position + i] = ',';
+            }
+        }
+
+        final int end = position + headerValueSize;
+
+        valueChunk.setBytes(headersArray, position, end);
+        return end;
+    }
+
+    private void processDataFrame(final SpdyStream spdyStream,
+            final Buffer frame, final int flags,
+            final int length) {
+        
+        if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
+            spdyStream.closeInput();
+        }
+        
+        // @TODO wrap w/ HttpContent and send upstream in the appropriate thread
+    }
+    
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+    @SuppressWarnings("unchecked")
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Object message = ctx.getMessage();
         
         if (HttpPacket.isHttp(message)
                 && (((HttpPacket) message).getHttpHeader() instanceof SpdyPacket)) {
             // Get HttpPacket
             final HttpPacket input = (HttpPacket) ctx.getMessage();
-            // Get Connection
-            final Connection connection = ctx.getConnection();
 
             try {
                 // transform HttpPacket into Buffer
@@ -212,7 +522,8 @@ public class SpdyHandlerFilter extends BaseFilter {
                     final SpdyStream spdyStream =
                             ((SpdyPacket) input.getHttpHeader()).getSpdyStream();
                     
-                    spdyStream.getDownstreamContext().write(output);
+                    spdyStream.writeDownStream(output,
+                            ctx.getTransportContext().getCompletionHandler());
                 }
             } catch (RuntimeException re) {
 //                HttpProbeNotifier.notifyProbesError(this, connection, input, re);
@@ -482,333 +793,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         return resultBuffer;
     }
-
-    private void processInFrame(final SpdySession spdySession,
-            final FilterChainContext context, final Buffer frame) {
-
-        final long header = frame.getLong();
-
-        final int first32 = (int) (header >>> 32);
-        final int second32 = (int) (header & 0xFFFFFFFF);
-
-        final boolean isControlMessage = (first32 & 0x80000000) != 0;
-        if (isControlMessage) {
-            final int version = (first32 >>> 16) & 0x7FFF;
-            final int type = first32 & 0xFFFF;
-            final int flags = second32 >>> 24;
-            final int length = second32 & 0xFFFFFF;
-            processControlFrame(spdySession, context, frame, version, type,
-                    flags, length);
-        } else {
-            final int streamId = first32 & 0x7FFFFFFF;
-            final int flags = second32 >>> 24;
-            final int length = second32 & 0xFFFFFF;
-            processDataFrame(frame, streamId, flags, length);
-        }
-    }
-
-    private void processControlFrame(final SpdySession spdySession,
-            final FilterChainContext context, final Buffer frame,
-            final int version, final int type, final int flags, final int length) {
-
-        switch(type) {
-            case SYN_STREAM_FRAME: {
-                processSynStream(spdySession, context, frame, version, type, flags, length);
-                break;
-            }
-            case SETTINGS_FRAME: {
-                processSettingsFrame(spdySession, context, frame, version, type, flags, length);
-                break;
-            }
-            case SYN_REPLY_FRAME: {
-                break;
-            }
-            case PING_FRAME: {
-                processPingFrame(spdySession, context, frame, version, type, flags, length);
-                break;
-            }
-                
-            case RST_STREAM_FRAME:
-            case GOAWAY_FRAME:
-            case HEADERS_FRAME:
-            case CREDENTIAL_FRAME:
-            case WINDOW_UPDATE_FRAME:
-
-            default: {
-                System.out.println("Unknown control-frame [version=" + version + " type=" + type + " flags=" + flags + " length=" + length + "]");
-            }
-        }
-    }
-
-    private void processSettingsFrame(final SpdySession spdySession,
-                                      final FilterChainContext context,
-                                      final Buffer frame,
-                                      final int version,
-                                      final int type,
-                                      final int flags,
-                                      final int length) {
-
-        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
-
-        final int numEntries = frame.getInt();
-        StringBuilder sb = null;
-        if (log) {
-            sb = new StringBuilder(64);
-            sb.append("\n{SETTINGS : count=").append(numEntries);
-        }
-        for (int i = 0; i < numEntries; i++) {
-            final int eHeader = frame.getInt();
-            final int eFlags = eHeader >>> 24;
-            final int eId = eHeader & 0xFFFFFF;
-            final int value = frame.getInt();
-            if (log) {
-                sb.append("\n    {SETTING : flags=")
-                        .append(eFlags)
-                        .append(" id=")
-                        .append(OPTION_TEXT[eId])
-                        .append(" value=")
-                        .append(value)
-                        .append('}');
-            }
-            switch (eId) {
-                case UPLOAD_BANDWIDTH:
-                case DOWNLOAD_BANDWIDTH:
-                case ROUND_TRIP_TIME:
-                case MAX_CONCURRENT_STREAMS:
-                case CURRENT_CWND:
-                case DOWNLOAD_RETRANS_RATE:
-                case INITIAL_WINDOW_SIZE:
-                case CLIENT_CERTIFICATE_VECTOR_SIZE:
-                default:
-                    LOGGER.log(Level.WARNING, "Setting specified but not handled: {0}", eId);
-            }
-
-        }
-        if (log) {
-            sb.append("\n}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
-    }
-
-    private void processPingFrame(final SpdySession spdySession,
-                                      final FilterChainContext context,
-                                      final Buffer frame,
-                                      final int version,
-                                      final int type,
-                                      final int flags,
-                                      final int length) {
-        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
-
-        final int numEntries = frame.getInt();
-        if (log) {
-            final StringBuilder sb = new StringBuilder(32);
-            sb.append("\n{PING : id=")
-                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFl)
-                    .append("}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
-        
-        frame.flip();
-        
-        // Send the same ping message back
-        spdySession.getDownstreamChain(context).write(
-                context.getConnection(),
-                null, frame, null, null);
-    }
-
-    private void processSynStream(final SpdySession spdySession,
-            final FilterChainContext context,
-            final Buffer frame, final int version, final int type,
-            final int flags, final int length) {
-
-        final int streamId = frame.getInt() & 0x7FFFFFFF;
-        final int associatedToStreamId = frame.getInt() & 0x7FFFFFFF;
-        int tmpInt = frame.getShort() & 0xFFFF;
-        final int priority = tmpInt >> 13;
-        final int slot = tmpInt & 0xFF;
-
-        if (version != SPDY_VERSION) {
-            sendRstStream(context, streamId, UNSUPPORTED_VERSION, null);
-            return;
-        }
-
-        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
-            StringBuilder sb = new StringBuilder();
-            if (flags == 0) {
-                sb.append("NONE");
-            } else {
-                if ((flags & 0x01) == SYN_STREAM_FLAG_FIN) {
-                    sb.append(SYN_STREAM_FLAG_TEXT[1]);
-                }
-                if ((flags & 0x02) == SYN_STREAM_FLAG_UNIDIRECTIONAL) {
-                    if (sb.length() == 0) {
-                        sb.append(',');
-                    }
-                    sb.append(SYN_STREAM_FLAG_TEXT[2]);
-                }
-            }
-            LOGGER.log(Level.INFO, "'{'SYN_STREAM : flags={0} streamID={1} associatedToStreamId={2} priority={3} slot={4}'}'",
-                    new Object[]{sb.toString(), streamId, associatedToStreamId, priority, slot});
-        }
-
-        Buffer payload = frame;
-        if (frame.isComposite()) {
-            payload = frame.slice();
-        }
-
-        final Buffer decoded;
-
-        try {
-            final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
-            inflaterOutputStream.write(payload);
-            decoded = inflaterOutputStream.checkpoint();
-        } catch (IOException dfe) {
-            sendRstStream(context, streamId, PROTOCOL_ERROR, null);
-            return;
-        } finally {
-            frame.dispose();
-        }
-
-        assert decoded.hasArray();
-
-        final SpdyRequest spdyRequest = SpdyRequest.create();
-        final MimeHeaders mimeHeaders = spdyRequest.getHeaders();
-
-        final byte[] headersArray = decoded.array();
-        int position = decoded.arrayOffset() + decoded.position();
-
-        final int headersCount = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (headersArray[position + 4] == ':');
-
-            if (isServiceHeader) {
-                position = processServiceHeader(spdyRequest, headersArray, position);
-            } else {
-                position = processNormalHeader(mimeHeaders, headersArray, position);
-            }
-        }
-
-        final SpdyStream spdyStream = spdySession.acceptStream(context,
-                spdyRequest, streamId, associatedToStreamId, priority, slot);
-        spdyRequest.setSpdyStream(spdyStream);
-        
-        threadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                ProcessorExecutor.execute(
-                        spdyStream.getUpstreamContext().getInternalContext());
-            }
-        });
-    }
-
-    private int processServiceHeader(final SpdyRequest spdyRequest,
-            final byte[] headersArray, final int position) {
-
-        final int nameSize = getInt(headersArray, position);
-        final int valueSize = getInt(headersArray, position + nameSize + 4);
-
-        final int nameStart = position + 5; // Skip headerNameSize and following ':'
-        final int valueStart = position + nameSize + 8;
-        final int valueEnd = valueStart + valueSize;
-
-        switch (nameSize - 1) {
-            case 4: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.HOST_HEADER_BYTES)) {
-                    spdyRequest.getHeaders().addValue(Header.Host)
-                            .setBytes(headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.PATH_HEADER_BYTES)) {
-
-                    int questionIdx = -1;
-                    for (int i = 0; i < valueSize; i++) {
-                        if (headersArray[valueStart + i] == '?') {
-                            questionIdx = i + valueStart;
-                            break;
-                        }
-                    }
-
-                    if (questionIdx == -1) {
-                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, valueEnd);
-                    } else {
-                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
-                                .setBytes(headersArray, valueStart, questionIdx);
-                        if (questionIdx < valueEnd - 1) {
-                            spdyRequest.getQueryStringDC()
-                                    .setBytes(headersArray, questionIdx + 1, valueEnd);
-                        }
-                    }
-
-                    return valueEnd;
-                }
-
-                break;
-            } case 6: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.METHOD_HEADER_BYTES)) {
-                    spdyRequest.getMethodDC().setBytes(
-                            headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.SCHEMA_HEADER_BYTES)) {
-
-                    spdyRequest.setSecure(valueSize == 5); // support http and https only
-                    return valueEnd;
-                }
-            } case 7: {
-                if (checkArraysContent(headersArray, nameStart,
-                                Constants.VERSION_HEADER_BYTES)) {
-                    spdyRequest.getProtocolDC().setBytes(
-                            headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                }
-            }
-        }
-
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[]{new String(headersArray, position, nameSize, Charsets.ASCII_CHARSET),
-                    new String(headersArray, valueStart, valueSize, Charsets.ASCII_CHARSET)});
-
-        return valueEnd;
-    }
-
-    private int processNormalHeader(final MimeHeaders mimeHeaders,
-            final byte[] headersArray, int position) {
-
-        final int headerNameSize = getInt(headersArray, position);
-        position += 4;
-
-        final DataChunk valueChunk =
-                mimeHeaders.addValue(headersArray, position, headerNameSize);
-
-        position += headerNameSize;
-
-        final int headerValueSize = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headerValueSize; i++) {
-            final byte b = headersArray[position + i];
-            if (b == 0) {
-                headersArray[position + i] = ',';
-            }
-        }
-
-        final int end = position + headerValueSize;
-
-        valueChunk.setBytes(headersArray, position, end);
-        return end;
-    }
-
-    private void processDataFrame(Buffer frame, int streamId, int flags, int length) {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
+    
     private static int get24(final Buffer buffer) {
         return ((buffer.get() & 0xFF) << 16)
                 + ((buffer.get() & 0xFF) << 8)
@@ -832,18 +817,19 @@ public class SpdyHandlerFilter extends BaseFilter {
 
         return true;
     }
+    
     private static void sendRstStream(final FilterChainContext ctx,
             final int streamId, final int statusCode,
             final CompletionHandler<WriteResult> completionHandler) {
 
-        final Buffer rstStreamBuffer = ctx.getMemoryManager().allocate(16);
-        rstStreamBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | RST_STREAM_FRAME); // "C", version, RST_STREAM_FRAME
-        rstStreamBuffer.putInt(8); // Flags, Length
-        rstStreamBuffer.putInt(streamId & 0x7FFFFFFF); // Stream-ID
-        rstStreamBuffer.putInt(statusCode); // Status code
-        rstStreamBuffer.flip();
+        final Buffer rstStreamFrame = ctx.getMemoryManager().allocate(16);
+        rstStreamFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | RST_STREAM_FRAME); // "C", version, RST_STREAM_FRAME
+        rstStreamFrame.putInt(8); // Flags, Length
+        rstStreamFrame.putInt(streamId & 0x7FFFFFFF); // Stream-ID
+        rstStreamFrame.putInt(statusCode); // Status code
+        rstStreamFrame.flip();
 
-        ctx.write(rstStreamBuffer, completionHandler);
+        ctx.write(rstStreamFrame, completionHandler);
     }
 
     private static Buffer allocateHeapBuffer(final MemoryManager mm, final int size) {
@@ -854,10 +840,13 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
     }
 
-    private SpdySession checkSpdySession(final Connection connection) {
+    private SpdySession checkSpdySession(final FilterChainContext context) {
+        final Connection connection = context.getConnection();
+        
         SpdySession spdySession = spdySessionAttr.get(connection);
         if (spdySession == null) {
             spdySession = new SpdySession(connection);
+            spdySession.initCommunication(context);
             spdySessionAttr.set(connection, spdySession);
         }
         

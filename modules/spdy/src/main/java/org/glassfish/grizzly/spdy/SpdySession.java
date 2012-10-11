@@ -45,15 +45,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
+
+import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
  *
@@ -80,6 +83,10 @@ final class SpdySession {
     
     final List tmpList = new ArrayList();
     
+    private final Object sessionLock = new Object();
+    
+    private boolean isGoAway;
+    
     public SpdySession(final Connection connection) {
         this(connection, true);
     }
@@ -89,12 +96,38 @@ final class SpdySession {
         this.connection = connection;
         this.isServer = isServer;
     }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public boolean isServer() {
+        return isServer;
+    }
     
     public SpdyStream getStream(final int streamId) {
         return streamsMap.get(streamId);
     }
     
-    public SpdyInflaterOutputStream getInflaterOutputStream() {
+    public void goAway(final int statusCode) {
+        final int lastPeerStreamIdLocal = setGoAway();
+        if (lastPeerStreamIdLocal == -1) {
+            return; // SpdySession is already in go-away state
+        }
+        
+        final Buffer goAwayFrame = connection
+                .getTransport().getMemoryManager().allocate(16);
+
+        goAwayFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | GOAWAY_FRAME); // "C", version, GOAWAY_FRAME
+        goAwayFrame.putInt(8); // Flags, Length
+        goAwayFrame.putInt(lastPeerStreamIdLocal & 0x7FFFFFFF); // Stream-ID
+        goAwayFrame.putInt(statusCode); // Status code
+        goAwayFrame.flip();
+
+        writeDownStream(goAwayFrame);
+    }
+    
+    SpdyInflaterOutputStream getInflaterOutputStream() {
         if (inflaterOutputStream == null) {
             inflaterOutputStream = new SpdyInflaterOutputStream(
                     connection.getTransport().getMemoryManager(),
@@ -116,7 +149,7 @@ final class SpdySession {
         this.deflaterCompressionLevel = deflaterCompressionLevel;
     }    
 
-    public SpdyDeflaterOutputStream getDeflaterOutputStream() {
+    SpdyDeflaterOutputStream getDeflaterOutputStream() {
         if (deflaterOutputStream == null) {
             deflaterOutputStream = new SpdyDeflaterOutputStream(
                     connection.getTransport().getMemoryManager(),
@@ -127,17 +160,13 @@ final class SpdySession {
         return deflaterOutputStream;
     }
     
-    public DataOutputStream getDeflaterDataOutputStream() {
+    DataOutputStream getDeflaterDataOutputStream() {
         if (deflaterDataOutputStream == null) {
             deflaterDataOutputStream = new DataOutputStream(
                     getDeflaterOutputStream());
         }
         
         return deflaterDataOutputStream;
-    }
-
-    public boolean isServer() {
-        return isServer;
     }
 
     SpdyStream acceptStream(final FilterChainContext context,
@@ -164,27 +193,90 @@ final class SpdySession {
                 upstreamContext, downstreamContext, streamId, associatedToStreamId,
                 priority, slot);
         
-        streamsMap.put(streamId, spdyStream);
-        lastPeerStreamId = streamId;
+        synchronized(sessionLock) {
+            if (isGoAway) {
+                return null; // if go-away is set - return null to ignore stream creation
+            }
+            
+            streamsMap.put(streamId, spdyStream);
+            lastPeerStreamId = streamId;
+        }
         
         return spdyStream;
     }
     
-    FilterChain getUpstreamChain(final FilterChainContext context) {
-        if (upstreamChain == null) {
-            upstreamChain = (FilterChain) context.getFilterChain().subList(
-                    context.getFilterIdx(), context.getEndIdx());
-        }
+    void writeDownStream(final Buffer frame) {
+        writeDownStream(frame, null);
+    }
+    
+    void writeDownStream(final Buffer frame,
+            final CompletionHandler<WriteResult> completionHandler) {
         
+        downstreamChain.write(connection,
+                null, frame, completionHandler, null);        
+    }
+
+    void initCommunication(final FilterChainContext context) {
+        upstreamChain = (FilterChain) context.getFilterChain().subList(
+                context.getFilterIdx(), context.getEndIdx());
+        
+        downstreamChain = (FilterChain) context.getFilterChain().subList(
+                context.getStartIdx(), context.getFilterIdx());
+    }
+    
+    FilterChain getUpstreamChain(final FilterChainContext context) {
         return upstreamChain;
     }
     
     FilterChain getDownstreamChain(final FilterChainContext context) {
-        if (downstreamChain == null) {
-            downstreamChain = (FilterChain) context.getFilterChain().subList(
-                    context.getStartIdx(), context.getFilterIdx());
-        }
-        
         return downstreamChain;
+    }
+    
+    /**
+     * Method is called, when GOAWAY is initiated by us
+     */
+    private int setGoAway() {
+        synchronized (sessionLock) {
+            if (isGoAway) {
+                return -1;
+            }
+            
+            isGoAway = true;
+            return lastPeerStreamId;
+        }
+    }
+    
+    /**
+     * Method is called, when GOAWAY is initiated by peer
+     */
+    void setGoAway(final int lastGoodStreamId) {
+        synchronized (sessionLock) {
+            // @TODO Notify pending SYNC_STREAMS if streams were aborted
+        }
+    }
+    
+    Object getSessionLock() {
+        return sessionLock;
+    }
+
+    /**
+     * Called from {@link SpdyStream} once stream is completely closed.
+     */
+    void deregisterStream(final SpdyStream spdyStream) {
+        streamsMap.remove(spdyStream.getStreamId());
+        
+        synchronized (sessionLock) {
+            // If we're in GOAWAY state and there are no streams left - close this session
+            if (isGoAway && streamsMap.isEmpty()) {
+                closeSession();
+            }
+        }
+    }
+
+    /**
+     * Close the session
+     */
+    private void closeSession() {
+        connection.closeSilently();
     }
 }
