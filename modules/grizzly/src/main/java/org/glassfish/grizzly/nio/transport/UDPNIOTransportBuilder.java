@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -119,7 +119,7 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#getMaxPendingBytesPerConnection()
      * 
      * Note: the value is per connection, not transport total.
      */
@@ -129,7 +129,7 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
     
     /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
      * 
      * Note: the value is per connection, not transport total.
      *
@@ -140,6 +140,22 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
         udpTransport.getAsyncQueueIO()
                 .getWriter().setMaxPendingBytesPerConnection(size);
         return this;
+    }
+
+    /**
+     * @see TCPNIOTransport#getServerConnectionBackLog() ()
+     */
+    public int getServerConnectionBackLog() {
+        return udpTransport.getServerConnectionBackLog();
+    }
+
+    /**
+     * @return this <code>TCPNIOTransportBuilder</code>
+     * @see TCPNIOTransport#setServerConnectionBackLog(int)
+     */
+    public UDPNIOTransportBuilder setServerConnectionBackLog(int serverConnectionBackLog) {
+        udpTransport.setServerConnectionBackLog(serverConnectionBackLog);
+        return getThis();
     }
 
     /**

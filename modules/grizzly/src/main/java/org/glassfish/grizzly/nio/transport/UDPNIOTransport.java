@@ -41,7 +41,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
@@ -79,10 +78,10 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public final class UDPNIOTransport extends NIOTransport implements
-        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
+        SocketBinder<UDPNIOServerConnection>, SocketConnectorHandler, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
-    private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
+    static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
     /**
      * The server socket time out
@@ -111,11 +110,16 @@ public final class UDPNIOTransport extends NIOTransport implements
     protected final TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
+    protected int serverConnectionBackLog = 4096;
     /**
      * Default {@link TCPNIOConnectorHandler}
      */
     private final UDPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
+
+    private final UDPNIOSocketBindingHandler bindingHandler =
+            new TransportBindingHandler();
+
 
     public UDPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -142,11 +146,29 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     /**
+     * Get the default server connection backlog size.
+     *
+     * @return the default server connection backlog size.
+     */
+    public int getServerConnectionBackLog() {
+        return serverConnectionBackLog;
+    }
+
+    /**
+     * Set the default server connection backlog size.
+     *
+     * @param serverConnectionBackLog the default server connection backlog size.
+     */
+    public void setServerConnectionBackLog(final int serverConnectionBackLog) {
+        this.serverConnectionBackLog = serverConnectionBackLog;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public UDPNIOServerConnection bind(int port) throws IOException {
-        return bind(new InetSocketAddress(port));
+        return bindingHandler.bind(port);
     }
 
     /**
@@ -155,7 +177,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(String host, int port)
             throws IOException {
-        return bind(host, port, 50);
+        return bindingHandler.bind(host, port);
     }
 
     /**
@@ -164,7 +186,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(String host, int port, int backlog)
             throws IOException {
-        return bind(new InetSocketAddress(host, port), backlog);
+        return bindingHandler.bind(host, port, backlog);
     }
 
     /**
@@ -173,7 +195,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress)
             throws IOException {
-        return bind(socketAddress, 4096);
+        return bindingHandler.bind(socketAddress);
     }
 
     /**
@@ -182,60 +204,11 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
             throws IOException {
-        final DatagramChannel serverDatagramChannel =
-                selectorProvider.openDatagramChannel();
-        UDPNIOServerConnection serverConnection = null;
-
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final DatagramSocket socket = serverDatagramChannel.socket();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-            
-            socket.bind(socketAddress);
-
-            serverDatagramChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
-            serverConnections.add(serverConnection);
-
-            if (!isStopped()) {
-                serverConnection.register();
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverDatagramChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
+        return bindingHandler.bind(socketAddress, backlog);
     }
 
     @Override
-    public Connection bindToInherited() throws IOException {
+    public UDPNIOServerConnection bindToInherited() throws IOException {
         final Channel inheritedChannel = System.inheritedChannel();
         
         if (inheritedChannel == null) {
@@ -329,15 +302,15 @@ public final class UDPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public void unbind(final Connection connection) throws IOException {
+    public void unbind(final UDPNIOServerConnection connection) throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
-                ((UDPNIOServerConnection) connection).unbind(
+                        Futures.createSafeFuture();
+                connection.unbind(
                         Futures.toCompletionHandler(future));
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
@@ -358,7 +331,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            for (Connection serverConnection : serverConnections) {
+            for (UDPNIOServerConnection serverConnection : serverConnections) {
                 try {
                     unbind(serverConnection);
                 } catch (Exception e) {
@@ -983,4 +956,15 @@ public final class UDPNIOTransport extends NIOTransport implements
             return UDPNIOTransport.this.getProcessorSelector();
         }
     }
+
+    class TransportBindingHandler extends UDPNIOSocketBindingHandler {
+
+
+        // -------------------------------------------------------- Constructors
+
+        public TransportBindingHandler() {
+            super(UDPNIOTransport.this);
+        }
+
+    } // END TransportBindingHandler
 }

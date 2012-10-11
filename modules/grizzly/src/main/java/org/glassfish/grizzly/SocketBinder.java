@@ -50,7 +50,7 @@ import java.net.SocketAddress;
  *
  * @author Alexey Stashok
  */
-public interface SocketBinder {
+public interface SocketBinder<E> {
     /**
      * Binds Transport to the specific port on localhost.
      *
@@ -59,7 +59,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(int port) throws IOException;
+    public E bind(int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
@@ -70,7 +70,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, int port) throws IOException;
+    public E bind(String host, int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
@@ -81,7 +81,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, int port, int backlog) throws IOException;
+    public E bind(String host, int port, int backlog) throws IOException;
 
     /**
      * Binds Transport to the specific host, and port within a {@link PortRange}.
@@ -93,7 +93,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, PortRange portRange, int backlog) throws IOException;
+    public E bind(String host, PortRange portRange, int backlog) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
@@ -103,7 +103,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(SocketAddress socketAddress) throws IOException;
+    public E bind(SocketAddress socketAddress) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
@@ -114,7 +114,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
+    public E bind(SocketAddress socketAddress, int backlog) throws IOException;
 
     /**
      * Binds the Transport to the channel inherited from the entity that
@@ -124,7 +124,7 @@ public interface SocketBinder {
      * 
      * @throws IOException 
      */
-    public Connection bindToInherited() throws IOException;
+    public E bindToInherited() throws IOException;
     
     /**
      * Unbinds bound {@link Transport} connection.
@@ -132,7 +132,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public void unbind(Connection connection) throws IOException;
+    public void unbind(E connection) throws IOException;
 
     /**
      * Unbinds all bound {@link Transport} connections.
