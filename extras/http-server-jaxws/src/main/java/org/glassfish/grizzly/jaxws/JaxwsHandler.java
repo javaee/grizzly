@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,6 +67,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.ws.Endpoint;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -95,7 +96,7 @@ public class JaxwsHandler extends HttpHandler {
     private WSEndpoint endpoint;
     private HttpAdapter httpAdapter;
     
-    private volatile long timeoutMillis = TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES);
+    private volatile long timeoutMillis = -1;
     
     /**
      * Create JaxwsHandler based on WebService implementation class, which will
@@ -188,11 +189,15 @@ public class JaxwsHandler extends HttpHandler {
     }
     
     public void setAsyncTimeout(final long timeout, final TimeUnit timeUnit) {
-        timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        timeoutMillis = timeoutMillis >= 0 ?
+                TimeUnit.MILLISECONDS.convert(timeout, timeUnit) :
+                -1;
     }
     
     public long getAsyncTimeout(final TimeUnit timeUnit) {
-        return timeUnit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
+        return timeoutMillis > 0 ?
+                timeUnit.convert(timeoutMillis, TimeUnit.MILLISECONDS) :
+                timeoutMillis;
     }
     
     /**
@@ -218,7 +223,18 @@ public class JaxwsHandler extends HttpHandler {
         }
         
         if (isAsync) {
-            res.suspend(timeoutMillis, TimeUnit.MILLISECONDS);
+            res.suspend(timeoutMillis, TimeUnit.MILLISECONDS,
+                    new EmptyCompletionHandler<Response>() {
+
+                @Override
+                public void failed(Throwable throwable) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "Forcing connection close on a connection: " + connection, throwable);
+                    }
+                    
+                    connection.close();
+                }
+            });
             httpAdapter.invokeAsync(connection);
         } else {
             httpAdapter.handle(connection);

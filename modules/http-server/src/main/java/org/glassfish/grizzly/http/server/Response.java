@@ -73,6 +73,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -86,6 +87,7 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
@@ -113,7 +115,7 @@ import static org.glassfish.grizzly.http.util.Constants.*;
 public class Response {
 
     enum SuspendState {
-        NONE, SUSPENDED, RESUMING, RESUMED, CANCELLING, CANCELLED
+        NONE, SUSPENDED, RESUMING, RESUMED, FAILING, FAILED
     }
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
@@ -1598,7 +1600,7 @@ public class Response {
         }
 
         return state == SuspendState.SUSPENDED || state == SuspendState.RESUMING
-                || state == SuspendState.CANCELLING;
+                || state == SuspendState.FAILING;
     }
 
     /**
@@ -1607,25 +1609,7 @@ public class Response {
      * the current instance, and also to avoid committing response.
      */
     public void suspend() {
-        suspend(DelayedExecutor.UNSET_TIMEOUT, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Suspend the {@link Response}. Suspending a {@link Response} will
-     * tell the underlying container to avoid recycling objects associated with
-     * the current instance, and also to avoid committing response.
-     *
-     * @param timeout The maximum amount of time,
-     * a {@link Response} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link Response#resume()}
-     * or {@link Response#cancel()}), the {@link Response} will be automatically
-     * resumed and committed. Usage of any methods of a {@link Response} that
-     * times out will throw an {@link IllegalStateException}.
-     * @param timeunit timeout units
-     *
-     */
-    public void suspend(final long timeout, final TimeUnit timeunit) {
-        suspend(timeout, timeunit, null);
+        suspend(DelayedExecutor.UNSET_TIMEOUT, TimeUnit.MILLISECONDS, null);
     }
 
     /**
@@ -1634,18 +1618,13 @@ public class Response {
      * the current instance, and also to avoid committing response. When the
      * {@link Response#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
-     * is invoked with the original <tt>attachment</tt>. When the
-     * {@link Response#cancel()} is invoked, the container will
-     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
-     * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
-     * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
-     * the {@link Response} committed.
+     * is invoked with the original <tt>attachment</tt>. If the timeout expires,
+     * the {@link CompletionHandler#failed(java.lang.Throwable)}
+     * will be invoked w/ {@link TimeoutException} passed.
      *
      * @param timeout The maximum amount of time the {@link Response} can be suspended.
-     * When the timeout expires (because nothing has been written or because the
-     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
-     * will be automatically resumed and committed. Usage of any methods of a
-     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * When the timeout expires {@link CompletionHandler#failed(java.lang.Throwable)}
+     * will be invoked w/ {@link TimeoutException} passed.
      * @param timeunit timeout units
      * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      */
@@ -1660,18 +1639,13 @@ public class Response {
      * the current instance, and also to avoid committing response. When the
      * {@link Response#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
-     * is invoked with the original <tt>attachment</tt>. When the
-     * {@link Response#cancel()} is invoked, the container will
-     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
-     * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
-     * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
-     * the {@link Response} committed.
+     * is invoked with the original <tt>attachment</tt>.If the timeout expires,
+     * the {@link CompletionHandler#failed(java.lang.Throwable)}
+     * will be invoked w/ {@link TimeoutException} passed.
      *
      * @param timeout The maximum amount of time the {@link Response} can be suspended.
-     * When the timeout expires (because nothing has been written or because the
-     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
-     * will be automatically resumed and committed. Usage of any methods of a
-     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * When the timeout expires {@link CompletionHandler#failed(java.lang.Throwable)}
+     * will be invoked w/ {@link TimeoutException} passed.
      * @param timeunit timeout units
      * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      * @param timeoutHandler {@link TimeoutHandler} to customize the suspended <tt>Response</tt> timeout logic.
@@ -1719,9 +1693,8 @@ public class Response {
     public void resume() {
         checkResponse();
 
-        if (suspendedContext.markResumed()) {
-            ctx.resume();
-        }
+        suspendedContext.markResumed();
+        ctx.resume();
     }
 
     
@@ -1764,7 +1737,8 @@ public class Response {
             modCount++;
             
             if (suspendState != SuspendState.SUSPENDED) {
-                if (suspendState == SuspendState.CANCELLED) { // Siletly return if processing has been cancelled
+                if (suspendState == SuspendState.FAILED ||
+                        suspendState == SuspendState.FAILING) { // Siletly return if processing has been failed
                     return false;
                 }
 
@@ -1793,11 +1767,12 @@ public class Response {
         }
 
         /**
-         * Marks {@link Response} as cancelled, if expectedModCount corresponds
+         * Marks {@link Response} as failed, if expectedModCount corresponds
          * to the current modCount. This method doesn't resume associated
          * {@link FilterChainContext} invocation.
          */
-        protected synchronized boolean markCancelled(final int expectedModCount) {
+        protected synchronized boolean markFailed(final int expectedModCount,
+                final Throwable failure) {
             if (modCount != expectedModCount) {
                 return false;
             }
@@ -1809,21 +1784,26 @@ public class Response {
                         SuspendState.SUSPENDED + " but was: " + suspendState);
             }
 
-            suspendState = SuspendState.CANCELLING;
+            suspendState = SuspendState.FAILING;
             
             final Connection connection = ctx.getConnection();
 
             connection.removeCloseListener(closeListener);
 
             if (completionHandler != null) {
-                completionHandler.cancelled();
+                completionHandler.failed(failure);
             }
 
-            suspendState = SuspendState.CANCELLED;
+            suspendState = SuspendState.FAILED;
             reset();
 
-            HttpServerProbeNotifier.notifyRequestCancel(
-                    request.httpServerFilter, connection, request);
+            HttpServerProbeNotifier.notifyRequestFailed(
+                    request.httpServerFilter, connection, request, failure);
+            
+            final InputBuffer inputBuffer = request.getInputBuffer();
+            if (!inputBuffer.isFinished()) {
+                inputBuffer.terminate();
+            }
             
             return true;
         }
@@ -1890,8 +1870,9 @@ public class Response {
                     final CloseType closeType) throws IOException {
                 checkResponse();
 
-                if (suspendedContext.markCancelled(expectedModCount)) {
-                    ctx.resume();
+                if (suspendedContext.markFailed(expectedModCount,
+                        new IOException("The channel has been closed"))) {
+//                    ctx.resume();
                 }
             }
         }
@@ -1921,8 +1902,9 @@ public class Response {
                 try {
                     checkResponse();
 
-                    if (suspendedContext.markCancelled(expectedModCount)) {
-                        ctx.resume();
+                    if (suspendedContext.markFailed(expectedModCount,
+                            new TimeoutException("Suspend timeout expired"))) {
+//                        ctx.resume();
                     }
                 } catch (Exception ignored) {
                 }

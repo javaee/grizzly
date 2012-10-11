@@ -314,7 +314,7 @@ public class HttpServerFilter extends BaseFilter
         // Suspend state is cancelled - it means normal processing might have
         // been broken. We don't want to reuse Request and Response in this state,
         // cause there still might be threads referencing them.
-        if (response.suspendState != Response.SuspendState.CANCELLED) {
+        if (response.suspendState != Response.SuspendState.FAILED) {
             response.recycle();
             request.recycle();
         }

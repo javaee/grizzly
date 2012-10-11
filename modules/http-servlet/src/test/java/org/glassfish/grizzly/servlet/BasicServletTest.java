@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
@@ -56,6 +57,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Basic Servlet Test.
@@ -315,6 +318,47 @@ public class BasicServletTest extends HttpServerAbstractTest {
             
             assertEquals(MyContextListener.INITIALIZED, MyContextListener.events.poll());
             assertEquals(MyContextListener.DESTROYED, MyContextListener.events.poll());
+        }
+    }
+    
+    /**
+     * Tests isCommitted().
+     *
+     * @throws Exception
+     *             If an unexpected IO error occurred.
+     */
+    public void testIsCommitted() throws Exception {
+        LOGGER.fine("testIsCommitted");
+        try {
+            final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+            
+            newHttpServer(PORT);
+            final WebappContext ctx = new WebappContext("example", "/example");
+            final ServletRegistration reg = ctx.addServlet("managed", new HttpServlet() {
+                @Override
+                protected void service(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    req.startAsync();
+                    resp.isCommitted();
+                    resp.sendError(400, "Four hundred");
+                    try {
+                        resp.isCommitted();
+                        resultFuture.result(Boolean.TRUE);
+                    } catch (Exception e) {
+                        resultFuture.failure(e);
+                    }
+                }
+            });
+            reg.addMapping("/managed/*");
+            ctx.deploy(httpServer);
+
+            httpServer.start();
+            
+            HttpURLConnection conn = getConnection("/example/managed/users", PORT);
+            assertEquals(400, conn.getResponseCode());
+            assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+        } finally {
+            httpServer.stop();
         }
     }
     

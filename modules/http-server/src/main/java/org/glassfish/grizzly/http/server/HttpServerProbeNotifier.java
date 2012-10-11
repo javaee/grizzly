@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -145,14 +145,15 @@ final class HttpServerProbeNotifier {
      * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
      * @param request  {@link Request}.
+     * @param failure {@link Throwable} failure.
      */
-    static void notifyRequestCancel(final HttpServerFilter filter,
-            final Connection connection, final Request request) {
+    static void notifyRequestFailed(final HttpServerFilter filter,
+            final Connection connection, final Request request, final Throwable failure) {
 
         final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpServerProbe probe : probes) {
-                probe.onRequestCancelEvent(filter, connection, request);
+                probe.onRequestFailedEvent(filter, connection, request, failure);
             }
         }
     }

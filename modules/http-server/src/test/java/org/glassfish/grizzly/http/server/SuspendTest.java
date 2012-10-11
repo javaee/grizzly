@@ -337,11 +337,13 @@ public class SuspendTest {
                 res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
-                    public void cancelled() {
+                    public void failed(Throwable throwable) {
                         try {
                             write(res, testData);
                         } catch (Throwable ex) {
                             ex.printStackTrace();
+                        } finally {
+                            res.resume();
                         }
                     }
                 });
@@ -362,11 +364,13 @@ public class SuspendTest {
                 res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
-                    public void cancelled() {
+                    public void failed(Throwable throwable) {
                         try {
                             write(res, responseData.get());
                         } catch (Throwable ex) {
                             ex.printStackTrace();
+                        } finally {
+                            res.resume();
                         }
                     }
                 }, new TimeoutHandler() {
@@ -498,12 +502,14 @@ public class SuspendTest {
                     res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                         @Override
-                        public void cancelled() {
+                        public void failed(Throwable throwable) {
                             try {
-//                                Utils.dumpErr("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
+//                                Utils.dumpErr("Failed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
+                            } finally {
+                                res.resume();
                             }
                         }
                     });

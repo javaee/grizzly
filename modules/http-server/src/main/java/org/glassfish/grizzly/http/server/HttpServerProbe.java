@@ -108,9 +108,10 @@ public interface HttpServerProbe {
      * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link Request}.
+     * @param failure {@link Throwable} failure.
      */
-    public void onRequestCancelEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    public void onRequestFailedEvent(HttpServerFilter filter,
+            Connection connection, Request request, Throwable failure);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -162,6 +163,6 @@ public interface HttpServerProbe {
          * {@inheritDoc}
          */
         @Override
-        public void onRequestCancelEvent(HttpServerFilter filter, Connection connection, Request request) {}
+        public void onRequestFailedEvent(HttpServerFilter filter, Connection connection, Request request, Throwable failure) {}
     }
 }

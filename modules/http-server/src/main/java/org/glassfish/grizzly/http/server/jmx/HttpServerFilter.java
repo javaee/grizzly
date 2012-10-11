@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,7 +69,7 @@ public class HttpServerFilter extends JmxObject {
     private final AtomicLong completedCount = new AtomicLong();
     private final AtomicInteger suspendCount = new AtomicInteger();
     private final AtomicLong timedOutCount = new AtomicLong();
-    private final AtomicLong cancelledCount = new AtomicLong();
+    private final AtomicLong failedCount = new AtomicLong();
 
     private final HttpServerProbe probe = new JmxWebServerProbe();
 
@@ -147,12 +147,12 @@ public class HttpServerFilter extends JmxObject {
 
     /**
      * @return the number of requests suspended requests that have been
-     *  cancelled.
+     *  failed.
      */
-    @ManagedAttribute(id="requests-cancelled-count")
-    @Description("The total number of suspended requests that have been cancelled.")
-    public long getRequestsCancelledCount() {
-        return cancelledCount.get();
+    @ManagedAttribute(id="requests-failed-count")
+    @Description("The total number of suspended requests that have been failed.")
+    public long getRequestsFailedCount() {
+        return failedCount.get();
     }
 
 
@@ -192,8 +192,8 @@ public class HttpServerFilter extends JmxObject {
         }
 
         @Override
-        public void onRequestCancelEvent(org.glassfish.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
-            cancelledCount.incrementAndGet();
+        public void onRequestFailedEvent(org.glassfish.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request, Throwable failure) {
+            failedCount.incrementAndGet();
             suspendCount.decrementAndGet();
         }
 
