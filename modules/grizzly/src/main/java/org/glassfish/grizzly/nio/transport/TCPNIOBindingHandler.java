@@ -133,6 +133,8 @@ public class TCPNIOBindingHandler extends AbstractBindingHandler<TCPNIOServerCon
             serverSocketChannel.configureBlocking(false);
 
             serverConnection = tcpTransport.obtainServerNIOConnection(serverSocketChannel);
+            serverConnection.setProcessor(getProcessor());
+            serverConnection.setProcessorSelector(getProcessorSelector());
             tcpTransport.serverConnections.add(serverConnection);
             serverConnection.resetProperties();
 

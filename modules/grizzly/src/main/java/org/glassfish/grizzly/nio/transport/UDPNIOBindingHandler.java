@@ -140,6 +140,8 @@ public class UDPNIOBindingHandler extends AbstractBindingHandler<UDPNIOServerCon
             serverDatagramChannel.configureBlocking(false);
 
             serverConnection = udpTransport.obtainServerNIOConnection(serverDatagramChannel);
+            serverConnection.setProcessor(getProcessor());
+            serverConnection.setProcessorSelector(getProcessorSelector());
             udpTransport.serverConnections.add(serverConnection);
 
             if (!udpTransport.isStopped()) {
