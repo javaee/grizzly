@@ -2459,6 +2459,6 @@ public class Request {
      * Returns pseudorandom positive long value.
      */
     private static long generateRandomLong() {
-        return (RANDOM.nextLong() << 1) >>> 1;
+        return (RANDOM.nextLong() & 0x7FFFFFFFFFFFFFFFl);
     }
 }
