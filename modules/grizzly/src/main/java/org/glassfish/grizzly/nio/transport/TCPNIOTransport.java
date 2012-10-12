@@ -44,11 +44,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -75,7 +73,6 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * TCP Transport NIO implementation
@@ -154,7 +151,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     private final TCPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
 
-    private final TCPNIOSocketBindingHandler bindingHandler =
+    private final TCPNIOBindingHandler bindingHandler =
             new TransportBindingHandler(); // handles most bind operations;
     
     public TCPNIOTransport() {
@@ -1303,7 +1300,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
-    class TransportBindingHandler extends TCPNIOSocketBindingHandler {
+    class TransportBindingHandler extends TCPNIOBindingHandler {
 
 
         // -------------------------------------------------------- Constructors

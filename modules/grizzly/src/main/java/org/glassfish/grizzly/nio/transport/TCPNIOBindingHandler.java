@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.AbstractSocketBindingHandler;
+import org.glassfish.grizzly.AbstractBindingHandler;
 import org.glassfish.grizzly.utils.Exceptions;
 
 import java.io.IOException;
@@ -54,26 +54,26 @@ import java.util.concurrent.locks.Lock;
  *
  * Example usage:
  * <pre>
- *     TCPNIOSocketBindingHandler handler = TCPNIOSocketBindingHandler.builder(transport).setProcessor(custom).build();
+ *     TCPNIOBindingHandler handler = TCPNIOBindingHandler.builder(transport).setProcessor(custom).build();
  *     handler.bind(socketAddress);
  * </pre>
  *
  * @since 2.2.19
  */
-public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCPNIOServerConnection> {
+public class TCPNIOBindingHandler extends AbstractBindingHandler<TCPNIOServerConnection> {
 
     private final TCPNIOTransport tcpTransport;
 
     // ------------------------------------------------------------ Constructors
 
 
-    TCPNIOSocketBindingHandler(final TCPNIOTransport tcpTransport) {
+    TCPNIOBindingHandler(final TCPNIOTransport tcpTransport) {
         super(tcpTransport);
         this.tcpTransport = tcpTransport;
     }
 
 
-    // ------------------------------- Methods from AbstractSocketBindingHandler
+    // ------------------------------- Methods from AbstractBindingHandler
 
 
     @Override
@@ -103,7 +103,7 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
     }
 
     public static Builder builder(final TCPNIOTransport transport) {
-       return new TCPNIOSocketBindingHandler.Builder(transport);
+       return new TCPNIOBindingHandler.Builder(transport);
     }
 
 
@@ -163,18 +163,18 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
     // ----------------------------------------------------------- Inner Classes
 
 
-    public static class Builder extends AbstractSocketBindingHandler.Builder<Builder> {
+    public static class Builder extends AbstractBindingHandler.Builder<Builder> {
 
 
         // -------------------------------------------------------- Constructors
 
 
         public Builder(TCPNIOTransport transport) {
-            super(new TCPNIOSocketBindingHandler(transport));
+            super(new TCPNIOBindingHandler(transport));
         }
 
-        public TCPNIOSocketBindingHandler build() {
-            return (TCPNIOSocketBindingHandler) bindingHandler;
+        public TCPNIOBindingHandler build() {
+            return (TCPNIOBindingHandler) bindingHandler;
         }
 
     } // END Builder

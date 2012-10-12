@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.AbstractSocketBindingHandler;
+import org.glassfish.grizzly.AbstractBindingHandler;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Exceptions;
 
@@ -56,26 +56,26 @@ import java.util.logging.Level;
  *
  * Example usage:
  * <pre>
- *     UDPNIOSocketBindingHandler handler = UDPNIOSocketBindingHandler.builder(transport).setProcessor(custom).build();
+ *     UDPNIOBindingHandler handler = UDPNIOBindingHandler.builder(transport).setProcessor(custom).build();
  *     handler.bind(socketAddress);
  * </pre>
  *
  * @since 2.2.19
  */
-public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDPNIOServerConnection> {
+public class UDPNIOBindingHandler extends AbstractBindingHandler<UDPNIOServerConnection> {
 
     private final UDPNIOTransport udpTransport;
 
     // ------------------------------------------------------------ Constructors
 
 
-    public UDPNIOSocketBindingHandler(UDPNIOTransport udpTransport) {
+    public UDPNIOBindingHandler(UDPNIOTransport udpTransport) {
         super(udpTransport);
         this.udpTransport = udpTransport;
     }
 
 
-    // ------------------------------- Methods from AbstractSocketBindingHandler
+    // ------------------------------- Methods from AbstractBindingHandler
 
 
     @Override
@@ -103,7 +103,7 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
     }
 
     public static Builder builder(final UDPNIOTransport transport) {
-        return new UDPNIOSocketBindingHandler.Builder(transport);
+        return new UDPNIOBindingHandler.Builder(transport);
     }
 
 
@@ -169,18 +169,18 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
     // ----------------------------------------------------------- Inner Classes
 
 
-    public static class Builder extends AbstractSocketBindingHandler.Builder<Builder> {
+    public static class Builder extends AbstractBindingHandler.Builder<Builder> {
 
 
         // -------------------------------------------------------- Constructors
 
 
         public Builder(UDPNIOTransport transport) {
-            super(new UDPNIOSocketBindingHandler(transport));
+            super(new UDPNIOBindingHandler(transport));
         }
 
-        public UDPNIOSocketBindingHandler build() {
-            return (UDPNIOSocketBindingHandler) bindingHandler;
+        public UDPNIOBindingHandler build() {
+            return (UDPNIOBindingHandler) bindingHandler;
         }
 
     } // END UDPNIOSocketBindingHandlerBuilder

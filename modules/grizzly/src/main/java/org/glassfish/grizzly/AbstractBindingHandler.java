@@ -44,13 +44,12 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.Channel;
-import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
 
 /**
  * @since 2.2.19
  */
-public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E> {
+public abstract class AbstractBindingHandler<E> implements SocketBinder<E> {
     protected static final Random RANDOM = new Random();
     protected final NIOTransport transport;
     protected Processor processor;
@@ -59,7 +58,7 @@ public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E>
     // ------------------------------------------------------------ Constructors
 
 
-    public AbstractSocketBindingHandler(final NIOTransport transport) {
+    public AbstractBindingHandler(final NIOTransport transport) {
         this.transport = transport;
         this.processor = transport.getProcessor();
         this.processorSelector = transport.getProcessorSelector();
@@ -169,7 +168,7 @@ public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E>
     }
 
     /**
-     * This operation is not supported by implementations of {@link AbstractSocketBindingHandler}.
+     * This operation is not supported by implementations of {@link AbstractBindingHandler}.
      *
      * @throws UnsupportedOperationException
      */
@@ -209,9 +208,9 @@ public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E>
      */
     @SuppressWarnings("unchecked")
     public abstract static class Builder<E extends Builder> {
-        protected final AbstractSocketBindingHandler bindingHandler;
+        protected final AbstractBindingHandler bindingHandler;
 
-        public Builder(AbstractSocketBindingHandler bindingHandler) {
+        public Builder(AbstractBindingHandler bindingHandler) {
             this.bindingHandler = bindingHandler;
         }
 

@@ -40,10 +40,8 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -69,7 +67,6 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -117,7 +114,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     private final UDPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
 
-    private final UDPNIOSocketBindingHandler bindingHandler =
+    private final UDPNIOBindingHandler bindingHandler =
             new TransportBindingHandler();
 
 
@@ -884,7 +881,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         }
     }
 
-    class TransportBindingHandler extends UDPNIOSocketBindingHandler {
+    class TransportBindingHandler extends UDPNIOBindingHandler {
 
 
         // -------------------------------------------------------- Constructors
