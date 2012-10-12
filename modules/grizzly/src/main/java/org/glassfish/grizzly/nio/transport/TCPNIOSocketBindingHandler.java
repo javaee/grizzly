@@ -54,7 +54,7 @@ import java.util.concurrent.locks.Lock;
  *
  * Example usage:
  * <pre>
- *     TCPNIOSocketBindingHandler handler = new TCPNIOSocketBindingHandler.Builder(transport).setProcessor(custom).build();
+ *     TCPNIOSocketBindingHandler handler = TCPNIOSocketBindingHandler.builder(transport).setProcessor(custom).build();
  *     handler.bind(socketAddress);
  * </pre>
  *
@@ -83,25 +83,57 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
 
     @Override
     public TCPNIOServerConnection bind(SocketAddress socketAddress, int backlog) throws IOException {
+        return bindToChannelAndAddress(
+                tcpTransport.getSelectorProvider().openServerSocketChannel(),
+                socketAddress,
+                backlog);
+    }
+
+    @Override
+    public TCPNIOServerConnection bindToInherited() throws IOException {
+        return bindToChannelAndAddress(
+                this.<ServerSocketChannel>getSystemInheritedChannel(ServerSocketChannel.class),
+                null,
+                -1);
+    }
+
+    @Override
+    public void unbind(TCPNIOServerConnection connection) throws IOException {
+        tcpTransport.unbind(connection);
+    }
+
+    public static Builder builder(final TCPNIOTransport transport) {
+       return new TCPNIOSocketBindingHandler.Builder(transport);
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private TCPNIOServerConnection bindToChannelAndAddress(final ServerSocketChannel serverSocketChannel,
+                                                           final SocketAddress socketAddress,
+                                                           final int backlog)
+    throws IOException {
         TCPNIOServerConnection serverConnection = null;
-        final ServerSocketChannel serverSocketChannel =
-                tcpTransport.getSelectorProvider().openServerSocketChannel();
 
         final Lock lock = tcpTransport.getState().getStateLocker().writeLock();
         lock.lock();
         try {
+
             final ServerSocket serverSocket = serverSocketChannel.socket();
+
             serverSocket.setReuseAddress(tcpTransport.reuseAddress);
+
             serverSocket.setSoTimeout(tcpTransport.serverSocketSoTimeout);
 
-            serverSocket.bind(socketAddress, backlog);
+            if (socketAddress != null) {
+                serverSocket.bind(socketAddress, backlog);
+            }
 
             serverSocketChannel.configureBlocking(false);
 
             serverConnection = tcpTransport.obtainServerNIOConnection(serverSocketChannel);
             tcpTransport.serverConnections.add(serverConnection);
-            serverConnection.setProcessor(getProcessor());
-            serverConnection.setProcessorSelector(getProcessorSelector());
             serverConnection.resetProperties();
 
             if (!tcpTransport.isStopped()) {
@@ -125,15 +157,6 @@ public class TCPNIOSocketBindingHandler extends AbstractSocketBindingHandler<TCP
         } finally {
             lock.unlock();
         }
-    }
-
-    @Override
-    public void unbind(TCPNIOServerConnection connection) throws IOException {
-        tcpTransport.unbind(connection);
-    }
-
-    public static Builder builder(final TCPNIOTransport transport) {
-       return new TCPNIOSocketBindingHandler.Builder(transport);
     }
 
 

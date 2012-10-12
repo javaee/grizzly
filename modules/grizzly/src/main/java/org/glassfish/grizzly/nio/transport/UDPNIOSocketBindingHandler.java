@@ -56,7 +56,7 @@ import java.util.logging.Level;
  *
  * Example usage:
  * <pre>
- *     UDPNIOSocketBindingHandler handler = new UDPNIOSocketBindingHandler.Builder(transport).setProcessor(custom).build();
+ *     UDPNIOSocketBindingHandler handler = UDPNIOSocketBindingHandler.builder(transport).setProcessor(custom).build();
  *     handler.bind(socketAddress);
  * </pre>
  *
@@ -80,13 +80,39 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
 
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress) throws IOException {
-        return bind(socketAddress, udpTransport.getServerConnectionBackLog());
+        return bind(socketAddress, -1);
     }
 
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog) throws IOException {
-        final DatagramChannel serverDatagramChannel =
-                udpTransport.getSelectorProvider().openDatagramChannel();
+        return bindToChannel(
+                udpTransport.getSelectorProvider().openDatagramChannel(),
+                socketAddress);
+    }
+
+    @Override
+    public UDPNIOServerConnection bindToInherited() throws IOException {
+        return bindToChannel(
+                this.<DatagramChannel>getSystemInheritedChannel(DatagramChannel.class),
+                null);
+    }
+
+    @Override
+    public void unbind(UDPNIOServerConnection connection) throws IOException {
+        udpTransport.unbind(connection);
+    }
+
+    public static Builder builder(final UDPNIOTransport transport) {
+        return new UDPNIOSocketBindingHandler.Builder(transport);
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private UDPNIOServerConnection bindToChannel(final DatagramChannel serverDatagramChannel,
+                                                 final SocketAddress socketAddress)
+    throws IOException {
         UDPNIOServerConnection serverConnection = null;
 
         final Lock lock = udpTransport.getState().getStateLocker().writeLock();
@@ -107,7 +133,9 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
                         LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(udpTransport.serverSocketSoTimeout), e);
             }
 
-            socket.bind(socketAddress);
+            if (socketAddress != null) {
+                socket.bind(socketAddress);
+            }
 
             serverDatagramChannel.configureBlocking(false);
 
@@ -135,15 +163,6 @@ public class UDPNIOSocketBindingHandler extends AbstractSocketBindingHandler<UDP
         } finally {
             lock.unlock();
         }
-    }
-
-    @Override
-    public void unbind(UDPNIOServerConnection connection) throws IOException {
-        udpTransport.unbind(connection);
-    }
-
-    public static Builder builder(final UDPNIOTransport transport) {
-        return new UDPNIOSocketBindingHandler.Builder(transport);
     }
 
 

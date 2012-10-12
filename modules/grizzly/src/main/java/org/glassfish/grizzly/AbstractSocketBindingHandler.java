@@ -39,8 +39,12 @@
  */
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.nio.NIOTransport;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.Channel;
+import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
 
 /**
@@ -48,14 +52,14 @@ import java.util.Random;
  */
 public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E> {
     protected static final Random RANDOM = new Random();
-    protected final Transport transport;
+    protected final NIOTransport transport;
     protected Processor processor;
     protected ProcessorSelector processorSelector;
 
     // ------------------------------------------------------------ Constructors
 
 
-    public AbstractSocketBindingHandler(final Transport transport) {
+    public AbstractSocketBindingHandler(final NIOTransport transport) {
         this.transport = transport;
         this.processor = transport.getProcessor();
         this.processorSelector = transport.getProcessorSelector();
@@ -174,15 +178,29 @@ public abstract class AbstractSocketBindingHandler<E> implements SocketBinder<E>
         throw new UnsupportedOperationException();
     }
 
-    /**
-     * This operation is not supported by implementations of {@link AbstractSocketBindingHandler}.
-     *
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public final E bindToInherited() throws IOException {
-        throw new UnsupportedOperationException();
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    @SuppressWarnings("unchecked")
+    protected <T> T getSystemInheritedChannel(final Class<?> channelType)
+    throws IOException {
+        final Channel inheritedChannel = System.inheritedChannel();
+
+        if (inheritedChannel == null) {
+            throw new IOException("Inherited channel is not set");
+        }
+        if (!(channelType.isInstance(inheritedChannel))) {
+            throw new IOException("Inherited channel is not "
+                    + channelType.getName()
+                    + ", but "
+                    + inheritedChannel.getClass().getName());
+        }
+        return (T) inheritedChannel;
     }
+
+
+    // ----------------------------------------------------------- Inner Classes
 
     /**
      * Builder

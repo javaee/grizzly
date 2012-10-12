@@ -143,22 +143,6 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     /**
-     * @see TCPNIOTransport#getServerConnectionBackLog() ()
-     */
-    public int getServerConnectionBackLog() {
-        return udpTransport.getServerConnectionBackLog();
-    }
-
-    /**
-     * @return this <code>TCPNIOTransportBuilder</code>
-     * @see TCPNIOTransport#setServerConnectionBackLog(int)
-     */
-    public UDPNIOTransportBuilder setServerConnectionBackLog(int serverConnectionBackLog) {
-        udpTransport.setServerConnectionBackLog(serverConnectionBackLog);
-        return getThis();
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override

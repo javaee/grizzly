@@ -110,7 +110,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     protected final TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
-    protected int serverConnectionBackLog = 4096;
+
     /**
      * Default {@link TCPNIOConnectorHandler}
      */
@@ -143,24 +143,6 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         transportFilter = new UDPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
-    }
-
-    /**
-     * Get the default server connection backlog size.
-     *
-     * @return the default server connection backlog size.
-     */
-    public int getServerConnectionBackLog() {
-        return serverConnectionBackLog;
-    }
-
-    /**
-     * Set the default server connection backlog size.
-     *
-     * @param serverConnectionBackLog the default server connection backlog size.
-     */
-    public void setServerConnectionBackLog(final int serverConnectionBackLog) {
-        this.serverConnectionBackLog = serverConnectionBackLog;
     }
 
     /**
@@ -209,62 +191,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     @Override
     public UDPNIOServerConnection bindToInherited() throws IOException {
-        final Channel inheritedChannel = System.inheritedChannel();
-        
-        if (inheritedChannel == null) {
-            throw new IOException("Inherited channel is not set");
-        }
-        if (!(inheritedChannel instanceof DatagramChannel)) {
-            throw new IOException("Inherited channel is not java.nio.channels.DatagramChannel, but " + inheritedChannel.getClass().getName());
-        }
-
-        final DatagramChannel serverDatagramChannel = (DatagramChannel) inheritedChannel;
-        UDPNIOServerConnection serverConnection = null;
-
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final DatagramSocket socket = serverDatagramChannel.socket();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-            
-            serverDatagramChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
-            serverConnections.add(serverConnection);
-
-            if (!isStopped()) {
-                serverConnection.register();
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverDatagramChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
+        return bindingHandler.bindToInherited();
     }
 
     
