@@ -169,7 +169,7 @@ public class IOStrategyTest {
                 }
                 
                 try {
-                    final Integer result = resultEcho.get(10, TimeUnit.SECONDS);
+                    final Integer result = resultEcho.get(60, TimeUnit.SECONDS);
                     assertEquals(msgNum, result);
                 } catch (Exception e) {
                     throw new IllegalStateException("Unexpected error strategy: "
