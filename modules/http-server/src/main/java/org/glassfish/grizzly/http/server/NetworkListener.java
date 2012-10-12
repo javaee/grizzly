@@ -87,7 +87,12 @@ public class NetworkListener {
      * If not explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
     private int port = DEFAULT_NETWORK_PORT;
-
+    /**
+     * The flag indicates if the <code>HttpServer<code> will be bounnd to an inherited Channel.
+     * If not explicitly set, the <code>HttpServer</code> will be bound to  {@link #DEFAULT_NETWORK_HOST}:{@link #DEFAULT_NETWORK_PORT}.
+     */
+    private final boolean isBindToInherited;
+    
     /**
      * The time, in seconds, for which a request must complete processing.
      */
@@ -186,10 +191,26 @@ public class NetworkListener {
      * @param name the logical name of the listener.
      */
     public NetworkListener(final String name) {
-        validateArg("name", name);
-        this.name = name;
+        this(name, false);
     }
 
+    /**
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code>, which,
+     * depending on <code>isBindToInherited</code> will or will not be bound to an inherited Channel.</p>
+     *
+     * @param name the logical name of the listener.
+     * @param isBindToInherited if <tt>true</tt> the <code>NetworkListener</code> will be
+     * bound to an inherited Channel, otherwise default {@link #DEFAULT_NETWORK_HOST} and {@link #DEFAULT_NETWORK_PORT}
+     * will be used.
+     * 
+     * @see System#inheritedChannel()
+     */
+    public NetworkListener(final String name, final boolean isBindToInherited) {
+        validateArg("name", name);
+        this.name = name;
+        this.isBindToInherited = isBindToInherited;
+    }
+    
     /**
      * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code> and <code>host</code>.
      * The listener's port will default to {@link #DEFAULT_NETWORK_PORT}. </p>
@@ -218,6 +239,7 @@ public class NetworkListener {
         this.name = name;
         this.host = host;
         this.port = port;
+        isBindToInherited = false;
     }
 
     /**
@@ -238,6 +260,7 @@ public class NetworkListener {
         this.host = host;
         this.port = -1;
         this.portRange = portRange;
+        isBindToInherited = false;
     }
 
     // ----------------------------------------------------------- Configuration
@@ -603,9 +626,14 @@ public class NetworkListener {
         }
         transport.setProcessor(filterChain);
 
-        final TCPNIOServerConnection serverConnection = (port != -1) ?
-            transport.bind(host, port) :
-            transport.bind(host, portRange, transport.getServerConnectionBackLog());
+        final TCPNIOServerConnection serverConnection;
+        if (isBindToInherited) {
+            serverConnection = transport.bindToInherited();
+        } else {
+            serverConnection = (port != -1) ?
+                transport.bind(host, port) :
+                transport.bind(host, portRange, transport.getServerConnectionBackLog());
+        }
         
         port = ((InetSocketAddress) serverConnection.getLocalAddress()).getPort();
 
