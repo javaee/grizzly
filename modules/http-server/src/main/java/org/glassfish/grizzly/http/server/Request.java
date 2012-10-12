@@ -122,6 +122,8 @@ public class Request {
 
     private static final Logger LOGGER = Grizzly.logger(Request.class);
 
+    private static final Random RANDOM = new Random();
+
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
 
@@ -2226,8 +2228,7 @@ public class Request {
                 httpServerFilter.getConfiguration().isReuseSessionID()) {
             session = new Session(requestedSessionId);
         } else {
-            Random r = new Random();
-            requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
+            requestedSessionId = String.valueOf(generateRandomLong());
             session = new Session(requestedSessionId);
         }
         sessions.put(requestedSessionId, session);
@@ -2424,4 +2425,10 @@ public class Request {
         ctx.resume();
     }
 
+    /**
+     * Returns pseudorandom positive long value.
+     */
+    private static long generateRandomLong() {
+        return (RANDOM.nextLong() & 0x7FFFFFFFFFFFFFFFl);
+    }
 }
