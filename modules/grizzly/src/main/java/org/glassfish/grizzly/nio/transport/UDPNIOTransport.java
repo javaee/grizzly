@@ -40,11 +40,9 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -70,7 +68,6 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -82,7 +79,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
-    private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
+    static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
     /**
      * The server socket time out
@@ -116,6 +113,9 @@ public final class UDPNIOTransport extends NIOTransport implements
      */
     private final UDPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
+
+    private final UDPNIOBindingHandler bindingHandler =
+            new UDPNIOBindingHandler(this);
 
     public UDPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -182,116 +182,12 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
             throws IOException {
-        final DatagramChannel serverDatagramChannel =
-                selectorProvider.openDatagramChannel();
-        UDPNIOServerConnection serverConnection = null;
-
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final DatagramSocket socket = serverDatagramChannel.socket();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-            
-            socket.bind(socketAddress);
-
-            serverDatagramChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
-            serverConnections.add(serverConnection);
-
-            if (!isStopped()) {
-                serverConnection.register();
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverDatagramChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
+        return bindingHandler.bind(socketAddress, backlog);
     }
 
     @Override
     public Connection bindToInherited() throws IOException {
-        final Channel inheritedChannel = System.inheritedChannel();
-        
-        if (inheritedChannel == null) {
-            throw new IOException("Inherited channel is not set");
-        }
-        if (!(inheritedChannel instanceof DatagramChannel)) {
-            throw new IOException("Inherited channel is not java.nio.channels.DatagramChannel, but " + inheritedChannel.getClass().getName());
-        }
-
-        final DatagramChannel serverDatagramChannel = (DatagramChannel) inheritedChannel;
-        UDPNIOServerConnection serverConnection = null;
-
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final DatagramSocket socket = serverDatagramChannel.socket();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-            
-            serverDatagramChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
-            serverConnections.add(serverConnection);
-
-            if (!isStopped()) {
-                serverConnection.register();
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverDatagramChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
+        return bindingHandler.bindToInherited();
     }
 
     
@@ -302,27 +198,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     public UDPNIOServerConnection bind(final String host,
             final PortRange portRange, final int backlog) throws IOException {
 
-        IOException ioException;
-
-        final int lower = portRange.getLower();
-        final int range = portRange.getUpper() - lower + 1;
-
-        int offset = RANDOM.nextInt(range);
-        final int start = offset;
-
-        do {
-            final int port = lower + offset;
-
-            try {
-                return bind(host, port, backlog);
-            } catch (IOException e) {
-                ioException = e;
-            }
-
-            offset = (offset + 1) % range;
-        } while (offset != start);
-
-        throw ioException;
+        return (UDPNIOServerConnection) bindingHandler.bind(host, portRange, backlog);
     }
 
     /**

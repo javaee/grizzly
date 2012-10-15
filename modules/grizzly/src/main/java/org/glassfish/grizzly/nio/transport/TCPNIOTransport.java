@@ -44,11 +44,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -75,7 +73,6 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * TCP Transport NIO implementation
@@ -141,7 +138,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
-    private final int maxReadAttempts = 3;
+    private static final int MAX_READ_ATTEMPTS = 3;
     
     private boolean isOptimizedForMultiplexing;
     
@@ -153,6 +150,9 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     private final TCPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
+
+    private final TCPNIOBindingHandler bindingHandler =
+            new TCPNIOBindingHandler(this);
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -166,7 +166,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createImmutable(
+        asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
                 new TCPNIOAsyncQueueReader(this), new TCPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
@@ -280,7 +280,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
-    private void listenServerConnection(TCPNIOServerConnection serverConnection)
+    void listenServerConnection(TCPNIOServerConnection serverConnection)
             throws IOException {
         serverConnection.listen();
     }
@@ -392,46 +392,8 @@ public final class TCPNIOTransport extends NIOTransport implements
             final int backlog)
             throws IOException {
         
-        TCPNIOServerConnection serverConnection = null;
-        final ServerSocketChannel serverSocketChannel =
-                selectorProvider.openServerSocketChannel();
-        
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final ServerSocket serverSocket = serverSocketChannel.socket();
-            serverSocket.setReuseAddress(reuseAddress);
-            serverSocket.setSoTimeout(serverSocketSoTimeout);
+        return bindingHandler.bind(socketAddress, backlog);
 
-            serverSocket.bind(socketAddress, backlog);
-
-            serverSocketChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverSocketChannel);
-            serverConnections.add(serverConnection);
-            serverConnection.resetProperties();
-
-            if (!isStopped()) {
-                listenServerConnection(serverConnection);
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverSocketChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-            
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
     }
 
     
@@ -440,55 +402,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     @Override
     public TCPNIOServerConnection bindToInherited() throws IOException {
-        TCPNIOServerConnection serverConnection = null;
-        final Channel inheritedChannel = System.inheritedChannel();
-        
-        if (inheritedChannel == null) {
-            throw new IOException("Inherited channel is not set");
-        }
-        if (!(inheritedChannel instanceof ServerSocketChannel)) {
-            throw new IOException("Inherited channel is not java.nio.channels.ServerSocketChannel, but " + inheritedChannel.getClass().getName());
-        }
-        
-        final ServerSocketChannel serverSocketChannel = (ServerSocketChannel) inheritedChannel;
-        
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            
-            final ServerSocket serverSocket = serverSocketChannel.socket();
-            
-            serverSocket.setReuseAddress(reuseAddress);
-
-            serverSocket.setSoTimeout(serverSocketSoTimeout);
-            
-            serverSocketChannel.configureBlocking(false);
-
-            serverConnection = obtainServerNIOConnection(serverSocketChannel);
-            serverConnections.add(serverConnection);
-            serverConnection.resetProperties();
-
-            if (!isStopped()) {
-                listenServerConnection(serverConnection);
-            }
-
-            return serverConnection;
-        } catch (Exception e) {
-            if (serverConnection != null) {
-                serverConnections.remove(serverConnection);
-
-                serverConnection.closeSilently();
-            } else {
-                try {
-                    serverSocketChannel.close();
-                } catch (IOException ignored) {
-                }
-            }
-            
-            throw Exceptions.makeIOException(e);
-        } finally {
-            lock.unlock();
-        }
+        return bindingHandler.bindToInherited();
     }
 
     
@@ -499,27 +413,8 @@ public final class TCPNIOTransport extends NIOTransport implements
     public TCPNIOServerConnection bind(final String host,
             final PortRange portRange, final int backlog) throws IOException {
 
-        IOException ioException;
+        return (TCPNIOServerConnection) bindingHandler.bind(host, portRange, backlog);
 
-        final int lower = portRange.getLower();
-        final int range = portRange.getUpper() - lower + 1;
-        
-        int offset = RANDOM.nextInt(range);
-        final int start = offset;
-
-        do {
-            final int port = lower + offset;
-
-            try {
-                return bind(host, port, backlog);
-            } catch (IOException e) {
-                ioException = e;
-            }
-
-            offset = (offset + 1) % range;
-        } while (offset != start);
-
-        throw ioException;
     }
     
     /**
@@ -976,6 +871,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
             
             if (read > 0) {
+                assert buffer != null;
                 buffer.allowBufferDispose(true);
                 buffer.position(read);
             } else {
@@ -1107,7 +1003,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) > 0) {
             read += readNow;
             if (!lastByteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
+                    || ++readAttempt >= MAX_READ_ATTEMPTS) {
                 return read;
             }
         }
@@ -1132,14 +1028,13 @@ public final class TCPNIOTransport extends NIOTransport implements
         int written;
         if (message instanceof Buffer) {
             final Buffer buffer = (Buffer) message;
-            final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
             final int oldPos = buffer.position();
 
             try {
                 if (buffer.isComposite()) {
                     final BufferArray array = buffer.toBufferArray();
 
-                    written = writeGathered(tcpConnection, array);
+                    written = writeGathered(connection, array);
 
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
@@ -1149,7 +1044,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                     array.restore();
                     array.recycle();
                 } else {
-                    written = writeSimple(tcpConnection, buffer);
+                    written = writeSimple(connection, buffer);
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
                                 new Object[]{connection, written});
@@ -1161,7 +1056,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                     buffer.position(oldPos + written);
                 }
 
-                tcpConnection.onWrite(buffer, written);
+                connection.onWrite(buffer, written);
 
                 if (hasWritten) {
                     if (currentResult != null) {
@@ -1174,12 +1069,12 @@ public final class TCPNIOTransport extends NIOTransport implements
                 }
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                tcpConnection.close0(null, false);
+                connection.close0(null, false);
                 throw e;
             }
         } else if (message instanceof FileTransfer) {
             written = (int) ((FileTransfer) message).writeTo((SocketChannel)
-                                  ((TCPNIOConnection) connection).getChannel());
+                                  connection.getChannel());
         } else {
             throw new IllegalStateException("Unhandled message type");
         }
@@ -1415,4 +1310,5 @@ public final class TCPNIOTransport extends NIOTransport implements
             return TCPNIOTransport.this.getProcessorSelector();
         }
     }
+
 }
