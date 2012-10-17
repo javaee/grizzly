@@ -676,6 +676,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             serverFilterConfiguration.setBackendConfiguration(backendConfiguration);
         }
         serverFilterConfiguration.setPassTraceRequest(true);
+        serverFilterConfiguration.setTraceEnabled(Boolean.valueOf(http.getTraceEnabled()));
         int maxRequestParameters;
         try {
             maxRequestParameters = Integer.parseInt(http.getMaxRequestParameters());
