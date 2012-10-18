@@ -47,6 +47,7 @@ import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
@@ -83,7 +84,8 @@ public class SpdyAddOn implements AddOn {
                 LOGGER.warning("Unable to configure spdy using a insecure NetworkListener");
             }
         }
-        final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024));
+        configureTransport(networkListener.getTransport());
+        final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
         processHttpServerFilter(builder, executor);
         processSslFilter(networkListener, builder);
         insertSpdyFilters(builder, executor);
@@ -95,6 +97,10 @@ public class SpdyAddOn implements AddOn {
     // ------------------------------------------------------- Protected Methods
 
 
+    protected void configureTransport(final Transport transport) {
+        transport.setIOStrategy(SameThreadIOStrategy.getInstance());
+        transport.setWorkerThreadPoolConfig(null);
+    }
     protected void removeHttpServerCodecFilter(FilterChainBuilder builder) {
         int idx = builder.indexOfType(org.glassfish.grizzly.http.HttpServerFilter.class);
         builder.remove(idx);

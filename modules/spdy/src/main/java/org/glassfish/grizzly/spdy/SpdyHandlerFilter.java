@@ -617,9 +617,12 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         final Buffer initialBuffer = allocateHeapBuffer(mm, 2048);
         initialBuffer.position(12); // skip the header for now
-        
-        final Buffer resultBuffer = encodeHeaders(spdySession, response,
-                initialBuffer);
+        Buffer resultBuffer;
+        synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
+            resultBuffer = encodeHeaders(spdySession,
+                                         response,
+                                         initialBuffer);
+        }
         
         initialBuffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | SYN_REPLY_FRAME);  // C | SPDY_VERSION | SYN_REPLY
 

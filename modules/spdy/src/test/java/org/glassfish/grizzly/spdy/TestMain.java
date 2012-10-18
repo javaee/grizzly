@@ -71,6 +71,7 @@ public class TestMain {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", 7070);
         NetworkListener listener = server.getListener("grizzly");
+        listener.getFileCache().setEnabled(false);
         listener.setSecure(true);
         listener.setSSLEngineConfig(serverSSLEngineConfigurator);
 
@@ -86,10 +87,9 @@ public class TestMain {
                 StringBuilder sb = new StringBuilder(128);
                 sb.append("<html><head><title>SPDY Test</title></head><body>");
                 sb.append("Hello!<br />");
-                sb.append("<img src=\"/test.jpg\" />");
-                sb.append("<img src=\"/test.jpg\" />");
-                sb.append("<img src=\"/test.jpg\" />");
-                sb.append("<img src=\"/test.jpg\" />");
+                for (int i = 1; i <= 1000; i++) {
+                    sb.append("<img src=\"/").append(i).append(".jpg\" />");
+                }
                 sb.append("</body></html>");
                 response.setContentLength(sb.length());
                 w.write(sb.toString());
