@@ -58,13 +58,13 @@ public class FramesDecoderFilter extends BaseFilter {
     static final int HEADER_LEN = 8;
     
     private final Attribute<ArrayList<Buffer>> framesAttr =
-            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.<ArrayList<Buffer>>createAttribute(
-            FramesDecoderFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<Buffer>>() {
-        @Override
-        public ArrayList<Buffer> evaluate() {
-            return new ArrayList<Buffer>(4);
-        }
-    });
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                    FramesDecoderFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<Buffer>>() {
+                @Override
+                public ArrayList<Buffer> evaluate() {
+                    return new ArrayList<Buffer>(4);
+                }
+            });
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
@@ -114,8 +114,7 @@ public class FramesDecoderFilter extends BaseFilter {
         
         ctx.setMessage(frameList.size() > 1 ? frameList : message);
         
-        return ctx.getInvokeAction(
-                (remainder != null && remainder.hasRemaining()) ? remainder : null);
+        return ctx.getInvokeAction((remainder.hasRemaining()) ? remainder : null);
     }
 
     @Override

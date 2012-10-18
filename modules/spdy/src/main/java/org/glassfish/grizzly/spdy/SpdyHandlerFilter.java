@@ -126,7 +126,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         final long header = frame.getLong();
 
         final int first32 = (int) (header >>> 32);
-        final int second32 = (int) (header & 0xFFFFFFFF);
+        final int second32 = (int) (header & 0xFFFFFFFFL);
 
         final boolean isControlMessage = (first32 & 0x80000000) != 0;
         if (isControlMessage) {
@@ -175,11 +175,40 @@ public class SpdyHandlerFilter extends BaseFilter {
             }
             case HEADERS_FRAME:
             case CREDENTIAL_FRAME:
-            case WINDOW_UPDATE_FRAME:
+            case WINDOW_UPDATE_FRAME: {
+                processWindowUpdateFrame(spdySession,
+                                         context,
+                                         frame,
+                                         version,
+                                         type,
+                                         flags,
+                                         length);
+                break;
+            }
 
             default: {
                 System.out.println("Unknown control-frame [version=" + version + " type=" + type + " flags=" + flags + " length=" + length + "]");
             }
+        }
+    }
+
+    private void processWindowUpdateFrame(final SpdySession spdySession,
+                                          final FilterChainContext context,
+                                          final Buffer frame,
+                                          final int version,
+                                          final int type,
+                                          final int flags,
+                                          final int length) {
+        final int streamId = frame.getInt() & 0x7FFFFFF;
+        final int delta = frame.getInt() & 0x7FFFFFF;
+        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+            final StringBuilder sb = new StringBuilder(64);
+            sb.append("\n{WINDOW_UPDATE : streamId=")
+                    .append(streamId)
+                    .append(" delta-window-size=")
+                    .append(delta)
+                    .append("}\n");
+            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
     }
 
@@ -247,13 +276,21 @@ public class SpdyHandlerFilter extends BaseFilter {
             }
             switch (eId) {
                 case UPLOAD_BANDWIDTH:
+                    break;
                 case DOWNLOAD_BANDWIDTH:
+                    break;
                 case ROUND_TRIP_TIME:
+                    break;
                 case MAX_CONCURRENT_STREAMS:
+                    break;
                 case CURRENT_CWND:
+                    break;
                 case DOWNLOAD_RETRANS_RATE:
+                    break;
                 case INITIAL_WINDOW_SIZE:
+                    break;
                 case CLIENT_CERTIFICATE_VECTOR_SIZE:
+                    break;
                 default:
                     LOGGER.log(Level.WARNING, "Setting specified but not handled: {0}", eId);
             }
@@ -277,7 +314,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
             final StringBuilder sb = new StringBuilder(32);
             sb.append("\n{PING : id=")
-                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFl)
+                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFL)
                     .append("}\n");
             LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
@@ -324,6 +361,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         }
         
         final SpdyRequest spdyRequest = SpdyRequest.create();
+        spdyRequest.setConnection(context.getConnection());
         final SpdyStream spdyStream = spdySession.acceptStream(context,
                 spdyRequest, streamId, associatedToStreamId, priority, slot);
         
@@ -511,23 +549,16 @@ public class SpdyHandlerFilter extends BaseFilter {
             // Get HttpPacket
             final HttpPacket input = (HttpPacket) ctx.getMessage();
 
-            try {
-                // transform HttpPacket into Buffer
-                final Buffer output = encodeSpdyPacket(ctx, input);
-
-                if (output != null) {
+            final Buffer output = encodeSpdyPacket(ctx, input);
+            if (output != null) {
 //                    HttpProbeNotifier.notifyDataSent(this, connection, output);
 
-                    // Invoke next filter in the chain.
-                    final SpdyStream spdyStream =
-                            ((SpdyPacket) input.getHttpHeader()).getSpdyStream();
-                    
-                    spdyStream.writeDownStream(output,
-                            ctx.getTransportContext().getCompletionHandler());
-                }
-            } catch (RuntimeException re) {
-//                HttpProbeNotifier.notifyProbesError(this, connection, input, re);
-                throw re;
+                // Invoke next filter in the chain.
+                final SpdyStream spdyStream =
+                        ((SpdyPacket) input.getHttpHeader()).getSpdyStream();
+
+                spdyStream.writeDownStream(output,
+                        ctx.getTransportContext().getCompletionHandler());
             }
         }
 
@@ -786,18 +817,12 @@ public class SpdyHandlerFilter extends BaseFilter {
         final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, buffer);
         
         if (resultBuffer.isComposite()) {
-            ((CompositeBuffer) resultBuffer).allowBufferDispose(true);
+            resultBuffer.allowBufferDispose(true);
             ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
             ((CompositeBuffer) resultBuffer).disposeOrder(CompositeBuffer.DisposeOrder.FIRST_TO_LAST);
         }
         
         return resultBuffer;
-    }
-    
-    private static int get24(final Buffer buffer) {
-        return ((buffer.get() & 0xFF) << 16)
-                + ((buffer.get() & 0xFF) << 8)
-                + (buffer.get() & 0xFF);
     }
 
     private static int getInt(final byte[] array, final int position) {

@@ -40,27 +40,16 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
+
 import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
  *
@@ -68,13 +57,11 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
  */
 public class TestMain {
     public static void main(String[] args) throws IOException {
+
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        SSLEngineConfigurator clientSSLEngineConfigurator;
         SSLEngineConfigurator serverSSLEngineConfigurator;
 
         if (sslContextConfigurator.validateConfiguration(true)) {
-            clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
             serverSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     false, false, false);
@@ -82,72 +69,43 @@ public class TestMain {
             throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
         }
 
-        final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator, clientSSLEngineConfigurator);
-        
-        final GrizzlyExecutorService threadPool =
-                GrizzlyExecutorService.createInstance(ThreadPoolConfig.newConfig().setMaxPoolSize(1024));
-        
-        final DelayedExecutor delayedExecutor = new DelayedExecutor(threadPool);
-        
-        final ServerFilterConfiguration httpServerConfig =
-                new ServerFilterConfiguration("spdy server", "1.0");
-        final HttpServerFilter httpServerFilter = new HttpServerFilter(
-                httpServerConfig, delayedExecutor);
-        
-        httpServerFilter.setHttpHandler(new HttpHandler() {
+        HttpServer server = HttpServer.createSimpleServer("/tmp", 7070);
+        NetworkListener listener = server.getListener("grizzly");
+        listener.setSecure(true);
+        listener.setSSLEngineConfig(serverSSLEngineConfigurator);
 
+        listener.registerAddOn(new SpdyAddOn());
+
+        server.getServerConfiguration().addHttpHandler(
+        new HttpHandler() {
             @Override
             public void service(Request request, Response response) throws Exception {
-                System.out.println(request.getRequest());
-                response.getWriter().write("Hello");
-            }
-        });
-                
-        FilterChain chain = FilterChainBuilder.stateless()
-                .add(new TransportFilter())
-                .add(sslFilter)
-                .add(new FramesDecoderFilter())
-                .add(new SpdyHandlerFilter(threadPool))
-                .add(httpServerFilter)
-                .build();
-        
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setProcessor(chain)
-                .setIOStrategy(SameThreadIOStrategy.getInstance())
-                .build();
+                response.setContentType("text/html");
 
-        NextProtoNegSupport.getInstance().configure(sslFilter);
-        NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
-                new NextProtoNegSupport.ServerSideNegotiator() {
-
-            private final List<String> supportedProtocols = Arrays.asList("spdy/3", "http/1.1");
-            @Override
-            public List<String> supportedProtocols() {
-                return supportedProtocols;
+                final Writer w = response.getWriter();
+                StringBuilder sb = new StringBuilder(128);
+                sb.append("<html><head><title>SPDY Test</title></head><body>");
+                sb.append("Hello!<br />");
+                sb.append("<img src=\"/test.jpg\" />");
+                sb.append("<img src=\"/test.jpg\" />");
+                sb.append("<img src=\"/test.jpg\" />");
+                sb.append("<img src=\"/test.jpg\" />");
+                sb.append("</body></html>");
+                response.setContentLength(sb.length());
+                w.write(sb.toString());
             }
+        }, "/test");
 
-            @Override
-            public void onSuccess(String protocol) {
-                System.out.println("Success: " + protocol);
-            }
 
-            @Override
-            public void onNoDeal() {
-                System.out.println("NoDeal");
-            }
-        });
-        
         try {
-            transport.bind(7070);
-            transport.start();
-            
-            System.out.println("Press enter to stop.");
+            server.start();
+            System.out.println("Press any key to stop ...");
             //noinspection ResultOfMethodCallIgnored
             System.in.read();
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
-            transport.stop();
-            delayedExecutor.destroy();
-            threadPool.shutdownNow();
+            server.stop();
         }
     }
     
