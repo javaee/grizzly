@@ -303,20 +303,8 @@ public class HttpCodecUtils {
             
             dstBuffer.position(pos - arrayOffs);
         } else {
-            // Make sure custom Strings do not contain service symbols
-            for (int i = 0; i < size; i++) {
-                char c = s.charAt(i);
-                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
-                    c = ' ';
-                }
-
-                final byte b = (byte) c;
-
-                dstBuffer.put(b);
-            }
+            dstBuffer.put(fastAsciiEncode(s));
         }
-        
-//        dstBuffer.put8BitString(s);
 
         return dstBuffer;
     }
@@ -371,5 +359,19 @@ public class HttpCodecUtils {
         return memoryManager.reallocate(buffer, Math.max(
                 buffer.capacity() + grow,
                 (buffer.capacity() * 3) / 2 + 1));
+    }
+
+    static byte[] fastAsciiEncode(String s) {
+        int len = s.length();
+        byte[] b = new byte[len];
+        for (int i = 0; i < len; i++) {
+            byte b1 = (byte) (s.charAt(i) & 0x7f);
+            if ((b1 <= 31 && b1 != 9) || b1 == 127 || b1 > 255) {
+                b[i] = ' ';
+            } else {
+                b[i] = b1;
+            }
+        }
+        return b;
     }
 }
