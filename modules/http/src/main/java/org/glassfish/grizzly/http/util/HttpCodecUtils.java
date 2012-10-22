@@ -47,11 +47,11 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * General HttpCodec utility methods.
- * 
+ *
  * @author Alexey Stashok
  */
 public class HttpCodecUtils {
-    
+
     public static int checkEOL(final HttpCodecFilter.HeaderParsingState parsingState, final Buffer input) {
         final int offset = parsingState.offset;
         final int avail = input.limit() - offset;
@@ -70,23 +70,12 @@ public class HttpCodecUtils {
             return -2;
         }
 
-        if (b1 == Constants.CR) {
-            if (b2 == Constants.LF) {
-                parsingState.offset += 2;
-                return 0;
-            } else if (b2 == -1) {
-                return -2;
-            }
-        } else if (b1 == Constants.LF) {
-            parsingState.offset++;
-            return 0;
-        }
-
-        return -1;
+        return checkCRLF(parsingState, b1, b2);
     }
 
+
     public static int checkEOL(final HttpCodecFilter.HeaderParsingState parsingState,
-            final byte[] input, final int end) {
+                               final byte[] input, final int end) {
         final int arrayOffs = parsingState.arrayOffset;
         final int offset = arrayOffs + parsingState.offset;
         final int avail = end - offset;
@@ -104,26 +93,14 @@ public class HttpCodecUtils {
             return -2;
         }
 
-        if (b1 == Constants.CR) {
-            if (b2 == Constants.LF) {
-                parsingState.offset += 2;
-                return 0;
-            } else if (b2 == -1) {
-                return -2;
-            }
-        } else if (b1 == Constants.LF) {
-            parsingState.offset++;
-            return 0;
-        }
-
-        return -1;
+        return checkCRLF(parsingState, b1, b2);
     }
-    
+
     public static boolean findEOL(final HttpCodecFilter.HeaderParsingState state, final Buffer input) {
         int offset = state.offset;
         final int limit = Math.min(input.limit(), state.packetLimit);
 
-        while(offset < limit) {
+        while (offset < limit) {
             final byte b = input.get(offset);
             if (b == Constants.CR) {
                 state.checkpoint = offset;
@@ -140,18 +117,18 @@ public class HttpCodecUtils {
         }
 
         state.offset = offset;
-        
+
         return false;
     }
 
     public static boolean findEOL(final HttpCodecFilter.HeaderParsingState state,
-            final byte[] input, final int end) {
+                                  final byte[] input, final int end) {
         final int arrayOffs = state.arrayOffset;
         int offset = arrayOffs + state.offset;
-        
+
         final int limit = Math.min(end, arrayOffs + state.packetLimit);
 
-        while(offset < limit) {
+        while (offset < limit) {
             final byte b = input[offset];
             if (b == Constants.CR) {
                 state.checkpoint = offset - arrayOffs;
@@ -168,16 +145,16 @@ public class HttpCodecUtils {
         }
 
         state.offset = offset - arrayOffs;
-        
+
         return false;
     }
-    
+
     public static int findSpace(final Buffer input, int offset,
-            final int packetLimit) {
+                                final int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
-        while(offset < limit) {
+        while (offset < limit) {
             final byte b = input.get(offset);
-            if (b == Constants.SP || b == Constants.HT) {
+            if (isSpaceOrTab(b)) {
                 return offset;
             }
 
@@ -188,11 +165,11 @@ public class HttpCodecUtils {
     }
 
     public static int findSpace(final byte[] input, int offset,
-            final int end, final int packetLimit) {
+                                final int end, final int packetLimit) {
         final int limit = Math.min(end, packetLimit);
         while (offset < limit) {
             final byte b = input[offset];
-            if (b == Constants.SP || b == Constants.HT) {
+            if (isSpaceOrTab(b)) {
                 return offset;
             }
 
@@ -201,13 +178,13 @@ public class HttpCodecUtils {
 
         return -1;
     }
-    
+
     public static int skipSpaces(final Buffer input, int offset,
-            final int packetLimit) {
+                                 final int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
-        while(offset < limit) {
+        while (offset < limit) {
             final byte b = input.get(offset);
-            if (b != Constants.SP && b != Constants.HT) {
+            if (isNotSpaceAndTab(b)) {
                 return offset;
             }
 
@@ -218,11 +195,11 @@ public class HttpCodecUtils {
     }
 
     public static int skipSpaces(final byte[] input, int offset,
-            final int end, final int packetLimit) {
+                                 final int end, final int packetLimit) {
         final int limit = Math.min(end, packetLimit);
         while (offset < limit) {
             final byte b = input[offset];
-            if (b != Constants.SP && b != Constants.HT) {
+            if (isNotSpaceAndTab(b)) {
                 return offset;
             }
 
@@ -233,9 +210,9 @@ public class HttpCodecUtils {
     }
 
     public static int indexOf(final Buffer input, int offset,
-            final byte b, final int packetLimit) {
+                              final byte b, final int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
-        while(offset < limit) {
+        while (offset < limit) {
             final byte currentByte = input.get(offset);
             if (currentByte == b) {
                 return offset;
@@ -246,9 +223,9 @@ public class HttpCodecUtils {
 
         return -1;
     }
-    
+
     public static Buffer getLongAsBuffer(final MemoryManager memoryManager,
-            final long length) {
+                                         final long length) {
         final Buffer b = memoryManager.allocate(20);
         b.allowBufferDispose(true);
         HttpUtils.longToBuffer(length, b);
@@ -256,7 +233,7 @@ public class HttpCodecUtils {
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final DataChunk chunk) {
+                             Buffer dstBuffer, final DataChunk chunk) {
 
         if (chunk.isNull()) return dstBuffer;
 
@@ -267,40 +244,34 @@ public class HttpCodecUtils {
         } else if (chunk.getType() == DataChunk.Type.Buffer) {
             final BufferChunk bc = chunk.getBufferChunk();
             final int length = bc.getLength();
-            if (dstBuffer.remaining() < length) {
-                dstBuffer = resizeBuffer(memoryManager, dstBuffer, length);
-            }
+            dstBuffer = checkAndResizeIfNeeded(memoryManager, dstBuffer, length);
 
             dstBuffer.put(bc.getBuffer(), bc.getStart(), length);
-            
+
             return dstBuffer;
         } else {
             return put(memoryManager, dstBuffer, chunk.toString());
         }
     }
 
+
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final String s) {
+                             Buffer dstBuffer, final String s) {
         final int size = s.length();
-        if (dstBuffer.remaining() < size) {
-            dstBuffer = resizeBuffer(memoryManager, dstBuffer, size);
-        }
+        dstBuffer = checkAndResizeIfNeeded(memoryManager, dstBuffer, size);
 
         if (dstBuffer.hasArray()) {
+            @SuppressWarnings("MismatchedReadAndWriteOfArray")
             final byte[] array = dstBuffer.array();
             final int arrayOffs = dstBuffer.arrayOffset();
             int pos = arrayOffs + dstBuffer.position();
-            
+
             // Make sure custom Strings do not contain service symbols
             for (int i = 0; i < size; i++) {
-                char c = s.charAt(i);
-                if ((c <= 31 && c != 9) || c == 127 || c > 255) {
-                    c = ' ';
-                }
-
-                array[pos++] = (byte) c;
+                byte b = (byte) (s.charAt(i) & 0x7F);
+                array[pos++] = isInRange(b) ? Constants.SP : b;
             }
-            
+
             dstBuffer.position(pos - arrayOffs);
         } else {
             dstBuffer.put(fastAsciiEncode(s));
@@ -310,16 +281,14 @@ public class HttpCodecUtils {
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final byte[] array) {
+                             Buffer dstBuffer, final byte[] array) {
         return put(memoryManager, dstBuffer, array, 0, array.length);
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final byte[] array, final int off, final int len) {
+                             Buffer dstBuffer, final byte[] array, final int off, final int len) {
 
-        if (dstBuffer.remaining() < len) {
-            dstBuffer = resizeBuffer(memoryManager, dstBuffer, len);
-        }
+        dstBuffer = checkAndResizeIfNeeded(memoryManager, dstBuffer, len);
 
         dstBuffer.put(array, off, len);
 
@@ -327,21 +296,19 @@ public class HttpCodecUtils {
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final Buffer buffer) {
-        
+                             Buffer dstBuffer, final Buffer buffer) {
+
         final int addSize = buffer.remaining();
 
-        if (dstBuffer.remaining() < addSize) {
-            dstBuffer = resizeBuffer(memoryManager, dstBuffer, addSize);
-        }
+        dstBuffer = checkAndResizeIfNeeded(memoryManager, dstBuffer, addSize);
 
         dstBuffer.put(buffer);
 
         return dstBuffer;
     }
-    
+
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final byte value) {
+                             Buffer dstBuffer, final byte value) {
 
         if (!dstBuffer.hasRemaining()) {
             dstBuffer = resizeBuffer(memoryManager, dstBuffer, 1);
@@ -354,24 +321,55 @@ public class HttpCodecUtils {
 
     @SuppressWarnings({"unchecked"})
     public static Buffer resizeBuffer(final MemoryManager memoryManager,
-            final Buffer buffer, final int grow) {
+                                      final Buffer buffer, final int grow) {
 
         return memoryManager.reallocate(buffer, Math.max(
                 buffer.capacity() + grow,
                 (buffer.capacity() * 3) / 2 + 1));
     }
 
-    static byte[] fastAsciiEncode(String s) {
+    public static byte[] fastAsciiEncode(String s) {
         int len = s.length();
         byte[] b = new byte[len];
         for (int i = 0; i < len; i++) {
             byte b1 = (byte) (s.charAt(i) & 0x7f);
-            if ((b1 <= 31 && b1 != 9) || b1 == 127 || b1 > 255) {
-                b[i] = ' ';
-            } else {
-                b[i] = b1;
-            }
+            b[i] = isInRange(b1) ? Constants.SP : b1;
         }
         return b;
+    }
+
+    private static boolean isInRange(final byte b) {
+        return ((b <= 31 && b != 9) || b == 127 || b > 255);
+    }
+
+    private static int checkCRLF(HttpCodecFilter.HeaderParsingState parsingState, byte b1, byte b2) {
+        if (b1 == Constants.CR) {
+            if (b2 == Constants.LF) {
+                parsingState.offset += 2;
+                return 0;
+            } else if (b2 == -1) {
+                return -2;
+            }
+        } else if (b1 == Constants.LF) {
+            parsingState.offset++;
+            return 0;
+        }
+
+        return -1;
+    }
+
+    private static boolean isNotSpaceAndTab(final byte b) {
+        return (b != Constants.SP && b != Constants.HT);
+    }
+
+    private static boolean isSpaceOrTab(final byte b) {
+        return (b == Constants.SP || b == Constants.HT);
+    }
+
+    private static Buffer checkAndResizeIfNeeded(MemoryManager memoryManager, Buffer dstBuffer, int length) {
+        if (dstBuffer.remaining() < length) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, length);
+        }
+        return dstBuffer;
     }
 }
