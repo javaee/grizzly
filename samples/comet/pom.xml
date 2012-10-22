@@ -58,6 +58,5 @@
 
     <modules>
         <module>comet-counter</module>
-        <module>comet-jmaki</module>
     </modules>
 </project>
