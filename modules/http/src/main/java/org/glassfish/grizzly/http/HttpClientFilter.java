@@ -492,15 +492,16 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
         final HttpRequestPacket httpRequest = (HttpRequestPacket) httpPacket;
-        output = put(memoryManager, output, httpRequest.getMethodDC());
+        final byte[] tempEncodingBuffer = httpRequest.getTempHeaderEncodingBuffer();
+        output = put(memoryManager, output, tempEncodingBuffer, httpRequest.getMethodDC());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpRequest.getRequestURIRef().getRequestURIBC());
+        output = put(memoryManager, output, tempEncodingBuffer, httpRequest.getRequestURIRef().getRequestURIBC());
         if (!httpRequest.getQueryStringDC().isNull()) {
             output = put(memoryManager, output, (byte) '?'); 
-            output = put(memoryManager, output, httpRequest.getQueryStringDC());
+            output = put(memoryManager, output, tempEncodingBuffer, httpRequest.getQueryStringDC());
         }
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpRequest.getProtocolString());
+        output = put(memoryManager, output, tempEncodingBuffer, httpRequest.getProtocolString());
 
         return output;
     }

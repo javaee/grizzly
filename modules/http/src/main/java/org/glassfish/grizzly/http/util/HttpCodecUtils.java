@@ -233,7 +233,9 @@ public class HttpCodecUtils {
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-                             Buffer dstBuffer, final DataChunk chunk) {
+                             Buffer dstBuffer,
+                             final byte[] tempBuffer,
+                             final DataChunk chunk) {
 
         if (chunk.isNull()) return dstBuffer;
 
@@ -250,13 +252,15 @@ public class HttpCodecUtils {
 
             return dstBuffer;
         } else {
-            return put(memoryManager, dstBuffer, chunk.toString());
+            return put(memoryManager, dstBuffer, tempBuffer, chunk.toString());
         }
     }
 
 
     public static Buffer put(final MemoryManager memoryManager,
-                             Buffer dstBuffer, final String s) {
+                             Buffer dstBuffer,
+                             final byte[] tempBuffer,
+                             final String s) {
         final int size = s.length();
         dstBuffer = checkAndResizeIfNeeded(memoryManager, dstBuffer, size);
 
@@ -274,7 +278,7 @@ public class HttpCodecUtils {
 
             dstBuffer.position(pos - arrayOffs);
         } else {
-            dstBuffer.put(fastAsciiEncode(s));
+            fastAsciiEncode(s, tempBuffer, dstBuffer);
         }
 
         return dstBuffer;
@@ -328,14 +332,23 @@ public class HttpCodecUtils {
                 (buffer.capacity() * 3) / 2 + 1));
     }
 
-    public static byte[] fastAsciiEncode(String s) {
-        int len = s.length();
-        byte[] b = new byte[len];
-        for (int i = 0; i < len; i++) {
-            int c = s.charAt(i);
-            b[i] = isNonPrintableUsAscii(c) ? Constants.SP : (byte) c;
+    private static void fastAsciiEncode(final String s,
+                                        byte[] tempBuffer,
+                                        final Buffer dstBuffer) {
+        int totalLen = s.length();
+        if (tempBuffer == null) {
+            tempBuffer = new byte[totalLen];
         }
-        return b;
+        int count = 0;
+        while (count < totalLen) {
+            int len = Math.min(totalLen - count, tempBuffer.length);
+            for (int i = 0; i < len; i++) {
+                int c = s.charAt(count);
+                tempBuffer[i] = isNonPrintableUsAscii(c) ? Constants.SP : (byte) c;
+                count++;
+            }
+            dstBuffer.put(tempBuffer, 0, len);
+        }
     }
 
     private static boolean isNonPrintableUsAscii(int ub) {
