@@ -268,8 +268,8 @@ public class HttpCodecUtils {
 
             // Make sure custom Strings do not contain service symbols
             for (int i = 0; i < size; i++) {
-                byte b = (byte) (s.charAt(i) & 0x7F);
-                array[pos++] = isInRange(b) ? Constants.SP : b;
+                byte b = (byte) (s.charAt(i));
+                array[pos++] = isNonPrintableUsAscii(b) ? Constants.SP : b;
             }
 
             dstBuffer.position(pos - arrayOffs);
@@ -332,14 +332,14 @@ public class HttpCodecUtils {
         int len = s.length();
         byte[] b = new byte[len];
         for (int i = 0; i < len; i++) {
-            byte b1 = (byte) (s.charAt(i) & 0x7f);
-            b[i] = isInRange(b1) ? Constants.SP : b1;
+            int c = s.charAt(i);
+            b[i] = isNonPrintableUsAscii(c) ? Constants.SP : (byte) c;
         }
         return b;
     }
 
-    private static boolean isInRange(final byte b) {
-        return ((b <= 31 && b != 9) || b == 127 || b > 255);
+    private static boolean isNonPrintableUsAscii(int ub) {
+        return ((ub <= 31 && ub != 9) || ub >= 127);
     }
 
     private static int checkCRLF(HttpCodecFilter.HeaderParsingState parsingState, byte b1, byte b2) {
