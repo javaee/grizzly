@@ -1375,9 +1375,10 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             encodedBuffer = encodeKnownHeaders(memoryManager, encodedBuffer,
                     httpHeader);
-            
+
             final MimeHeaders mimeHeaders = httpHeader.getHeaders();
-            encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders);
+            final byte[] tempEncodingBuffer = httpHeader.getTempHeaderEncodingBuffer();
+            encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders, tempEncodingBuffer);
             onHttpHeadersEncoded(httpHeader, ctx);
             encodedBuffer = put(memoryManager, encodedBuffer, CRLF_BYTES);
             encodedBuffer.trim();
@@ -1460,15 +1461,16 @@ public abstract class HttpCodecFilter extends BaseFilter
         value.reset();
         httpHeader.extractContentEncoding(value);
         boolean needComma = !value.isNull();
+        final byte[] tempBuffer = httpHeader.getTempHeaderEncodingBuffer();
         
-        buffer = encodeMimeHeader(memoryManager, buffer, name, value, false);
+        buffer = encodeMimeHeader(memoryManager, buffer, name, value, tempBuffer, false);
         for (int i = 0; i < packetContentEncodings.size(); i++) {
             final ContentEncoding encoding = packetContentEncodings.get(i);
             if (needComma) {
                 buffer = put(memoryManager, buffer, Constants.COMMA);
             }
             
-            buffer = put(memoryManager, buffer, encoding.getName());
+            buffer = put(memoryManager, buffer, tempBuffer, encoding.getName());
             needComma = true;
         }
 
@@ -1478,15 +1480,21 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
     
     protected static Buffer encodeMimeHeaders(final MemoryManager memoryManager,
-            Buffer buffer, final MimeHeaders mimeHeaders) {
+                                              Buffer buffer,
+                                              final MimeHeaders mimeHeaders,
+                                              final byte[] tempEncodingBuffer) {
         final int mimeHeadersNum = mimeHeaders.size();
 
         for (int i = 0; i < mimeHeadersNum; i++) {
             if (!mimeHeaders.getAndSetSerialized(i, true)) {
                 final DataChunk value = mimeHeaders.getValue(i);
                 if (!value.isNull()) {
-                    buffer = encodeMimeHeader(memoryManager, buffer,
-                            mimeHeaders.getName(i), value, true);
+                    buffer = encodeMimeHeader(memoryManager,
+                                              buffer,
+                                              mimeHeaders.getName(i),
+                                              value,
+                                              tempEncodingBuffer,
+                                              true);
                 }
             }
         }
@@ -1495,12 +1503,15 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static Buffer encodeMimeHeader(final MemoryManager memoryManager,
-            Buffer buffer, final DataChunk name, final DataChunk value,
-            final boolean encodeLastCRLF) {
+                                             Buffer buffer,
+                                             final DataChunk name,
+                                             final DataChunk value,
+                                             final byte[] tempBuffer,
+                                             final boolean encodeLastCRLF) {
 
-        buffer = put(memoryManager, buffer, name);
+        buffer = put(memoryManager, buffer, tempBuffer, name);
         buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
-        buffer = put(memoryManager, buffer, value);
+        buffer = put(memoryManager, buffer, tempBuffer, value);
         
         if (encodeLastCRLF) {
             buffer = put(memoryManager, buffer, CRLF_BYTES);

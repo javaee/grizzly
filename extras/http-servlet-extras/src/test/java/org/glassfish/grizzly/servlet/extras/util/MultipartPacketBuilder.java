@@ -60,6 +60,7 @@ public class MultipartPacketBuilder {
     private static final byte[] DOUBLE_DASH = "--".getBytes(DEFAULT_HTTP_CHARSET);
     private static final byte[] CONTENT_DISPOSITION_BYTES = "Content-Disposition".getBytes(DEFAULT_HTTP_CHARSET);
     private static final byte[] CONTENT_TYPE_BYTES = "Content-Type".getBytes(DEFAULT_HTTP_CHARSET);
+    private final byte[] tempEncodingBuffer = new byte[512];
     
     private final String boundary;
 
@@ -110,7 +111,7 @@ public class MultipartPacketBuilder {
                 headerBuffer = put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
             } else {
                 if (preamble != null) {
-                    headerBuffer = put(memoryManager, headerBuffer, preamble);
+                    headerBuffer = put(memoryManager, headerBuffer, tempEncodingBuffer, preamble);
                     headerBuffer = put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
                 }
                 
@@ -118,21 +119,21 @@ public class MultipartPacketBuilder {
             }
 
             headerBuffer = put(memoryManager, headerBuffer, DOUBLE_DASH);
-            headerBuffer = put(memoryManager, headerBuffer, boundary);
+            headerBuffer = put(memoryManager, headerBuffer, tempEncodingBuffer, boundary);
             headerBuffer = put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
             
             for (String headerName : entry.getHeaderNames()) {
                 String headerValue = entry.getHeader(headerName);
-                setHeader(memoryManager, headerBuffer, headerName, headerValue);
+                setHeader(memoryManager, headerBuffer, tempEncodingBuffer, headerName, headerValue);
             }
 
             if (entry.getContentDisposition() != null) {
-                setHeader(memoryManager, headerBuffer,
+                setHeader(memoryManager, headerBuffer, tempEncodingBuffer,
                         CONTENT_DISPOSITION_BYTES, entry.getContentDisposition());
             }
 
             if (entry.getContentType() != null) {
-                setHeader(memoryManager, headerBuffer,
+                setHeader(memoryManager, headerBuffer, tempEncodingBuffer,
                         CONTENT_TYPE_BYTES, entry.getContentType());
             }
 
@@ -149,12 +150,12 @@ public class MultipartPacketBuilder {
         Buffer trailerBuffer = memoryManager.allocate(boundary.length() + 8);
         trailerBuffer = put(memoryManager, trailerBuffer, Constants.CRLF_BYTES);
         trailerBuffer = put(memoryManager, trailerBuffer, DOUBLE_DASH);
-        trailerBuffer = put(memoryManager, trailerBuffer, boundary);
+        trailerBuffer = put(memoryManager, trailerBuffer, tempEncodingBuffer, boundary);
         trailerBuffer = put(memoryManager, trailerBuffer, DOUBLE_DASH);
         trailerBuffer = put(memoryManager, trailerBuffer, Constants.CRLF_BYTES);
 
         if (epilogue != null) {
-            trailerBuffer = put(memoryManager, trailerBuffer, epilogue);
+            trailerBuffer = put(memoryManager, trailerBuffer, tempEncodingBuffer, epilogue);
         }
 
         trailerBuffer.flip();
@@ -165,21 +166,27 @@ public class MultipartPacketBuilder {
     }
 
     private static void setHeader(final MemoryManager memoryManager,
-            Buffer headerBuffer, String headerName, String headerValue) {
+                                  Buffer headerBuffer,
+                                  byte[] tempEncodingBuffer,
+                                  String headerName,
+                                  String headerValue) {
         
-        headerBuffer = put(memoryManager, headerBuffer, headerName);
+        headerBuffer = put(memoryManager, headerBuffer, tempEncodingBuffer, headerName);
         headerBuffer = put(memoryManager, headerBuffer, Constants.COLON_BYTES);
-        headerBuffer = put(memoryManager, headerBuffer, headerValue);
-        headerBuffer = put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
+        headerBuffer = put(memoryManager, headerBuffer, null, headerValue);
+        put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
     }
 
     private static void setHeader(final MemoryManager memoryManager,
-            Buffer headerBuffer, byte[] headerName, String headerValue) {
+                                  Buffer headerBuffer,
+                                  byte[] tempEncodingBuffer,
+                                  byte[] headerName,
+                                  String headerValue) {
 
         headerBuffer = put(memoryManager, headerBuffer, headerName);
         headerBuffer = put(memoryManager, headerBuffer, Constants.COLON_BYTES);
-        headerBuffer = put(memoryManager, headerBuffer, headerValue);
-        headerBuffer = put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
+        headerBuffer = put(memoryManager, headerBuffer, tempEncodingBuffer, headerValue);
+        put(memoryManager, headerBuffer, Constants.CRLF_BYTES);
     }
 
 }

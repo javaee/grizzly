@@ -99,7 +99,7 @@ final class AjpMessageUtils {
 
         final boolean isSSL = requestContent.get(offset++) != 0;
         req.setSecure(isSSL);
-        ((AjpHttpResponse) req.getResponse()).setSecure(isSSL);
+        req.getResponse().setSecure(isSSL);
 
         offset = decodeHeaders(requestContent, offset, req);
 
@@ -222,7 +222,7 @@ final class AjpMessageUtils {
         offset += 2;
         
         for (int i = 0; i < hCount; i++) {
-            String hName = null;
+            String hName;
 
             // Header names are encoded as either an integer code starting
             // with 0xA0, or as a normal string (in which case the first
@@ -230,7 +230,7 @@ final class AjpMessageUtils {
             int isc = readShort(requestContent, offset);
             int hId = isc & 0xFF;
 
-            DataChunk valueDC = null;
+            DataChunk valueDC;
             isc &= 0xFF00;
             if (0xA000 == isc) {
                 offset += 2;
@@ -417,10 +417,13 @@ final class AjpMessageUtils {
         
         encodedBuffer.put(AjpConstants.JK_AJP13_SEND_HEADERS);
         encodedBuffer.putShort((short) httpResponsePacket.getStatus());
-
+        final byte[] tempBuffer = httpResponsePacket.getTempHeaderEncodingBuffer();
         if (httpResponsePacket.isCustomReasonPhraseSet()) {
-            encodedBuffer = putBytes(mm, encodedBuffer,
-                    HttpStatus.filter(httpResponsePacket.getReasonPhraseDC()));
+            encodedBuffer = putBytes(mm,
+                                     encodedBuffer,
+                                     HttpStatus.filter(
+                                             httpResponsePacket.getReasonPhraseDC()),
+                                     tempBuffer);
         } else {
             encodedBuffer = putBytes(mm, encodedBuffer,
                     httpResponsePacket.getHttpStatus().getReasonPhraseBytes());
@@ -454,10 +457,10 @@ final class AjpMessageUtils {
 
             for (int i = 0; i < numHeaders; i++) {
                 final DataChunk headerName = headers.getName(i);
-                encodedBuffer = putBytes(mm, encodedBuffer, headerName);
+                encodedBuffer = putBytes(mm, encodedBuffer, headerName, tempBuffer);
 
                 final DataChunk headerValue = headers.getValue(i);
-                encodedBuffer = putBytes(mm, encodedBuffer, headerValue);
+                encodedBuffer = putBytes(mm, encodedBuffer, headerValue, tempBuffer);
             }
         }
 
@@ -545,7 +548,9 @@ final class AjpMessageUtils {
     }
 
     private static Buffer putBytes(final MemoryManager memoryManager,
-            Buffer dstBuffer, final DataChunk dataChunk) {
+                                   Buffer dstBuffer,
+                                   final DataChunk dataChunk,
+                                   final byte[] tempBuffer) {
         if (dataChunk == null || dataChunk.isNull()) {
             return putBytes(memoryManager, dstBuffer, EMPTY_BYTE_ARRAY);
         }
@@ -559,7 +564,7 @@ final class AjpMessageUtils {
 
         dstBuffer.putShort((short) size);
 
-        dstBuffer = put(memoryManager, dstBuffer, dataChunk);
+        dstBuffer = put(memoryManager, dstBuffer, tempBuffer, dataChunk);
         // Don't forget the terminating \0
         dstBuffer.put((byte) 0);
 

@@ -78,6 +78,7 @@ public abstract class HttpHeader extends HttpPacket
 
     protected boolean isChunked;
     private final byte[] tmpContentLengthBuffer = new byte[20];
+    private final byte[] tmpHeaderEncodingBuffer = new byte[512];
     
     protected long contentLength = -1;
 
@@ -297,7 +298,7 @@ public abstract class HttpHeader extends HttpPacket
      * was detected as broken due to unexpected error occurred during 
      * Transfer-Encoding or Content-Encoding processing.
      *
-     * @param isSkipRemainder <tt>true</tt>, means that HTTP packet payload
+     * @param isBroken <tt>true</tt>, means that HTTP packet payload
      * was detected as broken due to unexpected error occurred during 
      * Transfer-Encoding or Content-Encoding processing.
      */
@@ -891,7 +892,11 @@ public abstract class HttpHeader extends HttpPacket
         final char c = name.charAt(0);
         return (c == 'C' || c == 'c');
     }
-    
+
+    public byte[] getTempHeaderEncodingBuffer() {
+        return tmpHeaderEncodingBuffer;
+    }
+
     // --------------------------------------------------------- Private Methods
 
     private String getValueBasedOnHeader(final Header header) {
