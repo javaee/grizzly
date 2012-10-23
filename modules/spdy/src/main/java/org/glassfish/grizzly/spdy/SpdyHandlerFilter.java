@@ -58,6 +58,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -314,7 +315,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
             final StringBuilder sb = new StringBuilder(32);
             sb.append("\n{PING : id=")
-                    .append((long) numEntries & 0xFFFFFFFFFFFFFFFFL)
+                    .append((long) numEntries)
                     .append("}\n");
             LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
@@ -420,8 +421,9 @@ public class SpdyHandlerFilter extends BaseFilter {
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
-                ProcessorExecutor.execute(
-                        spdyStream.getUpstreamContext().getInternalContext());
+                final FilterChainContext ctx = spdyStream.getUpstreamContext();
+                HttpContext.newInstance(ctx, spdyStream);
+                ProcessorExecutor.execute(ctx.getInternalContext());
             }
         });
     }

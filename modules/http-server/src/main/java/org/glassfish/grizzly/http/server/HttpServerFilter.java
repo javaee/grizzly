@@ -49,6 +49,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -78,8 +79,7 @@ public class HttpServerFilter extends BaseFilter
         implements JmxMonitoringAware<HttpServerProbe> {
 
     private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
-
-    private final Attribute<Request> httpRequestInProcessAttr;
+    private final Attribute<Request> httpRequestInProgress;
     final Attribute<Boolean> reregisterForReadAttr;
     
     private final DelayedExecutor.DelayQueue<Response.SuspendTimeout> suspendedResponseQueue;
@@ -109,8 +109,8 @@ public class HttpServerFilter extends BaseFilter
             final DelayedExecutor delayedExecutor) {
         this.config = config;
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
-        httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("HttpServerFilter.Request");
+        httpRequestInProgress = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
+                        createAttribute("HttpServerFilter.Request");
         reregisterForReadAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.reregisterForReadAttr");
     }
@@ -142,8 +142,8 @@ public class HttpServerFilter extends BaseFilter
 
             // Otherwise cast message to a HttpContent
             final HttpContent httpContent = (HttpContent) message;
-            
-            Request handlerRequest = httpRequestInProcessAttr.get(connection);
+            final HttpContext context = HttpContext.get(ctx);
+            Request handlerRequest = httpRequestInProgress.get(context);
 
             if (handlerRequest == null) {
                 // It's a new HTTP request
@@ -151,7 +151,7 @@ public class HttpServerFilter extends BaseFilter
                 final HttpResponsePacket response = request.getResponse();                
                 handlerRequest = Request.create();
                 handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
-                httpRequestInProcessAttr.set(connection, handlerRequest);
+                httpRequestInProgress.set(context, handlerRequest);
                 final Response handlerResponse = handlerRequest.getResponse();
 
                 handlerRequest.initialize(/*handlerResponse, */request, ctx, this);
@@ -161,7 +161,7 @@ public class HttpServerFilter extends BaseFilter
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
 
-                boolean wasSuspended = false;
+                boolean wasSuspended;
                 
                 try {
                     ctx.setMessage(handlerResponse);
@@ -247,10 +247,8 @@ public class HttpServerFilter extends BaseFilter
      */
     @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-        final Connection c = ctx.getConnection();
-
-        final Request request =
-                httpRequestInProcessAttr.get(c);
+        final HttpContext context = HttpContext.get(ctx);
+        final Request request = httpRequestInProgress.get(context);
 
         if (request != null) {
             final ReadHandler handler = request.getInputBuffer().getReadHandler();
@@ -301,7 +299,8 @@ public class HttpServerFilter extends BaseFilter
             final Response response)
             throws IOException {
 
-        httpRequestInProcessAttr.remove(connection);
+        final HttpContext context = HttpContext.get(ctx);
+        httpRequestInProgress.remove(context);
 
         response.finish();
         request.onAfterService();

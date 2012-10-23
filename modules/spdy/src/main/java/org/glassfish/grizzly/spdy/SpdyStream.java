@@ -39,19 +39,22 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.attributes.AttributeHolder;
+import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 
 /**
  *
  * @author oleksiys
  */
-public class SpdyStream {
+public class SpdyStream implements AttributeStorage {
 
     private final SpdyRequest spdyRequest;
     private final FilterChainContext upstreamContext;
@@ -65,6 +68,8 @@ public class SpdyStream {
     private boolean isInputClosed;
     private final AtomicBoolean isOutputClosed = new AtomicBoolean();
     private final AtomicInteger completeCloseIndicator = new AtomicInteger();
+    private final AttributeHolder attributes =
+            new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
     
     SpdyStream(final SpdySession spdySession,
             final SpdyRequest spdyRequest,
@@ -109,7 +114,12 @@ public class SpdyStream {
     public boolean isClosed() {
         return completeCloseIndicator.get() >= 2;
     }
-    
+
+    @Override
+    public AttributeHolder getAttributes() {
+        return attributes;
+    }
+
     void writeDownStream(final Buffer frame) {
         writeDownStream(frame, null);
     }

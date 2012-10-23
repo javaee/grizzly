@@ -54,6 +54,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -93,6 +94,7 @@ public class AjpHandlerFilter extends BaseFilter {
      *
      * @param properties
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void configure(final Properties properties) {
         if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {
             secret = Double.toString(Math.random());
@@ -114,6 +116,7 @@ public class AjpHandlerFilter extends BaseFilter {
      * Otherwise, the authenticated principal will be propagated from the
      * native webserver and used for authorization in Grizzly.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public boolean isTomcatAuthentication() {
         return isTomcatAuthentication;
     }
@@ -140,6 +143,7 @@ public class AjpHandlerFilter extends BaseFilter {
      * @return not null, if only requests from workers with this secret keyword will
      * be accepted, or null otherwise.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public String getSecret() {
         return secret;
     }
@@ -170,6 +174,7 @@ public class AjpHandlerFilter extends BaseFilter {
      *
      * @param handler {@link ShutdownHandler}
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void removeShutdownHandler(final ShutdownHandler handler) {
         shutdownHandlers.remove(handler);
     }
@@ -194,7 +199,7 @@ public class AjpHandlerFilter extends BaseFilter {
                 return ctx.getStopAction();
             }
 
-            final int type = extractType(ctx.getConnection(), message);
+            final int type = extractType(ctx, message);
 
             switch (type) {
                 case AjpConstants.JK_AJP13_FORWARD_REQUEST:
@@ -259,7 +264,7 @@ public class AjpHandlerFilter extends BaseFilter {
         final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final boolean isHeader = httpPacket.isHeader();
         final HttpHeader httpHeader = isHeader ? (HttpHeader) httpPacket :
-            ((HttpContent) httpPacket).getHttpHeader();
+            httpPacket.getHttpHeader();
         final HttpResponsePacket httpResponsePacket = (HttpResponsePacket) httpHeader;
         Buffer encodedBuffer = null;
         if (!httpHeader.isCommitted()) {
@@ -283,6 +288,7 @@ public class AjpHandlerFilter extends BaseFilter {
             }
         }
 
+        assert encodedBuffer != null;
         encodedBuffer.trim();
         return encodedBuffer;
     }
@@ -305,9 +311,8 @@ public class AjpHandlerFilter extends BaseFilter {
 
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()
                 && c.isOpen()) {
-            final AjpHttpRequest httpRequest;
-            if ((httpRequest = httpRequestInProcessAttr.remove(c)) != null) {
-                onRequestProcessed(httpRequest);
+            final HttpContext context = HttpContext.get(ctx);
+            if ((httpRequestInProcessAttr.remove(context)) != null) {
                 sendEndResponse(ctx);
             }
 
@@ -319,8 +324,8 @@ public class AjpHandlerFilter extends BaseFilter {
     private NextAction processData(final FilterChainContext ctx,
             final Buffer messageContent) {
 
-        final Connection connection = ctx.getConnection();
-        final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(connection);
+        final HttpContext context = HttpContext.get(ctx);
+        final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(context);
 
         if (messageContent.hasRemaining()) {
             // Skip the content length field - we know the size from the packet header
@@ -387,8 +392,8 @@ public class AjpHandlerFilter extends BaseFilter {
                 throw new IllegalStateException("Secret doesn't match");
             }
         }
-
-        httpRequestInProcessAttr.set(connection, httpRequestPacket);
+        HttpContext context = HttpContext.get(ctx);
+        httpRequestInProcessAttr.set(context, httpRequestPacket);
         ctx.setMessage(HttpContent.builder(httpRequestPacket).build());
 
         final long contentLength = httpRequestPacket.getContentLength();
@@ -486,9 +491,9 @@ public class AjpHandlerFilter extends BaseFilter {
             throws IOException {
 
         final Connection connection = ctx.getConnection();
-
+        final HttpContext context = HttpContext.get(ctx);
         // Check if message is still in process
-        if (httpRequestInProcessAttr.isSet(connection)) {
+        if (httpRequestInProcessAttr.isSet(context)) {
             final MemoryManager mm = connection.getTransport().getMemoryManager();
             final Buffer buffer = mm.allocate(7);
 
@@ -523,12 +528,13 @@ public class AjpHandlerFilter extends BaseFilter {
         ctx.write(buffer);
     }
 
-    private void onRequestProcessed(final AjpHttpRequest httpRequest) {
-    }
-
-    private int extractType(final Connection connection, final Buffer buffer) {
+    private int extractType(final FilterChainContext ctx, final Buffer buffer) {
         final int type;
-        if (!httpRequestInProcessAttr.isSet(connection)) {
+        HttpContext context = HttpContext.get(ctx);
+        if (context == null) {
+            context = HttpContext.newInstance(ctx, ctx.getConnection());
+        }
+        if (!httpRequestInProcessAttr.isSet(context)) {
             // if request is no in process - it should be a new Ajp message
             type = buffer.get() & 0xFF;
         } else {

@@ -279,8 +279,11 @@ public class HttpServerFilter extends HttpCodecFilter {
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
-        
-        ServerHttpRequestImpl httpRequest = getHttpRequestInProcess(connection);
+        HttpContext context = HttpContext.get(ctx);
+        if (context == null) {
+            context = HttpContext.newInstance(ctx, connection);
+        }
+        ServerHttpRequestImpl httpRequest = httpRequestInProcessAttr.get(context);
         if (httpRequest == null) {
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = ServerHttpRequestImpl.create();
@@ -293,10 +296,10 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
             if (processKeepAlive) {
-                KeepAliveContext keepAliveContext = keepAliveContextAttr.get(connection);
+                KeepAliveContext keepAliveContext = keepAliveContextAttr.get(context);
                 if (keepAliveContext == null) {
                     keepAliveContext = new KeepAliveContext(connection);
-                    keepAliveContextAttr.set(connection, keepAliveContext);
+                    keepAliveContextAttr.set(context, keepAliveContext);
                 }
                 keepAliveContext.request = httpRequest;
                 final int requestsProcessed = keepAliveContext.requestsProcessed;
@@ -309,7 +312,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                     keepAliveQueue.remove(keepAliveContext);
                 }
             }
-            httpRequestInProcessAttr.set(connection, httpRequest);
+            httpRequestInProcessAttr.set(context, httpRequest);
         } else if (httpRequest.isContentBroken()) {
             // if payload of the current/last HTTP request associated with the
             // Connection is broken - stop processing here
@@ -319,10 +322,11 @@ public class HttpServerFilter extends HttpCodecFilter {
         return handleRead(ctx, httpRequest);
     }
 
-    private ServerHttpRequestImpl getHttpRequestInProcess(final Connection connection) {
-        return httpRequestInProcessAttr.get(connection);
+    private ServerHttpRequestImpl getHttpRequestInProcess(final FilterChainContext ctx) {
+        final HttpContext context = HttpContext.get(ctx);
+        return httpRequestInProcessAttr.get(context);
     }
-    
+
     @Override
     final boolean decodeInitialLineFromBytes(final FilterChainContext ctx,
                                     final HttpPacketParsing httpPacket,
@@ -853,7 +857,9 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final boolean error = request.getProcessingState().error;
         if (!error) {
-            httpRequestInProcessAttr.remove(ctx.getConnection());
+            HttpContext context = HttpContext.get(ctx);
+            httpRequestInProcessAttr.remove(context);
+
         }
         return error;
     }
@@ -927,7 +933,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (!response.isCommitted() && (
                 response.getRequest().getUpgradeDC().isNull() || response.getUpgrade() == null)) {
             final HttpContent encodedHttpContent = prepareResponse(
-                    ctx.getConnection(), response.getRequest(), response, content);
+                    ctx, response.getRequest(), response, content);
             
             if (encodedHttpContent != null) {
                 content = encodedHttpContent;
@@ -948,7 +954,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @return encoded HttpContent, if content encoders have been applied, or
      *      <tt>null</tt>, if HttpContent wasn't changed.
      */
-    private HttpContent prepareResponse(final Connection connection,
+    private HttpContent prepareResponse(final FilterChainContext ctx,
             final HttpRequestPacket request,
             final HttpResponsePacket response,
             final HttpContent httpContent) {
@@ -993,7 +999,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                         // optimization...
                         // if content encodings have to be applied - apply them here
                         // to be able to set correct content-length
-                        encodedHttpContent = encodeContent(connection, httpContent);
+                        encodedHttpContent = encodeContent(ctx.getConnection(), httpContent);
                     }
 
                     response.setContentLength(httpContent.getContent().remaining());
@@ -1059,7 +1065,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             // HTTP 1.1 response with chunking disabled and no content-length having been set.
             // Close the connection to signal the response as being complete.
             state.keepAlive = false;
-        } else if (!checkKeepAliveRequestsCount(request.getConnection())) {
+        } else if (!checkKeepAliveRequestsCount(ctx)) {
             // We processed max allowed HTTP requests over the keep alive connection
             state.keepAlive = false;
         }
@@ -1126,8 +1132,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
 
             if (processKeepAlive) {
+                final HttpContext context = HttpContext.get(ctx);
                 final KeepAliveContext keepAliveContext =
-                        keepAliveContextAttr.get(c);
+                        keepAliveContextAttr.get(context);
                 if (keepAliveQueue != null) {
                     keepAliveQueue.add(keepAliveContext,
                             keepAlive.getIdleTimeoutInSeconds(),
@@ -1140,7 +1147,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
                 processResponseComplete(ctx, httpRequest, isStayAlive);
             } else {
-                final HttpRequestPacket httpRequest = getHttpRequestInProcess(c);
+                final HttpRequestPacket httpRequest = getHttpRequestInProcess(ctx);
                 if (httpRequest != null) {
                     processResponseComplete(ctx, httpRequest, false);
                 }
@@ -1226,8 +1233,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         return isKeepAlive;
     }
 
-    private boolean checkKeepAliveRequestsCount(final Connection connection) {
-        final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(connection);
+    private boolean checkKeepAliveRequestsCount(final FilterChainContext ctx) {
+        final HttpContext context = HttpContext.get(ctx);
+        final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(context);
 
         boolean firstCheck = (processKeepAlive && keepAliveContext != null);
         if (!firstCheck) {
