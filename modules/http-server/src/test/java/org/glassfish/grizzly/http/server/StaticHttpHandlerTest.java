@@ -146,7 +146,7 @@ public class StaticHttpHandlerTest {
                         .protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
             c.write(request);
-            File fResult = result.get(20, TimeUnit.SECONDS);
+            File fResult = result.get(60, TimeUnit.SECONDS);
             BigInteger resultSum = getMDSum(fResult);
             assertTrue("MD5Sum between control and test files differ.",
                         controlSum.equals(resultSum));
@@ -246,7 +246,7 @@ public class StaticHttpHandlerTest {
                         .protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
             c.write(request);
-            File fResult = result.get(20000, TimeUnit.SECONDS);
+            File fResult = result.get(60, TimeUnit.SECONDS);
             BigInteger resultSum = getMDSum(fResult);
             assertTrue("MD5Sum between control and test files differ.",
                         controlSum.equals(resultSum));

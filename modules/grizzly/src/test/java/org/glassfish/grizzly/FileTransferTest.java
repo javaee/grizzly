@@ -166,16 +166,17 @@ public class FileTransferTest {
 
         f = File.createTempFile("grizzly-test-", ".tmp");
         new FileOutputStream(f).write(1);
-        //noinspection ResultOfMethodCallIgnored
-        f.setReadable(false);
-        try {
-            new FileTransfer(f, 0, 1);
-            fail("Expected IllegalArgumentException to be thrown");
-        } catch (IllegalArgumentException iae) {
-            //noinspection ResultOfMethodCallIgnored
-            f.setReadable(true);
-        } catch (Exception e) {
-            fail("Unexpected exception type: " + e);
+        
+        if (f.setReadable(false)) { // skip this check if setReadable returned false
+            try {
+                new FileTransfer(f, 0, 1);
+                fail("Expected IllegalArgumentException to be thrown");
+            } catch (IllegalArgumentException iae) {
+                //noinspection ResultOfMethodCallIgnored
+                f.setReadable(true);
+            } catch (Exception e) {
+                fail("Unexpected exception type: " + e);
+            }
         }
 
         try {
