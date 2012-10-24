@@ -58,9 +58,8 @@ public class HttpContext implements AttributeStorage {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(HttpContext.class.getName());
     private AttributeStorage targetStorage;
 
-    protected HttpContext(FilterChainContext ctx, AttributeStorage targetStorage) {
+    protected HttpContext(AttributeStorage targetStorage) {
         this.targetStorage = targetStorage;
-        httpContext.set(ctx, this);
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -72,7 +71,7 @@ public class HttpContext implements AttributeStorage {
     }
 
     public static HttpContext newInstance(FilterChainContext ctx, AttributeStorage targetStorage) {
-        HttpContext context = new HttpContext(ctx, targetStorage);
+        HttpContext context = new HttpContext(targetStorage);
         httpContext.set(ctx, context);
         return context;
     }
