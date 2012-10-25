@@ -343,14 +343,14 @@ public class AsyncWriteQueueTest {
             ExecutorService executorService = Executors.newFixedThreadPool(packetNumber / 10);
             try {
                 executorService.invokeAll(sendTasks);
-                if (!sentFuture.get(10, TimeUnit.SECONDS)) {
+                if (!sentFuture.get(60, TimeUnit.SECONDS)) {
                     assertTrue("Send timeout!", false);
                 }
             } finally {
                 executorService.shutdown();
             }
 
-            final Buffer echoMessage = responseFuture.get(10, TimeUnit.SECONDS);
+            final Buffer echoMessage = responseFuture.get(60, TimeUnit.SECONDS);
 
             // Check interleaving...
 
