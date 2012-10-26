@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.websockets;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +60,9 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      */
     private final ConcurrentHashMap<WebSocket, Boolean> sockets =
             new ConcurrentHashMap<WebSocket, Boolean>();
-    
+
+    private List<Extension> supportedExtensions = new ArrayList<Extension>();
+    private List<String> supportedProtocols = new ArrayList<String>();
     
     // ---------------------------------------------------------- Public Methods
 
@@ -126,9 +128,30 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     /**
+     * Invoked during the handshake if the client has advertised extensions
+     * it may use and one or more extensions intersect with those returned
+     * by {@link #getSupportedExtensions()}.
+     *
+     * The {@link Extension}s passed to this method will include any extension
+     * parameters included by the client.  It's up to this method to re-order
+     * and or adjust any parameter values within the list.  This method must not
+     * add any extensions that weren't originally in the list, but it is acceptable
+     * to remove one or all extensions if for some reason they can't be supported.
+     *
+     * If not overridden, the List will be sent as-is back to the client.
+     *
+     * @param extensions the intersection of extensions between client and
+     *                   application.
+     *
+     * @since 2.3
+     */
+    public void onExtensionNegotiation(List<Extension> extensions) {
+    }
+
+    /**
      * Checks protocol specific information can and should be upgraded.
      * 
-     * The default implementation will check for the precence of the 
+     * The default implementation will check for the presence of the
      * <code>Upgrade</code> header with a value of <code>WebSocket</code>.
      * If present, {@link #isApplicationRequest(org.glassfish.grizzly.http.HttpRequestPacket)}
      * will be invoked to determine if the request is a valid websocket request.
@@ -152,12 +175,15 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
 
     /**
      * Return the websocket extensions supported by this <code>WebSocketApplication</code>.
+     * The {@link Extension}s added to this {@link List} should not include
+     * any {@link Extension.Parameter}s as they will be ignored.  This is used
+     * exclusively for matching the requested extensions.
      * 
      * @return the websocket extensions supported by this
      *  <code>WebSocketApplication</code>.
      */
-    public List<String> getSupportedExtensions() {
-        return Collections.emptyList();
+    public List<Extension> getSupportedExtensions() {
+        return supportedExtensions;
     }
 
     /**
@@ -167,7 +193,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @return
      */
     public List<String> getSupportedProtocols(List<String> subProtocol) {
-        return Collections.emptyList();
+        return supportedProtocols;
     }
     
     

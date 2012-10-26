@@ -45,10 +45,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.logging.Logger;
 
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
@@ -57,26 +53,22 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.Parameters;
 
 /**
  * @author Justin Lee
  */
 public abstract class HandShake {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private boolean secure;
     private String origin;
     private String serverHostName;
     private int port = 80;
     private String resourcePath;
     private String location;
-    private final Map<String, String[]> queryParams = new TreeMap<String, String[]>();
+    //private final Map<String, String[]> queryParams = new TreeMap<String, String[]>();
     private List<String> subProtocol = new ArrayList<String>();
-    private List<String> extensions = new ArrayList<String>();
-
-    public HandShake() {
-    }
+    private List<Extension> extensions = new ArrayList<Extension>(); // client extensions
 
     public HandShake(URI url) {
         resourcePath = url.getPath();
@@ -112,12 +104,12 @@ public abstract class HandShake {
             if (!queryString.isEmpty()) {
                 resourcePath += "?" + queryString;
             }
-            Parameters queryParameters = new Parameters();
-            queryParameters.processParameters(queryString);
-            final Set<String> names = queryParameters.getParameterNames();
-            for (String name : names) {
-                queryParams.put(name, queryParameters.getParameterValues(name));
-            }
+//            Parameters queryParameters = new Parameters();
+//            queryParameters.processParameters(queryString);
+//            final Set<String> names = queryParameters.getParameterNames();
+//            for (String name : names) {
+//                queryParams.put(name, queryParameters.getParameterValues(name));
+//            }
         }
         buildLocation();
     }
@@ -198,13 +190,23 @@ public abstract class HandShake {
         }
     }
 
-    public List<String> getExtensions() {
+    public List<Extension> getExtensions() {
         return extensions;
     }
 
-    public void setExtensions(List<String> extensions) {
-        sanitize(extensions);
+    public void setExtensions(List<Extension> extensions) {
         this.extensions = extensions;
+    }
+
+    protected final String joinExtensions(List<Extension> extensions) {
+        StringBuilder sb = new StringBuilder();
+        for (Extension e : extensions) {
+            if (sb.length() != 0) {
+                sb.append(", ");
+            }
+            sb.append(e.toString());
+        }
+        return sb.toString();
     }
 
     protected String join(List<String> values) {
@@ -290,8 +292,7 @@ public abstract class HandShake {
 
     public void respond(FilterChainContext ctx, WebSocketApplication application, HttpResponsePacket response) {
         response.setProtocol(Protocol.HTTP_1_1);
-        response.setStatus(101);
-        response.setReasonPhrase("Web Socket Protocol Handshake");
+        response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
         response.setHeader("Upgrade", "websocket");
         response.setHeader("Connection", "Upgrade");
         setHeaders(response);
@@ -299,7 +300,15 @@ public abstract class HandShake {
             response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
                 join(application.getSupportedProtocols(getSubProtocol())));
         }
-        
+        if (!getExtensions().isEmpty()) {
+            List<Extension> intersection =
+                    intersection(getExtensions(),
+                                 application.getSupportedExtensions());
+            application.onExtensionNegotiation(intersection);
+            response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                               joinExtensions(intersection));
+        }
+
         ctx.write(HttpContent.builder(response).build());
     }
 
@@ -307,11 +316,56 @@ public abstract class HandShake {
 
     protected final List<String> split(final String header) {
         if (header == null) {
-            return Collections.<String>emptyList();
+            return Collections.emptyList();
         } else {
             final List<String> list = Arrays.asList(header.split(","));
             sanitize(list);
             return list;
+        }
+    }
+
+    protected List<Extension> intersection(List<Extension> requested, List<Extension> supported) {
+        List<Extension> intersection = new ArrayList<Extension>(supported.size());
+        for (Extension e : requested) {
+            for (Extension s : supported) {
+                if (e.getName().equals(s.getName())) {
+                    intersection.add(e);
+                    break;
+                }
+            }
+        }
+        return intersection;
+    }
+
+    protected final List<Extension> parseExtensionsHeader(final String headerValue) {
+        List<Extension> resolved = new ArrayList<Extension>();
+        String[] parts = headerValue.split(",");
+        for (String part : parts) {
+            int idx = part.indexOf(';');
+            if (idx < 0) {
+                resolved.add(new Extension(part.trim()));
+            } else {
+                String name = part.substring(0, idx);
+                Extension e = new Extension(name.trim());
+                resolved.add(e);
+                parseParameters(part.substring(idx + 1).trim(), e.getParameters());
+            }
+        }
+        return resolved;
+    }
+
+    protected final void parseParameters(String parameterString,
+                                         List<Extension.Parameter> parameters) {
+        String[] parts = parameterString.split(";");
+        for (String part: parts) {
+            int idx = part.indexOf('=');
+            if (idx < 0) {
+                parameters.add(new Extension.Parameter(part.trim(), null));
+            } else {
+                parameters.add(
+                        new Extension.Parameter(part.substring(0, idx).trim(),
+                                                part.substring(idx + 1).trim()));
+            }
         }
     }
 
