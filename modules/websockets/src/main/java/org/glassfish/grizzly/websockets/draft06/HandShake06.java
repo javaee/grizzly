@@ -65,7 +65,10 @@ public class HandShake06 extends HandShake {
     public HandShake06(HttpRequestPacket request) {
         super(request);
         final MimeHeaders mimeHeaders = request.getHeaders();
-        setExtensions(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
+        String header = mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER);
+        if (header != null) {
+            setExtensions(parseExtensionsHeader(header));
+        }
         secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
     }
 
@@ -85,7 +88,7 @@ public class HandShake06 extends HandShake {
         header.addHeader(WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin());
         header.addHeader(WebSocketEngine.SEC_WS_VERSION, getVersion() + "");
         if (!getExtensions().isEmpty()) {
-            header.addHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getExtensions()));
+            header.addHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, joinExtensions(getExtensions()));
         }
         return httpContent;
     }
