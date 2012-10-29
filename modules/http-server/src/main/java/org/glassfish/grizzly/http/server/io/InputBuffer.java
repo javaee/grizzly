@@ -154,11 +154,6 @@ public class InputBuffer {
             new HashMap<String, CharsetDecoder>();
 
     /**
-     * Flag indicating all request content has been read.
-     */
-    private boolean contentRead;
-
-    /**
      * The {@link ReadHandler} to be notified as content is read.
      */
     private ReadHandler handler;
@@ -195,7 +190,7 @@ public class InputBuffer {
      * properly.
      * </p>
      *
-     * @param request the current request
+     * @param serverRequest the current request
      * @param ctx the FilterChainContext for the chain processing this request
      */
     public void initialize(final Request serverRequest,
@@ -219,7 +214,6 @@ public class InputBuffer {
             // Check if HttpContent is chunked message trailer w/ headers
             checkHttpTrailer(content);
             inputContentBuffer = content.getContent();
-            contentRead = content.isLast();
             content.recycle();
             inputContentBuffer.allowBufferDispose(true);
         }
@@ -253,7 +247,6 @@ public class InputBuffer {
 
         processingChars = false;
         closed = false;
-        contentRead = false;
 
         markPos = -1;
         readAheadLimit = -1;
@@ -693,17 +686,14 @@ public class InputBuffer {
      * This method shouldn't be invoked by developers directly.
      */
     public void finished() throws IOException {
-        if (!contentRead) {
-            contentRead = true;
-            final ReadHandler localHandler = handler;
-            if (localHandler != null) {
-                handler = null;
-                try {
-                    localHandler.onAllDataRead();
-                } catch (Throwable t) {
-                    localHandler.onError(t);
-                    throw Exceptions.makeIOException(t);
-                }
+        final ReadHandler localHandler = handler;
+        if (localHandler != null) {
+            handler = null;
+            try {
+                localHandler.onAllDataRead();
+            } catch (Throwable t) {
+                localHandler.onError(t);
+                throw Exceptions.makeIOException(t);
             }
         }
     }
@@ -714,7 +704,7 @@ public class InputBuffer {
      *  returns <code>false</code>.
      */
     public boolean isFinished() {
-        return contentRead;
+        return !request.isExpectContent();
     }
 
     /**
@@ -801,7 +791,7 @@ public class InputBuffer {
      * Appends the specified {@link Buffer} to the internal composite
      * {@link Buffer}.
      *
-     * @param buffer the {@link Buffer} to append
+     * @param httpContent the {@link HttpContent} to append
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
