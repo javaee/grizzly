@@ -56,7 +56,9 @@ import org.glassfish.grizzly.utils.ArrayUtils;
  *
  * @author Alexey Stashok
  */
-public class BuffersBuffer extends CompositeBuffer {
+public final class BuffersBuffer extends CompositeBuffer {
+    public static volatile boolean DEBUG_MODE = false;
+
     private static final ThreadCache.CachedTypeIndex<BuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(BuffersBuffer.class, 5);
 
@@ -95,6 +97,8 @@ public class BuffersBuffer extends CompositeBuffer {
         return new BuffersBuffer(memoryManager, buffers, buffersSize, isReadOnly);
     }
 
+    protected Exception disposeStackTrace;
+    
     private MemoryManager memoryManager;
 
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN; // parity with ByteBuffer
@@ -197,6 +201,11 @@ public class BuffersBuffer extends CompositeBuffer {
         appendable = true;
         removeAndDisposeBuffers();
 
+        if (DEBUG_MODE) { // if debug is on - clear the buffer content
+            // Use static logic class to help JIT optimize the code
+            DebugLogic.doDebug(this);
+        }
+        
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
@@ -1705,7 +1714,8 @@ public class BuffersBuffer extends CompositeBuffer {
     private void checkDispose() {
         if (isDisposed) {
             throw new IllegalStateException(
-                    "CompositeBuffer has already been disposed");
+                    "CompositeBuffer has already been disposed",
+                    disposeStackTrace);
         }
     }
 
@@ -1905,5 +1915,13 @@ public class BuffersBuffer extends CompositeBuffer {
         checkIndex(++index);
         final byte b2 = activeBuffer.get(toActiveBufferPos(index));
         return Bits.makeChar(b1, b2);
+    }
+    
+    // ---------------------------------------------------------- Nested Classes
+
+    private static class DebugLogic {
+        static void doDebug(BuffersBuffer buffersBuffer) {
+            buffersBuffer.disposeStackTrace = new Exception("BuffersBuffer was disposed from: ");
+        }
     }
 }
