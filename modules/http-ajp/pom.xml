@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3-SNAPSHOT</version>
+        <version>2.3-beta7</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-ajp</artifactId>
     <packaging>bundle</packaging>
-    <version>2.3-SNAPSHOT</version>
+    <version>2.3-beta7</version>
     <name>grizzly-http-ajp</name>
     <url>http://grizzly.java.net</url>
     <build>
