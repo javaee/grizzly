@@ -46,7 +46,7 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 
 /**
- * Represents a single logical http transaction.  The target storage provided
+ * Represents a single logical HTTP transaction.  The target storage provided
  * to the constructor provides a way to look up this transaction at any point
  * in the FilterChain execution.
  *
@@ -54,12 +54,12 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
  */
 public class HttpContext implements AttributeStorage {
 
-    private static Attribute<HttpContext> httpContext =
+    private static final Attribute<HttpContext> HTTP_CONTEXT_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(HttpContext.class.getName());
-    private AttributeStorage targetStorage;
+    private final AttributeStorage contextStorage;
 
     protected HttpContext(AttributeStorage targetStorage) {
-        this.targetStorage = targetStorage;
+        this.contextStorage = targetStorage;
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -67,17 +67,22 @@ public class HttpContext implements AttributeStorage {
 
     @Override
     public final AttributeHolder getAttributes() {
-        return targetStorage.getAttributes();
+        return contextStorage.getAttributes();
     }
 
-    public static HttpContext newInstance(FilterChainContext ctx, AttributeStorage targetStorage) {
-        HttpContext context = new HttpContext(targetStorage);
-        httpContext.set(ctx, context);
+    public AttributeStorage getContextStorage() {
+        return contextStorage;
+    }
+
+    public static HttpContext newInstance(FilterChainContext ctx,
+            AttributeStorage contextStorage) {
+        HttpContext context = new HttpContext(contextStorage);
+        HTTP_CONTEXT_ATTR.set(ctx, context);
         return context;
     }
 
     public static HttpContext get(FilterChainContext ctx) {
-        return httpContext.get(ctx);
+        return HTTP_CONTEXT_ATTR.get(ctx);
     }
 
 
