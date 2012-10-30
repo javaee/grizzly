@@ -44,11 +44,14 @@ final class SpdyOutputSink {
         spdySession = spdyStream.getSpdySession();
     }
     
-    
+    int updateCounter = 0;
     public void onPeerWindowUpdate(final int delta) {
+        updateCounter++;
+        
         final int unconfirmedBytesNow = unconfirmedBytes.addAndGet(-delta);
         final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
         
+        System.out.println(updateCounter + "<-- onPeerWindowUpdate delta=" + delta);
         while (unconfirmedBytesNow < (windowSizeLimit * 3 / 4) &&
                 outputQueueSize.get() > 0) {
             OutputQueueRecord outputQueueRecord =
@@ -65,12 +68,13 @@ final class SpdyOutputSink {
                     outputQueueRecord.completionHandler;
             boolean isLast = outputQueueRecord.isLast;
             
+            System.out.println(updateCounter + "... onWindowUpdate processing: " + outputQueueRecord.buffer);
             final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
             final Buffer dataChunkToSend = outputQueueRecord.buffer;
 
             outputQueueRecord = null;
             
-            if (dataChunkToStore != null) {
+            if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore,
@@ -82,6 +86,7 @@ final class SpdyOutputSink {
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
+                System.out.println(updateCounter + "--> Writing data (onWindowUpdate): " + dataChunkToSend + " isLast=" + isLast);
                 final Buffer contentBuffer = encodeSpdyData(
                         spdySession.getMemoryManager(),
                         spdyStream, dataChunkToSend,
@@ -92,6 +97,9 @@ final class SpdyOutputSink {
             
             if (outputQueueRecord != null) {
                 currentQueueRecord.set(outputQueueRecord);
+                break;
+            } else {
+                outputQueueSize.decrementAndGet();
             }
         }
     }
@@ -100,15 +108,19 @@ final class SpdyOutputSink {
         writeDownStream(httpPacket, null);
     }
     
+    int counter = 0;
+    
     public void writeDownStream(final HttpPacket httpPacket,
             CompletionHandler<WriteResult> completionHandler)
             throws IOException {
 
+        counter++;
         
         final MemoryManager memoryManager = spdySession.getMemoryManager();
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
         final HttpContent httpContent = HttpContent.isContent(httpPacket) ? (HttpContent) httpPacket : null;
         
+        System.out.println("writeDownStream packet-size=" + httpContent.getContent() + " isLast=" + httpContent.isLast());
         
         Buffer headerBuffer = null;
         
@@ -144,6 +156,7 @@ final class SpdyOutputSink {
             if (outputQueueSize.getAndIncrement() > 0) {
                 outputQueueRecord = new OutputQueueRecord(
                         data, completionHandler, isLast);
+                System.out.println(counter + "--> Writing data offer(1): " + data);
                 outputQueue.offer(outputQueueRecord);
                 
                 // check if our element wasn't forgotten (async)
@@ -152,6 +165,7 @@ final class SpdyOutputSink {
                     // if not - return
                     return;
                 }
+                System.out.println(counter + "--> Writing data offer(1) revert: " + data);
             }
             
             // our element is first in the output queue
@@ -159,7 +173,11 @@ final class SpdyOutputSink {
             Buffer dataChunkToStore = checkOutputWindow(data);
             Buffer dataChunkToSend = data;
 
-            if (dataChunkToStore != null) {
+            if (dataChunkToStore == dataChunkToSend) {
+                System.out.println(counter + "...store==send: " + dataChunkToStore);
+            }
+            
+            if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
@@ -171,31 +189,41 @@ final class SpdyOutputSink {
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
                 
-                contentBuffer = encodeSpdyData(memoryManager, spdyStream, dataChunkToSend,
-                        isLast);
+                System.out.println(counter + "--> Writing data (1): " + dataChunkToSend + " isLast=" + isLast);
+
+                contentBuffer = encodeSpdyData(memoryManager, spdyStream,
+                        dataChunkToSend, isLast);
             }
         }
 
         final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
                                      headerBuffer, contentBuffer, true);
 
-        if (resultBuffer.isComposite()) {
-            ((CompositeBuffer) resultBuffer).disposeOrder(
-                    CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
+        if (resultBuffer != null) {
+            if (resultBuffer.isComposite()) {
+                ((CompositeBuffer) resultBuffer).disposeOrder(
+                        CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
+            }
+
+            writeDownStream0(resultBuffer, completionHandler);
         }
-        
-        writeDownStream0(resultBuffer, completionHandler);
 
         if (outputQueueRecord == null) {
+            if (contentBuffer != null) {
+                outputQueueSize.decrementAndGet();
+            }
+            
             return;
         }
         
         do { // Make sure current outputQueueRecord is not forgotten
+            System.out.println(counter + "--> Writing data offer(2): " + outputQueueRecord.buffer);
             currentQueueRecord.set(outputQueueRecord);
 
             if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
                     currentQueueRecord.compareAndSet(outputQueueRecord, null)) {
                 
+                System.out.println(counter + "... Writing data(2) processing: " + outputQueueRecord.buffer);
                 completionHandler = outputQueueRecord.completionHandler;
                 boolean isLast = outputQueueRecord.isLast;
                 
@@ -204,7 +232,7 @@ final class SpdyOutputSink {
                 
                 outputQueueRecord = null;
                 
-                if (dataChunkToStore != null) {
+                if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                     // Create output record for the chunk to be stored
                     outputQueueRecord =
                             new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
@@ -215,10 +243,15 @@ final class SpdyOutputSink {
                 if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                     unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
+                    System.out.println(counter + "--> Writing data (2): " + dataChunkToSend + " isLast=" + isLast);
                     contentBuffer = encodeSpdyData(memoryManager, spdyStream,
                             dataChunkToSend, isLast);
                     
                     writeDownStream0(contentBuffer, completionHandler);
+                }
+                
+                if (outputQueueRecord == null) {
+                    outputQueueSize.decrementAndGet();
                 }
             } else {
                 break; // will be (or already) written asynchronously
@@ -242,12 +275,8 @@ final class SpdyOutputSink {
 
             // Split data chunk into 2 chunks - one to be sent now and one to be stored in the output queue
 
-            if (dataSizeAllowedToSend > 0) {
-                dataChunkToStore =
-                        data.split(data.position() + dataSizeAllowedToSend);
-            } else {
-                dataChunkToStore = data;
-            }
+            dataChunkToStore =
+                    data.split(data.position() + dataSizeAllowedToSend);
         }
         
         return dataChunkToStore;
@@ -255,6 +284,7 @@ final class SpdyOutputSink {
     
     void writeDownStream0(final Buffer frame,
             final CompletionHandler<WriteResult> completionHandler) {
+        System.out.println("--> Write size=" + frame.remaining());
         spdyStream.downstreamContext.write(frame, completionHandler);
     }
     

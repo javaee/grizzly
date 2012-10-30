@@ -48,7 +48,9 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
@@ -58,7 +60,8 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
  */
 public class TestMain {
     public static void main(String[] args) throws IOException {
-
+        BuffersBuffer.DEBUG_MODE = true;
+        
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator serverSSLEngineConfigurator;
 
@@ -72,6 +75,8 @@ public class TestMain {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", 7070);
         NetworkListener listener = server.getListener("grizzly");
+        listener.setSendFileEnabled(false);
+        
         listener.getFileCache().setEnabled(false);
         listener.setSecure(true);
         listener.setSSLEngineConfig(serverSSLEngineConfigurator);
@@ -139,6 +144,9 @@ public class TestMain {
                     }
                 }, "/post");
 
+        server.getServerConfiguration().addHttpHandler(
+                new StaticHttpHandler("/home/oleksiys/Downloads"), "/download");
+        
         try {
             server.start();
             System.out.println("Press any key to stop ...");

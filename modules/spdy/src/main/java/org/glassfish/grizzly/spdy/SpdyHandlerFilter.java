@@ -39,16 +39,15 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
@@ -61,19 +60,13 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
-import org.glassfish.grizzly.spdy.compression.SpdyMimeHeaders;
 import org.glassfish.grizzly.utils.Charsets;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
@@ -590,6 +583,22 @@ public class SpdyHandlerFilter extends BaseFilter {
 
         return ctx.getInvokeAction();
     }
+
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
+        final Connection c = ctx.getConnection();
+        
+        if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
+            final HttpContext httpContext = HttpContext.get(ctx);
+            final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
+            spdyStream.closeOutput();
+            
+            return ctx.getStopAction();
+        }
+
+        return ctx.getInvokeAction();
+    }
+
 
     private void prepareResponse(final SpdyResponse response) {
         response.setProtocol(Protocol.HTTP_1_1);
