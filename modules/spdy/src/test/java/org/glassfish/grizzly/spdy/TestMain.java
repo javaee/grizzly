@@ -48,6 +48,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
@@ -78,24 +79,65 @@ public class TestMain {
         listener.registerAddOn(new SpdyAddOn());
 
         server.getServerConfiguration().addHttpHandler(
-        new HttpHandler() {
-            @Override
-            public void service(Request request, Response response) throws Exception {
-                response.setContentType("text/html");
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        response.setContentType("text/html");
 
-                final Writer w = response.getWriter();
-                StringBuilder sb = new StringBuilder(128);
-                sb.append("<html><head><title>SPDY Test</title></head><body>");
-                sb.append("Hello!<br />");
-                for (int i = 1; i <= 1000; i++) {
-                    sb.append("<img src=\"/").append(i).append(".jpg\" />");
-                }
-                sb.append("</body></html>");
-                response.setContentLength(sb.length());
-                w.write(sb.toString());
-            }
-        }, "/test");
+                        final Writer w = response.getWriter();
+                        StringBuilder sb = new StringBuilder(128);
+                        sb.append("<html><head><title>SPDY Test</title></head><body>");
+//                sb.append("Hello!<br />");
+////                for (int i = 1; i <= 1000; i++) {
+////                    sb.append("<img src=\"/").append(i).append(".jpg\" />");
+////                }
 
+                        sb.append("<form action=\"/post\" enctype=\"multipart/form-data\" method=\"post\">");
+                        sb.append("<p> Type some text (if you like):<br>");
+                        sb.append("<input type=\"text\" name=\"textline\" size=\"30\">");
+                        sb.append("</p>");
+                        sb.append("<p> Please specify a file, or a set of files:<br>");
+                        sb.append("<input type=\"file\" name=\"datafile\" size=\"40\">");
+                        sb.append("</p>");
+                        sb.append("<div> <input type=\"submit\" value=\"Send\"> </div>");
+                        sb.append("</form>");
+
+                        sb.append("</body></html>");
+                        response.setContentLength(sb.length());
+                        w.write(sb.toString());
+                    }
+                }, "/test");
+
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        final byte[] b = new byte[1024];
+                        final NIOInputStream in = request.getInputStream();
+                        
+                        int len;
+                        int total = 0;
+                        System.out.println("content-length=" + request.getContentLength());
+                        try {
+                            while ((len = in.read(b)) > 0) {
+                                total += len;
+                                System.out.println("just read " + len + " bytes. total=" + total);
+                            }
+                            System.out.println("end of input");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        response.setContentType("text/html");
+
+                        final Writer w = response.getWriter();
+                        StringBuilder sb = new StringBuilder(128);
+                        sb.append("<html><head><title>SPDY Test</title></head><body>");
+                        sb.append("Hello!<br />");
+                        sb.append("</body></html>");
+                        response.setContentLength(sb.length());
+                        w.write(sb.toString());
+                    }
+                }, "/post");
 
         try {
             server.start();

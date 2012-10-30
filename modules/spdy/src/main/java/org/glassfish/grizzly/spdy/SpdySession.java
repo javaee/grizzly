@@ -53,6 +53,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 
@@ -63,6 +64,8 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  * @author oleksiys
  */
 final class SpdySession {
+    public static final int DEFAULT_INITIAL_WINDOW_SIZE = 65536;
+    
     private final boolean isServer;
     private final Connection connection;
     
@@ -87,6 +90,9 @@ final class SpdySession {
     
     private boolean isGoAway;
     
+    private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    
     public SpdySession(final Connection connection) {
         this(connection, true);
     }
@@ -97,10 +103,30 @@ final class SpdySession {
         this.isServer = isServer;
     }
 
+    public int getPeerInitialWindowSize() {
+        return peerInitialWindowSize;
+    }
+
+    void setPeerInitialWindowSize(int peerInitialWindowSize) {
+        this.peerInitialWindowSize = peerInitialWindowSize;
+    }
+
+    public int getLocalInitialWindowSize() {
+        return localInitialWindowSize;
+    }
+
+    public void setLocalInitialWindowSize(int localInitialWindowSize) {
+        this.localInitialWindowSize = localInitialWindowSize;
+    }
+
     public Connection getConnection() {
         return connection;
     }
 
+    public MemoryManager getMemoryManager() {
+        return connection.getTransport().getMemoryManager();
+    }
+    
     public boolean isServer() {
         return isServer;
     }
@@ -115,8 +141,7 @@ final class SpdySession {
             return; // SpdySession is already in go-away state
         }
         
-        final Buffer goAwayFrame = connection
-                .getTransport().getMemoryManager().allocate(16);
+        final Buffer goAwayFrame = getMemoryManager().allocate(16);
 
         goAwayFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | GOAWAY_FRAME); // "C", version, GOAWAY_FRAME
         goAwayFrame.putInt(8); // Flags, Length
@@ -130,7 +155,7 @@ final class SpdySession {
     SpdyInflaterOutputStream getInflaterOutputStream() {
         if (inflaterOutputStream == null) {
             inflaterOutputStream = new SpdyInflaterOutputStream(
-                    connection.getTransport().getMemoryManager(),
+                    getMemoryManager(),
                     Constants.SPDY_ZLIB_DICTIONARY);
         }
         
@@ -152,7 +177,7 @@ final class SpdySession {
     SpdyDeflaterOutputStream getDeflaterOutputStream() {
         if (deflaterOutputStream == null) {
             deflaterOutputStream = new SpdyDeflaterOutputStream(
-                    connection.getTransport().getMemoryManager(),
+                    getMemoryManager(),
                     deflaterCompressionLevel,
                     Constants.SPDY_ZLIB_DICTIONARY);
         }

@@ -62,5 +62,10 @@ public class SpdyResponse extends HttpResponsePacket implements SpdyPacket {
     @Override
     public SpdyStream getSpdyStream() {
         return ((SpdyRequest) getRequest()).getSpdyStream();
-    }    
+    }
+    
+    @Override
+    protected void setExpectContent(final boolean isExpectContent) {
+        super.setExpectContent(isExpectContent);
+    }
 }

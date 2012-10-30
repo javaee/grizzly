@@ -79,11 +79,6 @@ public class SpdyAddOn implements AddOn {
 
     @Override
     public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-        if (!networkListener.isSecure()) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Unable to configure spdy using a insecure NetworkListener");
-            }
-        }
         configureTransport(networkListener.getTransport());
         final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
         processHttpServerFilter(builder, executor);
@@ -106,15 +101,21 @@ public class SpdyAddOn implements AddOn {
         builder.remove(idx);
     }
 
-    protected void insertSpdyFilters(FilterChainBuilder builder, DelayedExecutor executor) {
-        int idx = builder.indexOfType(SSLFilter.class);
-        builder.add(idx + 1, new FramesDecoderFilter());
-        builder.add(idx + 2, new SpdyHandlerFilter(executor.getThreadPool()));
+    protected void processSslFilter(NetworkListener networkListener, FilterChainBuilder builder) {
+        final int idx = builder.indexOfType(SSLFilter.class);
+        if (idx != -1) {
+            configureNpn((SSLFilter) builder.get(idx), networkListener.getTransport());
+        }
     }
 
-    protected void processSslFilter(NetworkListener networkListener, FilterChainBuilder builder) {
+    protected void insertSpdyFilters(FilterChainBuilder builder, DelayedExecutor executor) {
         int idx = builder.indexOfType(SSLFilter.class);
-        configureNpn((SSLFilter) builder.get(idx), networkListener.getTransport());
+        if (idx == -1) {
+            idx = 0; // put spdy filters right after transport filter
+        }
+        
+        builder.add(idx + 1, new SpdyFramingFilter());
+        builder.add(idx + 2, new SpdyHandlerFilter(executor.getThreadPool()));
     }
 
     protected void processHttpServerFilter(FilterChainBuilder builder, DelayedExecutor executor) {

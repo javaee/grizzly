@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -49,27 +49,30 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
 
 /**
  *
  * @author oleksiys
  */
 public class SpdyStream implements AttributeStorage {
-
+            
     private final SpdyRequest spdyRequest;
     private final FilterChainContext upstreamContext;
-    private final FilterChainContext downstreamContext;
+    final FilterChainContext downstreamContext;
     private final int streamId;
     private final int associatedToStreamId;
     private final int priority;
     private final int slot;
     private final SpdySession spdySession;
     
-    private boolean isInputClosed;
-    private final AtomicBoolean isOutputClosed = new AtomicBoolean();
     private final AtomicInteger completeCloseIndicator = new AtomicInteger();
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
+
+    final SpdyInputBuffer inputBuffer;
+    final SpdyOutputSink outputSink;
     
     SpdyStream(final SpdySession spdySession,
             final SpdyRequest spdyRequest,
@@ -85,6 +88,9 @@ public class SpdyStream implements AttributeStorage {
         this.associatedToStreamId = associatedToStreamId;
         this.priority = priority;
         this.slot = slot;
+        
+        inputBuffer = new SpdyInputBuffer(this);
+        outputSink = new SpdyOutputSink(this);
     }
 
     SpdySession getSpdySession() {
@@ -110,6 +116,12 @@ public class SpdyStream implements AttributeStorage {
     public int getSlot() {
         return slot;
     }
+    
+    public boolean isLocallyInitiatedStream() {
+        return spdySession.isServer() ?
+                (streamId % 2) == 0 :
+                (streamId % 2) == 1;
+    }
 
     public boolean isClosed() {
         return completeCloseIndicator.get() >= 2;
@@ -120,15 +132,18 @@ public class SpdyStream implements AttributeStorage {
         return attributes;
     }
 
-    void writeDownStream(final Buffer frame) {
-        writeDownStream(frame, null);
+    void onPeerWindowUpdate(final int delta) {
+        outputSink.onPeerWindowUpdate(delta);
     }
     
-    void writeDownStream(final Buffer frame,
-            final CompletionHandler<WriteResult> completionHandler) {
-        
-        // Check if we can write (RST flag etc...)
-        downstreamContext.write(frame, completionHandler);
+    void writeDownStream(final HttpPacket httpPacket) throws IOException {
+        outputSink.writeDownStream(httpPacket);
+    }
+    
+    void writeDownStream(final HttpPacket httpPacket,
+            CompletionHandler<WriteResult> completionHandler)
+            throws IOException {
+        outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
     FilterChainContext getUpstreamContext() {
@@ -140,25 +155,54 @@ public class SpdyStream implements AttributeStorage {
     }
     
     void closeInput() {
-        if (!isInputClosed) {
-            isInputClosed = true;
+        if (inputBuffer.close()) {
             if (completeCloseIndicator.incrementAndGet() == 2) {
                 closeStream();
             }
         }
     }
     
+    boolean isInputClosed() {
+        return inputBuffer.isClosed();
+    }
+    
     void closeOutput() {
-        if (isOutputClosed.compareAndSet(false, true)) {
+        if (outputSink.close()) {
             if (completeCloseIndicator.incrementAndGet() == 2) {
                 closeStream();
             }
         }
     }
+    
+    boolean isOutputClosed() {
+        return outputSink.isClosed();
+    }
 
+    void offerInputData(final Buffer data, final boolean isLast) {
+        inputBuffer.offer(data, isLast);
+    }
+    
+    Buffer pollInputData() throws IOException {
+        return inputBuffer.poll();
+    }
+    
+    boolean isLastInputDataPolled() {
+        return inputBuffer.isLastDataPolled();
+    }
     
     private void closeStream() {
         spdySession.deregisterStream(this);
     }
     
+    HttpHeader getInputHttpHeader() {
+        return isLocallyInitiatedStream() ?
+                spdyRequest.getResponse() :
+                spdyRequest;
+    }
+    
+    HttpHeader getOutputHttpHeader() {
+        return !isLocallyInitiatedStream() ?
+                spdyRequest.getResponse() :
+                spdyRequest;
+    }    
 }

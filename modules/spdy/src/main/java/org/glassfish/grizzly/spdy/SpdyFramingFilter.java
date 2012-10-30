@@ -54,12 +54,12 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  *
  * @author oleksiys
  */
-public class FramesDecoderFilter extends BaseFilter {
+public class SpdyFramingFilter extends BaseFilter {
     static final int HEADER_LEN = 8;
     
     private final Attribute<ArrayList<Buffer>> framesAttr =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                    FramesDecoderFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<Buffer>>() {
+                    SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<Buffer>>() {
                 @Override
                 public ArrayList<Buffer> evaluate() {
                     return new ArrayList<Buffer>(4);

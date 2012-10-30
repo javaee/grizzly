@@ -99,10 +99,29 @@ public class SpdyHandlerFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
+        
         final SpdySession spdySession = checkSpdySession(ctx);
         
         final Object message = ctx.getMessage();
 
+        if (message == null) {  // If message == null - it means it's initiated by ctx.read() call
+            // we have to check SpdyStream associated input queue if there are any data we can return
+            // otherwise block until input data is available
+            final SpdyStream spdyStream =
+                    (SpdyStream) HttpContext.get(ctx).getContextStorage();
+            final Buffer data = spdyStream.pollInputData();
+            
+            final HttpContent httpContent = HttpContent.builder(spdyStream.getInputHttpHeader())
+                    .content(data)
+                    .last(spdyStream.isLastInputDataPolled())
+                    .build();
+            
+            System.out.println("Passing data=" + data + " isLast=" + spdyStream.isLastInputDataPolled());
+            ctx.setMessage(httpContent);
+            
+            return ctx.getInvokeAction();
+        }
+        
         if (message instanceof HttpPacket) { // It's SpdyStream upstream filter chain invocation. Skip this filter for now.
             return ctx.getInvokeAction();
         }
@@ -211,6 +230,8 @@ public class SpdyHandlerFilter extends BaseFilter {
                     .append("}\n");
             LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
+        
+        spdySession.getStream(streamId).onPeerWindowUpdate(delta);
     }
 
     private void processGoAwayFrame(final SpdySession spdySession,
@@ -289,6 +310,7 @@ public class SpdyHandlerFilter extends BaseFilter {
                 case DOWNLOAD_RETRANS_RATE:
                     break;
                 case INITIAL_WINDOW_SIZE:
+                    spdySession.setPeerInitialWindowSize(value);
                     break;
                 case CLIENT_CERTIFICATE_VECTOR_SIZE:
                     break;
@@ -534,11 +556,14 @@ public class SpdyHandlerFilter extends BaseFilter {
             final Buffer frame, final int flags,
             final int length) {
         
-        if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
+        final boolean isFinFrame = (flags & SYN_STREAM_FLAG_FIN) != 0;
+        
+        spdyStream.offerInputData(frame, isFinFrame);
+        
+        System.out.println("ISFIN=" + isFinFrame);
+        if (isFinFrame) {
             spdyStream.closeInput();
         }
-        
-        // @TODO wrap w/ HttpContent and send upstream in the appropriate thread
     }
     
     @Override
@@ -550,285 +575,25 @@ public class SpdyHandlerFilter extends BaseFilter {
                 && (((HttpPacket) message).getHttpHeader() instanceof SpdyPacket)) {
             // Get HttpPacket
             final HttpPacket input = (HttpPacket) ctx.getMessage();
+            final HttpHeader httpHeader = input.getHttpHeader();
 
-            final Buffer output = encodeSpdyPacket(ctx, input);
-            if (output != null) {
-//                    HttpProbeNotifier.notifyDataSent(this, connection, output);
-
-                // Invoke next filter in the chain.
-                final SpdyStream spdyStream =
-                        ((SpdyPacket) input.getHttpHeader()).getSpdyStream();
-
-                spdyStream.writeDownStream(output,
-                        ctx.getTransportContext().getCompletionHandler());
+            if (!httpHeader.isRequest() && !httpHeader.isCommitted()) {
+                prepareResponse((SpdyResponse) httpHeader);
             }
+            
+            final SpdyStream spdyStream =
+                    ((SpdyPacket) httpHeader).getSpdyStream();
+
+            spdyStream.writeDownStream(input,
+                    ctx.getTransportContext().getCompletionHandler());
         }
 
         return ctx.getInvokeAction();
     }
 
-    private Buffer encodeSpdyPacket(final FilterChainContext ctx,
-            final HttpPacket input) throws IOException {
-        final HttpHeader header = input.getHttpHeader();
-        final HttpContent content = HttpContent.isContent(input) ? (HttpContent) input : null;
-        
-        Buffer headerBuffer = null;
-        
-        if (!header.isCommitted()) {
-            final boolean isLast = !header.isExpectContent() ||
-                    (content != null && content.isLast() &&
-                    !content.getContent().hasRemaining());
-            
-            if (!header.isRequest()) {
-                headerBuffer = encodeSynReply(ctx, (SpdyResponse) header, isLast);
-            } else {
-                throw new IllegalStateException("Not implemented yet");
-            }
-            
-            if (isLast) {
-                return headerBuffer;
-            }
-        }
-        
-        Buffer contentBuffer = null;
-        if (HttpContent.isContent(input)) {
-            contentBuffer = encodeSpdyData(ctx, (HttpContent) input);
-        }
-        
-        final Buffer resultBuffer = Buffers.appendBuffers(ctx.getMemoryManager(),
-                                     headerBuffer, contentBuffer, true);
-        
-        if (resultBuffer.isComposite()) {
-            ((CompositeBuffer) resultBuffer).disposeOrder(
-                    CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
-        }
-        
-        return resultBuffer;
-    }
-    
-    private Buffer encodeSynReply(final FilterChainContext ctx,
-            final SpdyResponse response,
-            final boolean isLast) throws IOException {
-        
-        prepareResponse(response);
-        
-        final SpdyStream spdyStream = response.getSpdyStream();
-        final SpdySession spdySession = spdyStream.getSpdySession();
-        
-        final MemoryManager mm = ctx.getMemoryManager();
-        
-        final Buffer initialBuffer = allocateHeapBuffer(mm, 2048);
-        initialBuffer.position(12); // skip the header for now
-        Buffer resultBuffer;
-        synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
-            resultBuffer = encodeHeaders(spdySession,
-                                         response,
-                                         initialBuffer);
-        }
-        
-        initialBuffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | SYN_REPLY_FRAME);  // C | SPDY_VERSION | SYN_REPLY
-
-        final int flags = isLast ? 1 : 0;
-        
-        initialBuffer.putInt(4, (flags << 24) | (resultBuffer.remaining() - 8)); // FLAGS | LENGTH
-        initialBuffer.putInt(8, spdyStream.getStreamId() & 0x7FFFFFFF); // STREAM_ID
-        
-        return resultBuffer;
-    }
-
     private void prepareResponse(final SpdyResponse response) {
         response.setProtocol(Protocol.HTTP_1_1);
-    }
-    
-    @SuppressWarnings("unchecked")
-    private Buffer encodeHeaders(final SpdySession spdySession,
-            final HttpResponsePacket response,
-            final Buffer outputBuffer) throws IOException {
-        
-        final SpdyMimeHeaders headers = (SpdyMimeHeaders) response.getHeaders();
-        
-        headers.removeHeader(Header.Connection);
-        headers.removeHeader(Header.KeepAlive);
-        headers.removeHeader(Header.ProxyConnection);
-        headers.removeHeader(Header.TransferEncoding);
-        
-        final DataOutputStream dataOutputStream =
-                spdySession.getDeflaterDataOutputStream();
-        final SpdyDeflaterOutputStream deflaterOutputStream =
-                spdySession.getDeflaterOutputStream();
-
-        deflaterOutputStream.setInitialOutputBuffer(outputBuffer);
-        
-        final int mimeHeadersCount = headers.size();
-        
-        dataOutputStream.writeInt(mimeHeadersCount + 2);
-        
-        dataOutputStream.writeInt(7);
-        dataOutputStream.write(":status".getBytes());
-        final byte[] statusBytes = response.getHttpStatus().getStatusBytes();
-        dataOutputStream.writeInt(statusBytes.length);
-        dataOutputStream.write(statusBytes);
-        
-        dataOutputStream.writeInt(8);
-        dataOutputStream.write(":version".getBytes());
-        final byte[] protocolBytes = response.getProtocol().getProtocolBytes();
-        dataOutputStream.writeInt(protocolBytes.length);
-        dataOutputStream.write(protocolBytes);
-        
-        final List tmpList = spdySession.tmpList;
-        
-        for (int i = 0; i < mimeHeadersCount; i++) {
-            int valueSize = 0;
-        
-            if (!headers.getAndSetSerialized(i, true)) {
-                final DataChunk name = headers.getName(i);
-                
-                if (name.isNull() || name.getLength() == 0) {
-                    continue;
-                }
-                
-                final DataChunk value1 = headers.getValue(i);
-                
-                for (int j = i; j < mimeHeadersCount; j++) {
-                    if (!headers.isSerialized(j) &&
-                            name.equals(headers.getName(j))) {
-                        headers.setSerialized(j, true);
-                        final DataChunk value = headers.getValue(j);
-                        if (!value.isNull()) {
-                            tmpList.add(value);
-                            valueSize += value.getLength();
-                        }
-                    }
-                }
-                
-                encodeDataChunkWithLenPrefix(dataOutputStream, headers.getName(i));
-                
-                if (!tmpList.isEmpty()) {
-                    final int extraValuesCount = tmpList.size();
-                    
-                    valueSize += extraValuesCount - 1; // 0 delims
-                    
-                    if (!value1.isNull()) {
-                        valueSize += value1.getLength();
-                        valueSize++; // 0 delim
-                        
-                        dataOutputStream.writeInt(valueSize);
-                        encodeDataChunk(dataOutputStream, value1);
-                        dataOutputStream.write(0);
-                    } else {
-                        dataOutputStream.writeInt(valueSize);
-                    }
-                    
-                    for (int j = 0; j < extraValuesCount; j++) {
-                        encodeDataChunk(dataOutputStream, (DataChunk) tmpList.get(j));
-                        if (j < extraValuesCount - 1) {
-                            dataOutputStream.write(0);
-                        }
-                    }
-                    
-                    tmpList.clear();
-                } else {
-                    encodeDataChunkWithLenPrefix(dataOutputStream, value1);
-                }
-            }
-        }
-        
-        dataOutputStream.flush();
-        
-        return deflaterOutputStream.checkpoint();
-    }
-
-    private void encodeDataChunkWithLenPrefix(final DataOutputStream dataOutputStream,
-            final DataChunk dc) throws IOException {
-        
-        final int len = dc.getLength();
-        dataOutputStream.writeInt(len);
-        
-        encodeDataChunk(dataOutputStream, dc);
-    }
-
-    private void encodeDataChunk(final DataOutputStream dataOutputStream,
-            final DataChunk dc) throws IOException {
-        if (dc.isNull()) {
-            return;
-        }
-
-        switch (dc.getType()) {
-            case Bytes: {
-                final ByteChunk bc = dc.getByteChunk();
-                dataOutputStream.write(bc.getBuffer(), bc.getStart(),
-                        bc.getLength());
-
-                break;
-            }
-                
-            case Buffer: {
-                final BufferChunk bufferChunk = dc.getBufferChunk();
-                encodeDataChunk(dataOutputStream, bufferChunk.getBuffer(),
-                        bufferChunk.getStart(), bufferChunk.getLength());
-                break;
-            }
-                
-            default: {
-                encodeDataChunk(dataOutputStream, dc.toString());
-            }
-        }
-    }
-    
-    private void encodeDataChunk(final DataOutputStream dataOutputStream,
-            final Buffer buffer, final int offs, final int len) throws IOException {
-        
-        if (buffer.hasArray()) {
-            dataOutputStream.write(buffer.array(), buffer.arrayOffset() + offs, len);
-        } else {
-            final int lim = offs + len;
-
-            for (int i = offs; i < lim; i++) {
-                dataOutputStream.write(buffer.get(i));
-            }
-        }
-    }
-    
-    private void encodeDataChunk(final DataOutputStream dataOutputStream,
-            final String s) throws IOException {
-        final int len = s.length();
-        
-        for (int i = 0; i < len; i++) {
-            final char c = s.charAt(i);
-            if (c != 0) {
-                dataOutputStream.write(c);
-            } else {
-                dataOutputStream.write(' ');
-            }
-        }
-    }
-
-    private Buffer encodeSpdyData(final FilterChainContext ctx,
-            final HttpContent input) {
-        
-        final MemoryManager memoryManager = ctx.getMemoryManager();
-        final SpdyStream spdyStream = ((SpdyPacket) input.getHttpHeader()).getSpdyStream();
-        
-        final Buffer buffer = input.getContent();
-        final boolean isLast = input.isLast();
-
-        final Buffer headerBuffer = memoryManager.allocate(8);
-        
-        headerBuffer.putInt(0, spdyStream.getStreamId() & 0x7FFFFFFF);  // C | STREAM_ID
-        final int flags = isLast ? 1 : 0;
-        
-        headerBuffer.putInt(4, (flags << 24) | buffer.remaining()); // FLAGS | LENGTH
-
-        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, buffer);
-        
-        if (resultBuffer.isComposite()) {
-            resultBuffer.allowBufferDispose(true);
-            ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
-            ((CompositeBuffer) resultBuffer).disposeOrder(CompositeBuffer.DisposeOrder.FIRST_TO_LAST);
-        }
-        
-        return resultBuffer;
-    }
+    }    
 
     private static int getInt(final byte[] array, final int position) {
         return ((array[position] & 0xFF) << 24) +
@@ -860,14 +625,6 @@ public class SpdyHandlerFilter extends BaseFilter {
         rstStreamFrame.flip();
 
         ctx.write(rstStreamFrame, completionHandler);
-    }
-
-    private static Buffer allocateHeapBuffer(final MemoryManager mm, final int size) {
-        if (!mm.willAllocateDirect(size)) {
-            return mm.allocateAtLeast(size);
-        } else {
-            return Buffers.wrap(mm, new byte[size]);
-        }
     }
 
     private SpdySession checkSpdySession(final FilterChainContext context) {
