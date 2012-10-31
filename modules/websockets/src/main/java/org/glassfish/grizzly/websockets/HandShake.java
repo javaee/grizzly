@@ -300,13 +300,15 @@ public abstract class HandShake {
             response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
                 join(application.getSupportedProtocols(getSubProtocol())));
         }
-        if (!getExtensions().isEmpty()) {
+        if (!application.getSupportedExtensions().isEmpty() && !getExtensions().isEmpty()) {
             List<Extension> intersection =
                     intersection(getExtensions(),
                                  application.getSupportedExtensions());
-            application.onExtensionNegotiation(intersection);
-            response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
-                               joinExtensions(intersection));
+            if (!intersection.isEmpty()) {
+                application.onExtensionNegotiation(intersection);
+                response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                                   joinExtensions(intersection));
+            }
         }
 
         ctx.write(HttpContent.builder(response).build());
