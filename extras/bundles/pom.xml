@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3-SNAPSHOT</version>
+        <version>2.3-beta8</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-extra-bundles</artifactId>
     <packaging>pom</packaging>
-    <version>2.3-SNAPSHOT</version>
+    <version>2.3-beta8</version>
     <name>grizzly-extra-bundles</name>
     <modules>
         <module>grizzly-httpservice-bundle</module>
