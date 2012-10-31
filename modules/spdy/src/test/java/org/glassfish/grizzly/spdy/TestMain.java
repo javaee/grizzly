@@ -42,6 +42,7 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
+import java.util.Arrays;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -69,6 +70,8 @@ public class TestMain {
             serverSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     false, false, false);
+            
+            serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
         } else {
             throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
         }

@@ -56,51 +56,73 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import static org.glassfish.grizzly.spdy.SpdyEncoderUtils.*;
 
 /**
- *
- * @author oleksiys
+ * Class represents an output sink associated with specific {@link SpdyStream}. 
+ * 
+ * The implementation is aligned with SPDY/3 requirements with regards to message
+ * flow control.
+ * 
+ * @author Alexey Stashok
  */
 final class SpdyOutputSink {
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
             new OutputQueueRecord(null, null, true);
     
+    // current output queue size
     private final AtomicInteger outputQueueSize = new AtomicInteger();
+    // current output record
     private final AtomicReference<OutputQueueRecord> currentQueueRecord =
             new AtomicReference<OutputQueueRecord>();
+    // output records queue
     private final ConcurrentLinkedQueue<OutputQueueRecord> outputQueue =
             new ConcurrentLinkedQueue<OutputQueueRecord>();
     
+    // number of sent bytes, which are still unconfirmed by server via (WINDOW_UPDATE) message
     private final AtomicInteger unconfirmedBytes = new AtomicInteger();
 
+    // true, if last output frame has been queued
     private volatile boolean isLastFrameQueued;
+    // true, if last output frame has been sent
     private boolean isLastFrameSent;
     
+    // associated spdy session
     private final SpdySession spdySession;
+    // associated spdy stream
     private final SpdyStream spdyStream;
 
     SpdyOutputSink(final SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
     }
-    
-    int updateCounter = 0;
+
+    /**
+     * The method is called by Spdy Filter once WINDOW_UPDATE message comes from the peer.
+     * 
+     * @param delta the delta.
+     */
     public void onPeerWindowUpdate(final int delta) {
-        updateCounter++;
-        
+        // update the unconfirmed bytes counter
         final int unconfirmedBytesNow = unconfirmedBytes.addAndGet(-delta);
+        
+        // get the current peer's window size limit
         final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
         
+        // try to write until window limit allows
         while (unconfirmedBytesNow < (windowSizeLimit * 3 / 4) &&
                 outputQueueSize.get() > 0) {
+            
+            // pick up the first output record in the queue
             OutputQueueRecord outputQueueRecord =
                     currentQueueRecord.getAndSet(null);
             if (outputQueueRecord == null) {
                 outputQueueRecord = outputQueue.poll();
             }
             
+            // if there is nothing to write - return
             if (outputQueueRecord == null) {
                 return;
             }
             
+            // if it's terminating record - processFin
             if (outputQueueRecord == TERMINATING_QUEUE_RECORD) {
                 processFin();
                 return;
@@ -110,55 +132,80 @@ final class SpdyOutputSink {
                     outputQueueRecord.completionHandler;
             boolean isLast = outputQueueRecord.isLast;
             
+            // check if output record's buffer is fitting into window size
+            // if not - split it into 2 parts: part to send, part to keep in the queue
             final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
             final Buffer dataChunkToSend = outputQueueRecord.buffer;
 
             outputQueueRecord = null;
             
+            // if there is a chunk to store
             if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore,
                         completionHandler, isLast);
+                
+                // reset completion handler and isLast for the current chunk
                 completionHandler = null;
                 isLast = false;
             }
 
+            // if there is a chunk to sent
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
+                // update unconfirmed bytes counter
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
+                // encode spdydata frame
                 final Buffer contentBuffer = encodeSpdyData(
                         spdySession.getMemoryManager(),
                         spdyStream, dataChunkToSend,
                         isLast);
 
+                // send a spdydata frame
                 writeDownStream(contentBuffer, completionHandler, isLast);
             }
             
             if (outputQueueRecord != null) {
+                // if there is a chunk to be stored - store it and return
                 currentQueueRecord.set(outputQueueRecord);
                 break;
             } else {
+                // if current record has been sent - try to take the next one for output queue
                 outputQueueSize.decrementAndGet();
             }
         }
     }
     
-    public synchronized void writeDownStream(final HttpPacket httpPacket) throws IOException {
+    /**
+     * Send an {@link HttpPacket} to the {@link SpdyStream}.
+     * 
+     * @param httpPacket {@link HttpPacket} to send
+     * @throws IOException 
+     */
+    public synchronized void writeDownStream(final HttpPacket httpPacket)
+            throws IOException {
         writeDownStream(httpPacket, null);
     }
     
-    int counter = 0;
-    
+    /**
+     * Send an {@link HttpPacket} to the {@link SpdyStream}.
+     * 
+     * The writeDownStream(...) methods have to be synchronized with shutdown().
+     * 
+     * @param httpPacket {@link HttpPacket} to send
+     * @param completionHandler the {@link CompletionHandler},
+     *          which will be notified about write progress.
+     * @throws IOException 
+     */
     public synchronized void writeDownStream(final HttpPacket httpPacket,
             CompletionHandler<WriteResult> completionHandler)
             throws IOException {
 
+        // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isLastFrameQueued) {
             throw new IOException("The last frame has been queued");
         }
-        
-        counter++;
         
         final MemoryManager memoryManager = spdySession.getMemoryManager();
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
@@ -166,11 +213,14 @@ final class SpdyOutputSink {
         
         Buffer headerBuffer = null;
         
+        // If HTTP header hasn't been commited - commit it
         if (!httpHeader.isCommitted()) {
+            // do we expect any HTTP payload?
             final boolean isNoContent = !httpHeader.isExpectContent() ||
                     (httpContent != null && httpContent.isLast() &&
                     !httpContent.getContent().hasRemaining());
             
+            // encode HTTP packet header
             if (!httpHeader.isRequest()) {
                 headerBuffer = encodeSynReply(
                         memoryManager,
@@ -182,6 +232,8 @@ final class SpdyOutputSink {
             httpHeader.setCommitted(true);
             
             if (isNoContent) {
+                // if we don't expect any HTTP payload, mark this frame as
+                // last and return
                 writeDownStream(headerBuffer, completionHandler, true);
                 return;
             }
@@ -191,6 +243,7 @@ final class SpdyOutputSink {
         Buffer contentBuffer = null;
         boolean isLast = false;
         
+        // if there is a payload to send now
         if (httpContent != null) {
             
             isLast = httpContent.isLast();
@@ -212,39 +265,50 @@ final class SpdyOutputSink {
             
             // our element is first in the output queue
             
+            
+            // check if output record's buffer is fitting into window size
+            // if not - split it into 2 parts: part to send, part to keep in the queue
             Buffer dataChunkToStore = checkOutputWindow(data);
             Buffer dataChunkToSend = data;
 
+            // if there is a chunk to store
             if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
+                // reset completion handler and isLast for the current chunk
                 completionHandler = null;
                 isLast = false;
             }
             
-            
+            // if there is a chunk to send
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
+                // update unconfirmed bytes counter
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
-                
+
+                // encode spdydata frame
                 contentBuffer = encodeSpdyData(memoryManager, spdyStream,
                         dataChunkToSend, isLast);
             }
         }
 
+        // append header and payload buffers
         final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
                                      headerBuffer, contentBuffer, true);
 
         if (resultBuffer != null) {
+            // if the result buffer != null
             if (resultBuffer.isComposite()) {
                 ((CompositeBuffer) resultBuffer).disposeOrder(
                         CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
             }
 
+            // send the buffer
             writeDownStream(resultBuffer, completionHandler, isLast);
         }
 
         if (outputQueueRecord == null) {
+            // if we managed to send entire HttpPacket - decrease the counter
             if (contentBuffer != null) {
                 outputQueueSize.decrementAndGet();
             }
@@ -253,10 +317,15 @@ final class SpdyOutputSink {
         }
         
         do { // Make sure current outputQueueRecord is not forgotten
+            
+            // set the outputQueueRecord as the current
             currentQueueRecord.set(outputQueueRecord);
 
+            // check if situation hasn't changed and we can't send the data chunk now
             if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
                     currentQueueRecord.compareAndSet(outputQueueRecord, null)) {
+                
+                // if we can send the output record now - do that
                 
                 completionHandler = outputQueueRecord.completionHandler;
                 isLast = outputQueueRecord.isLast;
@@ -265,18 +334,23 @@ final class SpdyOutputSink {
                 final Buffer dataChunkToSend = outputQueueRecord.buffer;
                 
                 outputQueueRecord = null;
-                
+
+                // if there is a chunk to store
                 if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                     // Create output record for the chunk to be stored
                     outputQueueRecord =
                             new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
+                    // reset completion handler and isLast for the current chunk
                     completionHandler = null;
                     isLast = false;
                 }
 
+                // if there is a chunk to send
                 if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
-                    unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
+                        // update unconfirmed bytes counter
+                        unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
+                    // encode spdydata frame
                     contentBuffer = encodeSpdyData(memoryManager, spdyStream,
                             dataChunkToSend, isLast);
                     
@@ -284,15 +358,25 @@ final class SpdyOutputSink {
                 }
                 
                 if (outputQueueRecord == null) {
+                    // if we managed to send entire HttpPacket - decrease the counter
                     outputQueueSize.decrementAndGet();
                 }
             } else {
                 break; // will be (or already) written asynchronously
             }
         } while (outputQueueRecord != null);
-        
     }
     
+    /**
+     * The method is responsible for checking the current output window size
+     * and split (if needed) current buffer into 2 chunked: the one to be sent
+     * now and the one to be stored in the output queue and processed later.
+     * 
+     * @param data the output queue data.
+     * 
+     * @return the chunk to be stored, the passed Buffer will represent the chunk
+     * to be sent.
+     */
     private Buffer checkOutputWindow(final Buffer data) {
         final int size = data.remaining();
         
