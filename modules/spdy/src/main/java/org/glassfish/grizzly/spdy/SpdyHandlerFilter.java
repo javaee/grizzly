@@ -555,6 +555,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         System.out.println("ISFIN=" + isFinFrame);
         if (isFinFrame) {
+            spdyStream.getSpdyRequest().setExpectContent(false);
             spdyStream.closeInput();
         }
     }
