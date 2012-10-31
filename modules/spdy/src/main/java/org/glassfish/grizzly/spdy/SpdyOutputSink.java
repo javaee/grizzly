@@ -1,12 +1,46 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ *
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License.  You can
+ * obtain a copy of the License at
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * or packager/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at packager/legal/LICENSE.txt.
+ *
+ * GPL Classpath Exception:
+ * Oracle designates this particular file as subject to the "Classpath"
+ * exception as provided by Oracle in the GPL Version 2 section of the License
+ * file that accompanied this code.
+ *
+ * Modifications:
+ * If applicable, add the following below the License Header, with the fields
+ * enclosed by brackets [] replaced by your own identifying information:
+ * "Portions Copyright [year] [name of copyright owner]"
+ *
+ * Contributor(s):
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
  */
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Buffer;
@@ -26,6 +60,9 @@ import static org.glassfish.grizzly.spdy.SpdyEncoderUtils.*;
  * @author oleksiys
  */
 final class SpdyOutputSink {
+    private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
+            new OutputQueueRecord(null, null, true);
+    
     private final AtomicInteger outputQueueSize = new AtomicInteger();
     private final AtomicReference<OutputQueueRecord> currentQueueRecord =
             new AtomicReference<OutputQueueRecord>();
@@ -34,7 +71,8 @@ final class SpdyOutputSink {
     
     private final AtomicInteger unconfirmedBytes = new AtomicInteger();
 
-    private final AtomicBoolean isOutputClosed = new AtomicBoolean();
+    private volatile boolean isLastFrameQueued;
+    private boolean isLastFrameSent;
     
     private final SpdySession spdySession;
     private final SpdyStream spdyStream;
@@ -51,7 +89,6 @@ final class SpdyOutputSink {
         final int unconfirmedBytesNow = unconfirmedBytes.addAndGet(-delta);
         final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
         
-        System.out.println(updateCounter + "<-- onPeerWindowUpdate delta=" + delta);
         while (unconfirmedBytesNow < (windowSizeLimit * 3 / 4) &&
                 outputQueueSize.get() > 0) {
             OutputQueueRecord outputQueueRecord =
@@ -64,11 +101,15 @@ final class SpdyOutputSink {
                 return;
             }
             
+            if (outputQueueRecord == TERMINATING_QUEUE_RECORD) {
+                processFin();
+                return;
+            }
+            
             CompletionHandler<WriteResult> completionHandler =
                     outputQueueRecord.completionHandler;
             boolean isLast = outputQueueRecord.isLast;
             
-            System.out.println(updateCounter + "... onWindowUpdate processing: " + outputQueueRecord.buffer);
             final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
             final Buffer dataChunkToSend = outputQueueRecord.buffer;
 
@@ -86,13 +127,12 @@ final class SpdyOutputSink {
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
-                System.out.println(updateCounter + "--> Writing data (onWindowUpdate): " + dataChunkToSend + " isLast=" + isLast);
                 final Buffer contentBuffer = encodeSpdyData(
                         spdySession.getMemoryManager(),
                         spdyStream, dataChunkToSend,
                         isLast);
 
-                writeDownStream0(contentBuffer, completionHandler);
+                writeDownStream(contentBuffer, completionHandler, isLast);
             }
             
             if (outputQueueRecord != null) {
@@ -104,59 +144,62 @@ final class SpdyOutputSink {
         }
     }
     
-    public void writeDownStream(final HttpPacket httpPacket) throws IOException {
+    public synchronized void writeDownStream(final HttpPacket httpPacket) throws IOException {
         writeDownStream(httpPacket, null);
     }
     
     int counter = 0;
     
-    public void writeDownStream(final HttpPacket httpPacket,
+    public synchronized void writeDownStream(final HttpPacket httpPacket,
             CompletionHandler<WriteResult> completionHandler)
             throws IOException {
 
+        if (isLastFrameQueued) {
+            throw new IOException("The last frame has been queued");
+        }
+        
         counter++;
         
         final MemoryManager memoryManager = spdySession.getMemoryManager();
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
         final HttpContent httpContent = HttpContent.isContent(httpPacket) ? (HttpContent) httpPacket : null;
         
-        System.out.println("writeDownStream packet-size=" + httpContent.getContent() + " isLast=" + httpContent.isLast());
-        
         Buffer headerBuffer = null;
         
         if (!httpHeader.isCommitted()) {
-            final boolean isLast = !httpHeader.isExpectContent() ||
+            final boolean isNoContent = !httpHeader.isExpectContent() ||
                     (httpContent != null && httpContent.isLast() &&
                     !httpContent.getContent().hasRemaining());
             
             if (!httpHeader.isRequest()) {
                 headerBuffer = encodeSynReply(
                         memoryManager,
-                        (SpdyResponse) httpHeader, isLast);
+                        (SpdyResponse) httpHeader, isNoContent);
             } else {
                 throw new IllegalStateException("Not implemented yet");
             }
 
             httpHeader.setCommitted(true);
             
-            if (isLast) {
-                writeDownStream0(headerBuffer, completionHandler);
+            if (isNoContent) {
+                writeDownStream(headerBuffer, completionHandler, true);
                 return;
             }
         }
         
         OutputQueueRecord outputQueueRecord = null;
         Buffer contentBuffer = null;
+        boolean isLast = false;
+        
         if (httpContent != null) {
             
-            boolean isLast = httpContent.isLast();
+            isLast = httpContent.isLast();
             final Buffer data = httpContent.getContent();
             
             // Check if output queue is not empty - add new element
             if (outputQueueSize.getAndIncrement() > 0) {
                 outputQueueRecord = new OutputQueueRecord(
                         data, completionHandler, isLast);
-                System.out.println(counter + "--> Writing data offer(1): " + data);
                 outputQueue.offer(outputQueueRecord);
                 
                 // check if our element wasn't forgotten (async)
@@ -165,7 +208,6 @@ final class SpdyOutputSink {
                     // if not - return
                     return;
                 }
-                System.out.println(counter + "--> Writing data offer(1) revert: " + data);
             }
             
             // our element is first in the output queue
@@ -173,10 +215,6 @@ final class SpdyOutputSink {
             Buffer dataChunkToStore = checkOutputWindow(data);
             Buffer dataChunkToSend = data;
 
-            if (dataChunkToStore == dataChunkToSend) {
-                System.out.println(counter + "...store==send: " + dataChunkToStore);
-            }
-            
             if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
@@ -189,8 +227,6 @@ final class SpdyOutputSink {
             if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
                 
-                System.out.println(counter + "--> Writing data (1): " + dataChunkToSend + " isLast=" + isLast);
-
                 contentBuffer = encodeSpdyData(memoryManager, spdyStream,
                         dataChunkToSend, isLast);
             }
@@ -205,7 +241,7 @@ final class SpdyOutputSink {
                         CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
             }
 
-            writeDownStream0(resultBuffer, completionHandler);
+            writeDownStream(resultBuffer, completionHandler, isLast);
         }
 
         if (outputQueueRecord == null) {
@@ -217,15 +253,13 @@ final class SpdyOutputSink {
         }
         
         do { // Make sure current outputQueueRecord is not forgotten
-            System.out.println(counter + "--> Writing data offer(2): " + outputQueueRecord.buffer);
             currentQueueRecord.set(outputQueueRecord);
 
             if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
                     currentQueueRecord.compareAndSet(outputQueueRecord, null)) {
                 
-                System.out.println(counter + "... Writing data(2) processing: " + outputQueueRecord.buffer);
                 completionHandler = outputQueueRecord.completionHandler;
-                boolean isLast = outputQueueRecord.isLast;
+                isLast = outputQueueRecord.isLast;
                 
                 final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
                 final Buffer dataChunkToSend = outputQueueRecord.buffer;
@@ -243,11 +277,10 @@ final class SpdyOutputSink {
                 if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
                     unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
-                    System.out.println(counter + "--> Writing data (2): " + dataChunkToSend + " isLast=" + isLast);
                     contentBuffer = encodeSpdyData(memoryManager, spdyStream,
                             dataChunkToSend, isLast);
                     
-                    writeDownStream0(contentBuffer, completionHandler);
+                    writeDownStream(contentBuffer, completionHandler, isLast);
                 }
                 
                 if (outputQueueRecord == null) {
@@ -282,18 +315,58 @@ final class SpdyOutputSink {
         return dataChunkToStore;
     }
     
+    void writeDownStream(final Buffer frame,
+            final CompletionHandler<WriteResult> completionHandler,
+            final boolean isLast) {
+        writeDownStream0(frame, completionHandler);
+        
+        if (isLast) {
+            isLastFrameSent = true;
+            isLastFrameQueued = true;
+            processFin();
+        }
+    }
+    
     void writeDownStream0(final Buffer frame,
             final CompletionHandler<WriteResult> completionHandler) {
-        System.out.println("--> Write size=" + frame.remaining());
         spdyStream.downstreamContext.write(frame, completionHandler);
     }
     
-    boolean close() {
-        return isOutputClosed.compareAndSet(false, true);
+    synchronized void shutdown() {
+        if (!isLastFrameQueued) {
+            isLastFrameQueued = true;
+            
+            if (outputQueueSize.getAndIncrement() == 0) {
+                processFin();
+                return;
+            }
+            
+            outputQueue.add(TERMINATING_QUEUE_RECORD);
+            
+            if (outputQueueSize.get() == 1 &&
+                    outputQueue.remove(TERMINATING_QUEUE_RECORD)) {
+                processFin();
+            }
+        }
+    }
+
+    boolean isTerminated() {
+        return isLastFrameQueued;
     }
     
-    boolean isClosed() {
-        return isOutputClosed.get();
+    private void processFin() {
+        if (!isLastFrameSent) {
+            // SEND LAST
+            
+            isLastFrameSent = true;
+            writeDownStream0(
+                    encodeSpdyData(spdySession.getMemoryManager(), spdyStream,
+                    Buffers.EMPTY_BUFFER, true),
+                    null);
+        }
+        
+        // NOTIFY STREAM
+        spdyStream.onOutputClosed();
     }
     
     private static class OutputQueueRecord {

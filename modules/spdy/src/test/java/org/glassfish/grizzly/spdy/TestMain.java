@@ -111,7 +111,7 @@ public class TestMain {
                         response.setContentLength(sb.length());
                         w.write(sb.toString());
                     }
-                }, "/test");
+                }, "/upload");
 
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
@@ -137,7 +137,7 @@ public class TestMain {
                         final Writer w = response.getWriter();
                         StringBuilder sb = new StringBuilder(128);
                         sb.append("<html><head><title>SPDY Test</title></head><body>");
-                        sb.append("Hello!<br />");
+                        sb.append("Uploaded ").append(total).append(" bytes<br />");
                         sb.append("</body></html>");
                         response.setContentLength(sb.length());
                         w.write(sb.toString());

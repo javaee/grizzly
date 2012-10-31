@@ -106,10 +106,10 @@ public class SpdyHandlerFilter extends BaseFilter {
             
             final HttpContent httpContent = HttpContent.builder(spdyStream.getInputHttpHeader())
                     .content(data)
-                    .last(spdyStream.isLastInputDataPolled())
+                    .last(spdyStream.isInputTerminated())
                     .build();
             
-            System.out.println("Passing data=" + data + " isLast=" + spdyStream.isLastInputDataPolled());
+            System.out.println("Passing data=" + data + " isLast=" + spdyStream.isInputTerminated());
             ctx.setMessage(httpContent);
             
             return ctx.getInvokeAction();
@@ -392,7 +392,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
             spdyRequest.setExpectContent(false);
-            spdyStream.closeInput();
+            spdyStream.shutdownInput();
         }
         
         Buffer payload = frame;
@@ -551,13 +551,11 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         final boolean isFinFrame = (flags & SYN_STREAM_FLAG_FIN) != 0;
         
-        spdyStream.offerInputData(frame, isFinFrame);
-        
-        System.out.println("ISFIN=" + isFinFrame);
         if (isFinFrame) {
             spdyStream.getSpdyRequest().setExpectContent(false);
-            spdyStream.closeInput();
         }
+        
+        spdyStream.offerInputData(frame, isFinFrame);
     }
     
     @Override
@@ -592,7 +590,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
-            spdyStream.closeOutput();
+            spdyStream.shutdownOutput();
             
             return ctx.getStopAction();
         }

@@ -51,6 +51,7 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  *
@@ -154,40 +155,40 @@ public class SpdyStream implements AttributeStorage {
         return downstreamContext;
     }
     
-    void closeInput() {
-        if (inputBuffer.close()) {
-            if (completeCloseIndicator.incrementAndGet() == 2) {
-                closeStream();
-            }
-        }
+    void shutdownInput() {
+        inputBuffer.shutdown();
     }
     
-    boolean isInputClosed() {
-        return inputBuffer.isClosed();
+    boolean isInputTerminated() {
+        return inputBuffer.isTerminated();
     }
     
-    void closeOutput() {
-        if (outputSink.close()) {
-            if (completeCloseIndicator.incrementAndGet() == 2) {
-                closeStream();
-            }
-        }
+    void shutdownOutput() {
+        outputSink.shutdown();
     }
     
-    boolean isOutputClosed() {
-        return outputSink.isClosed();
+    boolean isOutputTerminated() {
+        return outputSink.isTerminated();
     }
 
+    void onInputClosed() {
+        if (completeCloseIndicator.incrementAndGet() == 2) {
+            closeStream();
+        }
+    }
+
+    void onOutputClosed() {
+        if (completeCloseIndicator.incrementAndGet() == 2) {
+            closeStream();
+        }
+    }
+    
     void offerInputData(final Buffer data, final boolean isLast) {
         inputBuffer.offer(data, isLast);
     }
     
     Buffer pollInputData() throws IOException {
         return inputBuffer.poll();
-    }
-    
-    boolean isLastInputDataPolled() {
-        return inputBuffer.isLastDataPolled();
     }
     
     private void closeStream() {
