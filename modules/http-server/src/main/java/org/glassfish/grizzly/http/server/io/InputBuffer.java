@@ -196,7 +196,7 @@ public class InputBuffer {
      * properly.
      * </p>
      *
-     * @param request the current request
+     * @param serverRequest the current request
      * @param ctx the FilterChainContext for the chain processing this request
      */
     public void initialize(final Request serverRequest,
@@ -487,9 +487,8 @@ public class InputBuffer {
                 return -1;
             }
         }
-        
-        final char c = singleCharBuf.get();
-        return c;
+
+        return singleCharBuf.get();
 
     }
 
@@ -674,7 +673,7 @@ public class InputBuffer {
 
 
     /**
-     * When invoked, this method will call {@link org.glassfish.grizzly.http.server.io.ReadHandler#onAllDataRead()}
+     * When invoked, this method will call {@link org.glassfish.grizzly.ReadHandler#onAllDataRead()}
      * on the current {@link ReadHandler} (if any).
      *
      * This method shouldn't be invoked by developers directly.
@@ -788,7 +787,7 @@ public class InputBuffer {
      * Appends the specified {@link Buffer} to the internal composite
      * {@link Buffer}.
      *
-     * @param buffer the {@link Buffer} to append
+     * @param httpContent the {@link Buffer} to append
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
