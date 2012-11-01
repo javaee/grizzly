@@ -103,9 +103,6 @@ public interface Writable<L> {
      * Return <code>true</code> if the connection has not exceeded it's maximum
      *  size in bytes of pending writes, otherwise <code>false</code>.
      * 
-     * This method call is equivalent to call canWrite(<tt>1</tt>);
-     * 
-     * @param size number of bytes to write.
      * @return <code>true</code> if the connection has not exceeded it's maximum
      *  size in bytes of pending writes, otherwise <code>false</code>
      * 

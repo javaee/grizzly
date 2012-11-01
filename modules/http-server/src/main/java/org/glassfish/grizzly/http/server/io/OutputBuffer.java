@@ -747,7 +747,7 @@ public class OutputBuffer {
 
 
     /**
-     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection)
      */
     public boolean canWrite() {
         if (IS_BLOCKING || isNonBlockingWriteGuaranteed) {

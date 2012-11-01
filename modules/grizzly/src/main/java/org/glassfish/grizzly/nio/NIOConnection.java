@@ -631,7 +631,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify registered {@link ConnectionProbe}s about the IO Event ready event.
      *
      * @param connection the <tt>Connection</tt> event occurred on.
-     * @param ioEvent the {@link ServiceEvent}.
+     * @param ioEvent the {@link IOEvent}.
      */
     protected static void notifyIOEventReady(NIOConnection connection,
         IOEvent ioEvent) {

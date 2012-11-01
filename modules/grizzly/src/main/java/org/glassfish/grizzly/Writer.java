@@ -132,8 +132,6 @@ public interface Writer<L> {
      * Return <code>true</code> if the connection has not exceeded it's maximum
      *  size in bytes of pending writes, otherwise <code>false</code>.
      * 
-     * This method call is equivalent to call canWrite(connection, <tt>1</tt>);
-     * 
      * @param connection the {@link Connection} to test whether or not the
      *  specified number of bytes can be written to.
      * @return <code>true</code> if the connection has not exceeded it's maximum
@@ -155,9 +153,7 @@ public interface Writer<L> {
      * 
      * @param connection {@link Connection}
      * @param writeHandler {@link WriteHandler} to be notified.
-     * @param size number of bytes queue has to be able to accept before notifying
-     *             {@link WriteHandler}.
-     * 
+     *
      * @since 2.3
      */
     void notifyWritePossible(final Connection connection,
@@ -209,7 +205,7 @@ public interface Writer<L> {
 
         /**
          * Returns the current write reentrants counter. Might be useful, if
-         * developer wants to use custom notification mechanism, based on on {@link #canWrite(org.glassfish.grizzly.Connection, int)}
+         * developer wants to use custom notification mechanism, based on on {@link #canWrite(org.glassfish.grizzly.Connection)}
          * and various write methods.
          */
         public static Reentrant getWriteReentrant() {
@@ -251,7 +247,6 @@ public interface Writer<L> {
          * reentrants has been reached for the passed {@link Reentrant} object,
          * and next write will happen in the separate thread.
          *
-         * @param reentrant {@link Reentrant} object.
          * @return <tt>true</tt>, if max number of write->completion-handler
          * reentrants has been reached for the passed {@link Reentrant} object,
          * and next write will happen in the separate thread.
