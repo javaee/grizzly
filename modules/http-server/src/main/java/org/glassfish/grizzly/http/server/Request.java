@@ -927,7 +927,7 @@ public class Request {
      * </p>
      * 
      * By default the returned {@link NIOInputStream} will work as blocking
-     * {@link InputStream}, but it will be possible to call {@link NIOInputStream#isReady()},
+     * {@link java.io.InputStream}, but it will be possible to call {@link NIOInputStream#isReady()},
      * {@link NIOInputStream#available()}, or {@link NIOInputStream#notifyAvailable(org.glassfish.grizzly.ReadHandler)}
      * to avoid blocking.
      * 
