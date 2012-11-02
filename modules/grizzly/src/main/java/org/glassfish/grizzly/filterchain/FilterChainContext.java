@@ -303,7 +303,7 @@ public final class FilterChainContext implements AttributeStorage {
      * current {@link org.glassfish.grizzly.IOEvent} processing.
      * 
      * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * or when process {@link org.glassfish.grizzly.IOEvent#USER_WRITE} - address of receiver.
      * 
      * @return {@link Holder}, which contains address, associated with the
      * current {@link org.glassfish.grizzly.IOEvent} processing.
@@ -316,7 +316,7 @@ public final class FilterChainContext implements AttributeStorage {
     /**
      * Set address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * or when process {@link org.glassfish.grizzly.IOEvent#USER_WRITE} - address of receiver.
      *
      * @param addressHolder {@link Holder}, which contains address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
@@ -327,23 +327,23 @@ public final class FilterChainContext implements AttributeStorage {
     /**
      * Get address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.IOEvent#WRITE} - address of receiver.
+     * or when process {@link org.glassfish.grizzly.IOEvent#USER_WRITE} - address of receiver.
      * 
-     * @return address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
+     * @return address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
     public Object getAddress() {
         return addressHolder != null ? addressHolder.get() : null;
     }
     
     /**
-     * Set address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
-     * When we process {@link org.glassfish.grizzly.ServiceEvent#READ} event - it represents sender address,
-     * or when process {@link org.glassfish.grizzly.ServiceEvent#WRITE} - address of receiver.
+     * Set address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
+     * When we process {@link org.glassfish.grizzly.IOEvent#READ} event - it represents sender address,
+     * or when process {@link org.glassfish.grizzly.IOEvent#USER_WRITE} - address of receiver.
      *
-     * @param address address, associated with the current {@link org.glassfish.grizzly.ServiceEvent} processing.
+     * @param address address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
     public void setAddress(final Object address) {
-        addressHolder = Holder.<Object>staticHolder(address);
+        addressHolder = Holder.staticHolder(address);
     }
 
     /**
@@ -421,7 +421,7 @@ public final class FilterChainContext implements AttributeStorage {
     /**
      * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
      * to suspend the current {@link FilterChainContext}, but does not disable
-     * correspondent {@link ServiceEvent}, so if the same {@link ServiceEvent} occurs on
+     * correspondent {@link IOEvent}, so if the same {@link IOEvent} occurs on
      * the {@link Connection} - it will be processed using new
      * {@link FilterChainContext}.
      */
@@ -646,7 +646,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.WRITE;
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
-        newContext.addressHolder = Holder.<Object>staticHolder(address);
+        newContext.addressHolder = Holder.staticHolder(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
         newContext.transportFilterContext.cloner = cloner;
@@ -947,7 +947,7 @@ public final class FilterChainContext implements AttributeStorage {
          * is copied.
          * 
          * @param srcContext source Context
-         * @param dstContext copied Context
+         * @param copiedContext copied Context
          */
         public void onCopy(FilterChainContext srcContext,
                 FilterChainContext copiedContext);
