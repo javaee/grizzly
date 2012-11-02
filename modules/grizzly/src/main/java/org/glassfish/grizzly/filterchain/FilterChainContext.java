@@ -613,7 +613,7 @@ public final class FilterChainContext implements AttributeStorage {
               completionHandler,
               lifeCycleHandler,
               null,
-              transportFilterContext.isBlocking());
+              blocking);
         
     }
 
@@ -646,7 +646,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.WRITE;
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
-        newContext.addressHolder = addressHolder;
+        newContext.addressHolder = Holder.<Object>staticHolder(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
         newContext.transportFilterContext.cloner = cloner;
