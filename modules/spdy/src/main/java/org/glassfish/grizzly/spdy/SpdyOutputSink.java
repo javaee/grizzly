@@ -224,9 +224,13 @@ final class SpdyOutputSink {
             if (!httpHeader.isRequest()) {
                 headerBuffer = encodeSynReply(
                         memoryManager,
-                        (SpdyResponse) httpHeader, isNoContent);
+                        spdyStream,
+                        isNoContent);
             } else {
-                throw new IllegalStateException("Not implemented yet");
+                headerBuffer = encodeSynStream(
+                        memoryManager,
+                        spdyStream,
+                        isNoContent);
             }
 
             httpHeader.setCommitted(true);
@@ -413,7 +417,8 @@ final class SpdyOutputSink {
     
     void writeDownStream0(final Buffer frame,
             final CompletionHandler<WriteResult> completionHandler) {
-        spdyStream.downstreamContext.write(frame, completionHandler);
+        spdySession.getDownstreamChain().write(spdySession.getConnection(),
+                null, frame, completionHandler, null);
     }
     
     synchronized void shutdown() {

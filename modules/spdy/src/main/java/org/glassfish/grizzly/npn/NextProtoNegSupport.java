@@ -125,7 +125,7 @@ public class NextProtoNegSupport {
                 }
                 
                 if (negotiator != null) {
-                    JettyBridge.putClientProvider(sslEngine, negotiator);
+                    JettyBridge.putClientProvider(connection, sslEngine, negotiator);
                 }
             } else {
                 ServerSideNegotiator negotiator;
@@ -141,7 +141,7 @@ public class NextProtoNegSupport {
                 }
                 
                 if (negotiator != null) {
-                    JettyBridge.putServerProvider(sslEngine, negotiator);
+                    JettyBridge.putServerProvider(connection, sslEngine, negotiator);
                 }
             }
             
@@ -203,57 +203,59 @@ public class NextProtoNegSupport {
     }
     
     public interface ServerSideNegotiator {
-        public List<String> supportedProtocols();
-        public void onSuccess(String protocol);
-        public void onNoDeal();
+        public List<String> supportedProtocols(Connection connection);
+        public void onSuccess(Connection connection, String protocol);
+        public void onNoDeal(Connection connection);
     }
 
     public interface ClientSideNegotiator {
-        public boolean wantNegotiate();
-        public String selectProtocol(List<String> protocols);
-        public void onNoDeal();
+        public boolean wantNegotiate(Connection connection);
+        public String selectProtocol(Connection connection, List<String> protocols);
+        public void onNoDeal(Connection connection);
     }
     
     private static class JettyBridge {
 
-        public static void putServerProvider(final SSLEngine sslEngine,
+        public static void putServerProvider(final Connection connection,
+                final SSLEngine sslEngine,
                 final ServerSideNegotiator negotiator) {
             org.eclipse.jetty.npn.NextProtoNego.put(sslEngine,
                     new org.eclipse.jetty.npn.NextProtoNego.ServerProvider() {
                         @Override
                         public void unsupported() {
-                            negotiator.onNoDeal();
+                            negotiator.onNoDeal(connection);
                         }
 
                         @Override
                         public List<String> protocols() {
-                            return negotiator.supportedProtocols();
+                            return negotiator.supportedProtocols(connection);
                         }
 
                         @Override
                         public void protocolSelected(final String protocol) {
-                            negotiator.onSuccess(protocol);
+                            negotiator.onSuccess(connection, protocol);
                         }
                     });
         }
 
-        public static void putClientProvider(final SSLEngine sslEngine,
+        public static void putClientProvider(final Connection connection,
+                final SSLEngine sslEngine,
                 final ClientSideNegotiator negotiator) {
             org.eclipse.jetty.npn.NextProtoNego.put(sslEngine,
                     new org.eclipse.jetty.npn.NextProtoNego.ClientProvider() {
                         @Override
                         public boolean supports() {
-                            return negotiator.wantNegotiate();
+                            return negotiator.wantNegotiate(connection);
                         }
 
                         @Override
                         public void unsupported() {
-                            negotiator.onNoDeal();
+                            negotiator.onNoDeal(connection);
                         }
 
                         @Override
                         public String selectProtocol(List<String> protocols) {
-                            return negotiator.selectProtocol(protocols);
+                            return negotiator.selectProtocol(connection, protocols);
                         }
                     });
         }

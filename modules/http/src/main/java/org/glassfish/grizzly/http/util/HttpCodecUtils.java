@@ -332,6 +332,15 @@ public class HttpCodecUtils {
                 (buffer.capacity() * 3) / 2 + 1));
     }
 
+
+    public static boolean isNotSpaceAndTab(final byte b) {
+        return (b != Constants.SP && b != Constants.HT);
+    }
+
+    public static boolean isSpaceOrTab(final byte b) {
+        return (b == Constants.SP || b == Constants.HT);
+    }
+    
     private static void fastAsciiEncode(final String s,
                                         byte[] tempBuffer,
                                         final Buffer dstBuffer) {
@@ -369,14 +378,6 @@ public class HttpCodecUtils {
         }
 
         return -1;
-    }
-
-    private static boolean isNotSpaceAndTab(final byte b) {
-        return (b != Constants.SP && b != Constants.HT);
-    }
-
-    private static boolean isSpaceOrTab(final byte b) {
-        return (b == Constants.SP || b == Constants.HT);
     }
 
     private static Buffer checkAndResizeIfNeeded(MemoryManager memoryManager, Buffer dstBuffer, int length) {

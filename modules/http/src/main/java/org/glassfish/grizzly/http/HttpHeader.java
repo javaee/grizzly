@@ -467,7 +467,7 @@ public abstract class HttpHeader extends HttpPacket
         final int idx = headers.indexOf(Header.ContentEncoding, 0);
 
         if (idx != -1) {
-            headers.getAndSetSerialized(idx, true);
+            headers.setSerialized(idx, true);
             value.set(headers.getValue(idx));
         }
     }

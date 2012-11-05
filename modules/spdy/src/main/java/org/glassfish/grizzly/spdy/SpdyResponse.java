@@ -39,21 +39,30 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.ProcessingState;
-import org.glassfish.grizzly.spdy.compression.SpdyMimeHeaders;
 
 /**
  *
  * @author oleksiys
  */
-public class SpdyResponse extends HttpResponsePacket implements SpdyPacket {
-    final ProcessingState processingState = new ProcessingState();
+class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
+    private static final ThreadCache.CachedTypeIndex<SpdyResponseRecyclable> CACHE_IDX =
+            ThreadCache.obtainIndex(SpdyResponseRecyclable.class, 2);
 
-    protected SpdyResponse() {
-        super(new SpdyMimeHeaders());
+    public static SpdyResponse create() {
+        SpdyResponse spdyResponse =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (spdyResponse == null) {
+            spdyResponse = new SpdyResponse();
+        }
+        
+        return spdyResponse;
     }
     
+    final ProcessingState processingState = new ProcessingState();
+
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
@@ -61,11 +70,27 @@ public class SpdyResponse extends HttpResponsePacket implements SpdyPacket {
     
     @Override
     public SpdyStream getSpdyStream() {
-        return ((SpdyRequest) getRequest()).getSpdyStream();
+        return SpdyStream.getSpdyStream(this);
     }
     
     @Override
-    protected void setExpectContent(final boolean isExpectContent) {
+    public void setExpectContent(final boolean isExpectContent) {
         super.setExpectContent(isExpectContent);
+    }
+    
+    @Override
+    protected void reset() {
+        processingState.recycle();
+        
+        super.reset();
+    }
+
+    private static class SpdyResponseRecyclable extends SpdyResponse {
+        @Override
+        public void recycle() {
+            reset();
+
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
     }
 }

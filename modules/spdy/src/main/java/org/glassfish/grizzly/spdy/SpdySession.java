@@ -44,15 +44,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
@@ -66,6 +70,10 @@ import static org.glassfish.grizzly.spdy.Constants.*;
 final class SpdySession {
     public static final int DEFAULT_INITIAL_WINDOW_SIZE = 65536;
     
+    private static final Attribute<SpdySession> SPDY_SESSION_ATTR =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            SpdySession.class.getName());
+    
     private final boolean isServer;
     private final Connection connection;
     
@@ -77,9 +85,11 @@ final class SpdySession {
     
     private int lastPeerStreamId;
     private int lastLocalStreamId;
+
+    private final ReentrantLock newClientStreamLock = new ReentrantLock();
     
     private FilterChain upstreamChain;
-    private FilterChain downstreamChain;
+    private volatile FilterChain downstreamChain;
     
     private Map<Integer, SpdyStream> streamsMap =
             new ConcurrentHashMap<Integer, SpdyStream>();
@@ -93,6 +103,14 @@ final class SpdySession {
     private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     
+    public static SpdySession get(final Connection connection) {
+        return SPDY_SESSION_ATTR.get(connection);
+    }
+    
+    static void bind(final Connection connection, final SpdySession spdySession) {
+        SPDY_SESSION_ATTR.set(connection, spdySession);
+    }
+    
     public SpdySession(final Connection connection) {
         this(connection, true);
     }
@@ -101,8 +119,20 @@ final class SpdySession {
             final boolean isServer) {
         this.connection = connection;
         this.isServer = isServer;
+        
+        if (isServer) {
+            lastLocalStreamId = 0;
+            lastPeerStreamId = -1;
+        } else {
+            lastLocalStreamId = -1;
+            lastPeerStreamId = 0;
+        }
     }
 
+    public StreamBuilder getStreamBuilder() {
+        return new StreamBuilder();
+    }
+    
     public int getPeerInitialWindowSize() {
         return peerInitialWindowSize;
     }
@@ -119,6 +149,11 @@ final class SpdySession {
         this.localInitialWindowSize = localInitialWindowSize;
     }
 
+    int getNextLocalStreamId() {
+        lastLocalStreamId += 2;
+        return lastLocalStreamId;
+    }
+    
     public Connection getConnection() {
         return connection;
     }
@@ -194,28 +229,16 @@ final class SpdySession {
         return deflaterDataOutputStream;
     }
 
-    SpdyStream acceptStream(final FilterChainContext context,
-            final SpdyRequest spdyRequest,
+    ReentrantLock getNewClientStreamLock() {
+        return newClientStreamLock;
+    }
+
+    SpdyStream acceptStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
             final int priority, final int slot) {
         
-        final FilterChainContext upstreamContext =
-                getUpstreamChain(context).obtainFilterChainContext(
-                context.getConnection());
-        
-        
-        final FilterChainContext downstreamContext =
-                getDownstreamChain(context).obtainFilterChainContext(
-                context.getConnection(), context.getFilterIdx(),
-                context.getStartIdx(),
-                context.getFilterIdx());
-        
-        upstreamContext.getInternalContext().setEvent(IOEvent.READ);
-        upstreamContext.setMessage(HttpContent.builder(spdyRequest).build());
-        upstreamContext.setAddressHolder(context.getAddressHolder());
-        
-        final SpdyStream spdyStream = new SpdyStream(this, spdyRequest,
-                upstreamContext, downstreamContext, streamId, associatedToStreamId,
+        final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
+                streamId, associatedToStreamId,
                 priority, slot);
         
         synchronized(sessionLock) {
@@ -229,7 +252,28 @@ final class SpdySession {
         
         return spdyStream;
     }
-    
+
+    SpdyStream openStream(final HttpRequestPacket spdyRequest,
+            final int streamId, final int associatedToStreamId, 
+            final int priority, final int slot) {
+        
+        final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
+                streamId, associatedToStreamId,
+                priority, slot);
+        
+        synchronized(sessionLock) {
+            if (isGoAway) {
+                return null; // if go-away is set - return null to ignore stream creation
+            }
+            
+            streamsMap.put(streamId, spdyStream);
+            lastPeerStreamId = streamId;
+        }
+        
+        return spdyStream;
+    }
+
+   
     void writeDownStream(final Buffer frame) {
         writeDownStream(frame, null);
     }
@@ -241,19 +285,35 @@ final class SpdySession {
                 null, frame, completionHandler, null);        
     }
 
-    void initCommunication(final FilterChainContext context) {
-        upstreamChain = (FilterChain) context.getFilterChain().subList(
-                context.getFilterIdx(), context.getEndIdx());
+    void initCommunication(final FilterChainContext context,
+            final boolean isUpStream) {
         
-        downstreamChain = (FilterChain) context.getFilterChain().subList(
-                context.getStartIdx(), context.getFilterIdx());
+        if (downstreamChain == null) {
+            synchronized(this) {
+                if (downstreamChain == null) {
+                    if (isUpStream) {
+                        upstreamChain = (FilterChain) context.getFilterChain().subList(
+                                context.getFilterIdx(), context.getEndIdx());
+
+                        downstreamChain = (FilterChain) context.getFilterChain().subList(
+                                context.getStartIdx(), context.getFilterIdx());
+                    } else {
+                        upstreamChain = (FilterChain) context.getFilterChain().subList(
+                                context.getFilterIdx(), context.getStartIdx());
+
+                        downstreamChain = (FilterChain) context.getFilterChain().subList(
+                                context.getEndIdx() + 1, context.getFilterIdx());
+                    }
+                }
+            }
+        }
     }
     
-    FilterChain getUpstreamChain(final FilterChainContext context) {
+    FilterChain getUpstreamChain() {
         return upstreamChain;
     }
     
-    FilterChain getDownstreamChain(final FilterChainContext context) {
+    FilterChain getDownstreamChain() {
         return downstreamChain;
     }
     
@@ -304,4 +364,115 @@ final class SpdySession {
     private void closeSession() {
         connection.closeSilently();
     }
+
+    public final class StreamBuilder extends HttpHeader.Builder<StreamBuilder> {
+        private int associatedToStreamId;
+        private int priority;
+        private int slot;
+        
+        protected StreamBuilder() {
+            packet = SpdyRequest.create();
+        }
+
+        /**
+         * Set the HTTP request method.
+         * @param method the HTTP request method..
+         */
+        public StreamBuilder method(final Method method) {
+            ((HttpRequestPacket) packet).setMethod(method);
+            return this;
+        }
+
+        /**
+         * Set the HTTP request method.
+         * @param method the HTTP request method. Format is "GET|POST...".
+         */
+        public StreamBuilder method(final String method) {
+            ((HttpRequestPacket) packet).setMethod(method);
+            return this;
+        }
+
+        /**
+         * Set the request URI.
+         *
+         * @param uri the request URI.
+         */
+        public StreamBuilder uri(final String uri) {
+            ((HttpRequestPacket) packet).setRequestURI(uri);
+            return this;
+        }
+
+        /**
+         * Set the <code>query</code> portion of the request URI.
+         *
+         * @param query the query String
+         *
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder query(final String query) {
+            ((HttpRequestPacket) packet).setQueryString(query);
+            return this;
+        }
+
+        /**
+         * Set the <code>associatedToStreamId</code> parameter of a {@link SpdyStream}.
+         *
+         * @param associatedToStreamId the associatedToStreamId
+         *
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder associatedToStreamId(final int associatedToStreamId) {
+            this.associatedToStreamId = associatedToStreamId;
+            return this;
+        }
+
+        /**
+         * Set the <code>priority</code> parameter of a {@link SpdyStream}.
+         *
+         * @param priority the priority
+         *
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder priority(final int priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        /**
+         * Set the <code>slot</code> parameter of a {@link SpdyStream}.
+         *
+         * @param slot the slot
+         *
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder slot(final int slot) {
+            this.slot = slot;
+            return this;
+        }
+        
+        /**
+         * Build the <tt>HttpRequestPacket</tt> message.
+         *
+         * @return <tt>HttpRequestPacket</tt>
+         */
+        @SuppressWarnings("unchecked")
+        public final SpdyStream open() {
+            newClientStreamLock.lock();
+            
+            try {
+                final SpdyStream spdyStream = openStream(
+                        (HttpRequestPacket) packet,
+                        getNextLocalStreamId(),
+                        associatedToStreamId, priority, slot);
+                
+                
+                connection.write(packet);
+                
+                return spdyStream;
+            } finally {
+                newClientStreamLock.unlock();
+            }
+        }
+    }
+    
 }

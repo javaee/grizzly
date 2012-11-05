@@ -72,7 +72,7 @@ public enum IOEvent implements Event {
      */
     CLOSED;
     
-    private static final Object ioType = new Object();
+    private static final Object ioType = "event.ioevent";
     
     public static boolean isIOEvent(final Event event) {
         return event.type() == ioType;

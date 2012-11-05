@@ -338,14 +338,13 @@ public class SSLFilter extends BaseFilter {
 
         if (sslEngine == null) {
             sslEngine = sslEngineConfigurator.createSSLEngine();
-            sslEngine.beginHandshake();
             setSSLEngine(connection, sslEngine);
         } else {
             sslEngineConfigurator.configure(sslEngine);
-            sslEngine.beginHandshake();
         }
-
+        
         notifyHandshakeStart(connection);
+        sslEngine.beginHandshake();
 
         if (completionHandler != null) {
             handshakeCompletionHandlerAttr.set(connection, completionHandler);

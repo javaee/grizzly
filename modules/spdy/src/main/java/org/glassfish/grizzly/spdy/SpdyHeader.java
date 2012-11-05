@@ -39,68 +39,10 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.ProcessingState;
-
 /**
  *
  * @author oleksiys
  */
-class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
-    private static final Logger LOGGER = Grizzly.logger(SpdyRequest.class);
-    
-    private static final ThreadCache.CachedTypeIndex<SpdyRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(SpdyRequest.class, 2);
-
-    public static SpdyRequest create() {
-        SpdyRequest spdyRequest =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (spdyRequest == null) {
-            spdyRequest = new SpdyRequest();
-        }
-
-        return spdyRequest.init();
-    }
-    
-    private final ProcessingState processingState = new ProcessingState();
-    
-    private final SpdyResponse spdyResponse = new SpdyResponse();
-    
-    @Override
-    public ProcessingState getProcessingState() {
-        return processingState;
-    }
-
-    private SpdyRequest init() {
-        setResponse(spdyResponse);
-        spdyResponse.setRequest(this);
-        return this;
-    }
-
-    @Override
-    public SpdyStream getSpdyStream() {
-        return SpdyStream.getSpdyStream(this);
-    }
-    
-    @Override
-    protected void reset() {
-        processingState.recycle();
-        
-        super.reset();
-    }
-
-    @Override
-    public void recycle() {
-        reset();
-
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
-
-    @Override
-    public void setExpectContent(final boolean isExpectContent) {
-        super.setExpectContent(isExpectContent);
-    }
+interface SpdyHeader extends SpdyPacket {
+    public void setExpectContent(boolean isExpectContent);
 }

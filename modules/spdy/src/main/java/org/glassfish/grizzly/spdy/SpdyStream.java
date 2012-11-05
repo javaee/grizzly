@@ -44,24 +44,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 
 /**
  *
  * @author oleksiys
  */
 public class SpdyStream implements AttributeStorage {
-            
-    private final SpdyRequest spdyRequest;
-    private final FilterChainContext upstreamContext;
-    final FilterChainContext downstreamContext;
+    private static final Attribute<SpdyStream> HTTP_RQST_SPDY_STREAM_ATTR =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http.request.spdy.stream");
+    
+    private final HttpRequestPacket spdyRequest;
     private final int streamId;
     private final int associatedToStreamId;
     private final int priority;
@@ -75,16 +76,37 @@ public class SpdyStream implements AttributeStorage {
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;
     
-    SpdyStream(final SpdySession spdySession,
-            final SpdyRequest spdyRequest,
-            final FilterChainContext upstreamContext,
-            final FilterChainContext downstreamContext,
+    public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
+        final HttpRequestPacket request = httpHeader.isRequest() ?
+                (HttpRequestPacket) httpHeader :
+                ((HttpResponsePacket) httpHeader).getRequest();
+        
+        
+        if (request != null) {
+            return HTTP_RQST_SPDY_STREAM_ATTR.get(request);
+        }
+        
+        return null;
+    }
+
+    static SpdyStream create(final SpdySession spdySession,
+            final HttpRequestPacket spdyRequest,
+            final int streamId, final int associatedToStreamId,
+            final int priority, final int slot) {
+        final SpdyStream spdyStream = new SpdyStream(spdySession, spdyRequest,
+                streamId, associatedToStreamId, priority, slot);
+        
+        HTTP_RQST_SPDY_STREAM_ATTR.set(spdyRequest, spdyStream);
+        
+        return spdyStream;
+    }
+    
+    private SpdyStream(final SpdySession spdySession,
+            final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId,
             final int priority, final int slot) {
         this.spdySession = spdySession;
         this.spdyRequest = spdyRequest;
-        this.upstreamContext = upstreamContext;
-        this.downstreamContext = downstreamContext;
         this.streamId = streamId;
         this.associatedToStreamId = associatedToStreamId;
         this.priority = priority;
@@ -98,8 +120,12 @@ public class SpdyStream implements AttributeStorage {
         return spdySession;
     }
     
-    public SpdyRequest getSpdyRequest() {
+    public HttpRequestPacket getSpdyRequest() {
         return spdyRequest;
+    }
+    
+    public HttpResponsePacket getSpdyResponse() {
+        return spdyRequest.getResponse();
     }
     
     public int getStreamId() {
@@ -145,14 +171,6 @@ public class SpdyStream implements AttributeStorage {
             CompletionHandler<WriteResult> completionHandler)
             throws IOException {
         outputSink.writeDownStream(httpPacket, completionHandler);
-    }
-    
-    FilterChainContext getUpstreamContext() {
-        return upstreamContext;
-    }
-
-    FilterChainContext getDownstreamContext() {
-        return downstreamContext;
     }
     
     void shutdownInput() {
@@ -205,5 +223,5 @@ public class SpdyStream implements AttributeStorage {
         return !isLocallyInitiatedStream() ?
                 spdyRequest.getResponse() :
                 spdyRequest;
-    }    
+    }
 }

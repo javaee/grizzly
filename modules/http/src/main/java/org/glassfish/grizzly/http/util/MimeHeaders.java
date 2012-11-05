@@ -223,13 +223,28 @@ public class MimeHeaders {
     }
 
     /**
-     * Set the header's "serialized" flag and return the prev. value.
+     * Get the header's "serialized" flag.
+     *
+     * @param n the header index
+     * @return the header's "serialized" flag value.
+     */
+    public boolean isSerialized(int n) {
+        if (n >= 0 && n < count) {
+            final MimeHeaderField field = headers[n];
+            return field.isSerialized();
+        }
+
+        return false;
+    }
+
+    /**
+     * Set the header's "serialized" flag.
      *
      * @param n the header index
      * @param newValue the new value
      * @return the old header "serialized" flag value.
      */
-    public boolean getAndSetSerialized(int n, boolean newValue) {
+    public boolean setSerialized(int n, boolean newValue) {
         final boolean value;
         if (n >= 0 && n < count) {
             final MimeHeaderField field = headers[n];

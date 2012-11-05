@@ -1478,7 +1478,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         final int mimeHeadersNum = mimeHeaders.size();
 
         for (int i = 0; i < mimeHeadersNum; i++) {
-            if (!mimeHeaders.getAndSetSerialized(i, true)) {
+            if (!mimeHeaders.setSerialized(i, true)) {
                 final DataChunk value = mimeHeaders.getValue(i);
                 if (!value.isNull()) {
                     buffer = encodeMimeHeader(memoryManager,

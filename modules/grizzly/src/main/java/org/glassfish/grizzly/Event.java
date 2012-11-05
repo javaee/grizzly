@@ -45,12 +45,12 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Event {
-    public static final Event NULL = new EventAdapter(null);
+    public static final Event NULL = new EventAdapter("event.null");
     
     /**
      * Event occurs on a {@link Connection}, once user wants to write a message.
      */
-    public static final Event USER_WRITE = new EventAdapter(new Object());
+    public static final Event USER_WRITE = new EventAdapter("event.user-write");
     
     public Object type();
     
@@ -65,5 +65,31 @@ public interface Event {
         public Object type() {
             return type;
         }
+
+        @Override
+        public int hashCode() {
+            return type != null ? type.hashCode() : 0;
+        }
+
+        @Override
+        public String toString() {
+            return type != null ? type.toString() : null;
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (obj == null || !(obj instanceof Event)) {
+                return false;
+            }
+            
+            final Event other = (Event) obj;
+            if (this.type != other.type() &&
+                    (this.type == null || !this.type.equals(other.type()))) {
+                return false;
+            }
+            return true;
+        }
+        
+        
     }
 }

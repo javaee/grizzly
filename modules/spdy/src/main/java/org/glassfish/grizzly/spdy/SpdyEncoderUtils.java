@@ -1,23 +1,61 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ *
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License.  You can
+ * obtain a copy of the License at
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * or packager/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at packager/legal/LICENSE.txt.
+ *
+ * GPL Classpath Exception:
+ * Oracle designates this particular file as subject to the "Classpath"
+ * exception as provided by Oracle in the GPL Version 2 section of the License
+ * file that accompanied this code.
+ *
+ * Modifications:
+ * If applicable, add the following below the License Header, with the fields
+ * enclosed by brackets [] replaced by your own identifying information:
+ * "Portions Copyright [year] [name of copyright owner]"
+ *
+ * Contributor(s):
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
  */
 package org.glassfish.grizzly.spdy;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
-import org.glassfish.grizzly.spdy.compression.SpdyMimeHeaders;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 
@@ -64,17 +102,18 @@ class SpdyEncoderUtils {
     }
     
     static Buffer encodeSynReply(final MemoryManager memoryManager,
-            final SpdyResponse response,
+            final SpdyStream spdyStream,
             final boolean isLast) throws IOException {
         
-        final SpdyStream spdyStream = response.getSpdyStream();
+        final HttpResponsePacket response = spdyStream.getSpdyResponse();
+        
         final SpdySession spdySession = spdyStream.getSpdySession();
         
         final Buffer initialBuffer = allocateHeapBuffer(memoryManager, 2048);
         initialBuffer.position(12); // skip the header for now
         Buffer resultBuffer;
         synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
-            resultBuffer = encodeHeaders(spdySession,
+            resultBuffer = encodeSynReplyHeaders(spdySession,
                                          response,
                                          initialBuffer);
         }
@@ -90,11 +129,11 @@ class SpdyEncoderUtils {
     }
     
     @SuppressWarnings("unchecked")
-    private static Buffer encodeHeaders(final SpdySession spdySession,
+    private static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
             final HttpResponsePacket response,
             final Buffer outputBuffer) throws IOException {
         
-        final SpdyMimeHeaders headers = (SpdyMimeHeaders) response.getHeaders();
+        final MimeHeaders headers = response.getHeaders();
         
         headers.removeHeader(Header.Connection);
         headers.removeHeader(Header.KeepAlive);
@@ -111,25 +150,113 @@ class SpdyEncoderUtils {
         final int mimeHeadersCount = headers.size();
         
         dataOutputStream.writeInt(mimeHeadersCount + 2);
+
+        encodeHeaderValue(dataOutputStream, ":status".getBytes(),
+                response.getHttpStatus().getStatusBytes());
         
-        dataOutputStream.writeInt(7);
-        dataOutputStream.write(":status".getBytes());
-        final byte[] statusBytes = response.getHttpStatus().getStatusBytes();
-        dataOutputStream.writeInt(statusBytes.length);
-        dataOutputStream.write(statusBytes);
+        encodeHeaderValue(dataOutputStream, ":version".getBytes(),
+                response.getProtocol().getProtocolBytes());
+                
+        encodeUserHeaders(spdySession, headers, dataOutputStream);
         
-        dataOutputStream.writeInt(8);
-        dataOutputStream.write(":version".getBytes());
-        final byte[] protocolBytes = response.getProtocol().getProtocolBytes();
-        dataOutputStream.writeInt(protocolBytes.length);
-        dataOutputStream.write(protocolBytes);
+        dataOutputStream.flush();
         
+        return deflaterOutputStream.checkpoint();
+    }
+    
+    static Buffer encodeSynStream(final MemoryManager memoryManager,
+            final SpdyStream spdyStream,
+            final boolean isLast) throws IOException {
+        
+        final HttpRequestPacket request = spdyStream.getSpdyRequest();
+        final SpdySession spdySession = spdyStream.getSpdySession();
+        
+        final Buffer initialBuffer = allocateHeapBuffer(memoryManager, 2048);
+        initialBuffer.position(18); // skip the header for now
+        Buffer resultBuffer;
+        synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
+            resultBuffer = encodeSynStreamHeaders(spdySession,
+                                         request,
+                                         initialBuffer);
+        }
+        
+        initialBuffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | SYN_STREAM_FRAME);  // C | SPDY_VERSION | SYN_STREAM_FRAME
+
+        final int flags = isLast ? 1 : 0;
+        
+        initialBuffer.putInt(4, (flags << 24) | (resultBuffer.remaining() - 8)); // FLAGS | LENGTH
+        initialBuffer.putInt(8, spdyStream.getStreamId() & 0x7FFFFFFF); // STREAM_ID
+        initialBuffer.putInt(12, spdyStream.getAssociatedToStreamId() & 0x7FFFFFFF); // ASSOCIATED_TO_STREAM_ID
+        initialBuffer.putShort(16, (short) ((spdyStream.getPriority() << 13) | (spdyStream.getSlot() & 0xFF))); // PRI | UNUSED | SLOT
+        
+        return resultBuffer;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Buffer encodeSynStreamHeaders(final SpdySession spdySession,
+            final HttpRequestPacket request,
+            final Buffer outputBuffer) throws IOException {
+        
+        final MimeHeaders headers = request.getHeaders();
+        
+        final DataOutputStream dataOutputStream =
+                spdySession.getDeflaterDataOutputStream();
+        final SpdyDeflaterOutputStream deflaterOutputStream =
+                spdySession.getDeflaterOutputStream();
+
+        deflaterOutputStream.setInitialOutputBuffer(outputBuffer);
+        
+        final String hostHeader = headers.getHeader(Header.Host);
+
+        headers.removeHeader(Header.Connection);
+        headers.removeHeader(Header.Host);
+        headers.removeHeader(Header.KeepAlive);
+        headers.removeHeader(Header.ProxyConnection);
+        headers.removeHeader(Header.TransferEncoding);
+        
+        final int mimeHeadersCount = headers.size();
+        
+        dataOutputStream.writeInt(mimeHeadersCount + 5);
+        
+        final URI uri;
+        try {
+            uri = new URI(request.getRequestURI());
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
+        encodeHeaderValue(dataOutputStream, ":method".getBytes(),
+                request.getMethod().getMethodBytes());
+        
+        encodeHeaderValue(dataOutputStream, ":path".getBytes(),
+                uri.getPath().getBytes());
+        
+        encodeHeaderValue(dataOutputStream, ":version".getBytes(),
+                request.getProtocol().getProtocolBytes());
+
+        encodeHeaderValue(dataOutputStream, ":host".getBytes(),
+                hostHeader.getBytes());
+
+        encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
+                uri.getScheme() != null ? uri.getScheme().getBytes() : "http".getBytes());
+        
+        encodeUserHeaders(spdySession, headers, dataOutputStream);
+        
+        dataOutputStream.flush();
+        
+        return deflaterOutputStream.checkpoint();
+    }
+
+    private static void encodeUserHeaders(final SpdySession spdySession,
+            final MimeHeaders headers,
+            final DataOutputStream dataOutputStream) throws IOException {
+        
+        final int mimeHeadersCount = headers.size();
         final List tmpList = spdySession.tmpList;
         
         for (int i = 0; i < mimeHeadersCount; i++) {
             int valueSize = 0;
         
-            if (!headers.getAndSetSerialized(i, true)) {
+            if (!headers.setSerialized(i, true)) {
                 final DataChunk name = headers.getName(i);
                 
                 if (name.isNull() || name.getLength() == 0) {
@@ -140,7 +267,7 @@ class SpdyEncoderUtils {
                 
                 for (int j = i; j < mimeHeadersCount; j++) {
                     if (!headers.isSerialized(j) &&
-                            name.equals(headers.getName(j))) {
+                            name.equalsIgnoreCase(headers.getName(j))) {
                         headers.setSerialized(j, true);
                         final DataChunk value = headers.getValue(j);
                         if (!value.isNull()) {
@@ -181,13 +308,8 @@ class SpdyEncoderUtils {
                 }
             }
         }
-        
-        dataOutputStream.flush();
-        
-        return deflaterOutputStream.checkpoint();
     }
     
-
     private static void encodeDataChunkWithLenPrefix(final DataOutputStream dataOutputStream,
             final DataChunk dc) throws IOException {
         
@@ -259,4 +381,13 @@ class SpdyEncoderUtils {
             return Buffers.wrap(mm, new byte[size]);
         }
     }    
+
+    private static void encodeHeaderValue(
+            final DataOutputStream dataOutputStream,
+            final byte[] nameBytes, final byte[] valueBytes) throws IOException {
+        dataOutputStream.writeInt(nameBytes.length);
+        dataOutputStream.write(nameBytes);
+        dataOutputStream.writeInt(valueBytes.length);
+        dataOutputStream.write(valueBytes);
+    }
 }

@@ -56,6 +56,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -139,18 +140,26 @@ public class SpdyAddOn implements AddOn {
                     private final List<String> supportedProtocols = Arrays.asList("spdy/3", "http/1.1");
 
                     @Override
-                    public List<String> supportedProtocols() {
+                    public List<String> supportedProtocols(final Connection connection) {
                         return supportedProtocols;
                     }
 
                     @Override
-                    public void onSuccess(String protocol) {
-                        System.out.println("Success: " + protocol);
+                    public void onSuccess(final Connection connection,
+                            final String protocol) {
+                        
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
+                                    new Object[]{connection, protocol});
+                        }
                     }
 
                     @Override
-                    public void onNoDeal() {
-                        System.out.println("NoDeal");
+                    public void onNoDeal(final Connection connection) {
+                        if (LOGGER.isLoggable(Level.FINE)) {
+                            LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
+                                    new Object[]{connection});
+                        }
                     }
                 });
     }
