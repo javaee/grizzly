@@ -55,9 +55,13 @@ import java.util.List;
 public interface ThreadPool extends ConfigBeanProxy, PropertyBag {
     int IDLE_THREAD_TIMEOUT = 900;
     int MAX_QUEUE_SIZE = 4096;
+
+    // min and max are set to the same value to force the use
+    // of the fixed thread pool in default configuration cases.
+    // This thread pool offers better performance characteristics
+    // over the sync thread pool.
     int MAX_THREADPOOL_SIZE = 5;
-    int MIN_THREADPOOL_SIZE = 2;
-    String PARAMETERIZED_NUMBER_PATTERN = "\\$\\{.+\\}|\\d+";
+    int MIN_THREADPOOL_SIZE = 5;
 
     /**
      * The classname of a thread pool implementation
