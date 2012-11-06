@@ -42,6 +42,8 @@ package org.glassfish.grizzly.filterchain;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,7 +55,6 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ReadResult;
@@ -80,7 +81,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         INCOMPLETE, REMAINDER
     }
     
-    private final FiltersStateFactory filtersStateFactory =
+    private static final FiltersStateFactory FILTERS_STATE_FACTORY =
             new FiltersStateFactory();
 
     /**
@@ -102,24 +103,14 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         if (filterChainContext.getOperation() == Operation.NONE) {
             final Event event = internalContext.getEvent();
 
-//            if (event != ServiceEvent.WRITE) {
-                final Operation operation =
-                        FilterChainContext.event2Operation(event);
-                
-                if (operation != null) {
-                    filterChainContext.setOperation(operation);
-                } else {
-                    filterChainContext.setOperation(Operation.EVENT);
-                }
-//            } else {
-//                // On OP_WRITE - call the async write queue
-//                final Connection connection = context.getConnection();
-//                final AsyncQueueEnabledTransport transport =
-//                        (AsyncQueueEnabledTransport) connection.getTransport();
-//                final AsyncQueueWriter writer = transport.getAsyncQueueIO().getWriter();
-//
-//                return writer.processAsync(context).toProcessorResult();
-//            }
+            final Operation operation =
+                    FilterChainContext.event2Operation(event);
+
+            if (operation != null) {
+                filterChainContext.setOperation(operation);
+            } else {
+                filterChainContext.setOperation(Operation.EVENT);
+            }
         }
 
         return execute(filterChainContext);
@@ -155,21 +146,6 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                     case FilterExecution.FORK_TYPE:
                         ctx = execution.getContext();
                         ctx.setMessage(null);
-//                        
-//                        final int idx = indexOfRemainder(
-//                                filtersState,
-//                                ctx.getOperation(), ctx.getStartIdx(), end);
-//                        if (idx != -1) {
-//                            // if there is a remainder associated with the connection
-//                            // rerun the filter chain with the new context right away
-//                            ctx.setFilterIdx(idx);
-//                        } else {
-//                            // reregister to listen for next operation,
-//                            // keeping the current Context
-//                            ctx.setFilterIdx(executor.defaultEndIdx(ctx));
-//                        }
-//                        
-//                        return ProcessorResult.createFork(ctx.internalContext);
                 }
             } while (prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
@@ -204,16 +180,17 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             throws IOException {
 
         int i = start;
-
+        Filter currentFilter = null;
+        
         int lastNextActionType = InvokeAction.TYPE;
         NextAction lastNextAction = null;
         
         while (i != end) {
             // current Filter to be executed
-            final Filter currentFilter = get(i);
+            currentFilter = get(i);
 
             // Checks if there was a remainder message stored from the last filter execution
-            checkStoredMessage(ctx, filtersState, i);
+            checkStoredMessage(ctx, filtersState, currentFilter);
 
             // execute the task
             lastNextAction = executeFilter(executor, currentFilter, ctx);
@@ -225,7 +202,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             
             // Store the remainder if any
             storeMessage(ctx,
-                    filtersState, FILTER_STATE_TYPE.REMAINDER, i,
+                    filtersState, FILTER_STATE_TYPE.REMAINDER, currentFilter,
                     ((InvokeAction) lastNextAction).getRemainder(), null);
 
             i = executor.getNextFilter(ctx);
@@ -237,12 +214,14 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 notifyComplete(ctx);
                 break;
             case StopAction.TYPE:
+                assert currentFilter != null;
+                
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 final StopAction stopAction = (StopAction) lastNextAction;
                 storeMessage(ctx,
                              filtersState,
                              FILTER_STATE_TYPE.INCOMPLETE,
-                             i,
+                             currentFilter,
                              stopAction.getRemainder(),
                              stopAction.getAppender());
                 break;
@@ -296,7 +275,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
      */
-    protected static boolean prepareRemainder(final FilterChainContext ctx,
+    protected boolean prepareRemainder(final FilterChainContext ctx,
             final FiltersState filtersState, final int start, final int end) {
 
         final int idx = indexOfRemainder(filtersState, ctx.getOperation(),
@@ -315,13 +294,14 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection}.
      */
-    protected static int indexOfRemainder(final FiltersState filtersState,
+    private int indexOfRemainder(final FiltersState filtersState,
             final Operation operation, final int start, final int end) {
 
         final int add = (end - start > 0) ? 1 : -1;
         
         for (int i = end - add; i != start - add; i -= add) {
-            final FilterStateElement element = filtersState.getState(operation, i);
+            final FilterStateElement element =
+                    filtersState.getState(operation, get(i));
             if (element != null
                     && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
                 return i;
@@ -486,7 +466,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @SuppressWarnings("unchecked")
     private FiltersState obtainFiltersState(final Connection connection) {
-        return (FiltersState) connection.obtainProcessorState(this, filtersStateFactory);
+        return (FiltersState) connection.obtainProcessorState(this, FILTERS_STATE_FACTORY);
     }
 
     /**
@@ -496,17 +476,17 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * 
      * @param ctx {@link FilterChainContext}
      * @param filtersState {@link FiltersState} associated with the Connection
-     * @param filterIdx the current filter index
+     * @param filter the current filter
      */
     @SuppressWarnings("unchecked")
     private void checkStoredMessage(final FilterChainContext ctx,
-            final FiltersState filtersState, final int filterIdx) {
+            final FiltersState filtersState, final Filter filter) {
 
         final Operation operation = ctx.getOperation();
         final FilterStateElement filterState;
 
         // Check if there is any data stored for the current Filter
-        if (filtersState != null && (filterState = filtersState.clearState(operation, filterIdx)) != null) {
+        if (filtersState != null && (filterState = filtersState.clearState(operation, filter)) != null) {
             Object storedMessage = filterState.getState();
             final Object currentMessage = ctx.getMessage();
             if (currentMessage != null) {
@@ -528,20 +508,20 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx
      * @param filtersState
      * @param type
-     * @param filterIdx
+     * @param filter
      * @param messageToStore
      * @param appender
      * @return
      */
     private <M> void storeMessage(final FilterChainContext ctx,
             final FiltersState filtersState, final FILTER_STATE_TYPE type,
-            final int filterIdx, final M messageToStore,
+            final Filter filter, final M messageToStore,
             final Appender<M> appender) {
 
         if (messageToStore != null) {
             final Operation operation = ctx.getOperation();
 
-            filtersState.setState(operation, filterIdx,
+            filtersState.setState(operation, filter,
                     FilterStateElement.create(type, messageToStore, appender));
         }
     }
@@ -581,70 +561,36 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
     public static final class FiltersState {
 
-        private final FilterStateElement[][] state;
+        private final Map[] state;
 
-        public FiltersState(int filtersNum) {
-            this.state = new FilterStateElement[Operation.values().length][filtersNum];
+        public FiltersState() {
+            this.state = new Map[Operation.values().length];
         }
 
         public FilterStateElement getState(final Operation operation,
-                final int filterIndex) {
-            return state[operation.ordinal()][filterIndex];
+                final Filter filter) {
+            final Map<Filter, FilterStateElement> stateMap = state[operation.ordinal()];
+            return stateMap != null && !stateMap.isEmpty() ?
+                    stateMap.get(filter) : null;
         }
 
-        public void setState(final Operation operation, final int filterIndex,
+        public void setState(final Operation operation, final Filter filter,
                 final FilterStateElement stateElement) {
-            state[operation.ordinal()][filterIndex] = stateElement;
+            Map<Filter, FilterStateElement> stateMap =
+                    state[operation.ordinal()];
+            if (stateMap == null) {
+                stateMap = new WeakHashMap<Filter, FilterStateElement>();
+                state[operation.ordinal()] = stateMap;
+            }
+            
+            stateMap.put(filter, stateElement);
         }
 
         public FilterStateElement clearState(final Operation operation,
-                final int filterIndex) {
-
-            final int operationIdx = operation.ordinal();
-            final FilterStateElement oldState = state[operationIdx][filterIndex];
-            state[operationIdx][filterIndex] = null;
-            return oldState;
-        }
-
-        public int indexOf(final Operation operation,
-                final FILTER_STATE_TYPE type) {
-            return indexOf(operation, type, 0);
-        }
-
-        public int indexOf(final Operation operation,
-                final FILTER_STATE_TYPE type, final int start) {
-            final int eventIdx = operation.ordinal();
-            final int length = state[eventIdx].length;
-
-            for (int i = start; i < length; i++) {
-                final FilterStateElement filterState;
-                if ((filterState = state[eventIdx][i]) != null
-                        && filterState.getType() == type) {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public int lastIndexOf(final IOEvent event,
-                final FILTER_STATE_TYPE type, final int end) {
-            final int eventIdx = event.ordinal();
-
-            for (int i = end - 1; i >= 0; i--) {
-                final FilterStateElement filterState;
-                if ((filterState = state[eventIdx][i]) != null
-                        && filterState.getType() == type) {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public int lastIndexOf(final IOEvent event,
-                final FILTER_STATE_TYPE type) {
-            return lastIndexOf(event, type, state[event.ordinal()].length);
+                final Filter filter) {
+            final Map<Filter, FilterStateElement> stateMap = state[operation.ordinal()];
+            return stateMap != null && !stateMap.isEmpty() ?
+                    stateMap.remove(filter) : null;
         }
     }
 
@@ -701,12 +647,12 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
     
-    private final class FiltersStateFactory implements
+    private static final class FiltersStateFactory implements
             NullaryFunction<FiltersState> {
 
         @Override
         public FiltersState evaluate() {
-            return new FiltersState(size());
+            return new FiltersState();
         }        
     }
     
