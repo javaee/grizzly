@@ -41,13 +41,13 @@ package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -55,10 +55,6 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainContext.CopyListener;
-import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.EventProcessingHandler;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -70,28 +66,15 @@ import org.glassfish.grizzly.utils.ArraySet;
 public class PUFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(PUFilter.class);
 
-    private final SuspendedContextCopyListener suspendedContextCopyListener =
-            new SuspendedContextCopyListener();
-    
-    private final BackChannelFilter backChannelFilter =
-            new BackChannelFilter(this);
     private final ArraySet<PUProtocol> protocols =
             new ArraySet<PUProtocol>(PUProtocol.class);
     
     final Attribute<PUContext> puContextAttribute;
-    final Attribute<NextAction> terminateNextActionAttribute;
-    final Attribute<FilterChainContext> suspendedContextAttribute;
 
     public PUFilter() {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
-        terminateNextActionAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + '-' + hashCode() + ".terminateNextActionAttribute");
-        suspendedContextAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                        PUFilter.class.getName() + '-' + hashCode() + ".suspendedContext");
     }
 
     /**
@@ -117,11 +100,6 @@ public class PUFilter extends BaseFilter {
      * @param puProtocol {@link PUProtocol}
      */
     public void register(final PUProtocol puProtocol) {
-        final Filter filter = puProtocol.getFilterChain().get(0);
-        if (filter != backChannelFilter) {
-            throw new IllegalStateException("The first Filter in the protocol should be the BackChannelFilter");
-        }
-
         protocols.add(puProtocol);
     }
 
@@ -144,21 +122,6 @@ public class PUFilter extends BaseFilter {
     }
 
     /**
-     * Get the back channel {@link Filter} implementation, which should connect the
-     * custom protocol {@link FilterChain} with the main {@link FilterChain}.
-     * Usually developers shouldn't use this method, if they build custom protocol
-     * chains using {@link #getPUFilterChainBuilder()}, otherwise they have to
-     * make sure there custom protocol {@link FilterChain} contains back channel
-     * {@link Filter} (usually first Filter in the custom protocol filter chain).
-     *
-     *
-     * @return back channel {@link Filter}.
-     */
-    public Filter getBackChannelFilter() {
-        return backChannelFilter;
-    }
-
-    /**
      * Returns the {@link FilterChainBuilder}, developers may use to build there
      * custom protocol filter chain.
      * The returned {@link FilterChainBuilder} may have some {@link Filter}s pre-added.
@@ -167,19 +130,11 @@ public class PUFilter extends BaseFilter {
      */
     public FilterChainBuilder getPUFilterChainBuilder() {
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
-        builder.add(backChannelFilter);
         return builder;
     }
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        final NextAction terminateNextAction;
-        if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
-            // We get here, when context is resumed after
-            // child protocol chain execution is complete.
-            return terminateNextAction;
-        }
-
         final Connection connection = ctx.getConnection();
         PUContext puContext = puContextAttribute.get(connection);
         if (puContext == null) {
@@ -198,23 +153,21 @@ public class PUFilter extends BaseFilter {
         }
         
         if (protocol != null) {
-            if (!puContext.isSticky) {
-                // if not sticky - next request may belong to another protocol
-                // so reset puContext
-                puContext.reset();
-            }
-            
-            terminateNextActionAttribute.set(ctx, ctx.getStopAction());
-
-            final FilterChainContext nestedFilterChainContext =
-                    obtainChildFilterChainContext(protocol, connection, ctx);
-            
-            nestedFilterChainContext.addCopyListener(suspendedContextCopyListener);
-            suspendedContextAttribute.set(nestedFilterChainContext, ctx);
-            
             final NextAction suspendAction = ctx.getSuspendAction();
             ctx.suspend();
-            ProcessorExecutor.execute(nestedFilterChainContext.getInternalContext());
+
+            final FilterChain completeProtocolChain = 
+                    buildCompleteProtocolChain(protocol, ctx);
+
+            connection.setProcessor(completeProtocolChain);
+            
+            final FilterChainContext completeChainContext =
+                    obtainProtocolChainContext(puContext, ctx,
+                    completeProtocolChain);
+            
+            puContext.reset();
+            
+            ProcessorExecutor.execute(completeChainContext.getInternalContext());
 
             return suspendAction;
         }
@@ -230,61 +183,43 @@ public class PUFilter extends BaseFilter {
         return ctx.getStopAction(ctx.getMessage());
     }
 
-    private FilterChainContext obtainChildFilterChainContext(
+    private FilterChain buildCompleteProtocolChain(
             final PUProtocol protocol,
-            final Connection connection,
             final FilterChainContext ctx) {
-        
-        final FilterChain filterChain = protocol.getFilterChain();        
-        final FilterChainContext filterChainContext =
-                filterChain.obtainFilterChainContext(connection);
-        final Context context = filterChainContext.getInternalContext();
-        context.setEvent(IOEvent.READ, new InternalProcessingHandler(ctx, context));
-        filterChainContext.setAddressHolder(ctx.getAddressHolder());
-        filterChainContext.setMessage(ctx.getMessage());
-        return filterChainContext;
-    }
-
-    @Override
-    public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws IOException {
-
-        // if upstream event - pass it to the puFilter
-        if (isUpstream(ctx)) {
-            final NextAction terminateNextAction;
-            if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
-                // We get here, when context is resumed after
-                // child protocol chain execution is complete.
-                return terminateNextAction;
-            }
-
-            final Connection connection = ctx.getConnection();
-            final PUContext puContext = puContextAttribute.get(connection);
-            final PUProtocol protocol;
-            if (puContext != null && (protocol = puContext.protocol) != null) {
-                terminateNextActionAttribute.set(ctx, ctx.getStopAction());
-
-                final FilterChain filterChain = protocol.getFilterChain();
-                final FilterChainContext context =
-                        filterChain.obtainFilterChainContext(connection,
-                        -1, filterChain.size(), -1);
-
-                suspendedContextAttribute.set(context, ctx);
-                ctx.suspend();
-                final NextAction suspendAction = ctx.getSuspendAction();
-                
-                context.notifyUpstream(event, new InternalCompletionHandler(ctx));
-                
-                return suspendAction;
-            }
+        final FilterChain nestedFilterChain = protocol.getFilterChain();
+        final FilterChainBuilder newFilterChainBuilder = FilterChainBuilder.stateless();
+        final FilterChain currentFilterChain = ctx.getFilterChain();
+        final int currentFilterIdx = ctx.getFilterIdx();
+        for (int i = 0; i < currentFilterIdx; i++) {
+            newFilterChainBuilder.add(currentFilterChain.get(i));
         }
-
-        return ctx.getInvokeAction();
+        for (int i = 0; i < nestedFilterChain.size(); i++) {
+            newFilterChainBuilder.add(nestedFilterChain.get(i));
+        }
+        
+        return newFilterChainBuilder.build();
     }
+    
+    private FilterChainContext obtainProtocolChainContext(
+            final PUContext puContext,
+            final FilterChainContext ctx,
+            final FilterChain completeProtocolFilterChain) {
 
-    @Override
-    public NextAction handleClose(FilterChainContext ctx) throws IOException {
-        return super.handleClose(ctx);
+        
+        final FilterChainContext newFilterChainContext =
+                completeProtocolFilterChain.obtainFilterChainContext(
+                ctx.getConnection(),
+                ctx.getStartIdx(),
+                completeProtocolFilterChain.size(),
+                ctx.getFilterIdx());
+        
+        newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
+        newFilterChainContext.setMessage(ctx.getMessage());
+        newFilterChainContext.getInternalContext().setEvent(
+                IOEvent.READ,
+                new InternalProcessingHandler(ctx, puContext.isSticky()));
+
+        return newFilterChainContext;
     }
 
     protected void findProtocol(final PUContext puContext,
@@ -315,95 +250,25 @@ public class PUFilter extends BaseFilter {
         }
     }
 
-    private static boolean isUpstream(final FilterChainContext context) {
-        return context.getStartIdx() < context.getEndIdx();
-    }
-
-
     private class InternalProcessingHandler extends EventProcessingHandler.Adapter {
         private final FilterChainContext parentContext;
-        private final Context currentContext;
+        private final boolean isSticky;
         
         private InternalProcessingHandler(final FilterChainContext parentContext,
-                final Context currentContext) {
+                final boolean isSticky) {
             this.parentContext = parentContext;
-            this.currentContext = currentContext;
+            this.isSticky = isSticky;
         }
         
         @Override
         public void onComplete(final Context context) throws IOException {
-            if (context == currentContext) {
-                complete(context);
-            } else {
-                fork(context);
+            // @TODO implement method like parentContext.resume(NextAction)
+            
+            if (!isSticky) {
+                parentContext.getConnection().setProcessor(
+                        parentContext.getFilterChain());
             }
+            parentContext.resumeNext();
         }
-        
-        private void complete(final Context context) {
-            final FilterChainContext suspendedContext =
-                    suspendedContextAttribute.remove(context);
-
-            assert suspendedContext != null;
-            
-            terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getStopAction());                
-            
-            suspendedContext.resume();
-        }
-        
-        private void fork(final Context context) {
-            final FilterChainContext suspendedContext =
-                    suspendedContextAttribute.get(context);
-
-            assert suspendedContext != null;
-            
-            terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getForkAction());
-            
-            suspendedContext.resume();
-        }
-    }
-
-    private static class InternalCompletionHandler implements
-            CompletionHandler<FilterChainContext> {
-
-        private final FilterChainContext suspendedContext;
-
-        public InternalCompletionHandler(FilterChainContext suspendedContext) {
-            this.suspendedContext = suspendedContext;
-        }
-
-        @Override
-        public void cancelled() {
-            failed(new CancellationException());
-        }
-
-        @Override
-        public void failed(final Throwable throwable) {
-            suspendedContext.fail(throwable);
-        }
-
-        @Override
-        public void completed(final FilterChainContext context) {
-            suspendedContext.resume();
-        }
-
-        @Override
-        public void updated(FilterChainContext result) {
-        }
-
-    }
-    
-    private class SuspendedContextCopyListener implements CopyListener {
-
-        @Override
-        public void onCopy(final FilterChainContext srcContext,
-                final FilterChainContext copiedContext) {
-            final FilterChainContext suspendedContextCopy =
-                    suspendedContextAttribute.get(srcContext).copy();
-            suspendedContextAttribute.set(copiedContext, suspendedContextCopy);
-            copiedContext.addCopyListener(this);
-        }
-        
     }
 }
