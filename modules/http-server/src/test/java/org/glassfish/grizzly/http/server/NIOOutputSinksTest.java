@@ -141,7 +141,7 @@ public class NIOOutputSinksTest extends TestCase {
 
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         final HttpHandler ga = new HttpHandler() {
@@ -302,7 +302,7 @@ public class NIOOutputSinksTest extends TestCase {
 
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final HttpHandler ga = new HttpHandler() {
 
@@ -420,7 +420,7 @@ public class NIOOutputSinksTest extends TestCase {
 
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         final HttpHandler ga = new HttpHandler() {
@@ -586,7 +586,7 @@ public class NIOOutputSinksTest extends TestCase {
 
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final HttpHandler ga = new HttpHandler() {
 
@@ -699,7 +699,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 
             @Override
@@ -812,7 +812,7 @@ public class NIOOutputSinksTest extends TestCase {
 
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final HttpHandler ga = new HttpHandler() {
 
@@ -920,7 +920,7 @@ public class NIOOutputSinksTest extends TestCase {
         final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 
             int reentrants = maxAllowedReentrants * 3;
@@ -1073,7 +1073,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
         
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 
             @Override

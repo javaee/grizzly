@@ -290,7 +290,7 @@ public class SSLTest {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.setMemoryManager(manager);
 
         TCPNIOTransport cTransport =
@@ -299,7 +299,7 @@ public class SSLTest {
         clientChain.add(new TransportFilter());
         clientChain.add(new SSLFilter(null, clientSSLEngineConfigurator));
         clientChain.add(new StringFilter());
-        cTransport.setProcessor(clientChain.build());
+        cTransport.setFilterChain(clientChain.build());
         cTransport.setMemoryManager(manager);
 
         try {
@@ -433,7 +433,7 @@ public class SSLTest {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.setMemoryManager(manager);
 
         try {
@@ -509,7 +509,7 @@ public class SSLTest {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setFilterChain(serverFilterChainBuilder.build());
         transport.setMemoryManager(manager);
 
         try {
@@ -538,7 +538,7 @@ public class SSLTest {
             
             TCPNIOConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChainBuilder.build())
+                    .filterChain(clientFilterChainBuilder.build())
                     .build();
                 
             for (int i = 0; i < connectionsNum; i++) {
@@ -609,7 +609,7 @@ public class SSLTest {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.setMemoryManager(manager);
 
         final MemoryManager mm = transport.getMemoryManager();
@@ -634,7 +634,7 @@ public class SSLTest {
 
                 SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChainBuilder.build())
+                        .filterChain(clientFilterChainBuilder.build())
                         .build();
                 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
@@ -701,7 +701,7 @@ public class SSLTest {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.setMemoryManager(manager);
 
         final MemoryManager mm = transport.getMemoryManager();
@@ -724,7 +724,7 @@ public class SSLTest {
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChainBuilder.build())
+                    .filterChain(clientFilterChainBuilder.build())
                     .build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);

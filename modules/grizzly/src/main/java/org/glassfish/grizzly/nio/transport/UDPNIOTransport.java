@@ -70,6 +70,7 @@ import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
@@ -508,7 +509,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 selectorHandler = new DefaultSelectorHandler();
             }
 
-            if (processor == null) {
+            if (filterChain == null) {
                 throw new IllegalStateException("No processor available.");
             }
 
@@ -885,7 +886,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     protected void configureNIOConnection(UDPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
-        connection.setProcessor(processor);
+        connection.setFilterChain(filterChain);
         if (connectionMonitoringConfig.hasProbes()) {
             connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         }
@@ -937,8 +938,8 @@ public final class UDPNIOTransport extends NIOTransport implements
         }
 
         @Override
-        public Processor getProcessor() {
-            return UDPNIOTransport.this.getProcessor();
+        public FilterChain getFilterChain() {
+            return UDPNIOTransport.this.getFilterChain();
         }
     }
 }

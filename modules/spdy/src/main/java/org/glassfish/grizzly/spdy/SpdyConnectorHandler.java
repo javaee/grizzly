@@ -102,7 +102,7 @@ public class SpdyConnectorHandler<E> implements ConnectorHandler<E> {
             final SpdySession spdySession = new SpdySession(connection, false);
             SpdySession.bind(connection, spdySession);
             
-            final FilterChain filterChain = (FilterChain) connection.getProcessor();
+            final FilterChain filterChain = connection.getFilterChain();
             final int idx = filterChain.indexOfType(SSLFilter.class);
             if (idx == -1) { // No SSL filter -> no NPN
                 userCompletionHandler.completed(connection);

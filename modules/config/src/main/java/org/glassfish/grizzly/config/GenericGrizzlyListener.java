@@ -234,7 +234,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 networkListener.findThreadPool());
 
         rootFilterChain = filterChainBuilder.build();
-        transport.setProcessor(rootFilterChain);
+        transport.setFilterChain(rootFilterChain);
     }
 
     protected void configureTransport(final NetworkListener networkListener,

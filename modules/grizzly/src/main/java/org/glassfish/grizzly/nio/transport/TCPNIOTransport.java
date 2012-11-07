@@ -75,6 +75,7 @@ import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -204,7 +205,7 @@ public class TCPNIOTransport extends NIOTransport
                 selectorHandler = new DefaultSelectorHandler();
             }
 
-            if (processor == null) {
+            if (filterChain == null) {
                 throw new IllegalStateException("No processor available.");
             }
 
@@ -700,7 +701,7 @@ public class TCPNIOTransport extends NIOTransport
 
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
-        connection.setProcessor(processor);
+        connection.setFilterChain(filterChain);
         if (connectionMonitoringConfig.hasProbes()) {
             connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         }
@@ -1038,8 +1039,8 @@ public class TCPNIOTransport extends NIOTransport
         }
 
         @Override
-        public Processor getProcessor() {
-            return TCPNIOTransport.this.getProcessor();
+        public FilterChain getFilterChain() {
+            return TCPNIOTransport.this.getFilterChain();
         }
     }
 }

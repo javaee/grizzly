@@ -455,7 +455,7 @@ public class MultipartBasicTest {
 
             final SocketConnectorHandler connector =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(filterChainBuilder.build())
+                    .filterChain(filterChainBuilder.build())
                     .build();
 
             final FutureImpl<Connection> future =

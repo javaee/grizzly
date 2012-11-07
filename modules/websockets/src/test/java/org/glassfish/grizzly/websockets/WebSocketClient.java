@@ -51,8 +51,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
@@ -130,7 +130,7 @@ public class WebSocketClient extends DefaultWebSocket {
                     latch.countDown();
                 }
             });
-            connectorHandler.setProcessor(createFilterChain());
+            connectorHandler.setFilterChain(createFilterChain());
             // start connect
             connectorHandler.connect(new InetSocketAddress(
                     address.getHost(), address.getPort()), (CompletionHandler<Connection>) null);
@@ -147,7 +147,7 @@ public class WebSocketClient extends DefaultWebSocket {
         transport = TCPNIOTransportBuilder.newInstance().build();
     }
 
-    private static Processor createFilterChain() {
+    private static FilterChain createFilterChain() {
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
         clientFilterChainBuilder.add(new TransportFilter());
         clientFilterChainBuilder.add(new HttpClientFilter());

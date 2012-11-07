@@ -480,7 +480,7 @@ public class NIOInputSourcesTest extends TestCase {
         filterChainBuilder.add(new HttpClientFilter());
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-        clientTransport.setProcessor(filterChainBuilder.build());
+        clientTransport.setFilterChain(filterChainBuilder.build());
         final HttpHandler httpHandler = new HttpHandler() {
 
             @Override
@@ -646,7 +646,7 @@ public class NIOInputSourcesTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(128));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(filter);
-            clientTransport.setProcessor(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChainBuilder.build());
 
             clientTransport.start();
 

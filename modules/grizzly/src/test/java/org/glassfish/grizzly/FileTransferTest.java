@@ -86,7 +86,7 @@ public class FileTransferTest {
                 return ctx.getStopAction();
             }
         });
-        t.setProcessor(builder.build());
+        t.setFilterChain(builder.build());
         t.bind(PORT);
         t.start();
 
@@ -117,7 +117,7 @@ public class FileTransferTest {
                 return ctx.getStopAction();
             }
         });
-        client.setProcessor(clientChain.build());
+        client.setFilterChain(clientChain.build());
         client.start();
         client.connect("localhost", PORT);
         long start = System.currentTimeMillis();

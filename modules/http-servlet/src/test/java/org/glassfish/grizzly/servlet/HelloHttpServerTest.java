@@ -55,7 +55,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.server.HttpServer;
 
 /**
@@ -141,9 +141,9 @@ public class HelloHttpServerTest extends TestCase {
             httpServer.start();
             ctx.deploy(httpServer);
 
-            Processor pc = httpServer.getListener("grizzly").getTransport().getProcessor();
-            LOGGER.fine("ProtcolChain: " + pc);
-            assertNotNull(pc);
+            final FilterChain filterChain = httpServer.getListener("grizzly").getTransport().getFilterChain();
+            LOGGER.log(Level.FINE, "FilterChain: {0}", filterChain);
+            assertNotNull(filterChain);
         } finally {
             stopHttpServer();
         }

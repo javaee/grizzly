@@ -67,7 +67,7 @@ public abstract class NIOTransport extends AbstractTransport {
 
     private int selectorRunnersCount = -1;
     
-    protected SelectorRunner[] selectorRunners;
+    private SelectorRunner[] selectorRunners;
     
     protected NIOChannelDistributor nioChannelDistributor;
 
@@ -260,7 +260,7 @@ public abstract class NIOTransport extends AbstractTransport {
         }
 
         for (int i = 0; i < selectorRunners.length; i++) {
-            SelectorRunner runner = selectorRunners[i];
+            final SelectorRunner runner = selectorRunners[i];
             if (runner != null) {
                 runner.stop();
                 selectorRunners[i] = null;

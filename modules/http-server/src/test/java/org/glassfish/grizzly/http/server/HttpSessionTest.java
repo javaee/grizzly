@@ -243,7 +243,7 @@ public class HttpSessionTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(5));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
-            clientTransport.setProcessor(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChainBuilder.build());
 
             clientTransport.start();
 

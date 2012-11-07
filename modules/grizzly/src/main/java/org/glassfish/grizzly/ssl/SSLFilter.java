@@ -42,7 +42,6 @@ package org.glassfish.grizzly.ssl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -104,8 +103,6 @@ public class SSLFilter extends BaseFilter {
     // Max bytes SSLFilter may enqueue
     protected volatile int maxPendingBytes = Integer.MAX_VALUE;
 
-    protected WeakReference<FilterChain> filterChainRef;
-    
     protected final Set<HandshakeListener> handshakeListeners =
             Collections.newSetFromMap(new ConcurrentHashMap<HandshakeListener, Boolean>());
     
@@ -162,12 +159,6 @@ public class SSLFilter extends BaseFilter {
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                      "SSLFilter-HandshakingInitiatingContextAttr"
                 );
-    }
-
-    @Override
-    public void onFilterChainConstructed(final FilterChain filterChain) {
-        super.onFilterChainConstructed(filterChain);
-        filterChainRef = new WeakReference<FilterChain>(filterChain);
     }
 
     public void addHandshakeListener(final HandshakeListener listener) {
@@ -302,22 +293,9 @@ public class SSLFilter extends BaseFilter {
     throws IOException {
         // Try to find corresponding FilterChain
         
-        // 1) Check the connection processor
-        FilterChain filterChain = null;
-        int idx = -1;
-        if (connection.getProcessor() instanceof FilterChain) {
-            filterChain = (FilterChain) connection.getProcessor();
-            idx = filterChain.indexOf(this);
-        }
-        
-        
-        if (idx == -1 && filterChainRef != null) {
-            filterChain = filterChainRef.get();
-            if (filterChain != null) {
-                idx = filterChain.indexOf(this);
-            }
-        }
-        
+        final FilterChain filterChain = connection.getFilterChain();
+        final int idx = filterChain.indexOf(this);
+                
         if (idx == -1) {
             throw new IllegalStateException("Can't construct FilterChainContext");
         }

@@ -163,7 +163,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
 
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.configureBlocking(blocking);
 
         try {
@@ -189,7 +189,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChain)
+                    .filterChain(clientFilterChain)
                     .build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);

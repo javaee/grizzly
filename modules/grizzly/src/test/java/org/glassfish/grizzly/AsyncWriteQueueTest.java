@@ -136,7 +136,7 @@ public class AsyncWriteQueueTest {
         });
 
         final TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -156,7 +156,7 @@ public class AsyncWriteQueueTest {
             
             SocketConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChain)
+                    .filterChain(clientFilterChain)
                     .build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
@@ -284,7 +284,7 @@ public class AsyncWriteQueueTest {
         });
 
         TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setFilterChain(serverFilterChainBuilder.build());
 
         try {
             transport.setMaxAsyncWriteQueueSizeInBytes(-1);
@@ -294,7 +294,7 @@ public class AsyncWriteQueueTest {
 
             TCPNIOConnectorHandler connectorHandler = TCPNIOConnectorHandler
                     .builder(transport)
-                    .processor(clientFilterChainBuilder.build())
+                    .filterChain(clientFilterChainBuilder.build())
                     .build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
@@ -391,7 +391,7 @@ public class AsyncWriteQueueTest {
 
 
         final TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
 
         try {
@@ -472,7 +472,7 @@ public class AsyncWriteQueueTest {
 
         // reentrants limitation is applicable for non-multiplexing-optimized write queue
         TCPNIOTransport transport = createTransport(false);
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);

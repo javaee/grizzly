@@ -102,7 +102,7 @@ public class FilterChainReadTest extends TestCase {
         filterChainBuilder.add(puFilter);
 
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -129,7 +129,7 @@ public class FilterChainReadTest extends TestCase {
             });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            connection.setFilterChain(clientFilterChain);
 
             for (int i = 0; i < messageNum; i++) {
                 String clientMessage = "";
@@ -188,7 +188,7 @@ public class FilterChainReadTest extends TestCase {
 
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -215,7 +215,7 @@ public class FilterChainReadTest extends TestCase {
             });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            connection.setFilterChain(clientFilterChain);
 
             final MemoryManager memoryManager = transport.getMemoryManager();
             for (int i = 0; i < messageNum; i++) {
@@ -280,7 +280,7 @@ public class FilterChainReadTest extends TestCase {
         filterChainBuilder.add(puFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -296,7 +296,7 @@ public class FilterChainReadTest extends TestCase {
             clientFilterChainBuilder.add(new StringFilter());
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
 
-            connection.setProcessor(clientFilterChain);
+            connection.setFilterChain(clientFilterChain);
 
             String msg = clientMsgs[0];
             Future<WriteResult> writeFuture = connection.write(msg);

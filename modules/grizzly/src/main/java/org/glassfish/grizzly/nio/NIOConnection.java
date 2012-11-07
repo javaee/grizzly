@@ -43,9 +43,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -70,12 +68,12 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
@@ -99,7 +97,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile SelectionKey selectionKey;
     protected volatile SelectorRunner selectorRunner;
     
-    protected volatile Processor processor;
+    protected volatile FilterChain filterChain;
     protected final AttributeHolder attributes;
     
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
@@ -117,11 +115,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
     
-    /**
-     * Storage contains a single Processor state.
-     */
-    private volatile Object processorState;
-        
     /**
      * Connection probes
      */
@@ -324,32 +317,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public Processor getProcessor() {
-        final Processor localProcessor = processor;
-        return localProcessor != null ? localProcessor :
-                transport.getProcessor();
+    public FilterChain getFilterChain() {
+        final FilterChain localFilterChain = filterChain;
+        return localFilterChain != null ? localFilterChain :
+                transport.getFilterChain();
     }
 
     @Override
-    public void setProcessor(
-        Processor preferableProcessor) {
-        this.processor = preferableProcessor;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <E> E obtainProcessorState(final Processor processor,
-            final NullaryFunction<E> factory) {
-        // ignoring processor, we're planning to remove all the processors except filterchain
-        if (processorState == null) {
-            synchronized(this) {
-                if (processorState == null) {
-                    processorState = factory.evaluate();
-                }
-            }
-        }
-        
-        return (E) processorState;
+    public void setFilterChain(final FilterChain preferableFilterChain) {
+        this.filterChain = preferableFilterChain;
     }
 
     protected TaskQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
@@ -374,8 +350,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public <M> void read(
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler) {
-        final Processor obtainedProcessor = getProcessor();
-        obtainedProcessor.read(this, completionHandler);
+        final Processor localFilterChain = getFilterChain();
+        localFilterChain.read(this, completionHandler);
     }
 
     @Override
@@ -408,8 +384,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final SocketAddress dstAddress, final M message,
             final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler) {
-        final Processor obtainedProcessor = getProcessor();
-        obtainedProcessor.write(this, dstAddress, message,
+        final Processor localFilterChain = getFilterChain();
+        localFilterChain.write(this, dstAddress, message,
                 completionHandler, lifeCycleHandler);
     }
 

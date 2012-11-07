@@ -85,7 +85,7 @@ public interface Processor<E extends Context> {
         @Override
         public Context obtainContext(Connection connection) {
             final Context context = Context.create(connection);
-            context.setProcessor(this);
+            context.setFilterChain(this);
 
             return context;
         }

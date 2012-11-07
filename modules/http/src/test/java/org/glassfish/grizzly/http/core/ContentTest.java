@@ -135,7 +135,7 @@ public class ContentTest extends TestCase {
         FilterChain filterChain = filterChainBuilder.build();
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
 
         try {
             transport.bind(PORT);
@@ -149,7 +149,7 @@ public class ContentTest extends TestCase {
             
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChain)
+                    .filterChain(clientFilterChain)
                     .build();
 
             Future<Connection> future = connectorHandler.connect("localhost", PORT);

@@ -262,7 +262,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         
-        transport.setProcessor(FilterChainBuilder.stateless()
+        transport.setFilterChain(FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .build());
 
@@ -316,7 +316,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 }
             });
             
-            transport.setProcessor(filterChainBuilder.build());
+            transport.setFilterChain(filterChainBuilder.build());
 
             transport.bind(PORT);
             transport.start();
@@ -372,7 +372,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         serverChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverChainBuilder.build());
+        transport.setFilterChain(serverChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -386,7 +386,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -422,7 +422,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 .add(new EchoFilter());
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -437,7 +437,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -473,7 +473,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 .add(new EchoFilter());
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -487,7 +487,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -535,7 +535,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
                 .setMaxAsyncWriteQueueSizeInBytes(-1)
                 .build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -548,7 +548,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -636,7 +636,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -649,7 +649,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -718,7 +718,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         })
                 .add(new EchoFilter());
 
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         transport.setSelectorRunnersCount(4);
         
@@ -734,7 +734,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             final TCPNIOConnectorHandler connectorHandler = 
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -786,11 +786,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
         });
 
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setFilterChain(serverFilterChainBuilder.build());
         
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
                 .builder(transport)
-                .processor(clientFilterChainBuilder.build())
+                .filterChain(clientFilterChainBuilder.build())
                 .build();
 
         try {
@@ -868,7 +868,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         transport.configureBlocking(blocking);
 
         try {
@@ -887,7 +887,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                            .processor(clientFilterChainBuilder.build())
+                            .filterChain(clientFilterChainBuilder.build())
                             .build();
 
             Future<Connection> future = connectorHandler.connect("localhost", PORT);

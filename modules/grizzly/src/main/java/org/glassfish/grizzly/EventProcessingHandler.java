@@ -65,14 +65,6 @@ public interface EventProcessingHandler {
      */
     public void onResume(Context context) throws IOException;
 
-//    /**
-//     * Reregister {@link ServiceEvent} interest.
-//     *
-//     * @param context
-//     * @throws IOException
-//     */
-//    public void onReregister(Context context) throws IOException;
-
     /**
      * {@link Event} processing completed.
      * 
@@ -89,15 +81,6 @@ public interface EventProcessingHandler {
      * @throws IOException
      */
     public void onTerminate(Context context) throws IOException;
-
-    /**
-     * Re-run {@link Event} processing.
-     *
-     * @param context original {@link Context} to be rerun
-     * @param newContext new context, which will replace original {@link Context}
-     * @throws IOException
-     */
-//    public void onRerun(Context context, Context newContext) throws IOException;
 
     /**
      * Error occurred during {@link Event} processing.
@@ -132,13 +115,6 @@ public interface EventProcessingHandler {
         public void onResume(Context context) throws IOException {
         }
 
-//        /**
-//         * {@inheritDoc}
-//         */
-//        @Override
-//        public void onReregister(Context context) throws IOException {
-//        }
-
         /**
          * {@inheritDoc}
          */
@@ -152,13 +128,6 @@ public interface EventProcessingHandler {
         @Override
         public void onTerminate(Context context) throws IOException {
         }
-
-        /**
-         * {@inheritDoc}
-         */
-//        @Override
-//        public void onRerun(Context context, Context newContext) throws IOException {
-//        }
 
         /**
          * {@inheritDoc}

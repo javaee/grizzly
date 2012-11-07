@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.Futures;
@@ -65,12 +66,12 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     }
 
     @Override
-    public Processor getProcessor() {
-        if (processor == null) {
-            return transport.getProcessor();
+    public FilterChain getFilterChain() {
+        if (filterChain == null) {
+            return transport.getFilterChain();
         }
 
-        return processor;
+        return filterChain;
     }
 
     public void register() throws IOException {

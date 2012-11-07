@@ -624,7 +624,7 @@ public class NetworkListener {
         if (filterChain == null) {
             throw new IllegalStateException("No FilterChain available."); // i18n
         }
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
 
         final TCPNIOServerConnection serverConnection;
         if (isBindToInherited) {

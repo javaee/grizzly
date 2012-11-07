@@ -489,7 +489,7 @@ public class BasicAjpTest extends AjpTestBase {
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 httpServer.getListener(LISTENER_NAME).getTransport())
-                .processor(builder.build())
+                .filterChain(builder.build())
                 .build();
 
         Future<Connection> connectFuture = connectorHandler.connect(host, port);

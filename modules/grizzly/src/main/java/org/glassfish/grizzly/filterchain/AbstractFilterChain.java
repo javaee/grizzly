@@ -74,7 +74,7 @@ public abstract class AbstractFilterChain implements FilterChain {
             final Connection connection) {
 
         final FilterChainContext context = FilterChainContext.create(connection);
-        context.internalContext.setProcessor(this);
+        context.internalContext.setFilterChain(this);
         return context;
     }
 

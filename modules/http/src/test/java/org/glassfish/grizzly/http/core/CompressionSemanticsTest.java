@@ -326,7 +326,7 @@ public class CompressionSemanticsTest extends TestCase {
         FilterChain filterChain = filterChainBuilder.build();
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
 
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
@@ -348,7 +348,7 @@ public class CompressionSemanticsTest extends TestCase {
             clientFilterChainBuilder.add(new ClientFilter(request,
                                                           testResult,
                                                           expectedResults));
-            ctransport.setProcessor(clientFilterChainBuilder.build());
+            ctransport.setFilterChain(clientFilterChainBuilder.build());
 
             ctransport.start();
 

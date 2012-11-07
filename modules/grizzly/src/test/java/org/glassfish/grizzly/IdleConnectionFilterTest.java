@@ -96,7 +96,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             });
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         try {
             transport.bind(PORT);
@@ -151,7 +151,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         });
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         try {
             transport.bind(PORT);
@@ -207,7 +207,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             });
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         try {
             transport.bind(PORT);

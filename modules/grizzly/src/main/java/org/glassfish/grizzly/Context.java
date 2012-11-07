@@ -217,7 +217,7 @@ public class Context implements AttributeStorage, Cacheable {
      * @param processor the {@link Processor}, which is responsible to process
      * the {@link Event}.
      */
-    public void setProcessor(final Processor processor) {
+    public void setFilterChain(final Processor processor) {
         this.processor = processor;
     }
 

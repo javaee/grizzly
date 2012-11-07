@@ -60,7 +60,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PortRange;
-import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -387,10 +386,9 @@ public class HttpServer {
             LOGGER.log(Level.WARNING, null, e);
         } finally {
             for (final NetworkListener listener : listeners.values()) {
-                final Processor p = listener.getTransport().getProcessor();
-                if (p instanceof FilterChain) {
-                    ((FilterChain) p).clear();
-                }
+                final FilterChain filterChain =
+                        listener.getTransport().getFilterChain();
+                filterChain.clear();
             }
         }
 

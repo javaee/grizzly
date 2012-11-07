@@ -106,7 +106,7 @@ public class Client {
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         // Set filterchain as a Transport Processor
-        transport.setProcessor(clientFilterChainBuilder.build());
+        transport.setFilterChain(clientFilterChainBuilder.build());
 
         try {
             // start the transport

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,7 +76,7 @@ public class TCPEchoServer {
 
         int poolSize = (settings.getWorkerThreads());
 
-        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy().
+        final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig().
                 setPoolName("Grizzly-BM").
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
@@ -85,7 +85,7 @@ public class TCPEchoServer {
         fcBuilder.add(new EchoFilter());
 
 
-        transport.setProcessor(fcBuilder.build());
+        transport.setFilterChain(fcBuilder.build());
         transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(tpc));
         transport.setSelectorRunnersCount(settings.getSelectorThreads());
 

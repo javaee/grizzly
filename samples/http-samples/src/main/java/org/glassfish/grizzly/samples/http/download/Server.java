@@ -90,7 +90,7 @@ public class Server {
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
         // Set filterchain as a Transport Processor
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setFilterChain(serverFilterChainBuilder.build());
 
         try {
             // binding transport to start listen on certain host and port

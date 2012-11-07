@@ -374,7 +374,7 @@ public class LZMAEncodingTest {
         FilterChain filterChain = filterChainBuilder.build();
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
 
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
@@ -394,7 +394,7 @@ public class LZMAEncodingTest {
             clientFilterChainBuilder.add(new ClientFilter(request,
                                                           testResult,
                                                           expectedResults));
-            ctransport.setProcessor(clientFilterChainBuilder.build());
+            ctransport.setFilterChain(clientFilterChainBuilder.build());
 
             ctransport.start();
 

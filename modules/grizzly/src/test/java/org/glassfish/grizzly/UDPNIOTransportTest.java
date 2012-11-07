@@ -155,7 +155,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
         
-        transport.setProcessor(FilterChainBuilder.stateless()
+        transport.setFilterChain(FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .build());
 
@@ -197,7 +197,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         serverChainBuilder.add(new EchoFilter());
 
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverChainBuilder.build());
+        transport.setFilterChain(serverChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -211,7 +211,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             final UDPNIOConnectorHandler connectorHandler = 
                     UDPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -247,7 +247,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 .add(new EchoFilter());
         
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -262,7 +262,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             final UDPNIOConnectorHandler connectorHandler = 
                     UDPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -298,7 +298,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 .add(new EchoFilter());
         
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -312,7 +312,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             final UDPNIOConnectorHandler connectorHandler = 
                     UDPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -359,7 +359,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance()
                 .build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.setReadBufferSize(2048);
@@ -375,7 +375,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
             final UDPNIOConnectorHandler connectorHandler = 
                     UDPNIOConnectorHandler.builder(transport)
-                    .processor(clientChainBuilder.build())
+                    .filterChain(clientChainBuilder.build())
                     .build();
             
             final Future<Connection> connectFuture = connectorHandler.connect(
@@ -468,11 +468,11 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
         });
 
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setFilterChain(serverFilterChainBuilder.build());
         
         SocketConnectorHandler connectorHandler = UDPNIOConnectorHandler
                 .builder(transport)
-                .processor(clientFilterChainBuilder.build())
+                .filterChain(clientFilterChainBuilder.build())
                 .build();
 
         try {

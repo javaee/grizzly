@@ -105,7 +105,7 @@ public class BasicPUTest {
                 .add(puFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
+        transport.setFilterChain(puFilterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -123,7 +123,7 @@ public class BasicPUTest {
 
                 final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChain)
+                        .filterChain(clientFilterChain)
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
@@ -315,7 +315,7 @@ public class BasicPUTest {
                 .add(puFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
+        transport.setFilterChain(puFilterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -335,7 +335,7 @@ public class BasicPUTest {
 
                 final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChain)
+                        .filterChain(clientFilterChain)
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);

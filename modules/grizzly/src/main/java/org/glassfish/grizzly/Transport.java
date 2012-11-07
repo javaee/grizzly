@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
@@ -120,30 +121,26 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void configureBlocking(boolean isBlocking);
 
     /**
-     * Gets the default {@link Processor}, which will process {@link Connection}
-     * I/O events in case, if {@link Connection} doesn't have own
-     * {@link Processor} preferences.
-     * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
-     * and {@link Connection} doesn't have any preferred {@link Processor} -
-     * then {@link Transport} will try to get {@link Processor} using
-     * {@link ProcessorSelector#select(Event, Connection)}.
+     * Gets the default {@link FilterChain}, which will process {@link Connection}
+     * events in case, if {@link Connection} doesn't have own
+     * {@link FilterChain} preferences.
      * 
-     * @return the default {@link Processor}, which will process
-     * {@link Connection} I/O events, if one doesn't have
-     * own {@link Processor} preferences.
+     * @return the default {@link FilterChain}, which will process
+     * {@link Connection} events, if one doesn't have
+     * own {@link FilterChain} preferences.
      */
-    Processor getProcessor();
+    FilterChain getFilterChain();
 
     /**
-     * Sets the default {@link Processor}, which will process {@link Connection}
-     * I/O events in case, if {@link Connection} doesn't have own
-     * {@link Processor} preferences.
+     * Sets the default {@link FilterChain}, which will process {@link Connection}
+     * events in case, if {@link Connection} doesn't have own
+     * {@link FilterChain} preferences.
      *
-     * @param processor the default {@link Processor}, which will process
-     * {@link Connection} I/O events, if one doesn't have own
-     * {@link Processor} preferences.
+     * @param filterChain the default {@link FilterChain}, which will process
+     * {@link Connection} events, if one doesn't have own
+     * {@link FilterChain} preferences.
      */
-    void setProcessor(Processor processor);
+    void setFilterChain(FilterChain filterChain);
 
     /**
      * Get the {@link Transport} associated {@link MemoryManager}, which will

@@ -220,7 +220,7 @@ public class ChunkedTransferEncodingTest {
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
                 .builder(transport)
-                .processor(clientFilterChainBuilder.build())
+                .filterChain(clientFilterChainBuilder.build())
                 .build();
 
         Future<Connection> future = connectorHandler.connect("localhost", PORT);

@@ -83,7 +83,7 @@ public class EchoClient {
         // Create the UDP transport
         final UDPNIOTransport transport =
                 UDPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             // start the transport

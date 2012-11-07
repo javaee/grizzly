@@ -281,7 +281,7 @@ public class FilterChainTest extends TestCase {
             }
         });
 
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         Connection connection = null;
         
@@ -300,7 +300,7 @@ public class FilterChainTest extends TestCase {
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChain)
+                    .filterChain(clientChain)
                     .build();
 
             Future<Connection> connectFuture = connectorHandler.connect(
@@ -344,7 +344,7 @@ public class FilterChainTest extends TestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         Connection connection = null;
         
@@ -361,7 +361,7 @@ public class FilterChainTest extends TestCase {
 
             final SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChain).build();
+                    .filterChain(clientChain).build();
             
             Future<Connection> connectFuture = connectorHandler.connect(
                     new InetSocketAddress("localhost", PORT));
@@ -392,7 +392,7 @@ public class FilterChainTest extends TestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new BufferStateFilter(part1Future, part2Future));
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         Connection connection = null;
 
@@ -405,7 +405,7 @@ public class FilterChainTest extends TestCase {
             final FilterChain clientChain = clientFilterChainBuilder.build();
 
             final SocketConnectorHandler connectorHandler =
-                    TCPNIOConnectorHandler.builder(transport).processor(clientChain).build();
+                    TCPNIOConnectorHandler.builder(transport).filterChain(clientChain).build();
 
             Future<Connection> connectFuture = connectorHandler.connect(
                     new InetSocketAddress("localhost", PORT));
@@ -493,7 +493,7 @@ public class FilterChainTest extends TestCase {
                 })
                 .build();
 
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
 
         Connection connection = null;
         
@@ -510,7 +510,7 @@ public class FilterChainTest extends TestCase {
 
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientChain)
+                    .filterChain(clientChain)
                     .build();
 
             Future<Connection> connectFuture = connectorHandler.connect(

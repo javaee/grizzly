@@ -41,6 +41,7 @@ package org.glassfish.grizzly;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -57,7 +58,7 @@ public abstract class AbstractSocketConnectorHandler
         implements SocketConnectorHandler {
 
     protected final Transport transport;
-    private Processor processor;
+    private FilterChain filterChain;
 
     /**
      * Connection probes
@@ -67,7 +68,7 @@ public abstract class AbstractSocketConnectorHandler
     
     public AbstractSocketConnectorHandler(final Transport transport) {
         this.transport = transport;
-        this.processor = transport.getProcessor();
+        this.filterChain = transport.getFilterChain();
     }
 
     @Override
@@ -106,25 +107,25 @@ public abstract class AbstractSocketConnectorHandler
             final boolean needFuture);
 
     /**
-     * Get the default {@link Processor} to process {@link Event}, occurring
+     * Get the default {@link FilterChain} to process {@link Event}, occurring
      * on connection phase.
      *
-     * @return the default {@link Processor} to process {@link Event},
+     * @return the default {@link FilterChain} to process {@link Event},
      * occurring on connection phase.
      */
-    public Processor getProcessor() {
-        return processor;
+    public FilterChain getFilterChain() {
+        return filterChain;
     }
 
     /**
-     * Set the default {@link Processor} to process {@link Event}, occurring
+     * Set the default {@link FilterChain} to process {@link Event}, occurring
      * on connection phase.
      *
-     * @param processor the default {@link Processor} to process
+     * @param filterChain the default {@link FilterChain} to process
      * {@link Event}, occurring on connection phase.
      */
-    public final void setProcessor(Processor processor) {
-        this.processor = processor;
+    public final void setFilterChain(final FilterChain filterChain) {
+        this.filterChain = filterChain;
     }
 
     /**
@@ -165,7 +166,7 @@ public abstract class AbstractSocketConnectorHandler
      * @param connection {@link Connection} to pre-configure.
      */
     protected void preConfigure(final Connection<?> connection) {
-        connection.setProcessor(getProcessor());
+        connection.setFilterChain(getFilterChain());
         
         final MonitoringConfig<ConnectionProbe> monitoringConfig =
                 connection.getMonitoringConfig();
@@ -207,8 +208,8 @@ public abstract class AbstractSocketConnectorHandler
             this.connectorHandler = connectorHandler;
         }
 
-        public E processor(final Processor processor) {
-            connectorHandler.setProcessor(processor);
+        public E filterChain(final FilterChain filterChain) {
+            connectorHandler.setFilterChain(filterChain);
             return (E) this;
         }
 

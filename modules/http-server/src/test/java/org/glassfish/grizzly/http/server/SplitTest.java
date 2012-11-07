@@ -152,7 +152,7 @@ public class SplitTest {
             clientFilterChainBuilder.add(new ChunkingFilter(4));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
-            clientTransport.setProcessor(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChainBuilder.build());
 
             clientTransport.start();
 

@@ -77,7 +77,7 @@ public class TunnelServer {
                 TCPNIOConnectorHandler.builder(transport).build(),
                 REDIRECT_HOST, REDIRECT_PORT));
         
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         // Set async write queue size limit
         transport.setMaxAsyncWriteQueueSizeInBytes(256 * 1024);

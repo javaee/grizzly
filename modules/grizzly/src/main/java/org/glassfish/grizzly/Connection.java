@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Readable;
 import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -90,40 +91,26 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
     boolean isBlocking();
 
     /**
-     * Gets the {@link Processor}, which will process I/O events occurred on the
+     * Gets the {@link FilterChain}, which will process events occurred on the
      * {@link Connection}.
-     * If the {@link Connection} haven't been assigned specific {@link Processor} -
-     * then {@link Transport}'s default {@link Processor} will be returned.
+     * If the {@link Connection} haven't been assigned specific {@link FilterChain} -
+     * then {@link Transport}'s default {@link FilterChain} will be returned.
      *
-     * @return the {@link Processor}, which will process I/O events occurred on the
+     * @return the {@link FilterChain}, which will process events occurred on the
      * {@link Connection}.
      */
-    Processor getProcessor();
+    FilterChain getFilterChain();
 
     /**
-     * Sets the default {@link Processor}, which will process {@link Connection}
-     * I/O events.
-     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
-     * to get {@link Processor} using {@link Connection}'s
-     * {@link ProcessorSelector#select(Event, Connection)}. If
-     * {@link ProcessorSelector}, associated with the {@link Connection} is also
-     * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
-     * using own settings.
+     * Sets the default {@link FilterChain}, which will process {@link Connection}
+     * events.
+     * If {@link FilterChain} is <tt>null</tt> - the {@link Transport} will
+     * try to get {@link FilterChain} using own settings.
      *
-     * @param preferableProcessor the default {@link Processor}, which will
-     * process {@link Connection} I/O events.
+     * @param filterChain the default {@link FilterChain}, which will
+     * process {@link Connection} events.
      */
-    void setProcessor(
-        Processor preferableProcessor);
-
-    /**
-     * Returns the {@link Processor} state associated with this <tt>Connection</tt>.
-     * @param processor {@link Processor}
-     * 
-     * @return the {@link Processor} state associated with this <tt>Connection</tt>.
-     */
-    <E> E obtainProcessorState(Processor processor,
-            NullaryFunction<E> factory);
+    void setFilterChain(FilterChain filterChain);
     
     /**
      * Get the connection peer address

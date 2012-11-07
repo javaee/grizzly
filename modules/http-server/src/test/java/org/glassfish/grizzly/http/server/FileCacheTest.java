@@ -917,7 +917,7 @@ public class FileCacheTest {
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 httpServer.getListener("grizzly").getTransport())
-                .processor(builder.build())
+                .filterChain(builder.build())
                 .build();
 
         Future<Connection> connectFuture = connectorHandler.connect(host, port);

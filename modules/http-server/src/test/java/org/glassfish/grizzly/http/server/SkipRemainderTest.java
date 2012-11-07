@@ -346,7 +346,7 @@ public class SkipRemainderTest {
         
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 gws.getListener("grizzly").getTransport())
-                .processor(builder.build())
+                .filterChain(builder.build())
                 .build();
         
         return connectorHandler.connect(host, port);

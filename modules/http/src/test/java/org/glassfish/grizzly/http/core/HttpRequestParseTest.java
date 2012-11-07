@@ -249,7 +249,7 @@ public class HttpRequestParseTest extends TestCase {
                 method, requestURI, protocol, headers));
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         try {
             transport.bind(PORT);
@@ -260,7 +260,7 @@ public class HttpRequestParseTest extends TestCase {
             
             SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
-                    .processor(clientFilterChainBuilder.build())
+                    .filterChain(clientFilterChainBuilder.build())
                     .build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);

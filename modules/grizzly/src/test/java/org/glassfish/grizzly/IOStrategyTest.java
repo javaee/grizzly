@@ -125,7 +125,7 @@ public class IOStrategyTest {
                 .setIOStrategy(strategy)
                 .setMaxAsyncWriteQueueSizeInBytes(AsyncQueueWriter.UNLIMITED_SIZE)
                 .build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -147,7 +147,7 @@ public class IOStrategyTest {
 
                 SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientChain)
+                        .filterChain(clientChain)
                         .build();
 
                 Future<Connection> connectFuture = connectorHandler.connect(

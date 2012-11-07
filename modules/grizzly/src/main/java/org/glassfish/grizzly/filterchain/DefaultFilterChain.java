@@ -60,6 +60,8 @@ import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
@@ -81,9 +83,16 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         INCOMPLETE, REMAINDER
     }
     
-    private static final FiltersStateFactory FILTERS_STATE_FACTORY =
-            new FiltersStateFactory();
-
+    private static final Attribute<FiltersState> FILTERS_STATE_ATTR =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            FilterChain.class.getName() + ".filters-state-attr",
+            new NullaryFunction<FiltersState>() {
+                @Override
+                public FiltersState evaluate() {
+                    return new FiltersState();
+                }
+            });
+            
     /**
      * Logger
      */
@@ -300,7 +309,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         final int add = (end - start > 0) ? 1 : -1;
         
         for (int i = end - add; i != start - add; i -= add) {
-            final FilterStateElement element =
+            final FilterState element =
                     filtersState.getState(operation, get(i));
             if (element != null
                     && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
@@ -464,9 +473,8 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
     }
 
-    @SuppressWarnings("unchecked")
-    private FiltersState obtainFiltersState(final Connection connection) {
-        return (FiltersState) connection.obtainProcessorState(this, FILTERS_STATE_FACTORY);
+    private static FiltersState obtainFiltersState(final Connection connection) {
+        return FILTERS_STATE_ATTR.get(connection);
     }
 
     /**
@@ -483,7 +491,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final FiltersState filtersState, final Filter filter) {
 
         final Operation operation = ctx.getOperation();
-        final FilterStateElement filterState;
+        final FilterState filterState;
 
         // Check if there is any data stored for the current Filter
         if (filtersState != null && (filterState = filtersState.clearState(operation, filter)) != null) {
@@ -522,7 +530,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final Operation operation = ctx.getOperation();
 
             filtersState.setState(operation, filter,
-                    FilterStateElement.create(type, messageToStore, appender));
+                    FilterState.create(type, messageToStore, appender));
         }
     }
 
@@ -567,36 +575,36 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             this.state = new Map[Operation.values().length];
         }
 
-        public FilterStateElement getState(final Operation operation,
+        public FilterState getState(final Operation operation,
                 final Filter filter) {
-            final Map<Filter, FilterStateElement> stateMap = state[operation.ordinal()];
+            final Map<Filter, FilterState> stateMap = state[operation.ordinal()];
             return stateMap != null && !stateMap.isEmpty() ?
                     stateMap.get(filter) : null;
         }
 
         public void setState(final Operation operation, final Filter filter,
-                final FilterStateElement stateElement) {
-            Map<Filter, FilterStateElement> stateMap =
+                final FilterState stateElement) {
+            Map<Filter, FilterState> stateMap =
                     state[operation.ordinal()];
             if (stateMap == null) {
-                stateMap = new WeakHashMap<Filter, FilterStateElement>();
+                stateMap = new WeakHashMap<Filter, FilterState>();
                 state[operation.ordinal()] = stateMap;
             }
             
             stateMap.put(filter, stateElement);
         }
 
-        public FilterStateElement clearState(final Operation operation,
+        public FilterState clearState(final Operation operation,
                 final Filter filter) {
-            final Map<Filter, FilterStateElement> stateMap = state[operation.ordinal()];
+            final Map<Filter, FilterState> stateMap = state[operation.ordinal()];
             return stateMap != null && !stateMap.isEmpty() ?
                     stateMap.remove(filter) : null;
         }
     }
 
-    public static final class FilterStateElement {
+    private static final class FilterState {
 
-        public static FilterStateElement create(
+        public static FilterState create(
                 final FILTER_STATE_TYPE type,
                 final Object remainder) {
             if (remainder instanceof Buffer) {
@@ -607,28 +615,28 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             }
         }
 
-        public static FilterStateElement create(
+        public static FilterState create(
                 final FILTER_STATE_TYPE type, final Appendable state) {
-            return new FilterStateElement(type, state);
+            return new FilterState(type, state);
         }
 
-        public static <E> FilterStateElement create(
+        public static <E> FilterState create(
                 final FILTER_STATE_TYPE type,
                 final E state, final Appender<E> appender) {
-            return new FilterStateElement(type, state, appender);
+            return new FilterState(type, state, appender);
         }
         
         private final FILTER_STATE_TYPE type;
         private final Object state;
         private final Appender appender;
 
-        private FilterStateElement(FILTER_STATE_TYPE type, Appendable state) {
+        private FilterState(FILTER_STATE_TYPE type, Appendable state) {
             this.type = type;
             this.state = state;
             appender = null;
         }
 
-        private <E> FilterStateElement(FILTER_STATE_TYPE type, E state, Appender<E> appender) {
+        private <E> FilterState(FILTER_STATE_TYPE type, E state, Appender<E> appender) {
             this.type = type;
             this.state = state;
             this.appender = appender;
@@ -645,15 +653,6 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         public Appender getAppender() {
             return appender;
         }
-    }
-    
-    private static final class FiltersStateFactory implements
-            NullaryFunction<FiltersState> {
-
-        @Override
-        public FiltersState evaluate() {
-            return new FiltersState();
-        }        
     }
     
     private static final class FilterExecution {

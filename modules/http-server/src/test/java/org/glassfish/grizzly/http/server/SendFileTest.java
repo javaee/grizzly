@@ -589,7 +589,7 @@ public class SendFileTest extends TestCase {
             }
         });
         
-        transport.setProcessor(builder.build());
+        transport.setFilterChain(builder.build());
         return transport;
     }
     

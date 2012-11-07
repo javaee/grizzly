@@ -81,7 +81,7 @@ public class EchoClient {
         // Create TCP transport
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
 
         try {
             // start the transport

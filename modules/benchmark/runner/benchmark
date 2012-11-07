@@ -59,7 +59,7 @@ my @RUNS;
 # --------------------------------- MAIN EXECUTION
 
 parseCommandLine();
-initializeGrizzly();
+# initializeGrizzly();
 parseBenchmarks();
 runBenchmarks();
 

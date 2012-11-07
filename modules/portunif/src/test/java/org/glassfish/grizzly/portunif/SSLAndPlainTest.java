@@ -144,7 +144,7 @@ public class SSLAndPlainTest {
                 .add(rootPuFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
+        transport.setFilterChain(puFilterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -169,7 +169,7 @@ public class SSLAndPlainTest {
 
                 final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChainBuilder.build())
+                        .filterChain(clientFilterChainBuilder.build())
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);

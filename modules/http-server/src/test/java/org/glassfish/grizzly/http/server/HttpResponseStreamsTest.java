@@ -1071,7 +1071,7 @@ public class HttpResponseStreamsTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(1024));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(parseResult));
-            ctransport.setProcessor(clientFilterChainBuilder.build());
+            ctransport.setFilterChain(clientFilterChainBuilder.build());
 
             ctransport.start();
 

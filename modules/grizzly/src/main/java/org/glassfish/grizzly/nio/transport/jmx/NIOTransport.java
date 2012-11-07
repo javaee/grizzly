@@ -158,9 +158,9 @@ public class NIOTransport extends JmxObject {
         return transport.getWriteBufferSize();
     }
 
-    @ManagedAttribute(id="processor")
+    @ManagedAttribute(id="filter-chain")
     public String getProcessor() {
-        return getType(transport.getProcessor());
+        return getType(transport.getFilterChain());
     }
 
     @ManagedAttribute(id="io-strategy")

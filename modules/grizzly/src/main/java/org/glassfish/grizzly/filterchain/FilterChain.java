@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import org.glassfish.grizzly.*;
 
@@ -80,6 +81,11 @@ import org.glassfish.grizzly.*;
  * @author Alexey Stashok
  */
 public interface FilterChain extends Processor<Context>, List<Filter> {
+    /**
+     * Empty immutable {@link FilterChain} implementation.
+     */
+    public static final FilterChain EMPTY = new DefaultFilterChain(Collections.EMPTY_LIST);
+    
     FilterChainContext obtainFilterChainContext(Connection connection);
     FilterChainContext obtainFilterChainContext(Connection connection,
             int startIdx, int endIdx, int currentIdx);

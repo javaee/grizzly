@@ -138,7 +138,7 @@ public class ChunkedTransferEncodingTest {
         transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setMaxAsyncWriteQueueSizeInBytes(-1);
         
-        transport.setProcessor(filterChainBuilder.build());
+        transport.setFilterChain(filterChainBuilder.build());
         
         transport.bind(PORT);
         transport.start();
@@ -148,7 +148,7 @@ public class ChunkedTransferEncodingTest {
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
                 .builder(transport)
-                .processor(clientFilterChainBuilder.build())
+                .filterChain(clientFilterChainBuilder.build())
                 .build();
 
         Future<Connection> future = connectorHandler.connect("localhost", PORT);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -135,7 +135,7 @@ public class ClientRequestPipeliningTest extends TestCase {
         b.add(new TransportFilter());
         b.add(new HttpClientFilter());
         b.add(clientFilter);
-        transport.setProcessor(b.build());
+        transport.setFilterChain(b.build());
         return transport;
 
     }
@@ -148,7 +148,7 @@ public class ClientRequestPipeliningTest extends TestCase {
         b.add(new TransportFilter());
         b.add(new HttpServerFilter());
         b.add(new SimpleResponseFilter());
-        transport.setProcessor(b.build());
+        transport.setFilterChain(b.build());
         return transport;
     }
 

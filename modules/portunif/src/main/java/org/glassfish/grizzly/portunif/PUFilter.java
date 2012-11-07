@@ -159,7 +159,7 @@ public class PUFilter extends BaseFilter {
             final FilterChain completeProtocolChain = 
                     buildCompleteProtocolChain(protocol, ctx);
 
-            connection.setProcessor(completeProtocolChain);
+            connection.setFilterChain(completeProtocolChain);
             
             final FilterChainContext completeChainContext =
                     obtainProtocolChainContext(puContext, ctx,
@@ -265,7 +265,7 @@ public class PUFilter extends BaseFilter {
             // @TODO implement method like parentContext.resume(NextAction)
             
             if (!isSticky) {
-                parentContext.getConnection().setProcessor(
+                parentContext.getConnection().setFilterChain(
                         parentContext.getFilterChain());
             }
             parentContext.resumeNext();

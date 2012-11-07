@@ -329,7 +329,7 @@ public class StaticHttpHandlerTest {
             }
         });
         
-        transport.setProcessor(builder.build());
+        transport.setFilterChain(builder.build());
         return transport;
     }
     

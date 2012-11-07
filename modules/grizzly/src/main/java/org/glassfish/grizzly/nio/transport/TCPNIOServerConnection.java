@@ -212,8 +212,8 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         final TCPNIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
 
-        if (processor != null) {
-            connection.setProcessor(processor);
+        if (filterChain != null) {
+            connection.setFilterChain(filterChain);
         }
 
         connection.resetProperties();

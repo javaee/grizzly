@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -79,7 +80,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport default Processor
      */
-    protected Processor processor = Processor.NullProcessor.INSTANCE;
+    protected FilterChain filterChain = FilterChain.EMPTY;
 
     /**
      * Transport strategy
@@ -205,16 +206,16 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public Processor getProcessor() {
-        return processor;
+    public FilterChain getFilterChain() {
+        return filterChain;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setProcessor(Processor processor) {
-        this.processor = processor;
+    public void setFilterChain(final FilterChain processor) {
+        this.filterChain = processor;
         notifyProbesConfigChanged(this);
     }
 
@@ -394,10 +395,10 @@ public abstract class AbstractTransport implements Transport {
     public void fireEvent(final Event event,
             final Connection connection) {
 
-        final Processor conProcessor = connection.getProcessor();
+        final FilterChain conFilterChain = connection.getFilterChain();
 
         ProcessorExecutor.execute(Context.create(connection,
-                conProcessor, event));
+                conFilterChain, event));
     }
 
     /**
@@ -408,10 +409,10 @@ public abstract class AbstractTransport implements Transport {
             final Connection connection,
             final EventProcessingHandler processingHandler) {
 
-        final Processor conProcessor = connection.getProcessor();
+        final FilterChain conFilterChain = connection.getFilterChain();
 
         ProcessorExecutor.execute(Context.create(connection,
-                conProcessor, event, processingHandler));
+                conFilterChain, event, processingHandler));
     }
     
     @Override

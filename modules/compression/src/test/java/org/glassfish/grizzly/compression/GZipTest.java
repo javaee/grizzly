@@ -158,7 +158,7 @@ public class GZipTest {
         serverChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverChainBuilder.build());
+        transport.setFilterChain(serverChainBuilder.build());
         transport.setMemoryManager(manager);
         transport.setMaxAsyncWriteQueueSizeInBytes(-1);
 
@@ -174,7 +174,7 @@ public class GZipTest {
             clientChainBuilder.add(new ClientEchoCheckFilter(completeFuture, messages));
 
             SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(transport)
-                .processor(clientChainBuilder.build()).build();
+                .filterChain(clientChainBuilder.build()).build();
             
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
 

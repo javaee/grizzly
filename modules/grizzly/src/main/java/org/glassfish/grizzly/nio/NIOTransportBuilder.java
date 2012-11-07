@@ -110,7 +110,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
         // this block is for compatibility
         final FilterChain chain = FilterChainBuilder.stateless().add(new TransportFilter()).build();
-        transport.setProcessor(chain);
+        transport.setFilterChain(chain);
 
     }
 
@@ -276,19 +276,19 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
-     * @see Transport#getProcessor()
+     * @see Transport#getFilterChain()
      */
-    public Processor getProcessor() {
-        return transport.getProcessor();
+    public FilterChain getFilterChain() {
+        return transport.getFilterChain();
     }
 
     /**
-     * @see Transport#setProcessor(Processor)
+     * @see Transport#setFilterChain(FilterChain)
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setProcessor(Processor processor) {
-        transport.setProcessor(processor);
+    public T setFilterChain(FilterChain filterChain) {
+        transport.setFilterChain(filterChain);
         return getThis();
     }
 

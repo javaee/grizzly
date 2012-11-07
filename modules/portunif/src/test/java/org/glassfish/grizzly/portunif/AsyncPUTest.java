@@ -121,7 +121,7 @@ public class AsyncPUTest {
                 .add(puFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
+        transport.setFilterChain(puFilterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -139,7 +139,7 @@ public class AsyncPUTest {
 
                 final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChain)
+                        .filterChain(clientFilterChain)
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
@@ -188,7 +188,7 @@ public class AsyncPUTest {
                 .add(puFilter);
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
+        transport.setFilterChain(puFilterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -206,7 +206,7 @@ public class AsyncPUTest {
 
                 final SocketConnectorHandler connectorHandler =
                         TCPNIOConnectorHandler.builder(transport)
-                        .processor(clientFilterChain)
+                        .filterChain(clientFilterChain)
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
