@@ -84,7 +84,7 @@ public interface FilterChain extends Processor<Context>, List<Filter> {
     /**
      * Empty immutable {@link FilterChain} implementation.
      */
-    public static final FilterChain EMPTY = new DefaultFilterChain(Collections.EMPTY_LIST);
+    public static final FilterChain EMPTY = new DefaultFilterChain(Collections.<Filter>emptyList());
     
     FilterChainContext obtainFilterChainContext(Connection connection);
     FilterChainContext obtainFilterChainContext(Connection connection,

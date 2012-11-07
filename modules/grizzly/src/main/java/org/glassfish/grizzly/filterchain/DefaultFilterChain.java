@@ -569,8 +569,9 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
     public static final class FiltersState {
 
-        private final Map[] state;
+        private final Map<Filter, FilterState>[] state;
 
+        @SuppressWarnings("unchecked")
         public FiltersState() {
             this.state = new Map[Operation.values().length];
         }

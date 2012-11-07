@@ -186,6 +186,13 @@ public class TCPNIOTransport extends NIOTransport
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }
 
+    /**
+     * Start TCPNIOTransport.
+     * 
+     * The transport will be started only if its current state is {@link State#STOP},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void start() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -194,7 +201,9 @@ public class TCPNIOTransport extends NIOTransport
             State currentState = state.getState();
             if (currentState != State.STOP) {
                 LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_OR_BOUND_STATE_EXCEPTION());
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
+                
+                return;
             }
 
             state.setState(State.STARTING);
@@ -289,12 +298,24 @@ public class TCPNIOTransport extends NIOTransport
         serverConnection.listen();
     }
 
+    /**
+     * Stop TCPNIOTransport.
+     * 
+     * If the current transport state is {@link State#STOP} - the call will be
+     * ignored and no exception thrown.
+     */
     @Override
     public void stop() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() == State.PAUSE) {
+            final State stateNow = state.getState();
+            
+            if (stateNow == State.STOP) {
+                return;
+            }
+            
+            if (stateNow == State.PAUSE) {
                 // if Transport is paused - first we need to resume it
                 // so selectorrunners can perform the close phase
                 resume();
@@ -321,6 +342,14 @@ public class TCPNIOTransport extends NIOTransport
         }
     }
 
+    /**
+     * Pause TCPNIOTransport, so I/O events coming on its {@link TCPNIOConnection}s
+     * will not be processed. Use {@link #resume()} in order to resume TCPNIOTransport processing.
+     * 
+     * The transport will be paused only if its current state is {@link State#START},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void pause() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -329,6 +358,7 @@ public class TCPNIOTransport extends NIOTransport
             if (state.getState() != State.START) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_START_STATE_EXCEPTION());
+                return;
             }
             state.setState(State.PAUSE);
             notifyProbesPause(this);
@@ -337,6 +367,13 @@ public class TCPNIOTransport extends NIOTransport
         }
     }
 
+    /**
+     * Resume TCPNIOTransport, which has been paused before using {@link #pause()}.
+     * 
+     * The transport will be resumed only if its current state is {@link State#PAUSE},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void resume() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -345,6 +382,7 @@ public class TCPNIOTransport extends NIOTransport
             if (state.getState() != State.PAUSE) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_PAUSE_STATE_EXCEPTION());
+                return;
             }
             state.setState(State.START);
             notifyProbesResume(this);
