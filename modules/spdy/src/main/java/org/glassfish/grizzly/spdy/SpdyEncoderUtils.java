@@ -246,6 +246,7 @@ class SpdyEncoderUtils {
         return deflaterOutputStream.checkpoint();
     }
 
+    @SuppressWarnings("unchecked")
     private static void encodeUserHeaders(final SpdySession spdySession,
             final MimeHeaders headers,
             final DataOutputStream dataOutputStream) throws IOException {

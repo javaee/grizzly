@@ -628,7 +628,7 @@ public class SpdyHandlerFilter extends BaseFilter {
 
         assert decoded.hasArray();
 
-        final MimeHeaders mimeHeaders = spdyRequest.getHeaders();
+        final MimeHeaders mimeHeaders = spdyResponse.getHeaders();
 
         final byte[] headersArray = decoded.array();
         int position = decoded.arrayOffset() + decoded.position();
