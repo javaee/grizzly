@@ -61,6 +61,7 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.*;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -178,6 +179,13 @@ public final class TCPNIOTransport extends NIOTransport implements
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }
 
+    /**
+     * Start TCPNIOTransport.
+     * 
+     * The transport will be started only if its current state is {@link State#STOP},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void start() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -186,7 +194,8 @@ public final class TCPNIOTransport extends NIOTransport implements
             State currentState = state.getState();
             if (currentState != State.STOP) {
                 LOGGER.log(Level.WARNING,
-                        "Transport is not in STOP or BOUND state!");
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
+                return;
             }
 
             state.setState(State.STARTING);
@@ -285,12 +294,24 @@ public final class TCPNIOTransport extends NIOTransport implements
         serverConnection.listen();
     }
 
+    /**
+     * Stop TCPNIOTransport.
+     * 
+     * If the current transport state is {@link State#STOP} - the call will be
+     * ignored and no exception thrown.
+     */
     @Override
     public void stop() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() == State.PAUSE) {
+            final State stateNow = state.getState();
+            
+            if (stateNow == State.STOP) {
+                return;
+            }
+            
+            if (stateNow == State.PAUSE) {
                 // if Transport is paused - first we need to resume it
                 // so selectorrunners can perform the close phase
                 resume();
@@ -317,6 +338,14 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
+    /**
+     * Pause TCPNIOTransport, so I/O events coming on its {@link TCPNIOConnection}s
+     * will not be processed. Use {@link #resume()} in order to resume TCPNIOTransport processing.
+     * 
+     * The transport will be paused only if its current state is {@link State#START},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void pause() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -325,6 +354,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             if (state.getState() != State.START) {
                 LOGGER.log(Level.WARNING,
                         "Transport is not in START state!");
+                return;
             }
             state.setState(State.PAUSE);
             notifyProbesPause(this);
@@ -333,6 +363,13 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
     }
 
+    /**
+     * Resume TCPNIOTransport, which has been paused before using {@link #pause()}.
+     * 
+     * The transport will be resumed only if its current state is {@link State#PAUSE},
+     * otherwise the call will be ignored without exception thrown and the transport
+     * state will remain the same as it was before the method call.
+     */
     @Override
     public void resume() throws IOException {
         final Lock lock = state.getStateLocker().writeLock();
@@ -341,6 +378,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             if (state.getState() != State.PAUSE) {
                 LOGGER.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
+                return;
             }
             state.setState(State.START);
             notifyProbesResume(this);
