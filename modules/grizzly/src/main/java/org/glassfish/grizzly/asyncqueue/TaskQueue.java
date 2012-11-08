@@ -202,6 +202,11 @@ public final class TaskQueue<E> {
         currentElement.set(task);
     }
 
+    public boolean compareAndSetCurrentElement(final E expected, final E newValue) {
+        return currentElement.compareAndSet(expected, newValue);
+    }
+
+
     /**
      * Remove the task from queue.
      * @param task the task to remove.

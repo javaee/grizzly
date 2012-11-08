@@ -43,7 +43,10 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteQueryAndNotification;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -58,7 +61,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
  *
  * @author oleksiys
  */
-public class SpdyStream implements AttributeStorage {
+public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
     private static final Attribute<SpdyStream> HTTP_RQST_SPDY_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http.request.spdy.stream");
     
@@ -68,6 +71,7 @@ public class SpdyStream implements AttributeStorage {
     private final int priority;
     private final int slot;
     private final SpdySession spdySession;
+    final int outboundQueueSizeInBytes = 1204 * 1024; // TODO:  We need a realistic setting here
     
     private final AtomicInteger completeCloseIndicator = new AtomicInteger();
     private final AttributeHolder attributes =
@@ -157,6 +161,26 @@ public class SpdyStream implements AttributeStorage {
     @Override
     public AttributeHolder getAttributes() {
         return attributes;
+    }
+
+    @Override
+    public boolean canWrite() {
+        // TODO:  remove this inspection
+        //noinspection ConstantConditions
+        if (outboundQueueSizeInBytes < 0) {
+            return true;
+        }
+
+        final TaskQueue taskQueue =
+                outputSink.outputQueue;
+        final int size = taskQueue.size();
+
+        return size == 0 || size < outboundQueueSizeInBytes;
+    }
+
+    @Override
+    public void notifyWritePossible(WriteHandler writeHandler) {
+        outputSink.outputQueue.notifyWhenOperable(writeHandler, outboundQueueSizeInBytes);
     }
 
     void onPeerWindowUpdate(final int delta) {

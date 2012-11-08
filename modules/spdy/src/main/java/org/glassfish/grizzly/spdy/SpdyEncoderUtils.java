@@ -237,7 +237,7 @@ class SpdyEncoderUtils {
                 hostHeader.getBytes());
 
         encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
-                uri.getScheme() != null ? uri.getScheme().getBytes() : "http".getBytes());
+                uri.getScheme() != null ? uri.getScheme().getBytes() : "https".getBytes());
         
         encodeUserHeaders(spdySession, headers, dataOutputStream);
         

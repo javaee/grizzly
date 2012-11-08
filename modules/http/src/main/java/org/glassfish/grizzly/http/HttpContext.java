@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.WriteQueryAndNotification;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -57,9 +58,11 @@ public class HttpContext implements AttributeStorage {
     private static final Attribute<HttpContext> HTTP_CONTEXT_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(HttpContext.class.getName());
     private final AttributeStorage contextStorage;
+    private final WriteQueryAndNotification writeQueryAndNotification;
 
-    protected HttpContext(AttributeStorage targetStorage) {
-        this.contextStorage = targetStorage;
+    protected <T extends AttributeStorage & WriteQueryAndNotification> HttpContext(T notSureWhatToCallIt) {
+        this.contextStorage = notSureWhatToCallIt;
+        this.writeQueryAndNotification = notSureWhatToCallIt;
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -74,9 +77,13 @@ public class HttpContext implements AttributeStorage {
         return contextStorage;
     }
 
-    public static HttpContext newInstance(FilterChainContext ctx,
-            AttributeStorage contextStorage) {
-        HttpContext context = new HttpContext(contextStorage);
+    public WriteQueryAndNotification getWriteQueryAndNotification() {
+        return writeQueryAndNotification;
+    }
+
+    public static <T extends AttributeStorage & WriteQueryAndNotification> HttpContext newInstance(FilterChainContext ctx,
+                                                                                                   T notSureWhatToCallIt) {
+        HttpContext context = new HttpContext(notSureWhatToCallIt);
         HTTP_CONTEXT_ATTR.set(ctx, context);
         return context;
     }

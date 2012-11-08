@@ -49,7 +49,7 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
  *
  * @author Alexey Stashok
  */
-public interface Writable<L> {
+public interface Writable<L> extends WriteQueryAndNotification {
 
     /**
      * Method writes the <tt>buffer</tt>.
@@ -98,31 +98,5 @@ public interface Writable<L> {
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             LifeCycleHandler lifeCycleHandler);
-     
-    /**
-     * Return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>.
-     * 
-     * @return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>
-     * 
-     * @since 2.3
-     */
-    boolean canWrite();
 
-    /**
-     * Registers {@link WriteHandler}, which will be notified ones at least one
-     * byte can be written.
-     * 
-     * This method call is equivalent to call notifyWritePossible(writeHandler, <tt>1</tt>);
-     * 
-     * Note: using this method from different threads simultaneously may lead
-     * to quick situation changes, so at time {@link WriteHandler} is called -
-     * the queue may become busy again.
-     * 
-     * @param writeHandler {@link WriteHandler} to be notified.
-     * 
-     * @since 2.3
-     */
-    void notifyWritePossible(final WriteHandler writeHandler);
 }

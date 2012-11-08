@@ -299,7 +299,7 @@ final class SpdySession {
                                 context.getStartIdx(), context.getFilterIdx());
                     } else {
                         upstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getFilterIdx(), context.getStartIdx());
+                                context.getFilterIdx(), context.getStartIdx() + 1);
 
                         downstreamChain = (FilterChain) context.getFilterChain().subList(
                                 context.getEndIdx() + 1, context.getFilterIdx());
@@ -372,6 +372,7 @@ final class SpdySession {
         
         protected StreamBuilder() {
             packet = SpdyRequest.create();
+            packet.setSecure(true);
         }
 
         /**
@@ -458,7 +459,7 @@ final class SpdySession {
         @SuppressWarnings("unchecked")
         public final SpdyStream open() {
             newClientStreamLock.lock();
-            
+
             try {
                 final SpdyStream spdyStream = openStream(
                         (HttpRequestPacket) packet,

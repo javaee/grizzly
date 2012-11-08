@@ -208,14 +208,20 @@ public class TestClient {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent httpContent = ctx.getMessage();
-            
+            HttpContent httpContent = ctx.getMessage();
+
             System.out.println(httpContent.getHttpHeader());
             if (httpContent.isLast()) {
                 httpResponseFuture.result(httpContent);
                 return ctx.getStopAction();
+            } else {
+                httpContent = (HttpContent) ctx.read().getMessage();
+                if (httpContent.isLast()) {
+                    httpResponseFuture.result(httpContent);
+                    return ctx.getStopAction();
+                }
             }
-            
+            System.out.println("STOPPING");
             return ctx.getStopAction(httpContent);
         }
     }

@@ -40,12 +40,11 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -69,12 +68,14 @@ final class SpdyOutputSink {
     
     // current output queue size
     private final AtomicInteger outputQueueSize = new AtomicInteger();
+    final TaskQueue<OutputQueueRecord> outputQueue =
+            TaskQueue.createTaskQueue();
     // current output record
-    private final AtomicReference<OutputQueueRecord> currentQueueRecord =
-            new AtomicReference<OutputQueueRecord>();
+    //private final AtomicReference<OutputQueueRecord> currentQueueRecord =
+    //        new AtomicReference<OutputQueueRecord>();
     // output records queue
-    private final ConcurrentLinkedQueue<OutputQueueRecord> outputQueue =
-            new ConcurrentLinkedQueue<OutputQueueRecord>();
+    //private final ConcurrentLinkedQueue<OutputQueueRecord> outputQueue =
+    //        new ConcurrentLinkedQueue<OutputQueueRecord>();
     
     // number of sent bytes, which are still unconfirmed by server via (WINDOW_UPDATE) message
     private final AtomicInteger unconfirmedBytes = new AtomicInteger();
@@ -112,11 +113,8 @@ final class SpdyOutputSink {
             
             // pick up the first output record in the queue
             OutputQueueRecord outputQueueRecord =
-                    currentQueueRecord.getAndSet(null);
-            if (outputQueueRecord == null) {
-                outputQueueRecord = outputQueue.poll();
-            }
-            
+                    outputQueue.poll();
+
             // if there is nothing to write - return
             if (outputQueueRecord == null) {
                 return;
@@ -168,7 +166,7 @@ final class SpdyOutputSink {
             
             if (outputQueueRecord != null) {
                 // if there is a chunk to be stored - store it and return
-                currentQueueRecord.set(outputQueueRecord);
+                outputQueue.setCurrentElement(outputQueueRecord);
                 break;
             } else {
                 // if current record has been sent - try to take the next one for output queue
@@ -323,11 +321,11 @@ final class SpdyOutputSink {
         do { // Make sure current outputQueueRecord is not forgotten
             
             // set the outputQueueRecord as the current
-            currentQueueRecord.set(outputQueueRecord);
+            outputQueue.setCurrentElement(outputQueueRecord);
 
             // check if situation hasn't changed and we can't send the data chunk now
             if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
-                    currentQueueRecord.compareAndSet(outputQueueRecord, null)) {
+                    outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
                 
                 // if we can send the output record now - do that
                 
@@ -430,7 +428,7 @@ final class SpdyOutputSink {
                 return;
             }
             
-            outputQueue.add(TERMINATING_QUEUE_RECORD);
+            outputQueue.offer(TERMINATING_QUEUE_RECORD);
             
             if (outputQueueSize.get() == 1 &&
                     outputQueue.remove(TERMINATING_QUEUE_RECORD)) {

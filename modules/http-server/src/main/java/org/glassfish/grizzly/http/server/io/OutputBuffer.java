@@ -69,6 +69,7 @@ import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Response;
@@ -160,6 +161,8 @@ public class OutputBuffer {
 
     private boolean isNonBlockingWriteGuaranteed;
     private boolean isLastWriteNonBlocking;
+
+    private HttpContext httpContext;
     
     
     // ---------------------------------------------------------- Public Methods
@@ -172,6 +175,7 @@ public class OutputBuffer {
         this.response = response.getResponse();
         sendfileEnabled = response.isSendFileEnabled();
         this.ctx = ctx;
+        httpContext = HttpContext.get(ctx);
         memoryManager = ctx.getMemoryManager();
     }
 
@@ -294,6 +298,7 @@ public class OutputBuffer {
         fileTransferRequested = false;
         encoder = null;
         ctx = null;
+        httpContext = null;
         memoryManager = null;
         handler = null;
         isNonBlockingWriteGuaranteed = false;
@@ -754,8 +759,7 @@ public class OutputBuffer {
             return true;
         }
         
-        final Connection c = ctx.getConnection();
-        if (c.canWrite()) {
+        if (httpContext.getWriteQueryAndNotification().canWrite()) {
             isNonBlockingWriteGuaranteed = true;
             return true;
         }
@@ -863,15 +867,13 @@ public class OutputBuffer {
             return;
         }
         
-        final Connection connection = ctx.getConnection();
-        
-        if (connection.canWrite()) {
+        if (httpContext.getWriteQueryAndNotification().canWrite()) {
             return;
         }
         
         final FutureImpl<Boolean> future = Futures.createSafeFuture();
         
-        connection.notifyWritePossible(new WriteHandler() {
+        httpContext.getWriteQueryAndNotification().notifyWritePossible(new WriteHandler() {
 
             @Override
             public void onWritePossible() throws Exception {
@@ -886,7 +888,7 @@ public class OutputBuffer {
         
         try {
             final long writeTimeout =
-                    connection.getBlockingWriteTimeout(TimeUnit.MILLISECONDS);
+                    ctx.getConnection().getBlockingWriteTimeout(TimeUnit.MILLISECONDS);
             if (writeTimeout >= 0) {
                 future.get(writeTimeout, TimeUnit.MILLISECONDS);
             } else {
