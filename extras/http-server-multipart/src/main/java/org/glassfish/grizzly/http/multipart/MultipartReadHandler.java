@@ -45,7 +45,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.Header;

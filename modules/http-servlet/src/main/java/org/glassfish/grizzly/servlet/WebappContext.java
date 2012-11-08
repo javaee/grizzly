@@ -67,7 +67,7 @@ import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.localization.LogMessages;
 
@@ -104,31 +104,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.Filter;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextAttributeEvent;
-import javax.servlet.ServletContextAttributeListener;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.ServletException;
 import javax.servlet.SessionTrackingMode;
-import javax.servlet.SingleThreadModel;
 import javax.servlet.descriptor.JspConfigDescriptor;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
-import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
-import org.glassfish.grizzly.http.server.util.DispatcherHelper;
-import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.http.server.util.Mapper;
-import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.server.util.MimeType;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * <p>

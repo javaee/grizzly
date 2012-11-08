@@ -45,15 +45,11 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
-import org.glassfish.grizzly.http.server.util.MimeType;
-import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.utils.ArraySet;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

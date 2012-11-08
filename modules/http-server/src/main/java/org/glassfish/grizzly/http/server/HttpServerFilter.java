@@ -55,7 +55,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
-import org.glassfish.grizzly.http.server.io.InputBuffer;
+import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;

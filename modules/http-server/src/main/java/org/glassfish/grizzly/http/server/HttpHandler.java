@@ -41,9 +41,8 @@
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;

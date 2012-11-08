@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.http.server.util;
+package org.glassfish.grizzly.http.util;
 
 import java.util.HashMap;
 import java.util.Map;

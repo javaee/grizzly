@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server.io;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.Response;
 
 import java.io.File;

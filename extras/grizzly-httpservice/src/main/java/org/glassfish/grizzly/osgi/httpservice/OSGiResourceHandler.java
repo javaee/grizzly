@@ -52,7 +52,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
 import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
 

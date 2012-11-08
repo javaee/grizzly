@@ -57,7 +57,7 @@ import org.glassfish.grizzly.http.multipart.MultipartScanner;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 
 /**
  * The Grizzly {@link HttpHandler} implementation, which is responsible for

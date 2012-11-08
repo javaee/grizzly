@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.http.io;
 
 import org.glassfish.grizzly.WriteHandler;
 

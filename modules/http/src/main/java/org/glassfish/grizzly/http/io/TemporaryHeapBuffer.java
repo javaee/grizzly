@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.http.io;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.HeapBuffer;

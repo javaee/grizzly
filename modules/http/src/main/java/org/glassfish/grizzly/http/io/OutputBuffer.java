@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.http.io;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,7 +72,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.BufferArray;

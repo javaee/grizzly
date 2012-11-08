@@ -42,7 +42,6 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
-import java.util.Arrays;
 
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -50,7 +49,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;

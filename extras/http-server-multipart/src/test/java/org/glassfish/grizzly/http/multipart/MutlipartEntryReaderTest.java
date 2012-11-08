@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.http.multipart;
 
 import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOWriter;
+import org.glassfish.grizzly.http.io.NIOReader;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Response;

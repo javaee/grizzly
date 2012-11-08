@@ -57,7 +57,7 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.util.Header;
 
 /**

@@ -38,17 +38,16 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.http.io;
 
-
-import java.io.OutputStream;
+import java.io.InputStream;
 
 /**
- * Stream implementation for writing binary content to an HTTP user-agent.
+ * Stream implementation to read binary request content.
  *
  * @since 2.0
  */
-public abstract class NIOOutputStream extends OutputStream
-        implements BinaryNIOOutputSink {
-
+public abstract class NIOInputStream extends InputStream
+        implements BinaryNIOInputSource {
+    
 }

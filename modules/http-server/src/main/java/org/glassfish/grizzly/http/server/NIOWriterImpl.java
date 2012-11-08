@@ -43,8 +43,8 @@ package org.glassfish.grizzly.http.server;
 import java.io.IOException;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.io.NIOWriter;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 
 /**
  * {@link NIOWriter} implementation.

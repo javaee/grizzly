@@ -54,8 +54,8 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
 
