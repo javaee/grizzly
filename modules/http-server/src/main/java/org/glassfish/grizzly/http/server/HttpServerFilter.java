@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -54,6 +55,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -77,6 +79,8 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class HttpServerFilter extends BaseFilter
         implements JmxMonitoringAware<HttpServerProbe> {
+
+
 
     private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
     private final Attribute<Request> httpRequestInProgress;
@@ -127,6 +131,16 @@ public class HttpServerFilter extends BaseFilter
     
     // ----------------------------------------------------- Methods from Filter
 
+
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
+        if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
+            final Request request = httpRequestInProgress.get(HttpContext.get(ctx));
+            request.initiateAsyncronousDataReceiving();
+            return ctx.getStopAction();
+        }
+        return super.handleEvent(ctx, event);
+    }
 
     @SuppressWarnings({"unchecked"})
     @Override

@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.HttpBrokenContent;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -51,7 +53,6 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.utils.Charsets;
 
 import java.io.IOException;
@@ -64,7 +65,6 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
-import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -77,15 +77,18 @@ import static org.glassfish.grizzly.http.util.Constants.*;
  */
 public class InputBuffer {
 
+    public static final Event REREGISTER_FOR_READ_EVENT =
+            new Event() {
+                @Override
+                public Object type() {
+                    return "REREGISTER_FOR_READ_EVENT";
+                }
+            };
+
     /**
-     * The {@link org.glassfish.grizzly.http.server.Request} associated with this <code>InputBuffer</code>
+     * The {@link org.glassfish.grizzly.http.HttpHeader} associated with this <code>InputBuffer</code>
      */
-    private Request serverRequest;
-    
-    /**
-     * The {@link org.glassfish.grizzly.http.HttpRequestPacket} associated with this <code>InputBuffer</code>
-     */
-    private HttpRequestPacket request;
+    private HttpHeader httpHeader;
 
     /**
      * The {@link FilterChainContext} associated with this <code>InputBuffer</code>.
@@ -196,20 +199,17 @@ public class InputBuffer {
      * properly.
      * </p>
      *
-     * @param serverRequest the current request
+     * @param httpHeader the header from which input will be obtained.
      * @param ctx the FilterChainContext for the chain processing this request
      */
-    public void initialize(final Request serverRequest,
-            final FilterChainContext ctx) {
+    public void initialize(final HttpHeader httpHeader,
+                           final FilterChainContext ctx) {
 
-        if (serverRequest == null) {
-            throw new IllegalArgumentException("request cannot be null.");
-        }
+
         if (ctx == null) {
             throw new IllegalArgumentException("ctx cannot be null.");
         }
-        this.serverRequest = serverRequest;
-        this.request = serverRequest.getRequest();
+        this.httpHeader = httpHeader;
         
         this.ctx = ctx;
         connection = ctx.getConnection();
@@ -284,7 +284,7 @@ public class InputBuffer {
 
         if (!processingChars) {
             processingChars = true;
-            final String enc = request.getCharacterEncoding();
+            final String enc = httpHeader.getCharacterEncoding();
             if (enc != null) {
                 encoding = enc;
                 final CharsetDecoder localDecoder = getDecoder();
@@ -778,7 +778,15 @@ public class InputBuffer {
 
         if (!isWaitingDataAsynchronously) {
             isWaitingDataAsynchronously = true;
-            serverRequest.initiateAsyncronousDataReceiving();
+            // TODO: Need to find a cleaner way to do this
+            // This is kind of a hack as calling notifyDownstream()
+            // will bypass the filter we're actually intersted in
+            // invoking without maintaining a hard reference to said filter.
+            final FilterChain filterChain = ctx.getFilterChain();
+            try {
+                filterChain.get(ctx.getFilterIdx()).handleEvent(ctx, REREGISTER_FOR_READ_EVENT);
+            } catch (IOException ignored) { // won't occur
+            }
         }
     }
 
@@ -906,7 +914,7 @@ public class InputBuffer {
     private int fill(final int requestedLen) throws IOException {
 
         int read = 0;
-        while (read < requestedLen && request.isExpectContent()) {
+        while (read < requestedLen && httpHeader.isExpectContent()) {
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
             
@@ -968,7 +976,7 @@ public class InputBuffer {
         }
         
         // 3) If we don't expect more data - return what we've read so far
-        if (!request.isExpectContent()) {
+        if (!httpHeader.isExpectContent()) {
             dst.flip();
             return read > 0 ? read : -1;
         }
@@ -979,7 +987,7 @@ public class InputBuffer {
         boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char
         boolean last = false;
 
-        while (read < requestedLen && request.isExpectContent()) {
+        while (read < requestedLen && httpHeader.isExpectContent()) {
 
             if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
                 final ReadResult rr = ctx.read();

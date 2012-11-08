@@ -119,6 +119,11 @@ public abstract class HttpHeader extends HttpPacket
 
     Buffer headerBuffer;
 
+    /**
+     * Is chunking allowed to be used or not.
+     */
+    private boolean chunkingAllowed;
+
     public HttpHeader() {
         this(new MimeHeaders());
     }
@@ -503,6 +508,27 @@ public abstract class HttpHeader extends HttpPacket
     }
 
     /**
+     * Return <code>true</code> if chunking is allowed for this header.
+     *
+     * @return <code>true</code> if chunking is allowed for this header.
+     * @since 3.0
+     */
+    public boolean isChunkingAllowed() {
+        return chunkingAllowed;
+    }
+
+    /**
+     * Indicate whether or not chunking may be used by this header.
+     *
+     * @param chunkingAllowed <code>true</code> if chunked transfer-encoding
+     *                        is allowed, otherwise returns  <code>false</code>.
+     * @since 3.0
+     */
+    public void setChunkingAllowed(boolean chunkingAllowed) {
+        this.chunkingAllowed = chunkingAllowed;
+    }
+
+    /**
      * Serializes Content-Type header into passed Buffer
      */
 //    protected final Buffer serializeContentType(final MemoryManager memoryManager,
@@ -870,6 +896,7 @@ public abstract class HttpHeader extends HttpPacket
         quotedCharsetValue = null;
         charsetSet = false;
         contentType = null;
+        chunkingAllowed = false;
         transferEncoding = null;
         isExpectContent = true;
         upgrade.recycle();

@@ -74,7 +74,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,7 +82,6 @@ import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -91,6 +89,7 @@ import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.server.io.ServerOutputBuffer;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
@@ -197,7 +196,7 @@ public class Response {
     /**
      * The associated output buffer.
      */
-    protected final OutputBuffer outputBuffer = new OutputBuffer();
+    protected final ServerOutputBuffer outputBuffer = new ServerOutputBuffer();
 
 
     /**
@@ -435,7 +434,7 @@ public class Response {
         if ((file == null) || !file.startsWith(contextPath)) {
             return (false);
         }
-        if (file.indexOf(";jsessionid=" + session.getIdInternal()) >= 0) {
+        if (file.contains(";jsessionid=" + session.getIdInternal())) {
             return (false);
         }
 
@@ -604,7 +603,7 @@ public class Response {
      * </p>
      *
      * By default the returned {@link NIOOutputStream} will work as blocking
-     * {@link OutputStream}, but it will be possible to call {@link NIOOutputStream#canWrite()} or
+     * {@link java.io.OutputStream}, but it will be possible to call {@link NIOOutputStream#canWrite()} or
      * {@link NIOOutputStream#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
      * avoid blocking.
      * 
@@ -646,7 +645,7 @@ public class Response {
      * </p>
      *
      * By default the returned {@link NIOWriter} will work as blocking
-     * {@link Writer}, but it will be possible to call {@link NIOWriter#canWrite()} or
+     * {@link java.io.Writer}, but it will be possible to call {@link NIOWriter#canWrite()} or
      * {@link NIOWriter#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
      * avoid blocking.
      * 
@@ -792,7 +791,7 @@ public class Response {
     /**
      * Set the content length (in bytes) for this Response.
      *
-     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * If the <code>length</code> argument is negative - then {@link org.glassfish.grizzly.http.HttpPacket}
      * content-length value will be reset to <tt>-1</tt> and
      * <tt>Content-Length</tt> header (if present) will be removed.
      * 
@@ -814,7 +813,7 @@ public class Response {
     /**
      * Set the content length (in bytes) for this Response.
      * 
-     * If the <code>length</code> argument is negative - then {@link HttpPacket}
+     * If the <code>length</code> argument is negative - then {@link org.glassfish.grizzly.http.HttpPacket}
      * content-length value will be reset to <tt>-1</tt> and
      * <tt>Content-Length</tt> header (if present) will be removed.
      *
@@ -1445,8 +1444,7 @@ public class Response {
 
         boolean leadingSlash = location.startsWith("/");
 
-        if (leadingSlash
-            || (!leadingSlash && (location.indexOf("://") == -1))) {
+        if (leadingSlash || (!location.contains("://"))) {
 
             String scheme = request.getScheme();
 

@@ -498,7 +498,7 @@ public class Request {
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        inputBuffer.initialize(this, ctx);
+        inputBuffer.initialize(request, ctx);
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());

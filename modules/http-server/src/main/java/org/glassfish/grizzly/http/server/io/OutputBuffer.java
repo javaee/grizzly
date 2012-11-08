@@ -70,9 +70,8 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
-import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -90,7 +89,7 @@ import org.glassfish.grizzly.utils.Futures;
  */
 public class OutputBuffer {
     
-    private static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
+    protected static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
 
@@ -102,8 +101,6 @@ public class OutputBuffer {
      */
     private final static boolean IS_BLOCKING =
             Boolean.getBoolean(OutputBuffer.class.getName() + ".isBlocking");
-
-    private HttpResponsePacket response;
 
     private FilterChainContext ctx;
 
@@ -149,9 +146,9 @@ public class OutputBuffer {
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
     
-    private boolean sendfileEnabled;
+    protected boolean sendfileEnabled;
     
-    private Response serverResponse;
+    private HttpHeader outputHeader;
     
     private final CompletionHandler<WriteResult> onAsyncErrorCompletionHandler =
             new OnErrorCompletionHandler();
@@ -168,12 +165,13 @@ public class OutputBuffer {
     // ---------------------------------------------------------- Public Methods
 
 
-    public void initialize(final Response response,
+    public void initialize(final HttpHeader outputHeader,
+                           final boolean sendfileEnabled,
                            final FilterChainContext ctx) {
 
-        this.serverResponse = response;
-        this.response = response.getResponse();
-        sendfileEnabled = response.isSendFileEnabled();
+        this.outputHeader = outputHeader;
+
+        this.sendfileEnabled = sendfileEnabled;
         this.ctx = ctx;
         httpContext = HttpContext.get(ctx);
         memoryManager = ctx.getMemoryManager();
@@ -269,7 +267,7 @@ public class OutputBuffer {
      */
     public void recycle() {
 
-        response = null;
+        outputHeader = null;
 
         if (compositeBuffer != null) {
             compositeBuffer.dispose();
@@ -350,7 +348,7 @@ public class OutputBuffer {
      */
     public void acknowledge() throws IOException {
 
-        ctx.write(response, IS_BLOCKING);
+        ctx.write(outputHeader, IS_BLOCKING);
         
     }
 
@@ -575,12 +573,12 @@ public class OutputBuffer {
         // lock further sendfile requests out
         fileTransferRequested = true;
 
-        response.setContentLengthLong(f.remaining());
-        if (response.getContentType() == null) {
-            response.setContentType(MimeType.getByFilename(file.getName()));
+        outputHeader.setContentLengthLong(f.remaining());
+        if (outputHeader.getContentType() == null) {
+            outputHeader.setContentType(MimeType.getByFilename(file.getName()));
         }
         // set Content-Encoding to identity to prevent compression
-        response.setHeader(Header.ContentEncoding, "identity");
+        outputHeader.setHeader(Header.ContentEncoding, "identity");
 
         try {
             flush(); // commit the headers, then send the file
@@ -600,23 +598,9 @@ public class OutputBuffer {
             return;
         }
 
-        // check the suspend status at the time this method was invoked
-        // and take action based on this value
-        final boolean suspendedAtStart = serverResponse.isSuspended();
-        final CompletionHandler<WriteResult> ch;
-        if (suspendedAtStart && handler != null) {
-            // provided CompletionHandler assumed to manage suspend/resume
-            ch = handler;
-        } else if (!suspendedAtStart && handler != null) {
-            // provided CompletionHandler assumed to not managed suspend/resume
-            ch = suspendAndCreateHandler(handler);
-        } else {
-            // create internal CompletionHandler that will take the
-            // appropriate action depending on the current suspend status
-            ch = createInternalCompletionHandler(file, suspendedAtStart);
-        }
+
         
-        ctx.write(f, ch);
+        ctx.write(f, handler);
     }
 
     public void write(final byte b[], final int off, final int len) throws IOException {
@@ -673,7 +657,7 @@ public class OutputBuffer {
         // commit the response (mark it as committed)
         final boolean isJustCommitted = doCommit();
         // Try to commit the content chunk together with headers (if there were not committed before)
-        if (!flushAllBuffers(true) && (isJustCommitted || response.isChunked())) {
+        if (!flushAllBuffers(true) && (isJustCommitted || outputHeader.isChunked())) {
             // If there is no ready content chunk to commit,
             // but headers were not committed yet, or this is chunked encoding
             // and we need to send trailer
@@ -911,12 +895,12 @@ public class OutputBuffer {
     
     private boolean flushBinaryBuffers(final boolean isLast)
             throws IOException {
-        if (!response.isChunkingAllowed()
-                && response.getContentLength() == -1) {
+        if (!outputHeader.isChunkingAllowed()
+                && outputHeader.getContentLength() == -1) {
             if (!isLast) {
                 return false;
             } else {
-                response.setContentLength(getBufferedDataSize());
+                outputHeader.setContentLength(getBufferedDataSize());
             }
         }
         final Buffer bufferToFlush;
@@ -947,7 +931,7 @@ public class OutputBuffer {
             final boolean isLast, final MessageCloner<Buffer> messageCloner)
             throws IOException {
         
-        final HttpContent.Builder builder = response.httpContentBuilder();
+        final HttpContent.Builder builder = outputHeader.httpContentBuilder();
 
         builder.content(bufferToFlush).last(isLast);
         ctx.write(null,
@@ -984,7 +968,7 @@ public class OutputBuffer {
     private CharsetEncoder getEncoder() {
 
         if (encoder == null) {
-            String encoding = response.getCharacterEncoding();
+            String encoding = outputHeader.getCharacterEncoding();
             if (encoding == null) {
                 encoding = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARACTER_ENCODING;
             }
@@ -1020,13 +1004,13 @@ public class OutputBuffer {
 
     private void forceCommitHeaders(final boolean isLast) throws IOException {
         if (isLast) {
-            if (response != null) {
-                final HttpContent.Builder builder = response.httpContentBuilder();
+            if (outputHeader != null) {
+                final HttpContent.Builder builder = outputHeader.httpContentBuilder();
                 builder.last(true);
                 ctx.write(builder.build(), IS_BLOCKING);
             }
         } else {
-            ctx.write(response, IS_BLOCKING);
+            ctx.write(outputHeader, IS_BLOCKING);
         }
     }
 
@@ -1162,78 +1146,7 @@ public class OutputBuffer {
         isNonBlockingWriteGuaranteed = false;
     }
     
-    private CompletionHandler<WriteResult> createInternalCompletionHandler(
-            final File file, final boolean suspendedAtStart) {
 
-        CompletionHandler<WriteResult> ch;
-        if (!suspendedAtStart) {
-            serverResponse.suspend();
-        }
-        ch = new CompletionHandler<WriteResult>() {
-            @Override
-            public void cancelled() {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING,
-                            "Transfer of file {0} was cancelled.",
-                            file.getAbsolutePath());
-                }
-                serverResponse.resume();
-            }
-
-            @Override
-            public void failed(Throwable throwable) {
-                if (LOGGER.isLoggable(Level.SEVERE)) {
-                    LOGGER.log(Level.SEVERE,
-                            String.format("Failed to transfer file %s.  Cause: %s.",
-                                    file.getAbsolutePath(),
-                                    throwable.getMessage()),
-                            throwable);
-                }
-                serverResponse.resume();
-            }
-
-            @Override
-            public void completed(WriteResult result) {
-                serverResponse.resume();
-            }
-
-            @Override
-            public void updated(WriteResult result) {
-                // no-op
-            }
-        };
-        return ch;
-
-    }
-
-    private CompletionHandler<WriteResult> suspendAndCreateHandler(final CompletionHandler<WriteResult> handler) {
-        serverResponse.suspend();
-        return new CompletionHandler<WriteResult>() {
-
-            @Override
-            public void cancelled() {
-                handler.cancelled();
-                serverResponse.resume();
-            }
-
-            @Override
-            public void failed(Throwable throwable) {
-                handler.failed(throwable);
-                serverResponse.resume();
-            }
-
-            @Override
-            public void completed(WriteResult result) {
-                handler.completed(result);
-                serverResponse.resume();
-            }
-
-            @Override
-            public void updated(WriteResult result) {
-                handler.updated(result);
-            }
-        };
-    }
     
     /**
      * The {@link MessageCloner}, responsible for cloning Buffer content, if it
