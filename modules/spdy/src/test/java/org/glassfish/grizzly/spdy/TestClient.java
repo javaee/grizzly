@@ -57,6 +57,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -211,18 +212,15 @@ public class TestClient {
             HttpContent httpContent = ctx.getMessage();
 
             System.out.println(httpContent.getHttpHeader());
-            if (httpContent.isLast()) {
-                httpResponseFuture.result(httpContent);
-                return ctx.getStopAction();
-            } else {
-                httpContent = (HttpContent) ctx.read().getMessage();
-                if (httpContent.isLast()) {
-                    httpResponseFuture.result(httpContent);
-                    return ctx.getStopAction();
-                }
+            InputBuffer ib = new InputBuffer();
+            ib.initialize(httpContent.getHttpHeader(), ctx);
+            ib.processingChars();
+            char[] c = new char[1024];
+            int read;
+            while ((read = ib.read(c, 0, c.length)) != -1) {
+                System.out.println(new String(c, 0, read));
             }
-            System.out.println("STOPPING");
-            return ctx.getStopAction(httpContent);
+            return ctx.getStopAction();
         }
     }
     
