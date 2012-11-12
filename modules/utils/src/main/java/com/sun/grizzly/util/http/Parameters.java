@@ -81,6 +81,8 @@ import java.util.logging.Logger;
  */
 public final class Parameters {
 
+    public static final int DEFAULT_MAX_PARAMETERS = 10000;
+
     /**
      * Default Logger.
      */

@@ -74,6 +74,7 @@ import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.http.Parameters;
 import com.sun.grizzly.util.res.StringManager;
 
 import javax.management.MBeanRegistration;
@@ -221,6 +222,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     protected int maxPostSize = 2 * 1024 * 1024;
+
+
+    protected int maxRequestParameters = Parameters.DEFAULT_MAX_PARAMETERS;
 
     /**
      * The maximum number of headers allowed for a request.
@@ -2439,6 +2443,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     public void setMaxResponseHeaders(int maxResponseHeaders) {
         this.maxResponseHeaders = maxResponseHeaders;
+    }
+
+    public int getMaxRequestParameters() {
+        return maxRequestParameters;
+    }
+
+    public void setMaxRequestParameters(int maxRequestParameters) {
+        this.maxRequestParameters = maxRequestParameters;
     }
 
     /**

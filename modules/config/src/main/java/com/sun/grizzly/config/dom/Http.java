@@ -41,6 +41,7 @@
 package com.sun.grizzly.config.dom;
 
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.http.Parameters;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -79,6 +80,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
+    int MAX_REQUEST_PARAMETERS = Parameters.DEFAULT_MAX_PARAMETERS;
     int MAX_HEADERS = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     boolean PREALLOCATE_PROCESSOR_TASKS = false;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
@@ -321,7 +323,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * to set the name of the remote user that has been authenticated
      * for HTTP Request.
      * 
-     * @see Request#getRemoteUser()
+     * @see com.sun.grizzly.tcp.Request#getRemoteUser()
      */
     @Attribute
     String getRemoteUserMapping();
@@ -365,4 +367,26 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getPreallocateProcessorTasks();
     
     void setPreallocateProcessorTasks(final String preallocate);
+
+    /**
+     * Returns the maximum number of parameters allowed per request.  If the value less than zero,
+     * then there will be no limit on parameters.  If not explicitly configured,
+     * this returns {@value #MAX_REQUEST_PARAMETERS}.
+     *
+     * @return the maximum number of parameters or {@value #MAX_REQUEST_PARAMETERS}
+     *  if not explicitly configured.
+     *
+     * @since 1.9.54
+     */
+    @Attribute(defaultValue = "" + MAX_REQUEST_PARAMETERS, dataType = Integer.class)
+    String getMaxRequestParameters();
+
+    /**
+     * Sets the maximum number of parameters allowed for a request.  If the
+     * value is zero or less, then there will be no limit on parameters.
+     *
+     * @since 1.9.54
+     */
+    void setMaxRequestParameters();
+
 }

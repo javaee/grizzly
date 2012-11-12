@@ -91,6 +91,7 @@ import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.FastHttpDateFormat;
 import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.http.Parameters;
 import com.sun.grizzly.util.net.SSLSupport;
 import com.sun.grizzly.util.res.StringManager;
 
@@ -438,6 +439,8 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
 
+    protected int maxRequestParameters = Parameters.DEFAULT_MAX_PARAMETERS;
+
 
     /**
      * The maximum time a connection can stay open holding a {@link WorkerThread}.
@@ -528,6 +531,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         request = createRequest();
         request.getMimeHeaders().setMaxNumHeaders(getMaxRequestHeaders());
+        request.getParameters().setLimit(getMaxRequestParameters());
         response = createResponse();
         response.getMimeHeaders().setMaxNumHeaders(getMaxResponseHeaders());
         response.setHook(this);
@@ -2156,6 +2160,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setMaxResponseHeaders(int maxResponseHeaders) {
         this.maxResponseHeaders = maxResponseHeaders;
+    }
+
+    public int getMaxRequestParameters() {
+        return maxRequestParameters;
+    }
+
+    public void setMaxRequestParameters(int maxRequestParameters) {
+        this.maxRequestParameters = maxRequestParameters;
     }
 
     // ------------------------------------------------------- Asynch call ---//

@@ -637,6 +637,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         } catch (NumberFormatException ignored) {
             // default will be applied
         }
+        try {
+            setMaxRequestParameters(Integer.parseInt(http.getMaxRequestParameters()));
+        } catch (NumberFormatException ignored) {
+            // default will be applied
+        }
         if (http.getScheme() != null || http.getSchemeMapping() != null
                 || http.getRemoteUserMapping() != null) {
             final BackendConfiguration backendConfiguration = new BackendConfiguration();
