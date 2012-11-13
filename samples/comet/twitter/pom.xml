@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.54-SNAPSHOT</version>
+        <version>1.9.54</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-twitter</artifactId>
     <packaging>war</packaging>
-    <version>1.9.54-SNAPSHOT</version>
+    <version>1.9.54</version>
     <name>grizzly-twitter</name>
     <url>http://maven.apache.org</url>
     <dependencies>
