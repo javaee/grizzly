@@ -135,11 +135,10 @@ public class TunnelFilter extends BaseFilter {
             }
 
             private void finish() {
-                ctx.resumeNext();
+                ctx.resume(ctx.getStopAction());
             }
         });
 
-//        return ctx.getStopAction();
         return suspendNextAction;
     }
 

@@ -113,13 +113,6 @@ public class WebServerFilter extends BaseFilter {
         // Get the incoming message
         final Object message = ctx.getMessage();
         
-        // Check if this is DownloadCompletionHandler, which means download has
-        // been completed and HTTP request processing was resumed.
-        if (message instanceof DownloadCompletionHandler) {
-            // Download completed
-            return ctx.getStopAction();
-        }
-
         // Otherwise cast message to a HttpContent
         final HttpContent httpContent = (HttpContent) ctx.getMessage();
         // Get HTTP request message header
@@ -381,12 +374,8 @@ public class WebServerFilter extends BaseFilter {
          * Resume the HttpRequestPacket processing
          */
         private void resume() {
-            // Set this DownloadCompletionHandler as message
-            ctx.setMessage(this);
-            // Resume the request processing
-            // After resume will be called - filter chain will execute
-            // WebServerFilter.handleRead(...) again with the ctx as FilterChainContext.
-            ctx.resume();
+            // Resume the request processing w/ StopAction
+            ctx.resume(ctx.getStopAction());
         }
     }
 }

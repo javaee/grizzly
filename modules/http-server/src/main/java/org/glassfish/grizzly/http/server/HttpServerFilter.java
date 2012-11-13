@@ -80,7 +80,6 @@ public class HttpServerFilter extends BaseFilter
 
     private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
     private final Attribute<Request> httpRequestInProgress;
-    final Attribute<Boolean> reregisterForReadAttr;
     
     private final DelayedExecutor.DelayQueue<Response.SuspendTimeout> suspendedResponseQueue;
 
@@ -111,8 +110,6 @@ public class HttpServerFilter extends BaseFilter
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProgress = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                         createAttribute("HttpServerFilter.Request");
-        reregisterForReadAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("HttpServerFilter.reregisterForReadAttr");
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
@@ -131,7 +128,7 @@ public class HttpServerFilter extends BaseFilter
     // ----------------------------------------------------- Methods from Filter
 
 
-    @SuppressWarnings({"unchecked", "ReturnInsideFinallyBlock"})
+    @SuppressWarnings({"unchecked"})
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
           throws IOException {
@@ -154,7 +151,7 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProgress.set(context, handlerRequest);
                 final Response handlerResponse = handlerRequest.getResponse();
 
-                handlerRequest.initialize(/*handlerResponse, */request, ctx, this);
+                handlerRequest.initialize(request, ctx, this);
                 final SuspendStatus suspendStatus = handlerResponse.initialize(
                         handlerRequest, response, ctx, suspendedResponseQueue, this);
 
@@ -212,26 +209,20 @@ public class HttpServerFilter extends BaseFilter
                         // OP_READ on Connection
 
                         // we have enough data? - terminate filter chain execution
-                        final NextAction action = ctx.getSuspendAction();
+                        final NextAction suspendAction = ctx.getSuspendAction();
                         ctx.completeAndRecycle();
-                        return action;
+                        return suspendAction;
                     }
                 } finally {
                     httpContent.recycle();
                 }
             }
         } else { // this code will be run, when we resume the context
-            if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
-                // Do we want to reregister OP_READ to get more data async?
-                ctx.suspend();
-                return ctx.getForkAction();
-            } else {
-                // We're finishing the request processing
-                final Response response = (Response) message;
-                final Request request = response.getRequest();
-                return afterService(ctx, connection,
-                        request, response);
-            }
+            // We're finishing the request processing
+            final Response response = (Response) message;
+            final Request request = response.getRequest();
+            return afterService(ctx, connection,
+                    request, response);
         }
 
         return ctx.getStopAction();

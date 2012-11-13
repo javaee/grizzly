@@ -2418,11 +2418,9 @@ public class Request {
      * This is service method, usually users don't have to call it explicitly.
      */
     public void initiateAsyncronousDataReceiving() {
-        httpServerFilter.reregisterForReadAttr.set(ctx, Boolean.TRUE);
-        // resume context to pass control to HttpServerFilter, which is going to
-        // check the reregisterForReadAttr, enable asynchronous reading and suspend
-        // the context again.
-        ctx.resume();
+        // fork the FilterChainContext execution
+        // keep the current FilterChainContext suspended, but make a copy and resume it
+        ctx.fork();
     }
 
     /**

@@ -181,7 +181,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * @return TODO: Update
      */
     @SuppressWarnings("unchecked")
-    protected final FilterExecution executeChainPart(FilterChainContext ctx,
+    protected final FilterExecution executeChainPart(final FilterChainContext ctx,
             final FilterExecutor executor,
             final int start,
             final int end,
@@ -195,15 +195,21 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         NextAction lastNextAction = null;
         
         while (i != end) {
-            // current Filter to be executed
-            currentFilter = get(i);
+            
+            if (ctx.predefinedNextAction == null) {
+                // current Filter to be executed
+                currentFilter = get(i);
 
-            // Checks if there was a remainder message stored from the last filter execution
-            checkStoredMessage(ctx, filtersState, currentFilter);
+                // Checks if there was a remainder message stored from the last filter execution
+                checkStoredMessage(ctx, filtersState, currentFilter);
 
-            // execute the task
-            lastNextAction = executeFilter(executor, currentFilter, ctx);
-
+                // execute the task
+                lastNextAction = executeFilter(executor, currentFilter, ctx);
+            } else {
+                lastNextAction = ctx.predefinedNextAction;
+                ctx.predefinedNextAction = null;
+            }
+            
             lastNextActionType = lastNextAction.type();
             if (lastNextActionType != InvokeAction.TYPE) { // if we don't need to execute next filter
                 break;

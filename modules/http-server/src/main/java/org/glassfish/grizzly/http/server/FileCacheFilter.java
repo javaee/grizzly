@@ -104,7 +104,7 @@ public class FileCacheFilter extends BaseFilter {
                         }
 
                         private void finish() {
-                            ctx.completeAndRecycle();
+                            ctx.resume(ctx.getStopAction());
                         }
                     });
 

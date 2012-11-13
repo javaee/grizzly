@@ -120,6 +120,8 @@ public final class FilterChainContext implements AttributeStorage {
      */
     private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
 
+    NextAction predefinedNextAction;
+    
     final InternalContextImpl internalContext = new InternalContextImpl(this);
 
     final TransportContext transportFilterContext = new TransportContext();
@@ -188,7 +190,7 @@ public final class FilterChainContext implements AttributeStorage {
 
     /**
      * Resume processing of the current task starting from the Filter, which
-     * suspend the processing
+     * suspended the processing
      */
     public void resume() {
         internalContext.resume();
@@ -197,7 +199,29 @@ public final class FilterChainContext implements AttributeStorage {
                 state = State.RUNNING;
             }
 
-            ProcessorExecutor.execute(FilterChainContext.this.internalContext);
+            ProcessorExecutor.execute(internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
+    }
+
+    /**
+     * Resume the current FilterChain task processing by completing the current
+     * {@link Filter} (the Filter, which suspended the processing) with the
+     * passed {@link NextAction}.
+     * 
+     * @param nextAction the {@link NextAction}, based on which {@link FilterChain}
+     * will continue processing.
+     */
+    public void resume(final NextAction nextAction) {
+        internalContext.resume();
+        try {
+            if (state == State.SUSPEND) {
+                state = State.RUNNING;
+            }
+
+            predefinedNextAction = nextAction;
+            ProcessorExecutor.execute(internalContext);
         } catch (Exception e) {
             logger.log(Level.FINE, "Exception during running Processor", e);
         }
@@ -208,8 +232,28 @@ public final class FilterChainContext implements AttributeStorage {
      * follows the Filter, which suspend the processing.
      */
     public void resumeNext() {
-        setFilterIdx(ExecutorResolver.resolve(this).getNextFilter(this));
-        resume();
+        resume(getInvokeAction());
+    }
+    
+    /**
+     * This method invocation suggests the {@link FilterChain}
+     * that the current {@link FilterChainContext} was suspended, so it has to
+     * create a "runnable" copy of this {@link FilterChainContext} and continue
+     * execution of the copied {@link FilterChainContext} as if the
+     * current {@link Filter} returned {@link StopAction}.
+     * 
+     * This operation is particularly useful during incoming message
+     * processing, when application built on top of the {@link FilterChain}
+     * wants to keep existing {@link FilterChainContext} but still receiving
+     * more incoming data asynchronously.
+     */
+    public void fork() {
+        try {
+            predefinedNextAction = getForkAction();
+            ProcessorExecutor.execute(internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
     }
     
     /**
@@ -419,11 +463,15 @@ public final class FilterChainContext implements AttributeStorage {
 
 
     /**
-     * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
-     * to suspend the current {@link FilterChainContext}, but does not disable
-     * correspondent {@link IOEvent}, so if the same {@link IOEvent} occurs on
-     * the {@link Connection} - it will be processed using new
-     * {@link FilterChainContext}.
+     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
+     * that the current {@link FilterChainContext} was suspended, so it has to
+     * create a "runnable" copy of this {@link FilterChainContext} and continue
+     * execution as if the current {@link Filter} returned {@link StopAction}.
+     * 
+     * This {@link NextAction} type is particularly useful during incoming message
+     * processing, when application built on top of the {@link FilterChain}
+     * wants to keep existing {@link FilterChainContext} but still receiving
+     * more incoming data asynchronously.
      */
     public NextAction getForkAction() {
         final FilterChainContext contextCopy = copy();
