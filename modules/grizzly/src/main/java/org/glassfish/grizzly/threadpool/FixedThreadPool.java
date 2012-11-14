@@ -67,13 +67,10 @@ public class FixedThreadPool extends AbstractThreadPool {
 
         ProbeNotifier.notifyThreadPoolStarted(this);
         
-        stateLock.lock();
-        try {
+        synchronized (stateLock) {
             while (poolSize-- > 0) {
                 doStartWorker();
             }
-        } finally {
-            stateLock.unlock();
         }
         
         super.onMaxNumberOfThreadsReached();

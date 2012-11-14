@@ -60,12 +60,10 @@ import java.util.concurrent.TimeUnit;
 public class SyncThreadPool extends AbstractThreadPool {
 
     private final Queue<Runnable> workQueue;
-    protected volatile int maxQueuedTasks = -1;
+    protected int maxQueuedTasks = -1;
     private int currentPoolSize;
     private int activeThreadsCount;
     
-    private boolean maxNumberOfThreadsSwitch;
-
     /**
      *
      */
@@ -83,16 +81,12 @@ public class SyncThreadPool extends AbstractThreadPool {
     }
 
     public void start() {
-        stateLock.lock();
-        
-        try {
+        synchronized (stateLock) {
             ProbeNotifier.notifyThreadPoolStarted(this);
             
             while (currentPoolSize < config.getCorePoolSize()) {
                 startWorker(new SyncThreadWorker(true));
             }
-        } finally {
-            stateLock.unlock();
         }
     }
 
@@ -115,18 +109,14 @@ public class SyncThreadPool extends AbstractThreadPool {
             throw new IllegalArgumentException("Runnable task is null");
         }
 
-        stateLock.lock();
-        
-        try {
+        synchronized (stateLock) {
             if (!running) {
                 throw new RejectedExecutionException("ThreadPool is not running");
             }
 
-            final int idleThreadsNumber = currentPoolSize - activeThreadsCount;
+            final int workQueueSize = workQueue.size() + 1;
 
-            final int workQueueSize = workQueue.size();
-            
-            if ((maxQueuedTasks < 0 || workQueueSize < maxQueuedTasks)
+            if ((maxQueuedTasks < 0 || workQueueSize <= maxQueuedTasks)
                     && workQueue.offer(task)) {
                 onTaskQueued(task);
             } else {
@@ -134,24 +124,21 @@ public class SyncThreadPool extends AbstractThreadPool {
                 assert false; // should not reach this point
             }
 
-            final boolean isCore = (currentPoolSize < config.getCorePoolSize());
+            final int idleThreadsNumber = currentPoolSize - activeThreadsCount;
 
-            if (isCore ||
-                    (currentPoolSize < config.getMaxPoolSize() &&
-                    idleThreadsNumber < workQueueSize + 1)) {
-                maxNumberOfThreadsSwitch = false;
-                
-                startWorker(new SyncThreadWorker(isCore));
+            if (idleThreadsNumber >= workQueueSize) {
+                stateLock.notify();
                 return;
-            } else if (idleThreadsNumber < workQueueSize + 1 &&
-                    !maxNumberOfThreadsSwitch) {
-                maxNumberOfThreadsSwitch = true;
-                onMaxNumberOfThreadsReached();
             }
-            
-            stateLockCondition.signal();
-        } finally {
-            stateLock.unlock();
+
+            if (currentPoolSize < config.getMaxPoolSize()) {
+                final boolean isCore = (currentPoolSize < config.getCorePoolSize());
+                startWorker(new SyncThreadWorker(isCore));
+
+                if (currentPoolSize == config.getMaxPoolSize()) {
+                    onMaxNumberOfThreadsReached();
+                }
+            }
         }
     }
 
@@ -165,12 +152,10 @@ public class SyncThreadPool extends AbstractThreadPool {
     @Override
     protected void onWorkerExit(Worker worker) {
         super.onWorkerExit(worker);
-        stateLock.lock();
-        try {
+        
+        synchronized (stateLock) {
             currentPoolSize--;
             activeThreadsCount--;
-        } finally {
-            stateLock.unlock();
         }
     }
 
@@ -185,8 +170,10 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     @Override
     public String toString() {
-        return super.toString()
-                + ", max-queue-size=" + maxQueuedTasks;
+        synchronized (stateLock) {
+            return super.toString()
+                    + ", max-queue-size=" + maxQueuedTasks;
+        }
     }
 
     protected class SyncThreadWorker extends Worker {
@@ -199,39 +186,58 @@ public class SyncThreadPool extends AbstractThreadPool {
 
         @Override
         protected Runnable getTask() throws InterruptedException {
-            stateLock.lock();
-            try {
+            synchronized (stateLock) {
                 activeThreadsCount--;
+                try {
 
-                if (!running) {
-                    return null;
-                }
-
-                Runnable r = workQueue.poll();
-
-                long keepAliveNanos = config.getKeepAliveTime(TimeUnit.NANOSECONDS);
-
-                while (r == null) {
-                    if (core) {
-                        stateLockCondition.await();
-                    } else {
-                        keepAliveNanos = stateLockCondition.awaitNanos(keepAliveNanos);
+                    if (!running
+                            || (!core && currentPoolSize > config.getMaxPoolSize())) {
+                        // if maxpoolsize becomes lower during runtime we kill of the
+                        return null;
                     }
-                    
-                    r = workQueue.poll();
 
-                    // Less than 100 millis remainder will consider as keepalive timeout
-                    if (!running || (!core
-                            && (r != null || keepAliveNanos <= 0))) {
-                        break;
+                    Runnable r = workQueue.poll();
+
+                    if (r != null) {
+                        return r;
                     }
+
+                    long keepAliveMillis = config.getKeepAliveTime(TimeUnit.MILLISECONDS);
+                    final boolean hasKeepAlive = !core && keepAliveMillis >= 0;
+
+                    long endTime = -1;
+                    if (hasKeepAlive) {
+                        endTime = System.currentTimeMillis() + keepAliveMillis;
+                    }
+
+                    do {
+                        if (!hasKeepAlive) {
+                            stateLock.wait();
+                        } else {
+                            stateLock.wait(keepAliveMillis);
+                        }
+
+                        r = workQueue.poll();
+
+                        if (r != null) {
+                            return r;
+                        }
+
+                        // Less than 20 millis remainder will consider as keepalive timeout
+                        if (!running) {
+                            return null;
+                        } else if (hasKeepAlive) {
+                            if (keepAliveMillis < 20) {
+                                return null;
+                            }
+
+                            keepAliveMillis = endTime - System.currentTimeMillis();
+                        }
+                    } while (true);
+
+                } finally {
+                    activeThreadsCount++;
                 }
-
-                return r;
-
-            } finally {
-                activeThreadsCount++;
-                stateLock.unlock();
             }
         }
     }

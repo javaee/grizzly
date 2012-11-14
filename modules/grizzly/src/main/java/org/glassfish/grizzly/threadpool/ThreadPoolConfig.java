@@ -255,20 +255,38 @@ public class ThreadPoolConfig {
     }
 
     /**
-     *
-     * @param time max keep alive time
+     * The max period of time a thread will wait for a new task to process.
+     * If the timeout expires and the thread is not a core one
+     *  (see {@link #setCorePoolSize(int)}, {@link #setMaxPoolSize(int)}) - 
+     * then the thread will be terminated and removed from the thread pool.
+     * 
+     * @param time max keep alive timeout. The value less than 0 means no timeout
      * @param unit time unit
      * @return the {@link ThreadPoolConfig} with the new keep alive time
      */
     public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
-        this.keepAliveTimeMillis = TimeUnit.MILLISECONDS.convert(time, unit);
+        if (time < 0) {
+            keepAliveTimeMillis = -1;
+        } else {
+            keepAliveTimeMillis = TimeUnit.MILLISECONDS.convert(time, unit);
+        }
         return this;
     }
 
     /**
-     * @return the keepAliveTime
+     * Returns the max period of time a thread will wait for a new task to process.
+     * 
+     * If the timeout expires and the thread is not a core one
+     *  (see {@link #setCorePoolSize(int)}, {@link #setMaxPoolSize(int)}) - 
+     * then the thread will be terminated and removed from the thread pool.
+     * 
+     * @return the keep-alive timeout, the value less than 0 means no timeout
      */
     public long getKeepAliveTime(TimeUnit timeUnit) {
+        if (keepAliveTimeMillis == -1) {
+            return -1;
+        }
+        
         return timeUnit.convert(keepAliveTimeMillis, TimeUnit.MILLISECONDS);
     }
 
