@@ -262,13 +262,11 @@ public class PUFilter extends BaseFilter {
         
         @Override
         public void onComplete(final Context context) throws IOException {
-            // @TODO implement method like parentContext.resume(NextAction)
-            
             if (!isSticky) {
                 parentContext.getConnection().setFilterChain(
                         parentContext.getFilterChain());
             }
-            parentContext.resumeNext();
+            parentContext.resume(parentContext.getStopAction());
         }
     }
 }

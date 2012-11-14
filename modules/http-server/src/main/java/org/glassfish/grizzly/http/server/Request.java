@@ -2420,7 +2420,7 @@ public class Request {
     public void initiateAsyncronousDataReceiving() {
         // fork the FilterChainContext execution
         // keep the current FilterChainContext suspended, but make a copy and resume it
-        ctx.fork();
+        ctx.fork(ctx.getStopAction());
     }
 
     /**

@@ -278,7 +278,7 @@ public class AsyncPUTest {
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             ctx.suspend();
-            final NextAction forkAction = ctx.getForkAction();
+            final NextAction forkAction = ctx.getForkAction(ctx.getStopAction());
             
             tp.schedule(new Runnable() {
                 @Override

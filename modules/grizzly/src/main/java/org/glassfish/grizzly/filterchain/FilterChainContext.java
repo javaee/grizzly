@@ -236,20 +236,32 @@ public final class FilterChainContext implements AttributeStorage {
     }
     
     /**
-     * This method invocation suggests the {@link FilterChain}
-     * that the current {@link FilterChainContext} was suspended, so it has to
-     * create a "runnable" copy of this {@link FilterChainContext} and continue
-     * execution of the copied {@link FilterChainContext} as if the
-     * current {@link Filter} returned {@link StopAction}.
-     * 
-     * This operation is particularly useful during incoming message
-     * processing, when application built on top of the {@link FilterChain}
-     * wants to keep existing {@link FilterChainContext} but still receiving
-     * more incoming data asynchronously.
+     * This method invocation suggests the {@link FilterChain} to create a
+     * copy of this {@link FilterChainContext} and resume/fork its execution
+     * starting from the current {@link Filter}.
      */
     public void fork() {
+        fork(null);
+    }
+
+    /**
+     * This method invocation suggests the {@link FilterChain} to create a
+     * copy of this {@link FilterChainContext} and resume/fork its execution
+     * starting from the current {@link Filter}.
+     * 
+     * If <code>nextAction</code> parameter is not null - then its value is treated
+     * as a result of the current {@link Filter} execution on the forked
+     * {@link FilterChain} processing. So during the forked {@link FilterChain}
+     * processing the current {@link Filter} will not be invoked, but
+     * the processing will be continued as if the current {@link Filter}
+     * returned <code>nextAction</code> as a result.
+     * For example if we call <code>fork(ctx.getInvokeAction());</code> the forked
+     * {@link FilterChain} processing will start with the next {@link Filter} in
+     * chain.
+     */
+    public void fork(final NextAction nextAction) {
         try {
-            predefinedNextAction = getForkAction();
+            predefinedNextAction = getForkAction(nextAction);
             ProcessorExecutor.execute(internalContext);
         } catch (Exception e) {
             logger.log(Level.FINE, "Exception during running Processor", e);
@@ -461,26 +473,6 @@ public final class FilterChainContext implements AttributeStorage {
         return STOP_ACTION;
     }
 
-
-    /**
-     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
-     * that the current {@link FilterChainContext} was suspended, so it has to
-     * create a "runnable" copy of this {@link FilterChainContext} and continue
-     * execution as if the current {@link Filter} returned {@link StopAction}.
-     * 
-     * This {@link NextAction} type is particularly useful during incoming message
-     * processing, when application built on top of the {@link FilterChain}
-     * wants to keep existing {@link FilterChainContext} but still receiving
-     * more incoming data asynchronously.
-     */
-    public NextAction getForkAction() {
-        final FilterChainContext contextCopy = copy();
-        // Copy doesn't copy address
-        contextCopy.addressHolder = addressHolder;
-        
-        return new ForkAction(contextCopy);
-    }
-
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * stop executing phase.
@@ -536,6 +528,41 @@ public final class FilterChainContext implements AttributeStorage {
         return getStopAction((Appendable) unknownObject);
     }
     
+    /**
+     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
+     * to forget about the current {@link FilterChainContext}, create a copy of it
+     * and continue/fork {@link FilterChain} processing using the copied
+     * {@link FilterChainContext} starting from the current {@link Filter}.
+     */
+    public NextAction getForkAction() {
+        return getForkAction(null);
+    }
+    
+    /**
+     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
+     * to forget about the current {@link FilterChainContext}, create a copy of it
+     * and continue/fork {@link FilterChain} processing using the copied
+     * {@link FilterChainContext} starting from the current {@link Filter}.
+     * 
+     * If <code>nextAction</code> parameter is not null - then its value is treated
+     * as a result of the current {@link Filter} execution on the forked
+     * {@link FilterChain} processing. So during the forked {@link FilterChain}
+     * processing the current {@link Filter} will not be invoked, but
+     * the processing will be continued as if the current {@link Filter}
+     * returned <code>nextAction</code> as a result.
+     * For example if we call <code>fork(ctx.getInvokeAction());</code> the forked
+     * {@link FilterChain} processing will start with the next {@link Filter} in
+     * chain.
+     */
+    public NextAction getForkAction(final NextAction nextAction) {
+        final FilterChainContext contextCopy = copy();
+        // Copy doesn't copy address
+        contextCopy.addressHolder = addressHolder;
+        contextCopy.predefinedNextAction = nextAction;
+        
+        return new ForkAction(contextCopy);
+    }
+
     /**
      * Get {@link NextAction}, which instructs {@link FilterChain} to suspend filter
      * chain execution.

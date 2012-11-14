@@ -146,7 +146,11 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         final int end = ctx.getEndIdx();
 
         try {
+            
+            boolean isRerunFilterChain;
+            
             do {
+                isRerunFilterChain = false;
                 final FilterExecution execution = executeChainPart(ctx,
                         executor, ctx.getFilterIdx(), end, filtersState);
                 switch (execution.type) {
@@ -154,9 +158,11 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                         return ProcessorResult.createTerminate();
                     case FilterExecution.FORK_TYPE:
                         ctx = execution.getContext();
-                        ctx.setMessage(null);
+                        isRerunFilterChain = true;
+                        continue;
                 }
-            } while (prepareRemainder(ctx, filtersState,
+            } while (isRerunFilterChain ||
+                    prepareRemainder(ctx, filtersState,
                     ctx.getStartIdx(), end));
         } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
@@ -196,9 +202,10 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         
         while (i != end) {
             
+            // current Filter to be executed
+            currentFilter = get(i);
+            
             if (ctx.predefinedNextAction == null) {
-                // current Filter to be executed
-                currentFilter = get(i);
 
                 // Checks if there was a remainder message stored from the last filter execution
                 checkStoredMessage(ctx, filtersState, currentFilter);
