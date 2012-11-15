@@ -88,12 +88,12 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
+     * Get the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
      * For particular {@link NIOConnection}, this setting could be overridden by
      * {@link NIOConnection#getReadBufferSize()}.
      * 
-     * @return the default size of {@link Buffer}s, which will be allocated for
+     * @return the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
      */
     public int getReadBufferSize() {
@@ -101,7 +101,7 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
+     * Set the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * reading data from {@link NIOTransport}'s {@link NIOConnection}s.
      * For particular {@link NIOConnection}, this setting could be overridden by
      * {@link NIOConnection#setReadBufferSize(int)}.
@@ -109,7 +109,7 @@ public abstract class NIOTransport extends AbstractTransport {
      * If not explicitly configured, this value will be set to
      * {@link #DEFAULT_READ_BUFFER_SIZE}.
      *
-     * @param readBufferSize the default size of {@link Buffer}s, which will
+     * @param readBufferSize the default size of {@link org.glassfish.grizzly.Buffer}s, which will
      * be allocated for reading data from {@link NIOTransport}'s
      * {@link NIOConnection}s.
      */
@@ -119,12 +119,12 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     /**
-     * Get the default size of {@link Buffer}s, which will be allocated for
+     * Get the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
      * For particular {@link NIOConnection}, this setting could be overridden by
      * {@link NIOConnection#getWriteBufferSize()}.
      *
-     * @return the default size of {@link Buffer}s, which will be allocated for
+     * @return the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
      */
     public int getWriteBufferSize() {
@@ -132,12 +132,12 @@ public abstract class NIOTransport extends AbstractTransport {
     }
 
     /**
-     * Set the default size of {@link Buffer}s, which will be allocated for
+     * Set the default size of {@link org.glassfish.grizzly.Buffer}s, which will be allocated for
      * writing data to {@link NIOTransport}'s {@link NIOConnection}s.
      * For particular {@link NIOConnection}, this setting could be overridden by
      * {@link NIOConnection#setWriteBufferSize(int)}.
      *
-     * @param writeBufferSize the default size of {@link Buffer}s, which will
+     * @param writeBufferSize the default size of {@link org.glassfish.grizzly.Buffer}s, which will
      * be allocated for writing data to {@link NIOTransport}'s
      * {@link NIOConnection}s.
      */
