@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,8 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.lzma.compression.lzma.Decoder;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.lzma.compression.lzma.Decoder;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
@@ -49,9 +49,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import junit.framework.TestCase;
 
 /**
@@ -190,21 +192,73 @@ public class ContentEncodingTest extends TestCase {
         }
     }
 
+    public void testDoubleCompression() throws IOException {
+        InputStream is = null;
+
+        webServer.addGrizzlyAdapter(new MessageAdapter(MESSAGE, true),
+                new String[] {"/compressed-hello"});
+        
+        URL url = new URL("http://localhost:".concat(String.valueOf(PORT)).concat("/compressed-hello"));
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        try {
+            connection.setRequestProperty("Accept-Encoding", "gzip");
+            assertEquals(200, connection.getResponseCode());
+            assertEquals("gzip", connection.getContentEncoding());
+
+            is = new GZIPInputStream(connection.getInputStream());
+            byte[] buffer = new byte[4096];
+            int length = 0;
+            int c;
+            while((c = is.read()) != -1) {
+                buffer[length++] = (byte) c;
+            }
+
+            assertEquals(MESSAGE, new String(buffer, 0, length));
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                }
+            }
+
+            connection.disconnect();
+        }
+    }
+    
     public static class MessageAdapter extends GrizzlyAdapter {
         private final String message;
+        private final boolean isCompress;
 
         public MessageAdapter(String message) {
+            this(message, false);
+        }
+
+        public MessageAdapter(String message, boolean isCompress) {
             this.message = message;
+            this.isCompress = isCompress;
         }
 
         @Override
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
-                response.getWriter().print(message);
+                if (isCompress) {
+                    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    final PrintWriter pw = new PrintWriter(new GZIPOutputStream(baos));
+                    pw.print(message);
+                    pw.flush();
+                    pw.close();
+
+                    final byte[] outputArray = baos.toByteArray();
+
+                    response.setHeader("Content-Encoding", "gzip");
+                    response.getOutputStream().write(outputArray);
+                } else {
+                    response.getWriter().print(message);
+                }
             } catch (Exception e) {
                 response.setStatus(500);
             }
         }
-
     }
 }

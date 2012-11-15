@@ -2459,7 +2459,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             response.getMimeHeaders().getValue("Content-Encoding");
 
         if (contentEncodingMB != null
-            && !compressionOutputFilter.equals(lookupCompressionFilter(contentEncodingMB)))
+            && compressionOutputFilter.equals(lookupCompressionFilter(contentEncodingMB)))
             return null;
 
         // If force mode, always compress (test purposes only)
