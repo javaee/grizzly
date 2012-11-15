@@ -78,7 +78,11 @@ public class CompressionEncodingFilterTest {
         request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip; q=0, foo2").build();
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
         assertFalse(filter.applyEncoding(response));
-
+        
+        // Check double-compression
+        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip;q=1.0, foo2").build();
+        response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).header(Header.ContentEncoding, "gzip").build();
+        assertFalse(filter.applyEncoding(response));
     }
 
 }
