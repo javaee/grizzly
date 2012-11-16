@@ -475,7 +475,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
             throw new IllegalStateException("Null response object");
         }
 
-        throw new UnsupportedOperationException("Not supported yet.");
+        return response.encodeRedirectURL(url);
     }
 
     
@@ -484,12 +484,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public String encodeUrl(String url) {
-
-        if (response == null) {
-            throw new IllegalStateException("Null response object");
-        }
-
-        throw new UnsupportedOperationException("Not supported yet.");
+        return encodeURL(url);
     }
 
     
@@ -498,12 +493,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public String encodeRedirectUrl(String url) {
-
-        if (response == null) {
-            throw new IllegalStateException("Null response object");
-        }
-
-        throw new UnsupportedOperationException("Not supported yet.");
+        return encodeRedirectURL(url);
     }
 
     

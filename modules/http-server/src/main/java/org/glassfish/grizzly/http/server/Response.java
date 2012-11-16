@@ -353,6 +353,19 @@ public class Response {
 
     }
 
+    /**
+     * Encode the session identifier associated with this response
+     * into the specified redirect URL, if necessary.
+     *
+     * @param url URL to be encoded
+     */
+    public String encodeRedirectURL(String url) {
+        if (isEncodeable(toAbsolute(url, false))) {
+            return toEncoded(url, request.getSession().getIdInternal());
+        } else {
+            return url;
+        }
+    }    
 
     /**
      * Return <tt>true</tt> if the specified URL should be encoded with

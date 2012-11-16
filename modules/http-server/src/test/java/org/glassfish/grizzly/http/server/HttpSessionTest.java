@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -212,6 +213,55 @@ public class HttpSessionTest extends TestCase {
         assertFalse("123456".equals(sessionId));
     }
     
+    public void testEncodeURL() throws Exception {
+        
+        HttpServer server = createWebServer(new HttpEncodeURLHandler());
+        
+        try {
+            server.start();
+            
+            final HttpPacket request = createRequest("/index.html", null);
+            final HttpContent response = sendRequest(request, 10);
+
+            final String responseContent = response.getContent().toStringContent();
+            Map<String, String> props = new HashMap<String, String>();
+
+            BufferedReader reader = new BufferedReader(new StringReader(responseContent));
+            String line;
+            while((line = reader.readLine()) != null) {
+                final int idx = line.indexOf('=');
+                assertTrue(idx != -1);
+
+                props.put(line.substring(0, idx), line.substring(idx + 1, line.length()));
+            }
+            System.out.println(props);
+
+            String sessionId = props.get("session-id");
+            assertNotNull(sessionId);
+
+            String encodeURL1 = props.get("encodeURL1");
+            assertEquals("/encodeURL", encodeURL1);
+            
+            String encodeURL2 = props.get("encodeURL2");
+            assertEquals("/encodeURL;jsessionid=" + sessionId, encodeURL2);
+            
+            String encodeURL3 = props.get("encodeURL3");
+            assertEquals("http://localhost:" + PORT + "/;jsessionid=" + sessionId,
+                    encodeURL3);
+            
+            String encodeRedirectURL1 = props.get("encodeRedirectURL1");
+            assertEquals("/encodeRedirectURL", encodeRedirectURL1);
+
+            String encodeRedirectURL2 = props.get("encodeRedirectURL2");
+            assertEquals("/encodeRedirectURL;jsessionid=" + sessionId, encodeRedirectURL2);
+
+            String encodeRedirectURL3 = props.get("encodeRedirectURL3");
+            assertEquals("", encodeRedirectURL3);
+        } finally {
+            server.stop();
+        }
+    }
+    
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
@@ -231,13 +281,37 @@ public class HttpSessionTest extends TestCase {
             final int timeout)
             throws Exception {
 
+        final HttpServer server = createWebServer(httpHandler);
+        try {
+            server.start();
+            return sendRequest(request, timeout);
+        } finally {
+            server.stop();
+        }
+    }
+
+    private HttpServer createWebServer(final HttpHandler httpHandler) {
+
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                        NetworkListener.DEFAULT_NETWORK_HOST,
+                        PORT);
+        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        server.addListener(listener);
+        server.getServerConfiguration().addHttpHandler(httpHandler, "/");
+
+        return server;
+
+    }
+
+    private HttpContent sendRequest(final HttpPacket request, final int timeout) throws Exception {
+
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
-        final HttpServer server = createWebServer(httpHandler);
         try {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
-            server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(5));
@@ -261,26 +335,9 @@ public class HttpSessionTest extends TestCase {
             }
         } finally {
             clientTransport.stop();
-            server.stop();
         }
     }
-
-    private HttpServer createWebServer(final HttpHandler httpHandler) {
-
-        final HttpServer server = new HttpServer();
-        final NetworkListener listener =
-                new NetworkListener("grizzly",
-                        NetworkListener.DEFAULT_NETWORK_HOST,
-                        PORT);
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
-        server.addListener(listener);
-        server.getServerConfiguration().addHttpHandler(httpHandler, "/");
-
-        return server;
-
-    }
-
-
+    
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
@@ -370,4 +427,33 @@ public class HttpSessionTest extends TestCase {
             }
         }
     }
+    
+    public class HttpEncodeURLHandler extends HttpHandler {
+
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            final String encodeURL1 = response.encodeURL("/encodeURL");
+            final String encodeRedirectURL1 = response.encodeRedirectURL("/encodeRedirectURL");
+            
+            final Session session = request.getSession();
+            
+            final String encodeURL2 = response.encodeURL("/encodeURL");
+            final String encodeRedirectURL2 = response.encodeRedirectURL("/encodeRedirectURL");
+            
+            final String encodeURL3 = response.encodeURL("");
+            final String encodeRedirectURL3 = response.encodeRedirectURL("");
+            
+            if (session != null) {
+                response.getWriter().write("session-id=" + session.getIdInternal() + "\n");
+                response.getWriter().write("encodeURL1=" + encodeURL1 + "\n");
+                response.getWriter().write("encodeRedirectURL1=" + encodeRedirectURL1 + "\n");
+                response.getWriter().write("encodeURL2=" + encodeURL2 + "\n");
+                response.getWriter().write("encodeRedirectURL2=" + encodeRedirectURL2 + "\n");
+                response.getWriter().write("encodeURL3=" + encodeURL3 + "\n");
+                response.getWriter().write("encodeRedirectURL3=" + encodeRedirectURL3 + "\n");
+            } else {
+                response.getWriter().write("FAILED\n");
+            }
+        }
+    }    
 }
