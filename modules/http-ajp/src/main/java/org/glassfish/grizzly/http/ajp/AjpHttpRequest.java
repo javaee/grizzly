@@ -234,11 +234,6 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     }
 
     @Override
-    protected void setExpectContent(boolean isExpectContent) {
-        super.setExpectContent(isExpectContent);
-    }
-
-    @Override
     protected void reset() {
         processingState.recycle();
         contentBytesRemaining = -1;
