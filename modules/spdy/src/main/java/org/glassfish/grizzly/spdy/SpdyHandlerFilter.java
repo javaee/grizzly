@@ -64,7 +64,9 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -406,7 +408,6 @@ public class SpdyHandlerFilter extends BaseFilter {
         spdyRequest.setConnection(context.getConnection());
         final SpdyStream spdyStream = spdySession.acceptStream(spdyRequest,
                 streamId, associatedToStreamId, priority, slot);
-        
         if (spdyStream == null) { // GOAWAY has been sent, so ignoring this request
             spdyRequest.recycle();
             frame.dispose();
@@ -470,7 +471,8 @@ public class SpdyHandlerFilter extends BaseFilter {
                 upstreamContext.setAddressHolder(context.getAddressHolder());
                         
                 
-                HttpContext.newInstance(upstreamContext, spdyStream);
+                HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
+                spdyStream.setGeneralInputBuffer(httpContext.getInputBuffer());
                 ProcessorExecutor.execute(upstreamContext.getInternalContext());
             }
         });
@@ -660,7 +662,8 @@ public class SpdyHandlerFilter extends BaseFilter {
                 upstreamContext.setAddressHolder(context.getAddressHolder());
                         
                 
-                HttpContext.newInstance(upstreamContext, spdyStream);
+                HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
+                spdyStream.setGeneralInputBuffer(httpContext.getInputBuffer());
                 ProcessorExecutor.execute(upstreamContext.getInternalContext());
             }
         });
@@ -775,7 +778,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         final Object message = ctx.getMessage();
         
         final SpdySession spdySession = checkSpdySession(ctx, false);
-        
+
         if (spdySession != null &&
                 HttpPacket.isHttp(message)) {
             
@@ -828,13 +831,14 @@ public class SpdyHandlerFilter extends BaseFilter {
 
     @Override
     public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
-        final Connection c = ctx.getConnection();
-        
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
             spdyStream.shutdownOutput();
             
+            return ctx.getStopAction();
+        } else if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
+            ctx.fork(ctx.getStopAction());
             return ctx.getStopAction();
         }
 
@@ -842,7 +846,14 @@ public class SpdyHandlerFilter extends BaseFilter {
     }
 
 
-    private void prepareRequest(final HttpRequestPacket response) {
+    private void prepareRequest(final HttpRequestPacket request) {
+        final Method m = request.getMethod();
+        if (m == Method.GET
+                || m == Method.CONNECT
+                || m == Method.HEAD
+                || m == Method.TRACE) {
+            request.setExpectContent(false);
+        }
     }    
 
     private void prepareResponse(final HttpResponsePacket response) {

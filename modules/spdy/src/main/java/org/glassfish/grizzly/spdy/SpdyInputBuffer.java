@@ -46,6 +46,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -80,15 +82,30 @@ final class SpdyInputBuffer {
         if (isTerminated()) {
             throw new IllegalStateException("SpdyStream input is closed");
         }
-        
-        inputQueue.offer(data);
-        inputQueueSize.incrementAndGet();
+        InputBuffer inputBuffer = spdyStream.getGeneralInputBuffer();
+        if (inputBuffer != null && inputBuffer.getReadHandler() != null) {
+            try {
+                HttpContent content = HttpContent.builder(spdyStream.getSpdyRequest()).build();
+                while (inputQueueSize.get() != 0) {
+                    Buffer b = poll();
+                    content = content.append(HttpContent.builder(spdyStream.getSpdyRequest()).content(b).build());
+                }
+                content = content.append(HttpContent.builder(spdyStream.getSpdyRequest()).content(data).last(isLast).build());
+                sendWindowUpdate(data);
+                inputBuffer.append(content);
+            } catch (IOException e) {
+                inputBuffer.getReadHandler().onError(e);
+            }
+        } else {
+            inputQueue.offer(data);
+            inputQueueSize.incrementAndGet();
+        }
         
         if (isLast) {
             shutdown();
         }
     }
-    
+
     Buffer poll() throws IOException {
         if (isLastInputDataPolled) {
             throw new EOFException();
@@ -148,13 +165,8 @@ final class SpdyInputBuffer {
 
             buffer = compositeBuffer;
         }
+        sendWindowUpdate(buffer);
 
-        if (buffer != null && buffer.hasRemaining()) {
-            spdyStream.outputSink.writeDownStream0(
-                    encodeWindowUpdate(spdySession.getMemoryManager(),
-                    spdyStream, buffer.remaining()), null);
-        }
-        
         return buffer;
     }
     
@@ -174,5 +186,14 @@ final class SpdyInputBuffer {
         
         // NOTIFY STREAM
         spdyStream.onInputClosed();
-    }    
+    }
+
+    private void sendWindowUpdate(Buffer data) {
+        if (data != null && data.hasRemaining()) {
+            spdyStream.outputSink.writeDownStream0(
+                    encodeWindowUpdate(spdySession.getMemoryManager(),
+                            spdyStream, data.remaining()), null);
+        }
+    }
+
 }

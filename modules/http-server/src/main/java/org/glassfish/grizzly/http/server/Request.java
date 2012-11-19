@@ -342,7 +342,7 @@ public class Request {
     /**
      * The associated input buffer.
      */
-    protected final InputBuffer inputBuffer = new InputBuffer();
+    protected InputBuffer inputBuffer = new InputBuffer();
 
 
     /**
@@ -493,12 +493,15 @@ public class Request {
     public void initialize(/*final Response response,*/
                            final HttpRequestPacket request,
                            final FilterChainContext ctx,
+                           final InputBuffer inputBuffer,
                            final HttpServerFilter httpServerFilter) {
 //        this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
+        this.inputBuffer = inputBuffer;
         inputBuffer.initialize(request, ctx);
+        //inputBuffer.initialize(request, ctx);
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
@@ -604,7 +607,7 @@ public class Request {
         dispatcherType = null;
         requestDispatcherPath = null;
 
-        inputBuffer.recycle();
+//        inputBuffer.recycle();
         inputStream.recycle();
         reader.recycle();
         usingInputStream = false;

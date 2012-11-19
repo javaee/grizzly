@@ -56,6 +56,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.io.InputBuffer;
 
 /**
  *
@@ -79,6 +80,7 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
 
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;
+    InputBuffer generalInputBuffer;
     
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
         final HttpRequestPacket request = httpHeader.isRequest() ?
@@ -123,7 +125,15 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
     SpdySession getSpdySession() {
         return spdySession;
     }
-    
+
+    public InputBuffer getGeneralInputBuffer() {
+        return generalInputBuffer;
+    }
+
+    public void setGeneralInputBuffer(InputBuffer generalInputBuffer) {
+        this.generalInputBuffer = generalInputBuffer;
+    }
+
     public HttpRequestPacket getSpdyRequest() {
         return spdyRequest;
     }

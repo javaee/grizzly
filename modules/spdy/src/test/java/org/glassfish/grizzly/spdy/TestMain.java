@@ -39,10 +39,13 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -118,31 +121,72 @@ public class TestMain {
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
-                    public void service(Request request, Response response) throws Exception {
-                        final byte[] b = new byte[1024];
+                    public void service(Request request, final Response response) throws Exception {
+                        final byte[] b = new byte[2048];
                         final NIOInputStream in = request.getInputStream();
                         
-                        int len;
-                        int total = 0;
+                        final AtomicLong total = new AtomicLong();
                         System.out.println("content-length=" + request.getContentLength());
-                        try {
-                            while ((len = in.read(b)) > 0) {
-                                total += len;
-                                System.out.println("just read " + len + " bytes. total=" + total);
+                        response.suspend();
+                        final long start = System.currentTimeMillis();
+                        final FileOutputStream out = new FileOutputStream("/tmp/data.txt");
+                        in.notifyAvailable(new ReadHandler() {
+                            @Override
+                            public void onDataAvailable() throws Exception {
+                                while (in.available() > 0) {
+                                    int read = in.read(b);
+                                    out.write(b, 0, read);
+                                    total.addAndGet(read);
+                                }
+                                in.notifyAvailable(this);
                             }
-                            System.out.println("end of input");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        response.setContentType("text/html");
 
-                        final Writer w = response.getWriter();
-                        StringBuilder sb = new StringBuilder(128);
-                        sb.append("<html><head><title>SPDY Test</title></head><body>");
-                        sb.append("Uploaded ").append(total).append(" bytes<br />");
-                        sb.append("</body></html>");
-                        response.setContentLength(sb.length());
-                        w.write(sb.toString());
+                            @Override
+                            public void onError(Throwable t) {
+                                t.printStackTrace();
+                            }
+
+                            @Override
+                            public void onAllDataRead() throws Exception {
+                                while (in.available() > 0) {
+                                    int read = in.read(b);
+                                    out.write(b, 0, read);
+                                    total.addAndGet(read);
+                                }
+                                out.flush();
+                                out.close();
+                                long stop = System.currentTimeMillis();
+                                System.out.println("All data read.  Total: " + total.get() + ", time: " + (stop - start) + "ms");
+                                response.setContentType("text/html");
+
+                                final Writer w = response.getWriter();
+                                StringBuilder sb = new StringBuilder(128);
+                                sb.append("<html><head><title>SPDY Test</title></head><body>");
+                                sb.append("Uploaded ").append(total).append(" bytes<br />");
+                                sb.append("</body></html>");
+                                response.setContentLength(sb.length());
+                                w.write(sb.toString());
+                                response.resume();
+                            }
+                        });
+//                        try {
+//                            while ((len = in.read(b)) > 0) {
+//                                total += len;
+//                                System.out.println("just read " + len + " bytes. total=" + total);
+//                            }
+//                            System.out.println("end of input");
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                        response.setContentType("text/html");
+//
+//                        final Writer w = response.getWriter();
+//                        StringBuilder sb = new StringBuilder(128);
+//                        sb.append("<html><head><title>SPDY Test</title></head><body>");
+//                        sb.append("Uploaded ").append(total).append(" bytes<br />");
+//                        sb.append("</body></html>");
+//                        response.setContentLength(sb.length());
+//                        w.write(sb.toString());
                     }
                 }, "/post");
 

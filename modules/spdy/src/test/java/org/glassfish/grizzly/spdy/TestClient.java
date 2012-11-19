@@ -43,10 +43,14 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -54,13 +58,14 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
 
 import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -96,7 +101,7 @@ public class TestClient {
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         
         final FutureImpl<HttpPacket> httpResponseFuture =
-                Futures.<HttpPacket>createSafeFuture();
+                Futures.createSafeFuture();
         
         FilterChain filterChain = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
@@ -123,7 +128,7 @@ public class TestClient {
             
             final Future<Connection> connectFuture = connectorHandler.connect(
                     new InetSocketAddress("www.google.com", 443));
-            final Connection spdyConnection = connectFuture.get(10, TimeUnit.SECONDS);
+            final Connection spdyConnection = connectFuture.get(100000, TimeUnit.SECONDS);
             
             final SpdySession spdySession = SpdySession.get(spdyConnection);
             
@@ -160,7 +165,6 @@ public class TestClient {
             }
             
             System.out.println("HTTP response came. Payload size=" + len);
-            System.out.println(response.getHttpHeader());
             if (HttpContent.isContent(response)) {
                 System.out.println(((HttpContent) response).getContent().toStringContent());
             }
@@ -208,18 +212,56 @@ public class TestClient {
         }
 
         @Override
-        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             HttpContent httpContent = ctx.getMessage();
+            final HttpResponsePacket response = (HttpResponsePacket) httpContent.getHttpHeader();
+            System.out.println(response);
+            HttpContext httpContext = HttpContext.get(ctx);
+            final InputBuffer ib = httpContext.getInputBuffer();
+            ib.initialize(response, ctx);
+            final AtomicLong total = new AtomicLong();
+            final byte[] bytes = new byte[2048];
+            System.out.println("Registered ReadHandler");
+            System.out.println("InputBuffer: " + ib);
+            final CountDownLatch latch = new CountDownLatch(1);
+            ib.notifyAvailable(new ReadHandler() {
+                @Override
+                public void onDataAvailable() throws Exception {
+                    while (ib.available() > 0) {
+                        int len = ib.read(bytes, 0, bytes.length);
+                        total.addAndGet(len);
+                        System.out.println("Read : " + len);
+                    }
+                    ib.notifyAvailable(this);
+                }
 
-            System.out.println(httpContent.getHttpHeader());
-            InputBuffer ib = new InputBuffer();
-            ib.initialize(httpContent.getHttpHeader(), ctx);
-            ib.processingChars();
-            char[] c = new char[1024];
-            int read;
-            while ((read = ib.read(c, 0, c.length)) != -1) {
-                System.out.println(new String(c, 0, read));
+                @Override
+                public void onError(Throwable t) {
+                    t.printStackTrace();
+                }
+
+                @Override
+                public void onAllDataRead() throws Exception {
+                    while (ib.available() > 0) {
+                        int len = ib.read(bytes, 0, bytes.length);
+                        total.addAndGet(len);
+                        System.out.println("Read : " + len);
+                    }
+                    System.out.println("All data read: " + total.get());
+                    latch.countDown();
+                }
+            });
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            httpResponseFuture.result(response);
+//            char[] c = new char[1024];
+//            int read;
+//            while ((read = ib.read(c, 0, c.length)) != -1) {
+//                System.out.println(new String(c, 0, read));
+//            }
             return ctx.getStopAction();
         }
     }

@@ -165,7 +165,7 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProgress.set(context, handlerRequest);
                 final Response handlerResponse = handlerRequest.getResponse();
 
-                handlerRequest.initialize(request, ctx, this);
+                handlerRequest.initialize(request, ctx, context.getInputBuffer(), this);
                 final SuspendStatus suspendStatus = handlerResponse.initialize(
                         handlerRequest, response, ctx, suspendedResponseQueue, this);
 
