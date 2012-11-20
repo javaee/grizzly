@@ -100,7 +100,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         final Object message = ctx.getMessage();
 
-        if (message == null) {  // If message == null - it means it's initiated by ctx.read() call
+        if (message == null) {  // If message == null - it means it's initiated by blocking ctx.read() call
             // we have to check SpdyStream associated input queue if there are any data we can return
             // otherwise block until input data is available
             final SpdyStream spdyStream =
@@ -117,10 +117,6 @@ public class SpdyHandlerFilter extends BaseFilter {
             return ctx.getInvokeAction();
         }
         
-        if (message instanceof HttpPacket) { // It's SpdyStream upstream filter chain invocation. Skip this filter for now.
-            return ctx.getInvokeAction();
-        }
-
         if (message instanceof Buffer) {
             final Buffer frameBuffer = (Buffer) message;
             processInFrame(spdySession, ctx, frameBuffer);
