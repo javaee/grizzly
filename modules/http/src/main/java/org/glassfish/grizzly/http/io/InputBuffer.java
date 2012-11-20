@@ -230,7 +230,7 @@ public class InputBuffer {
     /**
      * Set the default character encoding for this <tt>InputBuffer</tt>, which
      * would be applied if no encoding was explicitly set on HTTP
-     * {@link org.glassfish.grizzly.http.server.Request} and character decoding
+     * {@link org.glassfish.grizzly.http.HttpRequestPacket} and character decoding
      * wasn't started yet.
      */
     public void setDefaultEncoding(final String encoding) {

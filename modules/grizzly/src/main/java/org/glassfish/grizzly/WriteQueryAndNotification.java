@@ -1,4 +1,4 @@
-package org.glassfish.grizzly;/*
+/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
@@ -37,6 +37,8 @@ package org.glassfish.grizzly;/*
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
+package org.glassfish.grizzly;
 
 public interface WriteQueryAndNotification {
     /**
