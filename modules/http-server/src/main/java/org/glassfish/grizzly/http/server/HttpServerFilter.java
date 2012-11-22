@@ -132,15 +132,15 @@ public class HttpServerFilter extends BaseFilter
     // ----------------------------------------------------- Methods from Filter
 
 
-    @Override
-    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
-        if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
-            final Request request = httpRequestInProgress.get(HttpContext.get(ctx));
-            request.initiateAsyncronousDataReceiving();
-            return ctx.getStopAction();
-        }
-        return super.handleEvent(ctx, event);
-    }
+//    @Override
+//    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
+//        if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
+//            final Request request = httpRequestInProgress.get(HttpContext.get(ctx));
+//            request.initiateAsyncronousDataReceiving();
+//            return ctx.getStopAction();
+//        }
+//        return super.handleEvent(ctx, event);
+//    }
 
     @SuppressWarnings({"unchecked"})
     @Override
@@ -165,7 +165,7 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProgress.set(context, handlerRequest);
                 final Response handlerResponse = handlerRequest.getResponse();
 
-                handlerRequest.initialize(request, ctx, context.getInputBuffer(), this);
+                handlerRequest.initialize(request, ctx, this);
                 final SuspendStatus suspendStatus = handlerResponse.initialize(
                         handlerRequest, response, ctx, suspendedResponseQueue, this);
 
@@ -187,7 +187,7 @@ public class HttpServerFilter extends BaseFilter
                         }
                     }
                 } catch (Exception t) {
-                    LOGGER.log(Level.FINE, "Exception during HttpHandler invokation", t);
+                    LOGGER.log(Level.WARNING, "Exception during HttpHandler invokation", t);
                     
                     handlerRequest.getRequest().getProcessingState().setError(true);
                     

@@ -134,9 +134,9 @@ public class TestMain {
                             @Override
                             public void onDataAvailable() throws Exception {
                                 while (in.available() > 0) {
-                                    int read = in.read(b);
-                                    out.write(b, 0, read);
-                                    total.addAndGet(read);
+                                    int readBytesCount = in.read(b);
+                                    out.write(b, 0, readBytesCount);
+                                    total.addAndGet(readBytesCount);
                                 }
                                 in.notifyAvailable(this);
                             }
@@ -149,9 +149,9 @@ public class TestMain {
                             @Override
                             public void onAllDataRead() throws Exception {
                                 while (in.available() > 0) {
-                                    int read = in.read(b);
-                                    out.write(b, 0, read);
-                                    total.addAndGet(read);
+                                    int readBytesCount = in.read(b);
+                                    out.write(b, 0, readBytesCount);
+                                    total.addAndGet(readBytesCount);
                                 }
                                 out.flush();
                                 out.close();
@@ -169,6 +169,8 @@ public class TestMain {
                                 response.resume();
                             }
                         });
+//                        int len = 0;
+//                        int total = 0;
 //                        try {
 //                            while ((len = in.read(b)) > 0) {
 //                                total += len;

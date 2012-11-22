@@ -57,6 +57,9 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.io.InputBuffer;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 
 /**
  *
@@ -80,7 +83,6 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
 
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;
-    InputBuffer generalInputBuffer;
     
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
         final HttpRequestPacket request = httpHeader.isRequest() ?
@@ -124,14 +126,6 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
 
     SpdySession getSpdySession() {
         return spdySession;
-    }
-
-    public InputBuffer getGeneralInputBuffer() {
-        return generalInputBuffer;
-    }
-
-    public void setGeneralInputBuffer(InputBuffer generalInputBuffer) {
-        this.generalInputBuffer = generalInputBuffer;
     }
 
     public HttpRequestPacket getSpdyRequest() {
@@ -207,8 +201,19 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
         outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
+    void shutdown() {
+        shutdownInput();
+        shutdownOutput();
+    }
+    
+    void shutdownNow() {
+        completeCloseIndicator.set(2);
+        closeStream();
+        shutdown();
+    }
+    
     void shutdownInput() {
-        inputBuffer.shutdown();
+        inputBuffer.close();
     }
     
     boolean isInputTerminated() {
@@ -235,8 +240,36 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
         }
     }
     
+    private Buffer cachedInputBuffer;
+    private boolean cachedIsLast;
+    
     void offerInputData(final Buffer data, final boolean isLast) {
-        inputBuffer.offer(data, isLast);
+        final boolean isFirstBufferCached = (cachedInputBuffer == null);
+        cachedIsLast |= isLast;
+        cachedInputBuffer = Buffers.appendBuffers(
+                spdySession.getMemoryManager(),
+                cachedInputBuffer, data);
+        
+        if (isFirstBufferCached) {
+            spdySession.streamsToFlushInput.add(this);
+        }
+    }
+    
+    void flushInputData() {
+        final Buffer cachedInputBufferLocal = cachedInputBuffer;
+        final boolean cachedIsLastLocal = cachedIsLast;
+        cachedInputBuffer = null;
+        cachedIsLast = false;
+        
+        if (cachedInputBufferLocal != null) {
+            if (cachedInputBufferLocal.isComposite()) {
+                ((CompositeBuffer) cachedInputBufferLocal).allowInternalBuffersDispose(true);
+                ((CompositeBuffer) cachedInputBufferLocal).allowBufferDispose(true);
+                ((CompositeBuffer) cachedInputBufferLocal).disposeOrder(DisposeOrder.LAST_TO_FIRST);
+            }
+            
+            inputBuffer.offer(cachedInputBufferLocal, cachedIsLastLocal);
+        }
     }
     
     Buffer pollInputData() throws IOException {

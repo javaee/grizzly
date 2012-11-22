@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,17 +50,26 @@ import java.util.zip.Deflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
+import org.glassfish.grizzly.utils.Holder;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 
@@ -94,6 +104,7 @@ final class SpdySession {
     private Map<Integer, SpdyStream> streamsMap =
             new ConcurrentHashMap<Integer, SpdyStream>();
     
+    final List<SpdyStream> streamsToFlushInput = new ArrayList<SpdyStream>();
     final List tmpList = new ArrayList();
     
     private final Object sessionLock = new Object();
@@ -111,6 +122,8 @@ final class SpdySession {
         SPDY_SESSION_ATTR.set(connection, spdySession);
     }
     
+    private final Holder<?> addressHolder;
+    
     public SpdySession(final Connection connection) {
         this(connection, true);
     }
@@ -127,6 +140,13 @@ final class SpdySession {
             lastLocalStreamId = -1;
             lastPeerStreamId = 0;
         }
+        
+        addressHolder = Holder.<Object>lazyHolder(new NullaryFunction<Object>() {
+            @Override
+            public Object evaluate() {
+                return connection.getPeerAddress();
+            }
+        });
     }
 
     public StreamBuilder getStreamBuilder() {
@@ -363,6 +383,26 @@ final class SpdySession {
      */
     private void closeSession() {
         connection.closeSilently();
+    }
+
+    void sendMessageUpstream(final SpdyStream spdyStream,
+            final HttpPacket message) {
+        final FilterChainContext upstreamContext =
+                upstreamChain.obtainFilterChainContext(connection);
+
+        upstreamContext.getInternalContext().setEvent(IOEvent.READ,
+                new EventProcessingHandler.Adapter() {
+                    @Override
+                    public void onComplete(final Context context) throws IOException {
+                        spdyStream.inputBuffer.onReadEventComplete();
+                    }
+                });
+
+        upstreamContext.setMessage(message);
+        upstreamContext.setAddressHolder(addressHolder);
+
+        HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
+        ProcessorExecutor.execute(upstreamContext.getInternalContext());
     }
 
     public final class StreamBuilder extends HttpHeader.Builder<StreamBuilder> {
