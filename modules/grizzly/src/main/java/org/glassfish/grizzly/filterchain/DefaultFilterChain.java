@@ -67,7 +67,7 @@ import org.glassfish.grizzly.utils.Futures;
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     public enum FILTER_STATE_TYPE {
-        INCOMPLETE, REMAINDER
+        INCOMPLETE, UNPARSED
     }
     
     private final FiltersStateFactory filtersStateFactory =
@@ -204,10 +204,18 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 break;
             }
             
-            // Store the remainder if any
-            storeMessage(ctx,
-                    filtersState, FILTER_STATE_TYPE.REMAINDER, i,
-                    ((InvokeAction) lastNextAction).getRemainder(), null);
+            final InvokeAction invokeAction = (InvokeAction) lastNextAction;
+            final Object chunk = invokeAction.getChunk();
+            
+            if (chunk != null) {
+                // Store the remainder
+                final FILTER_STATE_TYPE type = invokeAction.isIncomplete() ?
+                                               FILTER_STATE_TYPE.INCOMPLETE :
+                                               FILTER_STATE_TYPE.UNPARSED;
+                storeMessage(ctx,
+                        filtersState, type, i,
+                        chunk, invokeAction.getAppender());
+            }
 
             i = executor.getNextFilter(ctx);
             ctx.setFilterIdx(i);
@@ -224,7 +232,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                              filtersState,
                              FILTER_STATE_TYPE.INCOMPLETE,
                              i,
-                             stopAction.getRemainder(),
+                             stopAction.getIncompleteChunk(),
                              stopAction.getAppender());
                 break;
             case ForkAction.TYPE:
@@ -304,7 +312,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         for (int i = end - add; i != start - add; i -= add) {
             final FilterStateElement element = filtersState.getState(operation, i);
             if (element != null
-                    && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
+                    && element.getType() == FILTER_STATE_TYPE.UNPARSED) {
                 return i;
             }
         }

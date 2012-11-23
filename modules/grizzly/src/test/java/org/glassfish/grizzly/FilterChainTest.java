@@ -43,6 +43,8 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -68,8 +70,10 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Test general {@link FilterChain} functionality.
@@ -109,6 +113,111 @@ public class FilterChainTest extends TestCase {
         }
     };
     
+    public void testInvokeActionAndIncompleteChunk() throws Exception {
+        final int expectedCommandsCount = 300;
+
+        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
+        
+        Connection connection = null;
+
+        final StringFilter stringFilter = new StringFilter();
+        
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(stringFilter);
+        filterChainBuilder.add(new BaseFilter() { // Batch filter
+            @Override
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
+
+                String incompleteCommand = null;
+                String message = ctx.getMessage();
+                String[] commands = message.split("\n");
+                
+                if (!message.endsWith("\n")) {
+                    incompleteCommand = commands[commands.length - 1];
+                    commands = Arrays.copyOf(commands, commands.length - 1);
+                }
+
+                ctx.setMessage(commands);
+                return ctx.getInvokeAction(incompleteCommand, new Appender<String>() {
+                    @Override
+                    public String append(String element1, String element2) {
+                        return element1 + element2;
+                    }
+                });
+            }
+        });
+        filterChainBuilder.add(new BaseFilter() {   // Result filter
+            @Override
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
+
+                String[] messages = ctx.getMessage();
+
+                intermResultQueue.addAll(Arrays.asList(messages));
+                
+                return ctx.getStopAction();
+            }
+        });
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FilterChain clientFilterChain =
+                    FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .build();
+
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientFilterChain)
+                    .build();
+            
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            final String command = "command";
+            final StringBuilder sb = new StringBuilder(command.length() * expectedCommandsCount * 2);
+            for (int i = 0; i < expectedCommandsCount; i++) {
+                sb.append(command).append('#').append(i + 1).append(";\n");
+            }
+            
+            final Random r = new Random();
+            final String commandsString = sb.toString();
+            final int len = commandsString.length();
+            
+            int pos = 0;
+            while (pos < len) {
+                final int bytesToSend =
+                        Math.min(len - pos, r.nextInt(command.length() * 4) + 1);
+                connection.write(commandsString.substring(pos, pos + bytesToSend));
+                pos += bytesToSend;
+                Thread.sleep(2);
+            }
+
+            
+            for (int i = 0; i < expectedCommandsCount; i++) {
+                final String rcvdCommand = intermResultQueue.poll(10, TimeUnit.SECONDS);
+                final String expectedCommand = command + '#' + (i + 1) + ';';
+
+                assertEquals(expectedCommand, rcvdCommand);
+            }
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
+
     public void testEventUpstream() throws Exception {
         final Connection connection =
                 new TCPNIOConnection(TCPNIOTransportBuilder.newInstance().build(), null);

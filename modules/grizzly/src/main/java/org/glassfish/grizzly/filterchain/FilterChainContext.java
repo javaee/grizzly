@@ -45,8 +45,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
+import org.glassfish.grizzly.Appender;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorExecutor;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
@@ -379,27 +389,6 @@ public final class FilterChainContext implements AttributeStorage {
     void setOperation(Operation operation) {
         this.operation = operation;
     }
-
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain. Parameter remaining signals, that
-     * there is some data remaining in the source message, so {@link FilterChain}
-     * could be rerun.
-     *
-     * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} executes next filter.
-     *
-     * @param remainder signals, that there is some data remaining in the source
-     * message, so {@link FilterChain} could be rerun.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     */
-    public NextAction getInvokeAction(Object remainder) {
-        cachedInvokeAction.setRemainder(remainder);
-        return cachedInvokeAction;
-    }
     
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
@@ -416,6 +405,67 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} executes next filter.
+     *
+     * @param unparsedChunk signals, that there is some unparsed data remaining
+     * in the source message, so {@link FilterChain} could be rerun.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     */
+    public NextAction getInvokeAction(final Object unparsedChunk) {
+        cachedInvokeAction.setUnparsedChunk(unparsedChunk);
+        return cachedInvokeAction;
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} executes next filter.
+     * 
+     * @param incompleteChunk signals, that there is a data chunk remaining,
+     * which doesn't represent complete message. As more data becomes available
+     * but before {@link FilterChain} calls the current {@link Filter},
+     * it will check if the {@link Filter} has any data stored after the
+     * last invocation. If a remainder is present it will append the new data
+     * to the stored one and pass the result as the FilterChainContext message.
+     * 
+     * @param appender the {@link org.glassfish.grizzly.Appender}, which knows
+     * how to append chunks of type <code>&lt;E&gt;</code>.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     * 
+     * @throws IllegalArgumentException if appender is <code>null</code> and
+     * remainder's type is not {@link Buffer} or {@link Appendable}.
+     */
+    @SuppressWarnings("unchecked")
+    public <E> NextAction getInvokeAction(final E incompleteChunk,
+            org.glassfish.grizzly.Appender<E> appender) {
+
+        if (incompleteChunk == null) {
+            return INVOKE_ACTION;
+        }
+        
+        if (appender == null && incompleteChunk instanceof Appendable) {
+            if (incompleteChunk instanceof Buffer) {
+                appender = (Appender<E>) Buffers.getBufferAppender(true);
+            } else {
+                throw new IllegalArgumentException("Remainder has to be either Buffer or Appendable");
+            }
+        }
+        
+        cachedInvokeAction.setIncompleteChunk(incompleteChunk, appender);
+        return cachedInvokeAction;
+    }
+    
+    /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * to stop executing phase.
      *
@@ -426,6 +476,66 @@ public final class FilterChainContext implements AttributeStorage {
         return STOP_ACTION;
     }
 
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * stop executing phase.
+     *
+     * @param incompleteChunk signals, that there is a data chunk remaining,
+     * which doesn't represent complete message. As more data becomes available
+     * but before {@link FilterChain} calls the current {@link Filter},
+     * it will check if the {@link Filter} has any data stored after the
+     * last invocation. If a remainder is present it will append the new data
+     * to the stored one and pass the result as the FilterChainContext message.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase.
+     * 
+     * @throws IllegalArgumentException if remainder's type is not {@link Buffer} or
+     * {@link Appendable}.
+     */
+    public NextAction getStopAction(final Object incompleteChunk) {
+        if (incompleteChunk instanceof Buffer) {
+            return getStopAction((Buffer) incompleteChunk,
+                    Buffers.getBufferAppender(true));
+        }
+
+        return getStopAction(incompleteChunk, null);            
+    }
+    
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * stop executing phase.
+     * 
+     * @param incompleteChunk signals, that there is a data chunk remaining,
+     * which doesn't represent complete message. As more data becomes available
+     * but before {@link FilterChain} calls the current {@link Filter},
+     * it will check if the {@link Filter} has any data stored after the
+     * last invocation. If a remainder is present it will append the new data
+     * to the stored one and pass the result as the FilterChainContext message.
+     * 
+     * @param appender the {@link org.glassfish.grizzly.Appender}, which knows
+     * how to append chunks of type <code>&lt;E&gt;</code>.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase.
+     * 
+     * @throws IllegalArgumentException if appender is <code>null</code> and
+     * remainder's type is not {@link Buffer} or {@link Appendable}.
+     */
+    public <E> NextAction getStopAction(final E incompleteChunk,
+            final org.glassfish.grizzly.Appender<E> appender) {
+
+        if (incompleteChunk == null) {
+            return STOP_ACTION;
+        }
+        
+        if (appender == null && !(incompleteChunk instanceof Appendable)) {
+            throw new IllegalArgumentException("Remainder has to be either Buffer or Appendable");
+        }
+        
+        cachedStopAction.setIncompleteChunk(incompleteChunk, appender);
+        return cachedStopAction;
+    }
 
     /**
      * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
@@ -451,62 +561,6 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public NextAction getSuspendingStopAction() {
         return getForkAction();
-    }
-
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase.
-     * Passed {@link org.glassfish.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invocation.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
-     * Passed {@link org.glassfish.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invocation.
-     */
-    public <E> NextAction getStopAction(final E remainder,
-            org.glassfish.grizzly.Appender<E> appender) {
-        
-        cachedStopAction.setRemainder(remainder, appender);
-        return cachedStopAction;
-    }
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase.
-     * Passed {@link org.glassfish.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invocation.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
-     * Passed {@link org.glassfish.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invocation.
-     */
-    public NextAction getStopAction(org.glassfish.grizzly.Appendable appendable) {
-        cachedStopAction.setRemainder(appendable);
-        return cachedStopAction;
-    }
-
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase.
-     * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invocation.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
-     * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invocation.
-     */
-    public NextAction getStopAction(Object unknownObject) {
-        if (unknownObject instanceof Buffer) {
-            return getStopAction((Buffer) unknownObject,
-                    Buffers.getBufferAppender(true));
-        }
-
-        return getStopAction((Appendable) unknownObject);
     }
     
     /**
