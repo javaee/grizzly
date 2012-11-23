@@ -80,7 +80,7 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 final class DefaultFilterChain extends ListFacadeFilterChain {
 
     public enum FILTER_STATE_TYPE {
-        INCOMPLETE, REMAINDER
+        INCOMPLETE, UNPARSED
     }
     
     private static final Attribute<FiltersState> FILTERS_STATE_ATTR =
@@ -222,10 +222,19 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 break;
             }
             
-            // Store the remainder if any
-            storeMessage(ctx,
-                    filtersState, FILTER_STATE_TYPE.REMAINDER, currentFilter,
-                    ((InvokeAction) lastNextAction).getRemainder(), null);
+            final InvokeAction invokeAction = (InvokeAction) lastNextAction;
+            final Object chunk = invokeAction.getChunk();
+            
+            if (chunk != null) {
+                // Store the remainder
+                final FILTER_STATE_TYPE type = invokeAction.isIncomplete() ?
+                                               FILTER_STATE_TYPE.INCOMPLETE :
+                                               FILTER_STATE_TYPE.UNPARSED;
+                storeMessage(ctx,
+                        filtersState, type,
+                        currentFilter,
+                        chunk, invokeAction.getAppender());
+            }
 
             i = executor.getNextFilter(ctx);
             ctx.setFilterIdx(i);
@@ -244,7 +253,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                              filtersState,
                              FILTER_STATE_TYPE.INCOMPLETE,
                              currentFilter,
-                             stopAction.getRemainder(),
+                             stopAction.getIncompleteChunk(),
                              stopAction.getAppender());
                 break;
             case ForkAction.TYPE:
@@ -325,7 +334,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterState element =
                     filtersState.getState(operation, get(i));
             if (element != null
-                    && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
+                    && element.getType() == FILTER_STATE_TYPE.UNPARSED) {
                 return i;
             }
         }

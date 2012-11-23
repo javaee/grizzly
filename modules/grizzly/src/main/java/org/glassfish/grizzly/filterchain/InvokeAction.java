@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import org.glassfish.grizzly.Appender;
+
 /**
  * {@link NextAction} implementation, which instructs {@link FilterChain} to
  * process next {@link Filter} in chain.
@@ -54,26 +56,43 @@ package org.glassfish.grizzly.filterchain;
 final class InvokeAction extends AbstractNextAction {
     static final int TYPE = 0;
 
-    private Object remainder;
-
+    private Appender appender;
+    private Object chunk;
+    
+    private boolean isIncomplete;
+    
     InvokeAction() {
-        this(null);
-    }
-
-    public InvokeAction(Object remainder) {
         super(TYPE);
-        this.remainder = remainder;
     }
 
-    public Object getRemainder() {
-        return remainder;
+    public Object getChunk() {
+        return chunk;
     }
 
-    public void setRemainder(Object remainder) {
-        this.remainder = remainder;
+    public Appender getAppender() {
+        return appender;
     }
 
+    public boolean isIncomplete() {
+        return isIncomplete;
+    }
+
+    public void setUnparsedChunk(final Object unparsedChunk) {
+        chunk = unparsedChunk;
+        appender = null;
+        isIncomplete = false;
+    }
+    
+    public <E> void setIncompleteChunk(final E incompleteChunk,
+            final Appender<E> appender) {
+        chunk = incompleteChunk;
+        this.appender = appender;
+        isIncomplete = true;
+    }
+    
     void reset() {
-        remainder = null;
+        isIncomplete = false;
+        chunk = null;
+        appender = null;
     }
 }
