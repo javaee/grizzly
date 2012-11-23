@@ -491,7 +491,7 @@ public final class FilterChainContext implements AttributeStorage {
             return INVOKE_ACTION;
         }
         
-        if (appender == null && incompleteChunk instanceof Appendable) {
+        if (appender == null && !(incompleteChunk instanceof Appendable)) {
             if (incompleteChunk instanceof Buffer) {
                 appender = (Appender<E>) Buffers.getBufferAppender(true);
             } else {
