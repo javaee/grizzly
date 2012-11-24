@@ -453,11 +453,13 @@ public final class FilterChainContext implements AttributeStorage {
             return INVOKE_ACTION;
         }
         
-        if (appender == null && incompleteChunk instanceof Appendable) {
+        if (appender == null && !(incompleteChunk instanceof Appendable)) {
             if (incompleteChunk instanceof Buffer) {
                 appender = (Appender<E>) Buffers.getBufferAppender(true);
             } else {
-                throw new IllegalArgumentException("Remainder has to be either Buffer or Appendable");
+                throw new IllegalArgumentException("Remainder has to be either "
+                        + Buffer.class.getName() + " or " + Appendable.class.getName() +
+                        " but was " + incompleteChunk.getClass().getName());
             }
         }
         
@@ -530,7 +532,9 @@ public final class FilterChainContext implements AttributeStorage {
         }
         
         if (appender == null && !(incompleteChunk instanceof Appendable)) {
-            throw new IllegalArgumentException("Remainder has to be either Buffer or Appendable");
+                throw new IllegalArgumentException("Remainder has to be either "
+                        + Buffer.class.getName() + " or " + Appendable.class.getName() +
+                        " but was " + incompleteChunk.getClass().getName());
         }
         
         cachedStopAction.setIncompleteChunk(incompleteChunk, appender);
