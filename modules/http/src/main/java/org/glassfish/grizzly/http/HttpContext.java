@@ -60,7 +60,6 @@ public class HttpContext implements AttributeStorage {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(HttpContext.class.getName());
     private final AttributeStorage contextStorage;
     private final WriteQueryAndNotification writeQueryAndNotification;
-    private final InputBuffer inputBuffer = new InputBuffer();
 
     protected <T extends AttributeStorage & WriteQueryAndNotification> HttpContext(T notSureWhatToCallIt) {
         this.contextStorage = notSureWhatToCallIt;
@@ -81,10 +80,6 @@ public class HttpContext implements AttributeStorage {
 
     public WriteQueryAndNotification getWriteQueryAndNotification() {
         return writeQueryAndNotification;
-    }
-
-    public InputBuffer getInputBuffer() {
-        return inputBuffer;
     }
 
     public static <T extends AttributeStorage & WriteQueryAndNotification> HttpContext newInstance(FilterChainContext ctx,

@@ -105,7 +105,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.utils.Charsets;
 
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
@@ -342,7 +341,7 @@ public class Request {
     /**
      * The associated input buffer.
      */
-    protected InputBuffer inputBuffer = new InputBuffer();
+    protected final InputBuffer inputBuffer = new InputBuffer();
 
 
     /**
@@ -493,15 +492,12 @@ public class Request {
     public void initialize(/*final Response response,*/
                            final HttpRequestPacket request,
                            final FilterChainContext ctx,
-                           final InputBuffer inputBuffer,
                            final HttpServerFilter httpServerFilter) {
 //        this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        this.inputBuffer = inputBuffer;
         inputBuffer.initialize(request, ctx);
-        //inputBuffer.initialize(request, ctx);
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
@@ -607,7 +603,7 @@ public class Request {
         dispatcherType = null;
         requestDispatcherPath = null;
 
-//        inputBuffer.recycle();
+        inputBuffer.recycle();
         inputStream.recycle();
         reader.recycle();
         usingInputStream = false;
@@ -2413,17 +2409,6 @@ public class Request {
 
         this.requestedSessionURL = flag;
 
-    }
-
-    /**
-     * Initiates asynchronous data receiving.
-     *
-     * This is service method, usually users don't have to call it explicitly.
-     */
-    public void initiateAsyncronousDataReceiving() {
-        // fork the FilterChainContext execution
-        // keep the current FilterChainContext suspended, but make a copy and resume it
-        ctx.fork(ctx.getStopAction());
     }
 
     /**

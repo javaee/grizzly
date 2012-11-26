@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.http.io;
 
-import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.HttpBrokenContent;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -76,15 +74,6 @@ import static org.glassfish.grizzly.http.util.Constants.*;
  * from the HTTP messaging system in Grizzly.
  */
 public class InputBuffer {
-
-    public static final Event REREGISTER_FOR_READ_EVENT =
-            new Event() {
-                @Override
-                public Object type() {
-                    return "REREGISTER_FOR_READ_EVENT";
-                }
-            };
-
     /**
      * The {@link org.glassfish.grizzly.http.HttpHeader} associated with this <code>InputBuffer</code>
      */
@@ -778,15 +767,7 @@ public class InputBuffer {
 
         if (!isWaitingDataAsynchronously) {
             isWaitingDataAsynchronously = true;
-            // TODO: Need to find a cleaner way to do this
-            // This is kind of a hack as calling notifyDownstream()
-            // will bypass the filter we're actually intersted in
-            // invoking without maintaining a hard reference to said filter.
-            final FilterChain filterChain = ctx.getFilterChain();
-            try {
-                filterChain.get(ctx.getFilterIdx()).handleEvent(ctx, REREGISTER_FOR_READ_EVENT);
-            } catch (IOException ignored) { // won't occur
-            }
+            initiateAsyncronousDataReceiving();
         }
     }
 
@@ -896,7 +877,17 @@ public class InputBuffer {
         }
     }
 
-
+    /**
+     * Initiates asynchronous data receiving.
+     *
+     * This is service method, usually users don't have to call it explicitly.
+     */
+    public void initiateAsyncronousDataReceiving() {
+        // fork the FilterChainContext execution
+        // keep the current FilterChainContext suspended, but make a copy and resume it
+        ctx.fork(ctx.getStopAction());
+    }
+    
     // --------------------------------------------------------- Private Methods
 
 

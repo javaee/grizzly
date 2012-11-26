@@ -105,12 +105,6 @@ public class TestClient {
         
         FilterChain filterChain = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
-                .add(new BaseFilter() {
-                        @Override
-                        public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-                            error.printStackTrace(System.out);
-                        }
-                })
                 .add(new SSLFilter(null, clientSSLEngineConfigurator))
                 .add(new SpdyFramingFilter())
                 .add(new SpdyHandlerFilter(threadPool))
@@ -127,8 +121,9 @@ public class TestClient {
                     new SpdyConnectorHandler<SocketAddress>(transport);
             
             final Future<Connection> connectFuture = connectorHandler.connect(
-                    new InetSocketAddress("www.google.com", 443));
-            final Connection spdyConnection = connectFuture.get(100000, TimeUnit.SECONDS);
+//                    new InetSocketAddress("www.google.com", 443));
+                    new InetSocketAddress("localhost", 7070));
+            final Connection spdyConnection = connectFuture.get(10, TimeUnit.SECONDS);
             
             final SpdySession spdySession = SpdySession.get(spdyConnection);
             
@@ -143,7 +138,8 @@ public class TestClient {
             
             final SpdyStream spdyStream = spdySession.getStreamBuilder()
                     .method(Method.GET)
-                    .uri("/")
+//                    .uri("/")
+                    .uri("/download/Sherlock%20Holmes%20Omnibus.epub")
                     .protocol(Protocol.HTTP_1_1)
                     .header(Header.Host, "www.google.com:443")
                     .open();
@@ -213,55 +209,12 @@ public class TestClient {
 
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-            HttpContent httpContent = ctx.getMessage();
-            final HttpResponsePacket response = (HttpResponsePacket) httpContent.getHttpHeader();
-            System.out.println(response);
-            HttpContext httpContext = HttpContext.get(ctx);
-            final InputBuffer ib = httpContext.getInputBuffer();
-            ib.initialize(response, ctx);
-            final AtomicLong total = new AtomicLong();
-            final byte[] bytes = new byte[2048];
-            System.out.println("Registered ReadHandler");
-            System.out.println("InputBuffer: " + ib);
-            final CountDownLatch latch = new CountDownLatch(1);
-            ib.notifyAvailable(new ReadHandler() {
-                @Override
-                public void onDataAvailable() throws Exception {
-                    while (ib.available() > 0) {
-                        int len = ib.read(bytes, 0, bytes.length);
-                        total.addAndGet(len);
-                        System.out.println("Read : " + len);
-                    }
-                    ib.notifyAvailable(this);
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    t.printStackTrace();
-                }
-
-                @Override
-                public void onAllDataRead() throws Exception {
-                    while (ib.available() > 0) {
-                        int len = ib.read(bytes, 0, bytes.length);
-                        total.addAndGet(len);
-                        System.out.println("Read : " + len);
-                    }
-                    System.out.println("All data read: " + total.get());
-                    latch.countDown();
-                }
-            });
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            final HttpContent httpContent = ctx.getMessage();
+            if (!httpContent.isLast()) {
+                return ctx.getStopAction(httpContent);
             }
-            httpResponseFuture.result(response);
-//            char[] c = new char[1024];
-//            int read;
-//            while ((read = ib.read(c, 0, c.length)) != -1) {
-//                System.out.println(new String(c, 0, read));
-//            }
+            
+            httpResponseFuture.result(httpContent);
             return ctx.getStopAction();
         }
     }

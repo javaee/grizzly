@@ -41,6 +41,7 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -48,13 +49,11 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
@@ -66,7 +65,6 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -117,6 +115,10 @@ public class SpdyHandlerFilter extends BaseFilter {
             return ctx.getInvokeAction();
         }
         
+        if (HttpPacket.isHttp(message)) {
+            return ctx.getInvokeAction();
+        }
+        
         if (message instanceof Buffer) {
             final Buffer frameBuffer = (Buffer) message;
             processInFrame(spdySession, ctx, frameBuffer);
@@ -128,6 +130,13 @@ public class SpdyHandlerFilter extends BaseFilter {
             }
         }
 
+        final List<SpdyStream> streamsToFlushInput =
+                spdySession.streamsToFlushInput;
+        for (int i = 0; i < streamsToFlushInput.size(); i++) {
+            streamsToFlushInput.get(i).flushInputData();
+        }
+        streamsToFlushInput.clear();
+        
         return ctx.getStopAction();
     }
 
@@ -224,8 +233,19 @@ public class SpdyHandlerFilter extends BaseFilter {
                     .append("}\n");
             LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
+        final SpdyStream stream = spdySession.getStream(streamId);
         
-        spdySession.getStream(streamId).onPeerWindowUpdate(delta);
+        if (stream != null) {
+            stream.onPeerWindowUpdate(delta);
+        } else {
+            if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+                final StringBuilder sb = new StringBuilder(64);
+                sb.append("\nStream id=")
+                        .append(streamId)
+                        .append(" was not found. Ignoring the message");
+                LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+            }
+        }
     }
 
     private void processGoAwayFrame(final SpdySession spdySession,
@@ -412,7 +432,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
             spdyRequest.setExpectContent(false);
-            spdyStream.shutdownInput();
+            spdyStream.closeInput();
         }
         
         Buffer payload = frame;
@@ -456,20 +476,8 @@ public class SpdyHandlerFilter extends BaseFilter {
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
-                final FilterChain upstreamFilterChain =
-                        spdySession.getUpstreamChain();
-                
-                final FilterChainContext upstreamContext =
-                        upstreamFilterChain.obtainFilterChainContext(spdySession.getConnection());
-                
-                upstreamContext.getInternalContext().setEvent(IOEvent.READ);
-                upstreamContext.setMessage(HttpContent.builder(spdyRequest).build());
-                upstreamContext.setAddressHolder(context.getAddressHolder());
-                        
-                
-                HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
-                spdyStream.setGeneralInputBuffer(httpContext.getInputBuffer());
-                ProcessorExecutor.execute(upstreamContext.getInternalContext());
+                spdySession.sendMessageUpstream(spdyStream,
+                        HttpContent.builder(spdyStream.getSpdyRequest()).build());
             }
         });
     }
@@ -603,7 +611,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
             spdyResponse.setExpectContent(false);
-            spdyStream.shutdownInput();
+            spdyStream.closeInput();
         }
         
         Buffer payload = frame;
@@ -647,20 +655,8 @@ public class SpdyHandlerFilter extends BaseFilter {
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
-                final FilterChain upstreamFilterChain =
-                        spdySession.getUpstreamChain();
-                
-                final FilterChainContext upstreamContext =
-                        upstreamFilterChain.obtainFilterChainContext(spdySession.getConnection());
-                
-                upstreamContext.getInternalContext().setEvent(IOEvent.READ);
-                upstreamContext.setMessage(HttpContent.builder(spdyResponse).build());
-                upstreamContext.setAddressHolder(context.getAddressHolder());
-                        
-                
-                HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
-                spdyStream.setGeneralInputBuffer(httpContext.getInputBuffer());
-                ProcessorExecutor.execute(upstreamContext.getInternalContext());
+                spdySession.sendMessageUpstream(spdyStream,
+                        HttpContent.builder(spdyStream.getSpdyResponse()).build());
             }
         });
     }
@@ -760,6 +756,12 @@ public class SpdyHandlerFilter extends BaseFilter {
             final int length) {
         
         final boolean isFinFrame = (flags & SYN_STREAM_FLAG_FIN) != 0;
+
+        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
+            LOGGER.log(Level.INFO, "'{'DATA: flags={0} streamID={1} len={2}'}'",
+                    new Object[]{isFinFrame ? "FIN" : "NONE",
+                        spdyStream.getStreamId(), frame.remaining()});
+        }
         
         if (isFinFrame) {
             ((SpdyHeader) spdyStream.getSpdyRequest()).setExpectContent(false);
@@ -830,13 +832,14 @@ public class SpdyHandlerFilter extends BaseFilter {
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
-            spdyStream.shutdownOutput();
+            spdyStream.terminateInput();
+            spdyStream.closeOutput();
             
             return ctx.getStopAction();
-        } else if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
+        }/* else if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
             ctx.fork(ctx.getStopAction());
             return ctx.getStopAction();
-        }
+        }*/
 
         return ctx.getInvokeAction();
     }

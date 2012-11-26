@@ -47,7 +47,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -66,48 +65,110 @@ final class SpdyInputBuffer {
     private final AtomicInteger inputQueueSize = new AtomicInteger();
     private final BlockingQueue<Buffer> inputQueue =
             DataStructures.getLTQInstance(Buffer.class);
-    private boolean isLastInputDataPolled;
     
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
+    private volatile boolean isTerminated;
     
     private final SpdyStream spdyStream;
     private final SpdySession spdySession;
+    
+    private final AtomicBoolean expectInputSwitch = new AtomicBoolean();
+    
+    private final AtomicInteger unackedReadBytes  = new AtomicInteger();
     
     SpdyInputBuffer(SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
     }
     
+    void onReadEventComplete() {
+        if (isTerminated()) {
+            return;
+        }
+        
+        expectInputSwitch.set(true);
+        
+        final int readyBuffersCount = inputQueueSize.get();
+        
+        if (readyBuffersCount > 0 &&
+                expectInputSwitch.getAndSet(false)) {
+            passPayloadUpstream(null, false, readyBuffersCount);
+        }
+    }
+    
     void offer(final Buffer data, final boolean isLast) {
         if (isTerminated()) {
             throw new IllegalStateException("SpdyStream input is closed");
         }
-        InputBuffer inputBuffer = spdyStream.getGeneralInputBuffer();
-        if (inputBuffer != null && inputBuffer.getReadHandler() != null) {
-            try {
-                HttpContent content = HttpContent.builder(spdyStream.getSpdyRequest()).build();
-                while (inputQueueSize.get() != 0) {
-                    Buffer b = poll();
-                    content = content.append(HttpContent.builder(spdyStream.getSpdyRequest()).content(b).build());
-                }
-                content = content.append(HttpContent.builder(spdyStream.getSpdyRequest()).content(data).last(isLast).build());
-                sendWindowUpdate(data);
-                inputBuffer.append(content);
-            } catch (IOException e) {
-                inputBuffer.getReadHandler().onError(e);
-            }
+        
+        if (expectInputSwitch.getAndSet(false)) {
+            passPayloadUpstream(data, isLast, inputQueueSize.get());
         } else {
             inputQueue.offer(data);
             inputQueueSize.incrementAndGet();
-        }
-        
-        if (isLast) {
-            shutdown();
+            if (isLast) {
+                close();
+            }
+            
+            final int readyBuffersCount = inputQueueSize.get();
+
+            if (readyBuffersCount > 0 &&
+                    expectInputSwitch.getAndSet(false)) {
+                passPayloadUpstream(null, false, readyBuffersCount);
+            }
         }
     }
 
+
+    private void passPayloadUpstream(final Buffer data, final boolean isLast,
+            int readyBuffersCount) {
+        
+        if (isLast) {
+            isInputClosed.set(true);
+            isTerminated = true;
+        }
+        
+        HttpContent content;
+        
+        try {
+            if (readyBuffersCount == -1) {
+                readyBuffersCount = inputQueueSize.get();
+            }
+            
+            Buffer payload = null;
+            if (readyBuffersCount > 0) {
+                payload = poll();
+                assert payload != null;
+            }
+            
+            if (data != null) {
+                payload = Buffers.appendBuffers(spdySession.getMemoryManager(),
+                        payload, data);
+                
+                if (isLast) {
+                    processFin();
+                }
+                
+                sendWindowUpdate(data);
+            }
+            
+            content = HttpContent.builder(spdyStream.getInputHttpHeader())
+                    .content(payload)
+                    .last(isLast)
+                    .build();
+            
+        } catch (IOException e) {
+            content = HttpContent.builder(spdyStream.getInputHttpHeader())
+                                .content(Buffers.EMPTY_BUFFER)
+                                .last(true)
+                                .build();            
+        }
+        
+        spdySession.sendMessageUpstream(spdyStream, content);
+    }
+    
     Buffer poll() throws IOException {
-        if (isLastInputDataPolled) {
+        if (isTerminated) {
             throw new EOFException();
         }
         
@@ -170,7 +231,12 @@ final class SpdyInputBuffer {
         return buffer;
     }
     
-    void shutdown() {
+    void terminate() {
+        isTerminated = true;
+        close();
+    }
+    
+    void close() {
         if (isInputClosed.compareAndSet(false, true)) {
             inputQueue.offer(LAST_BUFFER);
             inputQueueSize.incrementAndGet();
@@ -178,22 +244,30 @@ final class SpdyInputBuffer {
     }
     
     boolean isTerminated() {
-        return isLastInputDataPolled;
+        return isTerminated;
     }
     
     private void processFin() {
-        isLastInputDataPolled = true;
+        isTerminated = true;
         
         // NOTIFY STREAM
         spdyStream.onInputClosed();
     }
 
-    private void sendWindowUpdate(Buffer data) {
-        if (data != null && data.hasRemaining()) {
-            spdyStream.outputSink.writeDownStream0(
-                    encodeWindowUpdate(spdySession.getMemoryManager(),
-                            spdyStream, data.remaining()), null);
+    private void sendWindowUpdate(final Buffer data) {
+        sendWindowUpdate(data, false);
+    }
+    
+    private void sendWindowUpdate(final Buffer data, final boolean isForce) {
+        final int currentUnackedBytes =
+                unackedReadBytes.addAndGet(data != null ? data.remaining() : 0);
+        final int windowSize = spdySession.getLocalInitialWindowSize();
+        
+        if (currentUnackedBytes > 0 &&
+                ((currentUnackedBytes > (windowSize / 2)) || isForce) &&
+                unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
+            
+            spdyStream.outputSink.writeWindowUpdate(currentUnackedBytes);
         }
     }
-
 }
