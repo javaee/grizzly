@@ -68,6 +68,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
@@ -75,7 +76,7 @@
                             *
                         </Import-Package>
                         <Export-Package>
-			    org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version},
+                            org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version},
                             javax.servlet.*;version=${servlet-version}
                         </Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
@@ -115,14 +116,14 @@
                                     <fullGraph />
                                     <groupId value="org.glassfish.grizzly" />
                                 </resolveAll>
-                                <zip destfile="target/${pom.artifactId}-${pom.version}-javadoc.jar">
+                                <zip destfile="target/${project.artifactId}-${project.version}-javadoc.jar">
                                     <zipgroupfileset dir="target/javadoc-jars" includes="*.jar" />
                                 </zip>
                                 <resolveAll todir="target/source-jars" classifier="sources">
                                     <fullGraph />
                                     <groupId value="org.glassfish.grizzly" />
                                 </resolveAll>
-                                <zip destfile="target/${pom.artifactId}-${pom.version}-sources.jar">
+                                <zip destfile="target/${project.artifactId}-${project.version}-sources.jar">
                                     <zipgroupfileset dir="target/source-jars" includes="*.jar" />
                                 </zip>
                             </tasks>

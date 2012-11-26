@@ -71,6 +71,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
@@ -78,7 +79,8 @@
                             org.glassfish.grizzly*;version=${project.version},
                             *,
                         </Import-Package>
-                        <Export-Package>org.glassfish.grizzly.samples.websockets;version=${project.version},</Export-Package>
+                        <Export-Package>org.glassfish.grizzly.samples.websockets;version=${project.version},
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>

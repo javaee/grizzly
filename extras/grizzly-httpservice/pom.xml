@@ -110,6 +110,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
@@ -117,7 +118,7 @@
                         <Bundle-Description>An implementation of the OSGi HttpService using Grizzly.
                         </Bundle-Description>
                         <Bundle-Activator>
-              org.glassfish.grizzly.osgi.httpservice.Activator
+                            org.glassfish.grizzly.osgi.httpservice.Activator
                         </Bundle-Activator>
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
                         <Import-Package>
@@ -125,13 +126,13 @@
                             *,
                         </Import-Package>
                         <Export-Package>
-              javax.servlet;javax.servlet.http;version=2.5,org.osgi.service.http
+                            javax.servlet;javax.servlet.http;version=2.5,org.osgi.service.http
                         </Export-Package>
                         <Private-Package>
-              org.glassfish.grizzly.osgi.httpservice.*
+                            org.glassfish.grizzly.osgi.httpservice.*
                         </Private-Package>
                         <Export-Service>
-              org.osgi.service.http.HttpService;version=1.2
+                            org.osgi.service.http.HttpService;version=1.2
                         </Export-Service>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
