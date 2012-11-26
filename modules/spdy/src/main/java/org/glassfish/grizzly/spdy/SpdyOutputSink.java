@@ -82,8 +82,8 @@ final class SpdyOutputSink {
 
     // true, if last output frame has been queued
     private volatile boolean isLastFrameQueued;
-    // true, if last output frame has been sent
-    private boolean isLastFrameSent;
+    // true, if last output frame has been sent or forcibly terminated
+    private boolean isTerminated;
     
     // associated spdy session
     private final SpdySession spdySession;
@@ -122,7 +122,7 @@ final class SpdyOutputSink {
             
             // if it's terminating record - processFin
             if (outputQueueRecord == TERMINATING_QUEUE_RECORD) {
-                processFin();
+                writeEmptyFin();
                 return;
             }
             
@@ -201,8 +201,8 @@ final class SpdyOutputSink {
             throws IOException {
 
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
-        if (isLastFrameQueued) {
-            throw new IOException("The last frame has been queued");
+        if (isTerminated) {
+            throw new IOException("The output stream has been terminated");
         }
         
         final MemoryManager memoryManager = spdySession.getMemoryManager();
@@ -401,30 +401,34 @@ final class SpdyOutputSink {
         return dataChunkToStore;
     }
     
-    void writeDownStream(final Buffer frame,
+    void writeWindowUpdate(final int currentUnackedBytes) {
+        writeDownStream0(encodeWindowUpdate(
+                spdySession.getMemoryManager(),
+                spdyStream, currentUnackedBytes), null);
+    }
+    
+    private void writeDownStream(final Buffer frame,
             final CompletionHandler<WriteResult> completionHandler,
             final boolean isLast) {
         writeDownStream0(frame, completionHandler);
         
         if (isLast) {
-            isLastFrameSent = true;
-            isLastFrameQueued = true;
-            processFin();
+            terminate();
         }
     }
     
-    void writeDownStream0(final Buffer frame,
+    private void writeDownStream0(final Buffer frame,
             final CompletionHandler<WriteResult> completionHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
                 null, frame, completionHandler, null);
     }
     
-    synchronized void shutdown() {
-        if (!isLastFrameQueued) {
+    synchronized void close() {
+        if (!isLastFrameQueued && !isTerminated) {
             isLastFrameQueued = true;
             
             if (outputQueueSize.getAndIncrement() == 0) {
-                processFin();
+                writeEmptyFin();
                 return;
             }
             
@@ -432,28 +436,33 @@ final class SpdyOutputSink {
             
             if (outputQueueSize.get() == 1 &&
                     outputQueue.remove(TERMINATING_QUEUE_RECORD)) {
-                processFin();
+                writeEmptyFin();
             }
         }
     }
 
-    boolean isTerminated() {
-        return isLastFrameQueued;
+    synchronized void terminate() {
+        if (!isTerminated) {
+            isTerminated = true;
+            // NOTIFY STREAM
+            spdyStream.onOutputClosed();
+        }
     }
     
-    private void processFin() {
-        if (!isLastFrameSent) {
+    boolean isTerminated() {
+        return isTerminated;
+    }
+    
+    private void writeEmptyFin() {
+        if (!isTerminated) {
             // SEND LAST
-            
-            isLastFrameSent = true;
             writeDownStream0(
                     encodeSpdyData(spdySession.getMemoryManager(), spdyStream,
                     Buffers.EMPTY_BUFFER, true),
                     null);
+
+            terminate();
         }
-        
-        // NOTIFY STREAM
-        spdyStream.onOutputClosed();
     }
     
     private static class OutputQueueRecord {

@@ -114,7 +114,9 @@ public class SpdyFramingFilter extends BaseFilter {
         
         ctx.setMessage(frameList.size() > 1 ? frameList : message);
         
-        return ctx.getInvokeAction((remainder.hasRemaining()) ? remainder : null);
+        return ctx.getInvokeAction(
+                (remainder.hasRemaining()) ? remainder : null,
+                null);
     }
 
     @Override

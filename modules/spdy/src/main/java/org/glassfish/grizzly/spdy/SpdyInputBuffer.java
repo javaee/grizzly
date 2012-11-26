@@ -65,9 +65,9 @@ final class SpdyInputBuffer {
     private final AtomicInteger inputQueueSize = new AtomicInteger();
     private final BlockingQueue<Buffer> inputQueue =
             DataStructures.getLTQInstance(Buffer.class);
-    private boolean isLastInputDataPolled;
     
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
+    private volatile boolean isTerminated;
     
     private final SpdyStream spdyStream;
     private final SpdySession spdySession;
@@ -82,7 +82,7 @@ final class SpdyInputBuffer {
     }
     
     void onReadEventComplete() {
-        if (spdyStream.isClosed()) {
+        if (isTerminated()) {
             return;
         }
         
@@ -125,7 +125,7 @@ final class SpdyInputBuffer {
         
         if (isLast) {
             isInputClosed.set(true);
-            isLastInputDataPolled = true;
+            isTerminated = true;
         }
         
         HttpContent content;
@@ -154,7 +154,7 @@ final class SpdyInputBuffer {
             
             content = HttpContent.builder(spdyStream.getInputHttpHeader())
                     .content(payload)
-                    .last(isLastInputDataPolled)
+                    .last(isLast)
                     .build();
             
         } catch (IOException e) {
@@ -168,7 +168,7 @@ final class SpdyInputBuffer {
     }
     
     Buffer poll() throws IOException {
-        if (isLastInputDataPolled) {
+        if (isTerminated) {
             throw new EOFException();
         }
         
@@ -231,6 +231,11 @@ final class SpdyInputBuffer {
         return buffer;
     }
     
+    void terminate() {
+        isTerminated = true;
+        close();
+    }
+    
     void close() {
         if (isInputClosed.compareAndSet(false, true)) {
             inputQueue.offer(LAST_BUFFER);
@@ -239,11 +244,11 @@ final class SpdyInputBuffer {
     }
     
     boolean isTerminated() {
-        return isLastInputDataPolled;
+        return isTerminated;
     }
     
     private void processFin() {
-        isLastInputDataPolled = true;
+        isTerminated = true;
         
         // NOTIFY STREAM
         spdyStream.onInputClosed();
@@ -262,9 +267,7 @@ final class SpdyInputBuffer {
                 ((currentUnackedBytes > (windowSize / 2)) || isForce) &&
                 unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
             
-            spdyStream.outputSink.writeDownStream0(
-                    encodeWindowUpdate(spdySession.getMemoryManager(),
-                            spdyStream, currentUnackedBytes), null);
+            spdyStream.outputSink.writeWindowUpdate(currentUnackedBytes);
         }
     }
 }

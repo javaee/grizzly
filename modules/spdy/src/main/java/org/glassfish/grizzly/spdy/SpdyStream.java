@@ -201,29 +201,37 @@ public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
         outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
-    void shutdown() {
-        shutdownInput();
-        shutdownOutput();
+    void close() {
+        closeInput();
+        closeOutput();
     }
     
-    void shutdownNow() {
+    void terminate() {
         completeCloseIndicator.set(2);
         closeStream();
-        shutdown();
+        close();
     }
     
-    void shutdownInput() {
+    void closeInput() {
         inputBuffer.close();
     }
     
+    void terminateInput() {
+        inputBuffer.terminate();
+    }
+
     boolean isInputTerminated() {
         return inputBuffer.isTerminated();
     }
     
-    void shutdownOutput() {
-        outputSink.shutdown();
+    void closeOutput() {
+        outputSink.close();
     }
     
+    void terminateOutput() {
+        outputSink.terminate();
+    }
+
     boolean isOutputTerminated() {
         return outputSink.isTerminated();
     }

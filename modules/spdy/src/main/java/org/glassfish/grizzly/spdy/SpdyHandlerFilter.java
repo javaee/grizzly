@@ -233,8 +233,19 @@ public class SpdyHandlerFilter extends BaseFilter {
                     .append("}\n");
             LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
+        final SpdyStream stream = spdySession.getStream(streamId);
         
-        spdySession.getStream(streamId).onPeerWindowUpdate(delta);
+        if (stream != null) {
+            stream.onPeerWindowUpdate(delta);
+        } else {
+            if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+                final StringBuilder sb = new StringBuilder(64);
+                sb.append("\nStream id=")
+                        .append(streamId)
+                        .append(" was not found. Ignoring the message");
+                LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+            }
+        }
     }
 
     private void processGoAwayFrame(final SpdySession spdySession,
@@ -421,7 +432,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
             spdyRequest.setExpectContent(false);
-            spdyStream.shutdownInput();
+            spdyStream.closeInput();
         }
         
         Buffer payload = frame;
@@ -600,7 +611,7 @@ public class SpdyHandlerFilter extends BaseFilter {
         
         if ((flags & SYN_STREAM_FLAG_FIN) != 0) {
             spdyResponse.setExpectContent(false);
-            spdyStream.shutdownInput();
+            spdyStream.closeInput();
         }
         
         Buffer payload = frame;
@@ -745,6 +756,12 @@ public class SpdyHandlerFilter extends BaseFilter {
             final int length) {
         
         final boolean isFinFrame = (flags & SYN_STREAM_FLAG_FIN) != 0;
+
+        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
+            LOGGER.log(Level.INFO, "'{'DATA: flags={0} streamID={1} len={2}'}'",
+                    new Object[]{isFinFrame ? "FIN" : "NONE",
+                        spdyStream.getStreamId(), frame.remaining()});
+        }
         
         if (isFinFrame) {
             ((SpdyHeader) spdyStream.getSpdyRequest()).setExpectContent(false);
@@ -815,7 +832,8 @@ public class SpdyHandlerFilter extends BaseFilter {
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
-            spdyStream.shutdownNow();
+            spdyStream.terminateInput();
+            spdyStream.closeOutput();
             
             return ctx.getStopAction();
         }/* else if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
