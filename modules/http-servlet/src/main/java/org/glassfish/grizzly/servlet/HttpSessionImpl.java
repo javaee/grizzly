@@ -142,7 +142,11 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public void setMaxInactiveInterval(int sessionTimeout) {
-        session.setSessionTimeout(sessionTimeout);
+        if (sessionTimeout < 0) {
+            sessionTimeout = -1;
+        }
+        
+        session.setSessionTimeout(sessionTimeout * 1000);
     }
 
     /**
@@ -150,7 +154,17 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public int getMaxInactiveInterval() {
-        return (int) session.getSessionTimeout();
+        long sessionTimeout = session.getSessionTimeout();
+        if (sessionTimeout < 0) {
+            return -1;
+        }
+
+        sessionTimeout /= 1000;
+        if (sessionTimeout > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException(sessionTimeout + " cannot be cast to int.");
+        }
+        
+        return (int) sessionTimeout;
     }
 
     /**
