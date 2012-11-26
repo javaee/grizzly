@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -171,8 +171,8 @@ public class Session {
 
 
     /**
-     * Return a long representing the maximum idle time a session can be.
-     * @return a long representing the maximum idle time a session can be.
+     * Return a long representing the maximum idle time (in milliseconds) a session can be.
+     * @return a long representing the maximum idle time (in milliseconds) a session can be.
      */
     public long getSessionTimeout() {
         return sessionTimeout;
@@ -180,8 +180,8 @@ public class Session {
 
 
     /**
-     * Set a long representing the maximum idle time a session can be.
-     * @param sessionTimeout a long representing the maximum idle time a session can be.
+     * Set a long representing the maximum idle time (in milliseconds) a session can be.
+     * @param sessionTimeout a long representing the maximum idle time (in milliseconds) a session can be.
      */
     public void setSessionTimeout(long sessionTimeout) {
         this.sessionTimeout = sessionTimeout;
