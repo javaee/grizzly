@@ -133,9 +133,9 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.npn</groupId>
-            <artifactId>npn-api</artifactId>
-            <version>8.1.2.v20120308</version>
+            <groupId>org.mortbay.jetty.npn</groupId>
+            <artifactId>npn-boot</artifactId>
+            <version>1.1.1.v20121030</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
