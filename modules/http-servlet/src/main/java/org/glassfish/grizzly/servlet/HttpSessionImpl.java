@@ -144,9 +144,11 @@ public class HttpSessionImpl implements HttpSession {
     public void setMaxInactiveInterval(int sessionTimeout) {
         if (sessionTimeout < 0) {
             sessionTimeout = -1;
+        } else {
+            sessionTimeout = sessionTimeout * 1000;
         }
         
-        session.setSessionTimeout(sessionTimeout * 1000);
+        session.setSessionTimeout(sessionTimeout);
     }
 
     /**
