@@ -117,6 +117,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
+                <!--suppress MavenModelInspection -->
                 <version>${cobertura.version}</version>
             </plugin>
             <plugin>
@@ -133,6 +134,7 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
+            <!--suppress MavenModelInspection -->
             <version>${project.version}</version>
         </dependency>
         <dependency>
