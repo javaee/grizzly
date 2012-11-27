@@ -80,32 +80,11 @@
         <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <silent>true</silent>
-                            <outputFile>${project.build.directory}/classpath.txt</outputFile>
-                        </configuration>
-                        <goals>
-                            <goal>build-classpath</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.glassfish.hk2</groupId>
                 <artifactId>config-generator</artifactId>
                 <version>${hk2.version}</version>
                 <executions>
                     <execution>
-                        <configuration>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
-                        </configuration>
-
                         <goals>
                             <goal>generateInjectors</goal>
                         </goals>
@@ -139,9 +118,6 @@
                 <version>${hk2.version}</version>
                 <executions>
                     <execution>
-                        <configuration>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
-                        </configuration>
                         <goals>
                             <goal>generateInhabitants</goal>
                         </goals>
@@ -151,7 +127,6 @@
                         <phase>process-test-classes</phase>
                         <configuration>
                             <test>true</test>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
                         </configuration>
                         <goals>
                             <goal>generateInhabitants</goal>
