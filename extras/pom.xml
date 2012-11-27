@@ -61,13 +61,6 @@
                 <plugins>
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.codehaus.mojo</groupId>
-                                <artifactId>cobertura-maven-plugin</artifactId>
-                                <version>${cobertura.version}</version>
-                            </dependency>
-                        </dependencies>
                         <executions>
                             <execution>
                                 <id>merge-cobertura-datafiles</id>
@@ -84,25 +77,8 @@
                                     </tasks>
                                 </configuration>
                                 <goals>
+                                    <!--suppress MavenModelInspection -->
                                     <goal>run</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>cobertura-maven-plugin</artifactId>
-                        <version>${cobertura.version}</version>
-                        <configuration>
-                            <formats>
-                                <format>xml</format>
-                                <format>html</format>
-                            </formats>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>clean</goal>
                                 </goals>
                             </execution>
                         </executions>
