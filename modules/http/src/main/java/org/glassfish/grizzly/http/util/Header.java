@@ -120,7 +120,7 @@ public enum Header {
     private final byte[] headerNameBytes;
     private final byte[] headerNameLowerCaseBytes;
     private final String headerName;
-
+    private final int length;
 
     // ------------------------------------------------------------ Constructors
 
@@ -131,6 +131,7 @@ public enum Header {
         
         headerNameLowerCaseBytes = Arrays.copyOf(headerNameBytes, headerNameBytes.length);
         Ascii.toLower(headerNameLowerCaseBytes);
+        length = headerNameBytes.length;
     }
 
 
@@ -163,6 +164,17 @@ public enum Header {
         return headerNameLowerCaseBytes;
     }
 
+    /**
+     * <p>
+     * Returns the length this header encoded using <code>ISO-8859-1</code>.
+     * </p>
+     *
+     * @return the length this header encoded using <code>ISO-8859-1</code>.
+     */
+    public final int getLength() {
+        return length;
+    }
+    
     /**
      * <p>
      * Returns the name of the header properly hyphenated if necessary.

@@ -93,7 +93,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpCodecFilter extends BaseFilter
+public abstract class HttpCodecFilter extends HttpBaseFilter
         implements JmxMonitoringAware<HttpProbe> {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
