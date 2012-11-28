@@ -1383,9 +1383,13 @@ public class HttpInputStreamsTest extends TestCase {
 
             if (httpContent.isLast()) {
                 try {
+                    final HttpHeader httpHeader = httpContent.getHttpHeader();
+                    assertNotNull("HttpHeader is null", httpHeader);
                     assertEquals("OK",
                                  "OK",
-                                 httpContent.getHttpHeader().getHeader("Status"));
+                                 httpHeader.getHeader("Status"));
+                } catch (Throwable t) {
+                    testResult.failure(t);
                 } finally {
                     testResult.result(Boolean.TRUE);
                 }
