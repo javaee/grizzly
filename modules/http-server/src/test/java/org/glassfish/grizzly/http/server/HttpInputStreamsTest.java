@@ -733,7 +733,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
+        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 3) {
             doTest(createRequest("POST", expected), reader, chunkSize);
         }
 
@@ -757,10 +757,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", expected), reader, 1024);
-        }
-
+        doTest(createRequest("POST", expected), reader, 1024);
     }
 
 
@@ -780,9 +777,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", content), reader, 1024);
-        }
+        doTest(createRequest("POST", content), reader, 1024);
 
     }
 
@@ -806,10 +801,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", expected), reader, 1024);
-        }
-
+        doTest(createRequest("POST", expected), reader, 1024);
     }
 
 
@@ -1373,12 +1365,10 @@ public class HttpInputStreamsTest extends TestCase {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-            LOGGER.log(Level.FINE, "Got HTTP response chunk");
-
             final Buffer buffer = httpContent.getContent();
 
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
+                LOGGER.log(Level.FINE, "HTTP content size: {0}, isLast: {1}", new Object[] {buffer.remaining(), httpContent.isLast()});
             }
 
             if (httpContent.isLast()) {
