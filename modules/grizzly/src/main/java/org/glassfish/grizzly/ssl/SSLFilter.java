@@ -50,7 +50,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Filter;
 import java.util.logging.Level;
@@ -66,7 +65,6 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Connection.CloseType;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
@@ -92,8 +90,7 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
 public class SSLFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
-    private final Attribute<CompletionHandler<SSLEngine>> handshakeCompletionHandlerAttr;
-    private final Attribute<FilterChainContext> initiatingContextAttr;
+    private final Attribute<SSLHandshakeContext> handshakeContextAttr;
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
     private final boolean renegotiateOnClientAuthWant;
@@ -152,13 +149,9 @@ public class SSLFilter extends BaseFilter {
             this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;
         }
 
-        handshakeCompletionHandlerAttr =
+        handshakeContextAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "SSLFilter-HandshakeCompletionHandlerAttr");
-        initiatingContextAttr =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                     "SSLFilter-HandshakingInitiatingContextAttr"
-                );
+                "SSLFilter-SSLHandshakeContextAttr");
     }
 
     public void addHandshakeListener(final HandshakeListener listener) {
@@ -232,9 +225,8 @@ public class SSLFilter extends BaseFilter {
                 return accurateWrite(ctx, true);
             } else {
                 if (sslEngine == null) {
-                    initiatingContextAttr.set(connection, ctx);
                     handshake(connection,
-                            new PendingWriteCompletionHandler(connection),
+                            null,
                             null, clientSSLEngineConfigurator, ctx);
                 }
 
@@ -324,10 +316,9 @@ public class SSLFilter extends BaseFilter {
         notifyHandshakeStart(connection);
         sslEngine.beginHandshake();
 
-        if (completionHandler != null) {
-            handshakeCompletionHandlerAttr.set(connection, completionHandler);
-            connection.addCloseListener(closeListener);
-        }
+        handshakeContextAttr.set(connection,
+                new SSLHandshakeContext(connection, completionHandler));
+        connection.addCloseListener(closeListener);
 
         doHandshakeStep(sslEngine, context, null);
     }
@@ -600,20 +591,15 @@ public class SSLFilter extends BaseFilter {
                     }
 
                     if (handshakeStatus == HandshakeStatus.FINISHED) {
-                        initiatingContextAttr.remove(connection);
                         return inputBuffer;
                     }
                 }
             }
         } catch (IOException ioe) {
-            final FilterChainContext ictx = initiatingContextAttr.get(connection);
-            try {
-                if (ictx != null) {
-                    ictx.getFilterChain().fail(ictx, ioe);
-                }
-            } finally {
-                initiatingContextAttr.remove(connection);
-            }
+            final SSLHandshakeContext handshakeContext =
+                    handshakeContextAttr.get(connection);
+            handshakeContext.failed(ioe);
+            
             throw ioe;
         }
     }
@@ -766,30 +752,27 @@ public class SSLFilter extends BaseFilter {
     // --------------------------------------------------------- Private Methods
 
 
+    /**
+     * Has to be called in synchronized(connection) {...} block.
+     */
     private NextAction accurateWrite(final FilterChainContext ctx,
                                      final boolean isHandshakeComplete)
     throws IOException {
 
         final Connection connection = ctx.getConnection();
+        SSLHandshakeContext handshakeContext = handshakeContextAttr.get(connection);
 
-        final CompletionHandler<SSLEngine> completionHandler =
-                handshakeCompletionHandlerAttr.get(connection);
-        final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
-
-        if (isHandshakeComplete && !isPendingHandler) {
+        if (isHandshakeComplete && handshakeContext == null) {
             return doWrite(ctx);
-        } else if (isPendingHandler) {
-            if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
-                return doWrite(ctx);
-            }
         } else {
-            // Check one more time whether handshake is completed
-            final SSLEngine sslEngine = getSSLEngine(connection);
-            if (sslEngine != null && !isHandshaking(sslEngine)) {
+            if (handshakeContext == null) {
+                handshakeContext = new SSLHandshakeContext(connection, null);
+                handshakeContextAttr.set(connection, handshakeContext);
+            }
+            
+            if (!handshakeContext.add(ctx)) {
                 return doWrite(ctx);
             }
-
-            throw new IllegalStateException("Handshake is not completed!");
         }
 
         return ctx.getSuspendAction();
@@ -869,12 +852,12 @@ public class SSLFilter extends BaseFilter {
     private void notifyHandshakeComplete(final Connection connection,
                                           final SSLEngine sslEngine) {
 
-        final CompletionHandler<SSLEngine> completionHandler =
-                handshakeCompletionHandlerAttr.get(connection);
-        if (completionHandler != null) {
+        final SSLHandshakeContext handshakeContext =
+                handshakeContextAttr.get(connection);
+        if (handshakeContext != null) {
             connection.removeCloseListener(closeListener);
-            completionHandler.completed(sslEngine);
-            handshakeCompletionHandlerAttr.remove(connection);
+            handshakeContext.completed(sslEngine);
+            handshakeContextAttr.remove(connection);
         }
         
         if (!handshakeListeners.isEmpty()) {
@@ -924,25 +907,28 @@ public class SSLFilter extends BaseFilter {
     // ----------------------------------------------------------- Inner Classes
 
 
-    private final class PendingWriteCompletionHandler
-            extends EmptyCompletionHandler<SSLEngine> {
+    private final class SSLHandshakeContext {
 
+        private CompletionHandler<SSLEngine> completionHandler;
+        
         private final Connection connection;
-        private final List<FilterChainContext> pendingWriteContexts;
+        private List<FilterChainContext> pendingWriteContexts;
         private int sizeInBytes = 0;
         
         private IOException error;
         private boolean isComplete;
         
-        public PendingWriteCompletionHandler(Connection connection) {
+        public SSLHandshakeContext(final Connection connection,
+                final CompletionHandler<SSLEngine> completionHandler) {
             this.connection = connection;
-            pendingWriteContexts = new LinkedList<FilterChainContext>();
+            this.completionHandler = completionHandler;            
         }
 
         public boolean add(FilterChainContext context) throws IOException {
-            synchronized(connection) {
+            synchronized (connection) {
                 if (error != null) throw error;
                 if (isComplete) return false;
+                
                 final Buffer buffer = context.getMessage();
 
                 final int newSize = sizeInBytes + buffer.remaining();
@@ -953,41 +939,75 @@ public class SSLFilter extends BaseFilter {
                 }
                 
                 sizeInBytes = newSize;
+                
+                if (pendingWriteContexts == null) {
+                    pendingWriteContexts = new LinkedList<FilterChainContext>();
+                }
+                
                 pendingWriteContexts.add(context);
 
                 return true;
             }
         }
         
-        @Override
         public void completed(SSLEngine result) {
             try {
                 synchronized (connection) {
                     isComplete = true;
-                    for (FilterChainContext ctx : pendingWriteContexts) {
-                        ctx.resume();
+                    
+                    final CompletionHandler<SSLEngine> completionHandlerLocal =
+                            completionHandler;
+                    completionHandler = null;
+                    
+                    if (completionHandlerLocal != null) {
+                        completionHandlerLocal.completed(result);
                     }
                     
-                    pendingWriteContexts.clear();
-                    sizeInBytes = 0;
+                    final List<FilterChainContext> pendingWriteContextsLocal =
+                            pendingWriteContexts;
+                    pendingWriteContexts = null;
+                    
+                    if (pendingWriteContextsLocal != null) {
+                        for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                            ctx.resume();
+                        }
+
+                        pendingWriteContextsLocal.clear();
+                        sizeInBytes = 0;
+                    }
                 }
             } catch (Exception e) {
                 failed(e);
             }
         }
 
-        @Override
-        public void cancelled() {
-            failed(new CancellationException());
-        }
-
-        @Override
         public void failed(Throwable throwable) {
             synchronized(connection) {
                 if (throwable instanceof IOException) {
                     error = (IOException) throwable;
                 } else {
                     error = new IOException(throwable);
+                }
+                
+                final CompletionHandler<SSLEngine> completionHandlerLocal =
+                        completionHandler;
+                completionHandler = null;
+                    
+                if (completionHandlerLocal != null) {
+                    completionHandlerLocal.failed(throwable);
+                }
+                
+                final List<FilterChainContext> pendingWriteContextsLocal =
+                        pendingWriteContexts;
+                pendingWriteContexts = null;
+                
+                if (pendingWriteContextsLocal != null) {
+                    for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                        ctx.resume(/*error*/);
+                    }
+                    
+                    pendingWriteContextsLocal.clear();
+                    sizeInBytes = 0;
                 }
             }
 
@@ -1002,10 +1022,11 @@ public class SSLFilter extends BaseFilter {
     private final class ConnectionCloseListener implements CloseListener {
         @Override
         public void onClosed(final Connection connection, final CloseType type) throws IOException {
-            final CompletionHandler<SSLEngine> completionHandler =
-                    handshakeCompletionHandlerAttr.remove(connection);
-            if (completionHandler != null) {
-                completionHandler.failed(new java.io.EOFException());
+            final SSLHandshakeContext handshakeContext =
+                    handshakeContextAttr.get(connection);
+            if (handshakeContext != null) {
+                handshakeContext.failed(new java.io.EOFException());
+                handshakeContextAttr.remove(connection);
             }
         }
     }

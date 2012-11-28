@@ -324,7 +324,8 @@ public class SSLTest {
                 @Override
                 public void failed(Throwable throwable) {
                     try {
-                        assertTrue(throwable instanceof SSLHandshakeException);
+                        assertTrue("Expected " + SSLHandshakeException.class.getName() + " but was " + throwable.getClass().getName(),
+                                throwable instanceof SSLHandshakeException);
                     } finally {
                         latch.countDown();
                     }
