@@ -107,7 +107,7 @@ public class ConnectMethodTest {
                     "\r\n";
             
             s = new Socket("localhost", PORT);
-            s.setSoTimeout(500000);
+            s.setSoTimeout(5000);
             
             final OutputStream os = s.getOutputStream();
             os.write(connectRequest.getBytes());
