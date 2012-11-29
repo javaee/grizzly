@@ -144,7 +144,7 @@ final class SpdyInputBuffer {
     }
 
 
-    private void passPayloadUpstream(final Buffer data, final boolean isLast,
+    private void passPayloadUpstream(final Buffer data, boolean isLast,
             int readyBuffersCount) {
         
         if (isLast) {
@@ -174,6 +174,8 @@ final class SpdyInputBuffer {
                 }
                 
                 sendWindowUpdate(data);
+            } else {
+                isLast = isTerminated;
             }
             
             content = HttpContent.builder(spdyStream.getInputHttpHeader())

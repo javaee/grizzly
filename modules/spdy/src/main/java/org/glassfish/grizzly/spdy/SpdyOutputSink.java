@@ -150,7 +150,8 @@ final class SpdyOutputSink {
             }
 
             // if there is a chunk to sent
-            if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
+            if (dataChunkToSend != null &&
+                    (dataChunkToSend.hasRemaining() || isLast)) {
                 // update unconfirmed bytes counter
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
@@ -284,7 +285,8 @@ final class SpdyOutputSink {
             }
             
             // if there is a chunk to send
-            if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
+            if (dataChunkToSend != null && 
+                    (dataChunkToSend.hasRemaining() || isLast)) {
                 // update unconfirmed bytes counter
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
@@ -348,7 +350,8 @@ final class SpdyOutputSink {
                 }
 
                 // if there is a chunk to send
-                if (dataChunkToSend != null && dataChunkToSend.hasRemaining()) {
+                if (dataChunkToSend != null &&
+                        (dataChunkToSend.hasRemaining() || isLast)) {
                         // update unconfirmed bytes counter
                         unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 

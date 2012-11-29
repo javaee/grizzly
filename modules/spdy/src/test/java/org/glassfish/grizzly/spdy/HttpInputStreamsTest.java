@@ -43,14 +43,12 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.net.URL;
 import java.nio.CharBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -80,7 +78,6 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
@@ -89,7 +86,7 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
  * {@link org.glassfish.grizzly.http.io.NIOReader}.
  */
-public class HttpInputStreamsTest extends TestCase {
+public class HttpInputStreamsTest extends AbstractSpdyTest {
 
     private static final int PORT = 8003;
 
@@ -1238,48 +1235,18 @@ public class HttpInputStreamsTest extends TestCase {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         final Filter clientFilter = new ClientFilter(request, chunkSize, testResult);
         
-        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        SSLEngineConfigurator serverSSLEngineConfigurator;
-        SSLEngineConfigurator clientSSLEngineConfigurator;
-
-        if (sslContextConfigurator.validateConfiguration(true)) {
-            serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
-                    false, false, false);
-            
-            serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
-
-            clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
-                    true, false, false);
-            
-            clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
-        } else {
-            throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
-        }
-
-        HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
-        NetworkListener listener = server.getListener("grizzly");
-        listener.setSendFileEnabled(false);
+        final HttpServer server = createServer("/tmp", PORT,
+                HttpHandlerRegistration.of(new SimpleResponseHttpHandler(strategy, testResult), "/*"));
         
-        listener.getFileCache().setEnabled(false);
-        listener.setSecure(true);
-        listener.setSSLEngineConfig(serverSSLEngineConfigurator);
-
-        listener.registerAddOn(new SpdyAddOn());
-        
-        ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
-
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         
         try {
             server.start();
             
-            FilterChain clientFilterChain = FilterChainBuilder.stateless()
+            final FilterChain clientFilterChain = FilterChainBuilder.stateless()
                     .add(new TransportFilter())
-                    .add(new SSLFilter(null, clientSSLEngineConfigurator))
+                    .add(new SSLFilter(null, getClientSSLEngineConfigurator()))
                     .add(new SpdyFramingFilter())
                     .add(new SpdyHandlerFilter(threadPool))
                     .add(clientFilter)
@@ -1305,27 +1272,6 @@ public class HttpInputStreamsTest extends TestCase {
             server.stop();
             ctransport.stop();
         }
-    }
-
-    private static SSLContextConfigurator createSSLContextConfigurator() {
-        SSLContextConfigurator sslContextConfigurator =
-                new SSLContextConfigurator();
-        ClassLoader cl = SpdyHandlerFilter.class.getClassLoader();
-        // override system properties
-        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
-        if (cacertsUrl != null) {
-            sslContextConfigurator.setTrustStoreFile(cacertsUrl.getFile());
-            sslContextConfigurator.setTrustStorePass("changeit");
-        }
-
-        // override system properties
-        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
-        if (keystoreUrl != null) {
-            sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
-            sslContextConfigurator.setKeyStorePass("changeit");
-        }
-
-        return sslContextConfigurator;
     }
 
     // ---------------------------------------------------------- Nested Classes
