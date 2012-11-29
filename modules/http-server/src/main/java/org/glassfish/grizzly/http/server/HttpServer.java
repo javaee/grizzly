@@ -408,69 +408,69 @@ public class HttpServer {
 
 
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:{@link NetworkListener#DEFAULT_NETWORK_PORT},
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path) {
+    public static HttpServer createSimpleServer(final String docRoot) {
 
-        return createSimpleServer(path, NetworkListener.DEFAULT_NETWORK_PORT);
+        return createSimpleServer(docRoot, NetworkListener.DEFAULT_NETWORK_PORT);
 
     }
 
 
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      * @param port the network port to which this listener will bind.
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path,
+    public static HttpServer createSimpleServer(final String docRoot,
                                                 final int port) {
 
-        return createSimpleServer(path, NetworkListener.DEFAULT_NETWORK_HOST, port);
+        return createSimpleServer(docRoot, NetworkListener.DEFAULT_NETWORK_HOST, port);
 
     }
 
 
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      * @param range port range to attempt to bind to.
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>[port-range]</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path,
+    public static HttpServer createSimpleServer(final String docRoot,
                                                 final PortRange range) {
 
-        return createSimpleServer(path,
+        return createSimpleServer(docRoot,
                 NetworkListener.DEFAULT_NETWORK_HOST,
                 range);
 
     }
 
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      * @param socketAddress the endpoint address to which this listener will bind.
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on <code>socketAddress</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path,
+    public static HttpServer createSimpleServer(final String docRoot,
                                                 final SocketAddress socketAddress) {
 
         final InetSocketAddress inetAddr = (InetSocketAddress) socketAddress;
-        return createSimpleServer(path, inetAddr.getHostName(), inetAddr.getPort());
+        return createSimpleServer(docRoot, inetAddr.getHostName(), inetAddr.getPort());
     }
 
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      * @param host the network port to which this listener will bind.
      * @param port the network port to which this listener will bind.
      *
@@ -478,16 +478,16 @@ public class HttpServer {
      * on <code>host</code>:<code>port</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path,
+    public static HttpServer createSimpleServer(final String docRoot,
                                                 final String host,
                                                 final int port) {
         
-        return createSimpleServer(path, host, new PortRange(port));
+        return createSimpleServer(docRoot, host, new PortRange(port));
 
     }
     
     /**
-     * @param path the document root.
+     * @param docRoot the document root.
      * @param host the network port to which this listener will bind.
      * @param range port range to attempt to bind to.
      *
@@ -495,14 +495,14 @@ public class HttpServer {
      * on <code>host</code>:<code>[port-range]</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path,
+    public static HttpServer createSimpleServer(final String docRoot,
                                                 final String host,
                                                 final PortRange range) {
 
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
-        if (path != null) {
-            config.addHttpHandler(new StaticHttpHandler(path), "/");
+        if (docRoot != null) {
+            config.addHttpHandler(new StaticHttpHandler(docRoot), "/");
         }
         final NetworkListener listener =
                 new NetworkListener("grizzly",
