@@ -44,6 +44,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.ProcessingState;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  *
@@ -69,6 +71,12 @@ class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
     
     private final SpdyResponse spdyResponse = new SpdyResponse();
     
+    /**
+     * Char encoding parsed flag.
+     */
+    private boolean charEncodingParsed;
+    private boolean contentTypeParsed;
+    
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
@@ -86,7 +94,39 @@ class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
     }
     
     @Override
+    public String getCharacterEncoding() {
+        if (characterEncoding != null || charEncodingParsed) {
+            return characterEncoding;
+        }
+
+        getContentType(); // charEncoding is set as a side-effect of this call
+        charEncodingParsed = true;
+
+        return characterEncoding;
+    }
+
+    @Override
+    public String getContentType() {
+        if (!contentTypeParsed) {
+            contentTypeParsed = true;
+
+            if (contentType == null) {
+                final DataChunk dc = headers.getValue(Header.ContentType);
+
+                if (dc != null && !dc.isNull()) {
+                    setContentType(dc.toString());
+                }
+            }
+        }
+
+        return super.getContentType();
+    }
+    
+    @Override
     protected void reset() {
+        charEncodingParsed = false;
+        contentTypeParsed = false;
+        
         processingState.recycle();
         
         super.reset();
@@ -102,5 +142,11 @@ class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
     @Override
     public void setExpectContent(final boolean isExpectContent) {
         super.setExpectContent(isExpectContent);
+    }
+
+    @Override
+    protected void requiresAcknowledgement(
+            final boolean requiresAcknowledgement) {
+        super.requiresAcknowledgement(requiresAcknowledgement);
     }
 }

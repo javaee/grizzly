@@ -319,7 +319,7 @@ final class SpdySession {
                                 context.getStartIdx(), context.getFilterIdx());
                     } else {
                         upstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getFilterIdx(), context.getStartIdx() + 1);
+                                context.getFilterIdx(), context.getFilterChain().size());
 
                         downstreamChain = (FilterChain) context.getFilterChain().subList(
                                 context.getEndIdx() + 1, context.getFilterIdx());

@@ -38,43 +38,52 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server;
+package org.glassfish.grizzly.spdy;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.CharBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ChunkingFilter;
-import junit.framework.TestCase;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.nio.CharBuffer;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.DelayFilter;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
@@ -733,10 +742,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", expected), reader, chunkSize);
-        }
-
+        doTest(createRequest("POST", expected), reader, 2);
     }
 
 
@@ -757,10 +763,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", expected), reader, 1024);
-        }
-
+        doTest(createRequest("POST", expected), reader, 1024);
     }
 
 
@@ -780,9 +783,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", content), reader, 1024);
-        }
+        doTest(createRequest("POST", content), reader, 1024);
 
     }
 
@@ -806,9 +807,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
-            doTest(createRequest("POST", expected), reader, 1024);
-        }
+        doTest(createRequest("POST", expected), reader, 1024);
 
     }
 
@@ -901,7 +900,8 @@ public class HttpInputStreamsTest extends TestCase {
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
                     sb.append(new String(buf, 0, i));
                 }
-                assertEquals(sb.toString(), b.toString());
+                assertEquals(b.length(), sb.length());
+                assertEquals(b.toString(), sb.toString());
                 in.close();
                 return true;
             }
@@ -1028,7 +1028,6 @@ public class HttpInputStreamsTest extends TestCase {
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
                 Reader in = request.getReader();
-                assertTrue(in.ready());
                 for (int i = in.read(); i != -1; i = in.read()) {
                     sb.append((char) i);
                 }
@@ -1237,31 +1236,56 @@ public class HttpInputStreamsTest extends TestCase {
                         int chunkSize) throws Throwable{
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
-        doTest(new ClientFilter(request, testResult), strategy, testResult, chunkSize);
+        final Filter clientFilter = new ClientFilter(request, chunkSize, testResult);
+        
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+        SSLEngineConfigurator serverSSLEngineConfigurator;
+        SSLEngineConfigurator clientSSLEngineConfigurator;
 
-    }
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
+            
+            serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
 
-
-    private void doTest(Filter clientFilter,
-                        ReadStrategy strategy,
-                        FutureImpl<Boolean> testResult,
-                        int chunkSize)
-    throws Throwable {
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    true, false, false);
+            
+            clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+        } else {
+            throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
+        }
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        NetworkListener listener = server.getListener("grizzly");
+        listener.setSendFileEnabled(false);
+        
+        listener.getFileCache().setEnabled(false);
+        listener.setSecure(true);
+        listener.setSSLEngineConfig(serverSSLEngineConfigurator);
+
+        listener.registerAddOn(new SpdyAddOn());
+        
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
 
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
+        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
+        
         try {
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new DelayFilter(0, 150));
-            clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
-            clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(clientFilter);
-            ctransport.setFilterChain(clientFilterChainBuilder.build());
+            
+            FilterChain clientFilterChain = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new SSLFilter(null, clientSSLEngineConfigurator))
+                    .add(new SpdyFramingFilter())
+                    .add(new SpdyHandlerFilter(threadPool))
+                    .add(clientFilter)
+                    .build();
+            
+            ctransport.setFilterChain(clientFilterChain);
 
             ctransport.start();
 
@@ -1269,7 +1293,7 @@ public class HttpInputStreamsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(30, TimeUnit.SECONDS);
-                testResult.get(30, TimeUnit.SECONDS);
+                testResult.get(60, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -1277,11 +1301,32 @@ public class HttpInputStreamsTest extends TestCase {
                 }
             }
         } finally {
+            threadPool.shutdown();
             server.stop();
             ctransport.stop();
         }
     }
 
+    private static SSLContextConfigurator createSSLContextConfigurator() {
+        SSLContextConfigurator sslContextConfigurator =
+                new SSLContextConfigurator();
+        ClassLoader cl = SpdyHandlerFilter.class.getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        if (cacertsUrl != null) {
+            sslContextConfigurator.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfigurator.setTrustStorePass("changeit");
+        }
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        if (keystoreUrl != null) {
+            sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfigurator.setKeyStorePass("changeit");
+        }
+
+        return sslContextConfigurator;
+    }
 
     // ---------------------------------------------------------- Nested Classes
 
@@ -1340,12 +1385,15 @@ public class HttpInputStreamsTest extends TestCase {
         protected final HttpPacket request;
         protected final FutureImpl<Boolean> testResult;
 
+        protected final int chunkSize;
+        
         // -------------------------------------------------------- Constructors
 
 
-        public ClientFilter(HttpPacket request, FutureImpl<Boolean> testResult) {
+        public ClientFilter(HttpPacket request, int chunkSize, FutureImpl<Boolean> testResult) {
 
             this.request = request;
+            this.chunkSize = chunkSize;
             this.testResult = testResult;
 
         }
@@ -1361,7 +1409,30 @@ public class HttpInputStreamsTest extends TestCase {
                 LOGGER.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
 
-            ctx.write(request);
+            if (HttpContent.isContent(request) &&
+                    ((HttpContent) request).getContent().remaining() > chunkSize) {
+
+                final HttpHeader httpHeader = request.getHttpHeader();
+                final HttpContent entireContent = (HttpContent) request;
+                Buffer workingBuffer = entireContent.getContent();
+                
+       
+                while (workingBuffer.hasRemaining()) {
+                    final int chunkSize0 =
+                            Math.min(chunkSize, workingBuffer.remaining());
+                    final Buffer remainder = workingBuffer.split(
+                            workingBuffer.position() + chunkSize0);
+                    
+                    ctx.write(HttpContent.builder(httpHeader)
+                            .content(workingBuffer)
+                            .last(!remainder.hasRemaining())
+                            .build());
+                    
+                    workingBuffer = remainder;
+                }
+            } else {
+                ctx.write(request);
+            }
 
             return ctx.getStopAction();
         }
@@ -1373,19 +1444,21 @@ public class HttpInputStreamsTest extends TestCase {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-            LOGGER.log(Level.FINE, "Got HTTP response chunk");
-
             final Buffer buffer = httpContent.getContent();
 
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
+                LOGGER.log(Level.FINE, "HTTP content size: {0}, isLast: {1}", new Object[] {buffer.remaining(), httpContent.isLast()});
             }
 
             if (httpContent.isLast()) {
                 try {
+                    final HttpHeader httpHeader = httpContent.getHttpHeader();
+                    assertNotNull("HttpHeader is null", httpHeader);
                     assertEquals("OK",
                                  "OK",
-                                 httpContent.getHttpHeader().getHeader("Status"));
+                                 httpHeader.getHeader("Status"));
+                } catch (Throwable t) {
+                    testResult.failure(t);
                 } finally {
                     testResult.result(Boolean.TRUE);
                 }
@@ -1409,10 +1482,11 @@ public class HttpInputStreamsTest extends TestCase {
         private String requestData;
 
         public CharsetClientFilter(HttpPacket request,
+                                   int chunkSize,
                                    String requestData,
                                    FutureImpl<Boolean> testResult,
                                    String encoding) {
-            super(request, testResult);
+            super(request, chunkSize, testResult);
             this.requestData = requestData;
             this.encoding = encoding;
         }
@@ -1438,5 +1512,4 @@ public class HttpInputStreamsTest extends TestCase {
             return ctx.getStopAction();
         }
     } // END CharsetClientFilter;
-
 }

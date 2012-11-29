@@ -42,6 +42,8 @@ package org.glassfish.grizzly.spdy;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.ProcessingState;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  *
@@ -63,6 +65,12 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     
     final ProcessingState processingState = new ProcessingState();
 
+    /**
+     * Char encoding parsed flag.
+     */
+    private boolean charEncodingParsed;
+    private boolean contentTypeParsed;
+
     @Override
     public ProcessingState getProcessingState() {
         return processingState;
@@ -74,12 +82,44 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     }
     
     @Override
+    public String getCharacterEncoding() {
+        if (characterEncoding != null || charEncodingParsed) {
+            return characterEncoding;
+        }
+
+        getContentType(); // charEncoding is set as a side-effect of this call
+        charEncodingParsed = true;
+
+        return characterEncoding;
+    }
+
+    @Override
+    public String getContentType() {
+        if (!contentTypeParsed) {
+            contentTypeParsed = true;
+
+            if (contentType == null) {
+                final DataChunk dc = headers.getValue(Header.ContentType);
+
+                if (dc != null && !dc.isNull()) {
+                    setContentType(dc.toString());
+                }
+            }
+        }
+
+        return super.getContentType();
+    }
+    
+    @Override
     public void setExpectContent(final boolean isExpectContent) {
         super.setExpectContent(isExpectContent);
     }
     
     @Override
     protected void reset() {
+        charEncodingParsed = false;
+        contentTypeParsed = false;
+        
         processingState.recycle();
         
         super.reset();

@@ -45,20 +45,25 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
 
-import static org.glassfish.grizzly.spdy.SpdyEncoderUtils.*;
-
 /**
  *
  * @author oleksiys
  */
 final class SpdyInputBuffer {
+    private static final Logger LOGGER = Grizzly.logger(SpdyInputBuffer.class);
+    
+    private static final long NULL_CONTENT_LENGTH = Long.MIN_VALUE;
+    
     private static final Buffer LAST_BUFFER = Buffers.wrap(
             MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[] {'l', 'a', 's', 't'});
 
@@ -76,7 +81,9 @@ final class SpdyInputBuffer {
     
     private final AtomicInteger unackedReadBytes  = new AtomicInteger();
     
-    SpdyInputBuffer(SpdyStream spdyStream) {
+    private long remainingContentLength = NULL_CONTENT_LENGTH;
+    
+    SpdyInputBuffer(final SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
     }
@@ -96,9 +103,26 @@ final class SpdyInputBuffer {
         }
     }
     
-    void offer(final Buffer data, final boolean isLast) {
-        if (isTerminated()) {
+    void offer(final Buffer data, boolean isLast) {
+        if (isInputClosed.get()) {
             throw new IllegalStateException("SpdyStream input is closed");
+        }
+        
+        if (remainingContentLength == NULL_CONTENT_LENGTH) {
+            remainingContentLength = spdyStream.getInputHttpHeader().getContentLength();
+        }
+        
+        if (remainingContentLength >= 0) {
+            remainingContentLength -= data.remaining();
+            if (remainingContentLength == 0) {
+                isLast = true;
+            } else if (remainingContentLength < 0) {
+                // Peer sent more bytes than specified in the content-length
+                LOGGER.log(Level.FINE, "SpdyStream #{0} has been terminated: peer sent more data than specified in content-length",
+                        spdyStream.getStreamId());
+                terminate();
+                return;
+            }
         }
         
         if (expectInputSwitch.getAndSet(false)) {
@@ -169,7 +193,7 @@ final class SpdyInputBuffer {
     
     Buffer poll() throws IOException {
         if (isTerminated) {
-            throw new EOFException();
+            return Buffers.EMPTY_BUFFER;
         }
         
         Buffer buffer;
@@ -249,6 +273,7 @@ final class SpdyInputBuffer {
     
     private void processFin() {
         isTerminated = true;
+        spdyStream.getInputHttpHeader().setExpectContent(false);
         
         // NOTIFY STREAM
         spdyStream.onInputClosed();
