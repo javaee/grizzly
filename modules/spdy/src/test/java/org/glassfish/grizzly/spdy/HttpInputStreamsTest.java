@@ -67,10 +67,8 @@ import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -78,7 +76,6 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
@@ -1259,7 +1256,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
             Future<Connection> connectFuture = ctransport.connect("localhost", PORT);
             Connection connection = null;
             try {
-                connection = connectFuture.get(30, TimeUnit.SECONDS);
+                connection = connectFuture.get(30, TimeUnit.MINUTES);
                 testResult.get(60, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection

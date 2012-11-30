@@ -68,6 +68,8 @@ import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
+import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
+import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -195,14 +197,16 @@ final class SpdySession {
         if (lastPeerStreamIdLocal == -1) {
             return; // SpdySession is already in go-away state
         }
-        
-        final Buffer goAwayFrame = getMemoryManager().allocate(16);
-
-        goAwayFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | GOAWAY_FRAME); // "C", version, GOAWAY_FRAME
-        goAwayFrame.putInt(8); // Flags, Length
-        goAwayFrame.putInt(lastPeerStreamIdLocal & 0x7FFFFFFF); // Stream-ID
-        goAwayFrame.putInt(statusCode); // Status code
-        goAwayFrame.flip();
+        GoAwayFrame goAwayFrame = new GoAwayFrame();
+        goAwayFrame.setLastGoodStreamId(lastPeerStreamIdLocal);
+        goAwayFrame.setStatusCode(statusCode);
+//        final Buffer goAwayFrame = getMemoryManager().allocate(16);
+//
+//        goAwayFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | GOAWAY_FRAME); // "C", version, GOAWAY_FRAME
+//        goAwayFrame.putInt(8); // Flags, Length
+//        goAwayFrame.putInt(lastPeerStreamIdLocal & 0x7FFFFFFF); // Stream-ID
+//        goAwayFrame.putInt(statusCode); // Status code
+//        goAwayFrame.flip();
 
         writeDownStream(goAwayFrame);
     }
@@ -294,11 +298,11 @@ final class SpdySession {
     }
 
    
-    void writeDownStream(final Buffer frame) {
+    void writeDownStream(final SpdyFrame frame) {
         writeDownStream(frame, null);
     }
     
-    void writeDownStream(final Buffer frame,
+    void writeDownStream(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler) {
         
         downstreamChain.write(connection,

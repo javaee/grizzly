@@ -48,6 +48,7 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
@@ -57,12 +58,12 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 public class SpdyFramingFilter extends BaseFilter {
     static final int HEADER_LEN = 8;
     
-    private final Attribute<ArrayList<Buffer>> framesAttr =
+    private final Attribute<ArrayList<SpdyFrame>> framesAttr =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                    SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<Buffer>>() {
+                    SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<SpdyFrame>>() {
                 @Override
-                public ArrayList<Buffer> evaluate() {
-                    return new ArrayList<Buffer>(4);
+                public ArrayList<SpdyFrame> evaluate() {
+                    return new ArrayList<SpdyFrame>(4);
                 }
             });
 
@@ -75,9 +76,7 @@ public class SpdyFramingFilter extends BaseFilter {
         
         int position = message.position();
         
-        int len = ((message.get(position + 5) & 0xFF) << 16)
-                + ((message.get(position + 6) & 0xFF) << 8)
-                + (message.get(position + 7) & 0xFF);
+        int len = getMessageLength(message, position);
         int totalLen = len + HEADER_LEN;
         
         if (message.remaining() < totalLen) {
@@ -85,22 +84,25 @@ public class SpdyFramingFilter extends BaseFilter {
         }
         
         if (message.remaining() == totalLen) {
+            SpdyFrame frame = SpdyFrame.wrap(message);
+            ctx.setMessage(frame);
             return ctx.getInvokeAction();
         }
         
         Buffer remainder = message.split(position + totalLen);
         if (remainder.remaining() < HEADER_LEN) {
+            SpdyFrame frame = SpdyFrame.wrap(message);
+            ctx.setMessage(frame);
             return ctx.getInvokeAction(remainder);
         }
         
-        final List<Buffer> frameList = framesAttr.get(ctx.getConnection());
-        frameList.add(message);
+        final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
+        SpdyFrame frame = SpdyFrame.wrap(message);
+        frameList.add(frame);
         
         while (remainder.remaining() >= HEADER_LEN) {
             position = remainder.position();
-            len = ((remainder.get(position + 5) & 0xFF) << 16)
-                    + ((remainder.get(position + 6) & 0xFF) << 8)
-                    + (remainder.get(position + 7) & 0xFF);
+            len = getMessageLength(remainder, position);
             totalLen = len + HEADER_LEN;
             
             if (message.remaining() < totalLen) {
@@ -108,24 +110,40 @@ public class SpdyFramingFilter extends BaseFilter {
             }
             
             final Buffer remainder2 = remainder.split(position + totalLen);
-            frameList.add(remainder);
+            frameList.add(SpdyFrame.wrap(remainder));
             remainder = remainder2;
         }
         
-        ctx.setMessage(frameList.size() > 1 ? frameList : message);
+        ctx.setMessage(frameList.size() > 1 ? frameList : frame);
         
         return ctx.getInvokeAction(
                 (remainder.hasRemaining()) ? remainder : null,
                 null);
     }
 
+
+
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        return super.handleWrite(ctx);
+        SpdyFrame frame = ctx.getMessage();
+        final Buffer buffer = frame.getMarshaller().marshall(frame, ctx.getMemoryManager());
+        ctx.setMessage(buffer);
+        return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
         return super.handleClose(ctx);
     }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private static int getMessageLength(Buffer message, int position) {
+        return ((message.get(position + 5) & 0xFF) << 16)
+                + ((message.get(position + 6) & 0xFF) << 8)
+                + (message.get(position + 7) & 0xFF);
+    }
+
 }

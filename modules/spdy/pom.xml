@@ -76,6 +76,14 @@
                 </configuration>
             </plugin>
             <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/npn/npn-boot/1.1.1.v20121030/npn-boot-1.1.1.v20121030.jar
+                    </argLine>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>

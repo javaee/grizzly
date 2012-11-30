@@ -46,7 +46,7 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author oleksiys
  */
 public class Constants {
-    static final int SPDY_VERSION = 3;
+    public static final int SPDY_VERSION = 3;
 
     static final int SYN_STREAM_FRAME = 1;
     static final int SYN_REPLY_FRAME = 2;

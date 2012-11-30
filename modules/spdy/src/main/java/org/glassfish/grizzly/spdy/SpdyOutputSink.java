@@ -48,11 +48,15 @@ import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.frames.DataFrame;
+import org.glassfish.grizzly.spdy.frames.SpdyFrame;
+import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
+import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
+import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 
-import static org.glassfish.grizzly.spdy.SpdyEncoderUtils.*;
 
 /**
  * Class represents an output sink associated with specific {@link SpdyStream}. 
@@ -155,14 +159,13 @@ final class SpdyOutputSink {
                 // update unconfirmed bytes counter
                 unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
-                // encode spdydata frame
-                final Buffer contentBuffer = encodeSpdyData(
-                        spdySession.getMemoryManager(),
-                        spdyStream, dataChunkToSend,
-                        isLast);
+                DataFrame dataFrame = new DataFrame();
+                dataFrame.setData(dataChunkToSend);
+                dataFrame.setLast(isLast);
+                dataFrame.setStreamId(spdyStream.getStreamId());
 
                 // send a spdydata frame
-                writeDownStream(contentBuffer, completionHandler, isLast);
+                writeDownStream(dataFrame, completionHandler, isLast);
             }
             
             if (outputQueueRecord != null) {
@@ -206,11 +209,10 @@ final class SpdyOutputSink {
             throw new IOException("The output stream has been terminated");
         }
         
-        final MemoryManager memoryManager = spdySession.getMemoryManager();
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
         final HttpContent httpContent = HttpContent.isContent(httpPacket) ? (HttpContent) httpPacket : null;
         
-        Buffer headerBuffer = null;
+        SpdyFrame spdyFrame;
         
         // If HTTP header hasn't been commited - commit it
         if (!httpHeader.isCommitted()) {
@@ -221,30 +223,42 @@ final class SpdyOutputSink {
             
             // encode HTTP packet header
             if (!httpHeader.isRequest()) {
-                headerBuffer = encodeSynReply(
-                        memoryManager,
-                        spdyStream,
-                        isNoContent);
+                SynReplyFrame synReplyFrame = new SynReplyFrame();
+                synReplyFrame.setStreamId(spdyStream.getStreamId());
+                synReplyFrame.setLast(isNoContent);
+                synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
+                    synReplyFrame.setCompressedHeaders(
+                            SpdyEncoderUtils.encodeSynReplyHeaders(spdySession,
+                                                                   (HttpResponsePacket) httpHeader));
+
+                }
+                spdyFrame = synReplyFrame;
             } else {
-                headerBuffer = encodeSynStream(
-                        memoryManager,
-                        spdyStream,
-                        isNoContent);
+                SynStreamFrame synStreamFrame = new SynStreamFrame();
+                synStreamFrame.setStreamId(spdyStream.getStreamId());
+                synStreamFrame.setAssociatedToStreamId(spdyStream.getAssociatedToStreamId());
+                synStreamFrame.setLast(isNoContent);
+                synchronized (spdySession) {
+                    synStreamFrame.setCompressedHeaders(
+                            SpdyEncoderUtils.encodeSynStreamHeaders(spdySession,
+                                                                   (HttpRequestPacket) httpHeader));
+                }
+                spdyFrame = synStreamFrame;
             }
 
             httpHeader.setCommitted(true);
-            
+
+            writeDownStream(spdyFrame, completionHandler, isNoContent);
             if (isNoContent) {
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerBuffer, completionHandler, true);
                 return;
             }
         }
         
         OutputQueueRecord outputQueueRecord = null;
         Buffer contentBuffer = null;
-        boolean isLast = false;
+        boolean isLast;
         
         // if there is a payload to send now
         if (httpContent != null) {
@@ -272,7 +286,6 @@ final class SpdyOutputSink {
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
             Buffer dataChunkToStore = checkOutputWindow(data);
-            Buffer dataChunkToSend = data;
 
             // if there is a chunk to store
             if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
@@ -285,37 +298,40 @@ final class SpdyOutputSink {
             }
             
             // if there is a chunk to send
-            if (dataChunkToSend != null && 
-                    (dataChunkToSend.hasRemaining() || isLast)) {
+            if (data != null &&
+                    (data.hasRemaining() || isLast)) {
                 // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
+                unconfirmedBytes.addAndGet(data.remaining());
 
                 // encode spdydata frame
-                contentBuffer = encodeSpdyData(memoryManager, spdyStream,
-                        dataChunkToSend, isLast);
+                DataFrame dataFrame = new DataFrame();
+                dataFrame.setStreamId(spdyStream.getStreamId());
+                dataFrame.setData(data);
+                dataFrame.setLast(isLast);
+                writeDownStream(dataFrame, completionHandler, isLast);
             }
         }
 
-        // append header and payload buffers
-        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
-                                     headerBuffer, contentBuffer, true);
-
-        if (resultBuffer != null) {
-            // if the result buffer != null
-            if (resultBuffer.isComposite()) {
-                ((CompositeBuffer) resultBuffer).disposeOrder(
-                        CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
-            }
-
-            // send the buffer
-            writeDownStream(resultBuffer, completionHandler, isLast);
-        }
+//        // append header and payload buffers
+//        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
+//                                     headerBuffer, contentBuffer, true);
+//
+//        if (resultBuffer != null) {
+//            // if the result buffer != null
+//            if (resultBuffer.isComposite()) {
+//                ((CompositeBuffer) resultBuffer).disposeOrder(
+//                        CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
+//            }
+//
+//            // send the buffer
+//            writeDownStream(resultBuffer, completionHandler, isLast);
+//        }
 
         if (outputQueueRecord == null) {
             // if we managed to send entire HttpPacket - decrease the counter
-            if (contentBuffer != null) {
+            //if (contentBuffer != null) {
                 outputQueueSize.decrementAndGet();
-            }
+            //}
             
             return;
         }
@@ -356,10 +372,11 @@ final class SpdyOutputSink {
                         unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
 
                     // encode spdydata frame
-                    contentBuffer = encodeSpdyData(memoryManager, spdyStream,
-                            dataChunkToSend, isLast);
-                    
-                    writeDownStream(contentBuffer, completionHandler, isLast);
+                    DataFrame frame = new DataFrame();
+                    frame.setStreamId(spdyStream.getStreamId());
+                    frame.setData(dataChunkToSend);
+                    frame.setLast(isLast);
+                    writeDownStream(frame, completionHandler, isLast);
                 }
                 
                 if (outputQueueRecord == null) {
@@ -405,12 +422,13 @@ final class SpdyOutputSink {
     }
     
     void writeWindowUpdate(final int currentUnackedBytes) {
-        writeDownStream0(encodeWindowUpdate(
-                spdySession.getMemoryManager(),
-                spdyStream, currentUnackedBytes), null);
+        WindowUpdateFrame frame = new WindowUpdateFrame();
+        frame.setStreamId(spdyStream.getStreamId());
+        frame.setDelta(currentUnackedBytes);
+        writeDownStream0(frame, null);
     }
     
-    private void writeDownStream(final Buffer frame,
+    private void writeDownStream(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler,
             final boolean isLast) {
         writeDownStream0(frame, completionHandler);
@@ -420,7 +438,7 @@ final class SpdyOutputSink {
         }
     }
     
-    private void writeDownStream0(final Buffer frame,
+    private void writeDownStream0(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
                 null, frame, completionHandler, null);
@@ -459,10 +477,11 @@ final class SpdyOutputSink {
     private void writeEmptyFin() {
         if (!isTerminated) {
             // SEND LAST
-            writeDownStream0(
-                    encodeSpdyData(spdySession.getMemoryManager(), spdyStream,
-                    Buffers.EMPTY_BUFFER, true),
-                    null);
+            DataFrame dataFrame = new DataFrame();
+            dataFrame.setStreamId(spdyStream.getStreamId());
+            dataFrame.setData(Buffers.EMPTY_BUFFER);
+            dataFrame.setLast(true);
+            writeDownStream0(dataFrame, null);
 
             terminate();
         }

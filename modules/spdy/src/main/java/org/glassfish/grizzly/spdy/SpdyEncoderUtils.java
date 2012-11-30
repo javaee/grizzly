@@ -53,7 +53,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 
@@ -64,75 +63,14 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  * @author oleksiys
  */
 class SpdyEncoderUtils {
-    static Buffer encodeWindowUpdate(final MemoryManager memoryManager,
-            final SpdyStream spdyStream,
-            final int delta) {
-        
-        final Buffer buffer = memoryManager.allocate(16);
-        
-        buffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | WINDOW_UPDATE_FRAME);  // C | SPDY_VERSION | WINDOW_UPDATE_FRAME
-        buffer.putInt(4, 8); // FLAGS | LENGTH
-        buffer.putInt(8, spdyStream.getStreamId() & 0x7FFFFFFF); // X | STREAM_ID
-        buffer.putInt(12, delta & 0x7FFFFFFF);  // X | delta
-        
-        return buffer;
-    }
     
-    static Buffer encodeSpdyData(final MemoryManager memoryManager,
-            final SpdyStream spdyStream,
-            final Buffer data,
-            final boolean isLast) {
-        
-        final Buffer headerBuffer = memoryManager.allocate(8);
-        
-        headerBuffer.putInt(0, spdyStream.getStreamId() & 0x7FFFFFFF);  // C | STREAM_ID
-        final int flags = isLast ? 1 : 0;
-        
-        headerBuffer.putInt(4, (flags << 24) | data.remaining()); // FLAGS | LENGTH
 
-        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, data);
-        
-        if (resultBuffer.isComposite()) {
-            resultBuffer.allowBufferDispose(true);
-            ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
-            ((CompositeBuffer) resultBuffer).disposeOrder(CompositeBuffer.DisposeOrder.FIRST_TO_LAST);
-        }
-        
-        return resultBuffer;
-    }
-    
-    static Buffer encodeSynReply(final MemoryManager memoryManager,
-            final SpdyStream spdyStream,
-            final boolean isLast) throws IOException {
-        
-        final HttpResponsePacket response = spdyStream.getSpdyResponse();
-        
-        final SpdySession spdySession = spdyStream.getSpdySession();
-        
-        final Buffer initialBuffer = allocateHeapBuffer(memoryManager, 2048);
-        initialBuffer.position(12); // skip the header for now
-        Buffer resultBuffer;
-        synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
-            resultBuffer = encodeSynReplyHeaders(spdySession,
-                                         response,
-                                         initialBuffer);
-        }
-        
-        initialBuffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | SYN_REPLY_FRAME);  // C | SPDY_VERSION | SYN_REPLY
-
-        final int flags = isLast ? 1 : 0;
-        
-        initialBuffer.putInt(4, (flags << 24) | (resultBuffer.remaining() - 8)); // FLAGS | LENGTH
-        initialBuffer.putInt(8, spdyStream.getStreamId() & 0x7FFFFFFF); // STREAM_ID
-        
-        return resultBuffer;
-    }
     
     @SuppressWarnings("unchecked")
-    private static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
-            final HttpResponsePacket response,
-            final Buffer outputBuffer) throws IOException {
-        
+    static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
+            final HttpResponsePacket response) throws IOException {
+
+        Buffer buffer = allocateHeapBuffer(spdySession.getMemoryManager(), 2048);
         final MimeHeaders headers = response.getHeaders();
         
         headers.removeHeader(Header.Connection);
@@ -145,7 +83,7 @@ class SpdyEncoderUtils {
         final SpdyDeflaterOutputStream deflaterOutputStream =
                 spdySession.getDeflaterOutputStream();
 
-        deflaterOutputStream.setInitialOutputBuffer(outputBuffer);
+        deflaterOutputStream.setInitialOutputBuffer(buffer);
         
         final int mimeHeadersCount = headers.size();
         
@@ -164,39 +102,11 @@ class SpdyEncoderUtils {
         return deflaterOutputStream.checkpoint();
     }
     
-    static Buffer encodeSynStream(final MemoryManager memoryManager,
-            final SpdyStream spdyStream,
-            final boolean isLast) throws IOException {
-        
-        final HttpRequestPacket request = spdyStream.getSpdyRequest();
-        final SpdySession spdySession = spdyStream.getSpdySession();
-        
-        final Buffer initialBuffer = allocateHeapBuffer(memoryManager, 2048);
-        initialBuffer.position(18); // skip the header for now
-        Buffer resultBuffer;
-        synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
-            resultBuffer = encodeSynStreamHeaders(spdySession,
-                                         request,
-                                         initialBuffer);
-        }
-        
-        initialBuffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | SYN_STREAM_FRAME);  // C | SPDY_VERSION | SYN_STREAM_FRAME
-
-        final int flags = isLast ? 1 : 0;
-        
-        initialBuffer.putInt(4, (flags << 24) | (resultBuffer.remaining() - 8)); // FLAGS | LENGTH
-        initialBuffer.putInt(8, spdyStream.getStreamId() & 0x7FFFFFFF); // STREAM_ID
-        initialBuffer.putInt(12, spdyStream.getAssociatedToStreamId() & 0x7FFFFFFF); // ASSOCIATED_TO_STREAM_ID
-        initialBuffer.putShort(16, (short) ((spdyStream.getPriority() << 13) | (spdyStream.getSlot() & 0xFF))); // PRI | UNUSED | SLOT
-        
-        return resultBuffer;
-    }
-
     @SuppressWarnings("unchecked")
-    private static Buffer encodeSynStreamHeaders(final SpdySession spdySession,
-            final HttpRequestPacket request,
-            final Buffer outputBuffer) throws IOException {
-        
+    static Buffer encodeSynStreamHeaders(final SpdySession spdySession,
+            final HttpRequestPacket request) throws IOException {
+
+        Buffer outputBuffer = allocateHeapBuffer(spdySession.getMemoryManager(), 2048);
         final MimeHeaders headers = request.getHeaders();
         
         final DataOutputStream dataOutputStream =
