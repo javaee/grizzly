@@ -585,7 +585,7 @@ public class SendFileTest extends TestCase {
                     throw new RuntimeException(ioe);
                 }
                 start = System.currentTimeMillis();
-                return super.handleWrite(ctx);
+                return ctx.getInvokeAction();
             }
         });
         

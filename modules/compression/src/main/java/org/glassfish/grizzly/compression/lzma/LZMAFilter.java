@@ -144,7 +144,7 @@ public class LZMAFilter extends BaseFilter {
         decoder.release(connection);
         encoder.release(connection);
 
-        return super.handleClose(ctx);
+        return ctx.getInvokeAction();
     }
 
 }

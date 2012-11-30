@@ -49,7 +49,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -573,7 +575,7 @@ public class FilterChainTest extends TestCase {
                         
                         fail("unexpected counter value: " + counter);
                         
-                        return super.handleRead(ctx);
+                        return ctx.getInvokeAction();
                     }
                 })
                 .add(new EchoFilter() {
@@ -642,6 +644,84 @@ public class FilterChainTest extends TestCase {
         }
     }
     
+    public void testResumeWithError() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final String outputMessage = "Hello world!";
+        final FutureImpl<Throwable> resultFuture = SafeFutureImpl.create();
+
+        final ScheduledExecutorService scheduledExecutorService =
+                Executors.newScheduledThreadPool(1);
+        final FilterChain filterChain = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new BaseFilter() {
+                    @Override
+                    public void exceptionOccurred(final FilterChainContext ctx,
+                            final Throwable error) {
+                        resultFuture.result(error);
+                    }
+                })
+                .add(new BaseFilter() {
+                    @Override
+                    public NextAction handleRead(final FilterChainContext ctx)
+                            throws IOException {
+                        final String message = ctx.getMessage();
+                        assertEquals(outputMessage, message);
+
+                        final NextAction suspendAction = ctx.getSuspendAction();
+                        ctx.suspend();
+
+                        scheduledExecutorService.schedule(new Runnable() {
+                            @Override
+                            public void run() {
+                                ctx.resume(new Exception(message));
+                            }
+                        }, 3, TimeUnit.SECONDS);
+                        return suspendAction;
+                    }
+                })
+                .build();
+
+        transport.setFilterChain(filterChain);
+
+        Connection connection = null;
+        
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FilterChain clientChain = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new StringFilter())
+                    .build();
+
+            SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .filterChain(clientChain)
+                    .build();
+
+            Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.write(outputMessage);
+            
+            final Throwable error = resultFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(error instanceof Exception);
+            assertEquals(outputMessage, error.getMessage());
+        } finally {
+            scheduledExecutorService.shutdownNow();
+            
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
+
     private static class BufferStateFilter extends BaseFilter {
 
         private final FutureImpl<Boolean> part1Future;

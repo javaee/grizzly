@@ -286,7 +286,7 @@ public class AggregatorAddOnTest {
                     throw new RuntimeException(ioe);
                 }
                 start = System.currentTimeMillis();
-                return super.handleWrite(ctx);
+                return ctx.getInvokeAction();
             }
         });
         

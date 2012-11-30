@@ -50,14 +50,13 @@ import org.glassfish.grizzly.filterchain.NextAction;
 public class CometFilter extends BaseFilter {
     @Override
     public void onFilterChainConstructed(final FilterChain filterChain) {
-        super.onFilterChainConstructed(filterChain);
         CometEngine.getEngine().setCometSupported(true);
     }
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         updateThreadLocals(ctx);
-        return super.handleRead(ctx);
+        return ctx.getInvokeAction();
     }
 
     private void updateThreadLocals(final FilterChainContext ctx) {

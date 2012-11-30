@@ -98,7 +98,7 @@ public class BasicPUTest {
                             nonBlockingWritesCounter.incrementAndGet();
                         }
                         
-                        return super.handleWrite(ctx);
+                        return ctx.getInvokeAction();
                     }
                 })
                 .add(new StringFilter(CHARSET))

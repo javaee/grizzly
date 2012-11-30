@@ -150,7 +150,7 @@ public class AsyncWriteQueueTest {
                 @Override
                 public NextAction handleRead(FilterChainContext ctx) throws IOException {
                     clientRcvdMessages.incrementAndGet();
-                    return super.handleRead(ctx);
+                    return ctx.getInvokeAction();
                 }
             }).build();
             

@@ -66,6 +66,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -192,7 +193,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final int start,
             final int end,
             final FiltersState filtersState)
-            throws IOException {
+            throws Exception {
 
         int i = start;
         Filter currentFilter = null;
@@ -205,6 +206,13 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             // current Filter to be executed
             currentFilter = get(i);
             
+            if (ctx.predefinedThrowable != null) {
+                final Throwable error = ctx.predefinedThrowable;
+                ctx.predefinedThrowable = null;
+                
+                Exceptions.throwException(error);
+            }
+                        
             if (ctx.predefinedNextAction == null) {
 
                 // Checks if there was a remainder message stored from the last filter execution
@@ -282,7 +290,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     protected NextAction executeFilter(final FilterExecutor executor,
             final Filter currentFilter, final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         NextAction nextNextAction;
         do {
@@ -372,18 +380,18 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterExecutor executor = ExecutorResolver.resolve(context);
             final FiltersState filtersState = obtainFiltersState(connection);
 
-            do {
-                if (!prepareRemainder(context, filtersState,
-                        0, context.getEndIdx())) {
-                    context.setFilterIdx(0);
-                    context.setMessage(null);
-                }
-                
-                executeChainPart(context, executor, context.getFilterIdx(),
-                        context.getEndIdx(), filtersState);
-            } while (!future.isDone());
-
             try {
+                do {
+                    if (!prepareRemainder(context, filtersState,
+                            0, context.getEndIdx())) {
+                        context.setFilterIdx(0);
+                        context.setMessage(null);
+                    }
+
+                    executeChainPart(context, executor, context.getFilterIdx(),
+                            context.getEndIdx(), filtersState);
+                } while (!future.isDone());
+
                 final FilterChainContext retContext = future.get();
                 ReadResult rr = ReadResult.create(connection);
                 rr.setMessage(retContext.getMessage());
@@ -393,14 +401,9 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
                 return rr;
             } catch (ExecutionException e) {
-                Throwable t = e.getCause();
-                if (t instanceof IOException) {
-                    throw (IOException) t;
-                }
-
-                throw new IOException(t);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
+                throw Exceptions.makeIOException(e.getCause());
+            } catch (Exception e) {
+                throw Exceptions.makeIOException(e);
             }
         }
     }

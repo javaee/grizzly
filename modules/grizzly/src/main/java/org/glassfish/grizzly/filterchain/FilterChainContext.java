@@ -123,6 +123,8 @@ public final class FilterChainContext implements AttributeStorage {
 
     NextAction predefinedNextAction;
     
+    Throwable predefinedThrowable;
+    
     final InternalContextImpl internalContext = new InternalContextImpl(this);
 
     final TransportContext transportFilterContext = new TransportContext();
@@ -236,6 +238,28 @@ public final class FilterChainContext implements AttributeStorage {
         resume(getInvokeAction());
     }
     
+    /**
+     * Resume the current FilterChain task processing by completing the current
+     * {@link Filter} (the Filter, which suspended the processing) with the
+     * passed {@link NextAction}.
+     * 
+     * @param nextAction the {@link NextAction}, based on which {@link FilterChain}
+     * will continue processing.
+     */
+    public void resume(final Throwable error) {
+        internalContext.resume();
+        try {
+            if (state == State.SUSPEND) {
+                state = State.RUNNING;
+            }
+
+            predefinedThrowable = error;
+            ProcessorExecutor.execute(internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
+    }
+
     /**
      * This method invocation suggests the {@link FilterChain} to create a
      * copy of this {@link FilterChainContext} and resume/fork its execution

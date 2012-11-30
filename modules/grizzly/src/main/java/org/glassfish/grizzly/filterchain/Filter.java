@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.filterchain;
 
 import org.glassfish.grizzly.Connection;
-import java.io.IOException;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.attributes.Attribute;
 
@@ -92,9 +91,9 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
-    public NextAction handleRead(FilterChainContext ctx) throws IOException;
+    public NextAction handleRead(FilterChainContext ctx) throws Exception;
 
     /**
      * Execute a unit of processing work to be performed, when some data should
@@ -106,9 +105,9 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException;
+    public NextAction handleWrite(FilterChainContext ctx) throws Exception;
 
     /**
      * Execute a unit of processing work to be performed, when channel gets
@@ -120,9 +119,9 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException;
+    public NextAction handleConnect(FilterChainContext ctx) throws Exception;
 
     /**
      * Execute a unit of processing work to be performed, when server channel
@@ -134,9 +133,9 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
-    public NextAction handleAccept(FilterChainContext ctx) throws IOException;
+    public NextAction handleAccept(FilterChainContext ctx) throws Exception;
 
     /**
      * Handle custom event associated with the {@link Connection}.
@@ -148,10 +147,10 @@ public interface Filter {
      * @param event
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
     public NextAction handleEvent(FilterChainContext ctx,
-            Event event) throws IOException;
+            Event event) throws Exception;
 
     /**
      * Execute a unit of processing work to be performed, when connection
@@ -163,9 +162,9 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link java.lang.Exception}
      */
-    public NextAction handleClose(FilterChainContext ctx) throws IOException;
+    public NextAction handleClose(FilterChainContext ctx) throws Exception;
 
     
     /**

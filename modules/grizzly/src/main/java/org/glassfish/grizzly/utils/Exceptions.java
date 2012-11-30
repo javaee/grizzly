@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,10 +55,23 @@ public class Exceptions {
      * @return {@link IOException}.
      */
     public static IOException makeIOException(final Throwable t) {
-        if (IOException.class.isAssignableFrom(t.getClass())) {
+        if (t instanceof IOException) {
             return (IOException) t;
         }
 
         return new IOException(t);
+    }
+    
+    /**
+     * Throws {@link Exception} based on the passed {@link Throwable} parameter.
+     */
+    public static void throwException(final Throwable t) throws Exception {
+        if (t instanceof Exception) {
+            throw (Exception) t;
+        } else if (t instanceof Error) {
+            throw (Error) t;
+        }
+
+        throw new Exception(t);
     }
 }

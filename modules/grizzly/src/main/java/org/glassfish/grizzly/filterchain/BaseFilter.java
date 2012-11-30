@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.io.IOException;
 import org.glassfish.grizzly.Event;
 
 /**
@@ -59,7 +58,7 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws Exception {
         return ctx.getInvokeAction();
     }
 
@@ -67,7 +66,7 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws Exception {
         return ctx.getInvokeAction();
     }
 
@@ -75,7 +74,7 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+    public NextAction handleConnect(FilterChainContext ctx) throws Exception {
         return ctx.getInvokeAction();
     }
 
@@ -83,7 +82,7 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
+    public NextAction handleAccept(FilterChainContext ctx) throws Exception {
         return ctx.getInvokeAction();
     }
 
@@ -92,7 +91,7 @@ public class BaseFilter implements Filter {
      */
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws IOException {
+            final Event event) throws Exception {
         return ctx.getInvokeAction();
     }
 
@@ -100,7 +99,7 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleClose(FilterChainContext ctx) throws IOException {
+    public NextAction handleClose(FilterChainContext ctx) throws Exception {
         return ctx.getInvokeAction();
     }
 

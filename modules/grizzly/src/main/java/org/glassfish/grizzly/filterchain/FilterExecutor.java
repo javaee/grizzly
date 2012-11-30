@@ -39,8 +39,6 @@
  */
 package org.glassfish.grizzly.filterchain;
 
-import java.io.IOException;
-
 /**
  * Executes appropriate {@link Filter} processing method to process occurred
  * {@link Event}.
@@ -48,7 +46,7 @@ import java.io.IOException;
 public interface FilterExecutor {
 
     public NextAction execute(Filter filter, FilterChainContext context)
-            throws IOException;
+            throws Exception;
 
     public int defaultStartIdx(FilterChainContext context);
 

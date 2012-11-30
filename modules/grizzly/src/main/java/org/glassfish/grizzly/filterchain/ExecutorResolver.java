@@ -64,7 +64,7 @@ abstract class ExecutorResolver {
     private static final FilterExecutor CONNECT_EXECUTOR = new UpstreamExecutor() {
         @Override
         public NextAction execute(final Filter filter, final FilterChainContext context)
-                throws IOException {
+                throws Exception {
             return filter.handleConnect(context);
         }
     };
@@ -72,7 +72,7 @@ abstract class ExecutorResolver {
     private static final FilterExecutor CLOSE_EXECUTOR = new UpstreamExecutor() {
         @Override
         public NextAction execute(final Filter filter, final FilterChainContext context)
-                throws IOException {
+                throws Exception {
             return filter.handleClose(context);
         }
     };
@@ -81,7 +81,7 @@ abstract class ExecutorResolver {
 
         @Override
         public NextAction execute(final Filter filter,
-                final FilterChainContext context) throws IOException {
+                final FilterChainContext context) throws Exception {
             return filter.handleEvent(context, context.getEvent());
         }
     };
@@ -90,7 +90,7 @@ abstract class ExecutorResolver {
 
         @Override
         public NextAction execute(final Filter filter,
-                final FilterChainContext context) throws IOException {
+                final FilterChainContext context) throws Exception {
             return filter.handleEvent(context, context.getEvent());
         }
     };
@@ -99,7 +99,7 @@ abstract class ExecutorResolver {
 
         @Override
         public NextAction execute(final Filter filter, final FilterChainContext context)
-                throws IOException {
+                throws Exception {
             return filter.handleAccept(context);
         }
     };
@@ -107,7 +107,7 @@ abstract class ExecutorResolver {
     private static final FilterExecutor WRITE_EXECUTOR = new DownstreamExecutor() {
         @Override
         public NextAction execute(final Filter filter, final FilterChainContext context)
-                throws IOException {
+                throws Exception {
             return filter.handleWrite(context);
         }
     };
@@ -115,7 +115,7 @@ abstract class ExecutorResolver {
     private static final FilterExecutor READ_EXECUTOR = new UpstreamExecutor() {
         @Override
         public NextAction execute(final Filter filter, final FilterChainContext context)
-                throws IOException {
+                throws Exception {
             return filter.handleRead(context);
         }
     };

@@ -952,7 +952,7 @@ public class SSLTest {
             } catch (Exception e) {
                 clientFuture.failure(e);
             }
-            return super.handleRead(ctx);
+            return ctx.getInvokeAction();
         }
 
         public int getBytesReceived() {

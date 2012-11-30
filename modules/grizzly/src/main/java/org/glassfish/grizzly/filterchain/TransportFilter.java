@@ -40,8 +40,9 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.io.IOException;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
@@ -125,7 +126,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleAccept(final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -143,7 +144,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleConnect(final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -161,7 +162,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -179,7 +180,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleWrite(final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -197,7 +198,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws IOException {
+            final Event event) throws Exception {
         
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
@@ -215,7 +216,7 @@ public class TransportFilter extends BaseFilter {
      */
     @Override
     public NextAction handleClose(final FilterChainContext ctx)
-            throws IOException {
+            throws Exception {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
