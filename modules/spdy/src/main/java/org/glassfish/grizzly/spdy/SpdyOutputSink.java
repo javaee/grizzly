@@ -257,7 +257,6 @@ final class SpdyOutputSink {
         }
         
         OutputQueueRecord outputQueueRecord = null;
-        Buffer contentBuffer = null;
         boolean isLast;
         
         // if there is a payload to send now
