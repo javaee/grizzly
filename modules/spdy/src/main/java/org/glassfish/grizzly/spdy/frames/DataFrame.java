@@ -40,11 +40,15 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 public class DataFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<DataFrame> CACHE_IDX =
+                    ThreadCache.obtainIndex(DataFrame.class, 8);
 
     private static final Marshaller MARSHALLER = new DataFrameMarshaller();
 
@@ -55,19 +59,25 @@ public class DataFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    public DataFrame() {
+    private DataFrame() {
         super();
     }
 
-    protected DataFrame(SpdyHeader header) {
-        super(header);
-        streamId = header.getStreamId();
-        data = header.buffer;
-    }
-
-
     // ---------------------------------------------------------- Public Methods
 
+    public static DataFrame create() {
+        DataFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new DataFrame();
+        }
+        return frame;
+    }
+
+    static DataFrame create(final SpdyHeader header) {
+        DataFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public Buffer getData() {
         return data;
@@ -96,6 +106,7 @@ public class DataFrame extends SpdyFrame {
     public void recycle() {
         data = null;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -105,6 +116,16 @@ public class DataFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        streamId = header.getStreamId();
+        data = header.buffer;
     }
 
 

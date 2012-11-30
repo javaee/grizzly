@@ -52,7 +52,6 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -75,7 +74,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpCodecUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
@@ -969,7 +967,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final int streamId, final int statusCode,
             final CompletionHandler<WriteResult> completionHandler) {
 
-        RstStreamFrame rstStreamFrame = new RstStreamFrame();
+        RstStreamFrame rstStreamFrame = RstStreamFrame.create();
         rstStreamFrame.setStatusCode(statusCode);
         rstStreamFrame.setStreamId(streamId);
 

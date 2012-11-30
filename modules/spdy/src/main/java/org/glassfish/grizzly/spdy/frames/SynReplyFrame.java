@@ -40,12 +40,16 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
 
 public class SynReplyFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<SynReplyFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(SynReplyFrame.class, 8);
 
     public static final int TYPE = 2;
 
@@ -59,18 +63,27 @@ public class SynReplyFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    public SynReplyFrame() {
+    private SynReplyFrame() {
         super();
-    }
-
-    protected SynReplyFrame(SpdyHeader header) {
-        super(header);
-        streamId = header.buffer.getInt() & 0x7fffffff;
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static SynReplyFrame create() {
+        SynReplyFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new SynReplyFrame();
+        }
+        return frame;
+    }
+
+    static SynReplyFrame create(final SpdyHeader header) {
+        SynReplyFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getStreamId() {
         return streamId;
@@ -119,6 +132,16 @@ public class SynReplyFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        streamId = header.buffer.getInt() & 0x7fffffff;
     }
 
 

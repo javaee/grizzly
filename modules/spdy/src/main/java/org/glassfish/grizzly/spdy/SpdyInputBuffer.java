@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;

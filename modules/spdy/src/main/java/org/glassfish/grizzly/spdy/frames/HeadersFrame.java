@@ -40,9 +40,13 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 public class HeadersFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<HeadersFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(HeadersFrame.class, 8);
 
     public static final int TYPE = 8;
 
@@ -52,16 +56,26 @@ public class HeadersFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    protected HeadersFrame() {
+    private HeadersFrame() {
         super();
     }
 
-    protected HeadersFrame(SpdyHeader header) {
-        super(header);
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static HeadersFrame create() {
+        HeadersFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new HeadersFrame();
+        }
+        return frame;
     }
 
-
-    // ---------------------------------------------------------- Public Methods
+    static HeadersFrame create(final SpdyHeader header) {
+        HeadersFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
 
     // -------------------------------------------------- Methods from Cacheable
@@ -70,6 +84,7 @@ public class HeadersFrame extends SpdyFrame {
     @Override
     public void recycle() {
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 

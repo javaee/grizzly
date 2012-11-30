@@ -40,9 +40,13 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 public class PingFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<PingFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(PingFrame.class, 8);
 
     public static final int TYPE = 6;
 
@@ -53,18 +57,27 @@ public class PingFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    protected PingFrame() {
+    private PingFrame() {
         super();
-    }
-
-    protected PingFrame(SpdyHeader header) {
-        super(header);
-        pingId = header.buffer.getInt();
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static PingFrame create() {
+        PingFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new PingFrame();
+        }
+        return frame;
+    }
+
+    static PingFrame create(final SpdyHeader header) {
+        PingFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getPingId() {
         return pingId;
@@ -88,6 +101,7 @@ public class PingFrame extends SpdyFrame {
     public void recycle() {
         pingId = 0;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -97,6 +111,15 @@ public class PingFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        pingId = header.buffer.getInt();
     }
 
 

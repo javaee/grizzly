@@ -40,10 +40,14 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.Constants;
 
 public class GoAwayFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<GoAwayFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(GoAwayFrame.class, 8);
 
     private static final Marshaller MARSHALLER = new GoAwayFrameMarshaller();
 
@@ -56,22 +60,25 @@ public class GoAwayFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    public GoAwayFrame() {
-        super();
-    }
-
-    protected GoAwayFrame(SpdyHeader header) {
-        super(header);
-        lastGoodStreamId = header.buffer.getInt() & 0x7FFFFFFF;
-        if (header.buffer.hasRemaining()) {
-            statusCode = header.buffer.getInt();
-        }
-        header.buffer.dispose();
-    }
+    private GoAwayFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static GoAwayFrame create() {
+        GoAwayFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new GoAwayFrame();
+        }
+        return frame;
+    }
+
+    static GoAwayFrame create(final SpdyHeader header) {
+        GoAwayFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getLastGoodStreamId() {
         return lastGoodStreamId;
@@ -110,6 +117,20 @@ public class GoAwayFrame extends SpdyFrame {
         statusCode = 0;
         lastGoodStreamId = 0;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        lastGoodStreamId = header.buffer.getInt() & 0x7FFFFFFF;
+        if (header.buffer.hasRemaining()) {
+            statusCode = header.buffer.getInt();
+        }
+        header.buffer.dispose();
     }
 
 

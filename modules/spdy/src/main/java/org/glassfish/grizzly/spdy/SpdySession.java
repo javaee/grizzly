@@ -197,7 +197,7 @@ final class SpdySession {
         if (lastPeerStreamIdLocal == -1) {
             return; // SpdySession is already in go-away state
         }
-        GoAwayFrame goAwayFrame = new GoAwayFrame();
+        GoAwayFrame goAwayFrame = GoAwayFrame.create();
         goAwayFrame.setLastGoodStreamId(lastPeerStreamIdLocal);
         goAwayFrame.setStatusCode(statusCode);
 //        final Buffer goAwayFrame = getMemoryManager().allocate(16);

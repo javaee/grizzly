@@ -40,11 +40,15 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
 
 public class RstStreamFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<RstStreamFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(RstStreamFrame.class, 8);
 
     public static final int TYPE = 3;
 
@@ -56,19 +60,27 @@ public class RstStreamFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    public RstStreamFrame() {
+    private RstStreamFrame() {
         super();
-    }
-
-    protected RstStreamFrame(SpdyHeader header) {
-        super(header);
-        streamId = header.buffer.getInt() & 0x7fffffff;
-        statusCode = header.buffer.getInt();
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static RstStreamFrame create() {
+        RstStreamFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new RstStreamFrame();
+        }
+        return frame;
+    }
+
+    static RstStreamFrame create(final SpdyHeader header) {
+        RstStreamFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getStreamId() {
         return streamId;
@@ -98,6 +110,7 @@ public class RstStreamFrame extends SpdyFrame {
         streamId = 0;
         statusCode = 0;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -107,6 +120,16 @@ public class RstStreamFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        streamId = header.buffer.getInt() & 0x7fffffff;
+        statusCode = header.buffer.getInt();
     }
 
 

@@ -55,43 +55,38 @@ public abstract class SpdyFrame implements Cacheable {
 
     protected SpdyFrame() { }
 
-    protected SpdyFrame(final SpdyHeader header) {
-        this.header = header;
-    }
-
 
     // ---------------------------------------------------------- Public Methods
 
 
     public static SpdyFrame wrap(final Buffer buffer) {
-        SpdyHeader header = new SpdyHeader();
-        header.initialize(buffer);
+        SpdyHeader header = SpdyHeader.wrap(buffer);
         if (header.control) {
             switch (header.type) {
                 case SynStreamFrame.TYPE:
-                    return new SynStreamFrame(header);
+                    return SynStreamFrame.create(header);
                 case SynReplyFrame.TYPE:
-                    return new SynReplyFrame(header);
+                    return SynReplyFrame.create(header);
                 case RstStreamFrame.TYPE:
-                    return new RstStreamFrame(header);
+                    return RstStreamFrame.create(header);
                 case SettingsFrame.TYPE:
-                    return new SettingsFrame(header);
+                    return SettingsFrame.create(header);
                 case PingFrame.TYPE:
-                    return new PingFrame(header);
+                    return PingFrame.create(header);
                 case GoAwayFrame.TYPE:
-                    return new GoAwayFrame(header);
+                    return GoAwayFrame.create(header);
                 case HeadersFrame.TYPE:
-                    return new HeadersFrame(header);
+                    return HeadersFrame.create(header);
                 case WindowUpdateFrame.TYPE:
-                    return new WindowUpdateFrame(header);
+                    return WindowUpdateFrame.create(header);
                 case CredentialFrame.TYPE:
-                    return new CredentialFrame(header);
+                    return CredentialFrame.create(header);
                 default:
                     throw new IllegalStateException("Unhandled control frame");
 
             }
         } else {
-            return new DataFrame(header);
+            return DataFrame.create(header);
         }
     }
 
@@ -117,7 +112,9 @@ public abstract class SpdyFrame implements Cacheable {
 
     @Override
     public void recycle() {
-        header.recycle();
+        if (header != null) {
+            header.recycle();
+        }
     }
 
 
@@ -130,6 +127,11 @@ public abstract class SpdyFrame implements Cacheable {
         } else {
             return Buffers.wrap(mm, new byte[size]);
         }
+    }
+
+
+    protected void initialize(final SpdyHeader header) {
+        this.header = header;
     }
 
 

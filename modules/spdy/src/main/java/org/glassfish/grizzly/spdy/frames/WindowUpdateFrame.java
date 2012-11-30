@@ -40,11 +40,15 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
 
 public class WindowUpdateFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<WindowUpdateFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(WindowUpdateFrame.class, 8);
 
     private static final Marshaller MARSHALLER = new WindowUpdateFrameMarshaller();
 
@@ -56,19 +60,27 @@ public class WindowUpdateFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    public WindowUpdateFrame() {
+    private WindowUpdateFrame() {
         super();
-    }
-
-    protected WindowUpdateFrame(SpdyHeader header) {
-        super(header);
-        streamId = header.buffer.getInt() & 0x7FFFFFF;
-        delta = header.buffer.getInt() & 0x7FFFFFF;
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static WindowUpdateFrame create() {
+        WindowUpdateFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new WindowUpdateFrame();
+        }
+        return frame;
+    }
+
+    static WindowUpdateFrame create(final SpdyHeader header) {
+        WindowUpdateFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getStreamId() {
         return streamId;
@@ -99,6 +111,7 @@ public class WindowUpdateFrame extends SpdyFrame {
         streamId = 0;
         delta = 0;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -108,6 +121,16 @@ public class WindowUpdateFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        streamId = header.buffer.getInt() & 0x7FFFFFF;
+        delta = header.buffer.getInt() & 0x7FFFFFF;
     }
 
 

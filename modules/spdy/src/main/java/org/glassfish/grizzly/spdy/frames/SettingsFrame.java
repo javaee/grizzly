@@ -40,9 +40,13 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 public class SettingsFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<SettingsFrame> CACHE_IDX =
+                       ThreadCache.obtainIndex(SettingsFrame.class, 8);
 
     public static final int TYPE = 4;
 
@@ -58,15 +62,23 @@ public class SettingsFrame extends SpdyFrame {
         super();
     }
 
-    protected SettingsFrame(SpdyHeader header) {
-        super(header);
-        numberOfSettings = header.buffer.getInt();
-        settings = header.buffer;
-    }
-
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public static SettingsFrame create() {
+        SettingsFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new SettingsFrame();
+        }
+        return frame;
+    }
+
+    static SettingsFrame create(final SpdyHeader header) {
+        SettingsFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
     public int getNumberOfSettings() {
         return numberOfSettings;
@@ -96,6 +108,7 @@ public class SettingsFrame extends SpdyFrame {
         numberOfSettings = 0;
         settings = null;
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -105,6 +118,16 @@ public class SettingsFrame extends SpdyFrame {
     @Override
     public Marshaller getMarshaller() {
         return MARSHALLER;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    @Override
+    protected void initialize(SpdyHeader header) {
+        super.initialize(header);
+        numberOfSettings = header.buffer.getInt();
+        settings = header.buffer;
     }
 
 

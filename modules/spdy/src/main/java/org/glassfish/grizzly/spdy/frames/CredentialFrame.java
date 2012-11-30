@@ -40,9 +40,13 @@
 package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 public class CredentialFrame extends SpdyFrame {
+
+    private static final ThreadCache.CachedTypeIndex<CredentialFrame> CACHE_IDX =
+                ThreadCache.obtainIndex(CredentialFrame.class, 8);
 
     public static final int TYPE = 10;
 
@@ -52,16 +56,26 @@ public class CredentialFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    protected CredentialFrame() {
+    private CredentialFrame() {
         super();
     }
 
-    protected CredentialFrame(SpdyHeader header) {
-        super(header);
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static CredentialFrame create() {
+        CredentialFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
+        if (frame == null) {
+            frame = new CredentialFrame();
+        }
+        return frame;
     }
 
-
-    // ---------------------------------------------------------- Public Methods
+    static CredentialFrame create(final SpdyHeader header) {
+        CredentialFrame frame = create();
+        frame.initialize(header);
+        return frame;
+    }
 
 
     // -------------------------------------------------- Methods from Cacheable
@@ -70,6 +84,7 @@ public class CredentialFrame extends SpdyFrame {
     @Override
     public void recycle() {
         super.recycle();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 

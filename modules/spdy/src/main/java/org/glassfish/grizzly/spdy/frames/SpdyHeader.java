@@ -41,12 +41,16 @@ package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ThreadCache;
 
 /**
  * The header of the frame.
  * @since 3.0
  */
 public class SpdyHeader implements Cacheable {
+
+    private static final ThreadCache.CachedTypeIndex<SpdyHeader> CACHE_IDX =
+                       ThreadCache.obtainIndex(SpdyHeader.class, 8);
 
     // frame buffer
     protected Buffer buffer;
@@ -69,14 +73,14 @@ public class SpdyHeader implements Cacheable {
     // ------------------------------------------------------------ Constructors
 
 
-    SpdyHeader() {
+    private SpdyHeader() {
     }
 
 
     // --------------------------------------------------------- Private Methods
 
 
-    void initialize(final Buffer buffer) {
+    private void initialize(final Buffer buffer) {
         this.buffer = buffer;
         buffer.mark();
         final long header = buffer.getLong();
@@ -95,6 +99,16 @@ public class SpdyHeader implements Cacheable {
 
 
     // ---------------------------------------------------------- Public Methods
+
+
+    static SpdyHeader wrap(final Buffer buffer) {
+        SpdyHeader header = ThreadCache.takeFromCache(CACHE_IDX);
+        if (header == null) {
+            header = new SpdyHeader();
+        }
+        header.initialize(buffer);
+        return header;
+    }
 
 
     /**
@@ -162,6 +176,7 @@ public class SpdyHeader implements Cacheable {
         length = 0;
         streamId = -1;
         control = false;
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 }
