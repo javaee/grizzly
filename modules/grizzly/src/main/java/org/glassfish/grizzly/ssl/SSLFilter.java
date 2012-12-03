@@ -79,6 +79,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Exceptions;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -983,11 +984,7 @@ public class SSLFilter extends BaseFilter {
 
         public void failed(Throwable throwable) {
             synchronized(connection) {
-                if (throwable instanceof IOException) {
-                    error = (IOException) throwable;
-                } else {
-                    error = new IOException(throwable);
-                }
+                error = Exceptions.makeIOException(throwable);
                 
                 final CompletionHandler<SSLEngine> completionHandlerLocal =
                         completionHandler;
@@ -1003,7 +1000,7 @@ public class SSLFilter extends BaseFilter {
                 
                 if (pendingWriteContextsLocal != null) {
                     for (FilterChainContext ctx : pendingWriteContextsLocal) {
-                        ctx.resume(/*error*/);
+                        ctx.resume(error);
                     }
                     
                     pendingWriteContextsLocal.clear();
