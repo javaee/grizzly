@@ -65,7 +65,7 @@ public class DataFrame extends SpdyFrame {
 
     // ---------------------------------------------------------- Public Methods
 
-    public static DataFrame create() {
+    static DataFrame create() {
         DataFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new DataFrame();
@@ -79,24 +79,16 @@ public class DataFrame extends SpdyFrame {
         return frame;
     }
 
+    public static DataFrameBuilder builder() {
+            return new DataFrameBuilder();
+    }
+
     public Buffer getData() {
         return data;
     }
 
-    public void setData(Buffer data) {
-        if (header == null) {
-            this.data = data;
-        }
-    }
-
     public int getStreamId() {
         return streamId;
-    }
-
-    public void setStreamId(int streamId) {
-        if (header == null) {
-            this.streamId = streamId;
-        }
     }
 
     // -------------------------------------------------- Methods from Cacheable
@@ -134,11 +126,65 @@ public class DataFrame extends SpdyFrame {
 
     // ------------------------------------------------------- Protected Methods
 
+
     @Override
     protected void initialize(SpdyHeader header) {
         super.initialize(header);
         streamId = header.getStreamId();
         data = header.buffer;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class DataFrameBuilder extends SpdyFrameBuilder<DataFrameBuilder> {
+
+        private DataFrame dataFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected DataFrameBuilder() {
+            super(DataFrame.create());
+            dataFrame = (DataFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public DataFrameBuilder streamId(final int streamId) {
+            dataFrame.streamId = streamId;
+            return this;
+        }
+
+        public DataFrameBuilder data(final Buffer data) {
+            dataFrame.data = data;
+            return this;
+        }
+
+        public DataFrameBuilder last(boolean last) {
+            if (last) {
+                dataFrame.setFlag(DataFrame.FLAG_FIN);
+            }
+            return this;
+        }
+
+        public DataFrame build() {
+            return dataFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected DataFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END DataFrameBuilder
 
 }

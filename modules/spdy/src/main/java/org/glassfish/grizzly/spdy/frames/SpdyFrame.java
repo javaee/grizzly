@@ -141,4 +141,36 @@ public abstract class SpdyFrame implements Cacheable {
         this.flags = header.flags;
     }
 
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    protected static abstract class SpdyFrameBuilder<T extends SpdyFrameBuilder> {
+
+        protected SpdyFrame frame;
+
+
+        // -------------------------------------------------------- Constructors
+
+        protected SpdyFrameBuilder(SpdyFrame frame) {
+            this.frame = frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public T setFlag(final byte flag) {
+            frame.setFlag(flag);
+            return getThis();
+        }
+
+
+        // --------------------------------------------------- Protected Methods
+
+
+        protected abstract T getThis();
+
+    } // END SpdyFrameBuilder
+
 }

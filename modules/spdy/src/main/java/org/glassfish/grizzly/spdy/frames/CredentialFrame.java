@@ -61,7 +61,7 @@ public class CredentialFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static CredentialFrame create() {
+    static CredentialFrame create() {
         CredentialFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new CredentialFrame();
@@ -73,6 +73,11 @@ public class CredentialFrame extends SpdyFrame {
         CredentialFrame frame = create();
         frame.initialize(header);
         return frame;
+    }
+
+
+    public static CredentialFrameBuilder builder() {
+        return new CredentialFrameBuilder();
     }
 
 
@@ -93,4 +98,40 @@ public class CredentialFrame extends SpdyFrame {
     public Buffer toBuffer(MemoryManager memoryManager) {
         return null;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class CredentialFrameBuilder extends SpdyFrameBuilder<CredentialFrameBuilder> {
+
+        private CredentialFrame credentialFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected CredentialFrameBuilder() {
+            super(CredentialFrame.create());
+            credentialFrame = (CredentialFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public CredentialFrame build() {
+            return credentialFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected CredentialFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END CredentialFrameBuilder
 }

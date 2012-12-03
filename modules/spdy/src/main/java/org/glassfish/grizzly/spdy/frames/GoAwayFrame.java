@@ -64,7 +64,7 @@ public class GoAwayFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static GoAwayFrame create() {
+    static GoAwayFrame create() {
         GoAwayFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new GoAwayFrame();
@@ -78,24 +78,16 @@ public class GoAwayFrame extends SpdyFrame {
         return frame;
     }
 
+    public static GoAwayFrameBuilder builder() {
+        return new GoAwayFrameBuilder();
+    }
+
     public int getLastGoodStreamId() {
         return lastGoodStreamId;
     }
 
-    public void setLastGoodStreamId(int lastGoodStreamId) {
-        if (header == null) {
-            this.lastGoodStreamId = lastGoodStreamId;
-        }
-    }
-
     public int getStatusCode() {
         return statusCode;
-    }
-
-    public void setStatusCode(int statusCode) {
-        if (header == null) {
-            this.statusCode = statusCode;
-        }
     }
 
     @Override
@@ -152,5 +144,51 @@ public class GoAwayFrame extends SpdyFrame {
         }
         header.buffer.dispose();
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class GoAwayFrameBuilder extends SpdyFrameBuilder<GoAwayFrameBuilder> {
+
+        private GoAwayFrame goAwayFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected GoAwayFrameBuilder() {
+            super(GoAwayFrame.create());
+            goAwayFrame = (GoAwayFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public GoAwayFrameBuilder statusCode(final int statusCode) {
+            goAwayFrame.statusCode = statusCode;
+            return this;
+        }
+
+        public GoAwayFrameBuilder lastGoodStreamId(final int lastGoodStreamId) {
+            goAwayFrame.lastGoodStreamId = lastGoodStreamId;
+            return this;
+        }
+
+        public GoAwayFrame build() {
+            return goAwayFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected GoAwayFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END GoAwayFrameBuilder
 
 }

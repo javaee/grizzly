@@ -66,7 +66,7 @@ public class SettingsFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static SettingsFrame create() {
+    static SettingsFrame create() {
         SettingsFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new SettingsFrame();
@@ -80,24 +80,16 @@ public class SettingsFrame extends SpdyFrame {
         return frame;
     }
 
+    public static SettingsFrameBuilder builder() {
+        return new SettingsFrameBuilder();
+    }
+
     public int getNumberOfSettings() {
         return numberOfSettings;
     }
 
-    public void setNumberOfSettings(int numberOfSettings) {
-        if (header == null) {
-            this.numberOfSettings = numberOfSettings;
-        }
-    }
-
     public Buffer getSettings() {
         return settings;
-    }
-
-    public void setSettings(Buffer settings) {
-        if (header == null) {
-            this.settings = settings;
-        }
     }
 
     // -------------------------------------------------- Methods from Cacheable
@@ -129,5 +121,40 @@ public class SettingsFrame extends SpdyFrame {
         numberOfSettings = header.buffer.getInt();
         settings = header.buffer;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class SettingsFrameBuilder extends SpdyFrameBuilder<SettingsFrameBuilder> {
+
+        private SettingsFrame settingsFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected SettingsFrameBuilder() {
+            super(SettingsFrame.create());
+            settingsFrame = (SettingsFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public SettingsFrame build() {
+            return settingsFrame;
+        }
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected SettingsFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END SettingsFrameBuilder
 
 }

@@ -197,17 +197,9 @@ final class SpdySession {
         if (lastPeerStreamIdLocal == -1) {
             return; // SpdySession is already in go-away state
         }
-        GoAwayFrame goAwayFrame = GoAwayFrame.create();
-        goAwayFrame.setLastGoodStreamId(lastPeerStreamIdLocal);
-        goAwayFrame.setStatusCode(statusCode);
-//        final Buffer goAwayFrame = getMemoryManager().allocate(16);
-//
-//        goAwayFrame.putInt(0x80000000 | (SPDY_VERSION << 16) | GOAWAY_FRAME); // "C", version, GOAWAY_FRAME
-//        goAwayFrame.putInt(8); // Flags, Length
-//        goAwayFrame.putInt(lastPeerStreamIdLocal & 0x7FFFFFFF); // Stream-ID
-//        goAwayFrame.putInt(statusCode); // Status code
-//        goAwayFrame.flip();
-
+        GoAwayFrame goAwayFrame =
+                GoAwayFrame.builder().lastGoodStreamId(lastPeerStreamIdLocal).
+                        statusCode(statusCode).build();
         writeDownStream(goAwayFrame);
     }
     

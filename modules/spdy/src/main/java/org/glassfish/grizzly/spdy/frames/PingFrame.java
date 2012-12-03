@@ -63,7 +63,7 @@ public class PingFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static PingFrame create() {
+    static PingFrame create() {
         PingFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new PingFrame();
@@ -77,14 +77,12 @@ public class PingFrame extends SpdyFrame {
         return frame;
     }
 
-    public int getPingId() {
-        return pingId;
+    public static PingFrameBuilder builder() {
+        return new PingFrameBuilder();
     }
 
-    public void setPingId(int pingId) {
-        if (header == null) {
-            this.pingId = pingId;
-        }
+    public int getPingId() {
+        return pingId;
     }
 
     public void reset() {
@@ -133,5 +131,46 @@ public class PingFrame extends SpdyFrame {
         super.initialize(header);
         pingId = header.buffer.getInt();
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class PingFrameBuilder extends SpdyFrameBuilder<PingFrameBuilder> {
+
+        private PingFrame pingFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected PingFrameBuilder() {
+            super(PingFrame.create());
+            pingFrame = (PingFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public PingFrameBuilder pingId(final int pingId) {
+            pingFrame.pingId = pingId;
+            return this;
+        }
+
+        public PingFrame build() {
+            return pingFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected PingFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END PingFrameBuilder
 
 }

@@ -70,7 +70,7 @@ public class SynReplyFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static SynReplyFrame create() {
+    static SynReplyFrame create() {
         SynReplyFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new SynReplyFrame();
@@ -84,14 +84,12 @@ public class SynReplyFrame extends SpdyFrame {
         return frame;
     }
 
-    public int getStreamId() {
-        return streamId;
+    public static SynReplyFrameBuilder builder() {
+        return new SynReplyFrameBuilder();
     }
 
-    public void setStreamId(int streamId) {
-        if (header == null) {
-            this.streamId = streamId;
-        }
+    public int getStreamId() {
+        return streamId;
     }
 
     public Buffer getCompressedHeaders() {
@@ -102,12 +100,6 @@ public class SynReplyFrame extends SpdyFrame {
             dispose = header.buffer == compressedHeaders;
         }
         return compressedHeaders;
-    }
-
-    public void setCompressedHeaders(Buffer compressedHeaders) {
-        if (header == null) {
-            this.compressedHeaders = compressedHeaders;
-        }
     }
 
 
@@ -153,5 +145,58 @@ public class SynReplyFrame extends SpdyFrame {
         super.initialize(header);
         streamId = header.buffer.getInt() & 0x7fffffff;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class SynReplyFrameBuilder extends SpdyFrameBuilder<SynReplyFrameBuilder> {
+
+        private SynReplyFrame synReplyFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected SynReplyFrameBuilder() {
+            super(SynReplyFrame.create());
+            synReplyFrame = (SynReplyFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public SynReplyFrameBuilder streamId(final int streamId) {
+            synReplyFrame.streamId = streamId;
+            return this;
+        }
+
+        public SynReplyFrameBuilder compressedHeaders(final Buffer compressedHeaders) {
+            synReplyFrame.compressedHeaders = compressedHeaders;
+            return this;
+        }
+
+        public SynReplyFrameBuilder last(boolean last) {
+            if (last) {
+                synReplyFrame.setFlag(DataFrame.FLAG_FIN);
+            }
+            return this;
+        }
+
+        public SynReplyFrame build() {
+            return synReplyFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected SynReplyFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END SynReplyFrameBuilder
 
 }

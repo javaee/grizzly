@@ -77,7 +77,7 @@ public class RstStreamFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static RstStreamFrame create() {
+    static RstStreamFrame create() {
         RstStreamFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new RstStreamFrame();
@@ -91,23 +91,16 @@ public class RstStreamFrame extends SpdyFrame {
         return frame;
     }
 
+    public static RstStreamFrameBuilder builder() {
+        return new RstStreamFrameBuilder();
+    }
+
     public int getStreamId() {
         return streamId;
     }
 
-    public void setStreamId(int streamId) {
-        if (header == null) {
-            this.streamId = streamId;
-        }
-    }
-
     public int getStatusCode() {
         return statusCode;
-    }
-
-    public void setStatusCode(int statusCode) {
-        if (header == null)
-            this.statusCode = statusCode;
     }
 
     @Override
@@ -160,5 +153,51 @@ public class RstStreamFrame extends SpdyFrame {
         streamId = header.buffer.getInt() & 0x7fffffff;
         statusCode = header.buffer.getInt();
     }
+    
+    
+    // ---------------------------------------------------------- Nested Classes
+    
+    
+        public static class RstStreamFrameBuilder extends SpdyFrameBuilder<RstStreamFrameBuilder> {
+            
+            private RstStreamFrame rstStreamFrame;
+            
+            
+            // -------------------------------------------------------- Constructors
+    
+    
+            protected RstStreamFrameBuilder() {
+                super(RstStreamFrame.create());
+                rstStreamFrame = (RstStreamFrame) frame;
+            }
+            
+            
+            // ------------------------------------------------------ Public Methods
+            
+            
+            public RstStreamFrameBuilder streamId(final int streamId) {
+                rstStreamFrame.streamId = streamId;
+                return this;
+            } 
+            
+            public RstStreamFrameBuilder statusCode(final int statusCode) {
+                rstStreamFrame.statusCode = statusCode;
+                return this;
+            }
+
+            public RstStreamFrame build() {
+                return rstStreamFrame;
+            }
+            
+            
+            // --------------------------------------- Methods from SpdyFrameBuilder
+    
+    
+            @Override
+            protected RstStreamFrameBuilder getThis() {
+                return this;
+            }
+            
+        } // END RstStreamFrameBuilder
 
 }

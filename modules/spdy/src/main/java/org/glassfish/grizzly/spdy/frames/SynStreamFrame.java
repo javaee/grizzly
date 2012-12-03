@@ -83,7 +83,7 @@ public class SynStreamFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static SynStreamFrame create() {
+    static SynStreamFrame create() {
         SynStreamFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new SynStreamFrame();
@@ -97,44 +97,24 @@ public class SynStreamFrame extends SpdyFrame {
         return frame;
     }
 
-    public int getStreamId() {
-        return streamId;
+    public static SynStreamFrameBuilder builder() {
+        return new SynStreamFrameBuilder();
     }
 
-    public void setStreamId(int streamId) {
-        if (header == null) {
-            this.streamId = streamId;
-        }
+    public int getStreamId() {
+        return streamId;
     }
 
     public int getAssociatedToStreamId() {
         return associatedToStreamId;
     }
 
-    public void setAssociatedToStreamId(int associatedToStreamId) {
-        if (header == null) {
-            this.associatedToStreamId = associatedToStreamId;
-        }
-    }
-
     public int getPriority() {
         return priority;
     }
 
-    public void setPriority(int priority) {
-        if (header == null) {
-            this.priority = priority;
-        }
-    }
-
     public int getSlot() {
         return slot;
-    }
-
-    public void setSlot(int slot) {
-        if (header == null) {
-            this.slot = slot;
-        }
     }
 
     public Buffer getCompressedHeaders() {
@@ -145,12 +125,6 @@ public class SynStreamFrame extends SpdyFrame {
             dispose = header.buffer == compressedHeaders;
         }
         return compressedHeaders;
-    }
-
-    public void setCompressedHeaders(Buffer compressedHeaders) {
-        if (header == null) {
-            this.compressedHeaders = compressedHeaders;
-        }
     }
 
     // -------------------------------------------------- Methods from Cacheable
@@ -207,5 +181,73 @@ public class SynStreamFrame extends SpdyFrame {
         priority = tmpInt >> 13;
         slot = tmpInt & 0xFF;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class SynStreamFrameBuilder extends SpdyFrameBuilder<SynStreamFrameBuilder> {
+
+        private SynStreamFrame synStreamFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected SynStreamFrameBuilder() {
+            super(SynStreamFrame.create());
+            synStreamFrame = (SynStreamFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public SynStreamFrameBuilder streamId(final int streamId) {
+            synStreamFrame.streamId = streamId;
+            return this;
+        }
+
+        public SynStreamFrameBuilder associatedStreamId(final int associatedStreamId) {
+            synStreamFrame.associatedToStreamId = associatedStreamId;
+            return this;
+        }
+
+        public SynStreamFrameBuilder priority(final int priority) {
+            synStreamFrame.priority = priority;
+            return this;
+        }
+
+        public SynStreamFrameBuilder slot(final int slot) {
+            synStreamFrame.slot = slot;
+            return this;
+        }
+
+        public SynStreamFrameBuilder compressedHeaders(final Buffer compressedHeaders) {
+            synStreamFrame.compressedHeaders = compressedHeaders;
+            return this;
+        }
+
+        public SynStreamFrameBuilder last(boolean last) {
+            if (last) {
+                synStreamFrame.setFlag(DataFrame.FLAG_FIN);
+            }
+            return this;
+        }
+
+        public SynStreamFrame build() {
+            return synStreamFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected SynStreamFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END SynStreamFrameBuilder
 
 }

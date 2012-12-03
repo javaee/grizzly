@@ -62,7 +62,7 @@ public class HeadersFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static HeadersFrame create() {
+    static HeadersFrame create() {
         HeadersFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new HeadersFrame();
@@ -74,6 +74,11 @@ public class HeadersFrame extends SpdyFrame {
         HeadersFrame frame = create();
         frame.initialize(header);
         return frame;
+    }
+
+
+    public static HeadersFrameBuilder builder() {
+        return new HeadersFrameBuilder();
     }
 
 
@@ -94,5 +99,41 @@ public class HeadersFrame extends SpdyFrame {
     public Buffer toBuffer(MemoryManager memoryManager) {
         return null;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class HeadersFrameBuilder extends SpdyFrameBuilder<HeadersFrameBuilder> {
+
+        private HeadersFrame headersFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected HeadersFrameBuilder() {
+            super(HeadersFrame.create());
+            headersFrame = (HeadersFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public HeadersFrame build() {
+            return headersFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected HeadersFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END HeadersFrameBuilder
 
 }

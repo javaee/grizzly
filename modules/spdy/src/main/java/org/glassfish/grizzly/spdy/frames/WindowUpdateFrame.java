@@ -66,7 +66,7 @@ public class WindowUpdateFrame extends SpdyFrame {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static WindowUpdateFrame create() {
+    static WindowUpdateFrame create() {
         WindowUpdateFrame frame = ThreadCache.takeFromCache(CACHE_IDX);
         if (frame == null) {
             frame = new WindowUpdateFrame();
@@ -80,24 +80,16 @@ public class WindowUpdateFrame extends SpdyFrame {
         return frame;
     }
 
+    public static WindowUpdateFrameBuilder builder() {
+        return new WindowUpdateFrameBuilder();
+    }
+
     public int getStreamId() {
         return streamId;
     }
 
-    public void setStreamId(int streamId) {
-        if (header == null) {
-            this.streamId = streamId;
-        }
-    }
-
     public int getDelta() {
         return delta;
-    }
-
-    public void setDelta(int delta) {
-        if (header == null) {
-            this.delta = delta;
-        }
     }
 
     @Override
@@ -151,5 +143,51 @@ public class WindowUpdateFrame extends SpdyFrame {
         streamId = header.buffer.getInt() & 0x7FFFFFF;
         delta = header.buffer.getInt() & 0x7FFFFFF;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class WindowUpdateFrameBuilder extends SpdyFrameBuilder<WindowUpdateFrameBuilder> {
+
+        private WindowUpdateFrame windowUpdateFrame;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        protected WindowUpdateFrameBuilder() {
+            super(WindowUpdateFrame.create());
+            windowUpdateFrame = (WindowUpdateFrame) frame;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public WindowUpdateFrameBuilder streamId(final int streamId) {
+            windowUpdateFrame.streamId = streamId;
+            return this;
+        }
+
+        public WindowUpdateFrameBuilder delta(final int delta) {
+            windowUpdateFrame.delta = delta;
+            return this;
+        }
+
+        public WindowUpdateFrame build() {
+            return windowUpdateFrame;
+        }
+
+
+        // --------------------------------------- Methods from SpdyFrameBuilder
+
+
+        @Override
+        protected WindowUpdateFrameBuilder getThis() {
+            return this;
+        }
+
+    } // END WindowUpdateFrameBuilder
 
 }

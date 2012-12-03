@@ -962,9 +962,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final int streamId, final int statusCode,
             final CompletionHandler<WriteResult> completionHandler) {
 
-        RstStreamFrame rstStreamFrame = RstStreamFrame.create();
-        rstStreamFrame.setStatusCode(statusCode);
-        rstStreamFrame.setStreamId(streamId);
+        RstStreamFrame rstStreamFrame = RstStreamFrame.builder().
+                statusCode(statusCode).streamId(streamId).build();
 
         ctx.write(rstStreamFrame, completionHandler);
     }
