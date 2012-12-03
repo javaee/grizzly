@@ -548,9 +548,6 @@ public class HttpServer {
         if (chain == null) {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new IdleTimeoutFilter(delayedExecutor,
-                    listener.getKeepAlive().getIdleTimeoutInSeconds(),
-                    TimeUnit.SECONDS));
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
                 if (sslConfig == null) {
@@ -571,7 +568,7 @@ public class HttpServer {
 
             // Passing null value for the delayed executor, because IdleTimeoutFilter should
             // handle idle connections for us
-            final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
+            final org.glassfish.grizzly.http.HttpServerFilter httpServerCodecFilter =
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),
                                          maxHeaderSize,
                                          null,
@@ -582,15 +579,20 @@ public class HttpServer {
             final Set<ContentEncoding> contentEncodings =
                     configureCompressionEncodings(listener);
             for (ContentEncoding contentEncoding : contentEncodings) {
-                httpServerFilter.addContentEncoding(contentEncoding);
+                httpServerCodecFilter.addContentEncoding(contentEncoding);
             }
             if (listener.isRcmSupportEnabled()) {
                 builder.add(new ResourceAllocationFilter());
             }
 
-            httpServerFilter.getMonitoringConfig().addProbes(
+            httpServerCodecFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
-            builder.add(httpServerFilter);
+            builder.add(httpServerCodecFilter);
+            
+            builder.add(new IdleTimeoutFilter(delayedExecutor,
+                    listener.getKeepAlive().getIdleTimeoutInSeconds(),
+                    TimeUnit.SECONDS));
+            
             final Transport transport = listener.getTransport();
             final FileCache fileCache = listener.getFileCache();
             fileCache.initialize(transport.getMemoryManager(), delayedExecutor);
