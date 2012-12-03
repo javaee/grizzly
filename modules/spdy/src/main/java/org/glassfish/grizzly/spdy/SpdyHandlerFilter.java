@@ -201,13 +201,12 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 processGoAwayFrame(spdySession, context, frame);
                 break;
             }
-            case HEADERS_FRAME:
-            case CREDENTIAL_FRAME:
             case WINDOW_UPDATE_FRAME: {
                 processWindowUpdateFrame(spdySession, context, frame);
                 break;
             }
-
+            case HEADERS_FRAME:
+            case CREDENTIAL_FRAME:
             default: {
                 LOGGER.log(Level.WARNING, "Unknown control-frame [version={0} type={1} flags={2} length={3}]",
                         new Object[]{frame.getHeader().getVersion(),

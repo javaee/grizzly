@@ -93,7 +93,7 @@ public class SpdyFramingFilter extends BaseFilter {
         if (remainder.remaining() < HEADER_LEN) {
             SpdyFrame frame = SpdyFrame.wrap(message);
             ctx.setMessage(frame);
-            return ctx.getInvokeAction(remainder);
+            return ctx.getInvokeAction(remainder, null);
         }
         
         final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
