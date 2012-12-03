@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import java.io.IOException;
@@ -53,6 +52,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -484,7 +485,7 @@ public class MultipartBasicTest {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(Connection connection, CloseType type)

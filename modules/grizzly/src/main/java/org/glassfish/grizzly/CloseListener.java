@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,48 +37,13 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+
 /**
- * General asynchronous closable interface.
- * 
- * @author Alexey Stashok
+ * The listener, which is used to be notified, when <tt>Closeable</tt> gets closed.
  */
-public interface Closeable<E extends Closeable> {
-
-    /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this 
-     * method has no effect. 
-     *
-     * @return {@link Future}, which could be checked in case, if close operation
-     *         will be run asynchronously
-     */
-    public GrizzlyFuture<E> close();
-    
-    /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this 
-     * method has no effect. 
-     *
-     * @param completionHandler {@link CompletionHandler} to be called, when
-     *  the stream is closed.
-     */
-    public void close(CompletionHandler<E> completionHandler);
-    
-    /**
-     * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
-     * will be closed.
-     * 
-     * @param closeListener {@link CloseListener}.
-     */
-    void addCloseListener(CloseListener<E> closeListener);
-
-    /**
-     * Remove the {@link CloseListener}.
-     *
-     * @param closeListener {@link CloseListener}.
-     */
-    boolean removeCloseListener(CloseListener<E> closeListener);
+public interface CloseListener<E extends Closeable> {
+    void onClosed(E closable, CloseType type) throws IOException;
 }

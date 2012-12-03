@@ -53,7 +53,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static <K, L> WriteResult<K, L> create(Connection connection) {
+    public static <K, L> WriteResult<K, L> create(Connection<L> connection) {
         final WriteResult<K, L> writeResult = takeFromCache();
         if (writeResult != null) {
             writeResult.connection = connection;
@@ -64,7 +64,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
         return new WriteResult<K, L>(connection);
     }
 
-    public static <K, L> WriteResult<K, L> create(Connection connection,
+    public static <K, L> WriteResult<K, L> create(Connection<L> connection,
             K message, L dstAddress, int writeSize) {
         final WriteResult<K, L> writeResult = takeFromCache();
         if (writeResult != null) {
@@ -89,7 +89,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
     /**
      * Connection, from which data were read.
      */
-    private Connection connection;
+    private Connection<L> connection;
 
     /**
      * message data
@@ -107,11 +107,11 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      */
     private long writtenSize;
 
-    private WriteResult(Connection connection) {
+    private WriteResult(Connection<L> connection) {
         this(connection, null, null, 0);
     }
 
-    private WriteResult(Connection connection, K message, L dstAddress,
+    private WriteResult(Connection<L> connection, K message, L dstAddress,
             long writeSize) {
         this.connection = connection;
         this.message = message;
@@ -125,7 +125,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @return the {@link Connection} data were read from.
      */
     @Override
-    public final Connection getConnection() {
+    public final Connection<L> getConnection() {
         checkRecycled();
         return connection;
     }

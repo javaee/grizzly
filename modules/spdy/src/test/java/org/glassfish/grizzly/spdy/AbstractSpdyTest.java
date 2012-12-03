@@ -40,13 +40,19 @@
 package org.glassfish.grizzly.spdy;
 
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
 
 /**
  *
@@ -77,6 +83,27 @@ public abstract class AbstractSpdyTest extends TestCase {
         }
         
         return server;
+    }
+    
+
+    protected static FilterChain createClientFilterChain(
+            final ExecutorService threadPool,
+            final Filter... clientFilters) {
+        final FilterChainBuilder builder = FilterChainBuilder.stateless()
+             .add(new TransportFilter())
+             .add(new SSLFilter(null, getClientSSLEngineConfigurator()))
+             .add(new SpdyFramingFilter())
+             .add(new SpdyHandlerFilter(threadPool));
+        
+        if (clientFilters != null) {
+            for (Filter clientFilter : clientFilters) {
+                if (clientFilter != null) {
+                    builder.add(clientFilter);
+                }
+            }
+        }
+        
+        return builder.build();
     }
     
     protected static SSLEngineConfigurator getClientSSLEngineConfigurator() {

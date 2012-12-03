@@ -86,7 +86,7 @@ public interface AsyncQueueWriter<L>  extends Writer<L>, AsyncQueue {
      *        channel directly and has to be put on a asynchronous queue    
      */
     public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            Connection<L> connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             LifeCycleHandler lifeCycleHandler,
             MessageCloner<WritableMessage> cloner);

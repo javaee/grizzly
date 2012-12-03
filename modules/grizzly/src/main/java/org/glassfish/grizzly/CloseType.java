@@ -37,34 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
-public interface WriteQueryAndNotification {
-    /**
-     * Return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>.
-     *
-     * @return <code>true</code> if the connection has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>
-     *
-     * @since 2.3
-     */
-    boolean canWrite();
-
-    /**
-     * Registers {@link org.glassfish.grizzly.WriteHandler}, which will be notified ones at least one
-     * byte can be written.
-     *
-     * This method call is equivalent to call notifyWritePossible(writeHandler, <tt>1</tt>);
-     *
-     * Note: using this method from different threads simultaneously may lead
-     * to quick situation changes, so at time {@link org.glassfish.grizzly.WriteHandler} is called -
-     * the queue may become busy again.
-     *
-     * @param writeHandler {@link org.glassfish.grizzly.WriteHandler} to be notified.
-     *
-     * @since 2.3
-     */
-    void notifyWritePossible(WriteHandler writeHandler);
+/**
+ *
+ * @author oleksiys
+ */
+public enum CloseType {
+    LOCALLY, REMOTELY
 }

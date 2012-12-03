@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.io;
 
 
+import org.glassfish.grizzly.InputSource;
 import java.io.Reader;
 import java.nio.charset.CharsetDecoder;
 import org.glassfish.grizzly.ReadHandler;
@@ -51,7 +52,7 @@ import org.glassfish.grizzly.ReadHandler;
  *
  * @since 2.0
  */
-public abstract class NIOReader extends Reader implements NIOInputSource {
+public abstract class NIOReader extends Reader implements InputSource {
 
     /**
      * <p>

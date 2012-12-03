@@ -164,7 +164,7 @@ public class DownloadHttpHandlerSample {
             response.suspend();  // !!! suspend the Request
 
             // Notify the handler once we can write CHUNK_SIZE of data
-            output.notifyCanWrite(new WriteHandler() {
+            output.notifyWritePossible(new WriteHandler() {
                 
                 // keep the remaining size
                 private volatile long size = file.length();
@@ -177,7 +177,7 @@ public class DownloadHttpHandlerSample {
 
                     if (isWriteMore) {
                         // if there are more bytes to be sent - reregister this WriteHandler
-                        output.notifyCanWrite(this);
+                        output.notifyWritePossible(this);
                     }
                 }
 

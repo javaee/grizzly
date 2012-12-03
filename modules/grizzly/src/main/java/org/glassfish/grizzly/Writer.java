@@ -64,7 +64,7 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
             WritableMessage message) throws IOException;
 
     /**
@@ -76,7 +76,7 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection connection,
+    public void write(Connection<L> connection,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
@@ -91,7 +91,8 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(
+            Connection<L> connection,
             L dstAddress, WritableMessage message);
 
     /**
@@ -105,7 +106,7 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection connection,
+    public void write(Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
@@ -123,7 +124,7 @@ public interface Writer<L> {
      *        finer control over message write process.
      */
     public void write(
-            Connection connection,
+            Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             LifeCycleHandler lifeCycleHandler);
@@ -139,7 +140,7 @@ public interface Writer<L> {
      * 
      * @since 2.3
      */
-    boolean canWrite(final Connection connection);
+    boolean canWrite(final Connection<L> connection);
     
     /**
      * Registers {@link WriteHandler}, which will be notified ones at least one
@@ -156,7 +157,7 @@ public interface Writer<L> {
      *
      * @since 2.3
      */
-    void notifyWritePossible(final Connection connection,
+    void notifyWritePossible(final Connection<L> connection,
             final WriteHandler writeHandler);
 
 

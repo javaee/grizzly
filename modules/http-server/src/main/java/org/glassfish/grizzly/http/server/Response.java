@@ -77,8 +77,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -1758,7 +1759,7 @@ public class Response {
         CompletionHandler<Response> completionHandler;
         SuspendTimeout suspendTimeout;
         
-        private CloseListener closeListener;
+        private CloseListener<Closeable> closeListener;
         
         /**
          * Marks {@link Response} as resumed, but doesn't resume associated
@@ -1889,15 +1890,15 @@ public class Response {
             return suspendStatus;
         }
 
-        private class SuspendCloseListener implements Connection.CloseListener {
-            private final int expectedModCount;
+        private class SuspendCloseListener implements CloseListener<Closeable> {
+            final int expectedModCount;
 
             public SuspendCloseListener(int expectedModCount) {
                 this.expectedModCount = expectedModCount;
             }
 
             @Override
-            public void onClosed(final Connection connection,
+            public void onClosed(final Closeable closeable,
                     final CloseType closeType) throws IOException {
                 checkResponse();
 

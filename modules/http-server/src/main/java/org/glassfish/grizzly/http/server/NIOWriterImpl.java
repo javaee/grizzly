@@ -130,8 +130,8 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
      *  when it's possible to write characters.
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler) {
-        outputBuffer.notifyCanWrite(handler);
+    public void notifyWritePossible(final WriteHandler handler) {
+        outputBuffer.notifyWritePossible(handler);
     }
 
 

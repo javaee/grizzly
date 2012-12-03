@@ -40,17 +40,13 @@
 
 package org.glassfish.grizzly.spdy;
 
-import java.io.EOFException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -65,22 +61,15 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ChunkingFilter;
-import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -88,9 +77,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
@@ -482,12 +469,11 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 //        final AtomicInteger bytesRead = new AtomicInteger();
 //        final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
 //
-//        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-//        filterChainBuilder.add(new TransportFilter());
-//        filterChainBuilder.add(new HttpClientFilter());
-//
+//        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
 //        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-//        clientTransport.setFilterChain(filterChainBuilder.build());
+//        clientTransport.setFilterChain(
+//                createClientFilterChain(threadPool));
+//        
 //        final HttpHandler httpHandler = new HttpHandler() {
 //
 //            @Override
@@ -553,7 +539,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 //                });
 //
 //                try {
-//                    final Integer i = resultFuture.get(10, TimeUnit.SECONDS);
+//                    final Integer i = resultFuture.get(100000, TimeUnit.SECONDS);
 //                    fail("Wrapped EOFException expected");
 //                } catch (ExecutionException e) {
 //                    assertEquals("NOT EOF Exception", EOFException.class,
@@ -570,11 +556,12 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 //            e.printStackTrace();
 //            fail();
 //        } finally {
+//            threadPool.shutdownNow();
 //            clientTransport.stop();
 //            server.stop();
 //        }
 //    }
-
+//
     // --------------------------------------------------------- Private Methods
 
 
@@ -648,13 +635,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         try {
             server.start();
             
-            final FilterChain clientFilterChain = FilterChainBuilder.stateless()
-                    .add(new TransportFilter())
-                    .add(new SSLFilter(null, getClientSSLEngineConfigurator()))
-                    .add(new SpdyFramingFilter())
-                    .add(new SpdyHandlerFilter(threadPool))
-                    .add(filter)
-                    .build();
+            FilterChain clientFilterChain =
+                    createClientFilterChain(threadPool, filter);
             
             clientTransport.setFilterChain(clientFilterChain);
             clientTransport.start();

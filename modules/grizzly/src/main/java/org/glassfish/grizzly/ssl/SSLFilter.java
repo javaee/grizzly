@@ -61,10 +61,10 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
@@ -299,7 +299,7 @@ public class SSLFilter extends BaseFilter {
                 sslEngineConfigurator, context);
     }
 
-    protected void handshake(final Connection connection,
+    protected void handshake(final Connection<?> connection,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress,
                           final SSLEngineConfigurator sslEngineConfigurator,
@@ -850,7 +850,7 @@ public class SSLFilter extends BaseFilter {
         }
     }
     
-    private void notifyHandshakeComplete(final Connection connection,
+    private void notifyHandshakeComplete(final Connection<?> connection,
                                           final SSLEngine sslEngine) {
 
         final SSLHandshakeContext handshakeContext =
@@ -1016,7 +1016,7 @@ public class SSLFilter extends BaseFilter {
      * Close listener, which is used to notify handshake completion handler about
      * failure, if <tt>Connection</tt> will be unexpectedly closed.
      */
-    private final class ConnectionCloseListener implements CloseListener {
+    private final class ConnectionCloseListener implements CloseListener<Connection> {
         @Override
         public void onClosed(final Connection connection, final CloseType type) throws IOException {
             final SSLHandshakeContext handshakeContext =

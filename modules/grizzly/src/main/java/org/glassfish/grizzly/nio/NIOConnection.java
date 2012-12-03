@@ -52,6 +52,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectionProbe;
@@ -74,7 +76,6 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -112,8 +113,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
-    private final Queue<CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener>();
+    private final Queue<CloseListener<Connection>> closeListeners =
+            new ConcurrentLinkedQueue<CloseListener<Connection>>();
     
     /**
      * Connection probes
@@ -489,7 +490,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public void addCloseListener(final CloseListener closeListener) {
+    public void addCloseListener(final CloseListener<Connection> closeListener) {
         CloseType closeType = closeTypeFlag.get();
         
         // check if connection is still open
@@ -517,7 +518,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeCloseListener(final CloseListener closeListener) {
+    public boolean removeCloseListener(final CloseListener<Connection> closeListener) {
         return closeListeners.remove(closeListener);
     }
 
@@ -700,7 +701,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private void notifyCloseListeners() {
         final CloseType closeType = closeTypeFlag.get();
         
-        CloseListener closeListener;
+        CloseListener<Connection> closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
                 closeListener.onClosed(this, closeType);

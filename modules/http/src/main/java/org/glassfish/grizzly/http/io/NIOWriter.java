@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.io;
 
 
+import org.glassfish.grizzly.OutputSink;
 import java.io.Writer;
 
 /**
@@ -48,5 +49,5 @@ import java.io.Writer;
  *
  * @since 2.0
  */
-public abstract class NIOWriter extends Writer implements NIOOutputSink {
+public abstract class NIOWriter extends Writer implements OutputSink {
 }

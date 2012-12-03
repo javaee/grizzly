@@ -89,7 +89,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public boolean canWrite(final Connection connection) {
+    public boolean canWrite(final Connection<SocketAddress> connection) {
         final NIOConnection nioConnection = (NIOConnection) connection;
         final int connectionMaxPendingBytes = nioConnection.getMaxAsyncWriteQueueSize();
         
@@ -108,7 +108,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public void notifyWritePossible(final Connection connection,
+    public void notifyWritePossible(final Connection<SocketAddress> connection,
             final WriteHandler writeHandler) {
         final NIOConnection nioConnection = (NIOConnection) connection;
         final int connectionMaxPendingBytes = nioConnection.getMaxAsyncWriteQueueSize();
@@ -161,7 +161,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     
     @Override
     public void write(
-            final Connection connection, SocketAddress dstAddress,
+            final Connection<SocketAddress> connection, SocketAddress dstAddress,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler) {
@@ -174,7 +174,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void write(
-            final Connection connection, final SocketAddress dstAddress,
+            final Connection<SocketAddress> connection, final SocketAddress dstAddress,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler,

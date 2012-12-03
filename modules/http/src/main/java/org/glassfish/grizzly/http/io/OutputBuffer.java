@@ -63,6 +63,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer.Reentrant;
@@ -87,7 +88,7 @@ import org.glassfish.grizzly.utils.Futures;
  * Abstraction exposing both byte and character methods to write content
  * to the HTTP messaging system in Grizzly.
  */
-public class OutputBuffer {
+public class OutputBuffer implements OutputSink {
     
     protected static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
@@ -738,12 +739,13 @@ public class OutputBuffer {
     /**
      * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection)
      */
+    @Override
     public boolean canWrite() {
         if (IS_BLOCKING || isNonBlockingWriteGuaranteed) {
             return true;
         }
         
-        if (httpContext.getWriteQueryAndNotification().canWrite()) {
+        if (httpContext.getOutputSink().canWrite()) {
             isNonBlockingWriteGuaranteed = true;
             return true;
         }
@@ -751,7 +753,11 @@ public class OutputBuffer {
     }
 
 
-    public void notifyCanWrite(final WriteHandler handler) {
+    /**
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler)
+     */
+    @Override
+    public void notifyWritePossible(final WriteHandler handler) {
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
@@ -851,13 +857,13 @@ public class OutputBuffer {
             return;
         }
         
-        if (httpContext.getWriteQueryAndNotification().canWrite()) {
+        if (httpContext.getOutputSink().canWrite()) {
             return;
         }
         
         final FutureImpl<Boolean> future = Futures.createSafeFuture();
         
-        httpContext.getWriteQueryAndNotification().notifyWritePossible(new WriteHandler() {
+        httpContext.getOutputSink().notifyWritePossible(new WriteHandler() {
 
             @Override
             public void onWritePossible() throws Exception {

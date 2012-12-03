@@ -55,10 +55,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -76,7 +74,6 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
@@ -1241,13 +1238,8 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
         try {
             server.start();
             
-            final FilterChain clientFilterChain = FilterChainBuilder.stateless()
-                    .add(new TransportFilter())
-                    .add(new SSLFilter(null, getClientSSLEngineConfigurator()))
-                    .add(new SpdyFramingFilter())
-                    .add(new SpdyHandlerFilter(threadPool))
-                    .add(clientFilter)
-                    .build();
+            final FilterChain clientFilterChain =
+                    createClientFilterChain(threadPool, clientFilter);
             
             ctransport.setFilterChain(clientFilterChain);
 

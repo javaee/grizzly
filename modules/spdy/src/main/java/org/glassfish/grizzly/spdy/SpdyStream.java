@@ -43,8 +43,8 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.WriteQueryAndNotification;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -56,7 +56,6 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
@@ -65,7 +64,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
  *
  * @author oleksiys
  */
-public class SpdyStream implements AttributeStorage, WriteQueryAndNotification {
+public class SpdyStream implements AttributeStorage, OutputSink {
     private static final Attribute<SpdyStream> HTTP_RQST_SPDY_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http.request.spdy.stream");
     

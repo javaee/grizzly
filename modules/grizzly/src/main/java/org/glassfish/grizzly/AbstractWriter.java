@@ -55,7 +55,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      */
     @Override
     public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
-            final Connection connection,
+            final Connection<L> connection,
             final WritableMessage message) {
         return write(connection, null, message);
     }
@@ -65,7 +65,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      */
     @Override
     public final void write(
-            final Connection connection,
+            final Connection<L> connection,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
         write(connection, null, message, completionHandler, null);
@@ -76,7 +76,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      */
     @Override
     public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
-            final Connection connection,
+            final Connection<L> connection,
             final L dstAddress, final WritableMessage message) {
         final FutureImpl<WriteResult<WritableMessage, L>> future =
                 Futures.<WriteResult<WritableMessage, L>>createSafeFuture();
@@ -92,7 +92,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      */
     @Override
     public final void write(
-            final Connection connection,
+            final Connection<L> connection,
             final L dstAddress, final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
         write(connection, dstAddress, message, completionHandler, null);

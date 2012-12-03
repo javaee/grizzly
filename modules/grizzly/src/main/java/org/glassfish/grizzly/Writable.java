@@ -49,7 +49,7 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
  *
  * @author Alexey Stashok
  */
-public interface Writable<L> extends WriteQueryAndNotification {
+public interface Writable<L> extends OutputSink {
 
     /**
      * Method writes the <tt>buffer</tt>.

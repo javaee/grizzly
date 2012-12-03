@@ -65,8 +65,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Futures;
 
@@ -347,7 +347,7 @@ public class KeepAliveTest extends TestCase {
             final Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
             
             final CountDownLatch latch = new CountDownLatch(1);
-            clientConnection.addCloseListener(new CloseListener() {
+            clientConnection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(Connection connection, CloseType type) throws IOException {
@@ -394,7 +394,7 @@ public class KeepAliveTest extends TestCase {
             Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
 
             final CountDownLatch latch = new CountDownLatch(1);
-            clientConnection.addCloseListener(new CloseListener() {
+            clientConnection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(Connection connection, CloseType type) throws IOException {
@@ -444,7 +444,7 @@ public class KeepAliveTest extends TestCase {
             final Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
             
             final CountDownLatch latch = new CountDownLatch(1);
-            clientConnection.addCloseListener(new CloseListener() {
+            clientConnection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(Connection connection, CloseType type) throws IOException {
@@ -491,7 +491,7 @@ public class KeepAliveTest extends TestCase {
             Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
 
             final CountDownLatch latch = new CountDownLatch(1);
-            clientConnection.addCloseListener(new CloseListener() {
+            clientConnection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(Connection connection, CloseType type) throws IOException {
@@ -567,7 +567,7 @@ public class KeepAliveTest extends TestCase {
                 }
             });
 
-            connection.addCloseListener(new CloseListener() {
+            connection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
                 public void onClosed(final Connection connection,

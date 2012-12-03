@@ -162,7 +162,7 @@ public class NIOOutputSinksTest extends TestCase {
 
                 final Connection c = request.getContext().getConnection();
 
-                out.notifyCanWrite(new WriteHandler() {
+                out.notifyWritePossible(new WriteHandler() {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
@@ -449,7 +449,7 @@ public class NIOOutputSinksTest extends TestCase {
                     final NIOWriter out,
                     final Response response) {
 
-                out.notifyCanWrite(new WriteHandler() {
+                out.notifyWritePossible(new WriteHandler() {
 
                     @Override
                     public void onWritePossible() {
@@ -939,7 +939,7 @@ public class NIOOutputSinksTest extends TestCase {
                 reentrantsCounter.set(0);
                 
                 try {
-                    outputStream.notifyCanWrite(new WriteHandler() {
+                    outputStream.notifyWritePossible(new WriteHandler() {
 
                         @Override
                         public void onWritePossible() throws Exception {
@@ -953,7 +953,7 @@ public class NIOOutputSinksTest extends TestCase {
                                         maxReentrantsNoticed.set(reentrantNum);
                                     }
 
-                                    outputStream.notifyCanWrite(this);
+                                    outputStream.notifyWritePossible(this);
                                 } finally {
                                     reentrantsCounter.set(reentrantNum - 1);
                                 }
@@ -1079,7 +1079,7 @@ public class NIOOutputSinksTest extends TestCase {
                 response.suspend();
                 
                 final NIOOutputStream outputStream = response.getOutputStream();
-                outputStream.notifyCanWrite(new WriteHandler() {
+                outputStream.notifyWritePossible(new WriteHandler() {
 
                     @Override
                     public void onWritePossible() throws Exception {
@@ -1095,7 +1095,7 @@ public class NIOOutputSinksTest extends TestCase {
                             }
 
                             if (notificationsCount.incrementAndGet() < NOTIFICATIONS_NUM) {
-                                outputStream.notifyCanWrite(this);
+                                outputStream.notifyWritePossible(this);
                             } else {
                                 finish(200);
                             }

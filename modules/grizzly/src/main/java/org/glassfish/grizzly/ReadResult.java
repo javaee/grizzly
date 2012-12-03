@@ -54,7 +54,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static <K, L> ReadResult<K, L> create(Connection connection) {
+    public static <K, L> ReadResult<K, L> create(Connection<L> connection) {
         final ReadResult<K, L> readResult = takeFromCache();
         if (readResult != null) {
             readResult.connection = connection;
@@ -65,7 +65,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
         return new ReadResult<K, L>(connection);
     }
 
-    public static <K, L> ReadResult<K, L> create(Connection connection,
+    public static <K, L> ReadResult<K, L> create(Connection<L> connection,
             K message, L srcAddress, int readSize) {
         final ReadResult<K, L> readResult = takeFromCache();
         if (readResult != null) {
@@ -89,7 +89,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
     /**
      * Connection, from which data were read.
      */
-    private Connection connection;
+    private Connection<L> connection;
 
     /**
      * message data
@@ -107,11 +107,11 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     private int readSize;
 
-    protected ReadResult(Connection connection) {
+    protected ReadResult(Connection<L> connection) {
         this(connection, null, null, 0);
     }
 
-    protected ReadResult(Connection connection, K message, L srcAddress,
+    protected ReadResult(Connection<L> connection, K message, L srcAddress,
             int readSize) {
         this.connection = connection;
         this.message = message;
@@ -125,7 +125,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @return the {@link Connection} data were read from.
      */
     @Override
-    public final Connection getConnection() {
+    public final Connection<L> getConnection() {
         checkRecycled();
         return connection;
     }

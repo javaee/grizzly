@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.io;
 
+import org.glassfish.grizzly.InputSource;
 import org.glassfish.grizzly.Buffer;
 
 /**
@@ -48,7 +49,7 @@ import org.glassfish.grizzly.Buffer;
  *
  * @since 2.0
  */
-public interface BinaryNIOInputSource extends NIOInputSource {
+public interface BinaryNIOInputSource extends InputSource {
 
     /**
      * <p>

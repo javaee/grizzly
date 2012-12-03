@@ -63,9 +63,10 @@ public abstract class TemporarySelectorWriter
      */
     @Override
     public void write(
-            Connection connection, SocketAddress dstAddress,
-            WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            final Connection<SocketAddress> connection,
+            final SocketAddress dstAddress,
+            final WritableMessage message,
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler) {
         write(connection, dstAddress, message, completionHandler,
                 lifeCycleHandler,
@@ -84,10 +85,12 @@ public abstract class TemporarySelectorWriter
      *        which will get notified, when write will be completed
      */
     public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            final Connection<SocketAddress> connection,
+            final SocketAddress dstAddress,
+            final WritableMessage message,
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final LifeCycleHandler lifeCycleHandler,
-            long timeout, TimeUnit timeunit) {
+            final long timeout, final TimeUnit timeunit) {
 
         if (message == null) {
             failure(new IllegalStateException("Message cannot be null"),

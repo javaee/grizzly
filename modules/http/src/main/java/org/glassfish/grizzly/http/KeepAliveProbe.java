@@ -57,7 +57,7 @@ public interface KeepAliveProbe {
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    void onConnectionAcceptEvent(Connection connection);
+    void onConnectionAcceptEvent(Connection<?> connection);
 
     /**
      * Method will be called, when HTTP request comes on a kept alive connection.
@@ -65,7 +65,7 @@ public interface KeepAliveProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param requestNumber HTTP request number, being processed on the given keep-alive connection.
      */
-    void onHitEvent(Connection connection, int requestNumber);
+    void onHitEvent(Connection<?> connection, int requestNumber);
 
     /**
      * Method will be called, when the Connection could be used in the keep alive mode,
@@ -73,14 +73,14 @@ public interface KeepAliveProbe {
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    void onRefuseEvent(Connection connection);
+    void onRefuseEvent(Connection<?> connection);
 
     /**
      * Method will be called, when the keep alive Connection idle timeout expired.
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    void onTimeoutEvent(Connection connection);
+    void onTimeoutEvent(Connection<?> connection);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -102,25 +102,25 @@ public interface KeepAliveProbe {
          * {@inheritDoc}
          */
         @Override
-        public void onConnectionAcceptEvent(Connection connection) {}
+        public void onConnectionAcceptEvent(Connection<?> connection) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onHitEvent(Connection connection, int requestNumber) {}
+        public void onHitEvent(Connection<?> connection, int requestNumber) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onRefuseEvent(Connection connection) {}
+        public void onRefuseEvent(Connection<?> connection) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onTimeoutEvent(Connection connection) {}
+        public void onTimeoutEvent(Connection<?> connection) {}
 
     } // END Adapter
 }

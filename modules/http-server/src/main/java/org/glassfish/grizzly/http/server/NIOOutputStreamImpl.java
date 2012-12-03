@@ -113,8 +113,8 @@ class NIOOutputStreamImpl extends NIOOutputStream implements Cacheable {
      * {@inheritDoc}
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler) {
-        outputBuffer.notifyCanWrite(handler);
+    public void notifyWritePossible(final WriteHandler handler) {
+        outputBuffer.notifyWritePossible(handler);
     }
 
 

@@ -80,6 +80,8 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
@@ -293,10 +295,10 @@ public class MultipartUploadFilterTest extends TestCase {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener<Connection>() {
 
                 @Override
-                public void onClosed(Connection connection, Connection.CloseType type)
+                public void onClosed(Connection connection, CloseType type)
                         throws IOException {
                     localFuture.failure(new IOException());
                 }

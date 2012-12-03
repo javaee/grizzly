@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.io;
 
+import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.Buffer;
 import java.io.IOException;/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
@@ -85,7 +86,7 @@ import java.io.IOException;/*
  *
  * @since 2.0
  */
-public interface BinaryNIOOutputSink extends NIOOutputSink {
+public interface BinaryNIOOutputSink extends OutputSink {
 
     /**
      * Writes the contents of the specified {@link org.glassfish.grizzly.Buffer}.

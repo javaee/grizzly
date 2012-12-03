@@ -40,15 +40,12 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.Readable;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Common interface, which represents any kind of connection.
@@ -157,34 +154,25 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
     void closeSilently();
 
     /**
-     * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
-     */
-    @Override
-    MonitoringConfig<ConnectionProbe> getMonitoringConfig();
-
-    /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
      * will be closed.
      * 
      * @param closeListener {@link CloseListener}.
      */
-    void addCloseListener(CloseListener closeListener);
+    @Override
+    void addCloseListener(CloseListener<Connection> closeListener);
 
     /**
      * Remove the {@link CloseListener}.
      *
      * @param closeListener {@link CloseListener}.
      */
-    boolean removeCloseListener(CloseListener closeListener);
+    @Override
+    boolean removeCloseListener(CloseListener<Connection> closeListener);
     
-    public static enum CloseType {
-        LOCALLY, REMOTELY
-    }
-
     /**
-     * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
+     * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */
-    public interface CloseListener {
-        void onClosed(Connection connection, CloseType type) throws IOException;    
-    }    
+    @Override
+    MonitoringConfig<ConnectionProbe> getMonitoringConfig();
 }

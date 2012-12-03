@@ -38,9 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.io;
-
-import org.glassfish.grizzly.WriteHandler;
+package org.glassfish.grizzly;
 
 /**
  * <p>
@@ -50,9 +48,9 @@ import org.glassfish.grizzly.WriteHandler;
  * not possible, to be notified when it is.
  * </p>
  *
- * @since 2.0
+ * @since 3.0
  */
-public interface NIOOutputSink {
+public interface OutputSink {
 
 
     /**
@@ -69,7 +67,7 @@ public interface NIOOutputSink {
      *  from a previous invocation is still present (due to not having yet been
      *  notified).  
      */
-    void notifyCanWrite(final WriteHandler handler);
+    void notifyWritePossible(final WriteHandler handler);
 
 
     /**

@@ -130,7 +130,7 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
                 prevCanWrite = false; // Not data available
                 CAN_WRITE_SCOPE.set(Boolean.TRUE);
                 try {
-                    outputStream.notifyCanWrite(writeHandler);
+                    outputStream.notifyWritePossible(writeHandler);
                 } finally {
                     CAN_WRITE_SCOPE.remove();
                 }

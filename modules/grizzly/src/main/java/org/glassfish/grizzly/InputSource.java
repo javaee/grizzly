@@ -38,11 +38,10 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.io;
+package org.glassfish.grizzly;
 
 import java.io.InputStream;
 import java.io.Reader;
-import org.glassfish.grizzly.ReadHandler;
 
 
 /**
@@ -52,9 +51,9 @@ import org.glassfish.grizzly.ReadHandler;
  * data is ready to be read without blocking.
  * </p>
  *
- * @since 2.0
+ * @since 3.0
  */
-public interface NIOInputSource {
+public interface InputSource {
 
 
     /**

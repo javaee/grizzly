@@ -62,7 +62,9 @@ public abstract class TemporarySelectorReader {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected final int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     
-    public ReadResult<Buffer, SocketAddress> read(Connection connection, Buffer message) throws IOException {
+    public ReadResult<Buffer, SocketAddress> read(
+            final Connection<SocketAddress> connection,
+            final Buffer message) throws IOException {
         return read(connection, message,
                 ((NIOConnection) connection).getBlockingReadTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
@@ -79,7 +81,7 @@ public abstract class TemporarySelectorReader {
      * @throws java.io.IOException
      */
     public ReadResult<Buffer, SocketAddress> read(
-            final Connection connection, final Buffer buffer,
+            final Connection<SocketAddress> connection, final Buffer buffer,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
         if (connection == null || !(connection instanceof NIOConnection)) {
