@@ -49,6 +49,7 @@ public class HeadersFrame extends SpdyFrame {
                        ThreadCache.obtainIndex(HeadersFrame.class, 8);
 
     public static final int TYPE = 8;
+    public static final byte FLAG_FIN = 0x01;
 
     private static final Marshaller MARSHALLER = new HeadersFrameMarshaller();
 

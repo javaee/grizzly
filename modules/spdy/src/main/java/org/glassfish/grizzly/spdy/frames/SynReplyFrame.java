@@ -52,6 +52,7 @@ public class SynReplyFrame extends SpdyFrame {
                        ThreadCache.obtainIndex(SynReplyFrame.class, 8);
 
     public static final int TYPE = 2;
+    public static final byte FLAG_FIN = 0x01;
 
     private static final Marshaller MARSHALLER = new SynReplyFrameMarshaller();
 
@@ -157,9 +158,7 @@ public class SynReplyFrame extends SpdyFrame {
 
             frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_REPLY
 
-            final int flags = frame.last ? 1 : 0;
-
-            frameBuffer.putInt((flags << 24) | (synReplyFrame.compressedHeaders.remaining() + 4)); // FLAGS | LENGTH
+            frameBuffer.putInt((synReplyFrame.flags << 24) | (synReplyFrame.compressedHeaders.remaining() + 4)); // FLAGS | LENGTH
             frameBuffer.putInt(synReplyFrame.streamId & 0x7FFFFFFF); // STREAM_ID
             frameBuffer.trim();
             CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, frameBuffer);

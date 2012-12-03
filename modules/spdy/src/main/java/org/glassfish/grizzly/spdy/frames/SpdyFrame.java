@@ -47,8 +47,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 public abstract class SpdyFrame implements Cacheable {
 
     protected SpdyHeader header;
-    protected boolean last;
-
+    protected int flags;
 
     // ------------------------------------------------------------ Constructors
 
@@ -90,13 +89,19 @@ public abstract class SpdyFrame implements Cacheable {
         }
     }
 
-    public boolean isLast() {
-        return last;
+    public boolean isFlagSet(final byte flag) {
+        return (flags & flag) == flag;
     }
 
-    public void setLast(boolean last) {
+    public void setFlag(final byte flag) {
         if (header == null) {
-            this.last = last;
+            flags |= flag;
+        }
+    }
+
+    public void clearFlag(final byte flag) {
+        if (header == null) {
+            flags &= ~flag;
         }
     }
 
@@ -115,6 +120,7 @@ public abstract class SpdyFrame implements Cacheable {
         if (header != null) {
             header.recycle();
         }
+        flags = 0;
     }
 
 
@@ -132,6 +138,7 @@ public abstract class SpdyFrame implements Cacheable {
 
     protected void initialize(final SpdyHeader header) {
         this.header = header;
+        this.flags = header.flags;
     }
 
 

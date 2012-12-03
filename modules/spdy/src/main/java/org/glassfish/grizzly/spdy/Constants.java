@@ -48,28 +48,6 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Constants {
     public static final int SPDY_VERSION = 3;
 
-    static final int SYN_STREAM_FRAME = 1;
-    static final int SYN_REPLY_FRAME = 2;
-    static final int RST_STREAM_FRAME = 3;
-    static final int SETTINGS_FRAME = 4;
-    static final int PING_FRAME = 6;
-    static final int GOAWAY_FRAME = 7;
-    static final int HEADERS_FRAME = 8;
-    static final int WINDOW_UPDATE_FRAME = 9;
-    static final int CREDENTIAL_FRAME = 11;
-
-    static final int PROTOCOL_ERROR = 1;
-    static final int INVALID_STREAM = 2;
-    static final int REFUSED_STREAM = 3;
-    static final int UNSUPPORTED_VERSION = 4;
-    static final int CANCEL = 5;
-    static final int INTERNAL_ERROR = 6;
-    static final int FLOW_CONTROL_ERROR = 7;
-    static final int STREAM_IN_USE = 8;
-    static final int STREAM_ALREADY_CLOSED = 9;
-    static final int INVALID_CREDENTIALS = 10;
-    static final int FRAME_TOO_LARGE = 11;
-
     /*
      *    1 - SETTINGS_UPLOAD_BANDWIDTH allows the sender to send its expected upload bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum upload channel capacity.
      *    2 - SETTINGS_DOWNLOAD_BANDWIDTH allows the sender to send its expected download bandwidth on this channel. This number is an estimate. The value should be the integral number of kilobytes per second that the sender predicts as an expected maximum download channel capacity.
@@ -106,8 +84,6 @@ public class Constants {
      * 0x01 = FLAG_FIN - marks this frame as the last frame to be transmitted on this stream and puts the sender in the half-closed (Section 2.3.6) state.
      * 0x02 = FLAG_UNIDIRECTIONAL - a stream created with this flag puts the recipient in the half-closed (Section 2.3.6) state.
      */
-    static final byte SYN_STREAM_FLAG_FIN            = 1;
-    static final byte SYN_STREAM_FLAG_UNIDIRECTIONAL = 2;
 
     static final String[] SYN_STREAM_FLAG_TEXT = {
             "",

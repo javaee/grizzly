@@ -53,6 +53,18 @@ public class SynStreamFrame extends SpdyFrame {
 
     public static final int TYPE = 1;
 
+    /**
+     * Marks this frame as the last frame to be transmitted on this stream and
+     * puts the sender in the half-closed.
+     */
+    public static byte FLAG_FIN = 0x01;
+
+    /**
+     * A stream created with this flag puts the recipient in the half-closed
+     * state.
+     */
+    public static byte FLAG_UNIDIRECTIONAL = 0x02;
+
     private static final Marshaller MARSHALLER = new SynStreamFrameMarshaller();
 
     protected int streamId;
@@ -197,9 +209,7 @@ public class SynStreamFrame extends SpdyFrame {
 
             frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_STREAM_FRAME
 
-            final int flags = synStreamFrame.last ? 1 : 0;
-
-            frameBuffer.putInt((flags << 24) | (synStreamFrame.compressedHeaders.remaining() + 10)); // FLAGS | LENGTH
+            frameBuffer.putInt((synStreamFrame.flags << 24) | (synStreamFrame.compressedHeaders.remaining() + 10)); // FLAGS | LENGTH
             frameBuffer.putInt(synStreamFrame.streamId & 0x7FFFFFFF); // STREAM_ID
             frameBuffer.putInt(synStreamFrame.associatedToStreamId & 0x7FFFFFFF); // ASSOCIATED_TO_STREAM_ID
             frameBuffer.putShort((short) ((synStreamFrame.priority << 13) | (synStreamFrame.slot & 0xFF))); // PRI | UNUSED | SLOT

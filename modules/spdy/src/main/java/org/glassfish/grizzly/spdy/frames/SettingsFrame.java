@@ -49,6 +49,8 @@ public class SettingsFrame extends SpdyFrame {
                        ThreadCache.obtainIndex(SettingsFrame.class, 8);
 
     public static final int TYPE = 4;
+    public static final byte FLAG_SETTINGS_PERSIST_VALUE = 0x01;
+    public static final byte FLAG_SETTINGS_PERSISTED = 0x02;
 
     private static final Marshaller MARSHALLER = new SettingsFrameMarshaller();
 

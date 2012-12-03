@@ -77,8 +77,10 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
+import org.glassfish.grizzly.spdy.frames.CredentialFrame;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
+import org.glassfish.grizzly.spdy.frames.HeadersFrame;
 import org.glassfish.grizzly.spdy.frames.PingFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
@@ -177,36 +179,36 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                      final SpdyFrame frame) {
 
         switch(frame.getHeader().getType()) {
-            case SYN_STREAM_FRAME: {
+            case SynStreamFrame.TYPE: {
                 processSynStream(spdySession, context, frame);
                 break;
             }
-            case SETTINGS_FRAME: {
+            case SettingsFrame.TYPE: {
                 processSettings(spdySession, context, frame);
                 break;
             }
-            case SYN_REPLY_FRAME: {
+            case SynReplyFrame.TYPE: {
                 processSynReply(spdySession, context, frame);
                 break;
             }
-            case PING_FRAME: {
+            case PingFrame.TYPE: {
                 processPing(spdySession, context, frame);
                 break;
             }
-            case RST_STREAM_FRAME: {
+            case RstStreamFrame.TYPE: {
                 processRstStream(spdySession, context, frame);
                 break;
             }
-            case GOAWAY_FRAME: {
+            case GoAwayFrame.TYPE: {
                 processGoAwayFrame(spdySession, context, frame);
                 break;
             }
-            case WINDOW_UPDATE_FRAME: {
+            case WindowUpdateFrame.TYPE: {
                 processWindowUpdateFrame(spdySession, context, frame);
                 break;
             }
-            case HEADERS_FRAME:
-            case CREDENTIAL_FRAME:
+            case HeadersFrame.TYPE:
+            case CredentialFrame.TYPE:
             default: {
                 LOGGER.log(Level.WARNING, "Unknown control-frame [version={0} type={1} flags={2} length={3}]",
                         new Object[]{frame.getHeader().getVersion(),
@@ -375,7 +377,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final int slot = synStreamFrame.getSlot();
 
         if (frame.getHeader().getVersion() != SPDY_VERSION) {
-            sendRstStream(context, streamId, UNSUPPORTED_VERSION, null);
+            sendRstStream(context, streamId, RstStreamFrame.UNSUPPORTED_VERSION, null);
             return;
         }
 
@@ -384,10 +386,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             if (frame.getHeader().getFlags() == 0) {
                 sb.append("NONE");
             } else {
-                if ((frame.getHeader().getFlags() & 0x01) == SYN_STREAM_FLAG_FIN) {
+                if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN)) {
                     sb.append(SYN_STREAM_FLAG_TEXT[1]);
                 }
-                if ((frame.getHeader().getFlags() & 0x02) == SYN_STREAM_FLAG_UNIDIRECTIONAL) {
+                if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_UNIDIRECTIONAL)) {
                     if (sb.length() == 0) {
                         sb.append(',');
                     }
@@ -416,7 +418,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             inflaterOutputStream.write(synStreamFrame.getCompressedHeaders());
             decoded = inflaterOutputStream.checkpoint();
         } catch (IOException dfe) {
-            sendRstStream(context, streamId, PROTOCOL_ERROR, null);
+            sendRstStream(context, streamId, RstStreamFrame.PROTOCOL_ERROR, null);
             return;
         } finally {
             frame.getHeader().getUnderlying().dispose();
@@ -442,7 +444,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
         
         prepareIncomingRequest(spdyRequest);
-        if ((frame.getHeader().getFlags() & SYN_STREAM_FLAG_FIN) != 0) {
+        if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN)) {
             spdyRequest.setExpectContent(false);
         }
         
@@ -546,7 +548,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final int streamId = synReplyFrame.getStreamId();
 
         if (frame.getHeader().getVersion() != SPDY_VERSION) {
-            sendRstStream(context, streamId, UNSUPPORTED_VERSION, null);
+            sendRstStream(context, streamId, RstStreamFrame.UNSUPPORTED_VERSION, null);
             return;
         }
 
@@ -555,14 +557,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             if (frame.getHeader().getFlags() == 0) {
                 sb.append("NONE");
             } else {
-                if ((frame.getHeader().getFlags() & 0x01) == SYN_STREAM_FLAG_FIN) {
+                if (synReplyFrame.isFlagSet(SynReplyFrame.FLAG_FIN)) {
                     sb.append(SYN_STREAM_FLAG_TEXT[1]);
-                }
-                if ((frame.getHeader().getFlags() & 0x02) == SYN_STREAM_FLAG_UNIDIRECTIONAL) {
-                    if (sb.length() == 0) {
-                        sb.append(',');
-                    }
-                    sb.append(SYN_STREAM_FLAG_TEXT[2]);
                 }
             }
             LOGGER.log(Level.INFO, "'{'SYN_REPLY : flags={0} streamID={1}'}'",
@@ -590,7 +586,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             throw new IllegalStateException("Unexpected response type: " + response.getClass());
         }
         
-        final boolean isFin = (frame.getHeader().getFlags() & SYN_STREAM_FLAG_FIN) != 0;
+        final boolean isFin = synReplyFrame.isFlagSet(SynReplyFrame.FLAG_FIN);
         if (isFin) {
             spdyResponse.setExpectContent(false);
             spdyStream.closeInput();
@@ -603,7 +599,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             inflaterOutputStream.write(synReplyFrame.getCompressedHeaders());
             decoded = inflaterOutputStream.checkpoint();
         } catch (IOException dfe) {
-            sendRstStream(context, streamId, PROTOCOL_ERROR, null);
+            sendRstStream(context, streamId, RstStreamFrame.PROTOCOL_ERROR, null);
             return;
         } finally {
             frame.getHeader().getUnderlying().dispose();
@@ -644,7 +640,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                   final SpdyFrame frame) {
 
         DataFrame dataFrame = (DataFrame) frame;
-        final boolean isFinFrame = (frame.getHeader().getFlags() & SYN_STREAM_FLAG_FIN) != 0;
+        final boolean isFinFrame = dataFrame.isFlagSet(DataFrame.FLAG_FIN);
 
         if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
             LOGGER.log(Level.INFO, "'{'DATA: flags={0} streamID={1} len={2}'}'",

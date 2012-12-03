@@ -102,6 +102,20 @@ public class WindowUpdateFrame extends SpdyFrame {
         }
     }
 
+    @Override
+    public boolean isFlagSet(byte flag) {
+        return false;
+    }
+
+    @Override
+    public void setFlag(byte flag) {
+        // no-op
+    }
+
+    @Override
+    public void clearFlag(byte flag) {
+        // no-op
+    }
 
     // -------------------------------------------------- Methods from Cacheable
 

@@ -161,7 +161,9 @@ final class SpdyOutputSink {
 
                 DataFrame dataFrame = DataFrame.create();
                 dataFrame.setData(dataChunkToSend);
-                dataFrame.setLast(isLast);
+                if (isLast) {
+                    dataFrame.setFlag(DataFrame.FLAG_FIN);
+                }
                 dataFrame.setStreamId(spdyStream.getStreamId());
 
                 // send a spdydata frame
@@ -225,7 +227,9 @@ final class SpdyOutputSink {
             if (!httpHeader.isRequest()) {
                 SynReplyFrame synReplyFrame = SynReplyFrame.create();
                 synReplyFrame.setStreamId(spdyStream.getStreamId());
-                synReplyFrame.setLast(isNoContent);
+                if (isNoContent) {
+                    synReplyFrame.setFlag(SynReplyFrame.FLAG_FIN);
+                }
                 synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
                     synReplyFrame.setCompressedHeaders(
                             SpdyEncoderUtils.encodeSynReplyHeaders(spdySession,
@@ -237,7 +241,9 @@ final class SpdyOutputSink {
                 SynStreamFrame synStreamFrame = SynStreamFrame.create();
                 synStreamFrame.setStreamId(spdyStream.getStreamId());
                 synStreamFrame.setAssociatedToStreamId(spdyStream.getAssociatedToStreamId());
-                synStreamFrame.setLast(isNoContent);
+                if (isNoContent) {
+                    synStreamFrame.setFlag(SynStreamFrame.FLAG_FIN);
+                }
                 synchronized (spdySession) {
                     synStreamFrame.setCompressedHeaders(
                             SpdyEncoderUtils.encodeSynStreamHeaders(spdySession,
@@ -306,7 +312,9 @@ final class SpdyOutputSink {
                 DataFrame dataFrame = DataFrame.create();
                 dataFrame.setStreamId(spdyStream.getStreamId());
                 dataFrame.setData(data);
-                dataFrame.setLast(isLast);
+                if (isLast) {
+                    dataFrame.setFlag(DataFrame.FLAG_FIN);
+                }
                 writeDownStream(dataFrame, completionHandler, isLast);
             }
         }
@@ -374,7 +382,9 @@ final class SpdyOutputSink {
                     DataFrame frame = DataFrame.create();
                     frame.setStreamId(spdyStream.getStreamId());
                     frame.setData(dataChunkToSend);
-                    frame.setLast(isLast);
+                    if (isLast) {
+                        frame.setFlag(DataFrame.FLAG_FIN);
+                    }
                     writeDownStream(frame, completionHandler, isLast);
                 }
                 
@@ -479,7 +489,7 @@ final class SpdyOutputSink {
             DataFrame dataFrame = DataFrame.create();
             dataFrame.setStreamId(spdyStream.getStreamId());
             dataFrame.setData(Buffers.EMPTY_BUFFER);
-            dataFrame.setLast(true);
+            dataFrame.setFlag(DataFrame.FLAG_FIN);
             writeDownStream0(dataFrame, null);
 
             terminate();

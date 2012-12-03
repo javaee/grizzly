@@ -52,6 +52,8 @@ public class DataFrame extends SpdyFrame {
 
     private static final Marshaller MARSHALLER = new DataFrameMarshaller();
 
+    public static byte FLAG_FIN = 0x01;
+
     private Buffer data;
     private int streamId;
 
@@ -140,9 +142,8 @@ public class DataFrame extends SpdyFrame {
             final Buffer headerBuffer = memoryManager.allocate(8);
 
             headerBuffer.putInt(dataFrame.getStreamId() & 0x7FFFFFFF);  // C | STREAM_ID
-            final int flags = dataFrame.last ? 1 : 0;
             final Buffer data = dataFrame.data;
-            headerBuffer.putInt((flags << 24) | data.remaining()); // FLAGS | LENGTH
+            headerBuffer.putInt((dataFrame.flags << 24) | data.remaining()); // FLAGS | LENGTH
             headerBuffer.trim();
 
             final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, data);
