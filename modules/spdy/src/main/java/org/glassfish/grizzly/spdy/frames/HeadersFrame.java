@@ -51,8 +51,6 @@ public class HeadersFrame extends SpdyFrame {
     public static final int TYPE = 8;
     public static final byte FLAG_FIN = 0x01;
 
-    private static final Marshaller MARSHALLER = new HeadersFrameMarshaller();
-
 
     // ------------------------------------------------------------ Constructors
 
@@ -93,20 +91,8 @@ public class HeadersFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        return null;
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class HeadersFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            return null;
-        }
-
-    } // END HeadersFrameMarshaller
 }

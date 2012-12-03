@@ -126,7 +126,7 @@ public class SpdyFramingFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         SpdyFrame frame = ctx.getMessage();
-        final Buffer buffer = frame.getMarshaller().marshall(frame, ctx.getMemoryManager());
+        final Buffer buffer = frame.toBuffer(ctx.getMemoryManager());
         frame.recycle();
         ctx.setMessage(buffer);
         return ctx.getInvokeAction();

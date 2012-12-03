@@ -50,8 +50,6 @@ public class DataFrame extends SpdyFrame {
     private static final ThreadCache.CachedTypeIndex<DataFrame> CACHE_IDX =
                     ThreadCache.obtainIndex(DataFrame.class, 8);
 
-    private static final Marshaller MARSHALLER = new DataFrameMarshaller();
-
     public static byte FLAG_FIN = 0x01;
 
     private Buffer data;
@@ -116,10 +114,23 @@ public class DataFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
-    }
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        final Buffer headerBuffer = memoryManager.allocate(8);
 
+        headerBuffer.putInt(streamId & 0x7FFFFFFF);  // C | STREAM_ID
+        headerBuffer.putInt((flags << 24) | data.remaining()); // FLAGS | LENGTH
+        headerBuffer.trim();
+
+        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, data);
+
+        if (resultBuffer.isComposite()) {
+            resultBuffer.allowBufferDispose(true);
+            ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
+            ((CompositeBuffer) resultBuffer).disposeOrder(CompositeBuffer.DisposeOrder.FIRST_TO_LAST);
+        }
+
+        return resultBuffer;
+    }
 
     // ------------------------------------------------------- Protected Methods
 
@@ -130,32 +141,4 @@ public class DataFrame extends SpdyFrame {
         data = header.buffer;
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class DataFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            DataFrame dataFrame = (DataFrame) frame;
-            final Buffer headerBuffer = memoryManager.allocate(8);
-
-            headerBuffer.putInt(dataFrame.getStreamId() & 0x7FFFFFFF);  // C | STREAM_ID
-            final Buffer data = dataFrame.data;
-            headerBuffer.putInt((dataFrame.flags << 24) | data.remaining()); // FLAGS | LENGTH
-            headerBuffer.trim();
-
-            final Buffer resultBuffer = Buffers.appendBuffers(memoryManager, headerBuffer, data);
-
-            if (resultBuffer.isComposite()) {
-                resultBuffer.allowBufferDispose(true);
-                ((CompositeBuffer) resultBuffer).allowInternalBuffersDispose(true);
-                ((CompositeBuffer) resultBuffer).disposeOrder(CompositeBuffer.DisposeOrder.FIRST_TO_LAST);
-            }
-
-            return resultBuffer;
-        }
-
-    } // END DataFrameMarshaller
 }

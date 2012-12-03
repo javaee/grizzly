@@ -49,8 +49,6 @@ public class GoAwayFrame extends SpdyFrame {
     private static final ThreadCache.CachedTypeIndex<GoAwayFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(GoAwayFrame.class, 8);
 
-    private static final Marshaller MARSHALLER = new GoAwayFrameMarshaller();
-
     public static final int TYPE = 7;
 
     private int lastGoodStreamId;
@@ -117,9 +115,17 @@ public class GoAwayFrame extends SpdyFrame {
 
     // -------------------------------------------------- Methods from SpdyFrame
 
+
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        final Buffer buffer = memoryManager.allocate(16);
+
+        buffer.putInt(0x80000000 | (Constants.SPDY_VERSION << 16) | TYPE); // "C", version, GOAWAY_FRAME
+        buffer.putInt(8); // Flags, Length
+        buffer.putInt(lastGoodStreamId & 0x7FFFFFFF); // Stream-ID
+        buffer.putInt(statusCode); // Status code
+        buffer.trim();
+        return buffer;
     }
 
 
@@ -146,27 +152,5 @@ public class GoAwayFrame extends SpdyFrame {
         }
         header.buffer.dispose();
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class GoAwayFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
-            final Buffer buffer = memoryManager.allocate(16);
-
-            buffer.putInt(0x80000000 | (Constants.SPDY_VERSION << 16) | TYPE); // "C", version, GOAWAY_FRAME
-            buffer.putInt(8); // Flags, Length
-            buffer.putInt(goAwayFrame.lastGoodStreamId & 0x7FFFFFFF); // Stream-ID
-            buffer.putInt(goAwayFrame.statusCode); // Status code
-            buffer.trim();
-            return buffer;
-
-        }
-
-    } // END GoAwayFrameMarshaller
 
 }

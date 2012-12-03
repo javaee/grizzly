@@ -50,8 +50,6 @@ public class WindowUpdateFrame extends SpdyFrame {
     private static final ThreadCache.CachedTypeIndex<WindowUpdateFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(WindowUpdateFrame.class, 8);
 
-    private static final Marshaller MARSHALLER = new WindowUpdateFrameMarshaller();
-
     public static final int TYPE = 9;
 
     private int streamId;
@@ -133,8 +131,15 @@ public class WindowUpdateFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        final Buffer buffer = memoryManager.allocate(16);
+
+        buffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | WINDOW_UPDATE_FRAME
+        buffer.putInt(4, 8); // FLAGS | LENGTH
+        buffer.putInt(8, streamId & 0x7FFFFFFF); // X | STREAM_ID
+        buffer.putInt(12, delta & 0x7FFFFFFF);  // X | delta
+
+        return buffer;
     }
 
 
@@ -146,26 +151,5 @@ public class WindowUpdateFrame extends SpdyFrame {
         streamId = header.buffer.getInt() & 0x7FFFFFF;
         delta = header.buffer.getInt() & 0x7FFFFFF;
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class WindowUpdateFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
-            final Buffer buffer = memoryManager.allocate(16);
-
-            buffer.putInt(0, 0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | WINDOW_UPDATE_FRAME
-            buffer.putInt(4, 8); // FLAGS | LENGTH
-            buffer.putInt(8, updateFrame.streamId & 0x7FFFFFFF); // X | STREAM_ID
-            buffer.putInt(12, updateFrame.delta & 0x7FFFFFFF);  // X | delta
-
-            return buffer;
-        }
-
-    } // END WindowUpdateFrameMarshaller
 
 }

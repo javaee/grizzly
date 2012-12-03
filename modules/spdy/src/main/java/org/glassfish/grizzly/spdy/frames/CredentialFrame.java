@@ -50,8 +50,6 @@ public class CredentialFrame extends SpdyFrame {
 
     public static final int TYPE = 10;
 
-    private static final Marshaller MARSHALLER = new CredentialFrameMarshaller();
-
 
     // ------------------------------------------------------------ Constructors
 
@@ -92,21 +90,7 @@ public class CredentialFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        return null;
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class CredentialFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            return null;
-        }
-
-    } // END CredentialFrameMarshaller
-
 }

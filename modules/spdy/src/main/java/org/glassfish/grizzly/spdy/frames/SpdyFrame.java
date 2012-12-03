@@ -109,7 +109,7 @@ public abstract class SpdyFrame implements Cacheable {
         return header;
     }
 
-    public abstract Marshaller getMarshaller();
+    public abstract Buffer toBuffer(final MemoryManager memoryManager);
 
 
     // -------------------------------------------------- Methods from Cacheable
@@ -141,13 +141,4 @@ public abstract class SpdyFrame implements Cacheable {
         this.flags = header.flags;
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    public interface Marshaller {
-
-        Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager);
-
-    } // END Marshaller
 }

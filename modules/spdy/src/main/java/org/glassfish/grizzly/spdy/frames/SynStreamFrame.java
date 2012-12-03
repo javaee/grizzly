@@ -65,8 +65,6 @@ public class SynStreamFrame extends SpdyFrame {
      */
     public static byte FLAG_UNIDIRECTIONAL = 0x02;
 
-    private static final Marshaller MARSHALLER = new SynStreamFrameMarshaller();
-
     protected int streamId;
     protected int associatedToStreamId;
     protected int priority;
@@ -177,8 +175,23 @@ public class SynStreamFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+
+        final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 18);
+
+        frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_STREAM_FRAME
+
+        frameBuffer.putInt((flags << 24) | (compressedHeaders.remaining() + 10)); // FLAGS | LENGTH
+        frameBuffer.putInt(streamId & 0x7FFFFFFF); // STREAM_ID
+        frameBuffer.putInt(associatedToStreamId & 0x7FFFFFFF); // ASSOCIATED_TO_STREAM_ID
+        frameBuffer.putShort((short) ((priority << 13) | (slot & 0xFF))); // PRI | UNUSED | SLOT
+        frameBuffer.trim();
+
+        CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, frameBuffer);
+        cb.append(compressedHeaders);
+        cb.allowBufferDispose(true);
+        cb.allowInternalBuffersDispose(true);
+        return cb;
     }
 
 
@@ -194,34 +207,5 @@ public class SynStreamFrame extends SpdyFrame {
         priority = tmpInt >> 13;
         slot = tmpInt & 0xFF;
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class SynStreamFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            SynStreamFrame synStreamFrame = (SynStreamFrame) frame;
-
-            final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 18);
-
-            frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_STREAM_FRAME
-
-            frameBuffer.putInt((synStreamFrame.flags << 24) | (synStreamFrame.compressedHeaders.remaining() + 10)); // FLAGS | LENGTH
-            frameBuffer.putInt(synStreamFrame.streamId & 0x7FFFFFFF); // STREAM_ID
-            frameBuffer.putInt(synStreamFrame.associatedToStreamId & 0x7FFFFFFF); // ASSOCIATED_TO_STREAM_ID
-            frameBuffer.putShort((short) ((synStreamFrame.priority << 13) | (synStreamFrame.slot & 0xFF))); // PRI | UNUSED | SLOT
-            frameBuffer.trim();
-
-            CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, frameBuffer);
-            cb.append(synStreamFrame.compressedHeaders);
-            cb.allowBufferDispose(true);
-            cb.allowInternalBuffersDispose(true);
-            return cb;
-        }
-
-    } // END SynStreamFrameMarshaller
 
 }

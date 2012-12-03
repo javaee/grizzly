@@ -63,8 +63,6 @@ public class RstStreamFrame extends SpdyFrame {
     public static final int INVALID_CREDENTIALS = 10;
     public static final int FRAME_TOO_LARGE = 11;
 
-    private static final Marshaller MARSHALLER = new RstStreamFrameMarshaller();
-
     private int streamId;
     private int statusCode;
 
@@ -143,8 +141,14 @@ public class RstStreamFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 16);
+        frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE); // "C", version, RST_STREAM_FRAME
+        frameBuffer.putInt(8); // Flags, Length
+        frameBuffer.putInt(streamId & 0x7FFFFFFF); // Stream-ID
+        frameBuffer.putInt(statusCode); // Status code
+        frameBuffer.trim();
+        return frameBuffer;
     }
 
 
@@ -157,23 +161,4 @@ public class RstStreamFrame extends SpdyFrame {
         statusCode = header.buffer.getInt();
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class RstStreamFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            RstStreamFrame rstStreamFrame = (RstStreamFrame) frame;
-            final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 16);
-            frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE); // "C", version, RST_STREAM_FRAME
-            frameBuffer.putInt(8); // Flags, Length
-            frameBuffer.putInt(rstStreamFrame.streamId & 0x7FFFFFFF); // Stream-ID
-            frameBuffer.putInt(rstStreamFrame.statusCode); // Status code
-            frameBuffer.trim();
-            return frameBuffer;
-        }
-
-    } // END RstStreamFrameMarshaller
 }

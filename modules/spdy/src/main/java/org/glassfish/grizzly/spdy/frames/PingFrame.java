@@ -50,8 +50,6 @@ public class PingFrame extends SpdyFrame {
 
     public static final int TYPE = 6;
 
-    private static final Marshaller MARSHALLER = new PingFrameMarshaller();
-
     private int pingId;
 
     // ------------------------------------------------------------ Constructors
@@ -123,8 +121,8 @@ public class PingFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        return null;
     }
 
 
@@ -135,18 +133,5 @@ public class PingFrame extends SpdyFrame {
         super.initialize(header);
         pingId = header.buffer.getInt();
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class PingFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            return null;
-        }
-
-    } // END PingFrameMarshaller
 
 }

@@ -54,8 +54,6 @@ public class SynReplyFrame extends SpdyFrame {
     public static final int TYPE = 2;
     public static final byte FLAG_FIN = 0x01;
 
-    private static final Marshaller MARSHALLER = new SynReplyFrameMarshaller();
-
     private int streamId;
     private Buffer compressedHeaders;
     private boolean dispose;
@@ -131,8 +129,19 @@ public class SynReplyFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 12);
+
+        frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_REPLY
+
+        frameBuffer.putInt((flags << 24) | (compressedHeaders.remaining() + 4)); // FLAGS | LENGTH
+        frameBuffer.putInt(streamId & 0x7FFFFFFF); // STREAM_ID
+        frameBuffer.trim();
+        CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, frameBuffer);
+        cb.append(compressedHeaders);
+        cb.allowBufferDispose(true);
+        cb.allowInternalBuffersDispose(true);
+        return cb;
     }
 
 
@@ -144,30 +153,5 @@ public class SynReplyFrame extends SpdyFrame {
         super.initialize(header);
         streamId = header.buffer.getInt() & 0x7fffffff;
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class SynReplyFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            final SynReplyFrame synReplyFrame = (SynReplyFrame) frame;
-            final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 12);
-
-            frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_REPLY
-
-            frameBuffer.putInt((synReplyFrame.flags << 24) | (synReplyFrame.compressedHeaders.remaining() + 4)); // FLAGS | LENGTH
-            frameBuffer.putInt(synReplyFrame.streamId & 0x7FFFFFFF); // STREAM_ID
-            frameBuffer.trim();
-            CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, frameBuffer);
-            cb.append(synReplyFrame.compressedHeaders);
-            cb.allowBufferDispose(true);
-            cb.allowInternalBuffersDispose(true);
-            return cb;
-        }
-
-    } // END SynReplyFrameMarshaller
 
 }

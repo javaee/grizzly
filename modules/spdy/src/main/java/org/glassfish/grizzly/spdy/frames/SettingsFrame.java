@@ -52,8 +52,6 @@ public class SettingsFrame extends SpdyFrame {
     public static final byte FLAG_SETTINGS_PERSIST_VALUE = 0x01;
     public static final byte FLAG_SETTINGS_PERSISTED = 0x02;
 
-    private static final Marshaller MARSHALLER = new SettingsFrameMarshaller();
-
     private int numberOfSettings;
     private Buffer settings;
 
@@ -118,8 +116,8 @@ public class SettingsFrame extends SpdyFrame {
 
 
     @Override
-    public Marshaller getMarshaller() {
-        return MARSHALLER;
+    public Buffer toBuffer(MemoryManager memoryManager) {
+        return null;
     }
 
 
@@ -132,16 +130,4 @@ public class SettingsFrame extends SpdyFrame {
         settings = header.buffer;
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class SettingsFrameMarshaller implements Marshaller {
-
-        @Override
-        public Buffer marshall(final SpdyFrame frame, final MemoryManager memoryManager) {
-            return null;
-        }
-
-    } // END SettingsFrameMarshaller
 }
