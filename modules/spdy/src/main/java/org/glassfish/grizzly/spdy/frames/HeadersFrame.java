@@ -55,9 +55,7 @@ public class HeadersFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private HeadersFrame() {
-        super();
-    }
+    private HeadersFrame() { }
 
     // ---------------------------------------------------------- Public Methods
 

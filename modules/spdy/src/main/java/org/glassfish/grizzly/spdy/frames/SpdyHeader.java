@@ -73,8 +73,7 @@ public class SpdyHeader implements Cacheable {
     // ------------------------------------------------------------ Constructors
 
 
-    private SpdyHeader() {
-    }
+    private SpdyHeader() { }
 
 
     // --------------------------------------------------------- Private Methods

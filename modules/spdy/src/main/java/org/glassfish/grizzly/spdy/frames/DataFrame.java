@@ -59,9 +59,7 @@ public class DataFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private DataFrame() {
-        super();
-    }
+    private DataFrame() { }
 
     // ---------------------------------------------------------- Public Methods
 

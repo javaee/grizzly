@@ -55,9 +55,7 @@ public class PingFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private PingFrame() {
-        super();
-    }
+    private PingFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods

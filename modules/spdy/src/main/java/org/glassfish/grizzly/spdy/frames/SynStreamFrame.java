@@ -76,8 +76,7 @@ public class SynStreamFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private SynStreamFrame() {
-    }
+    private SynStreamFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods

@@ -69,9 +69,7 @@ public class RstStreamFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private RstStreamFrame() {
-        super();
-    }
+    private RstStreamFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods

@@ -62,9 +62,7 @@ public class SynReplyFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private SynReplyFrame() {
-        super();
-    }
+    private SynReplyFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods

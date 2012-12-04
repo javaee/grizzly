@@ -43,23 +43,54 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.MemoryManager;
 
+import java.util.Arrays;
+
 public class SettingsFrame extends SpdyFrame {
 
     private static final ThreadCache.CachedTypeIndex<SettingsFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(SettingsFrame.class, 8);
 
+    private static final String[] OPTION_TEXT = {
+            "UPLOAD_BANDWIDTH",
+            "DOWNLOAD_BANDWIDTH",
+            "ROUND_TRIP_TIME",
+            "MAX_CONCURRENT_STREAMS",
+            "CURRENT_CWND",
+            "DOWNLOAD_RETRANS_RATE",
+            "INITIAL_WINDOW_SIZE",
+            "CLIENT_CERTIFICATE_VECTOR_SIZE"
+    };
+
     public static final int TYPE = 4;
-    public static final byte FLAG_SETTINGS_PERSIST_VALUE = 0x01;
-    public static final byte FLAG_SETTINGS_PERSISTED = 0x02;
+
+    public static final byte FLAG_SETTINGS_CLEAR_SETTINGS = 0x01;
+
+    public static final int MAX_DEFINED_SETTINGS = 8;
+    /*
+     * Values defined by SETTINGS* are the index in settingsSlots for their
+     * respective values.
+     *
+     * When writing settings to the wire, the values are offset by +1.
+     */
+    public static final int SETTINGS_UPLOAD_BANDWIDTH = 0;
+    public static final int SETTINGS_DOWNLOAD_BANDWIDTH = 1;
+    public static final int SETTINGS_ROUND_TRIP_TIME = 2;
+    public static final int SETTINGS_MAX_CONCURRENT_STREAMS = 3;
+    public static final int SETTINGS_CURRENT_CWND = 4;
+    public static final int SETTINGS_DOWNLOAD_RETRANS_RATE = 5;
+    public static final int SETTINGS_INITIAL_WINDOW_SIZE = 6;
+    public static final int SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE = 7;
 
     private int numberOfSettings;
-    private Buffer settings;
+
+    private final int[] settingSlots = new int[8];
+    private byte setSettings = 0;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected SettingsFrame() {
-        super();
+    private SettingsFrame() {
+        Arrays.fill(settingSlots, -1);
     }
 
 
@@ -88,8 +119,30 @@ public class SettingsFrame extends SpdyFrame {
         return numberOfSettings;
     }
 
-    public Buffer getSettings() {
-        return settings;
+    public int getSetting(int slotId) {
+        return settingSlots[slotId];
+    }
+
+    public byte getSetSettings() {
+        return setSettings;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("SettingsFrame");
+        sb.append("{numberOfSettings=").append(numberOfSettings);
+        if (numberOfSettings > 0) {
+            sb.append(", {");
+            for (int i = 0; i < MAX_DEFINED_SETTINGS; i++) {
+                if ((setSettings & (1 << i)) != 0) {
+                    sb.append(' ');
+                    sb.append(OPTION_TEXT[i]).append('=').append(settingSlots[i]);
+                }
+            }
+        }
+        sb.append(" }}");
+        return sb.toString();
     }
 
     // -------------------------------------------------- Methods from Cacheable
@@ -98,7 +151,8 @@ public class SettingsFrame extends SpdyFrame {
     @Override
     public void recycle() {
         numberOfSettings = 0;
-        settings = null;
+        setSettings = 0;
+        Arrays.fill(settingSlots, -1);
         super.recycle();
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -119,7 +173,21 @@ public class SettingsFrame extends SpdyFrame {
     protected void initialize(SpdyHeader header) {
         super.initialize(header);
         numberOfSettings = header.buffer.getInt();
-        settings = header.buffer;
+        if (numberOfSettings > 0) {
+            final Buffer settings = header.buffer;
+            int actualNumberOfSettings = 0;
+            for (int i = 0; i < numberOfSettings; i++) {
+                final int eHeader = settings.getInt();
+                final int eId = (eHeader & 0xFFFFFF) - 1;
+                setSettings |= 1 << eId;
+                if (settingSlots[eId] == -1) {
+                    actualNumberOfSettings++;
+                    settingSlots[eId] = settings.getInt();
+                }
+            }
+            numberOfSettings = actualNumberOfSettings; // adjusted for duplicates
+        }
+
     }
 
 
@@ -142,6 +210,14 @@ public class SettingsFrame extends SpdyFrame {
 
         // ------------------------------------------------------ Public Methods
 
+
+        public void setting(int slotId, int value) {
+            if (settingsFrame.settingSlots[slotId] != -1) {
+                settingsFrame.setSettings |= 1 << slotId;
+                settingsFrame.settingSlots[slotId] = value;
+                settingsFrame.numberOfSettings++;
+            }
+        }
 
         public SettingsFrame build() {
             return settingsFrame;

@@ -58,9 +58,7 @@ public class WindowUpdateFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private WindowUpdateFrame() {
-        super();
-    }
+    private WindowUpdateFrame() { }
 
 
     // ---------------------------------------------------------- Public Methods

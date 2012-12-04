@@ -54,9 +54,7 @@ public class CredentialFrame extends SpdyFrame {
     // ------------------------------------------------------------ Constructors
 
 
-    private CredentialFrame() {
-        super();
-    }
+    private CredentialFrame() { }
 
     // ---------------------------------------------------------- Public Methods
 

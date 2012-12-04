@@ -253,55 +253,34 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                       final FilterChainContext context,
                                       final SpdyFrame frame) {
 
-        final boolean log = LOGGER.isLoggable(Level.INFO); // TODO Change level
         SettingsFrame settingsFrame = (SettingsFrame) frame;
-        final int numEntries = settingsFrame.getNumberOfSettings();
-        StringBuilder sb = null;
-        if (log) {
-            sb = new StringBuilder(64);
-            sb.append("\n{SETTINGS : count=").append(numEntries);
-        }
-        Buffer settings = settingsFrame.getSettings();
-        for (int i = 0; i < numEntries; i++) {
-            final int eHeader = settings.getInt();
-            final int eFlags = eHeader >>> 24;
-            final int eId = eHeader & 0xFFFFFF;
-            final int value = settings.getInt();
-            if (log) {
-                sb.append("\n    {SETTING : flags=")
-                        .append(eFlags)
-                        .append(" id=")
-                        .append(OPTION_TEXT[eId])
-                        .append(" value=")
-                        .append(value)
-                        .append('}');
+        int numberOfSettings = settingsFrame.getNumberOfSettings();
+        if (numberOfSettings > 0) {
+            final byte setSettings = settingsFrame.getSetSettings();
+            for (int i = 0; i < SettingsFrame.MAX_DEFINED_SETTINGS && numberOfSettings != 0; i++) {
+                if ((setSettings & (1 << i)) != 0) {
+                    switch (i) {
+                        case SettingsFrame.SETTINGS_UPLOAD_BANDWIDTH:
+                            break;
+                        case SettingsFrame.SETTINGS_DOWNLOAD_BANDWIDTH:
+                            break;
+                        case SettingsFrame.SETTINGS_ROUND_TRIP_TIME:
+                            break;
+                        case SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS:
+                            break;
+                        case SettingsFrame.SETTINGS_CURRENT_CWND:
+                            break;
+                        case SettingsFrame.SETTINGS_DOWNLOAD_RETRANS_RATE:
+                            break;
+                        case SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE:
+                            spdySession.setPeerInitialWindowSize(settingsFrame.getSetting(i));
+                            break;
+                        case SettingsFrame.SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE:
+                            break;
+                    }
+                    numberOfSettings--;
+                }
             }
-            switch (eId) {
-                case UPLOAD_BANDWIDTH:
-                    break;
-                case DOWNLOAD_BANDWIDTH:
-                    break;
-                case ROUND_TRIP_TIME:
-                    break;
-                case MAX_CONCURRENT_STREAMS:
-                    break;
-                case CURRENT_CWND:
-                    break;
-                case DOWNLOAD_RETRANS_RATE:
-                    break;
-                case INITIAL_WINDOW_SIZE:
-                    spdySession.setPeerInitialWindowSize(value);
-                    break;
-                case CLIENT_CERTIFICATE_VECTOR_SIZE:
-                    break;
-                default:
-                    LOGGER.log(Level.WARNING, "Setting specified but not handled: {0}", eId);
-            }
-
-        }
-        if (log) {
-            sb.append("\n}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
         }
     }
 
