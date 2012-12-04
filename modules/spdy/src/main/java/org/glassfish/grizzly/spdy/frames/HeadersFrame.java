@@ -118,6 +118,12 @@ public class HeadersFrame extends SpdyFrame {
 
         // ------------------------------------------------------ Public Methods
 
+        public HeadersFrameBuilder last(boolean last) {
+            if (last) {
+                headersFrame.setFlag(HeadersFrame.FLAG_FIN);
+            }
+            return this;
+        }
 
         public HeadersFrame build() {
             return headersFrame;
