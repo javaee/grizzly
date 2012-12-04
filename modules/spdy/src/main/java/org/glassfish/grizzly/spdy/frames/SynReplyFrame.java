@@ -187,7 +187,7 @@ public class SynReplyFrame extends SpdyFrame {
 
         public SynReplyFrameBuilder last(boolean last) {
             if (last) {
-                synReplyFrame.setFlag(DataFrame.FLAG_FIN);
+                synReplyFrame.setFlag(SynReplyFrame.FLAG_FIN);
             }
             return this;
         }

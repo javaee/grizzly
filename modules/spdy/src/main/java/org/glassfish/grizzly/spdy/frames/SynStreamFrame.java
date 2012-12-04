@@ -242,9 +242,16 @@ public class SynStreamFrame extends SpdyFrame {
             return this;
         }
 
+        public SynStreamFrameBuilder unidirectional(boolean unidirectional) {
+            if (unidirectional) {
+                synStreamFrame.setFlag(SynStreamFrame.FLAG_UNIDIRECTIONAL);
+            }
+            return this;
+        }
+
         public SynStreamFrameBuilder last(boolean last) {
             if (last) {
-                synStreamFrame.setFlag(DataFrame.FLAG_FIN);
+                synStreamFrame.setFlag(SynStreamFrame.FLAG_FIN);
             }
             return this;
         }
