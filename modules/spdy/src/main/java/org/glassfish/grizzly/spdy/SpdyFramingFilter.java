@@ -42,7 +42,11 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -56,6 +60,9 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * @author oleksiys
  */
 public class SpdyFramingFilter extends BaseFilter {
+
+    private static final Logger LOGGER = Grizzly.logger(SpdyFramingFilter.class);
+
     static final int HEADER_LEN = 8;
     
     private final Attribute<ArrayList<SpdyFrame>> framesAttr =
@@ -95,11 +102,15 @@ public class SpdyFramingFilter extends BaseFilter {
             ctx.setMessage(frame);
             return ctx.getInvokeAction(remainder, null);
         }
-        
+
+        final boolean logit = LOGGER.isLoggable(Level.FINE);
         final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
         SpdyFrame frame = SpdyFrame.wrap(message);
+        if (logit) {
+            LOGGER.log(Level.FINE, "Rx: {0}", frame.toString());
+        }
         frameList.add(frame);
-        
+
         while (remainder.remaining() >= HEADER_LEN) {
             position = remainder.position();
             len = getMessageLength(remainder, position);
@@ -110,7 +121,11 @@ public class SpdyFramingFilter extends BaseFilter {
             }
             
             final Buffer remainder2 = remainder.split(position + totalLen);
-            frameList.add(SpdyFrame.wrap(remainder));
+            final SpdyFrame f = SpdyFrame.wrap(remainder);
+            if (logit) {
+                LOGGER.log(Level.FINE, "Rx: {0}", f.toString());
+            }
+            frameList.add(f);
             remainder = remainder2;
         }
         
@@ -126,6 +141,11 @@ public class SpdyFramingFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         SpdyFrame frame = ctx.getMessage();
+
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Tx: {0}", frame.toString());
+        }
+
         final Buffer buffer = frame.toBuffer(ctx.getMemoryManager());
         frame.recycle();
         ctx.setMessage(buffer);

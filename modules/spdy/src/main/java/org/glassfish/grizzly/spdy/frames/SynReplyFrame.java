@@ -102,6 +102,16 @@ public class SynReplyFrame extends SpdyFrame {
         return compressedHeaders;
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("SynReplyFrame");
+        sb.append("{streamId=").append(streamId);
+        sb.append(", compressedHeaders=").append(compressedHeaders);
+        sb.append(", fin=").append(isFlagSet(FLAG_FIN));
+        sb.append('}');
+        return sb.toString();
+    }
 
     // -------------------------------------------------- Methods from Cacheable
 

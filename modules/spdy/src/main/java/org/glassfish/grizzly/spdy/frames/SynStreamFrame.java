@@ -127,6 +127,21 @@ public class SynStreamFrame extends SpdyFrame {
         return compressedHeaders;
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("SynStreamFrame");
+        sb.append("{streamId=").append(streamId);
+        sb.append(", associatedToStreamId=").append(associatedToStreamId);
+        sb.append(", priority=").append(priority);
+        sb.append(", slot=").append(slot);
+        sb.append(", compressedHeaders=").append(compressedHeaders);
+        sb.append(", fin=").append(isFlagSet(FLAG_FIN));
+        sb.append(", unidirectional=").append(isFlagSet(FLAG_UNIDIRECTIONAL));
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from Cacheable
 
 

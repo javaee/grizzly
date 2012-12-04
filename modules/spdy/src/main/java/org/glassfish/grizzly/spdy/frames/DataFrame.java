@@ -91,6 +91,17 @@ public class DataFrame extends SpdyFrame {
         return streamId;
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("DataFrame");
+        sb.append("{streamId=").append(streamId);
+        sb.append(", data=").append(data);
+        sb.append(", fin=").append(isFlagSet(FLAG_FIN));
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from Cacheable
 
 

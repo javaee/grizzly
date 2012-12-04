@@ -104,6 +104,15 @@ public class PingFrame extends SpdyFrame {
         // no-op
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("PingFrame");
+        sb.append("{pingId=").append(pingId);
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from Cacheable
 
 

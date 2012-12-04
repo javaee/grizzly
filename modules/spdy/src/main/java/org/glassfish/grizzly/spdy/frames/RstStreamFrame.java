@@ -118,6 +118,16 @@ public class RstStreamFrame extends SpdyFrame {
         // no-op
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("RstStreamFrame");
+        sb.append("{streamId=").append(streamId);
+        sb.append(", statusCode=").append(statusCode);
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from Cacheable
 
 

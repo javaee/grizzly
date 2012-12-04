@@ -225,26 +225,18 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
         final int streamId = updateFrame.getStreamId();
         final int delta = updateFrame.getDelta();
-        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
-            final StringBuilder sb = new StringBuilder(64);
-            sb.append("\n{WINDOW_UPDATE : streamId=")
-                    .append(streamId)
-                    .append(" delta-window-size=")
-                    .append(delta)
-                    .append("}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
+
         final SpdyStream stream = spdySession.getStream(streamId);
         
         if (stream != null) {
             stream.onPeerWindowUpdate(delta);
         } else {
-            if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
+            if (LOGGER.isLoggable(Level.WARNING)) {
                 final StringBuilder sb = new StringBuilder(64);
                 sb.append("\nStream id=")
                         .append(streamId)
                         .append(" was not found. Ignoring the message");
-                LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
+                LOGGER.warning(sb.toString());
             }
         }
     }
@@ -254,21 +246,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                       final SpdyFrame frame) {
 
         GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
-        final int lastGoodStreamId = goAwayFrame.getLastGoodStreamId();
-        final int statusCode = goAwayFrame.getStatusCode();
-
-        
-        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
-            final StringBuilder sb = new StringBuilder(64);
-            sb.append("\n{GOAWAY : lastGoodStreamId=")
-                    .append(lastGoodStreamId)
-                    .append(" statusCode=")
-                    .append(statusCode)
-                    .append("}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
-        
-        spdySession.setGoAway(lastGoodStreamId);
+        spdySession.setGoAway(goAwayFrame.getLastGoodStreamId());
     }
     
     private void processSettings(final SpdySession spdySession,
@@ -331,16 +309,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                              final FilterChainContext context,
                              final SpdyFrame frame) {
         PingFrame pingFrame = (PingFrame) frame;
-        final int pingId = pingFrame.getPingId();
-        
-        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
-            final StringBuilder sb = new StringBuilder(32);
-            sb.append("\n{PING : id=")
-                    .append((long) pingId)
-                    .append("}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
-        
+
         // Send the same ping message back
         pingFrame.reset();
         spdySession.writeDownStream(pingFrame);
@@ -349,20 +318,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     private void processRstStream(final SpdySession spdySession,
                                   final FilterChainContext context,
                                   final SpdyFrame frame) {
-        RstStreamFrame rstStreamFrame = (RstStreamFrame) frame;
-        final int streamId = rstStreamFrame.getStreamId();
-        final int statusCode = rstStreamFrame.getStatusCode();
-        
-        if (LOGGER.isLoggable(Level.INFO)) { // TODO Change level
-            final StringBuilder sb = new StringBuilder(32);
-            sb.append("\n{RST_STREAM : streamId=")
-                    .append((long) streamId)
-                    .append(" statusCode=")
-                    .append((long) statusCode)
-                    .append("}\n");
-            LOGGER.info(sb.toString()); // TODO: CHANGE LEVEL
-        }
-        
+
 //        @TODO: implement RST_STREAM
     }
     
@@ -381,25 +337,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             return;
         }
 
-        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
-            StringBuilder sb = new StringBuilder();
-            if (frame.getHeader().getFlags() == 0) {
-                sb.append("NONE");
-            } else {
-                if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN)) {
-                    sb.append(SYN_STREAM_FLAG_TEXT[1]);
-                }
-                if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_UNIDIRECTIONAL)) {
-                    if (sb.length() == 0) {
-                        sb.append(',');
-                    }
-                    sb.append(SYN_STREAM_FLAG_TEXT[2]);
-                }
-            }
-            LOGGER.log(Level.INFO, "'{'SYN_STREAM : flags={0} streamID={1} associatedToStreamId={2} priority={3} slot={4}'}'",
-                    new Object[]{sb.toString(), streamId, associatedToStreamId, priority, slot});
-        }
-        
         final SpdyRequest spdyRequest = SpdyRequest.create();
         spdyRequest.setConnection(context.getConnection());
         final SpdyStream spdyStream = spdySession.acceptStream(spdyRequest,
@@ -552,19 +489,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             return;
         }
 
-        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
-            StringBuilder sb = new StringBuilder();
-            if (frame.getHeader().getFlags() == 0) {
-                sb.append("NONE");
-            } else {
-                if (synReplyFrame.isFlagSet(SynReplyFrame.FLAG_FIN)) {
-                    sb.append(SYN_STREAM_FLAG_TEXT[1]);
-                }
-            }
-            LOGGER.log(Level.INFO, "'{'SYN_REPLY : flags={0} streamID={1}'}'",
-                    new Object[]{sb.toString(), streamId});
-        }
-        
         final SpdyStream spdyStream = spdySession.getStream(streamId);
         
         if (spdyStream == null) { // Stream doesn't exist
@@ -640,15 +564,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                   final SpdyFrame frame) {
 
         DataFrame dataFrame = (DataFrame) frame;
-        final boolean isFinFrame = dataFrame.isFlagSet(DataFrame.FLAG_FIN);
-
-        if (LOGGER.isLoggable(Level.INFO)) {  // TODO: Change level
-            LOGGER.log(Level.INFO, "'{'DATA: flags={0} streamID={1} len={2}'}'",
-                    new Object[]{isFinFrame ? "FIN" : "NONE",
-                        spdyStream.getStreamId(), dataFrame.getData().remaining()});
-        }
-        
-        spdyStream.offerInputData(dataFrame.getData(), isFinFrame);
+        spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
     }
     
     @Override

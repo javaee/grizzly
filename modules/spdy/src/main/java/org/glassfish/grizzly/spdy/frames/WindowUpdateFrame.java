@@ -107,6 +107,16 @@ public class WindowUpdateFrame extends SpdyFrame {
         // no-op
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("WindowUpdateFrame");
+        sb.append("{streamId=").append(streamId);
+        sb.append(", delta=").append(delta);
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from Cacheable
 
 

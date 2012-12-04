@@ -105,6 +105,16 @@ public class GoAwayFrame extends SpdyFrame {
         // no-op
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("GoAwayFrame");
+        sb.append("{lastGoodStreamId=").append(lastGoodStreamId);
+        sb.append(", statusCode=").append(statusCode);
+        sb.append('}');
+        return sb.toString();
+    }
+
     // -------------------------------------------------- Methods from SpdyFrame
 
 
