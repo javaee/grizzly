@@ -210,7 +210,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             case HeadersFrame.TYPE:
             case CredentialFrame.TYPE:
             default: {
-                LOGGER.log(Level.WARNING, "Unknown control-frame [version={0} type={1} flags={2} length={3}]",
+                LOGGER.log(Level.WARNING, "Unknown or unhandled control-frame [version={0} type={1} flags={2} length={3}]",
                         new Object[]{frame.getHeader().getVersion(),
                                      frame.getHeader().getType(),
                                      frame.getHeader().getFlags(),
