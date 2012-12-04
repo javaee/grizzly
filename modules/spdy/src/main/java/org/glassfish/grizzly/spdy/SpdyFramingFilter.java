@@ -103,11 +103,11 @@ public class SpdyFramingFilter extends BaseFilter {
             return ctx.getInvokeAction(remainder, null);
         }
 
-        final boolean logit = LOGGER.isLoggable(Level.INFO);
+        final boolean logit = LOGGER.isLoggable(Level.FINE);
         final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
         SpdyFrame frame = SpdyFrame.wrap(message);
         if (logit) {
-            LOGGER.log(Level.INFO, "Rx: {0}", frame.toString());
+            LOGGER.log(Level.FINE, "Rx: {0}", frame.toString());
         }
         frameList.add(frame);
 
