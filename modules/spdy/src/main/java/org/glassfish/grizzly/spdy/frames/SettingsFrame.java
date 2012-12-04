@@ -45,6 +45,9 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.util.Arrays;
 
+/**
+ * TODO: Need to implement handling of per-setting flags.
+ */
 public class SettingsFrame extends SpdyFrame {
 
     private static final ThreadCache.CachedTypeIndex<SettingsFrame> CACHE_IDX =
