@@ -133,11 +133,13 @@ public class SettingsFrame extends SpdyFrame {
         sb.append("SettingsFrame");
         sb.append("{numberOfSettings=").append(numberOfSettings);
         if (numberOfSettings > 0) {
+            int numberOfSettingsLocal = numberOfSettings;
             sb.append(", {");
-            for (int i = 0; i < MAX_DEFINED_SETTINGS; i++) {
+            for (int i = 0; i < MAX_DEFINED_SETTINGS && numberOfSettingsLocal > 0; i++) {
                 if ((setSettings & (1 << i)) != 0) {
                     sb.append(' ');
                     sb.append(OPTION_TEXT[i]).append('=').append(settingSlots[i]);
+                    numberOfSettingsLocal--;
                 }
             }
         }
