@@ -70,7 +70,7 @@ public class SettingsFrame extends SpdyFrame {
 
     public static final int MAX_DEFINED_SETTINGS = 8;
     /*
-     * Values defined by SETTINGS* are the index in settingsSlots for their
+     * Values defined by SETTINGS are the index in settingsSlots for their
      * respective values.
      *
      * When writing settings to the wire, the values are offset by +1.
