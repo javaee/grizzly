@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -47,11 +48,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.HttpBrokenContent;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -63,15 +65,15 @@ final class SpdyInputBuffer {
     
     private static final long NULL_CONTENT_LENGTH = Long.MIN_VALUE;
     
-    private static final Buffer LAST_BUFFER = Buffers.wrap(
-            MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[] {'l', 'a', 's', 't'});
-
+    private static final Termination FIN_TERMINATION =
+            new Termination(TerminationType.FIN, "Frame with the FIN flag");
+    
     private final AtomicInteger inputQueueSize = new AtomicInteger();
-    private final BlockingQueue<Buffer> inputQueue =
-            DataStructures.getLTQInstance(Buffer.class);
+    private final BlockingQueue<InputElement> inputQueue =
+            DataStructures.getLTQInstance(InputElement.class);
     
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
-    private volatile boolean isTerminated;
+    private volatile Termination terminationFlag;
     
     private final SpdyStream spdyStream;
     private final SpdySession spdySession;
@@ -88,7 +90,15 @@ final class SpdyInputBuffer {
     }
     
     void onReadEventComplete() {
+        if (spdyStream.isProcessingComplete ||
+                !spdyStream.getInputHttpHeader().isExpectContent()) {
+            return;
+        }
+        
         if (isTerminated()) {
+            spdySession.sendMessageUpstream(spdyStream, 
+                    buildBrokenHttpContent(new EOFException(terminationFlag.description)));
+            
             return;
         }
         
@@ -98,60 +108,39 @@ final class SpdyInputBuffer {
         
         if (readyBuffersCount > 0 &&
                 expectInputSwitch.getAndSet(false)) {
-            passPayloadUpstream(null, false, readyBuffersCount);
+            passPayloadUpstream(null, readyBuffersCount);
         }
     }
     
-    void offer(final Buffer data, boolean isLast) {
+    void offer(final Buffer data, final boolean isLast) {
         if (isInputClosed.get()) {
-            throw new IllegalStateException("SpdyStream input is closed");
+            data.tryDispose();
+            
+            return;
         }
         
-        if (remainingContentLength == NULL_CONTENT_LENGTH) {
-            remainingContentLength = spdyStream.getInputHttpHeader().getContentLength();
-        }
-        
-        if (remainingContentLength >= 0) {
-            remainingContentLength -= data.remaining();
-            if (remainingContentLength == 0) {
-                isLast = true;
-            } else if (remainingContentLength < 0) {
-                // Peer sent more bytes than specified in the content-length
-                LOGGER.log(Level.FINE, "SpdyStream #{0} has been terminated: peer sent more data than specified in content-length",
-                        spdyStream.getStreamId());
-                terminate();
-                return;
-            }
-        }
-        
+        offer0(new InputElement(data,
+                isLast | checkContentLength(data.remaining()), false));
+    }
+
+    private void offer0(final InputElement inputElement) {
         if (expectInputSwitch.getAndSet(false)) {
-            passPayloadUpstream(data, isLast, inputQueueSize.get());
+            passPayloadUpstream(inputElement, inputQueueSize.get());
         } else {
-            inputQueue.offer(data);
+            inputQueue.offer(inputElement);
             inputQueueSize.incrementAndGet();
-            if (isLast) {
-                close();
-            }
             
             final int readyBuffersCount = inputQueueSize.get();
 
             if (readyBuffersCount > 0 &&
                     expectInputSwitch.getAndSet(false)) {
-                passPayloadUpstream(null, false, readyBuffersCount);
+                passPayloadUpstream(null, readyBuffersCount);
             }
         }
     }
 
-
-    private void passPayloadUpstream(final Buffer data, boolean isLast,
+    private void passPayloadUpstream(final InputElement inputElement,
             int readyBuffersCount) {
-        
-        if (isLast) {
-            isInputClosed.set(true);
-            isTerminated = true;
-        }
-        
-        HttpContent content;
         
         try {
             if (readyBuffersCount == -1) {
@@ -160,57 +149,55 @@ final class SpdyInputBuffer {
             
             Buffer payload = null;
             if (readyBuffersCount > 0) {
-                payload = poll();
+                payload = poll0();
                 assert payload != null;
             }
             
-            if (data != null) {
-                payload = Buffers.appendBuffers(spdySession.getMemoryManager(),
-                        payload, data);
-                
-                if (isLast) {
-                    processFin();
+            if (inputElement != null) {
+                final Buffer data = inputElement.toBuffer();
+                if (!inputElement.isService) {
+                    payload = Buffers.appendBuffers(spdySession.getMemoryManager(),
+                            payload, data);
+                    sendWindowUpdate(data);
+                } else if (payload == null) {
+                    payload = Buffers.EMPTY_BUFFER;
                 }
                 
-                sendWindowUpdate(data);
-            } else {
-                isLast = isTerminated;
+                checkEOF(inputElement);
             }
             
-            content = HttpContent.builder(spdyStream.getInputHttpHeader())
-                    .content(payload)
-                    .last(isLast)
-                    .build();
-            
+            final HttpContent content = buildHttpContent(payload);
+            spdySession.sendMessageUpstream(spdyStream, content);
         } catch (IOException e) {
-            content = HttpContent.builder(spdyStream.getInputHttpHeader())
-                                .content(Buffers.EMPTY_BUFFER)
-                                .last(true)
-                                .build();            
+            // Should never be thrown
+            LOGGER.log(Level.WARNING, "Unexpected IOException: {0}", e.getMessage());
         }
-        
-        spdySession.sendMessageUpstream(spdyStream, content);
     }
     
-    Buffer poll() throws IOException {
-        if (isTerminated) {
+    HttpContent poll() throws IOException {
+        return buildHttpContent(poll0());
+    }
+    
+    private Buffer poll0() throws IOException {
+        if (isTerminated()) {
             return Buffers.EMPTY_BUFFER;
         }
         
         Buffer buffer;
+        InputElement inputElement;
         
         final int inputQueueSizeNow = inputQueueSize.getAndSet(0);
         
         if (inputQueueSizeNow <= 0) {
             try {
-                buffer = inputQueue.poll(spdySession.getConnection()
+                inputElement = inputQueue.poll(spdySession.getConnection()
                         .getBlockingReadTimeout(TimeUnit.MILLISECONDS),
                         TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 throw new IOException("Blocking read was interrupted");
             }
 
-            if (buffer == null) {
+            if (inputElement == null) {
                 throw new IOException("Blocking read timeout");
             } else {
                 // Due to asynchronous inputQueueSize update - the inputQueueSizeNow may be < 0.
@@ -220,64 +207,80 @@ final class SpdyInputBuffer {
                 // take into account fact described above.
                 inputQueueSize.addAndGet(inputQueueSizeNow - 1);
 
-                if (buffer == LAST_BUFFER) {
-                    processFin();
-                    buffer = Buffers.EMPTY_BUFFER;
-                }
+                checkEOF(inputElement);
+                buffer = inputElement.toBuffer();
             }
         } else if (inputQueueSizeNow == 1) {
-            buffer = inputQueue.poll();
+            inputElement = inputQueue.poll();
             
-            if (buffer == LAST_BUFFER) {
-                processFin();
-                buffer = Buffers.EMPTY_BUFFER;
-            }
-
+            checkEOF(inputElement);
+            buffer = inputElement.toBuffer();
         } else {
             final CompositeBuffer compositeBuffer =
                     CompositeBuffer.newBuffer(spdySession.getMemoryManager());
 
             for (int i = 0; i < inputQueueSizeNow; i++) {
-                final Buffer currentBuffer = inputQueue.poll();
-                if (currentBuffer == LAST_BUFFER) {
-                    processFin();
+                final InputElement currentElement = inputQueue.poll();
+                checkEOF(currentElement);
+                
+                if (!currentElement.isService) {
+                    compositeBuffer.append(currentElement.toBuffer());
+                }
+                
+                if (currentElement.isLast) {
                     break;
                 }
-
-                compositeBuffer.append(currentBuffer);
             }
             compositeBuffer.allowBufferDispose(true);
             compositeBuffer.allowInternalBuffersDispose(true);
 
             buffer = compositeBuffer;
         }
+        
         sendWindowUpdate(buffer);
 
         return buffer;
     }
     
     void terminate() {
-        isTerminated = true;
-        close();
-    }
-    
-    void close() {
-        if (isInputClosed.compareAndSet(false, true)) {
-            inputQueue.offer(LAST_BUFFER);
-            inputQueueSize.incrementAndGet();
+        if (close(terminationFlag)) {
+            // Don't wait for Termination input to be polled - assign it right here
+            terminationFlag = new Termination(TerminationType.FORCED, "Terminated");
         }
     }
     
-    boolean isTerminated() {
-        return isTerminated;
+    void close() {
+        close(spdyStream.closeTypeFlag.get() == CloseType.REMOTELY ?
+                new Termination(TerminationType.PEER_CLOSE, "Closed by peer") :
+                new Termination(TerminationType.LOCAL_CLOSE, "Closed locally"));
     }
     
-    private void processFin() {
-        isTerminated = true;
-        spdyStream.getInputHttpHeader().setExpectContent(false);
+    private boolean close(final Termination termination) {
+        if (isInputClosed.compareAndSet(false, true)) {
+            offer0(new InputElement(termination, true, true));
+            return true;
+        }
         
-        // NOTIFY STREAM
-        spdyStream.onInputClosed();
+        return false;
+    }
+    
+    boolean isTerminated() {
+        return terminationFlag != null;
+    }
+    
+    private void checkEOF(final InputElement inputElement) {
+        if (inputElement.isLast) {
+            if (!inputElement.isService) {
+                terminationFlag = FIN_TERMINATION;
+            } else {
+                terminationFlag = (Termination) inputElement.content;
+            }
+            
+            isInputClosed.set(true);
+
+            // NOTIFY STREAM
+            spdyStream.onInputClosed();
+        }
     }
 
     private void sendWindowUpdate(final Buffer data) {
@@ -294,6 +297,84 @@ final class SpdyInputBuffer {
                 unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
             
             spdyStream.outputSink.writeWindowUpdate(currentUnackedBytes);
+        }
+    }
+    
+    private boolean checkContentLength(final int newDataChunkSize) {
+        if (remainingContentLength == NULL_CONTENT_LENGTH) {
+            remainingContentLength = spdyStream.getInputHttpHeader().getContentLength();
+        }
+        
+        if (remainingContentLength >= 0) {
+            remainingContentLength -= newDataChunkSize;
+            if (remainingContentLength == 0) {
+                return true;
+            } else if (remainingContentLength < 0) {
+                // Peer sent more bytes than specified in the content-length
+                throw new IllegalStateException("SpdyStream #" + spdyStream.getStreamId() +
+                        ": peer is sending data beyound specified content-length limit");
+            }
+        }
+        
+        return false;
+    }
+
+    private HttpContent buildHttpContent(final Buffer payload) {
+        final Termination localTermination = terminationFlag;
+        final boolean isFin = localTermination == FIN_TERMINATION;
+        
+        final HttpContent httpContent;
+        
+        if (payload.hasRemaining() || localTermination == null || isFin) {
+            spdyStream.getInputHttpHeader().setExpectContent(!isFin);
+            httpContent = HttpContent.builder(spdyStream.getInputHttpHeader())
+                    .content(payload)
+                    .last(isFin)
+                    .build();
+        } else {
+            httpContent = buildBrokenHttpContent(
+                    new EOFException(terminationFlag.description));
+        }
+        
+        return httpContent;
+    }
+
+    private HttpContent buildBrokenHttpContent(final Throwable t) {
+        spdyStream.getInputHttpHeader().setExpectContent(false);
+        return HttpBrokenContent.builder(spdyStream.getInputHttpHeader())
+                .error(t)
+                .build();
+    }
+    
+    private static final class InputElement {
+        private final Object content;
+        private final boolean isLast;
+        
+        private final boolean isService;
+
+        public InputElement(final Object content, final boolean isLast,
+                final boolean isService) {
+            this.content = content;
+            this.isLast = isLast;
+            this.isService = isService;
+        }
+        
+        private Buffer toBuffer() {
+            return !isService ? (Buffer) content : Buffers.EMPTY_BUFFER;
+        }
+    }
+    
+    private enum TerminationType {
+        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
+    }
+    
+    private static class Termination {
+        private final TerminationType type;
+        private final String description;
+
+        public Termination(final TerminationType type, final String description) {
+            this.type = type;
+            this.description = description;
         }
     }
 }

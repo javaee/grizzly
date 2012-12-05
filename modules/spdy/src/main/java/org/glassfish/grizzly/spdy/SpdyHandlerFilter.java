@@ -125,12 +125,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             // otherwise block until input data is available
             final SpdyStream spdyStream =
                     (SpdyStream) HttpContext.get(ctx).getContextStorage();
-            final Buffer data = spdyStream.pollInputData();
-            
-            final HttpContent httpContent = HttpContent.builder(spdyStream.getInputHttpHeader())
-                    .content(data)
-                    .last(spdyStream.isInputTerminated())
-                    .build();
+            final HttpContent httpContent = spdyStream.pollInputData();
             
             ctx.setMessage(httpContent);
             
@@ -628,8 +623,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
-            spdyStream.terminateInput();
-            spdyStream.closeOutput();
+            spdyStream.onProcessingComplete();
             
             return ctx.getStopAction();
         }/* else if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {

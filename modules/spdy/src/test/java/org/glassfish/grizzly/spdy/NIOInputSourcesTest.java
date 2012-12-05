@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.spdy;
 
+import java.io.EOFException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -65,11 +66,15 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -79,6 +84,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
@@ -463,105 +469,107 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
      * Test ReadHandler.onError to be notified, when client unexpectedly
      * terminates the connection
      */
-//    @SuppressWarnings({"unchecked"})
-//    public void testDisconnect() throws Throwable {
-//
-//        final AtomicInteger bytesRead = new AtomicInteger();
-//        final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
-//
-//        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
-//        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
-//        clientTransport.setFilterChain(
-//                createClientFilterChain(threadPool));
-//        
-//        final HttpHandler httpHandler = new HttpHandler() {
-//
-//            @Override
-//            public void service(final Request request,
-//                    final Response response) throws Exception {
-//                response.suspend();
-//                final NIOInputStream inputStream = request.getInputStream();
-//
-//                inputStream.notifyAvailable(new ReadHandler() {
-//
-//                    @Override
-//                    public void onDataAvailable() throws IOException {
-//                        final int readyData = inputStream.readyData();
-//                        inputStream.skip(readyData);
-//                        bytesRead.addAndGet(readyData);
-//
-//                        inputStream.notifyAvailable(this);
-//                    }
-//
-//
-//                    @Override
-//                    public void onAllDataRead() throws IOException {
-//                        final int readyData = inputStream.readyData();
-//                        inputStream.skip(readyData);
-//                        bytesRead.addAndGet(readyData);
-//                        resultFuture.failure(new IllegalStateException("Connection should have been terminated"));
-//
-//                        response.resume();
-//                    }
-//
-//                    @Override
-//                    public void onError(Throwable t) {
-//                        resultFuture.failure(t);
-//                    }
-//                });
-//            }
-//
-//        };
-//
-//        final HttpServer server = createWebServer(httpHandler);
-//
-//        try {
-//            server.start();
-//            clientTransport.start();
-//
-//            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
-//            Connection connection = null;
-//            try {
-//                connection = connectFuture.get(10, TimeUnit.SECONDS);
-//                HttpRequestPacket packet = (HttpRequestPacket) createRequest("POST", null, null);
-//                packet.setContentLength(5000);
-//                connection.write(packet);
-//
-//                HttpContent content = HttpContent.builder(packet).content(
-//                        Buffers.wrap(null, buildString(2500))).build();
-//
-//                connection.write(content, new EmptyCompletionHandler<WriteResult>() {
-//
-//                    @Override
-//                    public void completed(WriteResult result) {
-//                        result.getConnection().closeSilently();
-//                    }
-//                });
-//
-//                try {
-//                    final Integer i = resultFuture.get(100000, TimeUnit.SECONDS);
-//                    fail("Wrapped EOFException expected");
-//                } catch (ExecutionException e) {
-//                    assertEquals("NOT EOF Exception", EOFException.class,
-//                            e.getCause().getClass());
-//                }
-//
-//            } finally {
-//                // Close the client connection
-//                if (connection != null) {
-//                    connection.closeSilently();
-//                }
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            fail();
-//        } finally {
-//            threadPool.shutdownNow();
-//            clientTransport.stop();
-//            server.stop();
-//        }
-//    }
-//
+    @SuppressWarnings({"unchecked"})
+    public void testDisconnect() throws Throwable {
+
+        final AtomicInteger bytesRead = new AtomicInteger();
+        final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
+
+        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setFilterChain(
+                createClientFilterChain(threadPool));
+        
+        final HttpHandler httpHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request,
+                    final Response response) throws Exception {
+                response.suspend();
+                final NIOInputStream inputStream = request.getInputStream();
+
+                inputStream.notifyAvailable(new ReadHandler() {
+
+                    @Override
+                    public void onDataAvailable() throws IOException {
+                        final int readyData = inputStream.readyData();
+                        inputStream.skip(readyData);
+                        bytesRead.addAndGet(readyData);
+
+                        inputStream.notifyAvailable(this);
+                    }
+
+
+                    @Override
+                    public void onAllDataRead() throws IOException {
+                        final int readyData = inputStream.readyData();
+                        inputStream.skip(readyData);
+                        bytesRead.addAndGet(readyData);
+                        resultFuture.failure(new IllegalStateException("Connection should have been terminated"));
+
+                        response.resume();
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        resultFuture.failure(t);
+                        
+                        response.resume();
+                    }
+                });
+            }
+
+        };
+
+        final HttpServer server = createWebServer(httpHandler);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                HttpRequestPacket packet = (HttpRequestPacket) createRequest("POST", null, null);
+                packet.setContentLength(5000);
+                connection.write(packet);
+
+                HttpContent content = HttpContent.builder(packet).content(
+                        Buffers.wrap(null, buildString(2500))).build();
+
+                connection.write(content, new EmptyCompletionHandler<WriteResult>() {
+
+                    @Override
+                    public void completed(WriteResult result) {
+                        result.getConnection().closeSilently();
+                    }
+                });
+
+                try {
+                    final Integer i = resultFuture.get(10, TimeUnit.SECONDS);
+                    fail("Wrapped EOFException expected");
+                } catch (ExecutionException e) {
+                    assertEquals("NOT EOF Exception:\n" +
+                            Exceptions.getStackTraceAsString(e.getCause()),
+                            EOFException.class, e.getCause().getClass());
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            threadPool.shutdownNow();
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+
     // --------------------------------------------------------- Private Methods
 
 

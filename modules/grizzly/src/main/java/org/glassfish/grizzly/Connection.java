@@ -52,8 +52,8 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
  * 
  * @author Alexey Stashok
  */
-public interface Connection<L> extends Readable<L>, Writable<L>,
-        Closeable<Connection>, AttributeStorage,
+public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writable<L>,
+        Closeable, AttributeStorage,
         MonitoringAware<ConnectionProbe> {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
@@ -136,7 +136,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      *         will be run asynchronously
      */
     @Override
-    GrizzlyFuture<Connection> close();
+    GrizzlyFuture<Closeable> close();
 
     /**
      * Close the {@link Connection}
@@ -145,7 +145,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      *  the connection is closed.
      */
     @Override
-    void close(CompletionHandler<Connection> completionHandler);
+    void close(CompletionHandler<Closeable> completionHandler);
 
     /**
      * Close the {@link Connection} silently, no notification required on
@@ -160,7 +160,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * @param closeListener {@link CloseListener}.
      */
     @Override
-    void addCloseListener(CloseListener<Connection> closeListener);
+    void addCloseListener(CloseListener closeListener);
 
     /**
      * Remove the {@link CloseListener}.
@@ -168,7 +168,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * @param closeListener {@link CloseListener}.
      */
     @Override
-    boolean removeCloseListener(CloseListener<Connection> closeListener);
+    boolean removeCloseListener(CloseListener closeListener);
     
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.

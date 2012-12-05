@@ -44,6 +44,6 @@ import java.io.IOException;
 /**
  * The listener, which is used to be notified, when <tt>Closeable</tt> gets closed.
  */
-public interface CloseListener<E extends Closeable> {
-    void onClosed(E closable, CloseType type) throws IOException;
+public interface CloseListener {
+    void onClosed(Closeable closable, CloseType type) throws IOException;
 }

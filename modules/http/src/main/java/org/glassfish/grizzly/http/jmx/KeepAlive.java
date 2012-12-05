@@ -48,6 +48,7 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.KeepAliveProbe;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -215,10 +216,10 @@ public class KeepAlive extends JmxObject {
         @Override
         public void onConnectionAcceptEvent(Connection<?> connection) {
             keepAliveConnectionsCount.incrementAndGet();
-            connection.addCloseListener(new CloseListener<Connection>() {
+            connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(final Connection connection,
+                public void onClosed(final Closeable closeable,
                         final CloseType closeType) throws IOException {
                     keepAliveConnectionsCount.decrementAndGet();
                 }

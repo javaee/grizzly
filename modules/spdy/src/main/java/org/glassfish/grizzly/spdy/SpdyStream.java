@@ -40,9 +40,16 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
@@ -52,19 +59,26 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  *
  * @author oleksiys
  */
-public class SpdyStream implements AttributeStorage, OutputSink {
+public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
+    private enum CompletionUnit {
+        Input, Output, Complete
+    }
+    
     private static final Attribute<SpdyStream> HTTP_RQST_SPDY_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http.request.spdy.stream");
     
@@ -76,13 +90,20 @@ public class SpdyStream implements AttributeStorage, OutputSink {
     private final SpdySession spdySession;
     final int outboundQueueSizeInBytes = 1204 * 1024; // TODO:  We need a realistic setting here
     
-    private final AtomicInteger completeCloseIndicator = new AtomicInteger();
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
 
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;
     
+    // closeTypeFlag, "null" value means the connection is open.
+    final AtomicReference<CloseType> closeTypeFlag =
+            new AtomicReference<CloseType>();
+    private final Queue<CloseListener> closeListeners =
+            new ConcurrentLinkedQueue<CloseListener>();
+    private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
+    volatile boolean isProcessingComplete;
+            
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
         final HttpRequestPacket request = httpHeader.isRequest() ?
                 (HttpRequestPacket) httpHeader :
@@ -158,7 +179,7 @@ public class SpdyStream implements AttributeStorage, OutputSink {
     }
 
     public boolean isClosed() {
-        return completeCloseIndicator.get() >= 2;
+        return completeFinalizationCounter.get() >= 2;
     }
 
     @Override
@@ -200,15 +221,71 @@ public class SpdyStream implements AttributeStorage, OutputSink {
         outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
-    void close() {
-        closeInput();
-        closeOutput();
+    @Override
+    public GrizzlyFuture<Closeable> close() {
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
+        close(Futures.toCompletionHandler(future));
+        
+        return future;
     }
-    
-    void terminate() {
-        completeCloseIndicator.set(2);
-        closeStream();
-        close();
+
+    @Override
+    public void close(final CompletionHandler<Closeable> completionHandler) {
+        close(completionHandler, true);
+    }
+
+    void close(
+            final CompletionHandler<Closeable> completionHandler,
+            final boolean isClosedLocally) {
+        
+        if (closeTypeFlag.compareAndSet(null,
+                isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
+            
+            closeInput();
+            closeOutput();
+            
+            notifyCloseListeners();
+
+            if (completionHandler != null) {
+                completionHandler.completed(this);
+            }
+        }
+    }
+        
+    @Override
+    public void addCloseListener(CloseListener closeListener) {
+        CloseType closeType = closeTypeFlag.get();
+        
+        // check if connection is still open
+        if (closeType == null) {
+            // add close listener
+            closeListeners.add(closeListener);
+            // check the connection state again
+            closeType = closeTypeFlag.get();
+            if (closeType != null && closeListeners.remove(closeListener)) {
+                // if connection was closed during the method call - notify the listener
+                try {
+                    closeListener.onClosed(this, closeType);
+                } catch (IOException ignored) {
+                }
+            }
+        } else { // if connection is closed - notify the listener
+            try {
+                closeListener.onClosed(this, closeType);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    @Override
+    public boolean removeCloseListener(CloseListener closeListener) {
+        return closeListeners.remove(closeListener);
+    }
+        
+    void onProcessingComplete() {
+        isProcessingComplete = true;
+        terminateInput();
+        closeOutput();
     }
     
     void closeInput() {
@@ -236,13 +313,13 @@ public class SpdyStream implements AttributeStorage, OutputSink {
     }
 
     void onInputClosed() {
-        if (completeCloseIndicator.incrementAndGet() == 2) {
+        if (completeFinalizationCounter.incrementAndGet() == 2) {
             closeStream();
         }
     }
 
     void onOutputClosed() {
-        if (completeCloseIndicator.incrementAndGet() == 2) {
+        if (completeFinalizationCounter.incrementAndGet() == 2) {
             closeStream();
         }
     }
@@ -279,7 +356,7 @@ public class SpdyStream implements AttributeStorage, OutputSink {
         }
     }
     
-    Buffer pollInputData() throws IOException {
+    HttpContent pollInputData() throws IOException {
         return inputBuffer.poll();
     }
     
@@ -298,4 +375,19 @@ public class SpdyStream implements AttributeStorage, OutputSink {
                 spdyRequest.getResponse() :
                 spdyRequest;
     }
+    
+    /**
+     * Notify all close listeners
+     */
+    private void notifyCloseListeners() {
+        final CloseType closeType = closeTypeFlag.get();
+        
+        CloseListener closeListener;
+        while ((closeListener = closeListeners.poll()) != null) {
+            try {
+                closeListener.onClosed(this, closeType);
+            } catch (IOException ignored) {
+            }
+        }
+    }    
 }

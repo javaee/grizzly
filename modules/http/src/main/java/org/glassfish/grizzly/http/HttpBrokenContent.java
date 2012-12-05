@@ -48,6 +48,8 @@ import org.glassfish.grizzly.ThreadCache;
  * {@link #isLast()} is always returns <tt>true</tt>,
  * {@link #getContent()} always throws {@link HttpBrokenContentException()}.
  * 
+ * @see HttpContent#isBroken(org.glassfish.grizzly.http.HttpContent)
+ * 
  * @author Alexey Stashok
  */
 public class HttpBrokenContent extends HttpContent {
@@ -89,17 +91,17 @@ public class HttpBrokenContent extends HttpContent {
         return createBuilder(httpHeader);
     }
 
-    private HttpBrokenContentException exception;
+    private Throwable exception;
     
     protected HttpBrokenContent(final HttpHeader httpHeader) {
         super(httpHeader);
     }
 
     /**
-     * Returns {@link HttpBrokenContentException}, which describes the error.
-     * @return {@link HttpBrokenContentException}, which describes the error.
+     * Returns {@link Throwable}, which describes the error.
+     * @return {@link Throwable}, which describes the error.
      */
-    public HttpBrokenContentException getException() {
+    public Throwable getError() {
         return exception;
     }
 
@@ -108,7 +110,9 @@ public class HttpBrokenContent extends HttpContent {
      */
     @Override
     public Buffer getContent() {
-        throw exception;
+        throw exception instanceof HttpBrokenContentException ?
+                (HttpBrokenContentException) exception :
+                new HttpBrokenContentException(exception);
     }
     
     /**
@@ -149,42 +153,10 @@ public class HttpBrokenContent extends HttpContent {
 
         /**
          * Set the exception.
-         * @param exception {@link HttpBrokenContentException}.
-         */
-        public final Builder error(final HttpBrokenContentException exception) {
-            ((HttpBrokenContent) packet).exception = exception;
-            return this;
-        }
-
-        /**
-         * Set the exception.
-         * @param cause error description.
+         * @param cause {@link Throwable}.
          */
         public final Builder error(final Throwable cause) {
-            ((HttpBrokenContent) packet).exception =
-                    (cause instanceof HttpBrokenContentException)
-                    ? (HttpBrokenContentException) cause
-                    : new HttpBrokenContentException(cause);
-            return this;
-        }
-
-        /**
-         * Set the exception.
-         * @param message error description.
-         */
-        public final Builder error(final String message) {
-            ((HttpBrokenContent) packet).exception =
-                    new HttpBrokenContentException(message);
-            return this;
-        }
-
-        /**
-         * Set the exception.
-         * @param error error description.
-         */
-        public final Builder error(final String message, final Throwable cause) {
-            ((HttpBrokenContent) packet).exception =
-                    new HttpBrokenContentException(message, cause);
+            ((HttpBrokenContent) packet).exception = cause;
             return this;
         }
 
@@ -198,7 +170,7 @@ public class HttpBrokenContent extends HttpContent {
             try {
                 HttpBrokenContent brokenPacket = (HttpBrokenContent) packet;
                 if (brokenPacket.exception == null) {
-                    brokenPacket.exception = new HttpBrokenContentException();
+                    throw new IllegalStateException("No cause specified");
                 }
                 
                 return (HttpBrokenContent) packet;

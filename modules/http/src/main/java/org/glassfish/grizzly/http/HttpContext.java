@@ -39,13 +39,13 @@
  */
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.io.InputBuffer;
 
 /**
  * Represents a single logical HTTP transaction.  The target storage provided
@@ -60,10 +60,13 @@ public class HttpContext implements AttributeStorage {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(HttpContext.class.getName());
     private final AttributeStorage contextStorage;
     private final OutputSink outputSink;
+    private final Closeable closeable;
 
-    protected <T extends AttributeStorage & OutputSink> HttpContext(T notSureWhatToCallIt) {
-        this.contextStorage = notSureWhatToCallIt;
-        this.outputSink = notSureWhatToCallIt;
+    protected HttpContext(final AttributeStorage attributeStorage,
+            final OutputSink outputSink, final Closeable closeable) {
+        this.contextStorage = attributeStorage;
+        this.closeable = closeable;
+        this.outputSink = outputSink;
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -81,10 +84,17 @@ public class HttpContext implements AttributeStorage {
     public OutputSink getOutputSink() {
         return outputSink;
     }
+    
+    public Closeable getCloseable() {
+        return closeable;
+    }
 
-    public static <T extends AttributeStorage & OutputSink> HttpContext newInstance(FilterChainContext ctx,
-                                                                                                   T notSureWhatToCallIt) {
-        HttpContext context = new HttpContext(notSureWhatToCallIt);
+    public static HttpContext newInstance(FilterChainContext ctx,
+            final AttributeStorage attributeStorage,
+            final OutputSink outputSink,
+            final Closeable closeable) {
+        HttpContext context = new HttpContext(attributeStorage,
+                outputSink, closeable);
         HTTP_CONTEXT_ATTR.set(ctx, context);
         return context;
     }
@@ -92,7 +102,4 @@ public class HttpContext implements AttributeStorage {
     public static HttpContext get(FilterChainContext ctx) {
         return HTTP_CONTEXT_ATTR.get(ctx);
     }
-
-
-
 }

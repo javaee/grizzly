@@ -54,6 +54,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectionProbe;
@@ -113,8 +114,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
-    private final Queue<CloseListener<Connection>> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener<Connection>>();
+    private final Queue<CloseListener> closeListeners =
+            new ConcurrentLinkedQueue<CloseListener>();
     
     /**
      * Connection probes
@@ -412,9 +413,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public GrizzlyFuture<Connection> close() {
+    public GrizzlyFuture<Closeable> close() {
         
-        final FutureImpl<Connection> future = Futures.createSafeFuture();
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
         close(Futures.toCompletionHandler(future));
         
         return future;
@@ -422,7 +423,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void close(
-            final CompletionHandler<Connection> completionHandler) {
+            final CompletionHandler<Closeable> completionHandler) {
         close(completionHandler, true);
     }
         
@@ -433,7 +434,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     
     protected void close(
-            final CompletionHandler<Connection> completionHandler,
+            final CompletionHandler<Closeable> completionHandler,
             final boolean isClosedLocally) {
         
         if (closeTypeFlag.compareAndSet(null,
@@ -456,7 +457,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
                     return true;
                 }
-            }, new CompletionHandlerAdapter<Connection, SelectorHandler.Task>(
+            }, new CompletionHandlerAdapter<Closeable, SelectorHandler.Task>(
                     null, completionHandler) {
 
                 @Override
@@ -490,7 +491,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public void addCloseListener(final CloseListener<Connection> closeListener) {
+    public void addCloseListener(final CloseListener closeListener) {
         CloseType closeType = closeTypeFlag.get();
         
         // check if connection is still open
@@ -518,7 +519,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeCloseListener(final CloseListener<Connection> closeListener) {
+    public boolean removeCloseListener(final CloseListener closeListener) {
         return closeListeners.remove(closeListener);
     }
 
@@ -701,7 +702,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private void notifyCloseListeners() {
         final CloseType closeType = closeTypeFlag.get();
         
-        CloseListener<Connection> closeListener;
+        CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
                 closeListener.onClosed(this, closeType);

@@ -45,7 +45,7 @@ package org.glassfish.grizzly;
  * 
  * @author Alexey Stashok
  */
-public interface Closeable<E extends Closeable> {
+public interface Closeable {
 
     /**
      * Closes this stream and releases any system resources associated
@@ -55,7 +55,7 @@ public interface Closeable<E extends Closeable> {
      * @return {@link Future}, which could be checked in case, if close operation
      *         will be run asynchronously
      */
-    public GrizzlyFuture<E> close();
+    public GrizzlyFuture<Closeable> close();
     
     /**
      * Closes this stream and releases any system resources associated
@@ -65,20 +65,20 @@ public interface Closeable<E extends Closeable> {
      * @param completionHandler {@link CompletionHandler} to be called, when
      *  the stream is closed.
      */
-    public void close(CompletionHandler<E> completionHandler);
+    public void close(CompletionHandler<Closeable> completionHandler);
     
     /**
-     * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
+     * Add the {@link CloseListener}, which will be notified once the stream
      * will be closed.
      * 
      * @param closeListener {@link CloseListener}.
      */
-    void addCloseListener(CloseListener<E> closeListener);
+    void addCloseListener(CloseListener closeListener);
 
     /**
      * Remove the {@link CloseListener}.
      *
      * @param closeListener {@link CloseListener}.
      */
-    boolean removeCloseListener(CloseListener<E> closeListener);
+    boolean removeCloseListener(CloseListener closeListener);
 }

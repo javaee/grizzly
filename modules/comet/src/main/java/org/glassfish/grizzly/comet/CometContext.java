@@ -52,6 +52,7 @@ import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -520,7 +521,7 @@ public class CometContext<E> {
     }
 
     private class CometCompletionHandler implements CompletionHandler<Response>,
-        CloseListener<Connection> {
+        CloseListener {
         final CometHandler handler;
 
         public CometCompletionHandler(CometHandler handler) {
@@ -554,9 +555,11 @@ public class CometContext<E> {
         }
 
         @Override
-        public void onClosed(final Connection connection, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
             removeCometHandler(handler);
+            
+            final Connection connection = (Connection) closeable;
             connection.removeCloseListener(this);
         }
     }

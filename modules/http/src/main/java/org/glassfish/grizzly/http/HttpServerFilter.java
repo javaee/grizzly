@@ -276,7 +276,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Connection connection = ctx.getConnection();
         HttpContext context = HttpContext.get(ctx);
         if (context == null) {
-            context = HttpContext.newInstance(ctx, connection);
+            context = HttpContext.newInstance(ctx, connection, connection, connection);
         }
         ServerHttpRequestImpl httpRequest = httpRequestInProcessAttr.get(context);
         if (httpRequest == null) {

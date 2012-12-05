@@ -847,7 +847,7 @@ public class InputBuffer {
             final ReadHandler localHandler = handler;
             handler = null;
             if (!closed && localHandler != null) {
-                localHandler.onError(((HttpBrokenContent) httpContent).getException());
+                localHandler.onError(((HttpBrokenContent) httpContent).getError());
             }
             
             return false;

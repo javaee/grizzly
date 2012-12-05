@@ -50,6 +50,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -159,11 +160,12 @@ public class WebSocketEngine {
                         WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
                 holder.application = app;
                 protocolHandler.handshake(ctx, app, requestContent);
-                request.getConnection().addCloseListener(new CloseListener<Connection>() {
+                request.getConnection().addCloseListener(new CloseListener() {
                     @Override
-                    public void onClosed(final Connection connection,
+                    public void onClosed(final Closeable closeable,
                             final CloseType type) throws IOException {
                         
+                        final Connection connection = (Connection) closeable;
                         final WebSocket webSocket = getWebSocket(connection);
                         webSocket.close();
                         webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,

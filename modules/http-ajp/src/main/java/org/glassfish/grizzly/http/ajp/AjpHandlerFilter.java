@@ -532,7 +532,8 @@ public class AjpHandlerFilter extends BaseFilter {
         final int type;
         HttpContext context = HttpContext.get(ctx);
         if (context == null) {
-            context = HttpContext.newInstance(ctx, ctx.getConnection());
+            final Connection connection = ctx.getConnection();
+            context = HttpContext.newInstance(ctx, connection, connection, connection);
         }
         if (!httpRequestInProcessAttr.isSet(context)) {
             // if request is no in process - it should be a new Ajp message

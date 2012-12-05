@@ -47,7 +47,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.Deflater;
-import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -59,7 +61,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -73,7 +74,6 @@ import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
-import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
  *
@@ -87,7 +87,7 @@ final class SpdySession {
             SpdySession.class.getName());
     
     private final boolean isServer;
-    private final Connection connection;
+    private final Connection<?> connection;
     
     private SpdyInflaterOutputStream inflaterOutputStream;
     private SpdyDeflaterOutputStream deflaterOutputStream;
@@ -111,7 +111,7 @@ final class SpdySession {
     
     private final Object sessionLock = new Object();
     
-    private boolean isGoAway;
+    private CloseType closeFlag;
     
     private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
@@ -130,7 +130,7 @@ final class SpdySession {
         this(connection, true);
     }
     
-    public SpdySession(final Connection connection,
+    public SpdySession(final Connection<?> connection,
             final boolean isServer) {
         this.connection = connection;
         this.isServer = isServer;
@@ -149,6 +149,8 @@ final class SpdySession {
                 return connection.getPeerAddress();
             }
         });
+        
+        connection.addCloseListener(new ConnectionCloseListener());
     }
 
     public StreamBuilder getStreamBuilder() {
@@ -258,8 +260,8 @@ final class SpdySession {
                 priority, slot);
         
         synchronized(sessionLock) {
-            if (isGoAway) {
-                return null; // if go-away is set - return null to ignore stream creation
+            if (isClosed()) {
+                return null; // if the session is closed is set - return null to ignore stream creation
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -278,8 +280,8 @@ final class SpdySession {
                 priority, slot);
         
         synchronized(sessionLock) {
-            if (isGoAway) {
-                return null; // if go-away is set - return null to ignore stream creation
+            if (isClosed()) {
+                return null; // if the session is closed is set - return null to ignore stream creation
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -338,11 +340,11 @@ final class SpdySession {
      */
     private int setGoAway() {
         synchronized (sessionLock) {
-            if (isGoAway) {
+            if (isClosed()) {
                 return -1;
             }
             
-            isGoAway = true;
+            closeFlag = CloseType.LOCALLY;
             return lastPeerStreamId;
         }
     }
@@ -353,6 +355,7 @@ final class SpdySession {
     void setGoAway(final int lastGoodStreamId) {
         synchronized (sessionLock) {
             // @TODO Notify pending SYNC_STREAMS if streams were aborted
+            closeFlag = CloseType.REMOTELY;
         }
     }
     
@@ -368,7 +371,7 @@ final class SpdySession {
         
         synchronized (sessionLock) {
             // If we're in GOAWAY state and there are no streams left - close this session
-            if (isGoAway && streamsMap.isEmpty()) {
+            if (isClosed() && streamsMap.isEmpty()) {
                 closeSession();
             }
         }
@@ -381,8 +384,13 @@ final class SpdySession {
         connection.closeSilently();
     }
 
+    private boolean isClosed() {
+        return closeFlag != null;
+    }
+    
     void sendMessageUpstream(final SpdyStream spdyStream,
             final HttpPacket message) {
+        
         final FilterChainContext upstreamContext =
                 upstreamChain.obtainFilterChainContext(connection);
 
@@ -397,7 +405,8 @@ final class SpdySession {
         upstreamContext.setMessage(message);
         upstreamContext.setAddressHolder(addressHolder);
 
-        HttpContext httpContext = HttpContext.newInstance(upstreamContext, spdyStream);
+        HttpContext httpContext = HttpContext.newInstance(upstreamContext,
+                spdyStream, spdyStream, spdyStream);
         ProcessorExecutor.execute(upstreamContext.getInternalContext());
     }
 
@@ -512,4 +521,20 @@ final class SpdySession {
         }
     }
     
+    private final class ConnectionCloseListener implements CloseListener {
+
+        @Override
+        public void onClosed(final Closeable closeable, final CloseType type)
+                throws IOException {
+            
+            synchronized (sessionLock) {
+                if (!isClosed()) {
+                    closeFlag = type;
+                    for (SpdyStream stream : streamsMap.values()) {
+                        stream.close(null, false);
+                    }
+                }
+            }
+        }
+    }
 }

@@ -132,16 +132,6 @@ public class HttpServerFilter extends BaseFilter
     // ----------------------------------------------------- Methods from Filter
 
 
-//    @Override
-//    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
-//        if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
-//            final Request request = httpRequestInProgress.get(HttpContext.get(ctx));
-//            request.initiateAsyncronousDataReceiving();
-//            return ctx.getStopAction();
-//        }
-//        return super.handleEvent(ctx, event);
-//    }
-
     @SuppressWarnings({"unchecked"})
     @Override
     public NextAction handleRead(final FilterChainContext ctx)

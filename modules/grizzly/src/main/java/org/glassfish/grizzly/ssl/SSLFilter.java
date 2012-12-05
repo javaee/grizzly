@@ -63,6 +63,7 @@ import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
@@ -1016,9 +1017,11 @@ public class SSLFilter extends BaseFilter {
      * Close listener, which is used to notify handshake completion handler about
      * failure, if <tt>Connection</tt> will be unexpectedly closed.
      */
-    private final class ConnectionCloseListener implements CloseListener<Connection> {
+    private final class ConnectionCloseListener implements CloseListener {
         @Override
-        public void onClosed(final Connection connection, final CloseType type) throws IOException {
+        public void onClosed(final Closeable closeable, final CloseType type)
+                throws IOException {
+            final Connection connection = (Connection) closeable;
             final SSLHandshakeContext handshakeContext =
                     handshakeContextAttr.get(connection);
             if (handshakeContext != null) {

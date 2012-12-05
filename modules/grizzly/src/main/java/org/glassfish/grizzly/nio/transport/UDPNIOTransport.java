@@ -55,6 +55,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -346,8 +347,8 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             if (connection != null
                     && serverConnections.remove(connection)) {
-                final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                final FutureImpl<Closeable> future =
+                        Futures.<Closeable>createSafeFuture();
                 ((UDPNIOServerConnection) connection).unbind(
                         Futures.toCompletionHandler(future));
                 try {
