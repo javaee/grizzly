@@ -49,9 +49,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpBrokenContent;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.DataStructures;
@@ -72,7 +74,9 @@ final class SpdyInputBuffer {
     private final BlockingQueue<InputElement> inputQueue =
             DataStructures.getLTQInstance(InputElement.class);
     
+    // true, if the input is closed
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
+    // the termination flag. When is not null contains the reason why input was terminated
     private volatile Termination terminationFlag;
     
     private final SpdyStream spdyStream;
@@ -89,12 +93,18 @@ final class SpdyInputBuffer {
         spdySession = spdyStream.getSpdySession();
     }
     
+    /**
+     * The method will be invoked once upstream completes READ operation processing.
+     * Here we have to simulate NIO OP_READ event re-registration.
+     */
     void onReadEventComplete() {
+        // If SpdyStream processing is complete and we don't expect more content - just return
         if (spdyStream.isProcessingComplete ||
                 !spdyStream.getInputHttpHeader().isExpectContent()) {
             return;
         }
         
+        // If input stream has been terminated - send error message upstream
         if (isTerminated()) {
             spdySession.sendMessageUpstream(spdyStream, 
                     buildBrokenHttpContent(new EOFException(terminationFlag.description)));
@@ -102,43 +112,65 @@ final class SpdyInputBuffer {
             return;
         }
         
+        // Switch on the "expect more input" flag
         expectInputSwitch.set(true);
         
         final int readyBuffersCount = inputQueueSize.get();
         
+        // If we have more input data to process and "expect more input" flag is still on -
+        // pass the data upstream
         if (readyBuffersCount > 0 &&
                 expectInputSwitch.getAndSet(false)) {
             passPayloadUpstream(null, readyBuffersCount);
         }
     }
     
+    /**
+     * The method is called, when new input data arrives.
+     */
     void offer(final Buffer data, final boolean isLast) {
         if (isInputClosed.get()) {
+            // if input is closed - just ignore the message
             data.tryDispose();
             
             return;
         }
         
+        // create InputElement and add it to the input queue
+        // we double check if this is the last frame (considering content-length header if any)
         offer0(new InputElement(data,
                 isLast | checkContentLength(data.remaining()), false));
     }
 
+    /**
+     * The private method, which adds new InputElement to the input queue
+     */
     private void offer0(final InputElement inputElement) {
         if (expectInputSwitch.getAndSet(false)) {
+            // if "expect more input" switch is on - pass current input queue content upstream
             passPayloadUpstream(inputElement, inputQueueSize.get());
         } else {
+            // if "expect more input" switch is off - enqueue the element
             inputQueue.offer(inputElement);
             inputQueueSize.incrementAndGet();
             
             final int readyBuffersCount = inputQueueSize.get();
 
+            // double check if "expect more input" flag is still off
             if (readyBuffersCount > 0 &&
                     expectInputSwitch.getAndSet(false)) {
+                // if not - pass the input queue content upstream
                 passPayloadUpstream(null, readyBuffersCount);
             }
         }
     }
 
+    /**
+     * Sends the available input data upstream.
+     * 
+     * @param inputElement {@link InputElement} element to be appended to the current input queue content and sent upstream
+     * @param readyBuffersCount the current input queue size (-1 if we don't have this information at the moment).
+     */
     private void passPayloadUpstream(final InputElement inputElement,
             int readyBuffersCount) {
         
@@ -149,24 +181,33 @@ final class SpdyInputBuffer {
             
             Buffer payload = null;
             if (readyBuffersCount > 0) {
+                // if the input queue is not empty - get its elements
                 payload = poll0();
                 assert payload != null;
             }
             
             if (inputElement != null) {
+                // if extra input elemenet is not null - try to append it
                 final Buffer data = inputElement.toBuffer();
                 if (!inputElement.isService) {
+                    // if this is element containing payload
+                    // append input queue and extra input element contents
                     payload = Buffers.appendBuffers(spdySession.getMemoryManager(),
                             payload, data);
+                    
+                    // notify peer that data.remaining() has been read (update window)
                     sendWindowUpdate(data);
                 } else if (payload == null) {
-                    payload = Buffers.EMPTY_BUFFER;
+                    payload = data;
                 }
                 
+                // check if the extra input element is EOF
                 checkEOF(inputElement);
             }
             
+            // build HttpContent based on payload
             final HttpContent content = buildHttpContent(payload);
+            // send it upstream
             spdySession.sendMessageUpstream(spdyStream, content);
         } catch (IOException e) {
             // Should never be thrown
@@ -174,21 +215,38 @@ final class SpdyInputBuffer {
         }
     }
     
+    /**
+     * Retrieves available input buffer payload, waiting up to the
+     * {@link Connection#getBlockingReadTimeout(java.util.concurrent.TimeUnit)}
+     * wait time if necessary for payload to become available.
+     * 
+     * @throws IOException
+     */
     HttpContent poll() throws IOException {
         return buildHttpContent(poll0());
     }
     
+    /**
+     * Retrieves available input buffer payload, waiting up to the
+     * {@link Connection#getBlockingReadTimeout(java.util.concurrent.TimeUnit)}
+     * wait time if necessary for payload to become available.
+     * 
+     * @throws IOException
+     */
     private Buffer poll0() throws IOException {
         if (isTerminated()) {
+            // if input is terminated - return empty buffer
             return Buffers.EMPTY_BUFFER;
         }
         
         Buffer buffer;
         InputElement inputElement;
         
+        // get the current input queue size
         final int inputQueueSizeNow = inputQueueSize.getAndSet(0);
         
         if (inputQueueSizeNow <= 0) {
+            // if there is no element available - block
             try {
                 inputElement = inputQueue.poll(spdySession.getConnection()
                         .getBlockingReadTimeout(TimeUnit.MILLISECONDS),
@@ -198,6 +256,7 @@ final class SpdyInputBuffer {
             }
 
             if (inputElement == null) {
+                // timeout expired
                 throw new IOException("Blocking read timeout");
             } else {
                 // Due to asynchronous inputQueueSize update - the inputQueueSizeNow may be < 0.
@@ -211,11 +270,13 @@ final class SpdyInputBuffer {
                 buffer = inputElement.toBuffer();
             }
         } else if (inputQueueSizeNow == 1) {
+            // if there is one element available
             inputElement = inputQueue.poll();
             
             checkEOF(inputElement);
             buffer = inputElement.toBuffer();
         } else {
+            // if there are more than 1 elements available
             final CompositeBuffer compositeBuffer =
                     CompositeBuffer.newBuffer(spdySession.getMemoryManager());
 
@@ -237,11 +298,17 @@ final class SpdyInputBuffer {
             buffer = compositeBuffer;
         }
         
+        
+        // send window_update notification
         sendWindowUpdate(buffer);
 
         return buffer;
     }
     
+    /**
+     * Same as {@link #close()}, but sets the terminate flag w/o waiting for
+     * consumer to poll Termination input element.
+     */
     void terminate() {
         if (close(terminationFlag)) {
             // Don't wait for Termination input to be polled - assign it right here
@@ -249,12 +316,18 @@ final class SpdyInputBuffer {
         }
     }
     
+    /**
+     * Marks the input buffer as closed by adding Termination input element to the input queue.
+     */
     void close() {
         close(spdyStream.closeTypeFlag.get() == CloseType.REMOTELY ?
                 new Termination(TerminationType.PEER_CLOSE, "Closed by peer") :
                 new Termination(TerminationType.LOCAL_CLOSE, "Closed locally"));
     }
     
+    /**
+     * Marks the input buffer as closed by adding Termination input element to the input queue.
+     */
     private boolean close(final Termination termination) {
         if (isInputClosed.compareAndSet(false, true)) {
             offer0(new InputElement(termination, true, true));
@@ -263,35 +336,52 @@ final class SpdyInputBuffer {
         
         return false;
     }
-    
+
+    /**
+     * Returns <tt>true</tt> if the <tt>InputBuffer</tt> has been closed.
+     */
     boolean isTerminated() {
         return terminationFlag != null;
     }
     
+    /**
+     * Checks if the passed InputElement is input buffer EOF element.
+     * @param inputElement 
+     */
     private void checkEOF(final InputElement inputElement) {
+        // first of all it has to be the last element
         if (inputElement.isLast) {
-            if (!inputElement.isService) {
-                terminationFlag = FIN_TERMINATION;
-            } else {
-                terminationFlag = (Termination) inputElement.content;
-            }
+            // create appropriate terminationFlag info
+            terminationFlag = !inputElement.isService
+                    ? FIN_TERMINATION
+                    : (Termination) inputElement.content;
             
+            // mark the input buffer as closed
             isInputClosed.set(true);
 
-            // NOTIFY STREAM
+            // NOTIFY SpdyStream
             spdyStream.onInputClosed();
         }
     }
 
+    /**
+     * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
+     */
     private void sendWindowUpdate(final Buffer data) {
         sendWindowUpdate(data, false);
     }
     
+    /**
+     * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
+     * @param data 
+     * @param isForce if <tt>true</tt> the WINDOW_UPDATE message will be sent regardless of the current unacked bytes count.
+     */
     private void sendWindowUpdate(final Buffer data, final boolean isForce) {
         final int currentUnackedBytes =
                 unackedReadBytes.addAndGet(data != null ? data.remaining() : 0);
         final int windowSize = spdySession.getLocalInitialWindowSize();
         
+        // if not forced - send update window message only in case currentUnackedBytes > windowSize / 2
         if (currentUnackedBytes > 0 &&
                 ((currentUnackedBytes > (windowSize / 2)) || isForce) &&
                 unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
@@ -300,6 +390,15 @@ final class SpdyInputBuffer {
         }
     }
     
+    /**
+     * Based on content-length header (which we may have or may not), double
+     * check if the payload we've just got is last.
+     * 
+     * @param newDataChunkSize the number of bytes we've just got.
+     * @return <tt>true</tt> if we don't expect more content, or <tt>false</tt> if
+     * we do expect more content or we're not sure because content-length header
+     * was not specified by peer.
+     */
     private boolean checkContentLength(final int newDataChunkSize) {
         if (remainingContentLength == NULL_CONTENT_LENGTH) {
             remainingContentLength = spdyStream.getInputHttpHeader().getContentLength();
@@ -319,19 +418,28 @@ final class SpdyInputBuffer {
         return false;
     }
 
+    /**
+     * Builds {@link HttpContent} based on passed payload {@link Buffer}.
+     * If the payload size is <tt>0</tt> and the input buffer has been terminated -
+     * return {@link HttpBrokenContent}.
+     */
     private HttpContent buildHttpContent(final Buffer payload) {
         final Termination localTermination = terminationFlag;
         final boolean isFin = localTermination == FIN_TERMINATION;
         
         final HttpContent httpContent;
         
+        // if payload size is not 0 or this is FIN payload
         if (payload.hasRemaining() || localTermination == null || isFin) {
-            spdyStream.getInputHttpHeader().setExpectContent(!isFin);
-            httpContent = HttpContent.builder(spdyStream.getInputHttpHeader())
+            final HttpHeader inputHttpHeader = spdyStream.getInputHttpHeader();
+            
+            inputHttpHeader.setExpectContent(!isFin);
+            httpContent = HttpContent.builder(inputHttpHeader)
                     .content(payload)
                     .last(isFin)
                     .build();
         } else {
+            // create broken HttpContent
             httpContent = buildBrokenHttpContent(
                     new EOFException(terminationFlag.description));
         }
@@ -346,6 +454,9 @@ final class SpdyInputBuffer {
                 .build();
     }
     
+    /**
+     * Class represent input queue element
+     */
     private static final class InputElement {
         private final Object content;
         private final boolean isLast;

@@ -102,6 +102,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
     private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
+    
+    // flag, which is indicating if SpdyStream processing has been marked as complete by external code
     volatile boolean isProcessingComplete;
             
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
