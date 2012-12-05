@@ -216,12 +216,13 @@ public class SettingsFrame extends SpdyFrame {
         // ------------------------------------------------------ Public Methods
 
 
-        public void setting(int slotId, int value) {
+        public SettingsFrameBuilder setting(int slotId, int value) {
             if ((settingsFrame.setSettings & (1 << slotId)) == 0) {
                 settingsFrame.setSettings |= 1 << slotId;
                 settingsFrame.settingSlots[slotId] = value;
                 settingsFrame.numberOfSettings++;
             }
+            return this;
         }
 
         public SettingsFrame build() {
