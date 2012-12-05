@@ -184,8 +184,8 @@ public class SettingsFrame extends SpdyFrame {
             for (int i = 0; i < numberOfSettings; i++) {
                 final int eHeader = settings.getInt();
                 final int eId = (eHeader & 0xFFFFFF) - 1;
-                setSettings |= 1 << eId;
-                if (settingSlots[eId] == -1) {
+                if ((setSettings & (1 << eId)) == 0) {
+                    setSettings |= 1 << eId;
                     actualNumberOfSettings++;
                     settingSlots[eId] = settings.getInt();
                 }
@@ -217,7 +217,7 @@ public class SettingsFrame extends SpdyFrame {
 
 
         public void setting(int slotId, int value) {
-            if (settingsFrame.settingSlots[slotId] != -1) {
+            if ((settingsFrame.setSettings & (1 << slotId)) == 0) {
                 settingsFrame.setSettings |= 1 << slotId;
                 settingsFrame.settingSlots[slotId] = value;
                 settingsFrame.numberOfSettings++;
