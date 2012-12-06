@@ -71,8 +71,14 @@ public class URIDecoderTest extends TestCase {
         testDecoder(s);
     }
 
-    @SuppressWarnings({"unchecked"})
     private void testDecoder(String inputURI) throws Exception {
+        testBufferDecoder(inputURI);
+        testStringDecoder(inputURI);
+        testCharsDecoder(inputURI);
+    }
+    
+    @SuppressWarnings({"unchecked"})
+    private void testBufferDecoder(String inputURI) throws Exception {
         
         MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
@@ -88,4 +94,29 @@ public class URIDecoderTest extends TestCase {
 
         assertEquals(inputURI, decodedURI);
     }
+    
+    @SuppressWarnings({"unchecked"})
+    private void testStringDecoder(String inputURI) throws Exception {
+        
+        String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
+
+        String decodedURI = URLDecoder.decode(encodedURI, true, UTF8_CHARSET.name());
+
+        assertEquals(inputURI, decodedURI);
+    }
+    
+    @SuppressWarnings({"unchecked"})
+    private void testCharsDecoder(String inputURI) throws Exception {
+        
+        String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
+
+        DataChunk dataChunk = DataChunk.newInstance();
+        final char[] encodedCA = encodedURI.toCharArray();
+        dataChunk.setChars(encodedCA, 0, encodedCA.length);
+
+        URLDecoder.decode(dataChunk, dataChunk, true, UTF8_CHARSET.name());
+
+        assertEquals(inputURI, dataChunk.toString());
+    }    
+    
 }

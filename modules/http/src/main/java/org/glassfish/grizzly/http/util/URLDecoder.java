@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
+import java.io.UnsupportedEncodingException;
 import org.glassfish.grizzly.Buffer;
 
 /**
@@ -58,13 +59,88 @@ public class URLDecoder {
      */
     public static void decode(final DataChunk dataChunk,
             final boolean allowEncodedSlash) throws CharConversionException {
-        decode(dataChunk, dataChunk, allowEncodedSlash);
+        decodeAscii(dataChunk, dataChunk, allowEncodedSlash);
+    }
+
+    /**
+     * URLDecode the {@link DataChunk}
+     */
+    public static void decode(final DataChunk srcDataChunk,
+            final DataChunk dstDataChunk, final boolean allowEncodedSlash)
+            throws CharConversionException {
+        decodeAscii(srcDataChunk, dstDataChunk, allowEncodedSlash);
     }
     
    /**
      * URLDecode the {@link DataChunk}
      */
     public static void decode(final DataChunk srcDataChunk,
+            final DataChunk dstDataChunk, final boolean allowEncodedSlash,
+            final String enc)
+            throws CharConversionException {
+        switch (srcDataChunk.getType()) {
+            case Bytes:
+            {
+                final ByteChunk srcByteChunk = srcDataChunk.getByteChunk();
+                
+                final ByteChunk dstByteChunk = dstDataChunk.getByteChunk();
+
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the ByteChunk length
+                if (dstByteChunk != srcByteChunk) {
+                    dstByteChunk.allocate(srcByteChunk.getLength(), -1);
+                }
+
+                decode(srcByteChunk, dstByteChunk, allowEncodedSlash);
+                return;
+            }
+            case Buffer:
+            {
+                final BufferChunk srcBufferChunk = srcDataChunk.getBufferChunk();
+
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the ByteChunk length
+                if (dstDataChunk != srcDataChunk) {
+                    final ByteChunk dstByteChunk = dstDataChunk.getByteChunk();
+                    dstByteChunk.allocate(srcBufferChunk.getLength(), -1);
+                    decode(srcBufferChunk, dstByteChunk, allowEncodedSlash);
+                } else {
+                    decode(srcBufferChunk, srcBufferChunk, allowEncodedSlash);
+                }
+                return;
+            }
+            case String:
+            {
+                dstDataChunk.setString(
+                        decode(srcDataChunk.toString(), allowEncodedSlash, enc));
+                return;
+            }
+            case Chars:
+            {
+                final CharChunk srcCharChunk = srcDataChunk.getCharChunk();
+                final CharChunk dstCharChunk = dstDataChunk.getCharChunk();
+                
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the ByteChunk length
+                if (dstDataChunk != srcDataChunk) {
+                    dstCharChunk.ensureCapacity(srcCharChunk.getLength());
+                    decode(srcCharChunk, dstCharChunk, allowEncodedSlash, enc);
+                } else {
+                    decode(srcCharChunk, srcCharChunk, allowEncodedSlash, enc);
+                }
+
+                dstDataChunk.setChars(dstCharChunk.getChars(),
+                        dstCharChunk.getStart(), dstCharChunk.getEnd());
+                return;
+            }
+            default: throw new NullPointerException();
+        }
+    }
+
+   /**
+     * URLDecode the {@link DataChunk}
+     */
+    public static void decodeAscii(final DataChunk srcDataChunk,
             final DataChunk dstDataChunk, final boolean allowEncodedSlash)
             throws CharConversionException {
         switch (srcDataChunk.getType()) {
@@ -101,15 +177,23 @@ public class URLDecoder {
             case String:
             {
                 dstDataChunk.setString(
-                        decode(srcDataChunk.toString(), allowEncodedSlash));
+                        decodeAscii(srcDataChunk.toString(), allowEncodedSlash));
                 return;
             }
             case Chars:
             {
                 final CharChunk srcCharChunk = srcDataChunk.getCharChunk();
                 final CharChunk dstCharChunk = dstDataChunk.getCharChunk();
-                dstCharChunk.ensureCapacity(srcCharChunk.getLength());
-                decode(srcCharChunk, dstCharChunk, allowEncodedSlash);
+                
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the ByteChunk length
+                if (dstDataChunk != srcDataChunk) {
+                    dstCharChunk.ensureCapacity(srcCharChunk.getLength());
+                    decodeAscii(srcCharChunk, dstCharChunk, allowEncodedSlash);
+                } else {
+                    decodeAscii(srcCharChunk, srcCharChunk, allowEncodedSlash);
+                }
+
                 dstDataChunk.setChars(dstCharChunk.getChars(),
                         dstCharChunk.getStart(), dstCharChunk.getEnd());
                 return;
@@ -117,7 +201,7 @@ public class URLDecoder {
             default: throw new NullPointerException();
         }
     }
-
+    
     /**
      * URLDecode the {@link ByteChunk}
      */
@@ -319,13 +403,115 @@ public class URLDecoder {
      */
     public static void decode(final CharChunk charChunk,
             final boolean allowEncodedSlash) throws CharConversionException {
-        decode(charChunk, charChunk, allowEncodedSlash);
+        decodeAscii(charChunk, charChunk, allowEncodedSlash);
     }
 
     /**
      * URLDecode the {@link CharChunk}
      */
     public static void decode(final CharChunk srcCharChunk,
+            final CharChunk dstCharChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+        decodeAscii(srcCharChunk, dstCharChunk, allowEncodedSlash);
+    }
+    
+    /**
+     * URLDecode the {@link CharChunk}
+     */
+    public static void decode(final CharChunk srcCharChunk,
+            final CharChunk dstCharChunk,
+            final boolean allowEncodedSlash,
+            String enc) throws CharConversionException {
+
+        byte[] bytes = null;
+        final char[] srcBuffer = srcCharChunk.getBuffer();
+        final int srcStart = srcCharChunk.getStart();
+        final int srcEnd = srcCharChunk.getEnd();
+        final int srcLen = srcEnd - srcStart;
+        
+        final char[] dstBuffer = dstCharChunk.getBuffer();
+
+        int idx = dstCharChunk.getStart();
+        int j = srcStart;
+        while(j < srcEnd) {
+            char c = srcBuffer[j];
+
+            if (c == '+') {
+                dstBuffer[idx++] = ' ';
+                j++;
+            } else if (c != '%') {
+                dstBuffer[idx++] = c;
+                j++;
+            } else {
+                /*
+                 * Starting with this instance of %, process all
+                 * consecutive substrings of the form %xy. Each
+                 * substring %xy will yield a byte. Convert all
+                 * consecutive  bytes obtained this way to whatever
+                 * character(s) they represent in the provided
+                 * encoding.
+                 */
+
+                try {
+
+                    // (numChars-i)/3 is an upper bound for the number
+                    // of remaining bytes
+                    if (bytes == null)
+                        bytes = new byte[(srcLen-j)/3];
+                    int pos = 0;
+
+                    while (((j + 2) < srcLen)
+                            && (c == '%')) {
+                        
+                        final char c1 = srcBuffer[j + 1];
+                        final char c2 = srcBuffer[j + 2];
+
+                        if (!HexUtils.isHexDigit(c1) || !HexUtils.isHexDigit(c2)) {
+                            throw new IllegalStateException("isHexDigit");
+                        }
+                        
+                        int v = x2c(c1, c2);
+                        if (v < 0) {
+                            throw new IllegalArgumentException("URLDecoder: Illegal hex characters in escape (%) pattern - negative value");
+                        }
+                        bytes[pos++] = (byte) v;
+                        j += 3;
+                        if (j < srcLen) {
+                            c = srcBuffer[j];
+                        }
+                    }
+
+                    // A trailing, incomplete byte encoding such as
+                    // "%x" will cause an exception to be thrown
+
+                    if ((j < srcLen) && (c == '%')) {
+                        throw new IllegalArgumentException(
+                                "URLDecoder: Incomplete trailing escape (%) pattern");
+                    }
+                    final String decodedChunk = new String(bytes, 0, pos, enc);
+                    if (!allowEncodedSlash && (decodedChunk.indexOf('/') != -1)) {
+                        throw new CharConversionException("Encoded slashes are not allowed");
+                    }
+                    
+                    final int chunkLen = decodedChunk.length();
+                    decodedChunk.getChars(0, chunkLen, dstBuffer, idx);
+                    idx += chunkLen;
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - "
+                            + e.getMessage());
+                } catch (UnsupportedEncodingException ignored) {
+                }
+            }
+        }
+
+        dstCharChunk.setEnd(idx);
+    }
+    
+    /**
+     * URLDecode the {@link CharChunk}
+     */
+    public static void decodeAscii(final CharChunk srcCharChunk,
             final CharChunk dstCharChunk,
             final boolean allowEncodedSlash) throws CharConversionException {
 
@@ -367,71 +553,153 @@ public class URLDecoder {
         dstCharChunk.setEnd(idx);
     }
     
-    // XXX Old code, needs to be replaced !!!!
-    // 
+    /**
+     * URLDecode the {@link String}
+     */
     public static String decode(final String str) throws CharConversionException {
-        return decode(str, true);
+        return decodeAscii(str, true);
     }
 
+    /**
+     * URLDecode the {@link String}
+     */
     public static String decode(final String str, final boolean allowEncodedSlash)
+            throws CharConversionException {
+        return decodeAscii(str, allowEncodedSlash);
+    }
+
+    /**
+     * URLDecode the {@link String}
+     */
+    public static String decode(String s, final boolean allowEncodedSlash,
+            String enc) throws CharConversionException {
+        boolean needToChange = false;
+        int numChars = s.length();
+        StringBuilder sb = new StringBuilder(numChars > 500 ? numChars / 2 : numChars);
+        int i = 0;
+
+        char c;
+        byte[] bytes = null;
+        while (i < numChars) {
+            c = s.charAt(i);
+            switch (c) {
+            case '+':
+                sb.append(' ');
+                i++;
+                needToChange = true;
+                break;
+            case '%':
+                /*
+                 * Starting with this instance of %, process all
+                 * consecutive substrings of the form %xy. Each
+                 * substring %xy will yield a byte. Convert all
+                 * consecutive  bytes obtained this way to whatever
+                 * character(s) they represent in the provided
+                 * encoding.
+                 */
+
+                try {
+
+                    // (numChars-i)/3 is an upper bound for the number
+                    // of remaining bytes
+                    if (bytes == null)
+                        bytes = new byte[(numChars-i)/3];
+                    int pos = 0;
+
+                    while (((i + 2) < numChars)
+                            && (c == '%')) {
+                        int v = Integer.parseInt(s.substring(i + 1, i + 3), 16);
+                        if (v < 0) {
+                            throw new IllegalArgumentException("URLDecoder: Illegal hex characters in escape (%) pattern - negative value");
+                        }
+                        bytes[pos++] = (byte) v;
+                        i += 3;
+                        if (i < numChars) {
+                            c = s.charAt(i);
+                        }
+                    }
+
+                    // A trailing, incomplete byte encoding such as
+                    // "%x" will cause an exception to be thrown
+
+                    if ((i < numChars) && (c == '%')) {
+                        throw new IllegalArgumentException(
+                                "URLDecoder: Incomplete trailing escape (%) pattern");
+                    }
+                    final String decodedChunk = new String(bytes, 0, pos, enc);
+                    if (!allowEncodedSlash && (decodedChunk.indexOf('/') != -1)) {
+                        throw new CharConversionException("Encoded slashes are not allowed");
+                    }
+
+                    sb.append(decodedChunk);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - "
+                            + e.getMessage());
+                } catch (UnsupportedEncodingException ignored) {
+                }
+                needToChange = true;
+                break;
+            default:
+                sb.append(c);
+                i++;
+                break;
+            }
+        }
+
+        return (needToChange? sb.toString() : s);
+    }
+    
+    public static String decodeAscii(final String str, final boolean allowEncodedSlash)
             throws CharConversionException {
         
         if (str == null) {
             return null;
         }
 
-        int strPos;
-
-        if ((strPos = str.indexOf('%')) < 0) {
-            return str;
-        }
-
+        int mPos = 0;        // mark position
+        int strPos = 0;
         int strLen = str.length();
         StringBuilder dec = new StringBuilder(strLen);    // decoded string output
-
+        
         while (strPos < strLen) {
-            int laPos;        // lookahead position
-
-            // look ahead to next URLencoded metacharacter, if any
-            for (laPos = strPos; laPos < strLen; laPos++) {
-                char laChar = str.charAt(laPos);
-                if (laChar == '%') {
-                    break;
-                }
-            }
-
-            // if there were non-metacharacters, copy them all as a block
-            if (laPos > strPos) {
-                dec.append(str.substring(strPos, laPos));
-                strPos = laPos;
-            }
-
-            // shortcut out of here if we're at the end of the string
-            if (strPos >= strLen) {
-                break;
-            }
-
             // process next metacharacter
-            char metaChar = str.charAt(strPos);
-            if (metaChar == '+') {
-                dec.append(' ');
+            final char metaChar = str.charAt(strPos);
+            final boolean isPlus = (metaChar == '+');
+            final boolean isNorm = !(isPlus || (metaChar == '%'));
+            
+            if (isNorm) {
                 strPos++;
-            } else if (metaChar == '%') {
-                // We throw the original exception - the super will deal with
-                // it
-                //                try {
-                final char res = (char) Integer.parseInt(str.substring(strPos + 1, strPos + 3), 16);
-                if (!allowEncodedSlash && (res == '/')) {
-                    throw new CharConversionException("Encoded slashes are not allowed");
+            } else {
+                // if there were non-metacharacters, copy them all as a block
+                if (mPos < strPos) {
+                    dec.append(str, mPos, strPos);
                 }
-                dec.append(res);
-                strPos += 3;
+                
+                if (isPlus) {
+                    dec.append(' ');
+                    strPos++;
+                } else {
+                    final char res = (char) Integer.parseInt(str.substring(strPos + 1, strPos + 3), 16);
+                    if (!allowEncodedSlash && (res == '/')) {
+                        throw new CharConversionException("Encoded slashes are not allowed");
+                    }
+                    dec.append(res);
+                    strPos += 3;
+                }
+                
+                mPos = strPos;
             }
         }
 
+        // if there were non-metacharacters, copy them all as a block
+        if (mPos < strPos) {
+            dec.append(str, mPos, strPos);
+        }
+        
         return dec.toString();
     }
-
+    
     private static int x2c(byte b1, byte b2) {
         return (HexUtils.hexDigit2Dec(b1) << 4) + HexUtils.hexDigit2Dec(b2);
     }
