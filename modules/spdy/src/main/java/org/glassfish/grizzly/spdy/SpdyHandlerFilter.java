@@ -407,8 +407,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     if (questionIdx == -1) {
                         spdyRequest.getRequestURIRef().init(headersArray, valueStart, valueEnd);
                     } else {
-                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
-                                .setBytes(headersArray, valueStart, questionIdx);
+                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, questionIdx);
                         if (questionIdx < valueEnd - 1) {
                             spdyRequest.getQueryStringDC()
                                     .setBytes(headersArray, questionIdx + 1, valueEnd);

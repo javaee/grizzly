@@ -41,8 +41,6 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -56,7 +54,8 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 
-import static org.glassfish.grizzly.spdy.Constants.*;
+import static org.glassfish.grizzly.http.util.Constants.*;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  *
@@ -89,8 +88,17 @@ class SpdyEncoderUtils {
         
         dataOutputStream.writeInt(mimeHeadersCount + 2);
 
-        encodeHeaderValue(dataOutputStream, ":status".getBytes(),
-                response.getHttpStatus().getStatusBytes());
+
+        if (response.isCustomReasonPhraseSet()) {
+            // don't apply HttpStatus.filter(DataChunk)
+            encodeHeaderValue(dataOutputStream, ":status".getBytes(),
+                    response.getHttpStatus().getStatusBytes(), " ".getBytes(),
+                    response.getReasonPhraseDC().toString().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
+        } else {
+            encodeHeaderValue(dataOutputStream, ":status".getBytes(),
+                    response.getHttpStatus().getStatusBytes(), " ".getBytes(),
+                    response.getHttpStatus().getReasonPhraseBytes());
+        }
         
         encodeHeaderValue(dataOutputStream, ":version".getBytes(),
                 response.getProtocol().getProtocolBytes());
@@ -127,27 +135,54 @@ class SpdyEncoderUtils {
         final int mimeHeadersCount = headers.size();
         
         dataOutputStream.writeInt(mimeHeadersCount + 5);
+
+        // ----------------- Parse URI scheme and path ----------------
+        int schemeStart = -1;
+        int schemeLen = -1;
         
-        final URI uri;
-        try {
-            uri = new URI(request.getRequestURI());
-        } catch (URISyntaxException e) {
-            throw new IOException(e);
+        final byte[] requestURI =
+                request.getRequestURI().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
+        final int len = requestURI.length;
+
+        final int nonSpaceIdx = skipSpaces(requestURI, 0, len, len);
+        final int idx = ByteChunk.indexOf(requestURI, nonSpaceIdx, len, '/');
+        
+        if (idx > 0 && idx < len - 1 &&
+                requestURI[idx - 1] == ':' && requestURI[idx + 1] == '/') {
+            schemeStart = nonSpaceIdx;
+            schemeLen = idx - schemeStart - 1;
         }
+        
+
+        final int pathStart = schemeStart == -1 ?
+                idx :
+                ByteChunk.indexOf(requestURI, idx + 2, len, '/');
+        final int pathLen = len - pathStart;
+        
+        if (pathStart == -1) {
+            throw new IllegalStateException("Request URI path is not set");
+        }
+        // ---------------------------------------------------------------
+        
         encodeHeaderValue(dataOutputStream, ":method".getBytes(),
                 request.getMethod().getMethodBytes());
         
         encodeHeaderValue(dataOutputStream, ":path".getBytes(),
-                uri.getPath().getBytes());
+                requestURI, pathStart, pathLen);
         
         encodeHeaderValue(dataOutputStream, ":version".getBytes(),
                 request.getProtocol().getProtocolBytes());
 
         encodeHeaderValue(dataOutputStream, ":host".getBytes(),
-                hostHeader.getBytes());
+                hostHeader.getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
 
-        encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
-                uri.getScheme() != null ? uri.getScheme().getBytes() : "https".getBytes());
+        if (schemeLen > 0) {
+            encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
+                    requestURI, schemeStart, schemeLen);
+        } else {
+            encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
+                    "https".getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
+        }
         
         encodeUserHeaders(spdySession, headers, dataOutputStream);
         
@@ -296,9 +331,30 @@ class SpdyEncoderUtils {
     private static void encodeHeaderValue(
             final DataOutputStream dataOutputStream,
             final byte[] nameBytes, final byte[] valueBytes) throws IOException {
+        encodeHeaderValue(dataOutputStream, nameBytes, valueBytes, 0, valueBytes.length);
+    }
+    
+    private static void encodeHeaderValue(
+            final DataOutputStream dataOutputStream,
+            final byte[] nameBytes, final byte[] valueBytes,
+            final int valueStart, final int valueLen) throws IOException {
         dataOutputStream.writeInt(nameBytes.length);
         dataOutputStream.write(nameBytes);
-        dataOutputStream.writeInt(valueBytes.length);
-        dataOutputStream.write(valueBytes);
+        dataOutputStream.writeInt(valueLen);
+        dataOutputStream.write(valueBytes, valueStart, valueLen);
     }
+    
+    private static void encodeHeaderValue(
+            final DataOutputStream dataOutputStream,
+            final byte[] nameBytes,
+            final byte[] valuePart1, final byte[] valuePart2, final byte[] valuePart3)
+            throws IOException {
+        
+        dataOutputStream.writeInt(nameBytes.length);
+        dataOutputStream.write(nameBytes);
+        dataOutputStream.writeInt(valuePart1.length + valuePart2.length + valuePart3.length);
+        dataOutputStream.write(valuePart1);
+        dataOutputStream.write(valuePart2);
+        dataOutputStream.write(valuePart3);
+    }    
 }
