@@ -1,4 +1,4 @@
-/*
+ /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
@@ -161,7 +161,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
             req.setNote(ADAPTER_NOTES, request);
             res.setNote(ADAPTER_NOTES, response);
         }
-        System.out.println("** REQUEST IS SECURE: " + request.isSecure());
+
         try {
             if (decodeURL){
                 // URI decoding
