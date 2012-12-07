@@ -304,9 +304,9 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 HttpRequestURIDecoder.decode(decodedURI, urlDecoder, null, null);
                 MappingData data = new MappingData();
                 mapper.map(req.remoteHost(), decodedURI, data);
-                pathInfo = data.pathInfo.getString();
-                servletPath = data.wrapperPath.getString();
-                contextPath = data.contextPath.getString();
+                pathInfo = data.pathInfo.toString();
+                servletPath = data.wrapperPath.toString();
+                contextPath = data.contextPath.toString();
                 
                 return data;
             } catch (Exception e) {
