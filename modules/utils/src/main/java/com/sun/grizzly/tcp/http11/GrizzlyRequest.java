@@ -368,7 +368,7 @@ public class GrizzlyRequest {
     /**
      * Secure flag.
      */
-    protected boolean secure = false;
+    protected Boolean secure;
 
     
     /**
@@ -526,7 +526,7 @@ public class GrizzlyRequest {
         cookiesParsed = false;
         locales.clear();
         localesParsed = false;
-        secure = false;
+        secure = null;
         remoteAddr = null;
         remoteHost = null;
         remotePort = -1;
@@ -1211,6 +1211,9 @@ public class GrizzlyRequest {
      * Was this request received on a secure connection?
      */
     public boolean isSecure() {
+        if (secure == null) {
+            secure = request.scheme().equals("https");
+        }
         return (secure);
     }
     
