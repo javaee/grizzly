@@ -294,19 +294,9 @@ public abstract class HttpHeader extends HttpPacket
     public void setContentBroken(final boolean isBroken) {
         this.isContentBroken = isBroken;
     }
-
     
     public String getUpgrade() {
-        if (!upgrade.isNull()) {
-            return upgrade.toString();
-        }
-
-        final String upgradeStr = headers.getHeader(Header.Upgrade);
-        if (upgradeStr != null) {
-            upgrade.setString(upgradeStr);
-        }
-        
-        return upgradeStr;
+        return upgrade.toString();
     }
 
     public DataChunk getUpgradeDC() {

@@ -79,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -399,7 +400,71 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    public void testUpgradeIgnoresTransferEncoding() throws Throwable {
 
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/path")
+                .contentLength(1)
+                .header(Header.TransferEncoding, "chunked")
+                .header(Header.Server, "localhost:" + PORT)
+                .header(Header.Upgrade, "test")
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0\r\nHello"))
+                .build();
+        final HttpContent chunk2 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0\r\nWorld"))
+                .build();
+        
+        List<HttpContent> request = Arrays.asList(chunk1, chunk2);
+        
+        final String testMsg = "0\r\nHello0\r\nWorld";
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(101);
+        result.setStatusMessage("Switching Protocols");
+        result.addHeader("Connection", "Upgrade");
+        result.addHeader("Upgrade", "test");
+        result.addHeader("!Transfer-Encoding", "");
+        result.addHeader("!ContentLength", "");
+        result.appendContent(testMsg);
+        doTest(new ClientFilter(request, result, 1000), new BaseFilter() {
+            int packetCounter = 0;
+            int contentCounter = 0;
+            
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                
+                final Buffer payload = requestContent.getContent().duplicate();
+                contentCounter += payload.remaining();
+                if (packetCounter++ == 0) {
+                    response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
+                    response.setHeader(Header.Connection, "Upgrade");
+                    response.setHeader(Header.Upgrade, request.getHeader(Header.Upgrade));
+                }
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).build();
+                // Setting last flag to false to make sure HttpServerFilter will not
+                // add content-length header
+                ctx.write(responseContent);
+
+                if (contentCounter == testMsg.length()) {
+                    ctx.flush(new FlushAndCloseHandler());
+                }
+                
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
     public void testHttp1AutoContentLengthOnSingleChunk() throws Throwable {
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
@@ -524,7 +589,7 @@ public class HttpSemanticsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                clientFilter.getFuture().get(10, TimeUnit.SECONDS);
+                clientFilter.getFuture().get(30, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
