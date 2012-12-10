@@ -805,8 +805,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         boolean wasContentAlreadyEncoded = false;
         final HttpResponsePacket response = (HttpResponsePacket) header;
-        if (!response.isCommitted() && (
-                response.getRequest().getUpgradeDC().isNull() || response.getUpgrade() == null)) {
+        if (!response.isCommitted()) {
             final HttpContent encodedHttpContent = prepareResponse(
                     ctx, response.getRequest(), response, content);
             
@@ -833,6 +832,13 @@ public class HttpServerFilter extends HttpCodecFilter {
             final HttpRequestPacket request,
             final HttpResponsePacket response,
             final HttpContent httpContent) {
+        
+        // If it's upgraded HTTP - don't check semantics
+        if (!response.getRequest().getUpgradeDC().isNull() ||
+                response.getUpgrade() != null) {
+            return httpContent;
+        }
+        
         final Protocol requestProtocol = request.getProtocol();
 
         if (requestProtocol == Protocol.HTTP_0_9) {

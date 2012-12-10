@@ -1514,6 +1514,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
+        if (!httpHeader.getUpgradeDC().isNull()) {
+            // If it's upgraded Http connection - ignore the transfer encoding
+            return;
+        }
+        
         final TransferEncoding[] encodings = transferEncodings.getArray();
         if (encodings == null) return;
 
@@ -1528,6 +1533,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     final void setTransferEncodingOnSerializing(final FilterChainContext ctx,
                                                 final HttpHeader httpHeader,
                                                 final HttpContent httpContent) {
+        
+        if (!httpHeader.getUpgradeDC().isNull()) {
+            // If it's upgraded Http connection - ignore the transfer encoding
+            return;
+        }
 
         final TransferEncoding[] encodings = transferEncodings.getArray();
         if (encodings == null) return;
@@ -1568,6 +1578,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     }
     
     final void setContentEncodingsOnParsing(final HttpHeader httpHeader) {
+        if (!httpHeader.getUpgradeDC().isNull()) {
+            // If it's upgraded Http connection - ignore the content encoding
+            return;
+        }
+        
         final DataChunk bc =
                 httpHeader.getHeaders().getValue(Header.ContentEncoding);
         
@@ -1593,6 +1608,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     }
 
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
+        if (!httpHeader.getUpgradeDC().isNull()) {
+            // If it's upgraded Http connection - ignore the content encoding
+            return;
+        }
+        
         // If content encoders have been already set - skip lookup phase
         if (httpHeader.isContentEncodingsSelected()) return;
 
