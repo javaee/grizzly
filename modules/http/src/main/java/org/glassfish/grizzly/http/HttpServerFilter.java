@@ -625,16 +625,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         final ProcessingState state = request.getProcessingState();
         final HttpResponsePacket response = request.getResponse();
 
-        final Method method = request.getMethod();
-
-        if (Method.GET.equals(method)
-                || Method.HEAD.equals(method)
-                || (!Method.CONNECT.equals(method)
-                        && !request.containsHeader(Header.TransferEncoding)
-                        && request.getContentLength() == -1)) {
-            request.setExpectContent(false);
-        }
-
         Protocol protocol;
         try {
             protocol = request.getProtocol();
@@ -646,6 +636,13 @@ public class HttpServerFilter extends HttpCodecFilter {
             request.setProtocol(protocol);
             
             return;
+        }
+
+        final Method method = request.getMethod();
+
+        if (Method.GET.equals(method)
+                || Method.HEAD.equals(method)) {
+            request.setExpectContent(false);
         }
 
         if (request.getHeaderParsingState().contentLengthsDiffer) {
@@ -687,14 +684,19 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
 
         // ------ Set keep-alive flag
-        final DataChunk connectionValueDC = headers.getValue(Header.Connection);
-        final boolean isConnectionClose = (connectionValueDC != null &&
-                connectionValueDC.equalsIgnoreCaseLowerCase(CLOSE_BYTES));
+        if (request.isExpectContent() &&
+                !request.isChunked() && request.getContentLength() == -1) {
+            state.keepAlive = false;
+        } else {
+            final DataChunk connectionValueDC = headers.getValue(Header.Connection);
+            final boolean isConnectionClose = (connectionValueDC != null &&
+                    connectionValueDC.equalsIgnoreCaseLowerCase(CLOSE_BYTES));
 
-        if (!isConnectionClose) {
-            state.keepAlive = isHttp11 ||
-                    (connectionValueDC != null &&
-                    connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
+            if (!isConnectionClose) {
+                state.keepAlive = isHttp11 ||
+                        (connectionValueDC != null &&
+                        connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
+            }
         }
         // --------------------------
 
