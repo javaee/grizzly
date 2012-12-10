@@ -143,7 +143,7 @@ public class RstStreamFrame extends SpdyFrame {
 
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
-        final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 16);
+        final Buffer frameBuffer = memoryManager.allocateAtLeast(16);
         frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE); // "C", version, RST_STREAM_FRAME
         frameBuffer.putInt(8); // Flags, Length
         frameBuffer.putInt(streamId & 0x7FFFFFFF); // Stream-ID

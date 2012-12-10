@@ -127,15 +127,6 @@ public abstract class SpdyFrame implements Cacheable {
     // ------------------------------------------------------- Protected Methods
 
 
-    protected static Buffer allocateHeapBuffer(final MemoryManager mm, final int size) {
-        if (!mm.willAllocateDirect(size)) {
-            return mm.allocateAtLeast(size);
-        } else {
-            return Buffers.wrap(mm, new byte[size]);
-        }
-    }
-
-
     protected void initialize(final SpdyHeader header) {
         this.header = header;
         this.flags = header.flags;

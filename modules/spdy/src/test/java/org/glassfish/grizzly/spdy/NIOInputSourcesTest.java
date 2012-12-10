@@ -45,6 +45,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -58,6 +59,7 @@ import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -224,57 +226,57 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     }
 
-//    public void testDirectAsyncReadSpecifiedSizeSlowClient() throws Throwable {
-//
-//        final FutureImpl<String> testResult = SafeFutureImpl.create();
-//        final EchoHandler httpHandler = new DirectBufferEchoHttpHandler(testResult, 2000);
-//        final String expected = buildString(5000);
-//
-//        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-//        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-//        b.contentLength(expected.length());
-//        final HttpRequestPacket request = b.build();
-//
-//        final WriteStrategy strategy = new WriteStrategy() {
-//            @Override
-//            public void doWrite(FilterChainContext ctx) throws IOException {
-//
-//                ctx.write(request);
-//                MemoryManager mm = ctx.getMemoryManager();
-//
-//                for (int i = 0, count = (5000 / 1000); i < count; i++) {
-//                    int start = 0;
-//                    if (i != 0) {
-//                        start = i * 1000;
-//                    }
-//                    int end = start + 1000;
-//                    String content = expected.substring(start, end);
-//                    Buffer buf = mm.allocate(content.length());
-//                    buf.put(content.getBytes());
-//                    buf.flip();
-//                    HttpContent.Builder cb = request.httpContentBuilder();
-//                    cb.content(buf);
-//                    HttpContent ct = cb.build();
-//                    ctx.write(ct);
-//                    try {
-//                        Thread.sleep(300);
-//                    } catch (InterruptedException ie) {
-//                        ie.printStackTrace();
-//                        testResult.failure(ie);
-//                        break;
-//                    }
-//                }
-//            }
-//        };
-//        
-//        HttpServer httpServer = createWebServer(httpHandler);
-//        
-//        Transport transport = httpServer.getListeners().iterator().next().getTransport();
-//        final ByteBufferManager memoryManager = new ByteBufferManager(true);
-//        
-//        transport.setMemoryManager(memoryManager);
-//        doTest(httpServer, httpHandler, request, expected, testResult, strategy, 60);
-//    }
+    public void testDirectAsyncReadSpecifiedSizeSlowClient() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final EchoHandler httpHandler = new DirectBufferEchoHttpHandler(testResult, 2000);
+        final String expected = buildString(5000);
+
+        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.contentLength(expected.length());
+        final HttpRequestPacket request = b.build();
+
+        final WriteStrategy strategy = new WriteStrategy() {
+            @Override
+            public void doWrite(FilterChainContext ctx) throws IOException {
+
+                ctx.write(request);
+                MemoryManager mm = ctx.getMemoryManager();
+
+                for (int i = 0, count = (5000 / 1000); i < count; i++) {
+                    int start = 0;
+                    if (i != 0) {
+                        start = i * 1000;
+                    }
+                    int end = start + 1000;
+                    String content = expected.substring(start, end);
+                    Buffer buf = mm.allocate(content.length());
+                    buf.put(content.getBytes());
+                    buf.flip();
+                    HttpContent.Builder cb = request.httpContentBuilder();
+                    cb.content(buf);
+                    HttpContent ct = cb.build();
+                    ctx.write(ct);
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException ie) {
+                        ie.printStackTrace();
+                        testResult.failure(ie);
+                        break;
+                    }
+                }
+            }
+        };
+
+        HttpServer httpServer = createWebServer(httpHandler);
+
+        Transport transport = httpServer.getListeners().iterator().next().getTransport();
+        final ByteBufferManager memoryManager = new ByteBufferManager(true);
+
+        transport.setMemoryManager(memoryManager);
+        doTest(httpServer, httpHandler, request, expected, testResult, strategy, 60);
+    }
     
     public void testAsyncReadStartedOutsideHttpHandler() throws Throwable {
 

@@ -336,6 +336,27 @@ public class BufferChunk implements Chunk {
 
         return true;
     }
+
+    public static boolean equals(final byte[] c, final int cOff, final int cLen,
+                                 final Buffer t, final int tOff, final int tLen) {
+        // XXX ENCODING - this only works if encoding is UTF8-compat
+        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
+
+        if (cLen != tLen) {
+            return false;
+        }
+
+        if (c == null || t == null) {
+            return false;
+        }
+
+        for (int i = 0; i < cLen; i++) {
+            if (c[i + cOff] != t.get(i + tOff)) {
+                return false;
+            }
+        }
+        return true;
+    }
     
     /**
      * Compares the message Buffer to the specified char array.

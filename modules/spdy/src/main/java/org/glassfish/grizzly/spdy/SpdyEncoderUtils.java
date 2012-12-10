@@ -69,7 +69,7 @@ class SpdyEncoderUtils {
     static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
             final HttpResponsePacket response) throws IOException {
 
-        Buffer buffer = allocateHeapBuffer(spdySession.getMemoryManager(), 2048);
+        Buffer buffer = spdySession.getMemoryManager().allocateAtLeast(2048);
         final MimeHeaders headers = response.getHeaders();
         
         headers.removeHeader(Header.Connection);
@@ -114,7 +114,7 @@ class SpdyEncoderUtils {
     static Buffer encodeSynStreamHeaders(final SpdySession spdySession,
             final HttpRequestPacket request) throws IOException {
 
-        Buffer outputBuffer = allocateHeapBuffer(spdySession.getMemoryManager(), 2048);
+        Buffer outputBuffer = spdySession.getMemoryManager().allocateAtLeast(2048);
         final MimeHeaders headers = request.getHeaders();
         
         final DataOutputStream dataOutputStream =
@@ -318,13 +318,6 @@ class SpdyEncoderUtils {
             } else {
                 dataOutputStream.write(' ');
             }
-        }
-    }    
-    static Buffer allocateHeapBuffer(final MemoryManager mm, final int size) {
-        if (!mm.willAllocateDirect(size)) {
-            return mm.allocateAtLeast(size);
-        } else {
-            return Buffers.wrap(mm, new byte[size]);
         }
     }    
 

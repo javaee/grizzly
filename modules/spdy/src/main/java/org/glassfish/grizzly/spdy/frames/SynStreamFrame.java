@@ -165,7 +165,7 @@ public class SynStreamFrame extends SpdyFrame {
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
 
-        final Buffer frameBuffer = allocateHeapBuffer(memoryManager, 18);
+        final Buffer frameBuffer = memoryManager.allocateAtLeast(18);
 
         frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_STREAM_FRAME
 

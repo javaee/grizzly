@@ -69,6 +69,7 @@ import org.glassfish.grizzly.http.ProcessingState;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.util.Ascii;
+import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -335,23 +336,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.getHeader().getUnderlying().dispose();
         }
 
-        assert decoded.hasArray();
-
-        final byte[] headersArray = decoded.array();
-        int position = decoded.arrayOffset() + decoded.position();
-
-        final int headersCount = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (headersArray[position + 4] == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynStreamHeader(spdyRequest, headersArray, position);
-            } else {
-                position = processNormalHeader(spdyRequest,
-                        headersArray, position);
-            }
+        if (decoded.hasArray()) {
+            processSynStreamHeadersArray(spdyRequest, decoded);
+        } else {
+            processSynStreamHeadersBuffer(spdyRequest, decoded);
         }
         
         prepareIncomingRequest(spdyRequest);
@@ -373,6 +361,42 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         .build());
             }
         });
+    }
+
+    private void processSynStreamHeadersArray(SpdyRequest spdyRequest, Buffer decoded) {
+        final byte[] headersArray = decoded.array();
+        int position = decoded.arrayOffset() + decoded.position();
+
+        final int headersCount = getInt(headersArray, position);
+        position += 4;
+
+        for (int i = 0; i < headersCount; i++) {
+            final boolean isServiceHeader = (headersArray[position + 4] == ':');
+
+            if (isServiceHeader) {
+                position = processServiceSynStreamHeader(spdyRequest, headersArray, position);
+            } else {
+                position = processNormalHeader(spdyRequest,
+                        headersArray, position);
+            }
+        }
+    }
+
+    private void processSynStreamHeadersBuffer(SpdyRequest spdyRequest, Buffer decoded) {
+
+        int position = decoded.position();
+        final int headersCount = decoded.getInt(position);
+        position += 4;
+
+        for (int i = 0; i < headersCount; i++) {
+            final boolean isServiceHeader = (decoded.get(position + 4) == ':');
+
+            if (isServiceHeader) {
+                position = processServiceSynStreamHeader(spdyRequest, decoded, position);
+            } else {
+                position = processNormalHeader(spdyRequest, decoded, position);
+            }
+        }
     }
 
     private int processServiceSynStreamHeader(final SpdyRequest spdyRequest,
@@ -448,6 +472,84 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         return valueEnd;
     }
+
+    private int processServiceSynStreamHeader(final SpdyRequest spdyRequest,
+                                              final Buffer buffer, final int position) {
+
+        final int nameSize = buffer.getInt(position);
+        final int valueSize = buffer.getInt(position + nameSize + 4);
+
+        final int nameStart = position + 5; // Skip headerNameSize and following ':'
+        final int valueStart = position + nameSize + 8;
+        final int valueEnd = valueStart + valueSize;
+
+        switch (nameSize - 1) {
+            case 4: {
+                if (checkBufferContent(buffer, nameStart,
+                        Constants.HOST_HEADER_BYTES)) {
+                    spdyRequest.getHeaders().addValue(Header.Host)
+                            .setBuffer(buffer, valueStart, valueEnd);
+
+                    return valueEnd;
+                } else if (checkBufferContent(buffer, nameStart,
+                        Constants.PATH_HEADER_BYTES)) {
+
+                    int questionIdx = -1;
+                    for (int i = 0; i < valueSize; i++) {
+                        if (buffer.get(valueStart + i) == '?') {
+                            questionIdx = i + valueStart;
+                            break;
+                        }
+                    }
+
+                    if (questionIdx == -1) {
+                        spdyRequest.getRequestURIRef().init(buffer, valueStart, valueEnd);
+                    } else {
+                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
+                                .setBuffer(buffer, valueStart, questionIdx);
+                        if (questionIdx < valueEnd - 1) {
+                            spdyRequest.getQueryStringDC()
+                                    .setBuffer(buffer, questionIdx + 1, valueEnd);
+                        }
+                    }
+
+                    return valueEnd;
+                }
+
+                break;
+            }
+            case 6: {
+                if (checkBufferContent(buffer, nameStart,
+                        Constants.METHOD_HEADER_BYTES)) {
+                    spdyRequest.getMethodDC().setBuffer(
+                            buffer, valueStart, valueEnd);
+
+                    return valueEnd;
+                } else if (checkBufferContent(buffer, nameStart,
+                        Constants.SCHEMA_HEADER_BYTES)) {
+
+                    spdyRequest.setSecure(valueSize == 5); // support http and https only
+                    return valueEnd;
+                }
+            }
+            case 7: {
+                if (checkBufferContent(buffer, nameStart,
+                        Constants.VERSION_HEADER_BYTES)) {
+                    spdyRequest.getProtocolDC().setBuffer(
+                            buffer, valueStart, valueEnd);
+
+                    return valueEnd;
+                }
+            }
+        }
+
+        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
+                new Object[] {
+                    buffer.toStringContent(Charsets.ASCII_CHARSET, position, nameSize),
+                    buffer.toStringContent(Charsets.ASCII_CHARSET, valueStart, valueSize)});
+
+        return valueEnd;
+    }
     
     private void processSynReply(final SpdySession spdySession,
                                  final FilterChainContext context,
@@ -502,22 +604,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.getHeader().getUnderlying().dispose();
         }
 
-        assert decoded.hasArray();
-
-        final byte[] headersArray = decoded.array();
-        int position = decoded.arrayOffset() + decoded.position();
-
-        final int headersCount = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (headersArray[position + 4] == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynReplyHeader(spdyResponse, headersArray, position);
-            } else {
-                position = processNormalHeader(spdyResponse, headersArray, position);
-            }
+        if (decoded.hasArray()) {
+            processSynReplyHeadersArray(spdyResponse, decoded);
+        } else {
+            processSynReplyHeadersBuffer(spdyResponse, decoded);
         }
         
         bind(spdyRequest, spdyResponse);
@@ -532,13 +622,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
         });
     }
-    
-    private void processDataFrame(final SpdyStream spdyStream,
-                                  final SpdyFrame frame) {
 
-        DataFrame dataFrame = (DataFrame) frame;
-        spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
-    }
+
     
     @Override
     @SuppressWarnings("unchecked")
@@ -695,6 +780,66 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         return valueEnd;
     }
+
+    private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
+                                                    final Buffer buffer,
+                                                    int position) {
+
+        final int nameSize = buffer.getInt(position);
+        final int valueSize = buffer.getInt(position + nameSize + 4);
+
+        final int nameStart = position + 5; // Skip headerNameSize and following ':'
+        final int valueStart = position + nameSize + 8;
+        final int valueEnd = valueStart + valueSize;
+
+        switch (nameSize - 1) {
+            case 6: {
+                if (checkBufferContent(buffer, nameStart,
+                        Constants.STATUS_HEADER_BYTES)) {
+                    if (valueEnd < 3) {
+                        throw new IllegalStateException("Unknown status code: " +
+                                buffer.toStringContent(Charsets.ASCII_CHARSET, valueEnd, (valueEnd - valueStart)));
+                    }
+
+                    spdyResponse.setStatus(Ascii.parseInt(buffer, valueStart, 3));
+
+                    final int reasonPhraseIdx =
+                            HttpCodecUtils.skipSpaces(buffer, valueStart + 3, valueEnd);
+
+                    if (reasonPhraseIdx != -1) {
+                        int reasonPhraseEnd = skipLastSpaces(buffer,
+                                valueStart + 3, valueEnd) + 1;
+                        if (reasonPhraseEnd == 0) {
+                            reasonPhraseEnd = valueEnd;
+                        }
+
+                        spdyResponse.getReasonPhraseDC().setBuffer(
+                                buffer, reasonPhraseIdx, reasonPhraseEnd);
+                    }
+
+                    return valueEnd;
+                }
+
+                break;
+            }
+
+            case 7: {
+                if (checkBufferContent(buffer, nameStart,
+                        Constants.VERSION_HEADER_BYTES)) {
+                    spdyResponse.setProtocol(Protocol.valueOf(buffer,
+                            valueStart, valueEnd - valueStart));
+
+                    return valueEnd;
+                }
+            }
+        }
+
+        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
+                new Object[]{buffer.toStringContent(Charsets.ASCII_CHARSET, position, nameSize),
+                             buffer.toStringContent(Charsets.ASCII_CHARSET, valueStart, valueSize)});
+
+        return valueEnd;
+    }
     
     private static int processNormalHeader(final HttpHeader httpHeader,
             final byte[] headersArray, int position) {
@@ -732,6 +877,43 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         return end;
     }
 
+    private static int processNormalHeader(final HttpHeader httpHeader,
+                                           final Buffer headerBuffer,
+                                           int position) {
+
+        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
+
+        final int headerNameSize = headerBuffer.getInt(position);
+        position += 4;
+
+        final int headerNamePosition = position;
+
+        final DataChunk valueChunk =
+                mimeHeaders.addValue(headerBuffer, headerNamePosition, headerNameSize);
+
+        position += headerNameSize;
+
+        final int headerValueSize = headerBuffer.getInt(position);
+        position += 4;
+
+        for (int i = 0; i < headerValueSize; i++) {
+            final byte b = headerBuffer.get(position + i);
+            if (b == 0) {
+                headerBuffer.put(position + i, (byte) ',');
+            }
+        }
+
+        final int end = position + headerValueSize;
+
+        valueChunk.setBuffer(headerBuffer, position, end);
+
+        finalizeKnownHeader(httpHeader, headerBuffer,
+                headerNamePosition, headerNameSize,
+                position, end - position);
+
+        return end;
+    }
+
     private static void finalizeKnownHeader(final HttpHeader httpHeader,
             final byte[] array,
             final int nameStart, final int nameLen,
@@ -755,6 +937,38 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         } else if (nameLen == Header.Expect.getLowerCaseBytes().length) {
             if (ByteChunk.equalsIgnoreCaseLowerCase(array, nameStart, nameEnd,
                     Header.Expect.getLowerCaseBytes())) {
+                ((SpdyRequest) httpHeader).requiresAcknowledgement(true);
+            }
+        }
+    }
+
+    private static void finalizeKnownHeader(final HttpHeader httpHeader,
+                                            final Buffer buffer,
+                                            final int nameStart, final int nameLen,
+                                            final int valueStart, final int valueLen) {
+
+        final int nameEnd = nameStart + nameLen;
+
+        if (nameLen == Header.ContentLength.getLowerCaseBytes().length) {
+            if (httpHeader.getContentLength() == -1
+                    && BufferChunk.equalsIgnoreCaseLowerCase(buffer, nameStart, nameEnd,
+                    Header.ContentLength.getLowerCaseBytes())) {
+                httpHeader.setContentLengthLong(Ascii.parseLong(
+                        buffer, valueStart, valueLen));
+            }
+        } else if (nameLen == Header.Upgrade.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(buffer,
+                                                      nameStart,
+                                                      nameEnd,
+                                                      Header.Upgrade.getLowerCaseBytes())) {
+                httpHeader.getUpgradeDC().setBuffer(buffer, valueStart,
+                        valueStart + valueLen);
+            }
+        } else if (nameLen == Header.Expect.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(buffer,
+                                                      nameStart,
+                                                      nameEnd,
+                                                      Header.Expect.getLowerCaseBytes())) {
                 ((SpdyRequest) httpHeader).requiresAcknowledgement(true);
             }
         }
@@ -827,8 +1041,18 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
     private static boolean checkArraysContent(final byte[] b1, final int pos,
             final byte[] b2) {
-        for (int i = 0; i < b2.length; i++) {
+        for (int i = 0, len = b2.length; i < len; i++) {
             if (b1[pos + i] != b2[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean checkBufferContent(final Buffer toTest, final int pos, final byte[] control) {
+        for (int i = 0, len = control.length; i < len; i++) {
+            if (toTest.get(pos + i) != control[i]) {
                 return false;
             }
         }
@@ -843,6 +1067,16 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
         }
         
+        return -1;
+    }
+
+    private static int skipLastSpaces(Buffer buffer, int start, int end) {
+        for (int i = end - 1; i >= start; i--) {
+            if (HttpCodecUtils.isNotSpaceAndTab(buffer.get(i))) {
+                return i;
+            }
+        }
+
         return -1;
     }
     
@@ -869,6 +1103,48 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         spdySession.initCommunication(context, isUpStream);
 
         return spdySession;
+    }
+
+    private static void processSynReplyHeadersArray(SpdyResponse spdyResponse, Buffer decoded) {
+        final byte[] headersArray = decoded.array();
+        int position = decoded.arrayOffset() + decoded.position();
+
+        final int headersCount = getInt(headersArray, position);
+        position += 4;
+
+        for (int i = 0; i < headersCount; i++) {
+            final boolean isServiceHeader = (headersArray[position + 4] == ':');
+
+            if (isServiceHeader) {
+                position = processServiceSynReplyHeader(spdyResponse, headersArray, position);
+            } else {
+                position = processNormalHeader(spdyResponse, headersArray, position);
+            }
+        }
+    }
+
+    private static void processSynReplyHeadersBuffer(SpdyResponse spdyResponse, Buffer decoded) {
+        int position = decoded.position();
+
+        final int headersCount = decoded.getInt(position);
+        position += 4;
+
+        for (int i = 0; i < headersCount; i++) {
+            final boolean isServiceHeader = (decoded.get(position + 4) == ':');
+
+            if (isServiceHeader) {
+                position = processServiceSynReplyHeader(spdyResponse, decoded, position);
+            } else {
+                position = processNormalHeader(spdyResponse, decoded, position);
+            }
+        }
+    }
+
+    private static void processDataFrame(final SpdyStream spdyStream,
+                                         final SpdyFrame frame) {
+
+        DataFrame dataFrame = (DataFrame) frame;
+        spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
     }
 
     private static class ClientNpnNegotiator
