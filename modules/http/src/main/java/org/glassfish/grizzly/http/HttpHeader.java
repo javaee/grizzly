@@ -305,19 +305,9 @@ public abstract class HttpHeader extends HttpPacket
     public void setContentBroken(final boolean isBroken) {
         this.isContentBroken = isBroken;
     }
-
     
     public String getUpgrade() {
-        if (!upgrade.isNull()) {
-            return upgrade.toString();
-        }
-
-        final String upgradeStr = headers.getHeader(Header.Upgrade);
-        if (upgradeStr != null) {
-            upgrade.setString(upgradeStr);
-        }
-        
-        return upgradeStr;
+        return upgrade.toString();
     }
 
     public DataChunk getUpgradeDC() {
@@ -890,7 +880,7 @@ public abstract class HttpHeader extends HttpPacket
 
     protected static boolean isSpecialHeader(final String name) {
         final char c = name.charAt(0);
-        return (c == 'C' || c == 'c');
+        return (c == 'C' || c == 'c' || c == 'U' || c == 'u');
     }
 
     public byte[] getTempHeaderEncodingBuffer() {
@@ -905,12 +895,13 @@ public abstract class HttpHeader extends HttpPacket
             if (value != null) {
                 return value;
             }
-        }
-        if (Header.ContentLength.equals(header)) {
+        } else if (Header.ContentLength.equals(header)) {
             final long value = getContentLength();
             if (value >= 0) {
                 return Long.toString(value);
             }
+        } else if (Header.Upgrade.equals(header)) {
+            return getUpgrade();
         }
         return null;
     }
@@ -921,12 +912,13 @@ public abstract class HttpHeader extends HttpPacket
             if (value != null) {
                 return value;
             }
-        }
-        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
+        } else if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
             final long value = getContentLength();
             if (value >= 0) {
                 return Long.toString(value);
             }
+        } else if (Header.Upgrade.toString().equalsIgnoreCase(name)) {
+            return getUpgrade();
         }
         return null;
     }
@@ -941,8 +933,7 @@ public abstract class HttpHeader extends HttpPacket
         if (Header.ContentType.toString().equalsIgnoreCase(name)) {
             setContentType(value);
             return true;
-        }
-        if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
+        } else if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
             try {
                 final long cLL = Long.parseLong(value);
                 setContentLengthLong(cLL);
@@ -952,6 +943,8 @@ public abstract class HttpHeader extends HttpPacket
                 // and the user might know what he's doing
                 return false;
             }
+        } else if (Header.Upgrade.toString().equalsIgnoreCase(name)) {
+            setUpgrade(value);
         }
         //if (name.equalsIgnoreCase("Content-Language")) {
         //    // TODO XXX XXX Need to construct Locale or something else
@@ -968,8 +961,7 @@ public abstract class HttpHeader extends HttpPacket
         if (Header.ContentType.equals(header)) {
             setContentType(value);
             return true;
-        }
-        if (Header.ContentLength.equals(header)) {
+        } else if (Header.ContentLength.equals(header)) {
             try {
                 final long cLL = Long.parseLong(value);
                 setContentLengthLong(cLL);
@@ -979,11 +971,31 @@ public abstract class HttpHeader extends HttpPacket
                 // and the user might know what he's doing
                 return false;
             }
+        } else if (Header.Upgrade.equals(header)) {
+            setUpgrade(value);
         }
         //if (name.equalsIgnoreCase("Content-Language")) {
         //    // TODO XXX XXX Need to construct Locale or something else
         //}
         return false;
+    }
+    
+    /**
+     * Flush internal fields for special header names to the headers map.
+     */
+    protected void flushSpecialHeaders() {
+        if (contentLength >= 0) {
+            headers.setValue(Header.ContentLength).setString(String.valueOf(contentLength));
+        }
+        
+        final String ct = getContentType();
+        if (ct != null) {
+            headers.setValue(Header.ContentType).setString(String.valueOf(ct));
+        }
+        
+        if (!upgrade.isNull()) {
+            headers.setValue(Header.Upgrade).setString(upgrade.toString());
+        }
     }
     
 //    protected String getDefaultContentType() {
