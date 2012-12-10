@@ -610,10 +610,6 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final ServerHttpRequestImpl request = (ServerHttpRequestImpl) httpHeader;
 
-        // If it's upgraded HTTP - don't check semantics
-        if (!request.getUpgradeDC().isNull()) return false;
-
-
         prepareRequest(request, buffer.hasRemaining());
         return request.getProcessingState().error;
     }
@@ -626,6 +622,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         Protocol protocol;
         try {
+            response.setProtocol(Protocol.HTTP_1_1);
             protocol = request.getProtocol();
         } catch (IllegalStateException e) {
             state.error = true;
@@ -636,6 +633,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             
             return;
         }
+
+        // If it's upgraded HTTP - don't check semantics
+        if (!request.getUpgradeDC().isNull()) return;
 
         final Method method = request.getMethod();
 
@@ -955,8 +955,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             final HttpContent httpContent) {
         final Protocol requestProtocol = request.getProtocol();
 
-        response.setProtocol(Protocol.HTTP_1_1);
-        
         if (requestProtocol == Protocol.HTTP_0_9) {
             return null;
         }
