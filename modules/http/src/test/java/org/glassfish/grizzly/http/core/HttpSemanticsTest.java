@@ -69,8 +69,10 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -305,7 +307,7 @@ public class HttpSemanticsTest extends TestCase {
     }
 
 
-    public void testHttp1NoContentLengthNoChunking() throws Throwable {
+    public void testHttp11GetNoContentLengthNoChunking() throws Throwable {
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
                 .method("GET")
@@ -341,6 +343,62 @@ public class HttpSemanticsTest extends TestCase {
             }
         });
     }
+
+    public void testHttp11PostNoContentLengthNoChunking() throws Throwable {
+
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0\r\nHello"))
+                .build();
+        final HttpContent chunk2 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0\r\nWorld"))
+                .build();
+        
+        List<HttpContent> request = Arrays.asList(chunk1, chunk2);
+        
+        final String testMsg = "0\r\nHello0\r\nWorld";
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.setStatusMessage("ok");
+        result.appendContent(testMsg);
+        doTest(new ClientFilter(request, result, 1000), new BaseFilter() {
+            int counter = 0;
+            
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                
+                final Buffer payload = requestContent.getContent().duplicate();
+                counter += payload.remaining();
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).build();
+                // Setting last flag to false to make sure HttpServerFilter will not
+                // add content-length header
+                ctx.write(responseContent);
+
+                if (counter == testMsg.length()) {
+                    ctx.flush(new FlushAndCloseHandler());
+                }
+                
+                return ctx.getStopAction();
+            }
+        });
+    }
+
 
     public void testHttp1AutoContentLengthOnSingleChunk() throws Throwable {
 
@@ -488,8 +546,15 @@ public class HttpSemanticsTest extends TestCase {
     }
     
     private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
-    throws Throwable {
-        final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
+            throws Throwable {
+        final ClientFilter clientFilter = new ClientFilter(request,
+                expectedResults);
+
+        doTest(clientFilter, serverFilter);
+    }
+
+    private void doTest(final ClientFilter clientFilter, Filter serverFilter)
+            throws Throwable {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
@@ -508,9 +573,7 @@ public class HttpSemanticsTest extends TestCase {
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(1024));
             clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new ClientFilter(request,
-                                                          testResult,
-                                                          expectedResults));
+            clientFilterChainBuilder.add(clientFilter);
             ctransport.setFilterChain(clientFilterChainBuilder.build());
 
             ctransport.start();
@@ -519,7 +582,7 @@ public class HttpSemanticsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                clientFilter.getFuture().get(10, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -544,25 +607,30 @@ public class HttpSemanticsTest extends TestCase {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
         private Object request;
-        private FutureImpl<Boolean> testResult;
         private ExpectedResult expectedResult;
         private boolean validated;
         private HttpContent currentContent;
         StringBuilder accumulatedContent = new StringBuilder();
+        final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
 
+        final long delayMillis;
         // -------------------------------------------------------- Constructors
 
 
         public ClientFilter(Object request,
-                            FutureImpl<Boolean> testResult,
                             ExpectedResult expectedResults) {
-
-            this.request = request;
-            this.testResult = testResult;
-            this.expectedResult = expectedResults;
-
+            this(request, expectedResults, 0);
         }
 
+        public ClientFilter(Object request,
+                            ExpectedResult expectedResults,
+                            long delayMillis) {
+
+            this.request = request;
+            this.expectedResult = expectedResults;
+            this.delayMillis = delayMillis;
+
+        }
 
         // ------------------------------------------------ Methods from Filters
 
@@ -574,7 +642,17 @@ public class HttpSemanticsTest extends TestCase {
                 logger.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
 
-            ctx.write(request);
+            if (request instanceof List) {
+                for (final Object chunk : (List) request) {
+                    ctx.write(chunk);
+                    try {
+                        Thread.sleep(delayMillis);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+            } else {
+                ctx.write(request);
+            }
 
             return ctx.getStopAction();
         }
@@ -649,6 +727,9 @@ public class HttpSemanticsTest extends TestCase {
             return ctx.getStopAction();
         }
 
+        public Future<Boolean> getFuture() {
+            return testResult;
+        }
     }
 
 
