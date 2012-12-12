@@ -45,7 +45,7 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.55-SNAPSHOT</version>
+        <version>1.9.55</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -53,7 +53,7 @@
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>stickies</artifactId>
     <packaging>war</packaging>
-    <version>1.9.55-SNAPSHOT</version>
+    <version>1.9.55</version>
     <name>websocket-stickies</name>
     <url>http://maven.apache.org</url>
    

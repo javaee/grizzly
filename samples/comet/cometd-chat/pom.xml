@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.55-SNAPSHOT</version>
+        <version>1.9.55</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-cometd-chat</artifactId>
     <packaging>war</packaging>
-    <version>1.9.55-SNAPSHOT</version>
+    <version>1.9.55</version>
     <name>grizzly-cometd-example-chat</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
