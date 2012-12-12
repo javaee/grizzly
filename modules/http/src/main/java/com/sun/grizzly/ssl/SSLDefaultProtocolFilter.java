@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -127,9 +127,11 @@ public class SSLDefaultProtocolFilter extends DefaultProtocolFilter {
      * {@inheritDoc}
      */
     @Override
-    protected void configureInputBuffer(final InputReader inputStream,
-            final Context context, final HttpWorkerThread workerThread) {
-        super.configureInputBuffer(inputStream, context, workerThread);
+    protected void configureInputBuffer(final ProcessorTask processorTask,
+                                        InputReader inputStream,
+                                        final Context context,
+                                        final HttpWorkerThread workerThread) {
+        super.configureInputBuffer(processorTask, inputStream, context, workerThread);
         inputStream.setSslEngine(workerThread.getSSLEngine());        
         inputStream.setInputBB(workerThread.getInputBB());        
     }

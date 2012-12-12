@@ -181,12 +181,12 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         
                 
         bbSize = selectorThread.getMaxHttpHeaderSize();
-        
+        ProcessorTask processor = selectorThread.getProcessorTask();
         InputReader inputStream = byteBufferStreams.poll();
         if (inputStream == null) {
             inputStream = createInputReader();
         }
-        configureInputBuffer(inputStream, ctx, workerThread);
+        configureInputBuffer(processor,inputStream, ctx, workerThread);
                 
         SocketChannel socketChannel = (SocketChannel) key.channel();
         streamAlgorithm.setChannel(socketChannel);
@@ -204,7 +204,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
 
         if (streamAlgorithm.parse(byteBuffer)) {
-            ProcessorTask processor = selectorThread.getProcessorTask();
+
             configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);
             try {
                 selectorThread.getAsyncHandler().handle(processor);
@@ -283,8 +283,10 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      * Configure {@link InputReader}.
      */
     @Override
-    protected void configureInputBuffer(InputReader inputStream, Context context, 
-            HttpWorkerThread workerThread) {
+    protected void configureInputBuffer(ProcessorTask processorTask,
+                                        InputReader inputStream,
+                                        Context context,
+                                        HttpWorkerThread workerThread) {
         // Save the buffer before recycle
         final ByteBuffer associatedBuffer = inputStream.getByteBuffer();
         inputStream.recycle();

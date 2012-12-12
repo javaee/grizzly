@@ -181,7 +181,10 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
 
         SelectionKey key = ctx.getSelectionKey();
-        configureInputBuffer(inputStream, ctx, workerThread);
+        configureInputBuffer(selectorThread.getProcessorTask(),
+                             inputStream,
+                             ctx,
+                             workerThread);
         SocketChannel socketChannel =
                 (SocketChannel)key.channel();
         streamAlgorithm.setChannel(socketChannel);
@@ -325,8 +328,10 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Configure {@link InputReader}.
      */
-    protected void configureInputBuffer(InputReader inputStream, Context context, 
-            HttpWorkerThread workerThread) {
+    protected void configureInputBuffer(ProcessorTask processorTask,
+                                        InputReader inputStream,
+                                        Context context,
+                                        HttpWorkerThread workerThread) {
         inputStream.recycle();
         inputStream.setSelectionKey(context.getSelectionKey());
         inputStream.setByteBuffer(workerThread.getByteBuffer());

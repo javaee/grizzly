@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,6 +62,7 @@ import java.net.InetAddress;
  * @author Jean-Francois Arcand
  */
 public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
+
     /**
      * The Coyote SSLImplementation used to retrive the {@link javax.net.ssl.SSLContext}
      */
@@ -128,12 +129,12 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
         if (!processorTask.isInitialized()) {
             processorTask.initialize();
         }
-        
+        SSLAsyncProcessorTask asyncProcessorTask =
+                (SSLAsyncProcessorTask) processorTask;
         SSLAsyncOutputBuffer outputBuffer =
-                ((SSLAsyncProcessorTask)processorTask).getSSLAsyncOutputBuffer();
-        
+                asyncProcessorTask.getSSLAsyncOutputBuffer();
+        outputBuffer.setOutputBB(asyncProcessorTask.encryptOutBuffer);
         outputBuffer.setSSLEngine(workerThread.getSSLEngine());
-        outputBuffer.setOutputBB(workerThread.getOutputBB());
     }
     
     /**
@@ -148,12 +149,15 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      * {@inheritDoc}
      */
     @Override
-    protected void configureInputBuffer(
-            InputReader inputStream, Context context, 
-            HttpWorkerThread workerThread) {
-        inputStream.setSelectionKey(context.getSelectionKey());        
+    protected void configureInputBuffer(ProcessorTask processorTask,
+                                        InputReader inputStream,
+                                        Context context,
+                                        HttpWorkerThread workerThread) {
+        SSLAsyncProcessorTask task = (SSLAsyncProcessorTask)
+                processorTask;
+        inputStream.setSelectionKey(context.getSelectionKey());
         inputStream.setSslEngine(workerThread.getSSLEngine());
-        ((SSLAsyncStream) inputStream).setInputBB(workerThread.getInputBB());
+        inputStream.setInputBB(task.encryptInBuffer);
     }
 
     /**
