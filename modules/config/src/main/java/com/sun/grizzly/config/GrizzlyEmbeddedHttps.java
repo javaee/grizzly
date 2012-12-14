@@ -75,9 +75,15 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     private volatile boolean isSslInitialized;
     private volatile SSLConfigHolder sslConfigHolder;
 
+    private volatile String protocolName;
+    private volatile String networkListenerName;
+    
     @Override
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
             Habitat habitat, boolean mayEnableAsync) {
+        protocolName = protocol.getName();
+        networkListenerName = networkListener.getName();
+        
         if (protocol.getHttp() != null && GrizzlyConfig.toBoolean(protocol.getSecurityEnabled())) {
             Ssl ssl = protocol.getSsl();
 
@@ -101,6 +107,10 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 isSslInitialized = true;
                 if (sslConfigHolder.configureSSL()) {
                     setHttpSecured(true);
+                } else {
+                    throw new IllegalStateException("Failed to configure SSL on protocol '" +
+                            protocolName  + "' on network-listener '" +
+                            networkListenerName + "'");
                 }
             }
         }
@@ -187,6 +197,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      * Lazy SSL initialization filter
      */
     public class LazySSLInitializationFilter implements ProtocolFilter {
+        private volatile boolean isInitilizedOk;
+        
         private final Ssl ssl;
 
         public LazySSLInitializationFilter(Ssl ssl) {
@@ -199,20 +211,35 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             synchronized (ssl) {
                 if (!isSslInitialized) {
                     isSslInitialized = true;
-                sslConfigHolder.configureSSL();
+                    isInitilizedOk = sslConfigHolder.configureSSL();
+                    if (!isInitilizedOk) {
+                        logger.log(Level.SEVERE,
+                                "Failed to configure SSL on protocol ''{0}'' on network-listener ''{1}''",
+                                new Object[]{protocolName, networkListenerName});
+                    }
+                }
             }
+            
+            if (isInitilizedOk) {
+                doConfigureFilters(chain);
+            } else {
+                logger.log(Level.FINE,
+                        "Closing connection to misconfigured SSL protocol");
+                ctx.getSelectorHandler().addPendingKeyCancel(ctx.getSelectionKey());
             }
-            doConfigureFilters(chain);
-
-            return true;
+            
+            return false;
         }
 
         public boolean postExecute(Context ctx) throws IOException {
-            final ProtocolChain chain = ctx.getProtocolChain();
-            chain.removeFilter(this);
+            if (isInitilizedOk) {
+                final ProtocolChain chain = ctx.getProtocolChain();
+                chain.removeFilter(this);
 
-            ctx.setAttribute(ProtocolChain.PROTOCOL_CHAIN_POST_INSTRUCTION,
-                    ProtocolChainInstruction.REINVOKE);
+                ctx.setAttribute(ProtocolChain.PROTOCOL_CHAIN_POST_INSTRUCTION,
+                        ProtocolChainInstruction.REINVOKE);
+            }
+            
             return true;
         }
     }
