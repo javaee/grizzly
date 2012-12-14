@@ -148,7 +148,7 @@ public class ParametersTest {
 
     public void testEncodedQueryParameter(String paramName, String paramValue, Charset charset) throws UnsupportedEncodingException {
         String charsetName = charset.name();
-        URLEncoder encoder = new URLEncoder();
+        UEncoder encoder = new UEncoder();
         encoder.setEncoding(charsetName);
         String encodedQueryString = encoder.encodeURL(paramName) + "=" + encoder.encodeURL(paramValue);
         Parameters parameters = new Parameters();
