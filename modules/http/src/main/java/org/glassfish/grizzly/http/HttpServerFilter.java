@@ -634,8 +634,15 @@ public class HttpServerFilter extends HttpCodecFilter {
             return;
         }
 
+        final boolean isUpgraded = !request.getUpgradeDC().isNull();
+        
+        // set the default chunking mode
+        request.getResponse().setChunkingAllowed(isUpgraded || isChunkingEnabled());
+        
         // If it's upgraded HTTP - don't check semantics
-        if (!request.getUpgradeDC().isNull()) return;
+        if (isUpgraded) {
+            return;
+        }
 
         final Method method = request.getMethod();
 
@@ -721,8 +728,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             // request
             request.requiresAcknowledgement(isHttp11 && !hasReadyContent);
         }
-
-        request.getResponse().setChunkingAllowed(isChunkingEnabled());
     }
     
     private static void parseHost(final DataChunk hostDC,
