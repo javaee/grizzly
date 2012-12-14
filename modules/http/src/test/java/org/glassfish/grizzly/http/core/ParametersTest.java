@@ -58,9 +58,12 @@
 
 package org.glassfish.grizzly.http.core;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.UEncoder;
@@ -125,6 +128,37 @@ public class ParametersTest {
         assertEquals("foo2=bar1&foo2=bar2", SIMPLE_MULTIPLE.toString());
         assertEquals("foo3", NO_VALUE.toString());
         assertEquals("foo4=", EMPTY_VALUE.toString());
+    }
+
+    @Test
+    public void testISOEncodedQueryParameter() throws UnsupportedEncodingException {
+        String paramName = "p\u00e4rameter";
+        String paramValue = "\u00e4";
+        // parameter=%E4
+        testEncodedQueryParameter(paramName, paramValue, Charsets.lookupCharset("ISO-8859-1"));
+    }
+
+    @Test
+    public void testUTF8EncodedQueryParameter() throws UnsupportedEncodingException {
+        String paramName = "p\u00e4rameter";
+        String paramValue = "\u00e4";
+        // p%C3%A4rameter=%C3%A4
+        testEncodedQueryParameter(paramName, paramValue, Charsets.UTF8_CHARSET);
+    }
+
+    public void testEncodedQueryParameter(String paramName, String paramValue, Charset charset) throws UnsupportedEncodingException {
+        String charsetName = charset.name();
+        URLEncoder encoder = new URLEncoder();
+        encoder.setEncoding(charsetName);
+        String encodedQueryString = encoder.encodeURL(paramName) + "=" + encoder.encodeURL(paramValue);
+        Parameters parameters = new Parameters();
+        parameters.setQueryStringEncoding(charset);
+        DataChunk queryStringDataChunk = DataChunk.newInstance();
+        queryStringDataChunk.setString(encodedQueryString);
+        parameters.setQuery(queryStringDataChunk);
+        parameters.handleQueryParameters();
+        String storedValue = parameters.getParameter(paramName);
+        assertEquals(paramValue, storedValue);
     }
 
     private long doTestProcessParametersByteArrayIntInt(int limit,

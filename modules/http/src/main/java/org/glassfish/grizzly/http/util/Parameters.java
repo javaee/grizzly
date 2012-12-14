@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -639,8 +639,8 @@ public final class Parameters {
 //                if (urlDec == null) {
 //                    urlDec = new UDecoder();
 //                }
-                URLDecoder.decode(tmpNameC, true);
-                URLDecoder.decode(tmpValueC, true);
+                URLDecoder.decode(tmpNameC, tmpNameC, true, queryStringEncoding.name());
+                URLDecoder.decode(tmpValueC, tmpValueC, true, queryStringEncoding.name());
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
