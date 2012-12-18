@@ -255,7 +255,13 @@ public class NIOTransport extends JmxObject {
             }
         }
 
-        final GrizzlyExecutorService threadPool = (GrizzlyExecutorService) transport.getWorkerThreadPool();
+        final ExecutorService executorService = transport.getWorkerThreadPool();
+        final GrizzlyExecutorService threadPool;
+        if (executorService instanceof GrizzlyExecutorService) {
+            threadPool = (GrizzlyExecutorService) transport.getWorkerThreadPool();
+        } else {
+            threadPool = null;
+        }
         if (currentThreadPool != threadPool) {
             if (currentThreadPool != null) {
                 mom.deregister(threadPoolJmx);
