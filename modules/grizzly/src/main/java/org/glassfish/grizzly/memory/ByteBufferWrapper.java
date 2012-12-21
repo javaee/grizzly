@@ -706,12 +706,18 @@ public class ByteBufferWrapper implements Buffer {
         return Buffers.toStringContent(visible, charset, position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBuffer toByteBuffer() {
         checkDispose();
         return visible;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBuffer toByteBuffer(int position, int limit) {
         checkDispose();
@@ -731,6 +737,9 @@ public class ByteBufferWrapper implements Buffer {
         return resultBuffer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray() {
         checkDispose();
@@ -740,12 +749,18 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final int position,
             final int limit) {
         return toByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
         checkDispose();
@@ -753,6 +768,9 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
@@ -767,6 +785,9 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray() {
         checkDispose();
@@ -776,12 +797,18 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final int position,
             final int limit) {
         return toBufferArray(BufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array) {
         checkDispose();
@@ -789,6 +816,9 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {

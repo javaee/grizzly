@@ -120,7 +120,7 @@ public class GeneralMemoryManagerTest extends AbstractMemoryManagerTest {
     public void testBufferSlice() {
         Buffer b = mm.allocate(10);
         b.putInt(1);
-        ByteBuffer bb = b.slice().toByteBuffer();
+        ByteBuffer bb = b.slice().toByteBuffer().slice();
         bb.rewind();
         bb.putInt(2);
         b.rewind();

@@ -410,24 +410,17 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
 
         @Override
         public void reset(final HeapBuffer heapBuffer) {
-            final byte[] heap = heapBuffer.array();
-            if (pool != heap) {
-                clearByteBufferCache();
-                pool = heap;
-            }
-
-            pos = heapBuffer.offset;
-            lim = pos + heapBuffer.cap;
+            reset(heapBuffer.heap, heapBuffer.offset, heapBuffer.cap);
         }
 
         public void reset(final byte[] heap, final int offset, final int capacity) {
             if (pool != heap) {
                 clearByteBufferCache();
+                pool = heap;
             }
-            
-            pool = heap;
+
             pos = offset;
-            lim = capacity;
+            lim = offset + capacity;
         }
 
         @Override

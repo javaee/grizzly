@@ -109,7 +109,6 @@ public class ThreadLocalMemoryManagerTest extends AbstractThreadLocalMemoryManag
         testInWorkerThread(mm, r);
     }
 
-
     @Test
     @SuppressWarnings("unchecked")
     public void testDispose() throws Exception {
