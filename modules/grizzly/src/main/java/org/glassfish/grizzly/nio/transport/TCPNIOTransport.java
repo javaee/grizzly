@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.lang.ref.SoftReference;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -877,9 +876,9 @@ public final class TCPNIOTransport extends NIOTransport implements
                 final int receiveBufferSize = connection.getReadBufferSize();
                 if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
                     final DirectByteBufferRecord directByteBufferRecord =
-                            obtainDirectByteBuffer(receiveBufferSize);
+                            DirectByteBufferRecord.allocate(receiveBufferSize);
                     try {
-                        final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                        final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
                         read = readSimpleByteBuffer(tcpConnection,
                                 directByteBuffer, isSelectorThread);
                         
@@ -888,7 +887,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                         buffer = memoryManager.allocate(read);
                         buffer.put(directByteBuffer);
                     } finally {
-                        releaseDirectByteBuffer(directByteBufferRecord);
+                        directByteBufferRecord.release();
                     }
                 } else {
                     buffer = memoryManager.allocateAtLeast(receiveBufferSize);
@@ -1016,7 +1015,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 //        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
 //            read += readNow;
 //            if (!byteBuffer.hasRemaining()
-//                    || ++readAttempt >= maxReadAttempts) {
+//                    || ++readAttempt >= MAX_READ_ATTEMPTS) {
 //                return read;
 //            }
 //        }
@@ -1157,8 +1156,8 @@ public final class TCPNIOTransport extends NIOTransport implements
                 // If Buffer is not direct - copy it to the direct buffer and write
                 if (!buffer.isDirect()) {
                     if (record == null) {
-                        record = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
-                        directByteBuffer = record.strongRef;
+                        record = DirectByteBufferRecord.allocate(tcpConnection.getWriteBufferSize());
+                        directByteBuffer = record.getByteBuffer();
                     }
 
                     final int currentBufferRemaining = buffer.remaining();
@@ -1213,7 +1212,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         } finally {
             if (record != null) {
                 directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
+                record.release();
             }
         }
 
@@ -1235,59 +1234,6 @@ public final class TCPNIOTransport extends NIOTransport implements
             final ByteBuffer byteBuffer) throws IOException {
         
         return channel.write(byteBuffer);
-    }
-
-    private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =
-            ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 4);
-    
-    static DirectByteBufferRecord obtainDirectByteBuffer(final int size) {
-        DirectByteBufferRecord record = ThreadCache.takeFromCache(CACHE_IDX);
-        final ByteBuffer byteBuffer;
-        if (record != null) {
-            if ((byteBuffer = record.switchToStrong()) != null) {
-                if (byteBuffer.remaining() >= size) {
-                    return record;
-                }
-            }
-        } else {
-            record = new DirectByteBufferRecord();
-        }
-
-        record.reset(ByteBuffer.allocateDirect(size));
-        return record;
-    }
-
-    static void releaseDirectByteBuffer(
-            final DirectByteBufferRecord directByteBufferRecord) {
-        directByteBufferRecord.strongRef.clear();
-        directByteBufferRecord.switchToSoft();
-        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
-    }
-
-    static final class DirectByteBufferRecord {
-        ByteBuffer strongRef;
-        private SoftReference<ByteBuffer> softRef;
-
-        void reset(final ByteBuffer byteBuffer) {
-            strongRef = byteBuffer;
-            softRef = null;
-        }
-
-        ByteBuffer switchToStrong() {
-            if (strongRef == null && softRef != null) {
-                strongRef = softRef.get();
-            }
-
-            return strongRef;
-        }
-
-        void switchToSoft() {
-            if (strongRef != null && softRef == null) {
-                softRef = new SoftReference<ByteBuffer>(strongRef);
-            }
-
-            strongRef = null;
-        }
     }
 
     private static void failProcessingHandler(final IOEvent ioEvent,

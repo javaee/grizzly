@@ -55,9 +55,9 @@ import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport.DirectByteBufferRecord;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
@@ -97,10 +97,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             } else {                
 
                 final DirectByteBufferRecord directByteBufferRecord =
-                        TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
+                        DirectByteBufferRecord.allocate(bufferSize);
                 
                 try {
-                    final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                    final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
                     final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
 
                     fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
@@ -114,7 +114,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                     ((TCPNIOConnection) connection).close0(null, false);
                     throw e;
                 } finally {
-                    TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+                    directByteBufferRecord.release();
                 }
             }
         } else if (message instanceof FileTransfer) {
@@ -142,10 +142,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 connection.getWriteBufferSize() * 2);
         
         final DirectByteBufferRecord directByteBufferRecord =
-                TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
+                DirectByteBufferRecord.allocate(bufferSize);
 
         try {
-            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+            final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
             final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         
             fillByteBuffer(queueRecord.queue, directByteBuffer);
@@ -159,7 +159,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             ((TCPNIOConnection) connection).close0(null, false);
             throw e;
         } finally {
-            TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+            directByteBufferRecord.release();
         }
     }
     
