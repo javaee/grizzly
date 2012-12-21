@@ -48,14 +48,14 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.WritableMessage;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
@@ -75,13 +75,15 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
         final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
+        final Buffer inBuffer = ctx.getMessage();
+        
         final Buffer buffer;
         if (!isBlocking) {
-            buffer = transport.read(connection, null);
+            buffer = transport.read(connection, inBuffer);
         } else {
             final ReadResult<Buffer, SocketAddress> result =
                     transport.getTemporarySelectorIO().getReader().read(
-                    connection, null);
+                    connection, inBuffer);
 
             buffer = result.getMessage();
             result.recycle();

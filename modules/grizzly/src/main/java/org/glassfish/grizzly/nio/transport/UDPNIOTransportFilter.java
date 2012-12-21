@@ -75,15 +75,17 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
         final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
+        final Buffer inBuffer = ctx.getMessage();
+
         final ReadResult<Buffer, SocketAddress> readResult;
 
         if (!isBlocking) {
             readResult = ReadResult.create(connection);
-            transport.read(connection, null, readResult);
+            transport.read(connection, inBuffer, readResult);
 
         } else {
             readResult = transport.getTemporarySelectorIO().getReader().read(
-                    connection, null);
+                    connection, inBuffer);
         }
 
         if (readResult.getReadSize() > 0) {
@@ -131,6 +133,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleEvent(final FilterChainContext ctx,
             final Event event) throws IOException {
         
