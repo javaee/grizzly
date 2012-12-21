@@ -60,9 +60,9 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOUtils.CachedIORecord;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
@@ -140,25 +140,24 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         final int bufferSize = Math.min(queueRecord.size,
                 connection.getWriteBufferSize() * 3 / 2);
         
-        final CachedIORecord ioRecord =
-                TCPNIOUtils.obtainCachedIORecord();
+        final DirectByteBufferRecord directByteBufferRecord =
+                DirectByteBufferRecord.get();
 
         try {
-        
-            fill(queueRecord, bufferSize, ioRecord);
-            ioRecord.finishBufferSlice();
-            
             final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
-
-            final int arraySize = ioRecord.getArraySize();
+        
+            fill(queueRecord, bufferSize, directByteBufferRecord);
+            directByteBufferRecord.finishBufferSlice();
+            
+            final int arraySize = directByteBufferRecord.getArraySize();
 
             final int written = arraySize == 1 ?
 
                     TCPNIOUtils.flushByteBuffer(
-                    socketChannel, ioRecord.getArray()[0]) :
+                    socketChannel, directByteBufferRecord.getArray()[0]) :
 
                     TCPNIOUtils.flushByteBuffers(
-                    socketChannel, ioRecord.getArray(), 0, arraySize) ;
+                    socketChannel, directByteBufferRecord.getArray(), 0, arraySize) ;
             
             return update(queueRecord, written);
         } catch (IOException e) {
@@ -166,13 +165,13 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             ((TCPNIOConnection) connection).close(null, false);
             throw e;
         } finally {
-            ioRecord.release();
+            directByteBufferRecord.release();
         }
     }
     
     private static void fill(final CompositeQueueRecord queueRecord,
             final int totalBufferSize,            
-            final CachedIORecord ioRecord) {
+            final DirectByteBufferRecord ioRecord) {
         
 //        int dstBufferRemaining = dstByteBuffer.remaining();
 //        

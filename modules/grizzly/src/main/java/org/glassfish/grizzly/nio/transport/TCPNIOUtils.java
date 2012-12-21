@@ -41,19 +41,17 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.utils.Exceptions;
 
 /**
@@ -66,9 +64,6 @@ public class TCPNIOUtils {
     
     private static final int MAX_READ_ATTEMPTS = 3;
     
-    private static final ThreadCache.CachedTypeIndex<CachedIORecord> CACHE_IDX =
-            ThreadCache.obtainIndex("io-cache", CachedIORecord.class, 4);
-
     public static int writeCompositeBuffer(final TCPNIOConnection connection,
             final CompositeBuffer buffer) throws IOException {
         
@@ -80,7 +75,7 @@ public class TCPNIOUtils {
         
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         
-        final CachedIORecord ioRecord = obtainCachedIORecord();
+        final DirectByteBufferRecord ioRecord = DirectByteBufferRecord.get();
         final BufferArray bufferArray = buffer.toBufferArray();
         int written = 0;
         
@@ -127,12 +122,12 @@ public class TCPNIOUtils {
                 directByteBuffer.position(pos);
             }
         } else {
-            final CachedIORecord ioRecord = obtainCachedIORecord();
-            
             final int bufferSize = calcWriteBufferSize(connection, buffer.remaining());
             buffer.limit(oldPos + bufferSize);
             
-            final ByteBuffer directByteBuffer = ioRecord.obtainDirectBuffer(bufferSize);
+            final DirectByteBufferRecord ioRecord =
+                    DirectByteBufferRecord.get();
+            final ByteBuffer directByteBuffer = ioRecord.allocate(bufferSize);
             fill(buffer, bufferSize, directByteBuffer);
             
             try {
@@ -171,7 +166,7 @@ public class TCPNIOUtils {
     }
 
     static void fill(final BufferArray bufferArray,
-            final int totalBufferSize, final CachedIORecord ioRecord) {
+            final int totalBufferSize, final DirectByteBufferRecord ioRecord) {
         
         final Buffer buffers[] = bufferArray.getArray();
         final int size = bufferArray.size();
@@ -186,16 +181,16 @@ public class TCPNIOUtils {
             final int bufferSize = buffer.remaining();
             if (bufferSize == 0) {
                 continue;
-            } else if(buffer.isDirect()) {
+            } else if (buffer.isDirect()) {
                 ioRecord.finishBufferSlice();
                 ioRecord.putToArray(buffer.toByteBuffer());
             } else {
                 ByteBuffer currentDirectBufferSlice = ioRecord.getDirectBufferSlice();
                 
-                if(currentDirectBufferSlice == null) {
+                if (currentDirectBufferSlice == null) {
                     final ByteBuffer directByteBuffer = ioRecord.getDirectBuffer();
-                    if(directByteBuffer == null) {
-                        currentDirectBufferSlice = ioRecord.obtainDirectBuffer(remaining);
+                    if (directByteBuffer == null) {
+                        currentDirectBufferSlice = ioRecord.allocate(remaining);
                     } else {
                         currentDirectBufferSlice = ioRecord.sliceBuffer();
                     }
@@ -219,17 +214,6 @@ public class TCPNIOUtils {
         return Math.min(bufferSize, (connection.getWriteBufferSize() * 3) / 2);
     }
 
-    static CachedIORecord obtainCachedIORecord() {
-        final CachedIORecord record =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (record != null) {
-            return record;
-
-        }
-
-        return new CachedIORecord();
-    }
-
     public static Buffer allocateAndReadBuffer(final TCPNIOConnection connection)
             throws IOException {
         
@@ -244,9 +228,10 @@ public class TCPNIOUtils {
             final int receiveBufferSize = connection.getReadBufferSize();
         
             if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
-                final CachedIORecord ioRecord = obtainCachedIORecord();
+                final DirectByteBufferRecord ioRecord = 
+                        DirectByteBufferRecord.get();
                 final ByteBuffer directByteBuffer =
-                        ioRecord.obtainDirectBuffer(receiveBufferSize);
+                        ioRecord.allocate(receiveBufferSize);
                 
                 try {
                     read = readSimpleByteBuffer(connection, directByteBuffer);
@@ -431,104 +416,5 @@ public class TCPNIOUtils {
         }
         
         return read;
-    }
-    
-    static final class CachedIORecord {
-
-        private ByteBuffer directBuffer;
-        private int sliceOffset;
-        private ByteBuffer directBufferSlice;
-        private SoftReference<ByteBuffer> softRef;
-        private ByteBuffer array[];
-        private int arraySize;
-
-        CachedIORecord() {
-            array = new ByteBuffer[8];
-        }
-
-        ByteBuffer getDirectBuffer() {
-            return directBuffer;
-        }
-
-        ByteBuffer getDirectBufferSlice() {
-            return directBufferSlice;
-        }
-
-        ByteBuffer obtainDirectBuffer(int size) {
-            ByteBuffer byteBuffer;
-            if ((byteBuffer = switchToStrong()) != null && byteBuffer.remaining() >= size) {
-                return byteBuffer;
-            } else {
-                byteBuffer = ByteBuffer.allocateDirect(size);
-                reset(byteBuffer);
-                return byteBuffer;
-            }
-        }
-
-        ByteBuffer sliceBuffer() {
-            int oldLim = directBuffer.limit();
-            Buffers.setPositionLimit(directBuffer, sliceOffset, directBuffer.capacity());
-            directBufferSlice = directBuffer.slice();
-            Buffers.setPositionLimit(directBuffer, 0, oldLim);
-            return directBufferSlice;
-        }
-
-        void finishBufferSlice() {
-            if (directBufferSlice != null) {
-                directBufferSlice.flip();
-                sliceOffset += directBufferSlice.remaining();
-                directBufferSlice = null;
-            }
-        }
-
-        public ByteBuffer[] getArray() {
-            return array;
-        }
-
-        public int getArraySize() {
-            return arraySize;
-        }
-
-        void putToArray(ByteBuffer byteBuffer) {
-            ensureArraySize();
-            array[arraySize++] = byteBuffer;
-        }
-
-        void release() {
-            if (directBuffer != null) {
-                directBuffer.clear();
-                switchToSoft();
-            }
-            Arrays.fill(array, 0, arraySize, null);
-            arraySize = 0;
-            directBufferSlice = null;
-            sliceOffset = 0;
-            ThreadCache.putToCache(TCPNIOUtils.CACHE_IDX, this);
-        }
-
-        ByteBuffer switchToStrong() {
-            if (directBuffer == null && softRef != null) {
-                directBuffer = directBufferSlice = softRef.get();
-            }
-            return directBuffer;
-        }
-
-        void switchToSoft() {
-            if (directBuffer != null && softRef == null) {
-                softRef = new SoftReference<ByteBuffer>(directBuffer);
-            }
-            directBuffer = null;
-        }
-
-        void reset(ByteBuffer byteBuffer) {
-            directBuffer = directBufferSlice = byteBuffer;
-            softRef = null;
-        }
-
-        private void ensureArraySize() {
-            if (arraySize == array.length) {
-                array = Arrays.copyOf(array, (arraySize * 3) / 2 + 1);
-            }
-        }
     }
 }
