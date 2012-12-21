@@ -41,7 +41,7 @@ package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.NullaryFunction;
+import org.glassfish.grizzly.utils.NullaryFunction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.nio.NIOConnection;

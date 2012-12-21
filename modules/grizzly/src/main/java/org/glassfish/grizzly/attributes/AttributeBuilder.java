@@ -100,5 +100,5 @@ public interface AttributeBuilder {
      * 
      * @return Attribute<T>
      */
-    public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
+    public <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.utils.NullaryFunction<T> initializer);
 }
