@@ -48,7 +48,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -78,16 +77,18 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
         final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
+        final Buffer inBuffer = ctx.getMessage();
+
         final ReadResult<Buffer, SocketAddress> readResult;
 
         if (!isBlocking) {
             readResult = ReadResult.create(connection);
-            transport.read(connection, null, readResult);
+            transport.read(connection, inBuffer, readResult);
 
         } else {
             GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
                     transport.getTemporarySelectorIO().getReader().read(
-                    connection, null);
+                    connection, inBuffer);
             try {
                 readResult = future.get();
                 future.recycle(false);
@@ -148,6 +149,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleEvent(final FilterChainContext ctx,
             final FilterChainEvent event) throws IOException {
         

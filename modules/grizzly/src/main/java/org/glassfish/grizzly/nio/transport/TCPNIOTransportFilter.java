@@ -68,13 +68,15 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
         final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
+        final Buffer inBuffer = ctx.getMessage();
+        
         final Buffer buffer;
         if (!isBlocking) {
-            buffer = transport.read(connection, null);
+            buffer = transport.read(connection, inBuffer);
         } else {
             GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
                     transport.getTemporarySelectorIO().getReader().read(
-                    connection, null);
+                    connection, inBuffer);
             try {
                 ReadResult<Buffer, SocketAddress> result = future.get();
                 buffer = result.getMessage();
