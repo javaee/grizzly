@@ -55,18 +55,24 @@ import org.glassfish.grizzly.CompletionHandler;
 public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
     private final AtomicInteger counter;
+    private final Iterator it;
     
     public RoundRobinConnectionDistributor(final NIOTransport transport) {
-        super(transport);
-        counter = new AtomicInteger();
+        this(transport, false);
     }
 
+    public RoundRobinConnectionDistributor(final NIOTransport transport,
+            final boolean useDedicatedAcceptor) {
+        super(transport);
+        counter = new AtomicInteger();
+        this.it = useDedicatedAcceptor ? new DedicatedIterator() :
+                new SharedIterator();
+        
+    }
     @Override
     public void registerChannel(final SelectableChannel channel,
             final int interestOps, final Object attachment) throws IOException {
-        final SelectorRunner runner = getSelectorRunner();
-
-        transport.getSelectorHandler().registerChannel(runner, 
+        transport.getSelectorHandler().registerChannel(it.next(), 
                 channel, interestOps, attachment);
     }
 
@@ -75,21 +81,10 @@ public final class RoundRobinConnectionDistributor
             final SelectableChannel channel, final int interestOps,
             final Object attachment,
             final CompletionHandler<RegisterChannelResult> completionHandler) {
-        final SelectorRunner runner = getSelectorRunner();
-        
         transport.getSelectorHandler().registerChannelAsync(
-                runner, channel, interestOps, attachment, completionHandler);
+                it.next(), channel, interestOps, attachment, completionHandler);
     }
 
-    private SelectorRunner getSelectorRunner() {
-        final SelectorRunner[] runners = getTransportSelectorRunners();
-        if (runners.length == 1) {
-            return runners[0];
-        }
-        
-        return runners[((counter.getAndIncrement() & 0x7fffffff) % (runners.length - 1)) + 1];
-    }
-    
     @Override
     public void registerServiceChannelAsync(
             final SelectableChannel channel, final int interestOps,
@@ -97,7 +92,46 @@ public final class RoundRobinConnectionDistributor
             final CompletionHandler<RegisterChannelResult> completionHandler) {
         
         transport.getSelectorHandler().registerChannelAsync(
-                getTransportSelectorRunners()[0], channel, interestOps,
+                it.nextService(), channel, interestOps,
                 attachment, completionHandler);
     }
+    
+    private interface Iterator {
+        SelectorRunner next();
+        SelectorRunner nextService();
+    }
+    
+    private final class DedicatedIterator implements Iterator {
+        @Override
+        public SelectorRunner next() {
+            final SelectorRunner[] runners = getTransportSelectorRunners();
+            if (runners.length == 1) {
+                return runners[0];
+            }
+            
+            return runners[((counter.getAndIncrement() & 0x7fffffff) % (runners.length - 1)) + 1];
+        }
+
+        @Override
+        public SelectorRunner nextService() {
+            return getTransportSelectorRunners()[0];
+        }
+    }
+
+    private final class SharedIterator implements Iterator {
+        @Override
+        public SelectorRunner next() {
+            final SelectorRunner[] runners = getTransportSelectorRunners();
+            if (runners.length == 1) {
+                return runners[0];
+            }
+            
+            return runners[(counter.getAndIncrement() & 0x7fffffff) % runners.length];
+        }
+
+        @Override
+        public SelectorRunner nextService() {
+            return next();
+        }
+    }    
 }
