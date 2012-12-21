@@ -856,19 +856,25 @@ public class HeapBuffer implements Buffer {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ByteBuffer toByteBuffer() {
         return toByteBuffer(pos, lim);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ByteBuffer toByteBuffer(final int position, final int limit) {
-        // we have to slice the buffer after setting the proper pos/lim in
-        // order to allow the full range of methods offered by ByteBuffer to
-        // be useful (rewind() for instance which will always set the pos to 0).
-        return toByteBuffer0(position, limit, true);
+        return toByteBuffer0(position, limit, false);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray() {
         final ByteBufferArray array = ByteBufferArray.create();
@@ -877,18 +883,27 @@ public class HeapBuffer implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final int position,
                                                    final int limit) {
         return toByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
         array.add(toByteBuffer());
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
@@ -898,6 +913,9 @@ public class HeapBuffer implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray() {
         final BufferArray array = BufferArray.create();
@@ -906,18 +924,27 @@ public class HeapBuffer implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final int position,
                                                    final int limit) {
         return toBufferArray(BufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array) {
         array.add(this);
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {

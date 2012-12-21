@@ -657,11 +657,17 @@ public class ByteBufferWrapper implements Buffer {
         return Buffers.toStringContent(visible, charset, position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBuffer toByteBuffer() {
         return visible;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBuffer toByteBuffer(int position, int limit) {
         final int currentPosition = visible.position();
@@ -680,6 +686,9 @@ public class ByteBufferWrapper implements Buffer {
         return resultBuffer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray() {
         final ByteBufferArray array = ByteBufferArray.create();
@@ -688,18 +697,27 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final int position,
             final int limit) {
         return toByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
         array.add(visible);
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
@@ -713,6 +731,9 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray() {
         final BufferArray array = BufferArray.create();
@@ -721,18 +742,27 @@ public class ByteBufferWrapper implements Buffer {
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final int position,
             final int limit) {
         return toBufferArray(BufferArray.create(), position, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array) {
         array.add(this);
         return array;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {

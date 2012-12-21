@@ -51,6 +51,7 @@ import java.nio.charset.Charset;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  * JDK {@link ByteBuffer} was taken as base for Grizzly
@@ -1447,18 +1448,21 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
 
     /**
      * <p>
-     * Converts this <code>Buffer</code> to a {@link ByteBuffer} whose content
-     * is a shared subsequence of this buffer's content. The content of the new
-     * buffer will start at this buffer's current position. Changes to this
-     * buffer's content will be visible in the new buffer, and vice versa;
-     * the two buffers' position, limit, and mark values will be independent.
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer}.
+     * If this <code>Buffer</code> is not composite - then returned
+     * {@link ByteBuffer}'s content is a shared subsequence of this buffer's
+     * content, with {@link CompositeBuffer} this is not guaranteed.
+     * The position of the returned {@link ByteBuffer} is not guaranteed to be 0,
+     * the capacity of the returned {@link ByteBuffer} is not guaranteed to be
+     * equal to the capacity of this <code>Buffer</code>.
+     * It is guaranteed that the result of the returned ByteBuffer's
+     * {@link ByteBuffer#remaining()} call will be equal to this Buffer's
+     * {@link #remaining()} call.
+     * The Buffer's and ByteBuffer's position, limit, and mark values are not
+     * guaranteed to be independent, so it's recommended to save and restore
+     * position, limit values if it is planned to change them or
+     * {@link ByteBuffer#slice()} the returned {@link ByteBuffer}.
      * <p/>
-     *
-     * <p>
-     * The new {@link ByteBuffer}'s position will be zero, its capacity and
-     * its limit will be the number of bytes remaining in this buffer, and its
-     * mark will be undefined.
-     * </p>
      *
      * @return this <code>Buffer</code> as a {@link ByteBuffer}.
      */
@@ -1466,18 +1470,20 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
 
     /**
      * <p>
-     * Converts this <code>Buffer</code> to a {@link ByteBuffer} whose content
-     * is a shared subsequence of this buffer's content. The content of the new
-     * buffer will start at this buffer's current position. Changes to this
-     * buffer's content will be visible in the new buffer, and vice versa;
-     * the two buffers' position, limit, and mark values will be independent.
+     * Converts this <code>Buffer</code> to a {@link ByteBuffer}.
+     * If this <code>Buffer</code> is not composite - then returned
+     * {@link ByteBuffer}'s content is a shared subsequence of this buffer's
+     * content, with {@link CompositeBuffer} this is not guaranteed.
+     * The position of the returned {@link ByteBuffer} is not guaranteed to be 0,
+     * the capacity of the returned {@link ByteBuffer} is not guaranteed to be
+     * equal to the capacity of this <code>Buffer</code>.
+     * It is guaranteed that the result of the returned ByteBuffer's
+     * {@link ByteBuffer#remaining()} call will be equal (limit - position).
+     * The Buffer's and ByteBuffer's position, limit, and mark values are not
+     * guaranteed to be independent, so it's recommended to save and restore
+     * position, limit values if it is planned to change them or
+     * {@link ByteBuffer#slice()} the returned {@link ByteBuffer}.
      * <p/>
-     *
-     * <p>
-     * The new {@link ByteBuffer}'s position will be zero, its capacity and
-     * its limit based on the provided <code>limit</code> argument (effectively
-     * the number of bytes available in the returned {@link ByteBuffer}).
-     * </p>
      *
      * @param position the position for the starting subsequence for the
      *                 returned {@link ByteBuffer}.
@@ -1492,6 +1498,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
      * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     * It is guaranteed that returned array's ByteBuffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @return Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
@@ -1506,6 +1515,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
      * and adds the result to the provided {@link ByteBufferArray}.
+     * It is guaranteed that returned array's ByteBuffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @return returns the provided {@link ByteBufferArray} with the converted
@@ -1519,6 +1531,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
      * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
+     * It is guaranteed that returned array's ByteBuffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @param position the start position within the source <code>buffer</code>
@@ -1536,6 +1551,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
      * and adds the result to the provided {@link ByteBufferArray}.
+     * It is guaranteed that returned array's ByteBuffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @return returns the provided {@link ByteBufferArray} with the converted
@@ -1549,6 +1567,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Returns a new {@link BufferArray} instance with this <code>Buffer</code>
      * added as an element to the {@link BufferArray}.
+     * It is guaranteed that returned array's Buffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @return Returns a new {@link BufferArray} instance with this <code>Buffer</code>
@@ -1559,6 +1580,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
     /**
      * <p>
      * Returns the specified {@link BufferArray} after adding this <code>Buffer</code>.
+     * It is guaranteed that returned array's Buffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @return Returns the specified {@link BufferArray} after adding this <code>Buffer</code>.
@@ -1569,6 +1593,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Updates this <code>Buffer</code>'s <code>position</code> and <code>limit</code>
      * and adds it to a new {@link BufferArray} instance.
+     * It is guaranteed that returned array's Buffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @param position the new position for this <code>Buffer</code>
@@ -1583,6 +1610,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * <p>
      * Updates this <code>Buffer</code>'s <code>position</code> and <code>limit</code>
      * and adds it to the specified {@link BufferArray}.
+     * It is guaranteed that returned array's Buffer elements' content is
+     * a shared subsequence of this buffer's content no matter if it's a
+     * {@link CompositeBuffer} or not.
      * </p>
      *
      * @param position the new position for this <code>Buffer</code>
