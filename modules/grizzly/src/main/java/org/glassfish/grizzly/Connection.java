@@ -43,10 +43,11 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Readable;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Common interface, which represents any kind of connection.
