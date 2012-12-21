@@ -753,7 +753,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.WRITE;
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
-        newContext.addressHolder = Holder.<Object>staticHolder(address);
+        newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.pushBackHandler = pushBackHandler;
         newContext.transportFilterContext.cloner = cloner;
