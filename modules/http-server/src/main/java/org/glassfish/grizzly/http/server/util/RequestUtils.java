@@ -40,16 +40,15 @@
 
 package org.glassfish.grizzly.http.server.util;
 
+import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
-import java.io.File;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class RequestUtils {
 
@@ -60,7 +59,7 @@ public class RequestUtils {
         Object certificates = null;
 
         if (request.getRequest().isSecure()) {
-            SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
+            SSLBaseFilter.CertificateEvent event = new SSLBaseFilter.CertificateEvent(true);
             request.getContext().notifyDownstream(event);
             certificates = event.getCertificates();
             request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);

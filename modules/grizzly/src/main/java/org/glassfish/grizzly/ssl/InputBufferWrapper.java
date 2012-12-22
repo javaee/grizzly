@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,83 +37,36 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.ssl;
 
-package org.glassfish.grizzly.filterchain;
-
-import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 
 /**
- * Provides empty implementation for {@link Filter} processing methods.
- *
- * @see Filter
+ * Input {@link Buffer} to read SSL packets to.
+ * This {@link Buffer} has to be used by a Transport to read data.
  * 
  * @author Alexey Stashok
  */
-public class BaseFilter implements Filter {
+final class InputBufferWrapper extends ByteBufferWrapper {
+    private DirectByteBufferRecord record;
+
+    public InputBufferWrapper() {
+    }
+
+    public InputBufferWrapper prepare(final int size) {
+        final DirectByteBufferRecord recordLocal = DirectByteBufferRecord.get();
+        this.record = recordLocal;
+        this.visible = recordLocal.allocate(size);
+        
+        return this;
+    }
+
     @Override
-    public void onBeforeFilterChainConstructed(final FilterChainBuilder builder) {
+    public void dispose() {
+        record.release();
+        record = null;
+        super.dispose();
     }
     
-    @Override
-    public void onFilterChainConstructed(final FilterChain filterChain) {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleRead(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleAccept(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleClose(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * Notification about exception, occurred on the {@link FilterChain}
-     *
-     * @param ctx event processing {@link FilterChainContext}
-     * @param error error, which occurred during <tt>FilterChain</tt> execution
-     */
-    @Override
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-    }
 }

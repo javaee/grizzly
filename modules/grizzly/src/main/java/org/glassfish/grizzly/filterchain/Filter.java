@@ -74,6 +74,14 @@ import org.glassfish.grizzly.attributes.Attribute;
  */
 public interface Filter {
     /**
+     * Method is called, before the {@link FilterChain} this <tt>Filter</tt> is part of,
+     * is constructed.
+     *
+     * @param builder the {@link FilterChainBuilder}.
+     */
+    public void onBeforeFilterChainConstructed(final FilterChainBuilder builder);
+    
+    /**
      * Method is called, when the {@link FilterChain} this <tt>Filter</tt> is part of,
      * has been constructed.
      *
