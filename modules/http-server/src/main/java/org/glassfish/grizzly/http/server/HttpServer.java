@@ -77,9 +77,9 @@ import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
@@ -562,7 +562,7 @@ public class HttpServer {
                             false);
                     listener.setSSLEngineConfig(sslConfig);
                 }
-                final SSLFilter filter = new SSLFilter(sslConfig, null);
+                final SSLBaseFilter filter = new SSLBaseFilter(sslConfig);
                 builder.add(filter);
 
             }
