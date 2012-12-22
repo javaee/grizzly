@@ -50,6 +50,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.portunif.PUContext;
 import org.glassfish.grizzly.portunif.ProtocolFinder;
+import org.glassfish.grizzly.ssl.SSLConnectionContext;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -85,9 +86,13 @@ public class SSLProtocolFinder implements ProtocolFinder {
         final SSLEngine sslEngine = sslEngineConfigurator.createSSLEngine();
 
         try {
-            handshakeUnwrap(connection, sslEngine, buffer);
+            SSLConnectionContext sslCtx =
+                    new SSLConnectionContext(connection);
+            sslCtx.configure(sslEngine);
+            
+            handshakeUnwrap(connection, sslCtx, buffer, null);
 
-            setSSLEngine(connection, sslEngine);
+            sslCtx.attach();
             return Result.FOUND;
         } catch (SSLException e) {
             LOGGER.log(Level.FINE, "SSL handshake attempt failed", e);

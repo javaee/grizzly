@@ -48,6 +48,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.AbstractTransformer;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
@@ -94,7 +95,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             AttributeStorage state, Buffer originalMessage)
             throws TransformationException {
 
-        final SSLEngine sslEngine = getSSLEngine(state);
+        final SSLEngine sslEngine = getSSLEngine((Connection) state);
         if (sslEngine == null) {
             return HANDSHAKE_NOT_EXECUTED_RESULT;
         }

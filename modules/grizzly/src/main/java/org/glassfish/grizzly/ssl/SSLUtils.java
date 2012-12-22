@@ -48,9 +48,12 @@ import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -58,11 +61,34 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * 
  * @author Alexey Stashok
  */
-public class SSLUtils {
-    public static final String SSL_ENGINE_ATTR_NAME = "SSLEngineAttr";
+public final class SSLUtils {
+    private static final String SSL_CONNECTION_CTX_ATTR_NAME =
+            SSLUtils.class + ".ssl-connection-context";
 
-    public static final Attribute<SSLEngine> sslEngineAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(SSL_ENGINE_ATTR_NAME);
+    static final Attribute<SSLConnectionContext> SSL_CTX_ATTR =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            SSL_CONNECTION_CTX_ATTR_NAME);
+
+    private static final SSLConnectionContext.Allocator HS_UNWRAP_ALLOCATOR =
+            new SSLConnectionContext.Allocator() {
+        @Override
+        public Buffer grow(final SSLConnectionContext sslCtx,
+            final Buffer oldBuffer, final int newSize) {
+//            if (oldBuffer != null) {
+//                oldBuffer.dispose();
+//            }
+            return allocateOutputBuffer(newSize);
+        }
+    };
+    
+    private static final SSLConnectionContext.Allocator HS_WRAP_ALLOCATOR =
+            new SSLConnectionContext.Allocator() {
+        @Override
+        public Buffer grow(final SSLConnectionContext sslCtx,
+            final Buffer oldBuffer, final int newSize) {
+            return allocateOutputBuffer(newSize);
+        }
+    };
 
     private static final byte CHANGE_CIPHER_SPECT_CONTENT_TYPE = 20;
     private static final byte APPLICATION_DATA_CONTENT_TYPE = 23;
@@ -71,13 +97,24 @@ public class SSLUtils {
     private static final int MIN_VERSION = 0x0300;
     private static final int MAX_MAJOR_VERSION = 0x03;
 
-    public static SSLEngine getSSLEngine(AttributeStorage storage) {
-        return sslEngineAttribute.get(storage);
+    static SSLConnectionContext getSslConnectionContext(
+            final Connection connection) {
+        SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
+        if (sslCtx == null) {
+            sslCtx = new SSLConnectionContext(connection);
+            SSL_CTX_ATTR.set(connection, sslCtx);
+        }
+        
+        return sslCtx;
+    }
+    
+    public static SSLEngine getSSLEngine(final Connection connection) {
+        return getSslConnectionContext(connection).getSslEngine();
     }
 
-    public static void setSSLEngine(AttributeStorage storage,
+    public static void setSSLEngine(final Connection connection,
             SSLEngine sslEngine) {
-        sslEngineAttribute.set(storage, sslEngine);
+        getSslConnectionContext(connection).configure(sslEngine);
     }
 
     /*
@@ -87,7 +124,7 @@ public class SSLUtils {
      * @return -1 if there are not enough bytes to tell (small header),
      */
     public static int getSSLPacketSize(final Buffer buf) throws SSLException {
-
+        
         /*
          * SSLv2 length field is in bytes 0/1
          * SSLv3/TLS length field is in bytes 3/4
@@ -96,8 +133,29 @@ public class SSLUtils {
             return -1;
         }
 
-        int pos = buf.position();
-        byte byteZero = buf.get(pos);
+        
+        final byte byte0;
+        final byte byte1;
+        final byte byte2;
+        final byte byte3;
+        final byte byte4;
+        
+        if (buf.hasArray()) {
+            final byte[] array = buf.array();
+            int pos = buf.arrayOffset() + buf.position();
+            byte0 = array[pos++];
+            byte1 = array[pos++];
+            byte2 = array[pos++];
+            byte3 = array[pos++];
+            byte4 = array[pos];
+        } else {
+            int pos = buf.position();
+            byte0 = buf.get(pos++);
+            byte1 = buf.get(pos++);
+            byte2 = buf.get(pos++);
+            byte3 = buf.get(pos++);
+            byte4 = buf.get(pos);
+        }
 
         int len;
 
@@ -107,13 +165,13 @@ public class SSLUtils {
          * determination.  Otherwise, try one last hueristic to
          * see if it's SSL/TLS.
          */
-        if (byteZero >= CHANGE_CIPHER_SPECT_CONTENT_TYPE
-                && byteZero <= APPLICATION_DATA_CONTENT_TYPE) {
+        if (byte0 >= CHANGE_CIPHER_SPECT_CONTENT_TYPE
+                && byte0 <= APPLICATION_DATA_CONTENT_TYPE) {
             /*
              * Last sanity check that it's not a wild record
              */
-            final byte major = buf.get(pos + 1);
-            final byte minor = buf.get(pos + 2);
+            final byte major = byte1;
+            final byte minor = byte2;
             final int v = (major << 8) | minor & 0xff;
 
             // Check if too old (currently not possible)
@@ -128,8 +186,8 @@ public class SSLUtils {
             /*
              * One of the SSLv3/TLS message types.
              */
-            len = ((buf.get(pos + 3) & 0xff) << 8)
-                    + (buf.get(pos + 4) & 0xff) + SSLV3_RECORD_HEADER_SIZE;
+            len = ((byte3 & 0xff) << 8)
+                    + (byte4 & 0xff) + SSLV3_RECORD_HEADER_SIZE;
 
         } else {
             /*
@@ -139,13 +197,13 @@ public class SSLUtils {
              *
              * Internals can warn about unsupported SSLv2
              */
-            boolean isShort = ((byteZero & 0x80) != 0);
+            boolean isShort = ((byte0 & 0x80) != 0);
 
             if (isShort
-                    && ((buf.get(pos + 2) == 1) || buf.get(pos + 2) == 4)) {
+                    && ((byte2 == 1) || byte2 == 4)) {
 
-                final byte major = buf.get(pos + 3);
-                final byte minor = buf.get(pos + 4);
+                final byte major = byte3;
+                final byte minor = byte4;
                 final int v = (major << 8) | minor & 0xff;
 
                 // Check if too old (currently not possible)
@@ -165,7 +223,7 @@ public class SSLUtils {
                  * Client or Server Hello
                  */
                 int mask = 0x7f;
-                len = ((byteZero & mask) << 8) + (buf.get(pos + 1) & 0xff) + (2);
+                len = ((byte0 & mask) << 8) + (byte1 & 0xff) + (2);
 
             } else {
                 // Gobblygook!
@@ -176,12 +234,12 @@ public class SSLUtils {
 
         return len;
     }
-    
+
     /**
      * Complete handshakes operations.
      * @param sslEngine The SSLEngine used to manage the SSL operations.
      */
-    public static void executeDelegatedTask(SSLEngine sslEngine) {
+    public static void executeDelegatedTask(final SSLEngine sslEngine) {
 
         Runnable runnable;
         while ((runnable = sslEngine.getDelegatedTask()) != null) {
@@ -190,91 +248,172 @@ public class SSLUtils {
     }
 
 
-    public static boolean isHandshaking(SSLEngine sslEngine) {
-        HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
+    public static boolean isHandshaking(final SSLEngine sslEngine) {
+        final HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
         return !(handshakeStatus == HandshakeStatus.FINISHED ||
                 handshakeStatus == HandshakeStatus.NOT_HANDSHAKING);
     }
 
     public static SSLEngineResult handshakeUnwrap(final Connection connection,
-            final SSLEngine sslEngine, final Buffer inputBuffer)
+            final SSLConnectionContext sslCtx, final Buffer inputBuffer,
+            final Buffer tmpOutputBuffer)
             throws SSLException {
 
-        final int expectedLength = getSSLPacketSize(inputBuffer);
-        if (expectedLength == -1
-                || inputBuffer.remaining() < expectedLength) {
-            return null;
-        }
+        SSLConnectionContext.SslResult result =
+                sslCtx.unwrap(inputBuffer, tmpOutputBuffer, HS_UNWRAP_ALLOCATOR);
 
-        final MemoryManager memoryManager =
-                connection.getTransport().getMemoryManager();
-
-        final int pos = inputBuffer.position();
-        final int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
+        final Buffer output = result.getOutput();
         
-        final SSLEngineResult sslEngineResult;
-
-        if (!inputBuffer.isComposite()) {
-            final ByteBuffer inputBB = inputBuffer.toByteBuffer();
-
-            final Buffer outputBuffer = memoryManager.allocate(
-                    appBufferSize);
-
-            sslEngineResult = sslEngine.unwrap(inputBB,
-                    outputBuffer.toByteBuffer());
-            outputBuffer.dispose();
-
-            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
-
-            if (inputBuffer.hasRemaining()) {
-                // shift remainder to the buffer position 0
-                inputBuffer.compact();
-                // trim
-                inputBuffer.trim();
-            }
-
-        } else {
-            final ByteBuffer inputByteBuffer =
-                    inputBuffer.toByteBuffer(pos,
-                    pos + expectedLength);
-
-            final Buffer outputBuffer = memoryManager.allocate(
-                    appBufferSize);
-
-            sslEngineResult = sslEngine.unwrap(inputByteBuffer,
-                    outputBuffer.toByteBuffer());
-
-            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
-
-            outputBuffer.dispose();
+        assert !output.isComposite();
+        
+        if (output != tmpOutputBuffer) {
+            output.dispose();
         }
-
-        return sslEngineResult;
+        
+        if (result.isError()) {
+            throw result.getError();
+        }
+        
+        return result.getSslEngineResult();
     }
 
     public static Buffer handshakeWrap(final Connection connection,
-            final SSLEngine sslEngine) throws SSLException {
+            final SSLConnectionContext sslCtx, final Buffer netBuffer)
+            throws SSLException {
 
-        final MemoryManager memoryManager =
-                connection.getTransport().getMemoryManager();
+        final int packetBufferSize = sslCtx.getNetBufferSize();
         
-        final Buffer buffer = memoryManager.allocate(
-                sslEngine.getSession().getPacketBufferSize());
-        buffer.allowBufferDispose(true);
-
-        try {
-            final SSLEngineResult sslEngineResult =
-                    sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
-                    buffer.toByteBuffer());
-
-            buffer.position(sslEngineResult.bytesProduced());
-            buffer.trim();
-
-            return buffer;
-        } catch (SSLException e) {
-            buffer.dispose();
-            throw e;
+        Buffer buffer;
+        if (netBuffer != null && !netBuffer.isComposite() &&
+                netBuffer.capacity() - netBuffer.limit() >= packetBufferSize) {
+            netBuffer.position(netBuffer.limit());
+            netBuffer.limit(netBuffer.capacity());
+            
+            buffer = netBuffer;
+        } else {
+            buffer = allocateOutputBuffer(packetBufferSize * 2);
         }
+        
+        final SSLConnectionContext.SslResult result =
+                sslCtx.wrap(Buffers.EMPTY_BUFFER, buffer, HS_WRAP_ALLOCATOR);
+        
+        Buffer output = result.getOutput();
+        
+        output.flip();
+        if (buffer != output) {
+            if (buffer == netBuffer) {
+                netBuffer.flip();
+            }
+        }
+        
+        if (result.isError()) {
+            if (output != netBuffer) {
+                output.dispose();
+            }
+            
+            throw result.getError();
+        }
+        
+        if (output != netBuffer) {
+            output = allowDispose(Buffers.appendBuffers(
+                    connection.getTransport().getMemoryManager(),
+                    netBuffer, output));
+        }
+
+        return output;
     }
 
+    private static final ThreadCache.CachedTypeIndex<Buffer> SSL_OUTPUT_BUFFER_IDX =
+            ThreadCache.obtainIndex(SSLBaseFilter.class.getName() + ".output-buffer-cache",
+            Buffer.class, 4);
+    
+    static Buffer allocateOutputBuffer(final int size/*, final int counter*/) {
+        
+        Buffer buffer = ThreadCache.takeFromCache(SSL_OUTPUT_BUFFER_IDX);
+        final boolean hasBuffer = (buffer != null);
+        if (!hasBuffer || buffer.remaining() < size) {
+            final ByteBuffer byteBuffer;
+                byteBuffer = ByteBuffer.allocate(size);
+            
+            buffer = new ByteBufferWrapper(byteBuffer) {
+
+                @Override
+                public void dispose() {
+                    clear();
+                    ThreadCache.putToCache(SSL_OUTPUT_BUFFER_IDX, this);
+                }
+            };
+        }
+
+        return buffer;
+    }
+    
+    static Buffer allocateInputBuffer(final SSLConnectionContext sslCtx) {
+        
+        final SSLEngine sslEngine = sslCtx.getSslEngine();
+        if (sslEngine == null) {
+            return null;
+        }
+        
+        // Direct buffer input
+//        final InputBufferWrapper buffer = sslCtx.useInputBuffer();
+//        return buffer.prepare(sslCtx.getNetBufferSize() * 2);
+        // Heap buffer input
+        return allocateOutputBuffer(sslCtx.getNetBufferSize() * 2);
+    }
+
+    static Buffer makeInputRemainder(
+            final SSLConnectionContext sslCtx,
+            final FilterChainContext context,
+            final Buffer buffer) {
+        
+        if (buffer == null) {
+            return null;
+        }
+        
+        if (!buffer.hasRemaining()) {
+            buffer.tryDispose();
+            return null;
+        }
+        
+        final Buffer inputBuffer = sslCtx.resetLastInputBuffer();
+        if (inputBuffer == null) { // SSLTransportWrapper hasn't been used
+            final Buffer remainder = buffer.split(buffer.position());
+            buffer.tryDispose();
+            return remainder;
+        } else {
+            return move(context.getMemoryManager(), buffer);
+        }
+    }
+    
+    static Buffer copy(final MemoryManager memoryManager,
+            final Buffer buffer) {
+        final Buffer tmpBuf = memoryManager.allocate(buffer.remaining());
+        tmpBuf.put(buffer);
+
+        return tmpBuf.flip();
+
+    }
+    
+    static Buffer move(final MemoryManager memoryManager,
+            final Buffer buffer) {
+        final Buffer tmpBuf = copy(memoryManager, buffer);
+        buffer.tryDispose();
+
+        return tmpBuf;
+
+    }
+    
+    static Buffer allowDispose(final Buffer buffer) {
+        if (buffer == null) {
+            return null;
+        }
+        
+        buffer.allowBufferDispose(true);
+        if (buffer.isComposite()) {
+            ((CompositeBuffer) buffer).allowInternalBuffersDispose(true);
+        }
+        
+        return buffer;
+    }    
 }
