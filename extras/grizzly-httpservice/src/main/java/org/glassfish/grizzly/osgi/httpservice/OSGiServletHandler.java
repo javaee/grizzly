@@ -46,7 +46,6 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;
 import org.glassfish.grizzly.servlet.FilterChainInvoker;
 import org.glassfish.grizzly.servlet.FilterConfigImpl;
-import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
 import org.glassfish.grizzly.servlet.ServletConfigImpl;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.osgi.service.http.HttpContext;
@@ -65,6 +64,7 @@ import java.lang.String;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
@@ -80,7 +80,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
     private HttpContext httpContext;
     private Logger logger;
     private String servletPath;
-    private FilterChainImpl filterChain;
+    private FilterChainFactory filterChainFactory;
 
     public OSGiServletHandler(final Servlet servlet,
                               final HttpContext httpContext,
@@ -91,7 +91,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
         super.servletInstance = servlet;
         this.httpContext = httpContext;
         this.logger = logger;
-        this.filterChain = new FilterChainImpl(servlet, (OSGiServletContext) getServletCtx());
+        filterChainFactory = new FilterChainFactory(servlet, (OSGiServletContext) getServletCtx());
     }
 
     private OSGiServletHandler(final ServletConfigImpl servletConfig,
@@ -156,7 +156,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
 
     @Override
     protected FilterChainInvoker getFilterChain(Request request) {
-        return filterChain;
+       return filterChainFactory.createFilterChain();
     }
 
 
@@ -164,8 +164,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
                              final String name,
                              final Map<String,String> initParams) {
         try {
-            filter.init(createFilterConfig(getServletCtx(), name, initParams));
-            filterChain.addFilter(filter);
+            filterChainFactory.addFilter(filter, name, initParams);
         } catch (Exception e) {
             logger.error(e.toString(), e);
         }
@@ -242,10 +241,9 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
         private final Servlet servlet;
         private final OSGiServletContext ctx;
 
-        private final Object lock = new Object();
-        private int n;
+        private Filter[] filters;
+        private int filterCount;
 
-        private Filter[] filters = new Filter[0];
 
         /**
          * The int which is used to maintain the current position
@@ -254,10 +252,15 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
         private int pos;
 
         public FilterChainImpl(final Servlet servlet,
-                               final OSGiServletContext ctx) {
+                               final OSGiServletContext ctx,
+                               final Filter[] filters,
+                               final int filterCount) {
 
             this.servlet = servlet;
             this.ctx = ctx;
+            this.filters = filters;
+            this.filterCount = filterCount;
+
         }
 
         // ---------------------------------------------------- FilterChain Methods
@@ -295,7 +298,7 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
                 throws IOException, ServletException {
 
             // Call the next filter if there is one
-            if (pos < n) {
+            if (pos < filterCount) {
 
                 Filter filter = filters[pos++];
 
@@ -318,23 +321,6 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
             }
 
         }
-
-        // ------------------------------------------------------- Protected Methods
-
-
-        protected void addFilter(final Filter filter) {
-            synchronized (lock) {
-                if (n == filters.length) {
-                    Filter[] newFilters =
-                            new Filter[n + 4];
-                    System.arraycopy(filters, 0, newFilters, 0, n);
-                    filters = newFilters;
-                }
-
-                filters[n++] = filter;
-            }
-        }
-
 
         // --------------------------------------------------------- Private Methods
 
@@ -375,5 +361,68 @@ public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
         }
 
     } // END FilterChainImpl
+
+    private static final class FilterChainFactory {
+
+        private final Servlet servlet;
+        private final OSGiServletContext servletContext;
+        private final ReentrantReadWriteLock lock =
+                new ReentrantReadWriteLock();
+        private Filter[] filters = new Filter[0];
+        private int filterCount;
+
+        /**
+         * Initializes a new {@link FilterChainFactory}.
+         *
+         * @param servlet
+         * @param servletContext
+         */
+        FilterChainFactory(Servlet servlet, OSGiServletContext servletContext) {
+            super();
+            this.servlet = servlet;
+            this.servletContext = servletContext;
+        }
+
+        protected void addFilter(final Filter filter,
+                                     final String name,
+                                     final Map<String,String> initParams)
+        throws ServletException {
+            filter.init(createFilterConfig(servletContext, name, initParams));
+            final Lock writeLock = lock.writeLock();
+            try {
+                writeLock.lock();
+                if (filterCount == filters.length) {
+                    Filter[] newFilters =
+                            new Filter[filterCount + 4];
+                    System.arraycopy(filters, 0, newFilters, 0, filterCount);
+                    filters = newFilters;
+                }
+
+                filters[filterCount++] = filter;
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
+        /**
+         * Construct and return a FilterChain implementation that will wrap the execution of the specified servlet instance. If we should
+         * not execute a filter chain at all, return <code>null</code>.
+         */
+        FilterChainImpl createFilterChain() {
+            if (filterCount == 0) {
+                return null;
+            }
+            final Lock readLock = lock.readLock();
+            try {
+                readLock.lock();
+                return new FilterChainImpl(servlet,
+                        servletContext,
+                        filters,
+                        filterCount);
+            } finally {
+                readLock.unlock();
+            }
+        }
+    }
 
 }
