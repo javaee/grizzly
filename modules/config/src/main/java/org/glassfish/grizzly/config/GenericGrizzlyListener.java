@@ -82,6 +82,7 @@ import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
@@ -92,7 +93,7 @@ import org.glassfish.grizzly.portunif.ProtocolFinder;
 import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
@@ -253,6 +254,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));
         transport.getKernelThreadPoolConfig().setPoolName(networkListener.getName() + "-kernel");
         transport.setIOStrategy(loadIOStrategy(transportConfig.getIOStrategy()));
+        transport.setNIOChannelDistributor(
+                new RoundRobinConnectionDistributor(
+                transport,
+                Boolean.parseBoolean(transportConfig.getDedicatedAcceptorEnabled())));
         
         filterChainBuilder.add(new TransportFilter());
     }
@@ -385,12 +390,15 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                        final Ssl ssl,
                                        final FilterChainBuilder filterChainBuilder) {
         final SSLEngineConfigurator serverConfig = new SSLConfigurator(habitat, ssl);
-        final SSLEngineConfigurator clientConfig = new SSLConfigurator(habitat, ssl);
-        clientConfig.setClientMode(true);
+//        final SSLEngineConfigurator clientConfig = new SSLConfigurator(habitat, ssl);
+//        clientConfig.setClientMode(true);
+        final SSLBaseFilter sslFilter = new SSLBaseFilter(serverConfig,
+         //                                             clientConfig,
+                                                      isRenegotiateOnClientAuthWant(ssl));
+        sslFilter.setHandshakeTimeout(
+                Long.parseLong(ssl.getHandshakeTimeoutMillis()), TimeUnit.MILLISECONDS);
 
-        filterChainBuilder.add(new SSLFilter(serverConfig,
-                                             clientConfig,
-                                             isRenegotiateOnClientAuthWant(ssl)));
+        filterChainBuilder.add(sslFilter);
     }
 
     private static boolean isRenegotiateOnClientAuthWant(final Ssl ssl) {

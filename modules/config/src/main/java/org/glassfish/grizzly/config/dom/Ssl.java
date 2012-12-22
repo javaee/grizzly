@@ -68,6 +68,7 @@ public interface Ssl extends ConfigBeanProxy, PropertyBag {
     String PASSWORD_PROVIDER = "plain";
     String SSL2_CIPHERS_PATTERN =
             "((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*";
+    long HANDSHAKE_TIMEOUT_MILLIS = -1;
 
     /**
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
@@ -295,5 +296,13 @@ public interface Ssl extends ConfigBeanProxy, PropertyBag {
      * @since 2.1.2
      */
     void setRenegotiateOnClientAuthWant(boolean renegotiateClientAuthWant);
+    
+    /**
+     * Handshake mode
+     */
+    @Attribute(defaultValue="" + HANDSHAKE_TIMEOUT_MILLIS, dataType = Long.class)
+    String getHandshakeTimeoutMillis();
+
+    void setHandshakeTimeoutMillis(String timeoutMillis);
 
 }
