@@ -67,7 +67,8 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int SELECTOR_POLL_TIMEOUT = 1000;
     String BYTE_BUFFER_TYPE = "HEAP";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
-
+    boolean DEDICATED_ACCEPTOR_ENABLED = false;
+    
     /**
      * The number of acceptor threads listening for the transport's events
      */
@@ -189,6 +190,11 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
 
     void setLinger(String linger);
 
+    @Attribute(defaultValue = "" + DEDICATED_ACCEPTOR_ENABLED, dataType = Boolean.class)
+    String getDedicatedAcceptorEnabled();
+
+    void setDedicatedAcceptorEnabled(String isEnabled);
+    
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
