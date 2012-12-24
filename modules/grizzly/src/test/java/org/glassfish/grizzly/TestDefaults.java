@@ -174,6 +174,11 @@ public class TestDefaults {
         public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer) {
             return null;  
         }
+
+        @Override
+        public <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.attributes.NullaryFunction<T> initializer) {
+            return null;
+        }
         
     } // END TestBuilder
 }

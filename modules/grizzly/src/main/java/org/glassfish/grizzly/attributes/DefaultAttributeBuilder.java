@@ -99,6 +99,18 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
         return attribute;
     }
 
+    @Override
+    public <T> Attribute<T> createAttribute(final String name,
+            final org.glassfish.grizzly.attributes.NullaryFunction<T> initializer) {
+        return createAttribute(name, new NullaryFunction<T>() {
+
+                    @Override
+                    public T evaluate() {
+                        return initializer.evaluate();
+                    }
+                });
+    }
+
     protected Attribute getAttributeByName(final String name) {
         return name2Attribute.get(name);
     }

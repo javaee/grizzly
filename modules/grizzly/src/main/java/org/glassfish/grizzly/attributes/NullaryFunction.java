@@ -52,5 +52,9 @@ package org.glassfish.grizzly.attributes;
  * @author Ken Cavanaugh
  * @deprecated pls. use {@link org.glassfish.grizzly.utils.NullaryFunction}
  */
-public interface NullaryFunction<T> extends org.glassfish.grizzly.utils.NullaryFunction<T> {
+public interface NullaryFunction<T> {
+    /**
+     * Initializes and returns the value.
+     */
+    public T evaluate();    
 }

@@ -101,4 +101,19 @@ public interface AttributeBuilder {
      * @return Attribute<T>
      */
     public <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.utils.NullaryFunction<T> initializer);
+    
+    /**
+     * Create Attribute with name and initializer, which will be called, if
+     * Attribute's value is null on a AttributedObject
+     * 
+     * @param <T> Type of attribute value
+     * @param name attribute name
+     * @param initializer NullaryFunction, which will be called, if Attribute's
+     *                    value is null on a AttributedObject 
+     * 
+     * @return Attribute<T>
+     * @deprecated pls. use {@link #createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
+     */
+    public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
+    
 }
