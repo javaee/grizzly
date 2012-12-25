@@ -49,19 +49,35 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public final class Method {
-    public static final Method OPTIONS = new Method("OPTIONS");
-    public static final Method GET = new Method("GET");
-    public static final Method HEAD = new Method("HEAD");
-    public static final Method POST = new Method("POST");
-    public static final Method PUT = new Method("PUT");
-    public static final Method DELETE = new Method("DELETE");
-    public static final Method TRACE = new Method("TRACE");
-    public static final Method CONNECT = new Method("CONNECT");
-    public static final Method PATCH = new Method("PATCH");
+    public enum PayloadExpectation {EXPECTED, NOT_EXPECTED, UNDEFINED};
+    
+    public static final Method OPTIONS =
+            new Method("OPTIONS", PayloadExpectation.EXPECTED);
+    public static final Method GET =
+            new Method("GET", PayloadExpectation.NOT_EXPECTED); /* even though it's PayloadExpectation.UNDEFINED */
+    public static final Method HEAD =
+            new Method("HEAD", PayloadExpectation.NOT_EXPECTED); /* even though it's PayloadExpectation.UNDEFINED */
+    public static final Method POST
+            = new Method("POST", PayloadExpectation.EXPECTED);
+    public static final Method PUT
+            = new Method("PUT", PayloadExpectation.EXPECTED);
+    public static final Method DELETE
+            = new Method("DELETE", PayloadExpectation.UNDEFINED);
+    public static final Method TRACE
+            = new Method("TRACE", PayloadExpectation.NOT_EXPECTED);
+    public static final Method CONNECT
+            = new Method("CONNECT", PayloadExpectation.EXPECTED);
+    public static final Method PATCH
+            = new Method("PATCH", PayloadExpectation.EXPECTED);
 
     public static Method CUSTOM(final String methodName) {
-        return new Method(methodName);
+        return CUSTOM(methodName, PayloadExpectation.EXPECTED);
     }
+
+    public static Method CUSTOM(final String methodName,
+            final PayloadExpectation payloadExpectation) {
+        return new Method(methodName, payloadExpectation);
+    }    
 
     public static Method valueOf(final DataChunk methodC) {
         if (methodC.equals(Method.GET.getMethodString())) {
@@ -112,15 +128,21 @@ public final class Method {
     }
 
     private final String methodString;
-    private byte[] methodBytes;
+    private final byte[] methodBytes;
 
-    private Method(final String methodString) {
+    private final PayloadExpectation payloadExpectation;
+    
+    private Method(final String methodString,
+            final PayloadExpectation payloadExpectation) {
         this.methodString = methodString;
         try {
             this.methodBytes = methodString.getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException ignored) {
-            this.methodBytes = methodString.getBytes();
+        } catch (UnsupportedEncodingException e) {
+            // Should never get here
+            throw new IllegalStateException(e);
         }
+        
+        this.payloadExpectation = payloadExpectation;
     }
 
     public String getMethodString() {
@@ -129,6 +151,10 @@ public final class Method {
 
     public byte[] getMethodBytes() {
         return methodBytes;
+    }
+
+    public PayloadExpectation getPayloadExpectation() {
+        return payloadExpectation;
     }
 
     @Override

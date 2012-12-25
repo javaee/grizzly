@@ -1204,8 +1204,11 @@ public class HttpInputStreamsTest extends TestCase {
             throw new RuntimeException(e);
         }
 
-        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(((content == null)))
+        HttpRequestPacket.Builder b = HttpRequestPacket.builder()
+                .method(method)
+                .protocol(Protocol.HTTP_1_1)
+                .uri("/path")
+                .chunked(content == null)
                 .header("Host", "localhost");
         if (content != null) {
             b.contentLength(contentBuffer.remaining());
