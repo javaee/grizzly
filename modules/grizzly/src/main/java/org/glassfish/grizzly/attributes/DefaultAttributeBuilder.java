@@ -102,7 +102,9 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
     @Override
     public <T> Attribute<T> createAttribute(final String name,
             final org.glassfish.grizzly.attributes.NullaryFunction<T> initializer) {
-        return createAttribute(name, new NullaryFunction<T>() {
+        return createAttribute(name, initializer == null ?
+                null :
+                new NullaryFunction<T>() {
 
                     @Override
                     public T evaluate() {
