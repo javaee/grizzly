@@ -63,6 +63,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.http.Method.PayloadExpectation;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk.Type;
 import org.glassfish.grizzly.http.util.HttpUtils;
@@ -646,12 +647,16 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         final Method method = request.getMethod();
-
-        if (Method.GET.equals(method)
-                || Method.HEAD.equals(method)) {
-            request.setExpectContent(false);
+        
+        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
+        if (payloadExpectation != PayloadExpectation.UNDEFINED) {
+            request.setExpectContent(
+                    payloadExpectation == PayloadExpectation.EXPECTED);
+        } else {
+            request.setExpectContent(
+                    request.getContentLength() != -1 || request.isChunked());
         }
-
+        
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
             return;
