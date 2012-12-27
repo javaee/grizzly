@@ -79,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -89,8 +90,10 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
+    private static final int MAX_HEADERS_SIZE = 8192;
+    
     private HttpServerFilter httpServerFilter =
-            new HttpServerFilter(false, 8192, new KeepAlive(), null);
+            new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAlive(), null);
 
     // ------------------------------------------------------------ Test Methods
 
@@ -597,6 +600,38 @@ public class HttpSemanticsTest extends TestCase {
         doTest(createHttpRequest(), result, serverResponseFilter);
     }
         
+    public void testHttpHeadersLimit() throws Throwable {
+        final Builder builder = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .maxNumHeaders(-1);
+        
+
+        int i = 1;
+        int headerSize = MAX_HEADERS_SIZE;
+        while (headerSize >= 0) {
+            final String name = "Header-" + i;
+            final String value = "Value-" + i;
+            
+            builder.header(name, value);
+            i++;
+            headerSize -= (name.length() + value.length());
+        }
+        
+        final HttpRequestPacket request = builder.build();
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(400);
+        result.addHeader("!Transfer-Encoding", null);
+        result.addHeader("Content-Length", "0");
+        result.setStatusMessage("Bad request");
+        doTest(request, result);
+    }
+
     // --------------------------------------------------------- Private Methods
 
 
