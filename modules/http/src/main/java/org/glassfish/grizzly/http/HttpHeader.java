@@ -1147,5 +1147,15 @@ public abstract class HttpHeader extends HttpPacket
             packet.addHeader(header, value);
             return (T) this;
         }
+        
+        /**
+         * Sets the maximum number of headers allowed.
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T maxNumHeaders(int num) {
+            packet.getHeaders().setMaxNumHeaders(num);
+            return (T) this;
+        }
+        
     }
 }

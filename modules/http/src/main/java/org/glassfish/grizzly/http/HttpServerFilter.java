@@ -623,7 +623,6 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         Protocol protocol;
         try {
-            response.setProtocol(Protocol.HTTP_1_1);
             protocol = request.getProtocol();
         } catch (IllegalStateException e) {
             state.error = true;
@@ -1260,6 +1259,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
             contentParsingState.trailerHeaders.setMaxNumHeaders(maxNumberOfHeaders);
             headers.setMaxNumHeaders(maxNumberOfHeaders);
+            finalHttpResponse.setProtocol(Protocol.HTTP_1_1);
             setResponse(finalHttpResponse);
             setConnection(connection);
         }
