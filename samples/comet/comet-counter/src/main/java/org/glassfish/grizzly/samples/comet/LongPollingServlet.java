@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.samples.comet;
+package org.glassfish.grizzly.samples.comet;
 
 import java.io.IOException;
 import java.io.PrintWriter;

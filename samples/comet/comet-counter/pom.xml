@@ -49,7 +49,7 @@
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly.samples</groupId>
+    <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-comet-counter</artifactId>
     <packaging>war</packaging>
     <version>2.3-SNAPSHOT</version>
