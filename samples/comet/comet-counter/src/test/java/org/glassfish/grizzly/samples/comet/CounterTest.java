@@ -38,8 +38,9 @@
  * holder.
  */
 
-package com.sun.grizzly.samples.comet;
+package org.glassfish.grizzly.samples.comet;
 
+import org.glassfish.grizzly.samples.comet.LongPollingServlet;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
