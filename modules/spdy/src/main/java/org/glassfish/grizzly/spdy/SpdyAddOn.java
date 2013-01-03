@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,11 +62,11 @@ import org.glassfish.grizzly.Connection;
  * FilterChain after being processed by SpdyAddOn:
  *
  * <pre>
- *     {@link org.glassfish.grizzly.filterchain.TransportFilter} <-> {@link SSLFilter}(1) <-> {@link FramesDecoderFilter} <-> {@link SpdyHandlerFilter}(2) <-> {@link HttpServerFilter}
+ *     {@link org.glassfish.grizzly.filterchain.TransportFilter} <-> {@link SSLFilter}(1) <-> {@link SpdyFramingFilter} <-> {@link SpdyHandlerFilter}(2) <-> {@link HttpServerFilter}
  * </pre>
  * <ol>
  *     <li>SSLFilter is configured to use NPN for SPDY protocol negotiation</li>
- *     <li>FramesDecoderFilter and SpdyHandlerFilter replace {@link org.glassfish.grizzly.http.HttpServerFilter}</li>
+ *     <li>SpdyFramingFilter and SpdyHandlerFilter replace {@link org.glassfish.grizzly.http.HttpServerFilter}</li>
  * </ol>
  *
  */
@@ -80,6 +80,10 @@ public class SpdyAddOn implements AddOn {
 
     @Override
     public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+        if (!NextProtoNegSupport.isEnabled()) {
+            LOGGER.warning("TLS Next Protocol Negotiation is not available.  SPDY support cannot be enabled.");
+            return;
+        }
         configureTransport(networkListener.getTransport());
         final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
         processHttpServerFilter(builder, executor);
