@@ -713,7 +713,7 @@ public class SSLBaseFilter extends BaseFilter {
                 // SSLEngine, then we need to issue another read to continue
                 // the handshake.  Continue doing so until handshaking is
                 // complete
-                if (!m.hasRemaining() && isHandshaking(sslEngine)) {
+                if (isHandshaking(sslEngine)) {
                     result = context.read();
                     m = (Buffer) result.getMessage();
 //                    context.setMessage(m);
