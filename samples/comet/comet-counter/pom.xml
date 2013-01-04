@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3-SNAPSHOT</version>
+        <version>2.3-rc2</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-comet-counter</artifactId>
     <packaging>war</packaging>
-    <version>2.3-SNAPSHOT</version>
+    <version>2.3-rc2</version>
     <name>grizzly-comet-counter</name>
     <url>https://grizzly.java.net</url>
     <dependencies>
