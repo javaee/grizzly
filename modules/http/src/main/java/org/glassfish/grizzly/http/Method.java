@@ -49,29 +49,29 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public final class Method {
-    public enum PayloadExpectation {EXPECTED, NOT_EXPECTED, UNDEFINED};
+    public enum PayloadExpectation {ALLOWED, NOT_ALLOWED, UNDEFINED};
     
     public static final Method OPTIONS =
-            new Method("OPTIONS", PayloadExpectation.EXPECTED);
+            new Method("OPTIONS", PayloadExpectation.ALLOWED);
     public static final Method GET =
-            new Method("GET", PayloadExpectation.NOT_EXPECTED); /* even though it's PayloadExpectation.UNDEFINED */
+            new Method("GET", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
     public static final Method HEAD =
-            new Method("HEAD", PayloadExpectation.NOT_EXPECTED); /* even though it's PayloadExpectation.UNDEFINED */
+            new Method("HEAD", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
     public static final Method POST
-            = new Method("POST", PayloadExpectation.UNDEFINED);
+            = new Method("POST", PayloadExpectation.ALLOWED);
     public static final Method PUT
-            = new Method("PUT", PayloadExpectation.EXPECTED);
+            = new Method("PUT", PayloadExpectation.ALLOWED);
     public static final Method DELETE
-            = new Method("DELETE", PayloadExpectation.UNDEFINED);
+            = new Method("DELETE", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
     public static final Method TRACE
-            = new Method("TRACE", PayloadExpectation.NOT_EXPECTED);
+            = new Method("TRACE", PayloadExpectation.NOT_ALLOWED);
     public static final Method CONNECT
-            = new Method("CONNECT", PayloadExpectation.EXPECTED);
+            = new Method("CONNECT", PayloadExpectation.NOT_ALLOWED);
     public static final Method PATCH
-            = new Method("PATCH", PayloadExpectation.EXPECTED);
+            = new Method("PATCH", PayloadExpectation.ALLOWED);
 
     public static Method CUSTOM(final String methodName) {
-        return CUSTOM(methodName, PayloadExpectation.EXPECTED);
+        return CUSTOM(methodName, PayloadExpectation.ALLOWED);
     }
 
     public static Method CUSTOM(final String methodName,
