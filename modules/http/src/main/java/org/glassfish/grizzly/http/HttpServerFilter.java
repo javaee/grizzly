@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -647,13 +647,13 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Method method = request.getMethod();
         
         final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
-        if (payloadExpectation != PayloadExpectation.UNDEFINED) {
-            request.setExpectContent(
-                    payloadExpectation == PayloadExpectation.EXPECTED);
-        } else {
+        if (payloadExpectation != PayloadExpectation.NOT_ALLOWED) {
             request.setExpectContent(
                     request.getContentLength() != -1 || request.isChunked());
+        } else {
+            request.setExpectContent(method == Method.CONNECT);
         }
+        
         
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
@@ -694,8 +694,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
 
         // ------ Set keep-alive flag
-        if (request.isExpectContent() &&
-                !request.isChunked() && request.getContentLength() == -1) {
+        if (method == Method.CONNECT) {
             state.keepAlive = false;
         } else {
             final DataChunk connectionValueDC = headers.getValue(Header.Connection);
