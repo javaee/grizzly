@@ -58,7 +58,7 @@ public final class Method {
     public static final Method HEAD =
             new Method("HEAD", PayloadExpectation.NOT_EXPECTED); /* even though it's PayloadExpectation.UNDEFINED */
     public static final Method POST
-            = new Method("POST", PayloadExpectation.EXPECTED);
+            = new Method("POST", PayloadExpectation.UNDEFINED);
     public static final Method PUT
             = new Method("PUT", PayloadExpectation.EXPECTED);
     public static final Method DELETE
