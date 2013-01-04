@@ -706,19 +706,7 @@ public class SSLBaseFilter extends BaseFilter {
             // read the bytes returned by the client
             ReadResult result = context.read();
             Buffer m = (Buffer) result.getMessage();
-//            context.setMessage(m);
-            while (isHandshaking(sslEngine)) {
-                doHandshakeStep(sslCtx, context, m);
-                // if the current buffer's content has been consumed by the
-                // SSLEngine, then we need to issue another read to continue
-                // the handshake.  Continue doing so until handshaking is
-                // complete
-                if (isHandshaking(sslEngine)) {
-                    result = context.read();
-                    m = (Buffer) result.getMessage();
-//                    context.setMessage(m);
-                }
-            }
+            doHandshakeSync(sslCtx, context, m, handshakeTimeoutMillis);
 
         } catch (Throwable t) {
             if (LOGGER.isLoggable(Level.FINE)) {

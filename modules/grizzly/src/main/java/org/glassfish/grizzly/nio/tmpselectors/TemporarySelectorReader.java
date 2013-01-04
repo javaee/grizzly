@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -100,7 +100,8 @@ public abstract class TemporarySelectorReader {
                 ReadResult.create(connection, buffer, null, 0);
         
         final SelectableChannel channel = nioConnection.getChannel();
-        final long readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+        final long readTimeout = TimeUnit.MILLISECONDS.convert(
+                ((timeout < 0) ? 0 : timeout), timeunit);
 
         try {
             bytesRead = readNow0(nioConnection, buffer, currentResult);
