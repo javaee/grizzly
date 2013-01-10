@@ -51,3 +51,4 @@
 /web-app_3_0.xsd
 /web-common_3_0.xsd
 /xml.xsd
+/modules/http/src/main/java/org/glassfish/grizzly/http/util/Base64Utils.java
