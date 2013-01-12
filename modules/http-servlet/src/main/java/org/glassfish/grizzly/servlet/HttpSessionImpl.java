@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,6 +50,7 @@ import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionBindingEvent;
 import javax.servlet.http.HttpSessionBindingListener;
 import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Session;
@@ -424,4 +425,33 @@ public class HttpSessionImpl implements HttpSession {
             }
         }
     }
+    
+    /**
+     * Invoke to notify all registered {@link HttpSessionListener} of the 
+     * session has just been created.
+     */
+    protected void notifyIdChanged(final String oldId) {
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length > 0) {
+            HttpSessionEvent event =
+                    new HttpSessionEvent(this);
+            for (int i = 0, len = listeners.length; i < len; i++) {
+                Object listenerObj = listeners[i];
+                if (!(listenerObj instanceof HttpSessionIdListener)) {
+                    continue;
+                }
+                HttpSessionIdListener listener =
+                        (HttpSessionIdListener) listenerObj;
+                try {
+                    listener.sessionIdChanged(event, oldId);
+                } catch (Throwable t) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("sessionCreated", "HttpSessionListener", listener.getClass().getName()),
+                                   t);
+                    }
+                }
+            }
+        }
+    }    
 }

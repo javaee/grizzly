@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,13 +52,13 @@ public class Session {
     /**
      * Cache attribute (thread safe)
      */
-    private ConcurrentHashMap<String,Object> attributes = new
-            ConcurrentHashMap<String,Object>();
+    private final ConcurrentHashMap<String,Object> attributes =
+            new ConcurrentHashMap<String,Object>();
 
     /**
      * A session identifier
      */
-    private String requestedSessionId = null;
+    private String id = null;
 
 
     /**
@@ -87,10 +87,10 @@ public class Session {
 
     /**
      * Create a new session using a session identifier
-     * @param requestedSessionId session identifier
+     * @param id session identifier
      */
-    public Session(String requestedSessionId) {
-        this.requestedSessionId = requestedSessionId;
+    public Session(String id) {
+        this.id = id;
     }
 
 
@@ -107,9 +107,9 @@ public class Session {
      * Set this object as validated.
      * @param isValid
      */
-    public void setValid(boolean isValid){
+    public void setValid(boolean isValid) {
         this.isValid = isValid;
-        if (!isValid){
+        if (!isValid) {
             timestamp = -1;
         }
     }
@@ -118,16 +118,16 @@ public class Session {
     /**
      * Return the session identifier for this session.
      */
-    public String getIdInternal(){
-         return requestedSessionId;
+    public String getIdInternal() {
+        return id;
     }
 
 
     /**
      * Return the session identifier for this session.
      */
-    public void setIdInternal(String requestedSessionId){
-         this.requestedSessionId = requestedSessionId;
+    void setIdInternal(String id) {
+        this.id = id;
     }
 
 
@@ -136,17 +136,17 @@ public class Session {
      * @param key
      * @param value
      */
-    public void setAttribute(String key, Object value){
+    public void setAttribute(String key, Object value) {
         attributes.put(key, value);
     }
 
-
     /**
      * Return an attribute.
+     *
      * @param key
      * @return an attribute
      */
-    public Object getAttribute(String key){
+    public Object getAttribute(String key) {
         return attributes.get(key);
     }
 
@@ -165,7 +165,7 @@ public class Session {
      * Return a {@link ConcurrentHashMap} of attributes.
      * @return the attributes associated with this session.
      */
-    public ConcurrentHashMap<String,Object> attributes(){
+    public ConcurrentHashMap<String,Object> attributes() {
         return attributes;
     }
 

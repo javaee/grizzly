@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -2197,6 +2197,44 @@ public class Request {
         return doGetSession(create);
     }
 
+    /**
+     * Change the session id of the current session associated with this
+     * request and return the new session id. 
+     *
+     * @return the original session id
+     *
+     * @throws IllegalStateException if there is no session associated
+     * with the request
+     *
+     * @since 2.3
+     */
+    public String changeSessionId() {
+        Session sessionLocal = doGetSession(false);
+        if (sessionLocal == null) {
+            throw new IllegalStateException("changeSessionId has been called without a session");
+        }
+
+        String oldSessionId = sessionLocal.getIdInternal();
+        final String newSessionId = String.valueOf(generateRandomLong());
+        sessionLocal.setIdInternal(newSessionId);
+        // This should only ever be called if there was an old session ID but
+        // double check to be sure
+        if (requestedSessionId != null && requestedSessionId.length() > 0) {
+            requestedSessionId = newSessionId;
+        }
+
+        if (isRequestedSessionIdFromURL())
+            return oldSessionId;
+
+        if (response != null) {
+            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+                                             sessionLocal.getIdInternal());
+            configureSessionCookie(cookie);
+            response.addSessionCookieInternal(cookie);
+        }
+
+        return oldSessionId;
+    }
 
     protected Session doGetSession(final boolean create) {
         // Return the current session if it exists and is valid
@@ -2208,6 +2246,20 @@ public class Request {
             return session;
         }
 
+        if (requestedSessionId == null) {
+            final Cookie[] cookiesLocale = getCookies();
+            assert cookiesLocale != null;
+            
+            for (int i = 0; i < cookiesLocale.length; i++) {
+                final Cookie c = cookiesLocale[i];
+                if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                    setRequestedSessionId(c.getValue());
+                    setRequestedSessionCookie(true);
+                    break;
+                }
+            }
+        }
+        
         if (requestedSessionId != null) {
             session = sessions.get(requestedSessionId);
             if ((session != null) && !session.isValid()) {
