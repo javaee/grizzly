@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,8 +43,10 @@ package org.glassfish.grizzly.http.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -54,17 +56,23 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -213,6 +221,59 @@ public class HttpSessionTest extends TestCase {
         assertFalse("123456".equals(sessionId));
     }
     
+    public void testChangeSessionId() throws Exception {
+        final HttpHandler httpHandler = new HttpHandler() {
+            @Override
+            public void service(Request req, Response res) throws Exception {
+                Session session = req.getSession(false);
+                if (session == null) {
+                    req.getSession(true).setAttribute("A", "1");
+                } else {
+                    session.setAttribute("A", "2");
+                    req.changeSessionId();
+                }
+                Object a = req.getSession(false).getAttribute("A");
+                res.addHeader("A", (String) a);
+            }
+        };
+        
+        HttpServer server = createWebServer(httpHandler);
+        
+        try {
+            server.start();
+            final HttpPacket request1 = createRequest("/test", null);
+            final HttpContent response1 = sendRequest(request1, 10);
+            
+            Cookie[] cookies1 = getCookies(response1.getHttpHeader().getHeaders());
+            
+            assertEquals(1, cookies1.length);
+            assertEquals(Globals.SESSION_COOKIE_NAME, cookies1[0].getName());
+            
+            String[] values1 = getHeaderValues(response1.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values1.length);
+            assertEquals("1", values1[0]);
+                        
+            final HttpPacket request2 = createRequest("/test",
+                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
+            
+            final HttpContent response2 = sendRequest(request2, 10);
+            Cookie[] cookies2 = getCookies(response2.getHttpHeader().getHeaders());
+            
+            assertEquals(1, cookies2.length);
+            assertEquals(Globals.SESSION_COOKIE_NAME, cookies2[0].getName());
+            
+            String[] values2 = getHeaderValues(response2.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values2.length);
+            assertEquals("2", values2[0]);
+
+            assertTrue(!cookies1[0].getValue().equals(cookies2[0].getValue()));
+
+        } finally {
+            server.stop();
+        }
+    }
+    
     public void testEncodeURL() throws Exception {
         
         HttpServer server = createWebServer(new HttpEncodeURLHandler());
@@ -307,34 +368,89 @@ public class HttpSessionTest extends TestCase {
 
     private HttpContent sendRequest(final HttpPacket request, final int timeout) throws Exception {
 
+        HttpConnection connection = connect();
+        
+        try {
+            return connection.send(request).get(timeout, TimeUnit.SECONDS);
+        } finally {
+            connection.close();
+        }
+    }
+
+    private HttpConnection connect() {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
+
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        clientFilterChainBuilder.add(new TransportFilter());
+        clientFilterChainBuilder.add(new ChunkingFilter(5));
+        clientFilterChainBuilder.add(new HttpClientFilter());
+        
+        final ClientFilter clientFilter = new ClientFilter();
+        
+        clientFilterChainBuilder.add(clientFilter);
+        clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+        Connection connection = null;
+        
         try {
-            final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
-
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(5));
-            clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
-            clientTransport.setProcessor(clientFilterChainBuilder.build());
-
             clientTransport.start();
-
             Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
-            Connection connection = null;
-            try {
-                connection = connectFuture.get(timeout, TimeUnit.SECONDS);
-                connection.write(request);
-                return testResultFuture.get(timeout, TimeUnit.SECONDS);
-            } finally {
-                // Close the client connection
-                if (connection != null) {
-                    connection.closeSilently();
-                }
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            
+            return new HttpConnection(clientTransport, connection, clientFilter);
+        } catch (Exception e) {
+            if (connection != null) {
+                connection.closeSilently();
             }
-        } finally {
-            clientTransport.stop();
+            
+            try {
+                clientTransport.stop();
+            } catch (IOException ee) {
+            }
+            
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private Cookie[] getCookies(MimeHeaders headers) {
+        final Cookies cookies = new Cookies();
+        cookies.setHeaders(headers, false);
+        return cookies.get();
+    }
+    
+    private String[] getHeaderValues(MimeHeaders headers, String name) {
+        final List<String> values = new ArrayList<String>();
+        
+        for (String value : headers.values(name)) {
+            values.add(value);
+        }
+        
+        return values.toArray(new String[values.size()]);
+    }
+    
+    private static class HttpConnection {
+        private Transport transport;
+        private Connection connection;
+        private ClientFilter clientFilter;
+
+        private HttpConnection(TCPNIOTransport transport,
+                Connection connection,
+                ClientFilter clientFilter) {
+            this.transport = transport;
+            this.connection = connection;
+            this.clientFilter = clientFilter;
+        }
+        
+        public void close() throws IOException {
+            connection.close();
+            transport.stop();
+        }
+
+        private Future<HttpContent> send(HttpPacket request) {
+            clientFilter.reset();
+            connection.write(request);
+            return clientFilter.testFuture;
         }
     }
     
@@ -346,12 +462,12 @@ public class HttpSessionTest extends TestCase {
         // -------------------------------------------------------- Constructors
 
 
-        public ClientFilter(FutureImpl<HttpContent> testFuture) {
-
-            this.testFuture = testFuture;
-
+        public ClientFilter() {
         }
 
+        public void reset() {
+            testFuture = SafeFutureImpl.create();
+        }
 
         // ------------------------------------------------- Methods from Filter
 

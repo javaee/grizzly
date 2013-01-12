@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,9 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.CookieParserUtils;
+import org.glassfish.grizzly.http.util.CookieUtils;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
@@ -88,6 +90,7 @@ public final class Cookies {
     private Cookie[] processedCookies;
     
     private boolean isProcessed;
+    private boolean isRequest;
     private MimeHeaders headers;
 
     private int nextUnusedCookieIndex = 0;
@@ -124,19 +127,27 @@ public final class Cookies {
     public Cookie[] get() {
         if (!isProcessed) {
             isProcessed = true;
-            processCookies();
-            if (nextUnusedCookieIndex > 0) {
-                processedCookies = copyTo(new Cookie[nextUnusedCookieIndex]);
+            if (isRequest) {
+                processClientCookies();
             } else {
-                processedCookies = EMPTY_COOKIE_ARRAY;
+                processServerCookies();
             }
+            
+            processedCookies = nextUnusedCookieIndex > 0 ?
+                    copyTo(new Cookie[nextUnusedCookieIndex]) :
+                    EMPTY_COOKIE_ARRAY;
         }
 
         return processedCookies;
     }
 
-    public void setHeaders(MimeHeaders headers) {
+    public void setHeaders(final MimeHeaders headers) {
+        setHeaders(headers, true);
+    }
+    
+    public void setHeaders(final MimeHeaders headers, final boolean isRequest) {
         this.headers = headers;
+        this.isRequest = isRequest;
     }
 
     public Cookie getNextUnusedCookie() {
@@ -166,6 +177,7 @@ public final class Cookies {
         processedCookies = null;
         nextUnusedCookieIndex = 0;
         headers = null;
+        isRequest = false;
         isProcessed = false;
     }
 
@@ -179,14 +191,14 @@ public final class Cookies {
     // code from CookieTools 
     /** Add all Cookie found in the headers of a request.
      */
-    private void processCookies() {
+    private void processClientCookies() {
         if (headers == null) {
             return;// nothing to process
         }        // process each "cookie" header
         int pos = 0;
         while (pos >= 0) {
             // Cookie2: version ? not needed
-            pos = headers.indexOf("Cookie", pos);
+            pos = headers.indexOf(Header.Cookie, pos);
             // no more cookie headers headers
             if (pos < 0) {
                 break;
@@ -210,7 +222,7 @@ public final class Cookies {
                         byteChunk.getLength());
             } else if (cookieValue.getType() == DataChunk.Type.Buffer) {
                 if (logger.isLoggable(Level.FINE)) {
-                    log("Parsing b[]: " + cookieValue.toString());
+                    log("Parsing buffer: " + cookieValue.toString());
                 }
 
                 final BufferChunk bufferChunk = cookieValue.getBufferChunk();
@@ -218,7 +230,70 @@ public final class Cookies {
                         bufferChunk.getStart(),
                         bufferChunk.getLength());
             } else {
-                throw new IllegalStateException("Not implemented");
+                if (logger.isLoggable(Level.FINE)) {
+                    log("Parsing string: " + cookieValue.toString());
+                }
+
+                final String value = cookieValue.toString();
+                CookieParserUtils.parseClientCookies(this, value,
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+            }
+
+            pos++;// search from the next position
+        }
+    }
+
+    // code from CookieTools 
+    /** Add all Cookie found in the headers of a request.
+     */
+    private void processServerCookies() {
+        if (headers == null) {
+            return;// nothing to process
+        }        // process each "cookie" header
+        int pos = 0;
+        while (pos >= 0) {
+            // Cookie2: version ? not needed
+            pos = headers.indexOf(Header.SetCookie, pos);
+            // no more cookie headers headers
+            if (pos < 0) {
+                break;
+            }
+
+            DataChunk cookieValue = headers.getValue(pos);
+            if (cookieValue == null || cookieValue.isNull()) {
+                pos++;
+                continue;
+            }
+
+            // Uncomment to test the new parsing code
+            if (cookieValue.getType() == DataChunk.Type.Bytes) {
+                if (logger.isLoggable(Level.FINE)) {
+                    log("Parsing b[]: " + cookieValue.toString());
+                }
+
+                final ByteChunk byteChunk = cookieValue.getByteChunk();
+                CookieParserUtils.parseServerCookies(this, byteChunk.getBuffer(),
+                        byteChunk.getStart(),
+                        byteChunk.getLength(),
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+            } else if (cookieValue.getType() == DataChunk.Type.Buffer) {
+                if (logger.isLoggable(Level.FINE)) {
+                    log("Parsing b[]: " + cookieValue.toString());
+                }
+
+                final BufferChunk bufferChunk = cookieValue.getBufferChunk();
+                CookieParserUtils.parseServerCookies(this, bufferChunk.getBuffer(),
+                        bufferChunk.getStart(),
+                        bufferChunk.getLength(),
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+            } else {
+                if (logger.isLoggable(Level.FINE)) {
+                    log("Parsing string: " + cookieValue.toString());
+                }
+
+                final String value = cookieValue.toString();
+                CookieParserUtils.parseServerCookies(this, value,
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
             }
 
             pos++;// search from the next position

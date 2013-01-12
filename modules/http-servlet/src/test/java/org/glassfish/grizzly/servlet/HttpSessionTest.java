@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,10 @@
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +54,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionIdListener;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -59,6 +64,8 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -66,6 +73,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -137,6 +145,73 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         }
     }
     
+    public void testChangeSessionId() throws Exception {
+        startHttpServer(PORT);
+
+        WebappContext ctx = new WebappContext("Test", CONTEXT);
+        ctx.addListener(new HttpSessionIdListener() {
+
+            @Override
+            public void sessionIdChanged(HttpSessionEvent e, String oldId) {
+                HttpSession session = e.getSession();
+                String sessionId = session.getId();
+                if (!oldId.equals(sessionId)) {
+                    session.setAttribute("A", "2");
+                }
+            }
+        });
+        
+        ServletRegistration servletRegistration = ctx.addServlet("test", new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+                HttpSession session = req.getSession(false);
+                if (session == null) {
+                    req.getSession(true).setAttribute("A", "1");
+                } else {
+                    req.changeSessionId();
+                }
+                Object a = req.getSession(false).getAttribute("A");
+                res.addHeader("A", (String) a);
+            }
+        });
+
+        servletRegistration.addMapping(SERVLETMAPPING);
+        ctx.deploy(httpServer);
+
+        try {
+            final HttpPacket request1 = createRequest(CONTEXT + SERVLETMAPPING, PORT, null);
+            final HttpContent response1 = sendRequest(request1, 10);
+            
+            Cookie[] cookies1 = getCookies(response1.getHttpHeader().getHeaders());
+            
+            assertEquals(1, cookies1.length);
+            assertEquals(Globals.SESSION_COOKIE_NAME, cookies1[0].getName());
+            
+            String[] values1 = getHeaderValues(response1.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values1.length);
+            assertEquals("1", values1[0]);
+                        
+            final HttpPacket request2 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
+                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
+            
+            final HttpContent response2 = sendRequest(request2, 10000);
+            Cookie[] cookies2 = getCookies(response2.getHttpHeader().getHeaders());
+            
+            assertEquals(1, cookies2.length);
+            assertEquals(Globals.SESSION_COOKIE_NAME, cookies2[0].getName());
+            
+            String[] values2 = getHeaderValues(response2.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values2.length);
+            assertEquals("2", values2[0]);
+
+            assertTrue(!cookies1[0].getValue().equals(cookies2[0].getValue()));
+
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
     private void updateJSessionCookies(HttpContent response) {
         HttpHeader responseHeader = response.getHttpHeader();
         MimeHeaders mimeHeaders = responseHeader.getHeaders();
@@ -164,6 +239,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         return b.build();
     }
     
+    @SuppressWarnings("unchecked")
     private HttpContent sendRequest(final HttpPacket request, final int timeout) throws Exception {
 
         final TCPNIOTransport clientTransport =
@@ -195,6 +271,22 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         } finally {
             clientTransport.stop();
         }
+    }
+    
+    private Cookie[] getCookies(MimeHeaders headers) {
+        final Cookies cookies = new Cookies();
+        cookies.setHeaders(headers, false);
+        return cookies.get();
+    }
+    
+    private String[] getHeaderValues(MimeHeaders headers, String name) {
+        final List<String> values = new ArrayList<String>();
+        
+        for (String value : headers.values(name)) {
+            values.add(value);
+        }
+        
+        return values.toArray(new String[values.size()]);
     }
     
     private static class ClientFilter extends BaseFilter {

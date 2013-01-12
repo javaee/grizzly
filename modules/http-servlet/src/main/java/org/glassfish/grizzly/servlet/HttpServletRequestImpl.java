@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,8 +85,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpUpgradeHandler;
 import javax.servlet.http.Part;
-import javax.servlet.http.ProtocolHandler;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
@@ -1085,13 +1085,13 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @Override
     public HttpSession getSession(boolean create) {
-        if (httpSession == null && create){
+        if (httpSession == null && create) {
             httpSession = new HttpSessionImpl(contextImpl);
         }
-        
-        if (httpSession != null){
+
+        if (httpSession != null) {
             Session session = request.getSession(create);
-            if(session != null) {
+            if (session != null) {
                 httpSession.setSession(session);
                 httpSession.access();
             } else {
@@ -1116,6 +1116,13 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         return getSession(true);
     }
 
+    @Override
+    public String changeSessionId() {
+        final String oldSessionId = request.changeSessionId();
+        httpSession.notifyIdChanged(oldSessionId);
+        
+        return oldSessionId;
+    }
 
     
     /**
@@ -1434,7 +1441,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     void setAsyncTimeout(long timeout) {
         request.getResponse().getSuspendContext().setTimeout(
-                timeout, TimeUnit.MILLISECONDS);;
+                timeout, TimeUnit.MILLISECONDS);
     }
     
     /**
@@ -1514,7 +1521,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     }
 
     private boolean processTimeout() {
-        boolean result = true;
+        boolean result;
         final AsyncContextImpl asyncContextLocal = this.asyncContext;
         try {
             asyncTimeout();
@@ -1585,7 +1592,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     }
 
     @Override
-    public void upgrade(ProtocolHandler ph) throws IOException {
+    public <T extends HttpUpgradeHandler> T upgrade(Class<T> type) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
     

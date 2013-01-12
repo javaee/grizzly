@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,10 +68,8 @@ import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +83,8 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Cookies;
+import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
@@ -225,7 +225,7 @@ public class Response {
     /**
      * The set of Cookies associated with this Response.
      */
-    protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
+//    protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
 
 
     /**
@@ -315,7 +315,6 @@ public class Response {
         response = null;
         ctx = null;
         suspendState = SuspendState.NONE;
-        recycleAndClearCookies();
 
         cacheEnabled = false;
 //
@@ -746,7 +745,6 @@ public class Response {
         }
 
         response.getHeaders().clear();
-        recycleAndClearCookies();
         response.setContentLanguage(null);
         if (response.getContentLength() > 0) {
             response.setContentLengthLong(-1L);
@@ -900,7 +898,10 @@ public class Response {
      * a zero-length array if no cookies have been set.
      */
     public Cookie[] getCookies() {
-        return (cookies.toArray(new Cookie[cookies.size()]));
+        final Cookies cookies = new Cookies();
+        cookies.setHeaders(response.getHeaders(), false);
+        
+        return cookies.get();
     }
 
 
@@ -1020,15 +1021,59 @@ public class Response {
         // RFC2965 is not supported by browsers and the Servlet spec
         // asks for 2109.
         addHeader(Header.SetCookie, sb.toString());
-
-        cookies.add(cookie);
     }
 
+    /**
+     * Special method for adding a session cookie as we should be overriding 
+     * any previous 
+     * @param cookie
+     */
+    protected void addSessionCookieInternal(final Cookie cookie) {
+        if (isCommitted())
+            return;
+
+        String name = cookie.getName();
+        final String headername = Header.SetCookie.toString();
+        final String startsWith = name + "=";
+
+        final StringBuilder sb = new StringBuilder();
+        //web application code can receive a IllegalArgumentException
+        //from the appendCookieValue invokation
+        if (System.getSecurityManager() != null) {
+            AccessController.doPrivileged(new PrivilegedAction() {
+                @Override
+                public Object run() {
+                    CookieSerializerUtils.serializeServerCookie(sb, cookie);
+                    return null;
+                }
+            });
+        } else {
+            CookieSerializerUtils.serializeServerCookie(sb, cookie);
+        }
+        
+        final String cookieString = sb.toString();
+        
+        boolean set = false;
+        MimeHeaders headers = response.getHeaders();
+        int n = headers.size();
+        for (int i = 0; i < n; i++) {
+            if (headers.getName(i).toString().equals(headername)) {
+                if (headers.getValue(i).toString().startsWith(startsWith)) {
+                    headers.getValue(i).setString(cookieString);
+                    set = true;
+                }
+            }
+        }
+        if (!set) {
+            addHeader(headername, cookieString);
+        }
+    }
+    
     /**
      * Removes any Set-Cookie response headers whose value contains the
      * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
-    public void removeSessionCookies() {
+    protected void removeSessionCookies() {
         response.getHeaders().removeHeaderMatches(Header.SetCookie,
                 Constants.SESSION_COOKIE_PATTERN);
     }
@@ -1813,15 +1858,6 @@ public class Response {
 
     public boolean isSendFileEnabled() {
         return sendFileEnabled;
-    }
-
-    private void recycleAndClearCookies() {
-        if (!cookies.isEmpty()) {
-            for (Cookie cookie : cookies) {
-                cookie.recycle();
-            }
-            cookies.clear();
-        }
     }
 
     public final class SuspendedContextImpl implements SuspendContext {
