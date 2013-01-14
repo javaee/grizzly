@@ -39,24 +39,30 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportProbe;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.npn.NextProtoNegSupport;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
+import org.glassfish.grizzly.ssl.SSLConnectionContext;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLUtils;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -80,17 +86,15 @@ public class SpdyAddOn implements AddOn {
 
     @Override
     public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+        if (!networkListener.isSecure()) {
+            LOGGER.warning("SPDY support cannot be enabled as SSL isn't configured for this NetworkListener");
+        }
         if (!NextProtoNegSupport.isEnabled()) {
             LOGGER.warning("TLS Next Protocol Negotiation is not available.  SPDY support cannot be enabled.");
             return;
         }
         configureTransport(networkListener.getTransport());
-        final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
-        processHttpServerFilter(builder, executor);
-        processSslFilter(networkListener, builder);
-        insertSpdyFilters(builder, executor);
-        removeHttpServerCodecFilter(builder);
-
+        processSslFilter(builder);
     }
 
 
@@ -100,72 +104,133 @@ public class SpdyAddOn implements AddOn {
     protected void configureTransport(final Transport transport) {
         transport.setIOStrategy(SameThreadIOStrategy.getInstance());
         transport.setWorkerThreadPoolConfig(null);
-    }
-    protected void removeHttpServerCodecFilter(FilterChainBuilder builder) {
-        int idx = builder.indexOfType(org.glassfish.grizzly.http.HttpServerFilter.class);
-        builder.remove(idx);
+        transport.getMonitoringConfig().addProbes(new SpdyTransportProbe());
     }
 
-    protected void processSslFilter(NetworkListener networkListener, FilterChainBuilder builder) {
-        final int idx = builder.indexOfType(SSLFilter.class);
-        if (idx != -1) {
-            configureNpn((SSLFilter) builder.get(idx), networkListener.getTransport());
-        }
+    protected void processSslFilter(FilterChainBuilder builder) {
+        final int idx = builder.indexOfType(SSLBaseFilter.class);
+        configureNpn((SSLBaseFilter) builder.get(idx));
     }
 
-    protected void insertSpdyFilters(FilterChainBuilder builder, DelayedExecutor executor) {
-        int idx = builder.indexOfType(SSLFilter.class);
-        if (idx == -1) {
-            idx = 0; // put spdy filters right after transport filter
-        }
-        
-        builder.add(idx + 1, new SpdyFramingFilter());
-        builder.add(idx + 2, new SpdyHandlerFilter(executor.getThreadPool()));
-    }
-
-    protected void processHttpServerFilter(FilterChainBuilder builder, DelayedExecutor executor) {
-        int idx = builder.indexOfType(HttpServerFilter.class);
-        final HttpServerFilter old = (HttpServerFilter) builder.get(idx);
-        final HttpServerFilter newFilter = new HttpServerFilter(old.getConfiguration(), executor);
-        newFilter.getMonitoringConfig().addProbes(old.getMonitoringConfig().getProbes());
-        newFilter.setHttpHandler(old.getHttpHandler());
-        builder.set(idx, newFilter);
-    }
-
-    protected DelayedExecutor createDelayedExecutor(final ThreadPoolConfig config) {
-        return new DelayedExecutor(GrizzlyExecutorService.createInstance(config));
-    }
-
-    protected void configureNpn(final SSLFilter sslFilter, final Transport transport) {
+    protected void configureNpn(final SSLBaseFilter sslFilter) {
         NextProtoNegSupport.getInstance().configure(sslFilter);
-        NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
-                new NextProtoNegSupport.ServerSideNegotiator() {
-
-                    private final List<String> supportedProtocols = Arrays.asList("spdy/3", "http/1.1");
-
-                    @Override
-                    public List<String> supportedProtocols(final Connection connection) {
-                        return supportedProtocols;
-                    }
-
-                    @Override
-                    public void onSuccess(final Connection connection,
-                            final String protocol) {
-                        
-                        if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
-                                    new Object[]{connection, protocol});
-                        }
-                    }
-
-                    @Override
-                    public void onNoDeal(final Connection connection) {
-                        if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
-                                    new Object[]{connection});
-                        }
-                    }
-                });
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+    private static final class SpdyTransportProbe extends TransportProbe.Adapter {
+
+
+        // ----------------------------------------- Methods from TransportProbe
+
+
+        @Override
+        public void onBeforeStartEvent(Transport transport) {
+            FilterChain transportFilterChain = transport.getFilterChain();
+            FilterChainBuilder builder = FilterChainBuilder.stateless();
+            for (int i = 0, len = transportFilterChain.size(); i < len; i++) {
+                builder.add(transportFilterChain.get(i));
+            }
+            final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
+            removeHttpServerCodecFilter(builder);
+            insertSpdyFilters(builder, executor);
+            processHttpServerFilter(builder, executor);
+            NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
+                    new ProtocolNegotiator(builder.build()));
+        }
+
+
+        // ----------------------------------------------------- Private Methods
+
+
+        private void removeHttpServerCodecFilter(FilterChainBuilder builder) {
+            int idx = builder.indexOfType(org.glassfish.grizzly.http.HttpServerFilter.class);
+            builder.remove(idx);
+        }
+
+        private void insertSpdyFilters(FilterChainBuilder builder, DelayedExecutor executor) {
+            int idx = builder.indexOfType(SSLBaseFilter.class);
+            if (idx == -1) {
+                idx = 0; // put spdy filters right after transport filter
+            }
+
+            builder.add(idx + 1, new SpdyFramingFilter());
+            builder.add(idx + 2, new SpdyHandlerFilter(executor.getThreadPool()));
+        }
+
+        private void processHttpServerFilter(FilterChainBuilder builder, DelayedExecutor executor) {
+            int idx = builder.indexOfType(HttpServerFilter.class);
+            final HttpServerFilter old = (HttpServerFilter) builder.get(idx);
+            final HttpServerFilter newFilter = new HttpServerFilter(old.getConfiguration(), executor);
+            newFilter.getMonitoringConfig().addProbes(old.getMonitoringConfig().getProbes());
+            newFilter.setHttpHandler(old.getHttpHandler());
+            builder.set(idx, newFilter);
+        }
+
+        private DelayedExecutor createDelayedExecutor(final ThreadPoolConfig config) {
+            return new DelayedExecutor(GrizzlyExecutorService.createInstance(config));
+        }
+
+
+        // ------------------------------------------------------ Nested Classes
+
+
+        private static final class ProtocolNegotiator implements NextProtoNegSupport.ServerSideNegotiator {
+
+            private static final String HTTP11 = "http/1.1";
+            private static final String SPDY3 = "spdy/3";
+
+            private final List<String> supportedProtocols =
+                    Collections.unmodifiableList(Arrays.asList(SPDY3, HTTP11));
+            private final FilterChain spdyFilterChain;
+
+            // ---------------------------------------------------- Constructors
+
+
+            private ProtocolNegotiator(final FilterChain filterChain) {
+                spdyFilterChain = filterChain;
+            }
+
+
+            // ------------------------------- Methods from ServerSideNegotiator
+
+
+            @Override
+            public List<String> supportedProtocols(final Connection connection) {
+                return supportedProtocols;
+            }
+
+            @Override
+            public void onSuccess(final Connection connection,
+                                  final String protocol) {
+
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
+                            new Object[]{connection, protocol});
+                }
+
+                // If SPDY is supported, set the spdyFilterChain on the connection.
+                // If HTTP/1.1 is negotiated, then use the transport FilterChain.
+                if (SPDY3.equals(protocol)) {
+                    SSLConnectionContext sslCtx =
+                            SSLUtils.getSslConnectionContext(connection);
+                    sslCtx.setNewConnectionFilterChain(spdyFilterChain);
+                }
+            }
+
+            @Override
+            public void onNoDeal(final Connection connection) {
+
+                // Default to the transport FilterChain.
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
+                            new Object[]{ connection });
+                }
+            }
+
+        } // END ProtocolNegotiator
+
+    } // END SpdyTransportProbe
 
 }

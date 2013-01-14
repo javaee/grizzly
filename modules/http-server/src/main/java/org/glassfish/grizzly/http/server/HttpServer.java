@@ -712,11 +712,6 @@ public class HttpServer {
         final MonitoringConfig<ThreadPoolProbe> threadPoolMonitoringCfg =
                 transport.getThreadPoolMonitoringConfig();
 
-        transportMonitoringCfg.clearProbes();
-        connectionMonitoringCfg.clearProbes();
-        memoryMonitoringCfg.clearProbes();
-        threadPoolMonitoringCfg.clearProbes();
-
         transportMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
                 .getTransportConfig().getProbes());
         connectionMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()

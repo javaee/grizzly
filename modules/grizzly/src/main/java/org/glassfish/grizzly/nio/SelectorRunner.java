@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -112,7 +112,7 @@ public final class SelectorRunner implements Runnable {
             final Selector selector) {
         this.transport = transport;
         this.selector = selector;
-        stateHolder = new AtomicReference<State>(State.STOP);
+        stateHolder = new AtomicReference<State>(State.STOPPED);
 
         pendingTasks = new ConcurrentLinkedQueue<SelectorHandlerTask>();
         evenPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
@@ -191,7 +191,7 @@ public final class SelectorRunner implements Runnable {
     }
 
     public synchronized void start() {
-        if (!stateHolder.compareAndSet(State.STOP, State.STARTING)) {
+        if (!stateHolder.compareAndSet(State.STOPPED, State.STARTING)) {
             logger.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SELECTOR_RUNNER_NOT_IN_STOPPED_STATE_EXCEPTION());
             return;
@@ -253,7 +253,7 @@ public final class SelectorRunner implements Runnable {
 
         final Thread currentThread = Thread.currentThread();
         if (!isPostponed) {
-            if (!stateHolder.compareAndSet(State.STARTING, State.START)) {
+            if (!stateHolder.compareAndSet(State.STARTING, State.STARTED)) {
                 return;
             }
 
@@ -272,7 +272,7 @@ public final class SelectorRunner implements Runnable {
         
         try {
             while (!isSkipping && !isStop()) {
-                if (transportStateHolder.getState() != State.PAUSE) {
+                if (transportStateHolder.getState() != State.PAUSED) {
                     isSkipping = !doSelect();
                 } else {
                     try {
@@ -280,7 +280,7 @@ public final class SelectorRunner implements Runnable {
                                 Futures.createSafeFuture();
                         
                         transportStateHolder
-                                .notifyWhenStateIsNotEqual(State.PAUSE,
+                                .notifyWhenStateIsNotEqual(State.PAUSED,
                                 Futures.toCompletionHandler(future));
                         future.get(5000, TimeUnit.MILLISECONDS);
                     } catch (Exception ignored) {
@@ -291,7 +291,7 @@ public final class SelectorRunner implements Runnable {
             runnerThreadActivityCounter.compareAndSet(1, 0);
 
             if (isStop()) {
-                stateHolder.set(State.STOP);
+                stateHolder.set(State.STOPPED);
                 setRunnerThread(null);
                 if (runnerThreadActivityCounter.compareAndSet(0, -1)) {
                     shutdownSelector();
@@ -415,11 +415,8 @@ public final class SelectorRunner implements Runnable {
 
         if ((keyReadyOps & SelectionKey.OP_WRITE) != 0) {
             keyReadyOps &= (~SelectionKey.OP_WRITE);
-            if (!transport.processOpWrite(connection)) {
-                return false;
-                }
-            
-            return true;
+            return transport.processOpWrite(connection);
+
         }
 
         if ((keyReadyOps & SelectionKey.OP_ACCEPT) != 0) {
@@ -455,11 +452,11 @@ public final class SelectorRunner implements Runnable {
     boolean isStop() {
         final State state = stateHolder.get();
 
-        return state == State.STOP || state == State.STOPPING;
+        return state == State.STOPPED || state == State.STOPPING;
     }
     
     private boolean isRunning() {
-        return stateHolder.get() == State.START;
+        return stateHolder.get() == State.STARTED;
     }
 
     /**

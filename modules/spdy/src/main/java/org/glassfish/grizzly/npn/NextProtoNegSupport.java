@@ -50,6 +50,7 @@ import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
@@ -155,7 +156,7 @@ public class NextProtoNegSupport {
     private NextProtoNegSupport() {
     }    
     
-    public void configure(final SSLFilter sslFilter) {
+    public void configure(final SSLBaseFilter sslFilter) {
         sslFilter.addHandshakeListener(handshakeListener);
     }
     

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -139,7 +139,7 @@ public abstract class AbstractTransport implements Transport {
 
     public AbstractTransport(String name) {
         this.name = name;
-        state = new StateHolder<State>(State.STOP);
+        state = new StateHolder<State>(State.STOPPED);
     }
     
     /**
@@ -190,7 +190,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public boolean isStopped() {
         final State currentState = state.getState();
-        return currentState == State.STOP || currentState == State.STOPPING;
+        return currentState == State.STOPPED || currentState == State.STOPPING;
     }
 
 
@@ -199,7 +199,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public boolean isPaused() {
-        return (state.getState() == State.PAUSE);
+        return (state.getState() == State.PAUSED);
     }
 
     /**
@@ -452,6 +452,23 @@ public abstract class AbstractTransport implements Transport {
     }
 
     /**
+     * Notify registered {@link TransportProbe}s about the before-start event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     *
+     * @since 3.0
+     */
+    protected static void notifyProbesBeforeStart(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onBeforeStartEvent(transport);
+            }
+        }
+    }
+
+    /**
      * Notify registered {@link TransportProbe}s about the start event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
@@ -465,7 +482,24 @@ public abstract class AbstractTransport implements Transport {
             }
         }
     }
-    
+
+    /**
+     * Notify registered {@link TransportProbe}s about the before-stop event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     *
+     * @since 3.0
+     */
+    protected static void notifyProbesBeforeStop(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onBeforeStopEvent(transport);
+            }
+        }
+    }
+
     /**
      * Notify registered {@link TransportProbe}s about the stop event.
      *
@@ -482,6 +516,23 @@ public abstract class AbstractTransport implements Transport {
     }
 
     /**
+     * Notify registered {@link TransportProbe}s about the before-pause event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     *
+     * @since 3.0
+     */
+    protected static void notifyProbesBeforePause(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onBeforePauseEvent(transport);
+            }
+        }
+    }
+
+    /**
      * Notify registered {@link TransportProbe}s about the pause event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
@@ -492,6 +543,23 @@ public abstract class AbstractTransport implements Transport {
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onPauseEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the before-resume event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     *
+     * @since 3.0
+     */
+    protected static void notifyProbesBeforeResume(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onBeforeStartEvent(transport);
             }
         }
     }
