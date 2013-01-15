@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -92,6 +92,7 @@ import javax.servlet.ServletException;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.SingleThreadModel;
 import javax.servlet.descriptor.JspConfigDescriptor;
+import javax.servlet.http.HttpUpgradeHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -2074,6 +2075,19 @@ public class WebappContext implements ServletContext {
         return (EventListener) ClassLoaderUtil.load(eventListenerClassname);
     }
 
+    /**
+     * Instantiates the given HttpUpgradeHandler class.
+     *
+     * @param clazz
+     * @param <T>
+     * @return a new T instance
+     * @throws Exception
+     */
+    public <T extends HttpUpgradeHandler> T createHttpUpgradeHandlerInstance(Class<T> clazz)
+            throws Exception {
+        return clazz.newInstance();
+    }
+    
     /**
      * Validate the syntax of a proposed <code>&lt;url-pattern&gt;</code>
      * for conformance with specification requirements.

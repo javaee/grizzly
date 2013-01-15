@@ -144,7 +144,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     private HttpSessionImpl httpSession = null;
 
     private WebappContext contextImpl;
-        
+
     private String servletPath = "";
 
     private String pathInfo;
@@ -159,6 +159,16 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * Using writer flag.
      */
     protected boolean usingReader = false;
+    
+    /*
+     * An upgrade request is received
+     */
+    private boolean upgrade = false;
+
+    /*
+     * The HttpUpgradeHandler to be used for upgrade request
+     */
+    private HttpUpgradeHandler httpUpgradeHandler;
     
     private static final ThreadCache.CachedTypeIndex<HttpServletRequestImpl> CACHE_IDX =
             ThreadCache.obtainIndex(HttpServletRequestImpl.class, 2);
@@ -347,6 +357,9 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         usingInputStream = false;
         usingReader = false;
 
+        upgrade = false;
+        httpUpgradeHandler = null;
+        
         /*
          * Clear and reinitialize all async related instance vars
          */
@@ -1508,7 +1521,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * during which ServletRequest#startAsync was called is about to
      * return to the container
      */
-    void onAfterService() {
+    void onAfterService() throws IOException {
         if (asyncContext != null) {
             asyncContext.setOkToConfigure(false);
 
@@ -1517,6 +1530,17 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                         asyncContext.getTimeout(), TimeUnit.MILLISECONDS);
             }
 
+        } else if (isUpgrade()) {
+            if (httpUpgradeHandler != null) {
+                WebConnectionImpl wc =
+                        new WebConnectionImpl(
+                        this,
+                        getInputStream(),
+                        servletResponse.getOutputStream());
+                httpUpgradeHandler.init(wc);
+            } else {
+                LOGGER.log(Level.SEVERE, "HttpUpgradeHandler handler cannot be null");
+            }
         }
     }
 
@@ -1566,6 +1590,47 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
     }
     
+    /**
+     * Create an instance of <code>HttpUpgradeHandler</code> for an given
+     * class and uses it for the http protocol upgrade processing.
+     *
+     * @param handlerClass The <code>ProtocolHandler</code> class used for the upgrade.
+     *
+     * @return an instance of the <code>HttpUpgradeHandler</code>
+     *
+     * @exception IOException if an I/O error occurred during the upgrade
+     *
+     * @see javax.servlet.http.HttpUpgradeHandler
+     * @see javax.servlet.http.WebConnection
+     *
+     * @since Servlet 3.1
+     */
+    @Override
+    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException {
+        upgrade = true;
+        T handler = null;
+        try {
+            handler = contextImpl.createHttpUpgradeHandlerInstance(handlerClass);
+        } catch(Exception ex) {
+            if (ex instanceof IOException) {
+                throw (IOException)ex;
+            } else {
+                throw new IOException(ex);
+            }
+        }
+        httpUpgradeHandler = handler;
+        request.getResponse().suspend();
+        return handler;
+    }
+    
+    public boolean isUpgrade() {
+        return upgrade;
+    }
+
+    public HttpUpgradeHandler getHttpUpgradeHandler() {
+        return httpUpgradeHandler;
+    }
+    
     @Override
     public boolean authenticate(HttpServletResponse hsr) throws IOException, ServletException {
         throw new UnsupportedOperationException("Not supported yet.");
@@ -1588,11 +1653,6 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     @Override
     public Part getPart(String string) throws IOException, ServletException {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public <T extends HttpUpgradeHandler> T upgrade(Class<T> type) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
     
