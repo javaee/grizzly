@@ -200,7 +200,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "Enabled secure protocols={0}"
                         + "" + " ciphers={1}", new Object[]
-                        {Arrays.asList(enabledProtocols), Arrays.asList(enabledCipherSuites)});
+                        {Arrays.toString(enabledProtocols), Arrays.toString(enabledCipherSuites)});
             }
             
             return newSslContext;
