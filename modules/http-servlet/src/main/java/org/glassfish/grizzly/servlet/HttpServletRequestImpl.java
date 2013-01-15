@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -103,6 +103,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     private WebappContext contextImpl;
         
+    private String contextPath = "";
     private String servletPath = "";
 
     private String pathInfo;
@@ -890,13 +891,17 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     }
 
 
-    
     /**
      * {@inheritDoc}
      */
     @Override
     public String getContextPath() {
-        return contextImpl.getContextPath();
+        return contextPath;
+    }
+
+    
+    protected void setContextPath(String contextPath) {
+        this.contextPath = contextPath;
     }
 
     
