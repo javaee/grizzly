@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -196,7 +196,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "Enabled secure protocols={0}"
                         + "" + " ciphers={1}", new Object[]
-                        {Arrays.asList(enabledProtocols), Arrays.asList(enabledCipherSuites)});
+                        {Arrays.toString(enabledProtocols), Arrays.toString(enabledCipherSuites)});
             }
             
             return newSslContext;
