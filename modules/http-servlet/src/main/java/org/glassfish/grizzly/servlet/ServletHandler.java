@@ -285,6 +285,7 @@ public class ServletHandler extends HttpHandler {
         final MappingData data = from.obtainMappingData();
         to.setServletPath(data.wrapperPath.toString());
         to.setPathInfo(data.pathInfo.toString());
+        to.setContextPath(data.contextPath.toString());
     }
 
     void doServletService(final ServletRequest servletRequest,
