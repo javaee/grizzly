@@ -145,6 +145,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     private WebappContext contextImpl;
 
+    private String contextPath = "";
     private String servletPath = "";
 
     private String pathInfo;
@@ -966,9 +967,13 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      */
     @Override
     public String getContextPath() {
-        return contextImpl.getContextPath();
+        return contextPath;
     }
 
+    
+    protected void setContextPath(String contextPath) {
+        this.contextPath = contextPath;
+    }
     
     /**
      * {@inheritDoc}
