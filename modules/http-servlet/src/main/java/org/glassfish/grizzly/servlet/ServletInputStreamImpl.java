@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,8 +61,8 @@ import java.io.IOException;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  *
@@ -70,6 +70,7 @@ import org.glassfish.grizzly.http.io.NIOInputStream;
  */
 public class ServletInputStreamImpl extends ServletInputStream {
 
+    private final HttpServletRequestImpl servletRequest;
     private NIOInputStream inputStream;
 
     private ReadHandler readHandler = null;
@@ -79,31 +80,51 @@ public class ServletInputStreamImpl extends ServletInputStream {
     private static final ThreadLocal<Boolean> IS_READY_SCOPE =
             new ThreadLocal<Boolean>();
     
-    protected ServletInputStreamImpl() {
+    protected ServletInputStreamImpl(final HttpServletRequestImpl servletRequest) {
+        this.servletRequest = servletRequest;
     }
 
-    public void initialize(Request request) throws IOException {
-        this.inputStream = request.createInputStream();
+    public void initialize() throws IOException {
+        this.inputStream = servletRequest.getRequest().createInputStream();
     }
 
     @Override
     public int read() throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         return inputStream.read();
     }
 
     @Override
     public int available() throws IOException {
+        if (!prevIsReady) {
+            return 0;
+        }
+        
         return inputStream.available();
     }
 
     @Override
     public int read(final byte[] b) throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         return inputStream.read(b, 0, b.length);
     }
 
     @Override
     public int read(final byte[] b, final int off, final int len)
             throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         return inputStream.read(b, off, len);
     }
 
@@ -138,6 +159,11 @@ public class ServletInputStreamImpl extends ServletInputStream {
      */
     @Override
     public boolean isReady() {
+        if (!hasSetReadListener) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_INPUTSTREAM_ISREADY_ERROR());
+        }
+        
         if (!prevIsReady) {
             return false;
         }
@@ -170,6 +196,11 @@ public class ServletInputStreamImpl extends ServletInputStream {
             throw new IllegalStateException("The ReadListener has already been set");
         }
 
+        if (!(servletRequest.isAsyncStarted() || servletRequest.isUpgrade())) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_INPUTSTREAM_SETREADLISTENER_ERROR());
+        }
+        
         readHandler = new ReadHandlerImpl(readListener);
         hasSetReadListener = true;
     }

@@ -194,15 +194,14 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * @throws IOException if an input/output error occurs
      */
     protected HttpServletRequestImpl() {
-        this.inputStream = new ServletInputStreamImpl();
+        this.inputStream = new ServletInputStreamImpl(this);
     }
 
     public void initialize(final Request request, final HttpServletResponseImpl servletResponse)
             throws IOException {
         this.request = request;
         this.servletResponse = servletResponse;
-//        request.getInputBuffer().setAsyncEnabled(false); // switch Grizzly input to blocking mode by default
-        inputStream.initialize(request);
+        inputStream.initialize();
     }
     
 
@@ -348,7 +347,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         return inputStream;
     }
 
-    void recycle(){
+    void recycle() {
         request = null;
         servletResponse = null;
         reader = null;

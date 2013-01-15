@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -140,7 +140,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      * Construct a wrapper for the specified response.
      */
     protected HttpServletResponseImpl() {
-        outputStream = new ServletOutputStreamImpl();
+        outputStream = new ServletOutputStreamImpl(this);
     }
 
 
@@ -151,13 +151,19 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     protected Response response = null;
 
+    /**
+     * {@link HttpServletRequestImpl}.
+     */
+    protected HttpServletRequestImpl servletRequest;
 
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(final Response response) throws IOException {
+    public void initialize(final Response response,
+            final HttpServletRequestImpl servletRequest) throws IOException {
         this.response = response;
-//        response.getOutputBuffer().setAsyncEnabled(false); // switch Grizzly output to blocking mode by default
-        outputStream.initialize(response);
+        this.servletRequest = servletRequest;
+        
+        outputStream.initialize();
 
     }
     /**
@@ -228,6 +234,8 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
 
     void recycle() {
         response = null;
+        servletRequest = null;
+        
         writer = null;
         
         outputStream.recycle();

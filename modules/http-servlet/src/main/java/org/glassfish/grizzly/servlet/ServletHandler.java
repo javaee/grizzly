@@ -208,7 +208,7 @@ public class ServletHandler extends HttpHandler {
 
             setPathData(request, servletRequest);
             servletRequest.initialize(request, servletResponse);
-            servletResponse.initialize(response);
+            servletResponse.initialize(response, servletRequest);
 
             request.setNote(SERVLET_REQUEST_NOTE, servletRequest);
             request.setNote(SERVLET_RESPONSE_NOTE, servletResponse);

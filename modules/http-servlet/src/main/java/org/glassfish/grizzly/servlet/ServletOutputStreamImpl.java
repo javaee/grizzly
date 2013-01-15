@@ -62,8 +62,8 @@ import java.io.IOException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  *
@@ -71,24 +71,32 @@ import org.glassfish.grizzly.http.io.NIOOutputStream;
  */
 public class ServletOutputStreamImpl extends ServletOutputStream {
 
+    private final HttpServletResponseImpl servletResponse;
     private NIOOutputStream outputStream;
 
     private WriteHandler writeHandler = null;
     private boolean hasSetWriteListener = false;
-    private boolean prevCanWrite = true;
+    private boolean prevIsReady = true;
 
     private static final ThreadLocal<Boolean> CAN_WRITE_SCOPE =
             new ThreadLocal<Boolean>();
     
-    public ServletOutputStreamImpl() {
+    protected ServletOutputStreamImpl(
+            final HttpServletResponseImpl servletResponse) {
+        this.servletResponse = servletResponse;
     }
 
-    protected void initialize(final Response response) throws IOException {
-        this.outputStream = response.createOutputStream();
+    protected void initialize() throws IOException {
+        this.outputStream = servletResponse.getResponse().createOutputStream();
     }
 
     @Override
     public void write(int i) throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         outputStream.write(i);
     }
 
@@ -99,6 +107,11 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         outputStream.write(b, off, len);
     }
 
@@ -107,11 +120,21 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
      */
     @Override
     public void flush() throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         outputStream.flush();
     }
 
     @Override
     public void close() throws IOException {
+        if (!prevIsReady) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_NON_BLOCKING_ERROR());
+        }
+        
         outputStream.close();
     }
 
@@ -120,14 +143,19 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
      */
     @Override
     public boolean isReady() {
-        if (!prevCanWrite) {
+        if (!hasSetWriteListener) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_OUTPUTSTREAM_ISREADY_ERROR());
+        }
+        
+        if (!prevIsReady) {
             return false;
         }
         
         boolean result = outputStream.canWrite();
         if (!result) {
             if (hasSetWriteListener) {
-                prevCanWrite = false; // Not data available
+                prevIsReady = false; // Not data available
                 CAN_WRITE_SCOPE.set(Boolean.TRUE);
                 try {
                     outputStream.notifyWritePossible(writeHandler);
@@ -136,7 +164,7 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
                 }
                 
             } else {
-                prevCanWrite = true;  // Allow next .isReady() call to check underlying inputStream
+                prevIsReady = true;  // Allow next .isReady() call to check underlying inputStream
             }
         }
         
@@ -152,6 +180,12 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
             throw new IllegalStateException("The WriteListener has already been set.");
         }
 
+        final HttpServletRequestImpl req = servletResponse.servletRequest;
+        if (!(req.isAsyncStarted() || req.isUpgrade())) {
+            throw new IllegalStateException(
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_OUTPUTSTREAM_SETWRITELISTENER_ERROR());
+        }
+        
         writeHandler = new WriteHandlerImpl(writeListener);
         hasSetWriteListener = true;
     }
@@ -160,7 +194,7 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
         outputStream = null;
         
         writeHandler = null;
-        prevCanWrite = true;
+        prevIsReady = true;
         hasSetWriteListener = false;
     }
     
@@ -174,13 +208,13 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
         @Override
         public void onWritePossible() {
             if (!Boolean.TRUE.equals(CAN_WRITE_SCOPE.get())) {
-                prevCanWrite = true;
+                prevIsReady = true;
                 writeListener.onWritePossible();
             } else {
                 AsyncContextImpl.pool.execute(new Runnable() {
                     @Override
                     public void run() {
-                        prevCanWrite = true;
+                        prevIsReady = true;
                         writeListener.onWritePossible();
                     }
                 });
