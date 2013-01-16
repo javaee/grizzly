@@ -73,13 +73,14 @@ public class HttpUpgradeTest extends TestCase {
         final String contextRoot = "/test";
         final String upgradeServlet = "/echoProtocol";
 
+        HttpServer httpServer = null;
         Socket s = null;
 
         InputStream input = null;
         OutputStream output = null;
         try {
 
-            HttpServer httpServer = HttpServer.createSimpleServer("./", PORT);
+            httpServer = HttpServer.createSimpleServer("./", PORT);
 
             WebappContext ctx = new WebappContext("Test", contextRoot);
             final ServletRegistration reg = ctx.addServlet("EchoProtocol",
@@ -170,6 +171,10 @@ public class HttpUpgradeTest extends TestCase {
                     s.close();
                 }
             } catch (Exception ignored) {
+            }
+            
+            if (httpServer != null) {
+                httpServer.stop();
             }
         }
     }
