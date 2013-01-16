@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,10 +40,12 @@
 
 package com.sun.grizzly.filter;
 
+import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
+import com.sun.grizzly.SelectionKeyHandler;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.SSLUtils;
 import com.sun.grizzly.util.ThreadAttachment;
@@ -190,7 +192,14 @@ public class SSLReadFilter implements ProtocolFilter{
             exception = ex;
             log("SSLReadFilter.execute",ex);
         } finally {
-            if (exception != null || count == -1){
+            if (exception != null || count == -1) {
+                
+                final SelectionKeyHandler skh =
+                        ctx.getSelectorHandler().getSelectionKeyHandler();
+                if (skh instanceof BaseSelectionKeyHandler) {
+                    ((BaseSelectionKeyHandler) skh).notifyRemotlyClose(key);
+                }
+                
                 ctx.setAttribute(Context.THROWABLE,exception);
                 ctx.setKeyRegistrationState(
                         Context.KeyRegistrationState.CANCEL);
