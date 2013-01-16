@@ -127,19 +127,20 @@ public class HttpUpgradeTest extends TestCase {
             }
             input = s.getInputStream();
             // read data without using readLine
-            int len = -1;
             byte b[] = new byte[1024];
-            int counter = 0;
             StringBuilder sb = new StringBuilder();
-            while ((len = input.read(b)) != -1) {
-                String line = new String(b, 0, len);
-                sb.append(line);
-                counter++;
-                System.out.println(line + " counter=" + counter);
-                if (counter >= 2) {
+            do {
+                int len = input.read(b);
+                if (len == -1) {
                     break;
                 }
-            }
+                
+                String line = new String(b, 0, len);
+                sb.append(line);
+                if (sb.indexOf("World") > 0) {
+                    break;
+                }
+            } while (true);
 
             StringTokenizer tokens = new StringTokenizer(sb.toString(), CRLF);
             String line = null;
