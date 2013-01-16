@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -518,7 +518,7 @@ public class StaticHttpHandler extends HttpHandler {
 
         @Override
         public void onError(Throwable t) {
-            LOGGER.log(Level.WARNING, "[onError] ", t);
+            LOGGER.log(Level.FINE, "[onError] ", t);
             response.setStatus(500, t.getMessage());
             complete(true);
         }
