@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -143,8 +143,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         } else {
             final ArrayList<SpdyFrame> framesList = (ArrayList<SpdyFrame>) message;
             final int sz = framesList.size();
-            for (int i = 0; i < sz; i++) {
-                processInFrame(spdySession, ctx, framesList.get(i));
+            try {
+                for (int i = 0; i < sz; i++) {
+                    processInFrame(spdySession, ctx, framesList.get(i));
+                }
+            } finally {
+                // Don't forget to clean framesList, because it will be reused
+                framesList.clear();
             }
         }
 
