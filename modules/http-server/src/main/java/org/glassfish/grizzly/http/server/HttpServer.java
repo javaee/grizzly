@@ -253,9 +253,16 @@ public class HttpServer {
 
         delayedExecutor = new DelayedExecutor(auxExecutorService);
         delayedExecutor.start();
-        
+
         for (final NetworkListener listener : listeners.values()) {
             configureListener(listener);
+        }
+
+        if (serverConfig.isJmxEnabled()) {
+            enableJMX();
+        }
+
+        for (final NetworkListener listener : listeners.values()) {
             try {
                 listener.start();
             } catch (IOException ioe) {
@@ -268,10 +275,6 @@ public class HttpServer {
 
                 throw ioe;
             }
-        }
-
-        if (serverConfig.isJmxEnabled()) {
-            enableJMX();
         }
 
         setupHttpHandler();
