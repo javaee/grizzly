@@ -1031,7 +1031,7 @@ public class Response {
         //web application code can receive a IllegalArgumentException
         //from the appendCookieValue invokation
         if (System.getSecurityManager() != null) {
-            AccessController.doPrivileged(new PrivilegedAction() {
+            AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
                 public Object run() {
                     CookieSerializerUtils.serializeServerCookie(sb, cookie);

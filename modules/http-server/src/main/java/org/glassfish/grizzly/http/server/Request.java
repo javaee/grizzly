@@ -658,6 +658,18 @@ public class Request {
 
 
     /**
+     * Replays request's payload by setting new payload {@link Buffer}.
+     * @param buffer payload
+     * 
+     * @throws IllegalStateException, if previous request payload has not been read off.
+     */
+    public void replayPayload(final Buffer buffer) {
+        inputBuffer.replayPayload(buffer);
+        usingReader = false;
+        usingInputStream = false;
+    }
+    
+    /**
      * Create and return a NIOInputStream to read the content
      * associated with this Request.
      *
