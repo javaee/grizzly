@@ -41,6 +41,7 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -61,11 +62,10 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.utils.Charsets;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -95,7 +95,7 @@ public class PayloadReplayTest {
     }
        
     /**
-     * Check that HTTP POST method is not allowed
+     * Check basic replay mechanism
      */
     @Test
     @SuppressWarnings("unchecked")
@@ -174,6 +174,98 @@ public class PayloadReplayTest {
             responseBuffer.get(responseArray);
             
             Assert.assertArrayEquals(payloadToReplay, responseArray);
+        } finally {
+            if (client != null) {
+                client.closeSilently();
+            }
+        }        
+    }
+    
+    /**
+     * Check post parameters replay.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testParametersReplay() throws Exception {
+        final String argRus = "аргумент";
+        final String arg1Rus = argRus + "1";
+        final String arg2Rus = argRus + "2";
+        
+        final String valueRus = "значение";
+        final String value1Rus = valueRus + "1";
+        final String value2Rus = valueRus + "2";
+        
+        final String rusParam = arg1Rus + "=" + value1Rus + "&" + arg2Rus + "=" + value2Rus;
+        final String rusParamEncoded = URLEncoder.encode(arg1Rus, "UTF-8") + "=" + URLEncoder.encode(value1Rus, "UTF-8") + "&" + URLEncoder.encode(arg2Rus, "UTF-8") + "=" + URLEncoder.encode(value2Rus, "UTF-8");
+
+        final byte[] payloadToReplay = rusParamEncoded.getBytes(Charsets.ASCII_CHARSET);
+        
+        startServer(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                try {
+                    request.replayPayload(Buffers.wrap(
+                            request.getContext().getMemoryManager(), payloadToReplay));
+                    
+                    response.getWriter().write("Replay should have caused IllegalStateException");
+                    return;
+                } catch (IllegalStateException expectedException) {
+                }
+                
+                String value1 = request.getParameter(arg1Rus);
+                String value2 = request.getParameter(arg2Rus);
+                
+                if (value1 != null || value2 != null) {
+                    response.getWriter().write("Parameter is unexpectedly found. value1= " + value1 + " value2=" + value2);
+                    return;
+                }
+                
+                request.replayPayload(Buffers.wrap(
+                        request.getContext().getMemoryManager(), payloadToReplay));
+                request.setCharacterEncoding("UTF-8");
+                
+                value1 = request.getParameter(arg1Rus);
+                value2 = request.getParameter(arg2Rus);
+                
+                if (!value1Rus.equals(value1) || !value2Rus.equals(value2)) {
+                    response.getWriter().write("Parameter values don't match. value1= " + value1 + " value2=" + value2);
+                    return;
+                }
+                
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(value1 + value2);
+            }
+        });
+        
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedBlockingQueue<HttpContent>();
+        
+        final Connection client = openClient(resultQueue);
+        try {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method(Method.POST)
+                    .uri("/")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header(Header.Host, "localhost:" + PORT)
+                    .contentLength(payloadToReplay.length)
+                    .contentType("application/x-www-form-urlencoded")
+                    .build();
+            
+            client.write(request);
+            Thread.sleep(20);
+            
+            final MemoryManager mm = client.getTransport().getMemoryManager();
+            HttpContent payload = HttpContent.builder(request)
+                    .content(Buffers.wrap(mm, payloadToReplay))
+                    .build();
+            
+            client.write(payload);
+            
+            final HttpContent result = resultQueue.poll(10, TimeUnit.SECONDS);
+            final Buffer responseBuffer = result.getContent();
+            
+            Assert.assertEquals(value1Rus + value2Rus, responseBuffer.toStringContent(Charsets.UTF8_CHARSET));
         } finally {
             if (client != null) {
                 client.closeSilently();
