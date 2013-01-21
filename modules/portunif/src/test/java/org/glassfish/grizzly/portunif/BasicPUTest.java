@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,14 @@
 
 package org.glassfish.grizzly.portunif;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
@@ -112,27 +115,12 @@ public class BasicPUTest {
             transport.start();
 
             for (final String protocol : protocols) {
-                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
-                
-                final FilterChain clientFilterChain =
-                        FilterChainBuilder.stateless()
-                        .add(new TransportFilter())
-                        .add(new StringFilter(CHARSET))
-                        .add(new ClientResultFilter(protocol, resultFuture))
-                        .build();
-
-                final SocketConnectorHandler connectorHandler =
-                        TCPNIOConnectorHandler.builder(transport)
-                        .filterChain(clientFilterChain)
-                        .build();
-
-                Future<Connection> future = connectorHandler.connect("localhost", PORT);
-                connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
+                final FutureImpl<String> resultFuture = SafeFutureImpl.create();
+                connection = openConnection(transport, resultFuture);
 
                 connection.write(protocol);
 
-                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+                assertEquals(makeResponseMessage(protocol), resultFuture.get(10, TimeUnit.SECONDS));
             }
             
             final int expectedBlockingWrites = protocols.length / 2 + (protocols.length % 2);
@@ -149,7 +137,105 @@ public class BasicPUTest {
         }
     }
 
+    @Test
+    public void unrecognizedConnectionClosed() throws Exception {
+        Connection connection = null;
 
+        final PUFilter puFilter = new PUFilter(true);
+        puFilter.register(createProtocol(puFilter, "X", false));
+
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(puFilter);
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setFilterChain(puFilterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            FutureImpl<String> resultFuture = SafeFutureImpl.create();
+            connection = openConnection(transport, resultFuture);
+
+            connection.write("X");
+            assertEquals(makeResponseMessage("X"), resultFuture.get(10, TimeUnit.SECONDS));
+            connection.closeSilently();
+
+            resultFuture = SafeFutureImpl.create();
+            connection = openConnection(transport, resultFuture);
+
+            connection.write("Y");
+            
+            try {
+                resultFuture.get(10, TimeUnit.SECONDS);
+                fail("Exception is expected");
+            } catch (ExecutionException e) {
+                assertTrue(e.getCause() instanceof EOFException);
+            }
+            
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
+    
+    @Test
+    public void unrecognizedConnectionCustomProcessing() throws Exception {
+        final String notRecognizedProtocol = "Not-Recognized-Protocol";
+        
+        Connection connection = null;
+
+        final PUFilter puFilter = new PUFilter(false);
+        puFilter.register(createProtocol(puFilter, "X", false));
+
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(puFilter)
+                .add(new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws Exception {
+                final String protocol = ctx.getMessage();
+                
+                ctx.write(notRecognizedProtocol + "-" + protocol);
+                return ctx.getStopAction();
+            }
+        });
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setFilterChain(puFilterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            FutureImpl<String> resultFuture = SafeFutureImpl.create();
+            connection = openConnection(transport, resultFuture);
+
+            connection.write("X");
+            assertEquals(makeResponseMessage("X"), resultFuture.get(10, TimeUnit.SECONDS));
+            connection.closeSilently();
+
+            resultFuture = SafeFutureImpl.create();
+            connection = openConnection(transport, resultFuture);
+
+            connection.write("Y");
+            
+            assertEquals(notRecognizedProtocol + "-Y", resultFuture.get(10, TimeUnit.SECONDS));
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.stop();
+        }
+    }
+    
     @Test
     public void testGrizzly1031_001() throws Exception {
 
@@ -324,27 +410,12 @@ public class BasicPUTest {
             for (int i = 0; i < protocols.length; i++) {
                 
                 final String protocol = protocols[i];
-                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
-                
-                final FilterChain clientFilterChain =
-                        FilterChainBuilder.stateless()
-                        .add(new TransportFilter())
-                        .add(new StringFilter(CHARSET))
-                        .add(new ClientResultFilter(protocol, resultFuture))
-                        .build();
-
-                final SocketConnectorHandler connectorHandler =
-                        TCPNIOConnectorHandler.builder(transport)
-                        .filterChain(clientFilterChain)
-                        .build();
-
-                Future<Connection> future = connectorHandler.connect("localhost", PORT);
-                connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
+                final FutureImpl<String> resultFuture = SafeFutureImpl.create();
+                connection = openConnection(transport, resultFuture);
 
                 connection.write(protocol);
 
-                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+                assertEquals(makeResponseMessage(protocol), resultFuture.get(10, TimeUnit.SECONDS));
                 
                 final Connection serverSideConnection =
                         (Connection) serverConnectionFutures[i].get(10, TimeUnit.SECONDS);
@@ -385,6 +456,29 @@ public class BasicPUTest {
         return new PUProtocol(new SimpleProtocolFinder(name), chain);
     }
 
+    private Connection openConnection(TCPNIOTransport transport,
+            final FutureImpl<String> resultFuture)
+            throws TimeoutException, IOException, ExecutionException, InterruptedException {
+        
+        final FilterChain clientFilterChain =
+                FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(new ClientResultFilter(resultFuture))
+                .build();
+        
+        final SocketConnectorHandler connectorHandler =
+                TCPNIOConnectorHandler.builder(transport)
+                .filterChain(clientFilterChain)
+                .build();
+        
+        Future<Connection> future = connectorHandler.connect("localhost", PORT);
+        final Connection connection = future.get(10, TimeUnit.SECONDS);
+        assertTrue(connection != null);
+        
+        return connection;
+    }
+
     private static final class SimpleProtocolFinder implements ProtocolFinder {
         public final String name;
 
@@ -419,28 +513,25 @@ public class BasicPUTest {
     }
 
     private static final class ClientResultFilter extends BaseFilter {
-        private final String expectedResponse;
-        private final FutureImpl<Boolean> resultFuture;
+        private final FutureImpl<String> resultFuture;
 
-        public ClientResultFilter(String name, FutureImpl<Boolean> future) {
+        public ClientResultFilter(FutureImpl<String> future) {
             this.resultFuture = future;
-            expectedResponse = makeResponseMessage(name);
         }
 
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             final String response = ctx.getMessage();
-            if (expectedResponse.equals(response)) {
-                resultFuture.result(Boolean.TRUE);
-            } else {
-                resultFuture.failure(new IllegalStateException(
-                        "Unexpected response. Expect=" + expectedResponse +
-                        " come=" + response));
-            }
+            resultFuture.result(response);
 
             return ctx.getStopAction();
         }
 
+        @Override
+        public NextAction handleClose(FilterChainContext ctx) throws Exception {
+            resultFuture.failure(new EOFException());
+            return ctx.getInvokeAction();
+        }
     }
 
     private static String makeResponseMessage(String protocolName) {
