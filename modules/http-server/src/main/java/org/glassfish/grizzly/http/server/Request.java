@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -656,6 +656,18 @@ public class Request {
     // ------------------------------------------------- Request Public Methods
 
 
+    /**
+     * Replays request's payload by setting new payload {@link Buffer}.
+     * @param buffer payload
+     * 
+     * @throws IllegalStateException, if previous request payload has not been read off.
+     */
+    public void replayPayload(final Buffer buffer) {
+        inputBuffer.replayPayload(buffer);
+        usingReader = false;
+        usingInputStream = false;
+    }
+    
     /**
      * Create and return a NIOInputStream to read the content
      * associated with this Request.
