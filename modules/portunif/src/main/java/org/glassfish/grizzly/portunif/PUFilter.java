@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -82,7 +82,23 @@ public class PUFilter extends BaseFilter {
     final Attribute<NextAction> terminateNextActionAttribute;
     final Attribute<FilterChainContext> suspendedContextAttribute;
 
+    private final boolean isCloseUnrecognizedConnection;
+    
     public PUFilter() {
+        this(true);
+    }
+
+    /**
+     * Constructs PUFilter.
+     * 
+     * @param isCloseUnrecognizedConnection <tt>true</tt> if a {@link Connection}
+     * whose protocol is not recognized will be automatically closed,
+     * or <tt>false</tt> if normal {@link FilterChain} processing will be
+     * continued for such {@link Connection}, so a {@link Filter} next to
+     * <tt>PUFilter</tt> may implement custom logic to process unrecognized connection.
+     */    
+    public PUFilter(final boolean isCloseUnrecognizedConnection) {
+        this.isCloseUnrecognizedConnection = isCloseUnrecognizedConnection;
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
@@ -171,6 +187,17 @@ public class PUFilter extends BaseFilter {
         return builder;
     }
 
+    /**
+     * Returns <tt>true</tt> if a {@link Connection} whose protocol is not recognized
+     * will be automatically closed, or <tt>false</tt> if normal
+     * {@link FilterChain} processing will be continued for such {@link Connection},
+     * so a {@link Filter} next to <tt>PUFilter</tt> may implement custom logic
+     * to process unrecognized connection.
+     */
+    public boolean isCloseUnrecognizedConnection() {
+        return isCloseUnrecognizedConnection;
+    }
+    
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final NextAction terminateNextAction;
@@ -222,6 +249,11 @@ public class PUFilter extends BaseFilter {
         // no matching protocols within the set of known protocols were found,
         // pass the message to the next filter in the chain
         if (puContext.noProtocolsFound()) {
+            if (isCloseUnrecognizedConnection) {
+                connection.closeSilently();
+                return ctx.getStopAction();
+            }
+            
             return ctx.getInvokeAction();
         }
 
