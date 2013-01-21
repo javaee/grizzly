@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -683,7 +683,20 @@ public class InputBuffer {
         }
     }
 
-
+    public void replayPayload(final Buffer buffer) {
+        if (!isFinished()) {
+            throw new IllegalStateException("Can't replay when InputBuffer is not closed");
+        }
+        
+        closed = false;
+        readCount = 0;
+        
+        readAheadLimit = -1;
+        markPos = -1;
+        
+        inputContentBuffer = buffer;
+    }
+    
     /**
      * @return <code>true</code> if all request data has been read, otherwise
      *  returns <code>false</code>.
