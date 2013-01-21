@@ -658,6 +658,9 @@ public class Request {
 
     /**
      * Replays request's payload by setting new payload {@link Buffer}.
+     * If request parameters have been parsed based on prev. request's POST
+     * payload - the parameters will be recycled and ready to be parsed again.
+     * 
      * @param buffer payload
      * 
      * @throws IllegalStateException, if previous request payload has not been read off.
@@ -666,6 +669,13 @@ public class Request {
         inputBuffer.replayPayload(buffer);
         usingReader = false;
         usingInputStream = false;
+        
+        if (Method.POST.equals(getMethod()) && requestParametersParsed) {
+            requestParametersParsed = false;
+            parameterMap.setLocked(false);
+            parameterMap.clear();
+            parameters.recycle();
+        }
     }
     
     /**
