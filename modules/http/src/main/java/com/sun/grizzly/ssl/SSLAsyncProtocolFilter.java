@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,8 +50,11 @@ import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.SSLSupport;
+
+import javax.net.ssl.SSLEngine;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 
 /**
  * Asynchronous SSL support over NIO. This {@link com.sun.grizzly.http.Task} handles the SSL
@@ -133,10 +136,10 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
                 (SSLAsyncProcessorTask) processorTask;
         SSLAsyncOutputBuffer outputBuffer =
                 asyncProcessorTask.getSSLAsyncOutputBuffer();
-        outputBuffer.setOutputBB(asyncProcessorTask.encryptOutBuffer);
-        outputBuffer.setSSLEngine(workerThread.getSSLEngine());
+        final SSLEngine engine = workerThread.getSSLEngine();
+        swapEncryptOutBuffer(workerThread, outputBuffer, engine);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -149,15 +152,13 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      * {@inheritDoc}
      */
     @Override
-    protected void configureInputBuffer(ProcessorTask processorTask,
-                                        InputReader inputStream,
+    protected void configureInputBuffer(InputReader inputStream,
                                         Context context,
                                         HttpWorkerThread workerThread) {
-        SSLAsyncProcessorTask task = (SSLAsyncProcessorTask)
-                processorTask;
         inputStream.setSelectionKey(context.getSelectionKey());
-        inputStream.setSslEngine(workerThread.getSSLEngine());
-        inputStream.setInputBB(task.encryptInBuffer);
+        final SSLEngine engine = workerThread.getSSLEngine();
+        inputStream.setSslEngine(engine);
+        swapEncryptInBuffer(inputStream, workerThread, engine);
     }
 
     /**
@@ -166,5 +167,30 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
     @Override
     protected boolean isSecure() {
         return true;
+    }
+
+
+    // -------------------------------------------------------- Private Methods
+
+
+    private static void swapEncryptInBuffer(final InputReader inputStream,
+                                            final HttpWorkerThread workerThread,
+                                            final SSLEngine engine) {
+        final ByteBuffer tmp = allocate(engine);
+        inputStream.setInputBB(workerThread.getInputBB());
+        workerThread.setInputBB(tmp);
+    }
+
+    private static void swapEncryptOutBuffer(final WorkerThread workerThread,
+                                             final SSLAsyncOutputBuffer outputBuffer,
+                                             final SSLEngine engine) {
+        ByteBuffer tmp = allocate(engine);
+        outputBuffer.setOutputBB(workerThread.getOutputBB());
+        workerThread.setOutputBB(tmp);
+        outputBuffer.setSSLEngine(engine);
+    }
+
+    private static ByteBuffer allocate(final SSLEngine engine) {
+        return ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
     }
 }

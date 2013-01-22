@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,34 +44,21 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 
-import java.nio.ByteBuffer;
 
 /**
- * Simple {@link ProcessorTask} that configure the {@link OutputBuffer}
- * using an instance of {@link SSLOutputBuffer}. All the request/response
- * operations are delegated to the {@link ProcessorTask}
+ * Simple {@link com.sun.grizzly.http.ProcessorTask} that configure the
+ * {@link com.sun.grizzly.tcp.OutputBuffer} using an instance of
+ * {@link SSLOutputBuffer}. All the request/response operations are delegated
+ * to the {@link com.sun.grizzly.http.ProcessorTask}
  *
  * @author Jeanfrancois Arcand
  */
 public class SSLAsyncProcessorTask extends SSLProcessorTask {
 
-    /**
-     * Encrypted output {@link java.nio.ByteBuffer}
-     */
-    protected ByteBuffer encryptOutBuffer = ByteBuffer.allocate(32 * 1024);
 
-    /**
-     * Encrypted input {@link java.nio.ByteBuffer}
-     */
-    protected ByteBuffer encryptInBuffer = ByteBuffer.allocate(maxHttpHeaderSize);
-
-    
     // ----------------------------------------------------- Constructor ---- //
 
-    public SSLAsyncProcessorTask() {
-        this(true,true);
-    }
-        
+
     public SSLAsyncProcessorTask(boolean init, boolean bufferResponse) {    
         super(init,bufferResponse);
     }
@@ -107,11 +94,4 @@ public class SSLAsyncProcessorTask extends SSLProcessorTask {
         return (SSLAsyncOutputBuffer)outputBuffer;
     }
 
-    @Override
-    public void recycle() {
-        super.recycle();
-        encryptOutBuffer.position(0);
-        encryptOutBuffer.limit(0);
-        encryptInBuffer.clear();
-    }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -186,7 +186,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         if (inputStream == null) {
             inputStream = createInputReader();
         }
-        configureInputBuffer(processor,inputStream, ctx, workerThread);
+        configureInputBuffer(inputStream, ctx, workerThread);
                 
         SocketChannel socketChannel = (SocketChannel) key.channel();
         streamAlgorithm.setChannel(socketChannel);
@@ -283,8 +283,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      * Configure {@link InputReader}.
      */
     @Override
-    protected void configureInputBuffer(ProcessorTask processorTask,
-                                        InputReader inputStream,
+    protected void configureInputBuffer(InputReader inputStream,
                                         Context context,
                                         HttpWorkerThread workerThread) {
         // Save the buffer before recycle

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -181,8 +181,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
 
         SelectionKey key = ctx.getSelectionKey();
-        configureInputBuffer(selectorThread.getProcessorTask(),
-                             inputStream,
+        configureInputBuffer(inputStream,
                              ctx,
                              workerThread);
         SocketChannel socketChannel =
@@ -328,8 +327,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Configure {@link InputReader}.
      */
-    protected void configureInputBuffer(ProcessorTask processorTask,
-                                        InputReader inputStream,
+    protected void configureInputBuffer(InputReader inputStream,
                                         Context context,
                                         HttpWorkerThread workerThread) {
         inputStream.recycle();
