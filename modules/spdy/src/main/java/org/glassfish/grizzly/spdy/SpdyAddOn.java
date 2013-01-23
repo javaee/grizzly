@@ -228,7 +228,7 @@ public class SpdyAddOn implements AddOn {
                             new Object[]{ connection });
                 }
                 // TODO: Should we consider making this behavior configurable?
-                connection.close();
+                connection.closeSilently();
             }
 
         } // END ProtocolNegotiator
