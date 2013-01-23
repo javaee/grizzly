@@ -45,6 +45,8 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.util.Arrays;
 
+import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
+
 /**
  * TODO: Need to implement handling of per-setting flags.
  */
@@ -168,7 +170,27 @@ public class SettingsFrame extends SpdyFrame {
 
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
-        return null;
+        // allocate:
+        // 1) 8 bytes for the header
+        // 2) 4 bytes for the number of settings
+        // 3) Then length will be the number of settings plus 8 bytes for each setting.
+        final int length = 4 + (numberOfSettings * 8);
+        final Buffer buffer = memoryManager.allocateAtLeast(8 + length);
+        buffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);
+        buffer.putInt(length);
+        buffer.putInt(numberOfSettings);
+        if (numberOfSettings > 0) {
+            for (int i = 0; i < MAX_DEFINED_SETTINGS && numberOfSettings > 0; i++) {
+                if ((setSettings & (1 << i)) != 0) {
+                    // internal representation of settings starts at zero, but the spec
+                    // defines the settings starting at one, so offset accordingly.
+                    buffer.putInt(0x80000000 | (i + 1));
+                    buffer.putInt(settingSlots[i]);
+                }
+            }
+        }
+        buffer.trim();
+        return buffer;
     }
 
 
@@ -183,6 +205,7 @@ public class SettingsFrame extends SpdyFrame {
             int actualNumberOfSettings = 0;
             for (int i = 0; i < numberOfSettings; i++) {
                 final int eHeader = settings.getInt();
+                // internal setting representations start at offset zero.
                 final int eId = (eHeader & 0xFFFFFF) - 1;
                 if ((setSettings & (1 << eId)) == 0) {
                     setSettings |= 1 << eId;

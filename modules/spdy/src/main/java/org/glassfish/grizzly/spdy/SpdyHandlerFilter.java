@@ -93,11 +93,18 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
+import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
+import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
+import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SettingsFrameBuilder;
+
 /**
  *
  * @author oleksiys
  */
 public class SpdyHandlerFilter extends HttpBaseFilter {
+
+    public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 50;
+    public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
 
     private static final ClientNpnNegotiator CLIENT_NPN_NEGOTIATOR =
@@ -107,8 +114,20 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     
     private final ExecutorService threadPool;
 
-    public SpdyHandlerFilter(ExecutorService threadPool) {
+    // TODO: In the future, we may wish to allow this to be adjusted at runtime...
+    private final int maxConcurrentStreams;
+    private final int initialWindowSize;
+
+    public SpdyHandlerFilter(final ExecutorService threadPool) {
+        this(threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
+    }
+
+    public SpdyHandlerFilter(final ExecutorService threadPool,
+                            final int maxConcurrentStreams,
+                            final int initialWindowSize) {
         this.threadPool = threadPool;
+        this.maxConcurrentStreams = maxConcurrentStreams;
+        this.initialWindowSize = initialWindowSize;
     }
 
 
@@ -1103,6 +1122,12 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         if (spdySession == null) {
             spdySession = new SpdySession(connection);
             SpdySession.bind(connection, spdySession);
+            // send the configuration for this session
+            final SettingsFrameBuilder builder = SettingsFrame.builder();
+            builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, maxConcurrentStreams);
+            builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, initialWindowSize);
+            builder.setFlag(SettingsFrame.FLAG_SETTINGS_CLEAR_SETTINGS);
+            context.write(builder.build());
         }
         
         spdySession.initCommunication(context, isUpStream);
