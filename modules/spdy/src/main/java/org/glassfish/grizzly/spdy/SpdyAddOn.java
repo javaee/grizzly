@@ -227,6 +227,8 @@ public class SpdyAddOn implements AddOn {
                     LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
                             new Object[]{ connection });
                 }
+                // TODO: Should we consider making this behavior configurable?
+                connection.close();
             }
 
         } // END ProtocolNegotiator
