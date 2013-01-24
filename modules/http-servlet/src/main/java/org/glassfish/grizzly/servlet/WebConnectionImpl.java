@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpUpgradeHandler;
@@ -62,6 +63,8 @@ public class WebConnectionImpl implements WebConnection {
 
     private final HttpServletRequestImpl request;
 
+    private final AtomicBoolean isClosed = new AtomicBoolean();
+    
     // ----------------------------------------------------------- Constructor
 
     public WebConnectionImpl(HttpServletRequestImpl request,
@@ -97,23 +100,26 @@ public class WebConnectionImpl implements WebConnection {
 
     @Override
     public void close() throws Exception {
-        final Request grizzlyRequest = request.getRequest();
-        
-        HttpUpgradeHandler httpUpgradeHandler =
-                request.getHttpUpgradeHandler();
-        try {
-            httpUpgradeHandler.destroy();
-        } finally {
-            try {
-                inputStream.close();
-            } catch(Exception ignored) {
-            }
-            try {
-                outputStream.close();
-            } catch(Exception ignored) {
-            }
+        // Make sure we run close logic only once
+        if (isClosed.compareAndSet(false, true)) {
+            final Request grizzlyRequest = request.getRequest();
 
-            grizzlyRequest.getResponse().resume();
+            HttpUpgradeHandler httpUpgradeHandler =
+                    request.getHttpUpgradeHandler();
+            try {
+                httpUpgradeHandler.destroy();
+            } finally {
+                try {
+                    inputStream.close();
+                } catch(Exception ignored) {
+                }
+                try {
+                    outputStream.close();
+                } catch(Exception ignored) {
+                }
+
+                grizzlyRequest.getResponse().resume();
+            }
         }
     }
 }
