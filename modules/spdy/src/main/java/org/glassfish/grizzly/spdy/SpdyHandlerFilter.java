@@ -111,6 +111,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             new ClientNpnNegotiator();
 
     private static final TransferEncoding FIXED_LENGTH_ENCODING = new FixedLengthTransferEncoding();
+
+    private final SpdyMode spdyMode;
     
     private final ExecutorService threadPool;
 
@@ -118,13 +120,16 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     private final int maxConcurrentStreams;
     private final int initialWindowSize;
 
-    public SpdyHandlerFilter(final ExecutorService threadPool) {
-        this(threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
+    public SpdyHandlerFilter(final SpdyMode spdyMode,
+            final ExecutorService threadPool) {
+        this(spdyMode, threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
     }
 
-    public SpdyHandlerFilter(final ExecutorService threadPool,
+    public SpdyHandlerFilter(final SpdyMode spdyMode,
+                            final ExecutorService threadPool,
                             final int maxConcurrentStreams,
                             final int initialWindowSize) {
+        this.spdyMode = spdyMode;
         this.threadPool = threadPool;
         this.maxConcurrentStreams = maxConcurrentStreams;
         this.initialWindowSize = initialWindowSize;
@@ -712,15 +717,17 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final SpdySession spdySession = new SpdySession(connection, false);
         SpdySession.bind(connection, spdySession);
 
-        final FilterChain filterChain = connection.getFilterChain();
-        final int idx = filterChain.indexOfType(SSLFilter.class);
-        if (idx != -1) { // use TLS NPN
-            final SSLFilter sslFilter = (SSLFilter) filterChain.get(idx);
-            NextProtoNegSupport.getInstance().configure(sslFilter);
-            NextProtoNegSupport.getInstance().setClientSideNegotiator(
-                    connection, CLIENT_NPN_NEGOTIATOR);
+        if (spdyMode == SpdyMode.NPN) {
+            final FilterChain filterChain = connection.getFilterChain();
+            final int idx = filterChain.indexOfType(SSLFilter.class);
+            if (idx != -1) { // use TLS NPN
+                final SSLFilter sslFilter = (SSLFilter) filterChain.get(idx);
+                NextProtoNegSupport.getInstance().configure(sslFilter);
+                NextProtoNegSupport.getInstance().setClientSideNegotiator(
+                        connection, CLIENT_NPN_NEGOTIATOR);
 
-            sslFilter.handshake(connection, null);
+                sslFilter.handshake(connection, null);
+            }
         }
         
         return ctx.getInvokeAction();

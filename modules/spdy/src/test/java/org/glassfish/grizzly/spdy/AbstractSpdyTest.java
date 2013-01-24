@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,11 @@
 package org.glassfish.grizzly.spdy;
 
 import java.net.URL;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
-import junit.framework.TestCase;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -50,6 +53,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.npn.NextProtoNegSupport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
@@ -58,23 +62,43 @@ import org.glassfish.grizzly.ssl.SSLFilter;
  *
  * @author oleksiys
  */
-public abstract class AbstractSpdyTest extends TestCase {
+public abstract class AbstractSpdyTest {
+    private static final Logger LOGGER = Grizzly.logger(AbstractSpdyTest.class);
+    
     private volatile static SSLEngineConfigurator clientSSLEngineConfigurator;
     private volatile static SSLEngineConfigurator serverSSLEngineConfigurator;    
+
+    public static Collection<Object[]> getSpdyModes() {
+        final Collection<Object[]> modes = new LinkedList<Object[]>();
+        
+        modes.add(new Object[] {SpdyMode.PLAIN, Boolean.FALSE});
+        modes.add(new Object[] {SpdyMode.PLAIN, Boolean.TRUE});
+        
+        if (NextProtoNegSupport.isEnabled()) {
+            modes.add(new Object[] {SpdyMode.NPN, Boolean.TRUE});
+        } else {
+            LOGGER.info("NPN support is not by this JDK, so NPN mode will be skipped");
+        }
+        
+        return modes;
+    }
     
     protected static HttpServer createServer(final String docRoot, final int port,
+            final SpdyMode spdyMode,
+            final boolean isSecure,
             final HttpHandlerRegistration... registrations) {
-        final SSLEngineConfigurator sslEngineConfigurator = getServerSSLEngineConfigurator();
-
         HttpServer server = HttpServer.createSimpleServer(docRoot, port);
         NetworkListener listener = server.getListener("grizzly");
         listener.setSendFileEnabled(false);
         
         listener.getFileCache().setEnabled(false);
-        listener.setSecure(true);
-        listener.setSSLEngineConfig(sslEngineConfigurator);
 
-        listener.registerAddOn(new SpdyAddOn());
+        if (isSecure) {
+            listener.setSecure(true);
+            listener.setSSLEngineConfig(getServerSSLEngineConfigurator());
+        }
+
+        listener.registerAddOn(new SpdyAddOn(spdyMode));
         
         ServerConfiguration sconfig = server.getServerConfiguration();
         
@@ -87,13 +111,18 @@ public abstract class AbstractSpdyTest extends TestCase {
     
 
     protected static FilterChain createClientFilterChain(
+            final SpdyMode spdyMode,
+            final boolean isSecure,
             final ExecutorService threadPool,
             final Filter... clientFilters) {
         final FilterChainBuilder builder = FilterChainBuilder.stateless()
-             .add(new TransportFilter())
-             .add(new SSLFilter(null, getClientSSLEngineConfigurator()))
-             .add(new SpdyFramingFilter())
-             .add(new SpdyHandlerFilter(threadPool));
+             .add(new TransportFilter());
+        if (isSecure) {
+            builder.add(new SSLFilter(null, getClientSSLEngineConfigurator()));
+        }
+        
+        builder.add(new SpdyFramingFilter())
+                .add(new SpdyHandlerFilter(spdyMode, threadPool));
         
         if (clientFilters != null) {
             for (Filter clientFilter : clientFilters) {

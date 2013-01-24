@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.CharBuffer;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -75,19 +76,40 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static org.junit.Assert.*;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
  * {@link org.glassfish.grizzly.http.io.NIOReader}.
  */
+@RunWith(Parameterized.class)
 public class HttpInputStreamsTest extends AbstractSpdyTest {
 
     private static final int PORT = 8003;
 
 
+    private final SpdyMode spdyMode;
+    private final boolean isSecure;
+    
+    public HttpInputStreamsTest(final SpdyMode spdyMode,
+            final boolean isSecure) {
+        this.spdyMode = spdyMode;
+        this.isSecure = isSecure;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getSpdyModes() {
+        return AbstractSpdyTest.getSpdyModes();
+    }
+    
     // ----------------------------------------------------- Binary Test Methods
 
 
+    @Test
     public void testBinaryWithGet() throws Throwable {
 
         ReadStrategy reader = new ReadStrategy() {
@@ -111,6 +133,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinaryResetNoMark() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -133,6 +156,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinaryMarkReset001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -172,6 +196,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinaryMarkReset002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -207,6 +232,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinaryMarkReset003() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -257,6 +283,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinarySkip001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -289,6 +316,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinarySkip002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -312,6 +340,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinary002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -334,6 +363,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
 
     }
 
+    @Test
     public void testBinary003() throws Throwable {
 
         final String content = "abcdefghijklmnopqrstuvwxyz";
@@ -356,6 +386,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinary004() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -381,6 +412,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinary005() throws Throwable {
 
         final StringBuilder b = new StringBuilder(8192);
@@ -413,6 +445,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBinary006() throws Throwable {
 
         int len = 1024 * 17;
@@ -449,6 +482,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     // -------------------------------------------------- Character Test Methods
 
 
+    @Test
     public void testCharacterResetNoMark() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -471,6 +505,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterMarkReset001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -509,6 +544,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
 
     }
 
+    @Test
     public void testMultiByteCharacterMarkReset001() throws Throwable {
 
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
@@ -548,6 +584,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterMarkReset002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -582,6 +619,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testMultiByteCharacterMarkReset002() throws Throwable {
 
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
@@ -616,6 +654,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterMarkReset003() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -665,6 +704,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testMultiByteCharacterMarkReset003() throws Throwable {
 
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
@@ -714,6 +754,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -737,6 +778,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -758,6 +800,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter003() throws Throwable {
 
         final String content = "abcdefghijklmnopqrstuvwxyz";
@@ -779,6 +822,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter004() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -803,6 +847,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter005() throws Throwable {
 
         int len = 1024 * 8;
@@ -836,6 +881,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter006() throws Throwable {
 
         int len = 1024 * 17;
@@ -869,6 +915,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter007() throws Throwable {
 
         final int len = 1024 * 57;
@@ -903,6 +950,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter008() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -927,6 +975,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter009() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -953,6 +1002,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacter010() throws Throwable {
 
         final int len = 1024 * 57;
@@ -987,6 +1037,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testMultiByteCharacter01() throws Throwable {
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
         ReadStrategy reader = new ReadStrategy() {
@@ -1010,6 +1061,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterReady001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -1085,6 +1137,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     */
 
 
+    @Test
     public void testCharacterSkip001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -1121,6 +1174,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterSkip002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -1143,6 +1197,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testCharacterSkip003() throws Throwable {
 
         final int len = 1024 * 9;
@@ -1229,7 +1284,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         final Filter clientFilter = new ClientFilter(request, chunkSize, testResult);
         
-        final HttpServer server = createServer("/tmp", PORT,
+        final HttpServer server = createServer("/tmp", PORT, spdyMode, isSecure,
                 HttpHandlerRegistration.of(new SimpleResponseHttpHandler(strategy, testResult), "/*"));
         
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
@@ -1239,7 +1294,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(threadPool, clientFilter);
+                    createClientFilterChain(spdyMode, isSecure, threadPool, clientFilter);
             
             ctransport.setFilterChain(clientFilterChain);
 

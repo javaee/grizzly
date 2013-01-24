@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -87,18 +88,38 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.utils.Exceptions;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static org.junit.Assert.*;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
  */
+@RunWith(Parameterized.class)
 public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 8030;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    private final SpdyMode spdyMode;
+    private final boolean isSecure;
+    
+    public NIOInputSourcesTest(final SpdyMode spdyMode,
+            final boolean isSecure) {
+        this.spdyMode = spdyMode;
+        this.isSecure = isSecure;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getSpdyModes() {
+        return AbstractSpdyTest.getSpdyModes();
+    }
+    
+    @Before
+    public void setUp() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
     }
 
@@ -108,6 +129,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -123,6 +145,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
      * <em>POST</em> a message body with a length of 5000 bytes.
      * HttpHandler calls {@link AsyncStreamReader#
      */
+    @Test
     public void testBasicAsyncReadSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -134,6 +157,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -180,6 +204,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         
     }
 
+    @Test
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -226,6 +251,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     }
 
+    @Test
     public void testDirectAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -278,6 +304,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         doTest(httpServer, httpHandler, request, expected, testResult, strategy, 60);
     }
     
+    @Test
     public void testAsyncReadStartedOutsideHttpHandler() throws Throwable {
 
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
@@ -332,6 +359,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -346,6 +374,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncReadMultiByteChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -363,6 +392,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
      * <em>POST</em> a message body with a length of 5000 bytes.
      * HttpHandler calls {@link AsyncStreamReader#
      */
+    @Test
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -374,6 +404,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     }
 
 
+    @Test
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -421,6 +452,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     }
 
+    @Test
     public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -472,6 +504,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
      * terminates the connection
      */
     @SuppressWarnings({"unchecked"})
+    @Test
     public void testDisconnect() throws Throwable {
 
         final AtomicInteger bytesRead = new AtomicInteger();
@@ -480,7 +513,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setFilterChain(
-                createClientFilterChain(threadPool));
+                createClientFilterChain(spdyMode, isSecure, threadPool));
         
         final HttpHandler httpHandler = new HttpHandler() {
 
@@ -576,7 +609,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
 
     private HttpServer createWebServer(final HttpHandler httpHandler) {
-        final HttpServer httpServer = createServer(null, PORT,
+        final HttpServer httpServer = createServer(null, PORT, spdyMode, isSecure,
                 HttpHandlerRegistration.of(httpHandler, "/path/*"));
         
         final NetworkListener listener = httpServer.getListener("grizzly");
@@ -646,7 +679,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             server.start();
             
             FilterChain clientFilterChain =
-                    createClientFilterChain(threadPool, filter);
+                    createClientFilterChain(spdyMode, isSecure, threadPool, filter);
             
             clientTransport.setFilterChain(clientFilterChain);
             clientTransport.start();

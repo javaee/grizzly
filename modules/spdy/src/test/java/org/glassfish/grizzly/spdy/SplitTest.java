@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -70,6 +71,10 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static org.junit.Assert.*;
 
 /**
  * Test derived from http-server's "potential split vulnerability".
@@ -80,8 +85,23 @@ import org.junit.Test;
  * @author Alexey Stashok
  */
 @SuppressWarnings("unchecked")
+@RunWith(Parameterized.class)
 public class SplitTest extends AbstractSpdyTest {
     private static final int PORT = 18899;
+    
+    private final SpdyMode spdyMode;
+    private final boolean isSecure;
+    
+    public SplitTest(final SpdyMode spdyMode,
+            final boolean isSecure) {
+        this.spdyMode = spdyMode;
+        this.isSecure = isSecure;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getSpdyModes() {
+        return AbstractSpdyTest.getSpdyModes();
+    }
     
     @Test
     public void testSplitReasonPhrase() throws Exception {
@@ -160,7 +180,8 @@ public class SplitTest extends AbstractSpdyTest {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
-            clientTransport.setFilterChain(createClientFilterChain(threadPool, new ClientFilter(testResultFuture)));
+            clientTransport.setFilterChain(createClientFilterChain(spdyMode, isSecure,
+                    threadPool, new ClientFilter(testResultFuture)));
 
             clientTransport.start();
 
@@ -185,7 +206,7 @@ public class SplitTest extends AbstractSpdyTest {
 
     private HttpServer createWebServer(final HttpHandler... httpHandlers) {
 
-        final HttpServer server = createServer(null, PORT);
+        final HttpServer server = createServer(null, PORT, spdyMode, isSecure);
         final NetworkListener listener = server.getListener("grizzly");
         listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
 
