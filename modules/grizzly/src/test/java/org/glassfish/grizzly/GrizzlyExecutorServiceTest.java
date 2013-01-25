@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,8 +61,14 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
 
     public void testCreateInstance() throws Exception {
         int threads = 100;
-        ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
+        ThreadPoolConfig cfg = ThreadPoolConfig.defaultConfig()
+                .setPoolName("test")
+                .setCorePoolSize(-1).setMaxPoolSize(threads)
+                .setQueue(null).setQueueLimit(-1)
+                .setKeepAliveTime(-1, TimeUnit.MILLISECONDS)
+                .setPriority(Thread.NORM_PRIORITY)
+                .setTransactionTimeout(-1, TimeUnit.MILLISECONDS);
+        
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000000;
         doTest(r,tasks);
@@ -133,8 +139,14 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
 
     public void testAwaitTermination() throws Exception {
         int threads = 100;
-        ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
+        ThreadPoolConfig cfg = ThreadPoolConfig.defaultConfig()
+                .setPoolName("test")
+                .setCorePoolSize(-1).setMaxPoolSize(threads)
+                .setQueue(null).setQueueLimit(-1)
+                .setKeepAliveTime(-1, TimeUnit.MILLISECONDS)
+                .setPriority(Thread.NORM_PRIORITY)
+                .setTransactionTimeout(-1, TimeUnit.MILLISECONDS);
+
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000;
         runTasks(r,tasks);

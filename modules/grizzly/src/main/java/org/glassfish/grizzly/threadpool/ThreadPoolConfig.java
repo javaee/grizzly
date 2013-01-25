@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,18 +48,38 @@ import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
+ * Grizzly thread-pool configuration, which might be used to create and initialize
+ * a thread-pool via {@link GrizzlyExecutorService#createInstance(org.glassfish.grizzly.threadpool.ThreadPoolConfig)}.
+ * One can get a default Grizzly <tt>ThreadPoolConfig</tt> using
+ * {@link ThreadPoolConfig#newConfig()} and customize it according to the
+ * application specific requirements.
+ * 
+ * A <tt>ThreadPoolConfig</tt> object might be customized in a "Builder"-like fashion:
+ * <code>
+ *      ThreadPoolConfig.defaultConfig()
+ *               .setPoolName("App1Pool")
+ *               .setCorePoolSize(5)
+ *               .setMaxPoolSize(10);
+ * </code>
  * @author Oleksiy Stashok
  * @author gustav trede
  */
-public class ThreadPoolConfig {
+public final class ThreadPoolConfig {
     private static final ThreadPoolConfig DEFAULT = new ThreadPoolConfig(
             "Grizzly", AbstractThreadPool.DEFAULT_MIN_THREAD_COUNT,
             AbstractThreadPool.DEFAULT_MAX_THREAD_COUNT,
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.NORM_PRIORITY, null, null, -1);
+            null, Thread.NORM_PRIORITY, true, null, null, -1);
 
+    /**
+     * Create new Grizzly thread-pool configuration instance.
+     * The returned <tt>ThreadPoolConfig</tt> instance will be pre-configured
+     * with a default values.
+     * 
+     * @return the Grizzly thread-pool configuration instance.
+     */
     public static ThreadPoolConfig defaultConfig() {
         return DEFAULT.copy();
     }
@@ -72,6 +92,7 @@ public class ThreadPoolConfig {
     protected long keepAliveTimeMillis;
     protected ThreadFactory threadFactory;
     protected int priority = Thread.MAX_PRIORITY;
+    protected boolean isDaemon;
     protected MemoryManager mm;
     protected DelayedExecutor transactionMonitor;
     protected long transactionTimeoutMillis;
@@ -82,7 +103,7 @@ public class ThreadPoolConfig {
     protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
             
     
-    public ThreadPoolConfig(
+    private ThreadPoolConfig(
             String poolName,
             int corePoolSize,
             int maxPoolSize,
@@ -92,6 +113,7 @@ public class ThreadPoolConfig {
             TimeUnit timeUnit,
             ThreadFactory threadFactory,
             int priority,
+            boolean isDaemon,
             MemoryManager mm,
             DelayedExecutor transactionMonitor,
             long transactionTimeoutMillis) {
@@ -109,6 +131,7 @@ public class ThreadPoolConfig {
 
         this.threadFactory   = threadFactory;
         this.priority        = priority;
+        this.isDaemon         = isDaemon;
         this.mm              = mm;
         this.transactionMonitor = transactionMonitor;
         this.transactionTimeoutMillis = transactionTimeoutMillis;
@@ -117,11 +140,12 @@ public class ThreadPoolConfig {
                 ThreadPoolProbe.class);
     }
 
-    public ThreadPoolConfig(ThreadPoolConfig cfg) {
+    private ThreadPoolConfig(ThreadPoolConfig cfg) {
         this.queue           = cfg.queue;
         this.threadFactory   = cfg.threadFactory;
         this.poolName        = cfg.poolName;
         this.priority        = cfg.priority;
+        this.isDaemon         = cfg.isDaemon;
         this.maxPoolSize     = cfg.maxPoolSize;
         this.queueLimit      = cfg.queueLimit;
         this.corePoolSize    = cfg.corePoolSize;
@@ -162,6 +186,11 @@ public class ThreadPoolConfig {
     }
 
     /**
+     * Returns {@link ThreadFactory}.
+     * 
+     * If {@link ThreadFactory} is set - then {@link #priority}, {@link #isDaemon},
+     * {@link #poolName} settings will not be considered when creating new threads.
+     * 
      * @return the threadFactory
      */
     public ThreadFactory getThreadFactory() {
@@ -171,6 +200,9 @@ public class ThreadPoolConfig {
     /**
      *
      * @param threadFactory custom {@link ThreadFactory}
+     * If {@link ThreadFactory} is set - then {@link #priority}, {@link #isDaemon},
+     * {@link #poolName} settings will not be considered when creating new threads.
+     * 
      * @return the {@link ThreadPoolConfig} with the new {@link ThreadFactory}
      */
     public ThreadPoolConfig setThreadFactory(ThreadFactory threadFactory) {
@@ -204,6 +236,16 @@ public class ThreadPoolConfig {
         return this;
     }
 
+    public boolean isDaemon() {
+        return isDaemon;
+    }
+
+    public ThreadPoolConfig setDaemon(boolean isDaemon) {
+        this.isDaemon = isDaemon;
+        return this;
+    }
+
+    
     /**
      * @return the maxpoolsize
      */
@@ -239,14 +281,16 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @return the queuelimit
+     * @return the thread-pool queue limit. The queue limit
+     *      value less than 0 means unlimited queue.
      */
     public int getQueueLimit() {
         return queueLimit;
     }
 
     /**
-     * @param queueLimit the queue limit
+     * @param queueLimit the thread-pool queue limit. The <tt>queueLimit</tt>
+     *      value less than 0 means unlimited queue.
      * @return the {@link ThreadPoolConfig} with the new queue limite
      */
     public ThreadPoolConfig setQueueLimit(int queueLimit) {
@@ -355,6 +399,7 @@ public class ThreadPoolConfig {
                 + "  threadFactory: " + threadFactory + "\r\n"
                 + "  transactionMonitor: " + transactionMonitor + "\r\n"
                 + "  transactionTimeoutMillis: " + transactionTimeoutMillis + "\r\n"
-                + "  priority: " + priority + "\r\n";
+                + "  priority: " + priority + "\r\n"
+                + "  isDaemon: " + isDaemon;
     }
 }
