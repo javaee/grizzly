@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -181,11 +181,6 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      */
     protected void startWorker(final Worker worker) {
         final Thread thread = config.getThreadFactory().newThread(worker);
-
-        thread.setName(config.getPoolName() + '(' + nextThreadId() + ')');
-        thread.setUncaughtExceptionHandler(this);
-        thread.setPriority(config.getPriority());
-        thread.setDaemon(true);
 
         worker.t = thread;
         workers.put(worker, System.currentTimeMillis());
@@ -495,7 +490,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return new ThreadPool(this);
     }
 
-    protected ThreadFactory getDefaultThreadFactory() {
+    protected final ThreadFactory getDefaultThreadFactory() {
         final AtomicInteger counter = new AtomicInteger();
         
         return new ThreadFactory() {
@@ -510,13 +505,17 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                     threadLocalPoolProvider = null;
                 }
                 
-                return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                                               config.getPoolName()
-                                                       + "-WorkerThread("
-                                                       + counter.getAndIncrement()
-                                                       + ')',
-                                               ((threadLocalPoolProvider != null) ? threadLocalPoolProvider.createThreadLocalPool() : null),
-                                               r);
+                final DefaultWorkerThread thread =
+                        new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
+                        config.getPoolName() + '(' + counter.getAndIncrement() + ')',
+                        ((threadLocalPoolProvider != null) ? threadLocalPoolProvider.createThreadLocalPool() : null),
+                        r);
+
+                thread.setUncaughtExceptionHandler(AbstractThreadPool.this);
+                thread.setPriority(config.getPriority());
+                thread.setDaemon(config.isDaemon());
+                
+                return thread;
             }
         };
     }
