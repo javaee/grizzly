@@ -229,17 +229,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.maxRequestHeaders = maxRequestHeaders;
         this.maxResponseHeaders = maxResponseHeaders;
     }
-    
-    // ----------------------------------------------------------- Configuration
-    
-    public String getDefaultResponseContentType() {
-        return defaultResponseContentType;
-    }
 
-    public void setDefaultResponseContentType(String defaultResponseContentType) {
-        this.defaultResponseContentType = defaultResponseContentType;
-    }
-    
     // ----------------------------------------------------------- Parsing
     
     /**

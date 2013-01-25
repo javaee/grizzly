@@ -69,6 +69,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -563,29 +564,30 @@ public class HttpSemanticsTest extends TestCase {
         result.addHeader("!Transfer-Encoding", "chunked");
         result.addHeader("Content-Length", "0");
         result.setStatusMessage("ok");
-
+        Field field = HttpServerFilter.class.getDeclaredField("defaultResponseContentType");
+        field.setAccessible(true);
         result.addHeader("!Content-Type", "text/html;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType(null);
+        field.set(httpServerFilter, null);
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType("text/html");
+        field.set(httpServerFilter, "text/html");
         doTest(createHttpRequest(), result, serverResponseFilter);
 
         result.addHeader("Content-Type", "text/html;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType("text/html; charset=iso-8859-1");
+        field.set(httpServerFilter, "text/html; charset=iso-8859-1");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType("text/html; charset=iso-8859-1;a=b;c=d");
+        field.set(httpServerFilter, "text/html; charset=iso-8859-1;a=b;c=d");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType("text/html;a=b;charset=iso-8859-1;c=d");
+        field.set(httpServerFilter, "text/html;a=b;charset=iso-8859-1;c=d");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        httpServerFilter.setDefaultResponseContentType("text/html;a=b;c=d;charset=iso-8859-1");
+        field.set(httpServerFilter, "text/html;a=b;c=d;charset=iso-8859-1");
         doTest(createHttpRequest(), result, serverResponseFilter);
     }
         
