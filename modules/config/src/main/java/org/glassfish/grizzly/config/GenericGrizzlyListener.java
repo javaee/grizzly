@@ -67,6 +67,7 @@ import org.glassfish.grizzly.config.dom.ProtocolChain;
 import org.glassfish.grizzly.config.dom.ProtocolChainInstanceHandler;
 import org.glassfish.grizzly.config.dom.ProtocolFilter;
 import org.glassfish.grizzly.config.dom.SelectionKeyHandler;
+import org.glassfish.grizzly.config.dom.Spdy;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
@@ -335,7 +336,11 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         
         if (protocol.getHttp() != null) {
             final Http http = protocol.getHttp();
-            configureHttpProtocol(habitat, networkListener, http, filterChainBuilder);
+            configureHttpProtocol(habitat,
+                                  networkListener,
+                                  http,
+                                  filterChainBuilder,
+                                  Boolean.valueOf(protocol.getSecurityEnabled()));
 
         } else if (protocol.getPortUnification() != null) {
             // Port unification
@@ -567,7 +572,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     @SuppressWarnings({"deprecation"})
     protected void configureHttpProtocol(final ServiceLocator habitat,
             final NetworkListener networkListener,
-            final Http http, final FilterChainBuilder filterChainBuilder) {
+            final Http http, final FilterChainBuilder filterChainBuilder,
+            boolean secure) {
         transactionTimeoutMillis = Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
         filterChainBuilder.add(new IdleTimeoutFilter(delayedExecutor, Integer.parseInt(http.getTimeoutSeconds()),
             TimeUnit.SECONDS));
@@ -621,11 +627,54 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 //                serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
         filterChainBuilder.add(webServerFilter);
 
+        configureSpdySupport(habitat, networkListener, http.getSpdy(), filterChainBuilder, secure);
+
+        // TODO: evaluate comet/websocket support over SPDY.
         configureCometSupport(habitat, networkListener, http, filterChainBuilder);
 
         configureWebSocketSupport(habitat, http, filterChainBuilder);
 
         configureAjpSupport(habitat, networkListener, http, filterChainBuilder);
+    }
+
+    protected void configureSpdySupport(final ServiceLocator locator,
+                                        final NetworkListener listener,
+                                        final Spdy spdyElement,
+                                        final FilterChainBuilder builder,
+                                        final boolean secure) {
+        if (spdyElement != null) {
+            if (!secure) {
+                logger.log(Level.WARNING,
+                           "SPDY support cannot be enabled as SSL isn't configured for listener {0}",
+                           listener.getName());
+                return;
+            }
+            final AddOn spdyAddon = loadAddOn(locator, "spdy", "org.glassfish.grizzly.spdy.SpdyAddOn");
+            if (spdyAddon != null) {
+                // Spdy requires access to more information compared to the other addons
+                // that are currently leveraged.  As such, we'll need to mock out a
+                // Grizzly NetworkListener to pass to the addon.  This mock object will
+                // only provide the information necessary for the addon to operate.
+                // It will be important to keep this mock in sync with the details the
+                // addon requires.
+                spdyAddon.setup(createMockListener(), builder);
+            }
+        }
+    }
+
+    protected org.glassfish.grizzly.http.server.NetworkListener createMockListener() {
+        final TCPNIOTransport transportLocal = (TCPNIOTransport) transport;
+        return new org.glassfish.grizzly.http.server.NetworkListener("mock") {
+            @Override
+            public TCPNIOTransport getTransport() {
+                return transportLocal;
+            }
+
+            @Override
+            public boolean isSecure() {
+                return true;
+            }
+        };
     }
 
     protected void configureCometSupport(final ServiceLocator habitat,
