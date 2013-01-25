@@ -50,7 +50,6 @@ import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -115,8 +114,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         (byte) 'e'
     };
     
-    private static final int[] DEC = HexUtils.getDecBytes();
-
     private final Attribute<ServerHttpRequestImpl> httpRequestInProcessAttr;
     private final Attribute<KeepAliveContext> keepAliveContextAttr;
 
@@ -131,8 +128,6 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
-     *
-     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
     @Deprecated
     public HttpServerFilter() {
@@ -148,10 +143,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param maxHeadersSize the maximum size of an inbound HTTP message header.
      * @param keepAlive keep-alive configuration for this filter instance.
      * @param executor {@link DelayedExecutor} for handling keep-alive.
-     *
-     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
-    @Deprecated
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             KeepAlive keepAlive,
@@ -176,10 +168,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param keepAlive keep-alive configuration for this filter instance.
      * @param executor {@link DelayedExecutor} for handling keep-alive. If <tt>null</tt> -
      *  keep-alive idle connections should be managed outside HttpServerFilter.
-     *
-     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
-    @Deprecated
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
@@ -210,10 +199,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param maxResponseHeaders         maximum number of response headers allowed for a single response.
      *
      * @since 2.2.11
-     *
-     * @deprecated Next major release will include builders for filters requiring configuration.  Constructors will be hidden.
      */
-    @Deprecated
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
