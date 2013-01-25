@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -105,6 +106,7 @@ public class SpdyAddOn implements AddOn {
             }
             
             configureNpn(builder);
+            transport.setIOStrategy(SameThreadIOStrategy.getInstance());
             transport.getMonitoringConfig().addProbes(new SpdyNpnConfigProbe());
         } else {
             updateFilterChain(mode, builder);
