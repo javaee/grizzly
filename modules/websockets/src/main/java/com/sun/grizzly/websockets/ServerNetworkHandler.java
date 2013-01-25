@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncProcessorTask;
@@ -63,6 +62,7 @@ import com.sun.grizzly.util.http.mapper.MappingData;
 import com.sun.grizzly.websockets.glassfish.GlassfishSupport;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.security.Principal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
@@ -70,6 +70,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 public class ServerNetworkHandler extends BaseNetworkHandler {
+
     private static final Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Request request;
     private final Response response;
@@ -78,10 +79,9 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
     private UDecoder urlDecoder = new UDecoder();
-    
     private final ProtocolHandler protocolHandler;
     private boolean isClosed;
-    
+
     public ServerNetworkHandler(Request req, Response resp,
             ProtocolHandler protocolHandler, Mapper mapper) {
         request = req;
@@ -95,12 +95,12 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         try {
             // Has to be called before servlet request/response wrappers initialization
             grizzlyRequest.parseSessionId();
-            
+
             final WSServletRequestImpl wsServletRequest =
                     new WSServletRequestImpl(grizzlyRequest, mapper);
             httpServletRequest = wsServletRequest;
             httpServletResponse = new HttpServletResponseImpl(grizzlyResponse);
-            
+
             wsServletRequest.initSession();
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
@@ -109,16 +109,16 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         this.protocolHandler = protocolHandler;
         inputBuffer = (InternalInputBuffer) req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
-        
+
     }
 
     @Override
     protected int read() {
         int read;
         ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        
+
         Throwable error = null;
-        
+
         try {
             ByteChunk bytes = new ByteChunk();
             if (chunk.getLength() > 0) {
@@ -134,7 +134,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             read = -1;
         }
 
-        if(read == -1) {
+        if (read == -1) {
             throw new WebSocketException("Connection closed", error);
         }
         chunk.setBytes(newChunk.getBytes(), 0, newChunk.getEnd());
@@ -219,11 +219,11 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            
+
             protocolHandler.getWebSocket().onClose(null);
         }
     }
-    
+
     private class WSGrizzlyRequestImpl extends GrizzlyRequest {
 
         /**
@@ -233,26 +233,29 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         protected void parseSessionId() {
             // Try to get session id from request-uri
             super.parseSessionId();
-            
+
             // Try to get session id from cookie
             Cookie[] parsedCookies = getCookies();
-            if (parsedCookies != null) for (Cookie c : parsedCookies) {
-                if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
-                    setRequestedSessionId(c.getValue());
-                    setRequestedSessionCookie(true);
-                    break;
+            if (parsedCookies != null) {
+                for (Cookie c : parsedCookies) {
+                    if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                        setRequestedSessionId(c.getValue());
+                        setRequestedSessionCookie(true);
+                        break;
+                    }
                 }
-            }            
+            }
         }
     } // END WSServletRequestImpl
-    
+
     private class WSServletRequestImpl extends HttpServletRequestImpl {
+
         private final GlassfishSupport glassfishSupport;
-        
         private String pathInfo;
         private String servletPath;
         private String contextPath;
-        
+        private boolean isUserPrincipalUpdated;
+
         public WSServletRequestImpl(GrizzlyRequest r, Mapper mapper) throws IOException {
             super(r);
             setContextImpl(new ServletContextImpl());
@@ -277,8 +280,38 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             if (glassfishSupport.isValid()) {
                 return glassfishSupport.getSession(create);
             }
-            
+
             return super.getSession(create);
+        }
+
+        @Override
+        public boolean isUserInRole(String role) {
+            if (glassfishSupport.isValid()) {
+                return glassfishSupport.isUserInRole(role);
+            }
+
+            return super.isUserInRole(role);
+        }
+
+        @Override
+        public Principal getUserPrincipal() {
+            checkGlassfishAuth();
+
+            return super.getUserPrincipal();
+        }
+
+        @Override
+        public String getRemoteUser() {
+            checkGlassfishAuth();
+
+            return super.getRemoteUser();
+        }
+
+        @Override
+        public String getAuthType() {
+            checkGlassfishAuth();
+
+            return super.getAuthType();
         }
 
         @Override
@@ -307,7 +340,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 pathInfo = data.pathInfo.toString();
                 servletPath = data.wrapperPath.toString();
                 contextPath = data.contextPath.toString();
-                
+
                 return data;
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
@@ -321,6 +354,12 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
             return null;
         }
 
+        private void checkGlassfishAuth() {
+            if (glassfishSupport.isValid() && !isUserPrincipalUpdated) {
+                isUserPrincipalUpdated = true;
+                glassfishSupport.updateUserPrincipal(WSServletRequestImpl.this.request);
+            }
+        }
     } // END WSServletRequestImpl
 
     @Override
