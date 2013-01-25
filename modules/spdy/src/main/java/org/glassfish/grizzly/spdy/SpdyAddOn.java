@@ -83,7 +83,7 @@ public class SpdyAddOn implements AddOn {
     private final SpdyMode mode;
 
     public SpdyAddOn() {
-        this(SpdyMode.PLAIN);
+        this(SpdyMode.NPN);
     }
 
     public SpdyAddOn(final SpdyMode mode) {

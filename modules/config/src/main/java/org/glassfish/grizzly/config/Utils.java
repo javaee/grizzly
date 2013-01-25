@@ -187,6 +187,7 @@ public class Utils {
                     }
                     isInitialized = true;
                 } catch (Exception ignored) {
+                    ignored.printStackTrace();
                 }
             } else {
                 isInitialized = true;
