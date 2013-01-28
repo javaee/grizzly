@@ -293,7 +293,9 @@ public class FileCache extends JmxObject {
 
         @Override
         public void onEntryRemovedEvent(org.glassfish.grizzly.http.server.filecache.FileCache fileCache, FileCacheEntry entry) {
-            cachedEntryCount.decrementAndGet();
+            if (cachedEntryCount.get() > 0) {
+                cachedEntryCount.decrementAndGet();
+            }
         }
 
         @Override

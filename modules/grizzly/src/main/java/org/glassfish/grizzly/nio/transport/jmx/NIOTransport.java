@@ -372,8 +372,9 @@ public class NIOTransport extends JmxObject {
             if ((bindAddress = boundConnections.remove(connection)) != null) {
                 boundAddresses.remove(bindAddress);
             }
-
-            openConnectionsNum.decrementAndGet();
+            if (openConnectionsNum.get() > 0) {
+                openConnectionsNum.decrementAndGet();
+            }
         }
 
         @Override
