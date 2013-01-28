@@ -229,7 +229,9 @@ public class ThreadPool extends JmxObject {
 
         @Override
         public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {
-            currentAllocatedThreadCount.decrementAndGet();
+            if (currentAllocatedThreadCount.get() > 0) {
+                currentAllocatedThreadCount.decrementAndGet();
+            }
         }
 
         @Override
@@ -243,7 +245,9 @@ public class ThreadPool extends JmxObject {
 
         @Override
         public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {
-            currentQueuedTasksCount.decrementAndGet();
+            if (currentQueuedTasksCount.get() > 0) {
+                currentQueuedTasksCount.decrementAndGet();
+            }
         }
 
         @Override

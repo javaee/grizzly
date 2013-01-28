@@ -182,19 +182,25 @@ public class HttpServerFilter extends JmxObject {
 
         @Override
         public void onRequestResumeEvent(org.glassfish.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
-            suspendCount.decrementAndGet();
+            if (suspendCount.get() > 0) {
+                suspendCount.decrementAndGet();
+            }
         }
 
         @Override
         public void onRequestTimeoutEvent(org.glassfish.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             timedOutCount.incrementAndGet();
-            suspendCount.decrementAndGet();
+            if (suspendCount.get() > 0) {
+                suspendCount.decrementAndGet();
+            }
         }
 
         @Override
         public void onRequestFailedEvent(org.glassfish.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request, Throwable failure) {
             failedCount.incrementAndGet();
-            suspendCount.decrementAndGet();
+            if (suspendCount.get() > 0) {
+                suspendCount.decrementAndGet();
+            }
         }
 
     } // END JmxWebServerProbe
