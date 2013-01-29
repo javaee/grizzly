@@ -51,7 +51,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>2.3-rc3</version>
+    <version>2.3-SNAPSHOT</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
