@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -88,6 +88,7 @@ public abstract class HttpHeader extends HttpPacket
      * Has the charset been explicitly set.
      */
     protected boolean charsetSet = false;
+    protected boolean charsetFromContentType;
 
 //    private String defaultContentType;
 
@@ -491,9 +492,7 @@ public abstract class HttpHeader extends HttpPacket
         }
 
         characterEncoding = charset;
-        // START SJSAS 6316254
         quotedCharsetValue = charset;
-        // END SJSAS 6316254
         charsetSet = true;
     }
 
@@ -578,9 +577,11 @@ public abstract class HttpHeader extends HttpPacket
 
         if (ret != null
                 && quotedCharsetValue != null
-                && charsetSet) {
+                && (charsetSet || charsetFromContentType)) {
 
-            ret = ret + ";charset=" + quotedCharsetValue;
+            final StringBuilder sb =
+                    new StringBuilder(ret.length() + quotedCharsetValue.length() + 9);
+            ret = sb.append(ret).append(";charset=").append(quotedCharsetValue).toString();
         }
 
         return ret;
@@ -599,6 +600,10 @@ public abstract class HttpHeader extends HttpPacket
 
         if (type == null) {
             contentType = null;
+            if (charsetFromContentType) {
+                charsetFromContentType = false;
+                quotedCharsetValue = null;
+            }
             return;
         }
 
@@ -635,6 +640,10 @@ public abstract class HttpHeader extends HttpPacket
 
         if (!hasCharset) {
             contentType = type;
+            if (charsetFromContentType) {
+                charsetFromContentType = false;
+                quotedCharsetValue = null;
+            }
             return;
         }
 
@@ -651,7 +660,7 @@ public abstract class HttpHeader extends HttpPacket
 
         // The charset value may be quoted, but must not contain any quotes.
         if (charsetValue != null && charsetValue.length() > 0) {
-            charsetSet=true;
+            charsetFromContentType = true;
             // START SJSAS 6316254
             quotedCharsetValue = charsetValue;
             // END SJSAS 6316254
@@ -885,6 +894,7 @@ public abstract class HttpHeader extends HttpPacket
 //        defaultContentType = null;
         quotedCharsetValue = null;
         charsetSet = false;
+        charsetFromContentType = false;
         contentType = null;
         chunkingAllowed = false;
         transferEncoding = null;

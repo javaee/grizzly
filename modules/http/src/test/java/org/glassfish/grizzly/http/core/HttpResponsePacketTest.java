@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -102,6 +102,17 @@ public class HttpResponsePacketTest extends TestCase {
         response.addHeader(Header.ContentType, "text/xml");
         assertEquals("text/xml", response.getContentType());
         assertEquals("text/xml", response.getHeader(Header.ContentType));
+    }
+
+    public void testQuotedCharsetValue() {
+        response.setContentType("text/javascript;charset=UTF-8");
+        response.setContentType("application/octet-stream");
+        assertEquals("application/octet-stream", response.getContentType());
+        response.setCharacterEncoding("UTF-16");
+        response.setContentType("text/plain");
+        assertEquals("text/plain;charset=UTF-16", response.getContentType());
+        response.setContentType("text/plain;charset=UTF-8");
+        assertEquals("text/plain;charset=UTF-8", response.getContentType());
     }
         
     /**
