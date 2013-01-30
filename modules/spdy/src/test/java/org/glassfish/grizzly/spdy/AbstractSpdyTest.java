@@ -59,8 +59,9 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
 /**
- *
- * @author oleksiys
+ * General Spdy client/server init code.
+ * 
+ * @author Alexey Stashok
  */
 public abstract class AbstractSpdyTest {
     private static final Logger LOGGER = Grizzly.logger(AbstractSpdyTest.class);
@@ -115,6 +116,18 @@ public abstract class AbstractSpdyTest {
             final boolean isSecure,
             final ExecutorService threadPool,
             final Filter... clientFilters) {
+        
+        return createClientFilterChainAsBuilder(spdyMode, isSecure, threadPool,
+                clientFilters).build();
+    }
+    
+
+    protected static FilterChainBuilder createClientFilterChainAsBuilder(
+            final SpdyMode spdyMode,
+            final boolean isSecure,
+            final ExecutorService threadPool,
+            final Filter... clientFilters) {
+        
         final FilterChainBuilder builder = FilterChainBuilder.stateless()
              .add(new TransportFilter());
         if (isSecure) {
@@ -132,7 +145,7 @@ public abstract class AbstractSpdyTest {
             }
         }
         
-        return builder.build();
+        return builder;
     }
     
     protected static SSLEngineConfigurator getClientSSLEngineConfigurator() {

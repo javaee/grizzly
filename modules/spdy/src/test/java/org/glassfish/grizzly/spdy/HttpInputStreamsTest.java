@@ -89,7 +89,7 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class HttpInputStreamsTest extends AbstractSpdyTest {
 
-    private static final int PORT = 8003;
+    private static final int PORT = 18300;
 
 
     private final SpdyMode spdyMode;

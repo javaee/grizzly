@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,14 +74,13 @@ import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
+import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
  *
  * @author oleksiys
  */
 final class SpdySession {
-    public static final int DEFAULT_INITIAL_WINDOW_SIZE = 65536;
-    
     private static final Attribute<SpdySession> SPDY_SESSION_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             SpdySession.class.getName());
@@ -116,6 +115,8 @@ final class SpdySession {
     private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     
+    private volatile int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
+
     public static SpdySession get(final Connection connection) {
         return SPDY_SESSION_ATTR.get(connection);
     }
@@ -171,6 +172,20 @@ final class SpdySession {
 
     public void setLocalInitialWindowSize(int localInitialWindowSize) {
         this.localInitialWindowSize = localInitialWindowSize;
+    }
+
+    /**
+     * Returns the default maximum number of concurrent streams allowed for this session.
+     */
+    public int getMaxConcurrentStreams() {
+        return maxConcurrentStreams;
+    }
+
+    /**
+     * Sets the default maximum number of concurrent streams allowed for this session.
+     */
+    public void setMaxConcurrentStreams(int maxConcurrentStreams) {
+        this.maxConcurrentStreams = maxConcurrentStreams;
     }
 
     int getNextLocalStreamId() {

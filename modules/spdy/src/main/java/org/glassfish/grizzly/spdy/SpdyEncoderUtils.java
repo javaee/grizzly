@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,8 +50,6 @@ import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 
 import static org.glassfish.grizzly.http.util.Constants.*;
@@ -62,8 +60,8 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  * @author oleksiys
  */
 class SpdyEncoderUtils {
-    
-
+    private static final byte[] SPACE_BYTES = {' '};
+    private static final byte[] HTTPS_BYTES = "https".getBytes(DEFAULT_HTTP_CHARSET);
     
     @SuppressWarnings("unchecked")
     static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
@@ -91,16 +89,16 @@ class SpdyEncoderUtils {
 
         if (response.isCustomReasonPhraseSet()) {
             // don't apply HttpStatus.filter(DataChunk)
-            encodeHeaderValue(dataOutputStream, ":status".getBytes(),
-                    response.getHttpStatus().getStatusBytes(), " ".getBytes(),
+            encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                    response.getHttpStatus().getStatusBytes(), SPACE_BYTES,
                     response.getReasonPhraseDC().toString().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
         } else {
-            encodeHeaderValue(dataOutputStream, ":status".getBytes(),
-                    response.getHttpStatus().getStatusBytes(), " ".getBytes(),
+            encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                    response.getHttpStatus().getStatusBytes(), SPACE_BYTES,
                     response.getHttpStatus().getReasonPhraseBytes());
         }
         
-        encodeHeaderValue(dataOutputStream, ":version".getBytes(),
+        encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
                 response.getProtocol().getProtocolBytes());
                 
         encodeUserHeaders(spdySession, headers, dataOutputStream);
@@ -164,24 +162,24 @@ class SpdyEncoderUtils {
         }
         // ---------------------------------------------------------------
         
-        encodeHeaderValue(dataOutputStream, ":method".getBytes(),
+        encodeHeaderValue(dataOutputStream, Constants.METHOD_HEADER_BYTES,
                 request.getMethod().getMethodBytes());
         
-        encodeHeaderValue(dataOutputStream, ":path".getBytes(),
+        encodeHeaderValue(dataOutputStream, Constants.PATH_HEADER_BYTES,
                 requestURI, pathStart, pathLen);
         
-        encodeHeaderValue(dataOutputStream, ":version".getBytes(),
+        encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
                 request.getProtocol().getProtocolBytes());
 
-        encodeHeaderValue(dataOutputStream, ":host".getBytes(),
+        encodeHeaderValue(dataOutputStream, Constants.HOST_HEADER_BYTES,
                 hostHeader.getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
 
         if (schemeLen > 0) {
-            encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
+            encodeHeaderValue(dataOutputStream, Constants.SCHEMA_HEADER_BYTES,
                     requestURI, schemeStart, schemeLen);
         } else {
-            encodeHeaderValue(dataOutputStream, ":scheme".getBytes(),
-                    "https".getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
+            encodeHeaderValue(dataOutputStream, Constants.SCHEMA_HEADER_BYTES,
+                    HTTPS_BYTES);
         }
         
         encodeUserHeaders(spdySession, headers, dataOutputStream);

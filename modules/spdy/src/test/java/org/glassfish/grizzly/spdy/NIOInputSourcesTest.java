@@ -102,7 +102,7 @@ import static org.junit.Assert.*;
 public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
-    private static final int PORT = 8030;
+    private static final int PORT = 18301;
 
     private final SpdyMode spdyMode;
     private final boolean isSecure;

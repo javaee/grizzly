@@ -85,6 +85,7 @@ import org.glassfish.grizzly.spdy.frames.HeadersFrame;
 import org.glassfish.grizzly.spdy.frames.PingFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
+import org.glassfish.grizzly.spdy.frames.SettingsFrame.SettingsFrameBuilder;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
@@ -95,16 +96,12 @@ import org.glassfish.grizzly.utils.Charsets;
 import static org.glassfish.grizzly.spdy.Constants.*;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
-import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SettingsFrameBuilder;
 
 /**
  *
  * @author oleksiys
  */
 public class SpdyHandlerFilter extends HttpBaseFilter {
-
-    public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 50;
-    public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
 
     private static final ClientNpnNegotiator CLIENT_NPN_NEGOTIATOR =
@@ -125,6 +122,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         this(spdyMode, threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
     }
 
+    /**
+     * 
+     * @param spdyMode {@link SpdyMode}.
+     * @param threadPool
+     * @param maxConcurrentStreams the default maximum number of concurrent streams allowed for one session. Negative value means "unlimited".
+     * @param initialWindowSize the default initial window size (in bytes) for new streams.
+     */
     public SpdyHandlerFilter(final SpdyMode spdyMode,
                             final ExecutorService threadPool,
                             final int maxConcurrentStreams,
@@ -135,6 +139,20 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         this.initialWindowSize = initialWindowSize;
     }
 
+    /**
+     * Returns the default maximum number of concurrent streams allowed for one session.
+     * Negative value means "unlimited".
+     */
+    public int getMaxConcurrentStreams() {
+        return maxConcurrentStreams;
+    }
+
+    /**
+     * Returns the default initial window size (in bytes) for new streams.
+     */
+    public int getInitialWindowSize() {
+        return initialWindowSize;
+    }    
 
     @SuppressWarnings("unchecked")
     @Override
@@ -441,13 +459,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         switch (nameSize - 1) {
             case 4: {
                 if (checkArraysContent(headersArray, nameStart,
-                        Constants.HOST_HEADER_BYTES)) {
+                        Constants.HOST_HEADER_BYTES, 1)) {
                     spdyRequest.getHeaders().addValue(Header.Host)
                             .setBytes(headersArray, valueStart, valueEnd);
 
                     return valueEnd;
                 } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.PATH_HEADER_BYTES)) {
+                        Constants.PATH_HEADER_BYTES, 1)) {
 
                     int questionIdx = -1;
                     for (int i = 0; i < valueSize; i++) {
@@ -473,20 +491,20 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 break;
             } case 6: {
                 if (checkArraysContent(headersArray, nameStart,
-                        Constants.METHOD_HEADER_BYTES)) {
+                        Constants.METHOD_HEADER_BYTES, 1)) {
                     spdyRequest.getMethodDC().setBytes(
                             headersArray, valueStart, valueEnd);
 
                     return valueEnd;
                 } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.SCHEMA_HEADER_BYTES)) {
+                        Constants.SCHEMA_HEADER_BYTES, 1)) {
 
                     spdyRequest.setSecure(valueSize == 5); // support http and https only
                     return valueEnd;
                 }
             } case 7: {
                 if (checkArraysContent(headersArray, nameStart,
-                                Constants.VERSION_HEADER_BYTES)) {
+                                Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyRequest.getProtocolDC().setBytes(
                             headersArray, valueStart, valueEnd);
 
@@ -515,13 +533,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         switch (nameSize - 1) {
             case 4: {
                 if (checkBufferContent(buffer, nameStart,
-                        Constants.HOST_HEADER_BYTES)) {
+                        Constants.HOST_HEADER_BYTES, 1)) {
                     spdyRequest.getHeaders().addValue(Header.Host)
                             .setBuffer(buffer, valueStart, valueEnd);
 
                     return valueEnd;
                 } else if (checkBufferContent(buffer, nameStart,
-                        Constants.PATH_HEADER_BYTES)) {
+                        Constants.PATH_HEADER_BYTES, 1)) {
 
                     int questionIdx = -1;
                     for (int i = 0; i < valueSize; i++) {
@@ -549,13 +567,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
             case 6: {
                 if (checkBufferContent(buffer, nameStart,
-                        Constants.METHOD_HEADER_BYTES)) {
+                        Constants.METHOD_HEADER_BYTES, 1)) {
                     spdyRequest.getMethodDC().setBuffer(
                             buffer, valueStart, valueEnd);
 
                     return valueEnd;
                 } else if (checkBufferContent(buffer, nameStart,
-                        Constants.SCHEMA_HEADER_BYTES)) {
+                        Constants.SCHEMA_HEADER_BYTES, 1)) {
 
                     spdyRequest.setSecure(valueSize == 5); // support http and https only
                     return valueEnd;
@@ -563,7 +581,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
             case 7: {
                 if (checkBufferContent(buffer, nameStart,
-                        Constants.VERSION_HEADER_BYTES)) {
+                        Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyRequest.getProtocolDC().setBuffer(
                             buffer, valueStart, valueEnd);
 
@@ -714,8 +732,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     @Override
     public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final SpdySession spdySession = new SpdySession(connection, false);
-        SpdySession.bind(connection, spdySession);
+        
+        createSpdySession(connection, false);
 
         if (spdyMode == SpdyMode.NPN) {
             final FilterChain filterChain = connection.getFilterChain();
@@ -749,6 +767,24 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         return ctx.getInvokeAction();
     }
 
+    /**
+     * Creates {@link SpdySession} with preconfigured initial-windows-size and
+     * max-concurrent-
+     * @param connection
+     * @return 
+     */
+    private SpdySession createSpdySession(final Connection connection,
+            final boolean isServer) {
+        
+        final SpdySession spdySession = new SpdySession(connection, isServer);
+        spdySession.setLocalInitialWindowSize(initialWindowSize);
+        spdySession.setMaxConcurrentStreams(maxConcurrentStreams);
+        
+        SpdySession.bind(connection, spdySession);
+        
+        return spdySession;
+    }
+    
     private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
             final byte[] headersArray, final int position) {
 
@@ -762,7 +798,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         switch (nameSize - 1) {
             case 6: {
                 if (checkArraysContent(headersArray, nameStart,
-                        Constants.STATUS_HEADER_BYTES)) {
+                        Constants.STATUS_HEADER_BYTES, 1)) {
                     if (valueEnd < 3) {
                         throw new IllegalStateException("Unknown status code: " +
                                 new String(headersArray, valueStart, valueEnd - valueStart));
@@ -796,7 +832,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
             case 7: {
                 if (checkArraysContent(headersArray, nameStart,
-                        Constants.VERSION_HEADER_BYTES)) {
+                        Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyResponse.setProtocol(Protocol.valueOf(headersArray,
                             valueStart, valueEnd - valueStart));
 
@@ -826,7 +862,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         switch (nameSize - 1) {
             case 6: {
                 if (checkBufferContent(buffer, nameStart,
-                        Constants.STATUS_HEADER_BYTES)) {
+                        Constants.STATUS_HEADER_BYTES, 1)) {
                     if (valueEnd < 3) {
                         throw new IllegalStateException("Unknown status code: " +
                                 buffer.toStringContent(Charsets.ASCII_CHARSET, valueEnd, (valueEnd - valueStart)));
@@ -856,7 +892,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
             case 7: {
                 if (checkBufferContent(buffer, nameStart,
-                        Constants.VERSION_HEADER_BYTES)) {
+                        Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyResponse.setProtocol(Protocol.valueOf(buffer,
                             valueStart, valueEnd - valueStart));
 
@@ -1070,10 +1106,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 (array[position + 3] & 0xFF);
     }
 
-    private static boolean checkArraysContent(final byte[] b1, final int pos,
-            final byte[] b2) {
-        for (int i = 0, len = b2.length; i < len; i++) {
-            if (b1[pos + i] != b2[i]) {
+    private static boolean checkArraysContent(final byte[] b1, final int pos1,
+            final byte[] control, final int pos2) {
+        for (int i = 0, len = control.length - pos2; i < len; i++) {
+            if (b1[pos1 + i] != control[pos2 + i]) {
                 return false;
             }
         }
@@ -1081,9 +1117,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         return true;
     }
 
-    private static boolean checkBufferContent(final Buffer toTest, final int pos, final byte[] control) {
-        for (int i = 0, len = control.length; i < len; i++) {
-            if (toTest.get(pos + i) != control[i]) {
+    private static boolean checkBufferContent(final Buffer toTest, final int pos,
+            final byte[] control, final int pos2) {
+        for (int i = 0, len = control.length - pos2; i < len; i++) {
+            if (toTest.get(pos + i) != control[pos2 + i]) {
                 return false;
             }
         }
@@ -1127,14 +1164,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         SpdySession spdySession = SpdySession.get(connection);
         if (spdySession == null) {
-            spdySession = new SpdySession(connection);
-            SpdySession.bind(connection, spdySession);
+            spdySession = createSpdySession(connection, true);
             // send the configuration for this session
-            final SettingsFrameBuilder builder = SettingsFrame.builder();
-            builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, maxConcurrentStreams);
-            builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, initialWindowSize);
-            builder.setFlag(SettingsFrame.FLAG_SETTINGS_CLEAR_SETTINGS);
-            context.write(builder.build());
+            sendSettingsIfNeeded(spdySession, context);
         }
         
         spdySession.initCommunication(context, isUpStream);
@@ -1142,6 +1174,30 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         return spdySession;
     }
 
+    private void sendSettingsIfNeeded(final SpdySession spdySession,
+            final FilterChainContext context) {
+
+        final boolean isConcurrentStreamsUpdated =
+                spdySession.getMaxConcurrentStreams() >= 0;
+        final boolean isInitialWindowUpdated =
+                spdySession.getLocalInitialWindowSize() != DEFAULT_INITIAL_WINDOW_SIZE;
+        
+        if (isConcurrentStreamsUpdated || isInitialWindowUpdated) {
+            final SettingsFrameBuilder builder = SettingsFrame.builder();
+            
+            if (isConcurrentStreamsUpdated) {
+                builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, maxConcurrentStreams);
+            }
+            
+            if (isInitialWindowUpdated) {
+                builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, initialWindowSize);
+            }
+            
+            builder.setFlag(SettingsFrame.FLAG_SETTINGS_CLEAR_SETTINGS);
+            context.write(builder.build());
+        }
+    }
+    
     private static void processSynReplyHeadersArray(SpdyResponse spdyResponse, Buffer decoded) {
         final byte[] headersArray = decoded.array();
         int position = decoded.arrayOffset() + decoded.position();

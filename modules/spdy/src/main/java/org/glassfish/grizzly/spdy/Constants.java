@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,12 +48,15 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Constants {
     public static final int SPDY_VERSION = 3;
     
-    static byte[] HOST_HEADER_BYTES = "host".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] METHOD_HEADER_BYTES = "method".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] PATH_HEADER_BYTES = "path".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] SCHEMA_HEADER_BYTES = "scheme".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] VERSION_HEADER_BYTES = "version".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] STATUS_HEADER_BYTES = "status".getBytes(Charsets.ASCII_CHARSET);
+    public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 50;
+    public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
+        
+    static byte[] HOST_HEADER_BYTES = ":host".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] METHOD_HEADER_BYTES = ":method".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] PATH_HEADER_BYTES = ":path".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] SCHEMA_HEADER_BYTES = ":scheme".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] VERSION_HEADER_BYTES = ":version".getBytes(Charsets.ASCII_CHARSET);
+    static byte[] STATUS_HEADER_BYTES = ":status".getBytes(Charsets.ASCII_CHARSET);
     
     public static final byte[] SPDY_ZLIB_DICTIONARY = {
         0x00, 0x00, 0x00, 0x07, 0x6f, 0x70, 0x74, 0x69, // - - - - o p t i

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -128,6 +128,8 @@ public class HttpStatus {
     // ------------------------------------------------------------ Constructors
 
     private final int status;
+    private final String toStringValue;
+    
     private final byte[] reasonPhraseBytes;
     private final byte[] statusBytes;
 
@@ -135,6 +137,8 @@ public class HttpStatus {
         this.status = status;
         reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
         statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
+        
+        this.toStringValue = status + (reasonPhrase != null ? " " + reasonPhrase : "");
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -175,6 +179,11 @@ public class HttpStatus {
         response.setReasonPhrase(Buffers.wrap(null, reasonPhraseBytes));
     }
 
+    @Override
+    public String toString() {
+        return toStringValue;
+    }
+    
     /**
      * Filter the specified message string for characters that are sensitive
      * in HTML.  This avoids potential attacks caused by including JavaScript

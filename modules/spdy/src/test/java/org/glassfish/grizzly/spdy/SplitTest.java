@@ -87,7 +87,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
 public class SplitTest extends AbstractSpdyTest {
-    private static final int PORT = 18899;
+    private static final int PORT = 18302;
     
     private final SpdyMode spdyMode;
     private final boolean isSecure;
