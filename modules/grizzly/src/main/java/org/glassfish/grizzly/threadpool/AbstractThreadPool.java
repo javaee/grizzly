@@ -95,8 +95,6 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
     };
     
-    private final AtomicInteger nextThreadId = new AtomicInteger();
-
     protected final Object stateLock = new Object();
     
     protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
@@ -305,10 +303,6 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
     }
 
-    protected String nextThreadId() {
-        return String.valueOf(nextThreadId.incrementAndGet());
-    }
-
     protected void validateNewPoolSize(int corePoolsize, int maxPoolSize) {
         if (maxPoolSize < 1) {
             throw new IllegalArgumentException("maxPoolsize < 1 :" + maxPoolSize);
@@ -507,7 +501,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 
                 final DefaultWorkerThread thread =
                         new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                        config.getPoolName() + '(' + counter.getAndIncrement() + ')',
+                        config.getPoolName() + '(' + counter.incrementAndGet() + ')',
                         ((threadLocalPoolProvider != null) ? threadLocalPoolProvider.createThreadLocalPool() : null),
                         r);
 
