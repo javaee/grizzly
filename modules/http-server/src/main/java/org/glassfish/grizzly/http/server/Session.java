@@ -126,7 +126,7 @@ public class Session {
     /**
      * Return the session identifier for this session.
      */
-    void setIdInternal(String id) {
+    protected void setIdInternal(String id) {
         this.id = id;
     }
 
