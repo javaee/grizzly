@@ -104,17 +104,6 @@ public class HttpResponsePacketTest extends TestCase {
         assertEquals("text/xml", response.getHeader(Header.ContentType));
     }
 
-    public void testQuotedCharsetValue() {
-        response.setContentType("text/javascript;charset=UTF-8");
-        response.setContentType("application/octet-stream");
-        assertEquals("application/octet-stream", response.getContentType());
-        response.setCharacterEncoding("UTF-16");
-        response.setContentType("text/plain");
-        assertEquals("text/plain;charset=UTF-16", response.getContentType());
-        response.setContentType("text/plain;charset=UTF-8");
-        assertEquals("text/plain;charset=UTF-8", response.getContentType());
-    }
-
     /**
      * http://java.net/jira/browse/GRIZZLY-1295
      * "NullPointer while trying to get next value via ValuesIterator in MimeHeaders"

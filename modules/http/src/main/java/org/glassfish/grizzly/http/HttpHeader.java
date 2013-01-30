@@ -88,7 +88,6 @@ public abstract class HttpHeader extends HttpPacket
      * Has the charset been explicitly set.
      */
     protected boolean charsetSet = false;
-    protected boolean charsetFromContentType;
 
 //    private String defaultContentType;
 
@@ -464,9 +463,51 @@ public abstract class HttpHeader extends HttpPacket
             return;
 
         characterEncoding = charset;
+        // START SJSAS 6316254
         quotedCharsetValue = charset;
+        // END SJSAS 6316254
         charsetSet = true;
     }
+
+    /**
+     * Serializes Content-Type header into passed Buffer
+     */
+//    protected final Buffer serializeContentType(final MemoryManager memoryManager,
+//            Buffer buffer) {
+//
+//        final int idx = headers.indexOf(Header.ContentType, 0);
+//        final DataChunk value;
+//        if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
+//            if (contentType == null) {
+//                contentType = value.toString();
+//            }
+//            
+//            headers.getAndSetSerialized(idx, true);
+//        }
+//
+//        if (contentType != null) {
+//            buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+//            buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
+//            buffer = put(memoryManager, buffer, contentType);
+//
+//            if (quotedCharsetValue != null && charsetSet) {
+//                buffer = put(memoryManager, buffer, ";charset=");
+//                buffer = put(memoryManager, buffer, quotedCharsetValue);
+//            }
+//            
+//            buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
+//        } else {
+//            final String defaultType = getDefaultContentType();
+//            if (defaultType != null) {
+//                buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+//                buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
+//                buffer = put(memoryManager, buffer, defaultType);
+//                buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
+//            }
+//        }
+//        
+//        return buffer;
+//    }
 
     /**
      * @return <code>true</code> if a content type has been set.
@@ -488,7 +529,7 @@ public abstract class HttpHeader extends HttpPacket
 
         if (ret != null
                 && quotedCharsetValue != null
-                && (charsetSet || charsetFromContentType)) {
+                && charsetSet) {
 
             ret = ret + ";charset=" + quotedCharsetValue;
         }
@@ -509,10 +550,6 @@ public abstract class HttpHeader extends HttpPacket
 
         if (type == null) {
             contentType = null;
-            if (charsetFromContentType) {
-                charsetFromContentType = false;
-                quotedCharsetValue = null;
-            }
             return;
         }
 
@@ -549,10 +586,6 @@ public abstract class HttpHeader extends HttpPacket
 
         if (!hasCharset) {
             contentType = type;
-            if (charsetFromContentType) {
-                charsetFromContentType = false;
-                quotedCharsetValue = null;
-            }
             return;
         }
 
@@ -569,7 +602,7 @@ public abstract class HttpHeader extends HttpPacket
 
         // The charset value may be quoted, but must not contain any quotes.
         if (charsetValue != null && charsetValue.length() > 0) {
-            charsetFromContentType = true;
+            charsetSet=true;
             // START SJSAS 6316254
             quotedCharsetValue = charsetValue;
             // END SJSAS 6316254
@@ -758,7 +791,6 @@ public abstract class HttpHeader extends HttpPacket
 //        defaultContentType = null;
         quotedCharsetValue = null;
         charsetSet = false;
-        charsetFromContentType = false;
         contentType = null;
         transferEncoding = null;
         isExpectContent = true;
