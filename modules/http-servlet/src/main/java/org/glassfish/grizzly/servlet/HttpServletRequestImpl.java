@@ -971,6 +971,9 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     
     protected void setContextPath(String contextPath) {
+        if (contextPath == null) {
+            this.contextPath = "";
+        }
         this.contextPath = contextPath;
     }
     
