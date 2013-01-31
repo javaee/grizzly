@@ -231,9 +231,9 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setIOStrategy(IOStrategy IOStrategy) {
-        this.strategy = IOStrategy;
-        final ThreadPoolConfig strategyConfig = IOStrategy.createDefaultWorkerPoolConfig(this);
+    public void setIOStrategy(IOStrategy ioStrategy) {
+        this.strategy = ioStrategy;
+        final ThreadPoolConfig strategyConfig = ioStrategy.createDefaultWorkerPoolConfig(this);
         if (strategyConfig == null) {
             workerPoolConfig = null;
         } else {
