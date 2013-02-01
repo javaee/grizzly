@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,7 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int LINGER = -1;
     int MAX_CONNECTIONS_COUNT = 4096;
     int READ_TIMEOUT = 30000;
+    int WRITE_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
     String BYTE_BUFFER_TYPE = "HEAP";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
@@ -150,7 +151,7 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     void setName(String value);
 
     /**
-     * Read operation timeout in ms
+     * Blocking read operation timeout in ms.
      */
     @Attribute(defaultValue = "" + READ_TIMEOUT, dataType = Integer.class)
     String getReadTimeoutMillis();
@@ -174,9 +175,9 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     void setSelectorPollTimeoutMillis(String timeout);
 
     /**
-     * Write operation timeout in ms
+     * Blocking write operation timeout in ms.
      */
-    @Attribute(defaultValue = "" + READ_TIMEOUT, dataType = Integer.class)
+    @Attribute(defaultValue = "" + WRITE_TIMEOUT, dataType = Integer.class)
     String getWriteTimeoutMillis();
 
     void setWriteTimeoutMillis(String value);

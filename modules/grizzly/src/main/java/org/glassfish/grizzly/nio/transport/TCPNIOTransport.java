@@ -158,7 +158,7 @@ public class TCPNIOTransport extends NIOTransport
      */
     private final TCPNIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
-    
+
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
     }
@@ -198,7 +198,7 @@ public class TCPNIOTransport extends NIOTransport
             if (currentState != State.STOPPED) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
-                
+
                 return;
             }
 
@@ -439,12 +439,12 @@ public class TCPNIOTransport extends NIOTransport
         TCPNIOServerConnection serverConnection = null;
         final ServerSocketChannel serverSocketChannel =
                 selectorProvider.openServerSocketChannel();
-        
+
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
             final ServerSocket serverSocket = serverSocketChannel.socket();
-            
+
             try {
                 serverSocket.setReuseAddress(reuseAddress);
             } catch (IOException e) {
@@ -458,7 +458,7 @@ public class TCPNIOTransport extends NIOTransport
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
             }
-            
+
 
             serverSocket.bind(socketAddress, backlog);
 
@@ -484,7 +484,7 @@ public class TCPNIOTransport extends NIOTransport
                 } catch (IOException ignored) {
                 }
             }
-            
+
             throw Exceptions.makeIOException(e);
         } finally {
             lock.unlock();
@@ -499,22 +499,22 @@ public class TCPNIOTransport extends NIOTransport
     public TCPNIOServerConnection bindToInherited() throws IOException {
         TCPNIOServerConnection serverConnection = null;
         final Channel inheritedChannel = System.inheritedChannel();
-        
+
         if (inheritedChannel == null) {
             throw new IOException("Inherited channel is not set");
         }
         if (!(inheritedChannel instanceof ServerSocketChannel)) {
             throw new IOException("Inherited channel is not java.nio.channels.ServerSocketChannel, but " + inheritedChannel.getClass().getName());
         }
-        
+
         final ServerSocketChannel serverSocketChannel = (ServerSocketChannel) inheritedChannel;
-        
+
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            
+
             final ServerSocket serverSocket = serverSocketChannel.socket();
-            
+
             try {
                 serverSocket.setReuseAddress(reuseAddress);
             } catch (IOException e) {
@@ -528,7 +528,7 @@ public class TCPNIOTransport extends NIOTransport
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
             }
-            
+
             serverSocketChannel.configureBlocking(false);
 
             serverConnection = obtainServerNIOConnection(serverSocketChannel);
@@ -551,7 +551,7 @@ public class TCPNIOTransport extends NIOTransport
                 } catch (IOException ignored) {
                 }
             }
-            
+
             throw Exceptions.makeIOException(e);
         } finally {
             lock.unlock();
@@ -570,7 +570,7 @@ public class TCPNIOTransport extends NIOTransport
 
         final int lower = portRange.getLower();
         final int range = portRange.getUpper() - lower + 1;
-        
+
         int offset = RANDOM.nextInt(range);
         final int start = offset;
 
@@ -710,7 +710,7 @@ public class TCPNIOTransport extends NIOTransport
     @Override
     protected void closeConnection(final NIOConnection connection)
             throws IOException {
-        
+
         final SelectableChannel nioChannel = connection.getChannel();
 
         if (nioChannel != null) {
@@ -742,6 +742,8 @@ public class TCPNIOTransport extends NIOTransport
     void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setFilterChain(filterChain);
+        connection.setBlockingReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        connection.setBlockingWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
         if (connectionMonitoringConfig.hasProbes()) {
             connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         }
@@ -779,7 +781,7 @@ public class TCPNIOTransport extends NIOTransport
             LOGGER.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(tcpNoDelay), e);
         }
-        
+
         try {
             socket.setReuseAddress(reuseAddress);
         } catch (IOException e) {
@@ -881,7 +883,7 @@ public class TCPNIOTransport extends NIOTransport
     protected Writer<SocketAddress> getWriter(final boolean isBlocking) {
         return super.getWriter(isBlocking);
     }
-    
+
     @Override
     protected final AbstractNIOAsyncQueueWriter getAsyncQueueWriter() {
         return asyncQueueWriter;
@@ -905,7 +907,7 @@ public class TCPNIOTransport extends NIOTransport
         ((TCPNIOConnection) connection).onConnect();
         return true;
     }
-//    
+//
 //    /**
 //     * {@inheritDoc}
 //     */
@@ -942,7 +944,7 @@ public class TCPNIOTransport extends NIOTransport
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
                 }
-                
+
                 read = -1;
             }
 
@@ -1028,7 +1030,7 @@ public class TCPNIOTransport extends NIOTransport
 
         return written;
     }
-    
+
     /**
      * {@inheritDoc}
      */

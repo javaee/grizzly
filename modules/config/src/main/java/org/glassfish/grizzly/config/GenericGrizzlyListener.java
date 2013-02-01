@@ -268,7 +268,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final TCPNIOTransport tcpTransport = TCPNIOTransportBuilder.newInstance().build();
         tcpTransport.setTcpNoDelay(Boolean.parseBoolean(transportConfig.getTcpNoDelay()));
         tcpTransport.setLinger(Integer.parseInt(transportConfig.getLinger()));
-        tcpTransport.setKeepAlive(Boolean.parseBoolean(transportConfig.getKeepAlive()));
+        tcpTransport.setBlockingWriteTimeout(Long.parseLong(transportConfig.getWriteTimeoutMillis()), TimeUnit.MILLISECONDS);
+        tcpTransport.setBlockingReadTimeout(Long.parseLong(transportConfig.getReadTimeoutMillis()), TimeUnit.MILLISECONDS);
         tcpTransport.setServerConnectionBackLog(Integer.parseInt(transportConfig.getMaxConnectionsCount()));
         return tcpTransport;
     }

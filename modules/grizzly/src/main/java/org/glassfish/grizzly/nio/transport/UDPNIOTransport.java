@@ -215,7 +215,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
             }
-            
+
             socket.bind(socketAddress);
 
             serverDatagramChannel.configureBlocking(false);
@@ -249,7 +249,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public Connection bindToInherited() throws IOException {
         final Channel inheritedChannel = System.inheritedChannel();
-        
+
         if (inheritedChannel == null) {
             throw new IOException("Inherited channel is not set");
         }
@@ -277,7 +277,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
             }
-            
+
             serverDatagramChannel.configureBlocking(false);
 
             serverConnection = obtainServerNIOConnection(serverDatagramChannel);
@@ -909,6 +909,8 @@ public final class UDPNIOTransport extends NIOTransport implements
     protected void configureNIOConnection(UDPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.setFilterChain(filterChain);
+        connection.setBlockingReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        connection.setBlockingWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
         if (connectionMonitoringConfig.hasProbes()) {
             connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -95,6 +95,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         } finally {
             transport.stop();
         }
+    }
+
+    public void testReadWriteTimeout() throws Exception {
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
+        assertEquals(30, transport.getBlockingReadTimeout(TimeUnit.SECONDS));
+        transport.setBlockingReadTimeout(45, TimeUnit.MINUTES);
+        assertEquals(TimeUnit.MILLISECONDS.convert(45, TimeUnit.MINUTES), transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
+        transport.setBlockingReadTimeout(-5, TimeUnit.SECONDS);
+        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
+        transport.setBlockingReadTimeout(0, TimeUnit.SECONDS);
+        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
     }
 
     public void testPortRangeBind() throws Exception {

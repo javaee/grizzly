@@ -42,6 +42,8 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -71,6 +73,17 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @since 2.2.8
      */
     static final int DEFAULT_READ_BUFFER_SIZE = 1024 * 64;
+
+    /**
+     * Default read timeout in seconds.
+     */
+    public static final int DEFAULT_READ_TIMEOUT = 30;
+
+    /**
+     * Default write timeout in seconds.
+     */
+    public static final int DEFAULT_WRITE_TIMEOUT = 30;
+
     
     enum State {STARTING, STARTED, PAUSING, PAUSED, STOPPING, STOPPED}
 
@@ -357,4 +370,53 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @param error {@link Throwable}.
      */
     void notifyTransportError(Throwable error);
+
+    /**
+     * Returns the current value for the read timeout converted to the provided
+     * {@link TimeUnit} specification.  If this value hasn't been explicitly
+     * set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 2.3
+     */
+    long getBlockingReadTimeout(TimeUnit timeUnit);
+
+    /**
+     * Specifies the timeout for reads.  This may be overridden on a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setBlockingReadTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 3.0
+     */
+    void setBlockingReadTimeout(long timeout, TimeUnit timeUnit);
+
+    /**
+     * Returns the current value for the write timeout converted to the provided
+     * {@link TimeUnit} specification.  If this value hasn't been explicitly
+     * set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 3.0
+     */
+    long getBlockingWriteTimeout(TimeUnit timeUnit);
+
+    /**
+     * Specifies the timeout for writes.  This may be overridden on a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout  the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setBlockingWriteTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 2.3
+     */
+    void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit);
+
 }
