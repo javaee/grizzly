@@ -496,9 +496,6 @@ public abstract class AbstractTransport implements Transport {
         if (readTimeout <= 0) {
             return -1;
         } else {
-            if (timeUnit == TimeUnit.MILLISECONDS) {
-                return readTimeout;
-            }
             return timeUnit.convert(readTimeout, TimeUnit.MILLISECONDS);
         }
     }
@@ -511,11 +508,7 @@ public abstract class AbstractTransport implements Transport {
         if (timeout <= 0) {
             readTimeout = -1;
         } else {
-            if (timeUnit == TimeUnit.MILLISECONDS) {
-                readTimeout = timeout;
-            } else {
-                readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
-            }
+             readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
         }
     }
 
@@ -527,9 +520,6 @@ public abstract class AbstractTransport implements Transport {
         if (writeTimeout <= 0) {
             return -1;
         } else {
-            if (timeUnit == TimeUnit.MILLISECONDS) {
-                return readTimeout;
-            }
             return timeUnit.convert(writeTimeout, TimeUnit.MILLISECONDS);
         }
     }
@@ -542,11 +532,7 @@ public abstract class AbstractTransport implements Transport {
         if (timeout <= 0) {
             writeTimeout = -1;
         } else {
-            if (timeUnit == TimeUnit.MILLISECONDS) {
-                writeTimeout = timeout;
-            } else {
-                writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
-            }
+            writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
         }
     }
 
