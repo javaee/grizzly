@@ -90,6 +90,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         }
     }
 
+    public void testReadWriteTimeout() throws Exception {
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+        assertEquals(30, transport.getWriteTimeout(TimeUnit.SECONDS));
+        assertEquals(30, transport.getReadTimeout(TimeUnit.SECONDS));
+        transport.setReadTimeout(45, TimeUnit.MINUTES);
+        assertEquals(TimeUnit.MILLISECONDS.convert(45, TimeUnit.MINUTES), transport.getReadTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(30, transport.getWriteTimeout(TimeUnit.SECONDS));
+        transport.setReadTimeout(-5, TimeUnit.SECONDS);
+        assertEquals(-1, transport.getReadTimeout(TimeUnit.MILLISECONDS));
+        transport.setReadTimeout(0, TimeUnit.SECONDS);
+        assertEquals(-1, transport.getReadTimeout(TimeUnit.MILLISECONDS));
+    }
+
     public void testPortRangeBind() throws Exception {
         final int portsTest = 10;
         final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);

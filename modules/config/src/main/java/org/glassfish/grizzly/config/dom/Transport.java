@@ -64,6 +64,7 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int LINGER = -1;
     int MAX_CONNECTIONS_COUNT = 4096;
     int READ_TIMEOUT = 30000;
+    int WRITE_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
     String BYTE_BUFFER_TYPE = "HEAP";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
@@ -175,7 +176,7 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     /**
      * Write operation timeout in ms
      */
-    @Attribute(defaultValue = "" + READ_TIMEOUT, dataType = Integer.class)
+    @Attribute(defaultValue = "" + WRITE_TIMEOUT, dataType = Integer.class)
     String getWriteTimeoutMillis();
 
     void setWriteTimeoutMillis(String value);

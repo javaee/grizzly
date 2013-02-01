@@ -615,6 +615,8 @@ public final class TCPNIOTransport extends NIOTransport implements
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
+        connection.setReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        connection.setWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
         if (connectionMonitoringConfig.hasProbes()) {
             connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         }

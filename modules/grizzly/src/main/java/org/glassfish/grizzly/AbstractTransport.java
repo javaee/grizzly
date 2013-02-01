@@ -42,6 +42,8 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -128,6 +130,10 @@ public abstract class AbstractTransport implements Transport {
     protected ThreadPoolConfig kernelPoolConfig;
 
     protected boolean managedWorkerPool = true;
+
+    protected long writeTimeout = TimeUnit.MILLISECONDS.convert(DEFAULT_WRITE_TIMEOUT, TimeUnit.SECONDS);
+
+    protected long readTimeout = TimeUnit.MILLISECONDS.convert(DEFAULT_READ_TIMEOUT, TimeUnit.SECONDS);
 
     /**
      * Transport probes
@@ -480,6 +486,68 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig() {
         return threadPoolMonitoringConfig;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getReadTimeout(TimeUnit timeUnit) {
+        if (readTimeout <= 0) {
+            return -1;
+        } else {
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                return readTimeout;
+            }
+            return timeUnit.convert(readTimeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setReadTimeout(long timeout, TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            readTimeout = -1;
+        } else {
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                readTimeout = timeout;
+            } else {
+                readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getWriteTimeout(TimeUnit timeUnit) {
+        if (writeTimeout <= 0) {
+            return -1;
+        } else {
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                return readTimeout;
+            }
+            return timeUnit.convert(writeTimeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setWriteTimeout(long timeout, TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            writeTimeout = -1;
+        } else {
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                writeTimeout = timeout;
+            } else {
+                writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+            }
+        }
     }
 
     /**
