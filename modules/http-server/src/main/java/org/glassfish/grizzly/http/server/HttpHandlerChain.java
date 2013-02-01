@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,24 +39,22 @@
  */
 package org.glassfish.grizzly.http.server;
 
-import java.io.IOException;
 import java.util.Map;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
-import org.glassfish.grizzly.http.server.jmx.Monitorable;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.RequestURIRef;
-import org.glassfish.grizzly.http.server.util.Mapper;
-import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
+import org.glassfish.grizzly.http.server.jmx.Monitorable;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
+import org.glassfish.grizzly.http.server.util.Mapper;
+import org.glassfish.grizzly.http.server.util.MappingData;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -170,35 +168,24 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     }
 
     /**
-     * Skip 100-Continue processing in HttpHandlerChain. It's going to be
-     * delegated to one of the children HttpHandler.
+     * {@inheritDoc}
      */
     @Override
-    protected boolean sendAcknowledgment(Request request, Response response)
-            throws IOException {
-        return true;
-    }
-
-    // ---------------------------------------------------------- Public Methods
-    
-    /**
-     * Map the {@link Request} to the proper {@link HttpHandler}
-     * @param request The {@link Request}
-     * @param response The {@link Response}
-     */
-    @Override
-    public void service(final Request request, final Response response) throws Exception {
+    boolean doHandle(final Request request, final Response response)
+            throws Exception {
         try {
             final HttpHandler rootHttpHandlerLocal = rootHttpHandler;
             
             if (rootHttpHandlerLocal != null) {
                 // use default path values (don't call updatePaths)
-                rootHttpHandlerLocal.doHandle(request, response);
-                return;
+                return rootHttpHandlerLocal.doHandle(request, response);
             }
             
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
-            final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
+            uriRef.setDefaultURIEncoding(getRequestURIEncoding());
+            final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(
+                    isAllowEncodedSlash(), isAllowEncodedBackSlash());
+            
             final MappingData mappingData = request.obtainMappingData();
 
             mapper.mapUriWithSemicolon(request.getRequest().serverName(),
@@ -217,7 +204,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
                 updatePaths(request, mappingData);
 
-                httpHandler.doHandle(request, response);
+                return httpHandler.doHandle(request, response);
             } else {
                 response.setStatus(HttpStatus.NOT_FOUND_404);
                 customizedErrorPage(request, response);
@@ -234,6 +221,20 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
             }
         }
+        
+        return true;
+    }
+    
+    // ---------------------------------------------------------- Public Methods
+    
+    /**
+     * Map the {@link Request} to the proper {@link HttpHandler}
+     * @param request The {@link Request}
+     * @param response The {@link Response}
+     */
+    @Override
+    public void service(final Request request, final Response response) throws Exception {
+        throw new IllegalStateException("Method doesn't have to be called");
     }
 
     /**

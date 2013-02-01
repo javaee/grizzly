@@ -65,7 +65,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport.State;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.threadpool.WorkerThread;
+import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StateHolder;
 
@@ -179,10 +179,7 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void postpone() {
-        final Thread currentThread = Thread.currentThread();
-        if (currentThread instanceof WorkerThread) {
-            ((WorkerThread) currentThread).setSelectorThread(false);
-        }
+        Threads.setService(false);
         
         runnerThreadActivityCounter.compareAndSet(1, 0);
         selectorRunnerThread = null;
@@ -261,10 +258,7 @@ public final class SelectorRunner implements Runnable {
         }
 
         setRunnerThread(currentThread);
-        final boolean isWorkerThread = currentThread instanceof WorkerThread;
-        if (isWorkerThread) {
-            ((WorkerThread) currentThread).setSelectorThread(true);
-        }
+        Threads.setService(true);
         
         final StateHolder<State> transportStateHolder = transport.getState();
 
@@ -298,9 +292,7 @@ public final class SelectorRunner implements Runnable {
                 }
             }
 
-            if (isWorkerThread) {
-                ((WorkerThread) currentThread).setSelectorThread(false);
-            }
+            Threads.setService(false);
         }
     }
 

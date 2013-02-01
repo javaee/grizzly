@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,22 +40,25 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.io.OutputBuffer;
-import org.glassfish.grizzly.http.server.util.HtmlHelper;
-import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HttpStatus;
-
 import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
+import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.server.util.MappingData;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -137,11 +140,11 @@ public abstract class HttpHandler {
      * @throws Exception if an error occurs serving a static resource or
      *  from the invocation of {@link #service(Request, Response)}
      */
-    public final void doHandle(Request request, Response response) throws Exception {
+    boolean doHandle(final Request request, final Response response) throws Exception {
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
-                return;
+                return true;
             }
         }
 
@@ -158,7 +161,7 @@ public abstract class HttpHandler {
                 } catch (CharConversionException e) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     response.setDetailMessage("Invalid URI: " + e.getMessage());
-                    return;
+                    return true;
                 }
             }
 
@@ -166,11 +169,64 @@ public abstract class HttpHandler {
                     allowCustomStatusMessage);
             
             request.parseSessionId();
-            service(request, response);
+            
+            return runService(request, response);
         } catch (Exception t) {
             LOGGER.log(Level.FINE, "service exception", t);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
+        }
+        
+        return true;
+    }
+
+    private boolean runService(final Request request, final Response response)
+            throws Exception {
+        
+        final ExecutorService threadPool = getThreadPool(request);
+        final HttpServerFilter httpServerFilter = request.getServerFilter();
+        final Connection connection = request.getContext().getConnection();
+        
+        if (threadPool == null) {
+            final SuspendStatus suspendStatus = response.initSuspendStatus();
+            
+            HttpServerProbeNotifier.notifyBeforeService(
+                    httpServerFilter, connection, request, HttpHandler.this);
+            
+            service(request, response);
+            return !suspendStatus.getAndInvalidate();
+        } else {
+            final FilterChainContext ctx = request.getContext();
+            ctx.suspend();
+            
+            threadPool.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    final SuspendStatus suspendStatus = response.initSuspendStatus();
+
+                    boolean wasSuspended;
+                    try {
+                        HttpServerProbeNotifier.notifyBeforeService(
+                                httpServerFilter, connection, request,
+                                HttpHandler.this);
+                        
+                        service(request, response);
+                        wasSuspended = suspendStatus.getAndInvalidate();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.FINE, "service exception", e);
+                        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                        response.setDetailMessage("Internal Error");
+                        wasSuspended = false;
+                    }
+                    
+                    if (!wasSuspended) {
+                        ctx.resume();
+                    }
+                }
+            });
+            
+            return false;
         }
     }
     
@@ -365,5 +421,28 @@ public abstract class HttpHandler {
     }
 
     protected void setDispatcherHelper(final DispatcherHelper dispatcherHelper) {
+    }
+    
+    /**
+     * Returns the <tt>HttpHandler</tt> preferred {@link ExecutorService} to process
+     * passed {@link Request}. The <tt>null</tt> return value means process in 
+     * current thread.
+     * 
+     * The default implementation returns <tt>null</tt> if current thread is not
+     * {@link Transport} service thread ({@link Threads#isService()}). Otherwise
+     * returns worker thread pool of the {@link Transport} this {@link Request}
+     * belongs to ({@link org.glassfish.grizzly.Transport#getWorkerThreadPool()}).
+     * 
+     * @param request the {@link Request} to be processed.
+     * @return the <tt>HttpHandler</tt> preferred {@link ExecutorService} to process
+     * passed {@link Request}. The <tt>null</tt> return value means process in 
+     * current thread.
+     */
+    protected ExecutorService getThreadPool(final Request request) {
+        if (!Threads.isService()) {
+            return null; // Execute in the current thread
+        }
+        
+        return request.getContext().getConnection().getTransport().getWorkerThreadPool();
     }
 }

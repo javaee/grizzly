@@ -1,7 +1,7 @@
 /*df
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,15 @@
 
 package org.glassfish.grizzly.comet;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
+import org.glassfish.grizzly.http.server.HttpServerProbe;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.Request;
 
 /**
  * Comet {@link AddOn} for the {@link HttpServer}.
@@ -57,10 +61,19 @@ public class CometAddOn implements AddOn {
     public void setup(final NetworkListener networkListener,
             final FilterChainBuilder builder) {
         
+        
         final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
-        if (httpServerFilterIdx >= 0) {
-            builder.add(httpServerFilterIdx, new CometFilter());
-        }
-    }
+        final HttpServerFilter httpServerFilter =
+                (HttpServerFilter) builder.get(httpServerFilterIdx);
+        httpServerFilter.getMonitoringConfig().addProbes(new HttpServerProbe.Adapter() {
+            @Override
+            public void onBeforeServiceEvent(final HttpServerFilter filter,
+                    final Connection connection, final Request request,
+                    final HttpHandler httpHandler) {
+                CometContext.REQUEST_LOCAL.set(request);
+            }
+        });
 
+        CometEngine.getEngine().setCometSupported(true);
+    }    
 }

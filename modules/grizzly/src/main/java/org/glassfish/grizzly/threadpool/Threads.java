@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,29 +37,27 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.threadpool;
 
-package org.glassfish.grizzly.comet;
-
-import java.io.IOException;
-
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-
-public class CometFilter extends BaseFilter {
-    @Override
-    public void onFilterChainConstructed(final FilterChain filterChain) {
-        CometEngine.getEngine().setCometSupported(true);
+/**
+ * Set of {@link Thread} utilities.
+ * 
+ * @author Alexey Stashok
+ */
+public class Threads {
+    private static final ThreadLocal<Boolean> SERVICE_THREAD =
+            new ThreadLocal<Boolean>();
+    
+    public static boolean isService() {
+        return Boolean.TRUE.equals(SERVICE_THREAD.get());
     }
-
-    @Override
-    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        updateThreadLocals(ctx);
-        return ctx.getInvokeAction();
+    
+    public static void setService(final boolean isService) {
+        if (isService) {
+            SERVICE_THREAD.set(isService);
+        } else {
+            SERVICE_THREAD.remove();
+        }
     }
-
-    private void updateThreadLocals(final FilterChainContext ctx) {
-        CometContext.connection.set(ctx.getConnection());
-    }
+    
 }

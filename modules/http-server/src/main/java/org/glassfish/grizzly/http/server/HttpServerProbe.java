@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -113,7 +113,18 @@ public interface HttpServerProbe {
     public void onRequestFailedEvent(HttpServerFilter filter,
             Connection connection, Request request, Throwable failure);
 
-
+    /**
+     * Method will be called, before invoking
+     * {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
+     *
+     * @param filter {@link HttpServerFilter}, the event belongs to.
+     * @param connection {@link Connection}, the event belongs to.
+     * @param request received {@link Request}.
+     * @param httpHandler {@link HttpHandler} to be invoked.
+     */
+    public void onBeforeServiceEvent(HttpServerFilter filter,
+            Connection connection, Request request, HttpHandler httpHandler);
+    
     // ---------------------------------------------------------- Nested Classes
 
 
@@ -164,5 +175,11 @@ public interface HttpServerProbe {
          */
         @Override
         public void onRequestFailedEvent(HttpServerFilter filter, Connection connection, Request request, Throwable failure) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onBeforeServiceEvent(HttpServerFilter filter, Connection connection, Request request, HttpHandler httpHandler) {}
     }
 }

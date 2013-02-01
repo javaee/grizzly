@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -174,6 +174,7 @@ public class Context implements AttributeStorage, Cacheable {
      * Set the processing {@link Event}.
      *
      * @param event the processing {@link Event}.
+     * @param handler the {@link EventProcessingHandler} to handle context's life-cycle events.
      */
     public void setEvent(final Event event,
             final EventProcessingHandler handler) {
@@ -221,10 +222,16 @@ public class Context implements AttributeStorage, Cacheable {
         this.processor = processor;
     }
 
+    /**
+     * Returns the {@link EventProcessingHandler} to handle context's life-cycle events.
+     */
     protected EventProcessingHandler getProcessingHandler() {
         return eventProcessingHandler;
     }
 
+    /**
+     * Sets the {@link EventProcessingHandler} to handle context's life-cycle events.
+     */
     protected void setProcessingHandler(final EventProcessingHandler processingHandler) {
         this.eventProcessingHandler = processingHandler;
     }

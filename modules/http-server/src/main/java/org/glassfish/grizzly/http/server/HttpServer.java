@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -606,7 +606,7 @@ public class HttpServer {
 
             final ServerFilterConfiguration config = new ServerFilterConfiguration(serverConfig);
 
-            final HttpServerFilter webServerFilter = new HttpServerFilter(
+            final HttpServerFilter httpServerFilter = new HttpServerFilter(
                     config,
                     delayedExecutor);
             
@@ -620,12 +620,12 @@ public class HttpServer {
             
             config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());
             
-            webServerFilter.setHttpHandler(httpHandlerChain);
+            httpServerFilter.setHttpHandler(httpHandlerChain);
             
-            webServerFilter.getMonitoringConfig().addProbes(
+            httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
 
-            builder.add(webServerFilter);
+            builder.add(httpServerFilter);
 
             final AddOn[] addons = listener.getAddOnSet().getArray();
             if (addons != null) {

@@ -120,20 +120,6 @@ public class Response {
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
 
-//    private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
-//            ThreadCache.obtainIndex(Response.class, 16);
-    private static final ThreadLocal<Response> current = new ThreadLocal<Response>();
-
-//    public static Response create() {
-//        final Response response =
-//                ThreadCache.takeFromCache(CACHE_IDX);
-//        if (response != null) {
-//            return response;
-//        }
-//
-//        return new Response();
-//    }
-
     static DelayQueue<SuspendTimeout> createDelayQueue(
             final DelayedExecutor delayedExecutor) {
         return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
@@ -269,7 +255,7 @@ public class Response {
     
     // --------------------------------------------------------- Public Methods
 
-    public SuspendStatus initialize(final Request request,
+    public void initialize(final Request request,
                            final HttpResponsePacket response,
                            final FilterChainContext ctx,
                            final DelayedExecutor.DelayQueue<SuspendTimeout> delayQueue,
@@ -282,6 +268,9 @@ public class Response {
         this.ctx = ctx;
         this.httpContext = HttpContext.get(ctx);
         this.delayQueue = delayQueue;
+    }
+
+    SuspendStatus initSuspendStatus() {
         suspendStatus = new SuspendStatus();
         return suspendStatus;
     }
@@ -1778,14 +1767,6 @@ public class Response {
             throw new IllegalStateException("Internal " +
                     "org.glassfish.grizzly.http.server.Response has not been set");
         }
-    }
-
-    public static Response getCurrent() {
-        return current.get();
-    }
-
-    public static void setCurrent(Response response) {
-        current.set(response);
     }
 
     public boolean isSendFileEnabled() {

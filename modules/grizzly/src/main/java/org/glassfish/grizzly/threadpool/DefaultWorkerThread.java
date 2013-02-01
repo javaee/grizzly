@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,8 +63,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
-
-    private boolean isSelectorThread;
 
     public DefaultWorkerThread(AttributeBuilder attrBuilder,
                                String name,
@@ -130,15 +128,5 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     public void setTransactionTimeout(long timeout, TimeUnit timeunit) {
         this.transactionTimeoutMillis =
                 TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-    }
-    
-    @Override
-    public boolean isSelectorThread() {
-        return isSelectorThread;
-    }
-
-    @Override
-    public void setSelectorThread(boolean isSelectorThread) {
-        this.isSelectorThread = isSelectorThread;
     }
 }
