@@ -229,7 +229,7 @@ public class SSLBaseFilter extends BaseFilter {
     public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
         if (event.type() == CertificateEvent.TYPE) {
             final CertificateEvent ce = (CertificateEvent) event;
-            ce.certs = getPeerCertificateChain(getSslConnectionContext(ctx.getConnection()),
+            ce.certs = getPeerCertificateChain(obtainSslConnectionContext(ctx.getConnection()),
                                                ctx,
                                                ce.needClientAuth);
             return ctx.getStopAction();
@@ -241,7 +241,7 @@ public class SSLBaseFilter extends BaseFilter {
     public NextAction handleRead(final FilterChainContext ctx)
     throws IOException {
         final Connection connection = ctx.getConnection();
-        final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
+        final SSLConnectionContext sslCtx = obtainSslConnectionContext(connection);
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine != null && !isHandshaking(sslEngine)) {
@@ -290,7 +290,7 @@ public class SSLBaseFilter extends BaseFilter {
         
         synchronized(connection) {
             final Buffer output =
-                    wrapAll(ctx, getSslConnectionContext(connection));
+                    wrapAll(ctx, obtainSslConnectionContext(connection));
 
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
@@ -896,7 +896,7 @@ public class SSLBaseFilter extends BaseFilter {
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             final Connection connection = ctx.getConnection();
             final SSLConnectionContext sslCtx =
-                    getSslConnectionContext(connection);
+                    obtainSslConnectionContext(connection);
             
             if (sslCtx.getSslEngine() == null) {
                 final SSLEngine sslEngine = serverSSLEngineConfigurator.createSSLEngine();
@@ -965,7 +965,7 @@ public class SSLBaseFilter extends BaseFilter {
         @Override
         public Buffer clone(final Connection connection,
                 final Buffer originalMessage) {
-            final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
+            final SSLConnectionContext sslCtx = obtainSslConnectionContext(connection);
 
             final int copyThreshold = sslCtx.getNetBufferSize() / 2;
 
