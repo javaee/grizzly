@@ -53,10 +53,6 @@ import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLConnectionContext;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLUtils;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -113,18 +109,11 @@ public class SpdyAddOn implements AddOn {
         } else {
             updateFilterChain(mode, builder);
         }
-        
-        configureTransport(transport);
     }
 
 
     // ------------------------------------------------------- Protected Methods
 
-
-    protected void configureTransport(final Transport transport) {
-        transport.setIOStrategy(SameThreadIOStrategy.getInstance());
-        transport.setWorkerThreadPoolConfig(null);
-    }
 
     protected void configureNpn(FilterChainBuilder builder) {
         final int idx = builder.indexOfType(SSLBaseFilter.class);
@@ -138,10 +127,8 @@ public class SpdyAddOn implements AddOn {
 
 
     private static void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
-        final DelayedExecutor executor = createDelayedExecutor(ThreadPoolConfig.newConfig().setMaxPoolSize(1024).setPoolName("SPDY"));
         final int idx = removeHttpServerCodecFilter(builder);
-        insertSpdyFilters(mode, builder, executor, idx);
-        processHttpServerFilter(builder, executor);
+        insertSpdyFilters(mode, builder, idx);
     }
     
     private static int removeHttpServerCodecFilter(FilterChainBuilder builder) {
@@ -152,25 +139,12 @@ public class SpdyAddOn implements AddOn {
     }
 
     private static void insertSpdyFilters(SpdyMode mode,
-            FilterChainBuilder builder, DelayedExecutor executor, int idx) {
+            FilterChainBuilder builder, int idx) {
         
         builder.add(idx, new SpdyFramingFilter());
-        builder.add(idx + 1, new SpdyHandlerFilter(mode, executor.getThreadPool()));
+        builder.add(idx + 1, new SpdyHandlerFilter(mode));
     }
 
-    private static void processHttpServerFilter(FilterChainBuilder builder, DelayedExecutor executor) {
-        int idx = builder.indexOfType(HttpServerFilter.class);
-        final HttpServerFilter old = (HttpServerFilter) builder.get(idx);
-        final HttpServerFilter newFilter = new HttpServerFilter(old.getConfiguration(), executor);
-        newFilter.getMonitoringConfig().addProbes(old.getMonitoringConfig().getProbes());
-        newFilter.setHttpHandler(old.getHttpHandler());
-        builder.set(idx, newFilter);
-    }
-
-    private static DelayedExecutor createDelayedExecutor(final ThreadPoolConfig config) {
-        return new DelayedExecutor(GrizzlyExecutorService.createInstance(config));
-    }
-    
     // ---------------------------------------------------------- Nested Classes
 
     private static final class SpdyNpnConfigProbe extends TransportProbe.Adapter {

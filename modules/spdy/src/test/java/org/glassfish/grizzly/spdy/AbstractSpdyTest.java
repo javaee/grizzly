@@ -42,7 +42,6 @@ package org.glassfish.grizzly.spdy;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -114,10 +113,9 @@ public abstract class AbstractSpdyTest {
     protected static FilterChain createClientFilterChain(
             final SpdyMode spdyMode,
             final boolean isSecure,
-            final ExecutorService threadPool,
             final Filter... clientFilters) {
         
-        return createClientFilterChainAsBuilder(spdyMode, isSecure, threadPool,
+        return createClientFilterChainAsBuilder(spdyMode, isSecure,
                 clientFilters).build();
     }
     
@@ -125,7 +123,6 @@ public abstract class AbstractSpdyTest {
     protected static FilterChainBuilder createClientFilterChainAsBuilder(
             final SpdyMode spdyMode,
             final boolean isSecure,
-            final ExecutorService threadPool,
             final Filter... clientFilters) {
         
         final FilterChainBuilder builder = FilterChainBuilder.stateless()
@@ -135,7 +132,7 @@ public abstract class AbstractSpdyTest {
         }
         
         builder.add(new SpdyFramingFilter())
-                .add(new SpdyHandlerFilter(spdyMode, threadPool));
+                .add(new SpdyHandlerFilter(spdyMode));
         
         if (clientFilters != null) {
             for (Filter clientFilter : clientFilters) {

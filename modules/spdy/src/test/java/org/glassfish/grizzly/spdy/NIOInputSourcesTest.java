@@ -510,10 +510,9 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final AtomicInteger bytesRead = new AtomicInteger();
         final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
 
-        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setFilterChain(
-                createClientFilterChain(spdyMode, isSecure, threadPool));
+                createClientFilterChain(spdyMode, isSecure));
         
         final HttpHandler httpHandler = new HttpHandler() {
 
@@ -599,7 +598,6 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            threadPool.shutdownNow();
             clientTransport.stop();
             server.stop();
         }
@@ -673,13 +671,11 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
 
-        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
-        
         try {
             server.start();
             
             FilterChain clientFilterChain =
-                    createClientFilterChain(spdyMode, isSecure, threadPool, filter);
+                    createClientFilterChain(spdyMode, isSecure, filter);
             
             clientTransport.setFilterChain(clientFilterChain);
             clientTransport.start();
@@ -704,7 +700,6 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            threadPool.shutdown();
             clientTransport.stop();
             server.stop();
         }

@@ -42,7 +42,6 @@ package org.glassfish.grizzly.spdy;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -69,7 +68,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -174,14 +172,13 @@ public class SplitTest extends AbstractSpdyTest {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
         final HttpServer server = createWebServer(httpHandlers);
-        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
-        
+
         try {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
             clientTransport.setFilterChain(createClientFilterChain(spdyMode, isSecure,
-                    threadPool, new ClientFilter(testResultFuture)));
+                    new ClientFilter(testResultFuture)));
 
             clientTransport.start();
 
@@ -198,7 +195,6 @@ public class SplitTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            threadPool.shutdownNow();
             clientTransport.stop();
             server.stop();
         }

@@ -45,7 +45,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.CharBuffer;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -75,7 +74,6 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1288,13 +1286,12 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
                 HttpHandlerRegistration.of(new SimpleResponseHttpHandler(strategy, testResult), "/*"));
         
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
-        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
-        
+
         try {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(spdyMode, isSecure, threadPool, clientFilter);
+                    createClientFilterChain(spdyMode, isSecure, clientFilter);
             
             ctransport.setFilterChain(clientFilterChain);
 
@@ -1312,7 +1309,6 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            threadPool.shutdown();
             server.stop();
             ctransport.stop();
         }

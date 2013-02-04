@@ -117,15 +117,33 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     private final int maxConcurrentStreams;
     private final int initialWindowSize;
 
+    /**
+     * Constructs SpdyHandlerFilter.
+     * 
+     * @param spdyMode the {@link SpdyMode}.
+     */
+    public SpdyHandlerFilter(final SpdyMode spdyMode) {
+        this(spdyMode, null);
+    }
+
+    /**
+     * Constructs SpdyHandlerFilter.
+     * 
+     * @param spdyMode the {@link SpdyMode}.
+     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
+     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
+     */
     public SpdyHandlerFilter(final SpdyMode spdyMode,
             final ExecutorService threadPool) {
         this(spdyMode, threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
     }
 
     /**
+     * Constructs SpdyHandlerFilter.
      * 
      * @param spdyMode {@link SpdyMode}.
-     * @param threadPool
+     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
+     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
      * @param maxConcurrentStreams the default maximum number of concurrent streams allowed for one session. Negative value means "unlimited".
      * @param initialWindowSize the default initial window size (in bytes) for new streams.
      */
@@ -399,15 +417,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             spdyStream.closeInput();
         }
         
-        threadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                spdySession.sendMessageUpstream(spdyStream,
-                        HttpContent.builder(spdyRequest)
-                        .last(!isExpectContent)
-                        .build());
-            }
-        });
+        sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
     }
 
     private void processSynStreamHeadersArray(SpdyRequest spdyRequest, Buffer decoded) {
@@ -659,15 +669,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         bind(spdyRequest, spdyResponse);
         
-        threadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                spdySession.sendMessageUpstream(spdyStream,
-                        HttpContent.builder(spdyResponse)
-                        .last(isFin)
-                        .build());
-            }
-        });
+        sendUpstream(spdySession, spdyStream, spdyResponse, !isFin);
     }
 
 
@@ -783,6 +785,27 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         SpdySession.bind(connection, spdySession);
         
         return spdySession;
+    }
+    
+    private void sendUpstream(final SpdySession spdySession,
+            final SpdyStream spdyStream, final HttpHeader httpHeader,
+            final boolean isExpectContent) {
+        if (threadPool == null) {
+            spdySession.sendMessageUpstream(spdyStream,
+                    HttpContent.builder(httpHeader)
+                    .last(!isExpectContent)
+                    .build());
+        } else {
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    spdySession.sendMessageUpstream(spdyStream,
+                            HttpContent.builder(httpHeader)
+                            .last(!isExpectContent)
+                            .build());
+                }
+            });
+        }
     }
     
     private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,

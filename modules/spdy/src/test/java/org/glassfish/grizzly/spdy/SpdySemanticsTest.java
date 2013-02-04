@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.spdy;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +60,6 @@ import org.glassfish.grizzly.spdy.frames.CompressedHeadersBuilder;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -82,12 +80,10 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         final HttpServer server = createServer(
                 HttpHandlerRegistration.of(new StaticHttpHandler(), "/"));
         
-        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
-
         try {
             server.start();
             final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder(threadPool);
+                    createRawClientFilterChainAsBuilder();
             
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
@@ -151,7 +147,6 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            threadPool.shutdownNow();
             clientTransport.stop();
             server.stop();
         }
@@ -161,10 +156,9 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
     
-    private static FilterChainBuilder createRawClientFilterChainAsBuilder(
-            final ExecutorService threadPool) {
+    private static FilterChainBuilder createRawClientFilterChainAsBuilder() {
         final FilterChainBuilder builder = createClientFilterChainAsBuilder(
-                SpdyMode.PLAIN, false, threadPool);
+                SpdyMode.PLAIN, false);
         final int handlerIdx = builder.indexOfType(SpdyHandlerFilter.class);
         if (handlerIdx != -1) {
             builder.remove(handlerIdx);
