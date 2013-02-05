@@ -41,6 +41,10 @@
 package org.glassfish.grizzly.http;
 
 import java.io.UnsupportedEncodingException;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -54,13 +58,38 @@ public enum Protocol {
     HTTP_1_0 (1, 0),
     HTTP_1_1 (1, 1);
 
-    /**
-     * @deprecated pls. use {@link #valueOf(org.glassfish.grizzly.http.util.DataChunk)}.
-     */
-    public static Protocol parseDataChunk(final DataChunk protocolC) {
-        return valueOf(protocolC);
+    public static Protocol valueOf(final byte[] protocolBytes,
+            final int offset, final int len) {
+        if (len == 0) {
+            return Protocol.HTTP_0_9;
+        } else if (equals(HTTP_1_1, protocolBytes, offset, len)) {
+            return Protocol.HTTP_1_1;
+        } else if (equals(HTTP_1_0, protocolBytes, offset, len)) {
+            return Protocol.HTTP_1_0;
+        } else if (equals(HTTP_0_9, protocolBytes, offset, len)) {
+            return Protocol.HTTP_0_9;
+        }
+        
+        throw new IllegalStateException("Unknown protocol " +
+                new String(protocolBytes, offset, len));
     }
-    
+
+    public static Protocol valueOf(final Buffer protocolBuffer,
+                                   final int offset, final int len) {
+        if (len == 0) {
+            return Protocol.HTTP_0_9;
+        } else if (equals(HTTP_1_1, protocolBuffer, offset, len)) {
+            return Protocol.HTTP_1_1;
+        } else if (equals(HTTP_1_0, protocolBuffer, offset, len)) {
+            return Protocol.HTTP_1_0;
+        } else if (equals(HTTP_0_9, protocolBuffer, offset, len)) {
+            return Protocol.HTTP_0_9;
+        }
+
+        throw new IllegalStateException("Unknown protocol " +
+                protocolBuffer.toStringContent(Charsets.ASCII_CHARSET, offset, len));
+    }
+
     public static Protocol valueOf(final DataChunk protocolC) {
         if (protocolC.getLength() == 0) {
             return Protocol.HTTP_0_9;
@@ -75,6 +104,27 @@ public enum Protocol {
         throw new IllegalStateException("Unknown protocol " + protocolC.toString());
     }    
 
+    private static boolean equals(final Protocol protocol,
+            final byte[] protocolBytes,
+            final int offset, final int len) {
+        
+        final byte[] knownProtocolBytes = protocol.getProtocolBytes();
+        
+        return ByteChunk.equals(knownProtocolBytes, 0, knownProtocolBytes.length,
+                protocolBytes, offset, len);
+    }
+
+    private static boolean equals(final Protocol protocol,
+                                  final Buffer protocolBuffer,
+                                  final int offset,
+                                  final int len) {
+
+
+        final byte[] knownProtocolBytes = protocol.getProtocolBytes();
+        return BufferChunk.equals(knownProtocolBytes, 0, knownProtocolBytes.length,
+                protocolBuffer, offset, len);
+    }
+    
     private final String protocolString;
     private final int majorVersion;
     private final int minorVersion;
@@ -85,9 +135,9 @@ public enum Protocol {
         this.minorVersion = minorVersion;
         this.protocolString = "HTTP/" + majorVersion + '.' + minorVersion;
         try {
-            protocolBytes = protocolString.getBytes(Charsets.ASCII_CHARSET.name());
+            protocolBytes = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            // Should never get here
+            protocolBytes = protocolString.getBytes();
         }
     }
 

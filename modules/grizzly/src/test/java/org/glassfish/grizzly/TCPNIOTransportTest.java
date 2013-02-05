@@ -55,7 +55,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection.CloseType;
+
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -350,18 +350,18 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             final FutureImpl<Boolean> connectedCloseFuture = new SafeFutureImpl<Boolean>();
             final FutureImpl<Boolean> acceptedCloseFuture = new SafeFutureImpl<Boolean>();
             
-            connectedConnection.addCloseListener(new Connection.CloseListener() {
+            connectedConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseType type) throws IOException {
                     connectedCloseFuture.result(type == CloseType.LOCALLY);
                 }
             });
             
-            acceptedConnection.addCloseListener(new Connection.CloseListener() {
+            acceptedConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseType type) throws IOException {
                     acceptedCloseFuture.result(type == CloseType.REMOTELY);
                 }
             });

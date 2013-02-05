@@ -41,16 +41,35 @@
 package org.glassfish.grizzly.utils;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 /**
  * Exceptions utilities.
- * 
+ *
  * @author Alexey Stashok
  */
 public class Exceptions {
+
+    /**
+     * Returns the {@link Throwable}'s stack trace information as {@link String}.
+     * The result {@link String} format will be the same as reported by {@link Throwable#printStackTrace()}.
+     *
+     * @param t {@link Throwable}.
+     * @return the {@link Throwable}'s stack trace information as {@link String}.
+     */
+    public static String getStackTraceAsString(final Throwable t) {
+        final StringWriter stringWriter = new StringWriter(2048);
+        final PrintWriter pw = new PrintWriter(stringWriter);
+        t.printStackTrace(pw);
+
+        pw.close();
+        return stringWriter.toString();
+    }
+
     /**
      * Wrap the given {@link Throwable} by {@link IOException}.
-     * 
+     *
      * @param t {@link Throwable}.
      * @return {@link IOException}.
      */

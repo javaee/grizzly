@@ -43,7 +43,7 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.utils.Holder;
 
 /**
- * Result of write operation, returned by {@link Writable}.
+ * Result of write operation, returned by {@link Writeable}.
  *
  * @author Alexey Stashok
  */

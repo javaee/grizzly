@@ -41,8 +41,14 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.HttpCodecFilter;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.ProcessingState;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -51,7 +57,130 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * @author Alexey Stashok
  */
 public class HttpCodecUtils {
+    private static final int[] DEC = HexUtils.getDecBytes();
+    
+    public static void parseHost(final DataChunk hostDC,
+                                  final HttpRequestPacket request,
+                                  final HttpResponsePacket response,
+                                  final ProcessingState state) {
 
+        if (hostDC == null) {
+            // HTTP/1.0
+            // Default is what the socket tells us. Overridden if a host is
+            // found/parsed
+            final Connection connection = request.getConnection();
+            request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
+            final InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
+            // Setting the socket-related fields. The adapter doesn't know
+            // about socket.
+            request.setLocalHost(localAddress.getHostName());
+            request.serverName().setString(localAddress.getHostName());
+            return;
+        }
+
+        if (hostDC.getType() == DataChunk.Type.Bytes) {
+            final ByteChunk valueBC = hostDC.getByteChunk();
+            final int valueS = valueBC.getStart();
+            final int valueL = valueBC.getEnd() - valueS;
+            int colonPos = -1;
+
+            final byte[] valueB = valueBC.getBuffer();
+            final boolean ipv6 = (valueB[valueS] == '[');
+            boolean bracketClosed = false;
+            for (int i = 0; i < valueL; i++) {
+                final byte b = valueB[i + valueS];
+                if (b == ']') {
+                    bracketClosed = true;
+                } else if (b == ':') {
+                    if (!ipv6 || bracketClosed) {
+                        colonPos = i;
+                        break;
+                    }
+                }
+            }
+
+            if (colonPos < 0) {
+                if (!request.isSecure()) {
+                    // 80 - Default HTTTP port
+                    request.setServerPort(80);
+                } else {
+                    // 443 - Default HTTPS port
+                    request.setServerPort(443);
+                }
+                request.serverName().setBytes(valueB, valueS, valueS + valueL);
+            } else {
+                request.serverName().setBytes(valueB, valueS, valueS + colonPos);
+
+                int port = 0;
+                int mult = 1;
+                for (int i = valueL - 1; i > colonPos; i--) {
+                    int charValue = DEC[(int) valueB[i + valueS]];
+                    if (charValue == -1) {
+                        // Invalid character
+                        state.setError(true);
+                        // 400 - Bad request
+                        HttpStatus.BAD_REQUEST_400.setValues(response);
+                        return;
+                    }
+                    port = port + (charValue * mult);
+                    mult = 10 * mult;
+                }
+                request.setServerPort(port);
+
+            }
+        } else {
+            final BufferChunk valueBC = hostDC.getBufferChunk();
+            final int valueS = valueBC.getStart();
+            final int valueL = valueBC.getEnd() - valueS;
+            int colonPos = -1;
+
+            final Buffer valueB = valueBC.getBuffer();
+            final boolean ipv6 = (valueB.get(valueS) == '[');
+            boolean bracketClosed = false;
+            for (int i = 0; i < valueL; i++) {
+                final byte b = valueB.get(i + valueS);
+                if (b == ']') {
+                    bracketClosed = true;
+                } else if (b == ':') {
+                    if (!ipv6 || bracketClosed) {
+                        colonPos = i;
+                        break;
+                    }
+                }
+            }
+
+            if (colonPos < 0) {
+                if (!request.isSecure()) {
+                    // 80 - Default HTTTP port
+                    request.setServerPort(80);
+                } else {
+                    // 443 - Default HTTPS port
+                    request.setServerPort(443);
+                }
+                request.serverName().setBuffer(valueB, valueS, valueS + valueL);
+            } else {
+                request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
+
+                int port = 0;
+                int mult = 1;
+                for (int i = valueL - 1; i > colonPos; i--) {
+                    int charValue = DEC[(int) valueB.get(i + valueS)];
+                    if (charValue == -1) {
+                        // Invalid character
+                        state.setError(true);
+                        // 400 - Bad request
+                        HttpStatus.BAD_REQUEST_400.setValues(response);
+                        return;
+                    }
+                    port = port + (charValue * mult);
+                    mult = 10 * mult;
+                }
+                request.setServerPort(port);
+
+            }
+        }
+    }
+    
     public static int checkEOL(final HttpCodecFilter.HeaderParsingState parsingState, final Buffer input) {
         final int offset = parsingState.offset;
         final int avail = input.limit() - offset;
@@ -332,6 +461,15 @@ public class HttpCodecUtils {
                 (buffer.capacity() * 3) / 2 + 1));
     }
 
+
+    public static boolean isNotSpaceAndTab(final byte b) {
+        return (b != Constants.SP && b != Constants.HT);
+    }
+
+    public static boolean isSpaceOrTab(final byte b) {
+        return (b == Constants.SP || b == Constants.HT);
+    }
+    
     private static void fastAsciiEncode(final String s,
                                         byte[] tempBuffer,
                                         final Buffer dstBuffer) {
@@ -369,14 +507,6 @@ public class HttpCodecUtils {
         }
 
         return -1;
-    }
-
-    private static boolean isNotSpaceAndTab(final byte b) {
-        return (b != Constants.SP && b != Constants.HT);
-    }
-
-    private static boolean isSpaceOrTab(final byte b) {
-        return (b == Constants.SP || b == Constants.HT);
     }
 
     private static Buffer checkAndResizeIfNeeded(MemoryManager memoryManager, Buffer dstBuffer, int length) {

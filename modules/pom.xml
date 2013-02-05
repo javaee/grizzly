@@ -123,5 +123,6 @@
         <module>http-ajp</module>
         <module>config</module>
         <module>bundles</module>
+        <module>spdy</module>
     </modules>
 </project>

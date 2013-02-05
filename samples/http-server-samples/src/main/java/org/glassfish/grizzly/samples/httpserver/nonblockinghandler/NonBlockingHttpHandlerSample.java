@@ -56,8 +56,8 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.io.NIOReader;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.http.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -95,9 +95,9 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
  *    <li>
  *       NoneBlockingEchoHandler: This {@link HttpHandler} is installed to the
  *                                {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
- *                                with the path <code>/echo</code>.  The handler uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
- *                                returned by {@link org.glassfish.grizzly.http.server.Request#getReader()} in non-blocking
- *                                mode.  As data is received asynchronously, the {@link ReadHandler} callbacks are
+ *                                with the path <code>/echo</code>.  The handler uses the {@link org.glassfish.grizzly.http.io.NIOReader}
+ *                                returned by {@link org.glassfish.grizzly.http.server.Request#getReader()}.
+ *                                As data is received asynchronously, the {@link ReadHandler} callbacks are
  *                                invoked at this time data is then written to the response.
  *    </li>
  * </ul>

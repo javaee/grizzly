@@ -211,8 +211,8 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             if (connection != null
                     && serverConnections.remove(connection)) {
-                final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                final FutureImpl<Closeable> future =
+                        Futures.createSafeFuture();
                 ((UDPNIOServerConnection) connection).unbind(
                         Futures.toCompletionHandler(future));
                 try {
@@ -370,7 +370,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Start UDPNIOTransport.
      * 
-     * The transport will be started only if its current state is {@link State#STOP},
+     * The transport will be started only if its current state is {@link State#STOPPED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -380,14 +380,14 @@ public final class UDPNIOTransport extends NIOTransport implements
         lock.lock();
         try {
             State currentState = state.getState();
-            if (currentState != State.STOP) {
+            if (currentState != State.STOPPED) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
                 return;
             }
 
             state.setState(State.STARTING);
-
+            notifyProbesBeforeStart(this);
             super.start();
 
             if (selectorHandler == null) {
@@ -449,7 +449,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
             registerServerConnections();
 
-            state.setState(State.START);
+            state.setState(State.STARTED);
 
             notifyProbesStart(this);
         } finally {
@@ -472,7 +472,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Stop UDPNIOTransport.
      * 
-     * If the current transport state is {@link State#STOP} - the call will be
+     * If the current transport state is {@link State#STOPPED} - the call will be
      * ignored and no exception thrown.
      */
     @Override
@@ -482,11 +482,11 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             final State stateNow = state.getState();
             
-            if (stateNow == State.STOP) {
+            if (stateNow == State.STOPPED) {
                 return;
             }
             
-            if (stateNow == State.PAUSE) {
+            if (stateNow == State.PAUSED) {
                 // if Transport is paused - first we need to resume it
                 // so selectorrunners can perform the close phase
                 resume();
@@ -494,7 +494,8 @@ public final class UDPNIOTransport extends NIOTransport implements
             
             unbindAll();
 
-            state.setState(State.STOP);
+            state.setState(State.STOPPING);
+            notifyProbesBeforeStop(this);
             stopSelectorRunners();
 
             if (workerThreadPool != null && managedWorkerPool) {
@@ -506,7 +507,7 @@ public final class UDPNIOTransport extends NIOTransport implements
                 kernelPool.shutdownNow();
                 kernelPool = null;
             }
-
+            state.setState(State.STOPPED);
             notifyProbesStop(this);
         } finally {
             lock.unlock();
@@ -517,7 +518,7 @@ public final class UDPNIOTransport extends NIOTransport implements
      * Pause UDPNIOTransport, so I/O events coming on its {@link UDPNIOConnection}s
      * will not be processed. Use {@link #resume()} in order to resume UDPNIOTransport processing.
      * 
-     * The transport will be paused only if its current state is {@link State#START},
+     * The transport will be paused only if its current state is {@link State#STARTED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -526,12 +527,14 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() != State.START) {
+            if (state.getState() != State.STARTED) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_START_STATE_EXCEPTION());
                 return;
             }
-            state.setState(State.PAUSE);
+            state.setState(State.PAUSING);
+            notifyProbesBeforePause(this);
+            state.setState(State.PAUSED);
             notifyProbesPause(this);
         } finally {
             lock.unlock();
@@ -541,7 +544,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Resume UDPNIOTransport, which has been paused before using {@link #pause()}.
      * 
-     * The transport will be resumed only if its current state is {@link State#PAUSE},
+     * The transport will be resumed only if its current state is {@link State#PAUSED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -550,12 +553,14 @@ public final class UDPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() != State.PAUSE) {
+            if (state.getState() != State.PAUSED) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_PAUSE_STATE_EXCEPTION());
                 return;
             }
-            state.setState(State.START);
+            state.setState(State.STARTING);
+            notifyProbesBeforeResume(this);
+            state.setState(State.STARTED);
             notifyProbesResume(this);
         } finally {
             lock.unlock();

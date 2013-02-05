@@ -48,16 +48,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.util.Header;
 
 /**
@@ -519,7 +521,7 @@ public class CometContext<E> {
     }
 
     private class CometCompletionHandler implements CompletionHandler<Response>,
-        Connection.CloseListener {
+            CloseListener {
         private final CometHandler handler;
 
         public CometCompletionHandler(CometHandler handler) {
@@ -553,10 +555,10 @@ public class CometContext<E> {
         }
 
         @Override
-        public void onClosed(final Connection connection, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
             removeCometHandler(handler);
-            connection.removeCloseListener(this);
+            closeable.removeCloseListener(this);
         }
     }
 

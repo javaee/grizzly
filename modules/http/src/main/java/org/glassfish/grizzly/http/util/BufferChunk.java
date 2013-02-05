@@ -142,7 +142,10 @@ public class BufferChunk implements Chunk {
 
             try {
                 Buffers.setPositionLimit(buffer, absDeleteStart, absDeleteStart + diff);
-                buffer.put(buffer, absDeleteEnd, diff);
+                // we have to duplicate the buffer as, depending on the memory
+                // manager, it may be an error to pass a buffer back to itself.
+                final Buffer duplicate = buffer.duplicate();
+                buffer.put(duplicate, absDeleteEnd, diff);
                 this.end = absDeleteStart + diff;
             } finally {
                 Buffers.setPositionLimit(buffer, oldPos, oldLim);
@@ -243,6 +246,11 @@ public class BufferChunk implements Chunk {
         return -1;
     }
 
+    @Override
+    public int hashCode() {
+        return hash();
+    }
+    
     public int hash() {
         int code=0;
         for (int i = start; i < end; i++) {
@@ -251,6 +259,32 @@ public class BufferChunk implements Chunk {
         return code;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (!(o instanceof BufferChunk)) {
+            return false;
+        }
+        
+        final BufferChunk anotherBC = (BufferChunk) o;
+        
+        final int len = getLength();
+        
+        if (len != anotherBC.getLength()) {
+            return false;
+        }
+
+        int offs1 = start;
+        int offs2 = anotherBC.start;
+        
+        for (int i = 0; i < len; i++) {
+            if (buffer.get(offs1++) != anotherBC.buffer.get(offs2++)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
     public boolean equals(CharSequence s) {
         if (getLength() != s.length()) {
             return false;
@@ -275,12 +309,98 @@ public class BufferChunk implements Chunk {
      * @since 2.3
      */
     public boolean equals(final byte[] b) {
-        if (getLength() != b.length) {
+        return equals(b, 0, b.length);
+    }
+    
+    /**
+     * Compares the message Buffer to the specified byte array.
+
+     * @param b the <code>byte[]</code> to compare
+     * @param offset the offset in the array
+     * @param len number of bytes to check
+     * 
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equals(final byte[] b, int offset, final int len) {
+        if (getLength() != len) {
             return false;
         }
 
         for (int i = start; i < end; i++) {
-            if (buffer.get(i) != b[(i - start)]) {
+            if (buffer.get(i) != b[offset++]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static boolean equals(final byte[] c, final int cOff, final int cLen,
+                                 final Buffer t, final int tOff, final int tLen) {
+        // XXX ENCODING - this only works if encoding is UTF8-compat
+        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
+
+        if (cLen != tLen) {
+            return false;
+        }
+
+        if (c == null || t == null) {
+            return false;
+        }
+
+        for (int i = 0; i < cLen; i++) {
+            if (c[i + cOff] != t.get(i + tOff)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    /**
+     * Compares the message Buffer to the specified char array.
+
+     * @param b the <code>char[]</code> to compare
+     * @param offset the offset in the array
+     * @param len number of chars to check
+     * 
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equals(final char[] b, int offset, final int len) {
+        if (getLength() != len) {
+            return false;
+        }
+
+        for (int i = start; i < end; i++) {
+            if (buffer.get(i) != b[offset++]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    public boolean equalsIgnoreCase(final Object o) {
+        if (!(o instanceof BufferChunk)) {
+            return false;
+        }
+        
+        final BufferChunk anotherBC = (BufferChunk) o;
+        
+        final int len = getLength();
+        
+        if (len != anotherBC.getLength()) {
+            return false;
+        }
+
+        int offs1 = start;
+        int offs2 = anotherBC.start;
+        
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(buffer.get(offs1++)) != Ascii.toLower(anotherBC.buffer.get(offs2++))) {
                 return false;
             }
         }
@@ -302,13 +422,45 @@ public class BufferChunk implements Chunk {
         return true;
     }
 
-    public boolean equalsIgnoreCase(byte[] b) {
-        if (getLength() != b.length) {
+    public boolean equalsIgnoreCase(final byte[] b) {
+        return equalsIgnoreCase(b, 0, b.length);
+    }
+    
+    public boolean equalsIgnoreCase(final byte[] b, final int offset, final int len) {
+        if (getLength() != len) {
+            return false;
+        }
+
+        int offs1 = start;
+        int offs2 = offset;
+        
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(buffer.get(offs1++)) != Ascii.toLower(b[offs2++])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    /**
+     * Compares the message Buffer to the specified char array ignoring case considerations.
+
+     * @param b the <code>char[]</code> to compare
+     * @param offset the offset in the array
+     * @param len number of chars to check
+     * 
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equalsIgnoreCase(final char[] b, int offset, final int len) {
+        if (getLength() != len) {
             return false;
         }
 
         for (int i = start; i < end; i++) {
-            if (Ascii.toLower(buffer.get(i)) != Ascii.toLower(b[(i - start)])) {
+            if (Ascii.toLower(buffer.get(i)) != Ascii.toLower(b[offset++])) {
                 return false;
             }
         }

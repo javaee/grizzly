@@ -93,7 +93,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpCodecFilter extends BaseFilter
+public abstract class HttpCodecFilter extends HttpBaseFilter
         implements JmxMonitoringAware<HttpProbe> {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
@@ -1486,7 +1486,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         final int mimeHeadersNum = mimeHeaders.size();
 
         for (int i = 0; i < mimeHeadersNum; i++) {
-            if (!mimeHeaders.getAndSetSerialized(i, true)) {
+            if (!mimeHeaders.setSerialized(i, true)) {
                 final DataChunk value = mimeHeaders.getValue(i);
                 if (!value.isNull()) {
                     buffer = encodeMimeHeader(memoryManager,

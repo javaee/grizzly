@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,7 +45,40 @@ package org.glassfish.grizzly;
  * 
  * @author Alexey Stashok
  */
-public interface Closeable<E extends Closeable> {
-    public GrizzlyFuture<E> close();
-    public void close(CompletionHandler<E> completionHandler);
+public interface Closeable {
+
+    /**
+     * Closes this stream and releases any system resources associated
+     * with it. If the stream is already closed then invoking this 
+     * method has no effect. 
+     *
+     * @return {@link java.util.concurrent.Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
+     */
+    public GrizzlyFuture<Closeable> close();
+    
+    /**
+     * Closes this stream and releases any system resources associated
+     * with it. If the stream is already closed then invoking this 
+     * method has no effect. 
+     *
+     * @param completionHandler {@link CompletionHandler} to be called, when
+     *  the stream is closed.
+     */
+    public void close(CompletionHandler<Closeable> completionHandler);
+    
+    /**
+     * Add the {@link CloseListener}, which will be notified once the stream
+     * will be closed.
+     * 
+     * @param closeListener {@link CloseListener}.
+     */
+    void addCloseListener(CloseListener closeListener);
+
+    /**
+     * Remove the {@link CloseListener}.
+     *
+     * @param closeListener {@link CloseListener}.
+     */
+    boolean removeCloseListener(CloseListener closeListener);
 }

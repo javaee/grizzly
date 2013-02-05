@@ -45,8 +45,8 @@ import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 
 /**
  * {@link NIOOutputStream} implementation.
@@ -99,7 +99,7 @@ class NIOOutputStreamImpl extends NIOOutputStream implements Cacheable {
     }
 
 
-    // ---------------------------------------------- Methods from NIOOutputSink
+    // ---------------------------------------------- Methods from OutputSink
 
 
     /**

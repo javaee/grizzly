@@ -52,6 +52,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -185,36 +186,47 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             throws IOException {
 
         int i = start;
+        Filter currentFilter = null;
 
         int lastNextActionType = InvokeAction.TYPE;
         NextAction lastNextAction = null;
-        
+
         while (i != end) {
+
             // current Filter to be executed
-            final Filter currentFilter = get(i);
+            currentFilter = get(i);
 
-            // Checks if there was a remainder message stored from the last filter execution
-            checkStoredMessage(ctx, filtersState, i);
+            if (ctx.predefinedNextAction == null) {
 
-            // execute the task
-            lastNextAction = executeFilter(executor, currentFilter, ctx);
+                // Checks if there was a remainder message stored from the last filter execution
+                checkStoredMessage(ctx, filtersState, i);
+
+                // execute the task
+                lastNextAction = executeFilter(executor, currentFilter, ctx);
+            } else {
+                lastNextAction = ctx.predefinedNextAction;
+                ctx.predefinedNextAction = null;
+            }
 
             lastNextActionType = lastNextAction.type();
             if (lastNextActionType != InvokeAction.TYPE) { // if we don't need to execute next filter
                 break;
             }
-            
+
             final InvokeAction invokeAction = (InvokeAction) lastNextAction;
             final Object chunk = invokeAction.getChunk();
-            
+
             if (chunk != null) {
                 // Store the remainder
                 final FILTER_STATE_TYPE type = invokeAction.isIncomplete() ?
-                                               FILTER_STATE_TYPE.INCOMPLETE :
-                                               FILTER_STATE_TYPE.UNPARSED;
+                        FILTER_STATE_TYPE.INCOMPLETE :
+                        FILTER_STATE_TYPE.UNPARSED;
                 storeMessage(ctx,
-                        filtersState, type, i,
-                        chunk, invokeAction.getAppender());
+                        filtersState,
+                        type,
+                        i,
+                        chunk,
+                        invokeAction.getAppender());
             }
 
             i = executor.getNextFilter(ctx);
@@ -226,20 +238,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 notifyComplete(ctx);
                 break;
             case StopAction.TYPE:
+                assert currentFilter != null;
+
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 final StopAction stopAction = (StopAction) lastNextAction;
                 storeMessage(ctx,
-                             filtersState,
-                             FILTER_STATE_TYPE.INCOMPLETE,
-                             i,
-                             stopAction.getIncompleteChunk(),
-                             stopAction.getAppender());
+                        filtersState,
+                        FILTER_STATE_TYPE.INCOMPLETE,
+                        i,
+                        stopAction.getIncompleteChunk(),
+                        stopAction.getAppender());
                 break;
             case ForkAction.TYPE:
                 final ForkAction forkAction =
                         (ForkAction) lastNextAction;
                 return FilterExecution.createReExecute(
-                        forkAction.getContext());
+                                        forkAction.getContext());
             case SuspendAction.TYPE: // on suspend - return immediatelly
                 return FilterExecution.createTerminate();
         }

@@ -89,6 +89,25 @@ public final class TaskQueue<E> {
     }
 
     /**
+     * Returns the number of queued bytes.
+     *
+     * @return the number of queued bytes.
+     */
+    public int size() {
+        return spaceInBytes.get();
+    }
+
+    /**
+     * Gets the current processing task and reserves its place.
+     *
+     * @return the current processing task
+     */
+    public E poll() {
+        E current = currentElement.getAndSet(null);
+        return current != null ? current : queue.poll();
+    }
+
+    /**
      * Reserves memory space in the queue.
      *
      * @return the new memory (in bytes) consumed by the queue.
@@ -165,13 +184,11 @@ public final class TaskQueue<E> {
         return queue;
     }
 
-    @Deprecated
-    public void notifyWritePossible(final WriteHandler writeHandler,
-            final int size) {
-        notifyWritePossible(writeHandler);
+    public void notifyWritePossible(final WriteHandler writeHandler) {
+        notifyWritePossible(writeHandler, maxQueueSizeHolder.getMaxQueueSize());
     }
     
-    public void notifyWritePossible(final WriteHandler writeHandler) {
+    public void notifyWritePossible(final WriteHandler writeHandler, final int maxQueueSize) {
         
         if (writeHandler == null) {
             return;
@@ -181,8 +198,6 @@ public final class TaskQueue<E> {
             writeHandler.onError(new IOException("Connection is closed"));
             return;
         }
-        
-        final int maxQueueSize = maxQueueSizeHolder.getMaxQueueSize();
         
         if (maxQueueSize < 0 || spaceInBytes() < maxQueueSize) {
             try {
@@ -249,6 +264,10 @@ public final class TaskQueue<E> {
      */
     public void setCurrentElement(final E task) {
         currentElement.set(task);
+    }
+
+    public boolean compareAndSetCurrentElement(final E expected, final E newValue) {
+        return currentElement.compareAndSet(expected, newValue);
     }
 
     /**

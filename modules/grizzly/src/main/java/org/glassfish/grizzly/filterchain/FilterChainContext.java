@@ -161,6 +161,8 @@ public final class FilterChainContext implements AttributeStorage {
      */
     private Holder<?> addressHolder;
 
+    NextAction predefinedNextAction;
+
     /**
      * Index of the currently executing {@link Filter} in
      * the {@link FilterChainContext} list.
@@ -216,6 +218,28 @@ public final class FilterChainContext implements AttributeStorage {
         internalContext.resume();
         
         getRunnable().run();
+    }
+
+    /**
+     * Resume the current FilterChain task processing by completing the current
+     * {@link Filter} (the Filter, which suspended the processing) with the
+     * passed {@link NextAction}.
+     *
+     * @param nextAction the {@link NextAction}, based on which {@link FilterChain}
+     *                   will continue processing.
+     */
+    public void resume(final NextAction nextAction) {
+        internalContext.resume();
+        try {
+            if (state == State.SUSPEND) {
+                state = State.RUNNING;
+            }
+
+            predefinedNextAction = nextAction;
+            ProcessorExecutor.execute(internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
     }
 
 
@@ -719,11 +743,11 @@ public final class FilterChainContext implements AttributeStorage {
                       final MessageCloner cloner) {
         
         write(address,
-              message,
-              completionHandler,
-              pushBackHandler,
-              cloner,
-              transportFilterContext.isBlocking());
+                message,
+                completionHandler,
+                pushBackHandler,
+                cloner,
+                transportFilterContext.isBlocking());
     }
 
     public void write(final Object address,
@@ -732,11 +756,11 @@ public final class FilterChainContext implements AttributeStorage {
                       final MessageCloner cloner,
                       final boolean blocking) {
         write(address,
-              message,
-              completionHandler,
-              null,
-              cloner,
-              blocking);
+                message,
+                completionHandler,
+                null,
+                cloner,
+                blocking);
     }
 
     @Deprecated

@@ -479,7 +479,7 @@ public class KeepAlive extends JmxObject {
             connection.addCloseListener(new Connection.CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection) throws IOException {
+                public void onClosed(Closeable closeable) throws IOException {
                     keepAliveConnectionsCount.decrementAndGet();
                 }
             });

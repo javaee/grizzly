@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.osgi.httpservice;
 
-import org.glassfish.grizzly.http.server.util.MimeType;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.osgi.service.http.HttpContext;
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;

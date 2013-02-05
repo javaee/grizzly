@@ -46,7 +46,7 @@ import org.glassfish.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
 
 /**
  * @author Gustav Trede

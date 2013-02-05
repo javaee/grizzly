@@ -56,7 +56,6 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -78,8 +77,8 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.DelayFilter;
 
 /**
- * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.server.io.NIOInputStream} and
- * {@link org.glassfish.grizzly.http.server.io.NIOReader}.
+ * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
+ * {@link org.glassfish.grizzly.http.io.NIOReader}.
  */
 public class HttpInputStreamsTest extends TestCase {
 

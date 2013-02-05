@@ -40,7 +40,9 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.Closeable;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import java.io.IOException;
@@ -484,10 +486,10 @@ public class MultipartBasicTest {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection, CloseType type)
+                public void onClosed(Closeable closeable, CloseType type)
                         throws IOException {
                     localFuture.failure(new IOException());
                 }

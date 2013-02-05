@@ -84,7 +84,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     public static final int DEFAULT_WRITE_TIMEOUT = 30;
 
     
-    enum State {STARTING, START, PAUSE, STOPPING, STOP}
+    enum State {STARTING, STARTED, PAUSING, PAUSED, STOPPING, STOPPED}
 
     /**
      * Gets the {@link Transport} name.

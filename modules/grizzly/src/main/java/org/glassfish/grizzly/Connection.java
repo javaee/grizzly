@@ -43,7 +43,7 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.Readable;
+
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -54,8 +54,8 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * 
  * @author Alexey Stashok
  */
-public interface Connection<L> extends Readable<L>, Writable<L>,
-        Closeable<Connection>, AttributeStorage,
+public interface Connection<L> extends Readable<L>, Writeable<L>,
+        Closeable, AttributeStorage,
         MonitoringAware<ConnectionProbe> {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
@@ -190,7 +190,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      *         will be run asynchronously
      */
     @Override
-    GrizzlyFuture<Connection> close();
+    GrizzlyFuture<Closeable> close();
 
     /**
      * Close the {@link Connection}
@@ -199,7 +199,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      *  the connection is closed.
      */
     @Override
-    void close(CompletionHandler<Connection> completionHandler);
+    void close(CompletionHandler<Closeable> completionHandler);
 
     /**
      * Close the {@link Connection} silently, no notification required on
@@ -308,15 +308,5 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * @param error {@link Throwable}.
      */
     void notifyConnectionError(Throwable error);
-    
-    public static enum CloseType {
-        LOCALLY, REMOTELY
-    }
 
-    /**
-     * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
-     */
-    public interface CloseListener {
-        void onClosed(Connection connection, CloseType type) throws IOException;    
-    }    
 }

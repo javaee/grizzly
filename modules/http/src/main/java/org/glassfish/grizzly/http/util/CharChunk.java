@@ -88,7 +88,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
     */
-    public static final Charset DEFAULT_HTTP_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
+    public static Charset DEFAULT_HTTP_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
     private static final long serialVersionUID = -1L;
 
@@ -846,21 +846,60 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
      *
      * @since 2.1.2
      */
-    public boolean equalsIgnoreCase(byte[] b) {
+    public boolean equalsIgnoreCase(final byte[] b) {
+        return equalsIgnoreCase(b, 0, b.length);
+    }
+
+    /**
+     * Compares the message bytes to the specified byte array representing
+     * ASCII characters.
+
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equalsIgnoreCase(final byte[] b, final int offset, final int len) {
         char[] c = buff;
-        int len = end-start;
-        if (c == null || len != b.length) {
+        if (c == null || getLength() != len) {
             return false;
         }
-        int off = start;
+        int offs1 = start;
+        int offs2 = offset;
         for (int i = 0; i < len; i++) {
-            if (Ascii.toLower(c[off++]) != Ascii.toLower(b[i])) {
+            if (Ascii.toLower(c[offs1++]) != Ascii.toLower(b[offs2++])) {
             return false;
             }
         }
         return true;
     }
+    
+    /**
+     * Compares the message bytes to the specified char array representing
+     * ASCII characters.
 
+     * @param b the <code>char[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.3
+     */
+    public boolean equalsIgnoreCase(final char[] b, final int offset, final int len) {
+        char[] c = buff;
+        if (c == null || getLength() != len) {
+            return false;
+        }
+        int offs1 = start;
+        int offs2 = offset;
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(c[offs1++]) != Ascii.toLower(b[offs2++])) {
+            return false;
+            }
+        }
+        return true;
+    }
+    
     /**
      * Compares the char chunk to the specified byte array representing
      * lower-case ASCII characters.

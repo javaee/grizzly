@@ -132,4 +132,80 @@ public interface IOEventProcessingHandler {
      * @param context
      */
     public void onNotRun(Context context) throws IOException;
+
+    /**
+     * Empty {@link IOEventProcessingHandler} implementation.
+     */
+    public class Adapter implements IOEventProcessingHandler {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onContextSuspend(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onContextResume(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onComplete(Context context, Object data) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTerminate(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onError(Context context, Object description) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onNotRun(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onContextManualIOEventControl(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onReregister(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onLeave(Context context) throws IOException {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onRerun(Context context, Context newContext) throws IOException {
+        }
+    }
 }

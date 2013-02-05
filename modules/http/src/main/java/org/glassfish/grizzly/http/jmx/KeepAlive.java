@@ -42,6 +42,8 @@ package org.glassfish.grizzly.http.jmx;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.KeepAliveProbe;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -50,8 +52,8 @@ import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 
 /**
  * JMX management object for {@link org.glassfish.grizzly.http.KeepAlive}.
@@ -218,7 +220,7 @@ public class KeepAlive extends JmxObject {
             connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(final Connection connection,
+                public void onClosed(final Closeable closeable,
                         final CloseType closeType) throws IOException {
                     keepAliveConnectionsCount.decrementAndGet();
                 }

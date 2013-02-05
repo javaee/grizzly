@@ -42,6 +42,9 @@ package org.glassfish.grizzly.servlet.extras;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -293,10 +296,10 @@ public class MultipartUploadFilterTest extends TestCase {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection, Connection.CloseType type)
+                public void onClosed(Closeable closeable, CloseType type)
                         throws IOException {
                     localFuture.failure(new IOException());
                 }

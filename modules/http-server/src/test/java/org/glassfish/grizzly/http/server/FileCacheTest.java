@@ -58,7 +58,7 @@ import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -87,8 +87,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
-import org.glassfish.grizzly.http.server.util.MimeType;
-import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.http.util.MimeType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

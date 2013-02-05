@@ -234,7 +234,7 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     }
 
     @Override
-    protected void setExpectContent(boolean isExpectContent) {
+    public void setExpectContent(boolean isExpectContent) {
         super.setExpectContent(isExpectContent);
     }
 

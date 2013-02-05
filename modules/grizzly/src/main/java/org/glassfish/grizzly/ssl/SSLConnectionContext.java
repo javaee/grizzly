@@ -50,6 +50,7 @@ import javax.net.ssl.SSLSession;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -79,6 +80,12 @@ public final class SSLConnectionContext {
     private volatile int netBufferSize;
     
     private final Connection connection;
+    private FilterChain newConnectionFilterChain;
+
+    /*
+     * This value may be non-null if NPN is use and a protocol is negotiated.
+     */
+    private FilterChain newFilterChain;
 
     public SSLConnectionContext(Connection connection) {
         this.connection = connection;
@@ -119,7 +126,15 @@ public final class SSLConnectionContext {
     public int getNetBufferSize() {
         return netBufferSize;
     }
-    
+
+    public FilterChain getNewConnectionFilterChain() {
+        return newConnectionFilterChain;
+    }
+
+    public void setNewConnectionFilterChain(FilterChain newConnectionFilterChain) {
+        this.newConnectionFilterChain = newConnectionFilterChain;
+    }
+
     Buffer resetLastOutputBuffer() {
         final Buffer tmp = lastOutputBuffer;
         lastOutputBuffer = null;

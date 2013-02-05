@@ -56,6 +56,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.StandaloneProcessor;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -380,6 +381,26 @@ public class HttpRequestParseTest extends TestCase {
 
         @Override
         public void setWriteBufferSize(int writeBufferSize) {
+        }
+
+        @Override
+        public void notifyCanWrite(WriteHandler handler) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void notifyCanWrite(WriteHandler handler, int length) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public boolean canWrite() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public boolean canWrite(int length) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 }

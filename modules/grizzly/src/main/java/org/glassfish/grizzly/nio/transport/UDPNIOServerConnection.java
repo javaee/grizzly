@@ -105,7 +105,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     
     @Override
     public void close(
-            final CompletionHandler<Connection> completionHandler) {
+            final CompletionHandler<Closeable> completionHandler) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("UDPNIOServerConnection might be only closed by calling unbind().");
         }
@@ -116,7 +116,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     }
 
     public void unbind(
-            final CompletionHandler<Connection> completionHandler) {
+            final CompletionHandler<Closeable> completionHandler) {
         super.close(completionHandler);
     }
 

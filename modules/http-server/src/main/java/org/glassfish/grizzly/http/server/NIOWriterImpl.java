@@ -43,8 +43,8 @@ package org.glassfish.grizzly.http.server;
 import java.io.IOException;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.io.NIOWriter;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 
 /**
  * {@link NIOWriter} implementation.
@@ -112,12 +112,12 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
     }
 
 
-    // ---------------------------------------------- Methods from NIOOutputSink
+    // ---------------------------------------------- Methods from OutputSink
 
     /**
      * @param length specifies the number of characters that require writing
      *
-     * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
+     * @return <code>true</code> if a write to this <code>OutputSink</code>
      *  will succeed, otherwise returns <code>false</code>.
      * 
      * @deprecated the <code>length</code> parameter will be ignored. Pls use {@link #canWrite()}.
@@ -127,7 +127,7 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
     }
     
     /**
-     * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
+     * @return <code>true</code> if a write to this <code>OutputSink</code>
      *  will succeed, otherwise returns <code>false</code>.
      * 
      * @since 2.3
@@ -137,7 +137,7 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
     }    
 
     /**
-     * Instructs the <code>NIOOutputSink</code> to invoke the provided
+     * Instructs the <code>OutputSink</code> to invoke the provided
      * {@link WriteHandler} when it is possible to write <code>length</code>
      * characters.
      *
@@ -153,7 +153,7 @@ final class NIOWriterImpl extends NIOWriter implements Cacheable {
     }
 
     /**
-     * Instructs the <code>NIOOutputSink</code> to invoke the provided
+     * Instructs the <code>OutputSink</code> to invoke the provided
      * {@link WriteHandler} when it is possible to write more characters.
      *
      * @param handler the {@link WriteHandler} that should be notified

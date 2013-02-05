@@ -47,8 +47,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -219,7 +219,7 @@ final class MultipartEntryNIOReader extends NIOReader {
         isClosed = true;
     }
 
-    // --------------------------------------------- Methods from NIOInputSource
+    // --------------------------------------------- Methods from InputSource
 
     /**
      * {@inheritDoc}

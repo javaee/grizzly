@@ -202,6 +202,18 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
+     * Set the processing {@link IOEvent}.
+     *
+     * @param event   the processing {@link IOEvent}.
+     * @param handler the {@link IOEventProcessingHandler} to handle context's life-cycle events.
+     */
+    public void setIoEvent(final IOEvent event,
+                           final IOEventProcessingHandler handler) {
+        this.ioEvent = event;
+        this.processingHandler = handler;
+    }
+
+    /**
      * Get the processing {@link Connection}.
      *
      * @return the processing {@link Connection}.

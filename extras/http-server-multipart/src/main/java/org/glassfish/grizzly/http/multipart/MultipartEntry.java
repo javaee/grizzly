@@ -46,8 +46,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.Header;
 

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.core;
 
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -319,6 +320,26 @@ public class HttpResponseParseTest extends TestCase {
 
         @Override
         public void setWriteBufferSize(int writeBufferSize) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void notifyCanWrite(WriteHandler handler) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void notifyCanWrite(WriteHandler handler, int length) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public boolean canWrite() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public boolean canWrite(int length) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }

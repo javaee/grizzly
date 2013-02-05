@@ -40,7 +40,9 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.Closeable;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.utils.DelayFilter;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -76,8 +78,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -366,10 +368,10 @@ public class MutlipartEntryInputStreamTest {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection, CloseType type)
+                public void onClosed(Closeable closeable, CloseType type)
                         throws IOException {
                     localFuture.failure(new IOException());
                 }

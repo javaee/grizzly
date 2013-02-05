@@ -500,8 +500,8 @@ public class AsyncWriteQueueTest {
             final int reentrantsToTest = maxAllowedReentrants * 3;
             
             final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
-            
-            asyncQueueWriter.setMaxWriteReentrants(maxAllowedReentrants);
+
+            Writer.Reentrant.setMaxReentrants(maxAllowedReentrants);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 

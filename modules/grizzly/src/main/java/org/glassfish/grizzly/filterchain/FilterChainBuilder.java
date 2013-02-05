@@ -91,6 +91,10 @@ public abstract class FilterChainBuilder {
         return this;
     }
 
+    public Filter get(int index)  {
+        return patternFilterChain.get(index);
+    }
+
     public FilterChainBuilder remove(int index) {
         patternFilterChain.remove(index);
         return this;

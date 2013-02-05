@@ -93,9 +93,9 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Note;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.server.io.InputBuffer;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.InputBuffer;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
@@ -499,7 +499,7 @@ public class Request {
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        inputBuffer.initialize(this, ctx);
+        inputBuffer.initialize(request, ctx);
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
@@ -921,7 +921,7 @@ public class Request {
      *
      * @since 2.2
      */
-    public InputStream getInputStream() {
+    public NIOInputStream getInputStream() {
         return getNIOInputStream();
     }
 
@@ -1113,7 +1113,7 @@ public class Request {
      *
      * @since 2.2
      */
-    public Reader getReader() {
+    public NIOReader getReader() {
         return getNIOReader();
     }
 

@@ -103,6 +103,19 @@ public abstract class AbstractFilterChain implements FilterChain {
         return context;
     }
 
+    @Override
+    public FilterChainContext obtainFilterChainContext(
+            final Connection connection, final int startIdx, final int endIdx,
+            final int currentIdx) {
+        final FilterChainContext ctx = obtainFilterChainContext(connection);
+
+        ctx.setStartIdx(startIdx);
+        ctx.setEndIdx(endIdx);
+        ctx.setFilterIdx(currentIdx);
+
+        return ctx;
+    }
+
     /**
      * {@inheritDoc}
      */

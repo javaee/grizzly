@@ -99,11 +99,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
     private boolean allowCustomReasonPhrase = true;
 
     /**
-     * Is chunking allowed to be used or not.
-     */
-    private boolean chunkingAllowed;
-
-    /**
      * Returns {@link HttpResponsePacket} builder.
      *
      * @return {@link Builder}.
@@ -267,29 +262,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public void setAcknowledgement(final boolean acknowledgement) {
         this.acknowledgment = acknowledgement;
-    }
-
-    /**
-     * Return <code>true</code> if chunking is allowed for this response.
-     *
-     * @return <code>true</code> if chunking is allowed for this response.
-     *
-     * @since 2.1.2
-     */
-    public boolean isChunkingAllowed() {
-        return chunkingAllowed;
-    }
-
-    /**
-     * Indicate whether or not chunking may be used by this response.
-     *
-     * @param chunkingAllowed <code>true</code> if chunked transfer-encoding
-     *  is allowed, otherwise returns  <code>false</code>.
-     *
-     * @since 2.1.2
-     */
-    public void setChunkingAllowed(boolean chunkingAllowed) {
-        this.chunkingAllowed = chunkingAllowed;
     }
 
     /**

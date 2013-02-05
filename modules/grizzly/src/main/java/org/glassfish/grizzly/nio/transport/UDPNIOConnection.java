@@ -57,6 +57,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -615,6 +616,40 @@ public class UDPNIOConnection extends NIOConnection {
      */
     protected final void onWrite(Buffer data, int size) {
         notifyProbesWrite(this, data, size);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite() {
+        return transport.getWriter(this).canWrite(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
+    @Override
+    public boolean canWrite(int length) {
+        return transport.getWriter(this).canWrite(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyCanWrite(final WriteHandler writeHandler) {
+        transport.getWriter(this).notifyWritePossible(this, writeHandler);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
+    @Override
+    public void notifyCanWrite(WriteHandler handler, int length) {
+        transport.getWriter(this).notifyWritePossible(this, handler);
     }
 
     /**

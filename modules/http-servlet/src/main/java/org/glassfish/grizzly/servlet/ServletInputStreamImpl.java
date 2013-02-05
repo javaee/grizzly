@@ -61,7 +61,8 @@ import java.io.IOException;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**

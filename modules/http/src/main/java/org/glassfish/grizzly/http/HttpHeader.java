@@ -71,7 +71,7 @@ public abstract class HttpHeader extends HttpPacket
             Constants.CHUNKED_ENCODING.getBytes(Charsets.ASCII_CHARSET);
 
     protected boolean isCommitted;
-    protected final MimeHeaders headers = new MimeHeaders();
+    protected MimeHeaders headers;
     
     protected final DataChunk protocolC = DataChunk.newInstance();
     protected Protocol parsedProtocol;
@@ -118,6 +118,19 @@ public abstract class HttpHeader extends HttpPacket
     private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;
+
+    /**
+     * Is chunking allowed to be used or not.
+     */
+    private boolean chunkingAllowed;
+
+    public HttpHeader() {
+        this(new MimeHeaders());
+    }
+
+    protected HttpHeader(MimeHeaders headers) {
+        this.headers = headers;
+    }
     
     void setHeaderBuffer(final Buffer headerBuffer) {
         this.headerBuffer = headerBuffer;
@@ -246,7 +259,7 @@ public abstract class HttpHeader extends HttpPacket
         return isExpectContent;
     }
 
-    protected void setExpectContent(boolean isExpectContent) {
+    public void setExpectContent(boolean isExpectContent) {
         this.isExpectContent = isExpectContent;
     }
 
@@ -441,7 +454,7 @@ public abstract class HttpHeader extends HttpPacket
         final int idx = headers.indexOf(Header.ContentEncoding, 0);
 
         if (idx != -1) {
-            headers.getAndSetSerialized(idx, true);
+            headers.setSerialized(idx, true);
             value.set(headers.getValue(idx));
         }
     }
@@ -474,6 +487,27 @@ public abstract class HttpHeader extends HttpPacket
         quotedCharsetValue = charset;
         // END SJSAS 6316254
         charsetSet = true;
+    }
+
+    /**
+     * Return <code>true</code> if chunking is allowed for this header.
+     *
+     * @return <code>true</code> if chunking is allowed for this header.
+     * @since 3.0
+     */
+    public boolean isChunkingAllowed() {
+        return chunkingAllowed;
+    }
+
+    /**
+     * Indicate whether or not chunking may be used by this header.
+     *
+     * @param chunkingAllowed <code>true</code> if chunked transfer-encoding
+     *                        is allowed, otherwise returns  <code>false</code>.
+     * @since 3.0
+     */
+    public void setChunkingAllowed(boolean chunkingAllowed) {
+        this.chunkingAllowed = chunkingAllowed;
     }
 
     /**
@@ -845,6 +879,7 @@ public abstract class HttpHeader extends HttpPacket
         quotedCharsetValue = null;
         charsetSet = false;
         contentType = null;
+        chunkingAllowed = false;
         transferEncoding = null;
         isExpectContent = true;
         upgrade.recycle();

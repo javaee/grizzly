@@ -90,7 +90,7 @@ public class SSLProtocolFinder implements ProtocolFinder {
                     new SSLConnectionContext(connection);
             sslCtx.configure(sslEngine);
             
-            handshakeUnwrap(connection, sslCtx, buffer, null);
+            handshakeUnwrap(sslCtx, buffer, null);
 
             sslCtx.attach();
             return Result.FOUND;

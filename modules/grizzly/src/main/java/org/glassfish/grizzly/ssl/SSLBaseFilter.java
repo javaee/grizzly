@@ -60,8 +60,12 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -268,7 +272,17 @@ public class SSLBaseFilter extends BaseFilter {
             final boolean isHandshaking = isHandshaking(sslEngine);
             if (!isHandshaking) {
                 notifyHandshakeComplete(connection, sslEngine);
-
+                final FilterChain connectionFilterChain = sslCtx.getNewConnectionFilterChain();
+                sslCtx.setNewConnectionFilterChain(null);
+                if (connectionFilterChain != null) {
+                    NextAction suspendAction = ctx.getSuspendAction();
+                    ctx.suspend();
+                    connection.setProcessor(connectionFilterChain);
+                    final FilterChainContext newContext =
+                            obtainProtocolChainContext(ctx, connectionFilterChain);
+                    ProcessorExecutor.execute(newContext.getInternalContext());
+                    return suspendAction;
+                }
                 if (hasRemaining) {
                     ctx.setMessage(buffer);
                     return unwrapAll(ctx, sslCtx);
@@ -560,8 +574,7 @@ public class SSLBaseFilter extends BaseFilter {
                         }
                         
                         final SSLEngineResult sslEngineResult =
-                                handshakeUnwrap(connection, sslCtx, inputBuffer,
-                                tmpAppBuffer);
+                                handshakeUnwrap(sslCtx, inputBuffer, tmpAppBuffer);
 
                         if (!inputBuffer.hasRemaining()) {
                             tmpInputToDispose = inputBuffer;
@@ -769,6 +782,26 @@ public class SSLBaseFilter extends BaseFilter {
         return x509Certs;
     }
 
+    private FilterChainContext obtainProtocolChainContext(
+            final FilterChainContext ctx,
+            final FilterChain completeProtocolFilterChain) {
+
+        final FilterChainContext newFilterChainContext =
+                completeProtocolFilterChain.obtainFilterChainContext(
+                        ctx.getConnection(),
+                        ctx.getStartIdx(),
+                        completeProtocolFilterChain.size(),
+                        ctx.getFilterIdx());
+
+        newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
+        newFilterChainContext.setMessage(ctx.getMessage());
+        newFilterChainContext.getInternalContext().setIoEvent(
+                IOEvent.READ,
+                new InternalProcessingHandler(ctx));
+
+        return newFilterChainContext;
+    }
+
 
     // --------------------------------------------------------- Private Methods
 
@@ -869,6 +902,20 @@ public class SSLBaseFilter extends BaseFilter {
         }
 
     } // END CertificateEvent
+
+    private class InternalProcessingHandler extends IOEventProcessingHandler.Adapter {
+        private final FilterChainContext parentContext;
+
+        private InternalProcessingHandler(final FilterChainContext parentContext) {
+            this.parentContext = parentContext;
+        }
+
+        @Override
+        public void onComplete(final Context context, Object data) throws IOException {
+            parentContext.resume(parentContext.getStopAction());
+        }
+
+    } // END InternalProcessingHandler
     
     public static interface HandshakeListener {
         public void onStart(Connection connection);

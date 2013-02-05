@@ -122,7 +122,7 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
     */
-    public static final Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
+    public static Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
     // byte[]
     private byte[] buff;
@@ -739,34 +739,15 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
      * @return true if the comparison succeeded, false otherwise
      */
     public boolean equalsIgnoreCase(final String s) {
-        byte[] b = buff;
-        int blen = end-start;
-        if (b == null || blen != s.length()) {
-            return false;
-        }
-        int boff = start;
-        for (int i = 0; i < blen; i++) {
-            if (Ascii.toLower(b[boff++]) != Ascii.toLower(s.charAt(i))) {
-            return false;
-            }
-        }
-        return true;
+        return equalsIgnoreCase(buff, start, getLength(), s);
     }
 
     public boolean equalsIgnoreCase(final byte[] b) {
-        final byte[] a = buff;
-        final int blen = end - start;
-        if (a == null || blen != b.length) {
-            return false;
-        }
-
-        int boff = start;
-        for (int i = 0; i < blen; i++) {
-            if (Ascii.toLower(a[boff++]) != Ascii.toLower(b[i])) {
-                return false;
-            }
-        }
-        return true;
+        return equalsIgnoreCase(b, 0, b.length);
+    }
+    
+    public boolean equalsIgnoreCase(final byte[] b, final int offset, final int len) {
+        return equalsIgnoreCase(buff, start, getLength(), b, offset, len);
     }
     
     public boolean equalsIgnoreCaseLowerCase(byte[] cmpTo) {
@@ -957,6 +938,51 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
         return true;
         
     }
+    
+    public static boolean equalsIgnoreCase(final byte[] b1, final int b1Offs, final int b1Len,
+            final byte[] b2, final int b2Offs, final int b2Len) {
+        // XXX ENCODING - this only works if encoding is UTF8-compat
+        // ( ok for tomcat, where we compare ascii - header names, etc )!!!
+
+        if (b1Len != b2Len) {
+            return false;
+        }
+        
+        if (b1 == b2) {
+            return true;
+        }
+        
+        if (b1 == null || b2 == null) {
+            return false;
+        }
+
+        for (int i = 0; i < b1Len; i++) {
+            if (Ascii.toLower(b1[i + b1Offs]) != Ascii.toLower(b2[i + b2Offs])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Compares the message bytes to the specified String object.
+     * @param s the String to compare
+     * @return true if the comparison succeeded, false otherwise
+     */
+    public static boolean equalsIgnoreCase(final byte[] b, final int offset, final int len,
+            final String s) {
+        if (len != s.length()) {
+            return false;
+        }
+        int boff = offset;
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(b[boff++]) != Ascii.toLower(s.charAt(i))) {
+            return false;
+            }
+        }
+        return true;
+    }
+    
     /**
      * Compares the buffer chunk to the specified byte array representing
      * lower-case ASCII characters.

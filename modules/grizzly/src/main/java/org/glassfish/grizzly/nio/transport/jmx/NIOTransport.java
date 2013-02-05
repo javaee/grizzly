@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -297,23 +297,43 @@ public class NIOTransport extends JmxObject {
     private class JmxTransportProbe implements TransportProbe {
 
         @Override
+        public void onBeforeStartEvent(Transport transport) {
+            stateEvent = new EventDate("STARTING");
+        }
+
+        @Override
         public void onStartEvent(Transport transport) {
-            stateEvent = new EventDate("START");
+            stateEvent = new EventDate("STARTED");
+        }
+
+        @Override
+        public void onBeforeStopEvent(Transport transport) {
+            stateEvent = new EventDate("STOPPING");
         }
 
         @Override
         public void onStopEvent(Transport transport) {
-            stateEvent = new EventDate("STOP");
+            stateEvent = new EventDate("STOPPED");
+        }
+
+        @Override
+        public void onBeforePauseEvent(Transport transport) {
+            stateEvent = new EventDate("PAUSING");
         }
 
         @Override
         public void onPauseEvent(Transport transport) {
-            stateEvent = new EventDate("PAUSE");
+            stateEvent = new EventDate("PAUSED");
+        }
+
+        @Override
+        public void onBeforeResumeEvent(Transport transport) {
+            stateEvent = new EventDate("RESUMING");
         }
 
         @Override
         public void onResumeEvent(Transport transport) {
-            stateEvent = new EventDate("RESUME");
+            stateEvent = new EventDate("RESUMED");
         }
 
         @Override

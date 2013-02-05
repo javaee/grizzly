@@ -58,6 +58,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.SocketBinder;
+import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.localization.LogMessages;
@@ -181,7 +193,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Start TCPNIOTransport.
      * 
-     * The transport will be started only if its current state is {@link State#STOP},
+     * The transport will be started only if its current state is {@link State#STOPPED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -191,13 +203,14 @@ public final class TCPNIOTransport extends NIOTransport implements
         lock.lock();
         try {
             State currentState = state.getState();
-            if (currentState != State.STOP) {
+            if (currentState != State.STOPPED) {
                 LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
                 return;
             }
 
             state.setState(State.STARTING);
+            notifyProbesBeforeStart(this);
 
             super.start();
             
@@ -260,7 +273,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             listenServerConnections();
 
-            state.setState(State.START);
+            state.setState(State.STARTED);
 
             notifyProbesStart(this);
         } finally {
@@ -296,7 +309,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Stop TCPNIOTransport.
      * 
-     * If the current transport state is {@link State#STOP} - the call will be
+     * If the current transport state is {@link State#STOPPED} - the call will be
      * ignored and no exception thrown.
      */
     @Override
@@ -306,18 +319,19 @@ public final class TCPNIOTransport extends NIOTransport implements
         try {
             final State stateNow = state.getState();
             
-            if (stateNow == State.STOP) {
+            if (stateNow == State.STOPPED) {
                 return;
             }
             
-            if (stateNow == State.PAUSE) {
+            if (stateNow == State.PAUSED) {
                 // if Transport is paused - first we need to resume it
                 // so selectorrunners can perform the close phase
                 resume();
             }
             
             unbindAll();
-            state.setState(State.STOP);
+            state.setState(State.STOPPING);
+            notifyProbesBeforeStop(this);
 
             stopSelectorRunners();
 
@@ -330,7 +344,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 kernelPool.shutdownNow();
                 kernelPool = null;
             }
-
+            state.setState(State.STOPPING);
             notifyProbesStop(this);
         } finally {
             lock.unlock();
@@ -341,7 +355,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      * Pause TCPNIOTransport, so I/O events coming on its {@link TCPNIOConnection}s
      * will not be processed. Use {@link #resume()} in order to resume TCPNIOTransport processing.
      * 
-     * The transport will be paused only if its current state is {@link State#START},
+     * The transport will be paused only if its current state is {@link State#STARTED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -350,12 +364,14 @@ public final class TCPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() != State.START) {
+            if (state.getState() != State.STARTED) {
                 LOGGER.log(Level.WARNING,
                         "Transport is not in START state!");
                 return;
             }
-            state.setState(State.PAUSE);
+            state.setState(State.PAUSING);
+            notifyProbesBeforePause(this);
+            state.setState(State.PAUSED);
             notifyProbesPause(this);
         } finally {
             lock.unlock();
@@ -365,7 +381,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Resume TCPNIOTransport, which has been paused before using {@link #pause()}.
      * 
-     * The transport will be resumed only if its current state is {@link State#PAUSE},
+     * The transport will be resumed only if its current state is {@link State#PAUSED},
      * otherwise the call will be ignored without exception thrown and the transport
      * state will remain the same as it was before the method call.
      */
@@ -374,12 +390,14 @@ public final class TCPNIOTransport extends NIOTransport implements
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            if (state.getState() != State.PAUSE) {
+            if (state.getState() != State.PAUSED) {
                 LOGGER.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
                 return;
             }
-            state.setState(State.START);
+            state.setState(State.STARTING);
+            notifyProbesBeforeResume(this);
+            state.setState(State.STARTED);
             notifyProbesResume(this);
         } finally {
             lock.unlock();

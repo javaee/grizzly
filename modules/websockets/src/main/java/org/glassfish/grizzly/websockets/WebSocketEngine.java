@@ -47,9 +47,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -161,7 +162,7 @@ public class WebSocketEngine {
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
                     @Override
-                    public void onClosed(final Connection connection,
+                    public void onClosed(final Closeable closeable,
                             final CloseType type) throws IOException {
                         
                         final WebSocket webSocket = getWebSocket(connection);

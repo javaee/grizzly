@@ -47,10 +47,11 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Connection.CloseListener;
-import org.glassfish.grizzly.Connection.CloseType;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
@@ -401,8 +402,9 @@ public class SSLFilter extends SSLBaseFilter {
      */
     private final class ConnectionCloseListener implements CloseListener {
         @Override
-        public void onClosed(final Connection connection, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
+            final Connection connection = (Connection) closeable;
             final SSLHandshakeContext handshakeContext =
                     handshakeContextAttr.get(connection);
             if (handshakeContext != null) {

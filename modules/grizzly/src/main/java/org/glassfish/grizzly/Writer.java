@@ -129,4 +129,132 @@ public interface Writer<L> {
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler);
+
+    /**
+         * Return <code>true</code> if the connection has not exceeded it's maximum
+         *  size in bytes of pending writes, otherwise <code>false</code>.
+         *
+         * @param connection the {@link Connection} to test whether or not the
+         *  specified number of bytes can be written to.
+         * @return <code>true</code> if the connection has not exceeded it's maximum
+         *  size in bytes of pending writes, otherwise <code>false</code>
+         *
+         * @since 2.3
+         */
+        boolean canWrite(final Connection<L> connection);
+
+        /**
+         * Registers {@link WriteHandler}, which will be notified ones at least one
+         * byte can be written.
+         *
+         * This method call is equivalent to call notifyWritePossible(connection, writeHandler, <tt>1</tt>);
+         *
+         * Note: using this method from different threads simultaneously may lead
+         * to quick situation changes, so at time {@link WriteHandler} is called -
+         * the queue may become busy again.
+         *
+         * @param connection {@link Connection}
+         * @param writeHandler {@link WriteHandler} to be notified.
+         *
+         * @since 2.3
+         */
+        void notifyWritePossible(final Connection<L> connection,
+                final WriteHandler writeHandler);
+
+
+    /**
+     * Write reentrants counter
+     */
+    public static final class Reentrant {
+        private static final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
+                new ThreadLocal<Reentrant>() {
+
+                    @Override
+                    protected Reentrant initialValue() {
+                        return new Reentrant();
+                    }
+                };
+
+        private static volatile int maxWriteReentrants = 10;
+
+        /**
+         * Returns the maximum number of write() method reentrants a thread is
+         * allowed to made. This is related to possible
+         * write()->onComplete()->write()->... chain, which may grow infinitely
+         * and cause StackOverflow. Using maxWriteReentrants value it's possible
+         * to limit such a chain.
+         *
+         * @return the maximum number of write() method reentrants a thread is
+         *         allowed to make.
+         */
+        public static int getMaxReentrants() {
+            return maxWriteReentrants;
+        }
+
+        /**
+         * Sets the maximum number of write() method reentrants a thread is
+         * allowed to made. This is related to possible
+         * write()->onComplete()->write()->... chain, which may grow infinitely
+         * and cause StackOverflow. Using maxWriteReentrants value it's possible
+         * to limit such a chain.
+         *
+         * @param maxWriteReentrants the maximum number of write() method calls
+         *                           a thread is allowed to make.
+         */
+        public static void setMaxReentrants(int maxWriteReentrants) {
+            Reentrant.maxWriteReentrants = maxWriteReentrants;
+        }
+
+        /**
+         * Returns the current write reentrants counter. Might be useful, if
+         * developer wants to use custom notification mechanism, based on on {@link #canWrite(org.glassfish.grizzly.Connection)}
+         * and various write methods.
+         */
+        public static Reentrant getWriteReentrant() {
+            // ThreadLocal otherwise
+            return REENTRANTS_COUNTER.get();
+        }
+
+        private int counter;
+
+        /**
+         * Returns the value of the reentrants counter for the current thread.
+         */
+        public int get() {
+            return counter;
+        }
+
+        /**
+         * Increments the reentrants counter by one.
+         *
+         * @return <tt>true</tt> if the counter (after incrementing) didn't reach
+         *         {@link #getMaxReentrants()} limit, or <tt>false</tt> otherwise.
+         */
+        public boolean inc() {
+            return ++counter <= maxWriteReentrants;
+        }
+
+        /**
+         * Decrements the reentrants counter by one.
+         *
+         * @return <tt>true</tt> if the counter (after decrementing) didn't reach
+         *         {@link #getMaxReentrants()} limit, or <tt>false</tt> otherwise.
+         */
+        public boolean dec() {
+            return --counter <= maxWriteReentrants;
+        }
+
+        /**
+         * Returns <tt>true</tt>, if max number of write->completion-handler
+         * reentrants has been reached for the passed {@link Reentrant} object,
+         * and next write will happen in the separate thread.
+         *
+         * @return <tt>true</tt>, if max number of write->completion-handler
+         *         reentrants has been reached for the passed {@link Reentrant} object,
+         *         and next write will happen in the separate thread.
+         */
+        public boolean isMaxReentrantsReached() {
+            return get() >= getMaxReentrants();
+        }
+    }
 }

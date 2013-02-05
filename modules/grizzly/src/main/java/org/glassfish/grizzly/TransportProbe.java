@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,40 +49,77 @@ package org.glassfish.grizzly;
  * @since 2.0
  */
 public interface TransportProbe {
-    /**
-     * Method will be called, when the {@link Transport} gets started.
-     *
-     * @param transport {@link Transport}, the event belongs to.
-     */
-    public void onStartEvent(Transport transport);
 
     /**
-     * Method will be called, when the {@link Transport} gets stopped.
+     * Method will be called before starting the {@link Transport}.
      *
      * @param transport {@link Transport}, the event belongs to.
+     *
+     * @since 3.0
      */
-    public void onStopEvent(Transport transport);
+    void onBeforeStartEvent(Transport transport);
 
     /**
-     * Method will be called, when the {@link Transport} gets paused.
+     * Method will be called when the {@link Transport} has been started.
      *
      * @param transport {@link Transport}, the event belongs to.
      */
-    public void onPauseEvent(Transport transport);
+    void onStartEvent(Transport transport);
+
+    /**
+     * Method will be called before stopping the {@link Transport}.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     *
+     * @since 3.0
+     */
+    void onBeforeStopEvent(Transport transport);
+
+    /**
+     * Method will be called when the {@link Transport} has been stopped.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     */
+    void onStopEvent(Transport transport);
+
+    /**
+     * Method will be called before pausing the {@link Transport}.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     *
+     * @since 3.0
+     */
+    void onBeforePauseEvent(Transport transport);
+
+    /**
+     * Method will be called when the {@link Transport} is paused.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     */
+    void onPauseEvent(Transport transport);
+
+    /**
+     * Method will be called before resuming the {@link Transport}.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     *
+     * @since 3.0
+     */
+    void onBeforeResumeEvent(Transport transport);
 
     /**
      * Method will be called, when the {@link Transport} gets resumed.
      *
      * @param transport {@link Transport}, the event belongs to.
      */
-    public void onResumeEvent(Transport transport);
+    void onResumeEvent(Transport transport);
 
     /**
      * Method will be called, when the {@link Transport} configuration gets changed.
      *
      * @param transport {@link Transport}, the event belongs to.
      */
-    public void onConfigChangeEvent(Transport transport);
+    void onConfigChangeEvent(Transport transport);
     
     /**
      * Method will be called, when error occurs on the {@link Transport}.
@@ -90,7 +127,7 @@ public interface TransportProbe {
      * @param transport {@link Transport}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(Transport transport, Throwable error);
+    void onErrorEvent(Transport transport, Throwable error);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -112,7 +149,19 @@ public interface TransportProbe {
          * {@inheritDoc}
          */
         @Override
+        public void onBeforeStartEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public void onStartEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onBeforeStopEvent(Transport transport) {}
 
         /**
          * {@inheritDoc}
@@ -124,7 +173,19 @@ public interface TransportProbe {
          * {@inheritDoc}
          */
         @Override
+        public void onBeforePauseEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
         public void onPauseEvent(Transport transport) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onBeforeResumeEvent(Transport transport) {}
 
         /**
          * {@inheritDoc}

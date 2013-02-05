@@ -286,7 +286,7 @@ public class TCPNIOConnection extends NIOConnection {
      */
     @Override
     protected void close0(
-            final CompletionHandler<Connection> completionHandler,
+            final CompletionHandler<Closeable> completionHandler,
             final boolean isClosedLocally) {
         super.close0(completionHandler, isClosedLocally);
     }
@@ -315,6 +315,40 @@ public class TCPNIOConnection extends NIOConnection {
      */
     void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
         this.monitoringConfig.addProbes(monitoringProbes);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite() {
+        return transport.getWriter(this).canWrite(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
+    @Override
+    public boolean canWrite(int length) {
+        return transport.getWriter(this).canWrite(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyCanWrite(final WriteHandler writeHandler) {
+        transport.getWriter(this).notifyWritePossible(this, writeHandler);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Deprecated
+    @Override
+    public void notifyCanWrite(WriteHandler handler, int length) {
+        transport.getWriter(this).notifyWritePossible(this, handler);
     }
 
     @Override

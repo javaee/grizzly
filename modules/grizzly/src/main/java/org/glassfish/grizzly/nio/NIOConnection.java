@@ -392,17 +392,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public GrizzlyFuture<Connection> close() {
+    public GrizzlyFuture<Closeable> close() {
         
-        final FutureImpl<Connection> future = Futures.<Connection>createSafeFuture();
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
         close(Futures.toCompletionHandler(future));
         
         return future;
     }
 
     @Override
-    public void close(
-            final CompletionHandler<Connection> completionHandler) {
+    public void close(final CompletionHandler<Closeable> completionHandler) {
         close0(completionHandler, true);
     }
         
@@ -412,8 +411,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         close(null);
     }
     
-    protected void close0(
-            final CompletionHandler<Connection> completionHandler,
+    protected void close0(final CompletionHandler<Closeable> completionHandler,
             final boolean isClosedLocally) {
         
         if (closeTypeFlag.compareAndSet(null,
@@ -436,7 +434,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
                     return true;
                 }
-            }, new CompletionHandlerAdapter<Connection, SelectorHandler.Task>(
+            }, new CompletionHandlerAdapter<Closeable, SelectorHandler.Task>(
                     null, completionHandler) {
 
                 @Override

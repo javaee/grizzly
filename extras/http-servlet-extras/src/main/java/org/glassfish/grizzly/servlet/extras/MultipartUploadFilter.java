@@ -50,8 +50,8 @@ import org.glassfish.grizzly.http.multipart.MultipartEntryHandler;
 import org.glassfish.grizzly.http.multipart.MultipartScanner;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 

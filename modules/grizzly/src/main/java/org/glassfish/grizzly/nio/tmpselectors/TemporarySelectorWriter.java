@@ -234,4 +234,25 @@ public abstract class TemporarySelectorWriter
             completionHandler.failed(failure);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite(final Connection connection) {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyWritePossible(final Connection connection,
+                                    final WriteHandler writeHandler) {
+        try {
+            writeHandler.onWritePossible();
+        } catch (Throwable t) {
+            writeHandler.onError(t);
+        }
+    }
 }

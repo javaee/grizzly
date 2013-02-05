@@ -43,7 +43,8 @@ package org.glassfish.grizzly.http.multipart;
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import java.io.IOException;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 
 /**
  * Stream implementation to read {@link MultipartEntry} content in the binary mode.
@@ -186,7 +187,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     }
 
 
-    // --------------------------------------------- Methods from NIOInputSource
+    // --------------------------------------------- Methods from InputSource
 
 
     /**

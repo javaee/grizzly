@@ -42,8 +42,6 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,6 +55,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -70,13 +69,15 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
+import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+
+import static org.glassfish.grizzly.Writer.Reentrant;
 
 public class NIOOutputSinksTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
@@ -688,7 +689,7 @@ public class NIOOutputSinksTest extends TestCase {
             }
         });
         
-        final int maxAllowedReentrants = listener.getTransport().getAsyncQueueIO().getWriter().getMaxWriteReentrants();
+        final int maxAllowedReentrants = Reentrant.getMaxReentrants();
         final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
@@ -861,7 +862,7 @@ public class NIOOutputSinksTest extends TestCase {
                     @Override
                     public void onWritePossible() throws Exception {
                         clientTransport.pause();
-                        
+
                         try {
                             while (outputStream.canWrite()) {
                                 byte[] b = new byte[LENGTH];
@@ -885,7 +886,7 @@ public class NIOOutputSinksTest extends TestCase {
                     public void onError(Throwable t) {
                         finish(500);
                     }
-                    
+
                     private void finish(int code) {
                         response.setStatus(code);
                         response.resume();

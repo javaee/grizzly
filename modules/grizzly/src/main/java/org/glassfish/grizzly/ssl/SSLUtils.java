@@ -97,7 +97,7 @@ public final class SSLUtils {
     private static final int MIN_VERSION = 0x0300;
     private static final int MAX_MAJOR_VERSION = 0x03;
 
-    static SSLConnectionContext getSslConnectionContext(
+    public static SSLConnectionContext getSslConnectionContext(
             final Connection connection) {
         SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
         if (sslCtx == null) {
@@ -254,10 +254,10 @@ public final class SSLUtils {
                 handshakeStatus == HandshakeStatus.NOT_HANDSHAKING);
     }
 
-    public static SSLEngineResult handshakeUnwrap(final Connection connection,
-            final SSLConnectionContext sslCtx, final Buffer inputBuffer,
-            final Buffer tmpOutputBuffer)
-            throws SSLException {
+    public static SSLEngineResult handshakeUnwrap(final SSLConnectionContext sslCtx,
+                                                  final Buffer inputBuffer,
+                                                  final Buffer tmpOutputBuffer)
+    throws SSLException {
 
         SSLConnectionContext.SslResult result =
                 sslCtx.unwrap(inputBuffer, tmpOutputBuffer, HS_UNWRAP_ALLOCATOR);

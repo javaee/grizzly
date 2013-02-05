@@ -44,8 +44,8 @@ import java.io.IOException;
 import java.nio.CharBuffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.io.InputBuffer;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.io.InputBuffer;
+import org.glassfish.grizzly.http.io.NIOReader;
 
 /**
  * {@link NIOReader} implementation based on {@link InputBuffer}.
@@ -135,7 +135,7 @@ final class NIOReaderImpl extends NIOReader implements Cacheable {
     }
 
 
-    // --------------------------------------------- Methods from NIOInputSource
+    // --------------------------------------------- Methods from InputSource
 
 
     /**
