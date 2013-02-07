@@ -161,6 +161,26 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
     }
 
     @Test
+    public void testSelectionKeyHandlerConfiguration() throws Exception {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            configure();
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-skh.xml");
+            grizzlyConfig.setupNetwork();
+            final String bufferType = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findTransport().getByteBufferType();
+            GenericGrizzlyListener genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
+            NIOTransport transport = (NIOTransport) genericGrizzlyListener.getTransport();
+            assertEquals(TestSelectionKeyHandler.class.getName(), transport.getSelectionKeyHandler().getClass().getName());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+                grizzlyConfig.shutdown();
+            }
+        }
+    }
+
+    @Test
     public void testDirectBufferConfiguration() throws Exception {
         GrizzlyConfig grizzlyConfig = null;
         try {
