@@ -337,6 +337,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
             worker.transactionExpirationTime =
                     System.currentTimeMillis() + transactionTimeoutMillis;
         }
+
+        final ClassLoader initial = config.getInitialClassLoader();
+        if (initial != null) {
+            t.setContextClassLoader(initial);
+        }
     }
 
     /**
@@ -508,6 +513,10 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 thread.setUncaughtExceptionHandler(AbstractThreadPool.this);
                 thread.setPriority(config.getPriority());
                 thread.setDaemon(config.isDaemon());
+                final ClassLoader initial = config.getInitialClassLoader();
+                if (initial != null) {
+                    thread.setContextClassLoader(initial);
+                }
                 
                 return thread;
             }

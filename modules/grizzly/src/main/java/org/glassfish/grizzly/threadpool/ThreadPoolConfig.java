@@ -51,7 +51,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
  * Grizzly thread-pool configuration, which might be used to create and initialize
  * a thread-pool via {@link GrizzlyExecutorService#createInstance(org.glassfish.grizzly.threadpool.ThreadPoolConfig)}.
  * One can get a default Grizzly <tt>ThreadPoolConfig</tt> using
- * {@link ThreadPoolConfig#newConfig()} and customize it according to the
+ * {@link org.glassfish.grizzly.threadpool.ThreadPoolConfig#copy()} and customize it according to the
  * application specific requirements.
  * 
  * A <tt>ThreadPoolConfig</tt> object might be customized in a "Builder"-like fashion:
@@ -71,7 +71,7 @@ public final class ThreadPoolConfig {
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.NORM_PRIORITY, true, null, null, -1);
+            null, Thread.NORM_PRIORITY, true, null, null, -1, null);
 
     /**
      * Create new Grizzly thread-pool configuration instance.
@@ -96,6 +96,7 @@ public final class ThreadPoolConfig {
     protected MemoryManager mm;
     protected DelayedExecutor transactionMonitor;
     protected long transactionTimeoutMillis;
+    protected ClassLoader initialClassLoader;
 
     /**
      * Thread pool probes
@@ -116,7 +117,8 @@ public final class ThreadPoolConfig {
             boolean isDaemon,
             MemoryManager mm,
             DelayedExecutor transactionMonitor,
-            long transactionTimeoutMillis) {
+            long transactionTimeoutMillis,
+            ClassLoader initialClassLoader) {
         this.poolName        = poolName;
         this.corePoolSize    = corePoolSize;
         this.maxPoolSize     = maxPoolSize;
@@ -135,6 +137,7 @@ public final class ThreadPoolConfig {
         this.mm              = mm;
         this.transactionMonitor = transactionMonitor;
         this.transactionTimeoutMillis = transactionTimeoutMillis;
+        this.initialClassLoader = initialClassLoader;
         
         threadPoolMonitoringConfig = new MonitoringConfigImpl<ThreadPoolProbe>(
                 ThreadPoolProbe.class);
@@ -151,6 +154,7 @@ public final class ThreadPoolConfig {
         this.corePoolSize    = cfg.corePoolSize;
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
         this.mm              = cfg.mm;
+        this.initialClassLoader = cfg.initialClassLoader;
         
         this.threadPoolMonitoringConfig =
                 new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
@@ -244,6 +248,8 @@ public final class ThreadPoolConfig {
         this.isDaemon = isDaemon;
         return this;
     }
+
+
 
     
     /**
@@ -387,6 +393,33 @@ public final class ThreadPoolConfig {
         return setTransactionTimeout(transactionTimeout, timeunit);
     }
 
+    /**
+     * @return the classloader (if any) to be initially exposed by threads from this pool.
+     *
+     * @since 2.3
+     */
+    public ClassLoader getInitialClassLoader() {
+        return initialClassLoader;
+    }
+
+    /**
+     * Specifies the context classloader that will be used by threads in this pool.  If
+     * not specified, the classloader of the parent thread that initialized the pool will
+     * be used.
+     *
+     * @param initialClassLoader the classloader to be exposed by threads of this pool.
+     *
+     * @return the {@link ThreadPoolConfig}
+     *
+     * @see Thread#getContextClassLoader()
+     *
+     * @since 2.3
+     */
+    public ThreadPoolConfig setInitialClassLoader(final ClassLoader initialClassLoader) {
+        this.initialClassLoader = initialClassLoader;
+        return this;
+    }
+
     @Override
     public String toString() {
         return ThreadPoolConfig.class.getSimpleName() + " :\r\n"
@@ -400,6 +433,7 @@ public final class ThreadPoolConfig {
                 + "  transactionMonitor: " + transactionMonitor + "\r\n"
                 + "  transactionTimeoutMillis: " + transactionTimeoutMillis + "\r\n"
                 + "  priority: " + priority + "\r\n"
-                + "  isDaemon: " + isDaemon;
+                + "  isDaemon: " + isDaemon + "\r\n"
+                + "  initialClassLoader: " + initialClassLoader;
     }
 }
