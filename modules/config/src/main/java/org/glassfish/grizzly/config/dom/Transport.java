@@ -69,6 +69,8 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int READ_TIMEOUT = 30000;
     int WRITE_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
+    int SOCKET_RCV_BUFFER_SIZE = -1;
+    int SOCKET_SND_BUFFER_SIZE = -1;
     String BYTE_BUFFER_TYPE = "heap";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
     boolean DEDICATED_ACCEPTOR_ENABLED = false;
@@ -81,6 +83,28 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
 
     void setAcceptorThreads(String value);
 
+    /**
+     * The size, in bytes, of the socket send buffer size.  If the value is 0 or less,
+     * it defaults to the VM's default value.
+     */
+    @Attribute(defaultValue = "" + SOCKET_SND_BUFFER_SIZE, dataType = Integer.class)
+    String getSocketWriteBufferSize();
+
+    void setSocketWriteBufferSize();
+
+    /**
+     * The size, in bytes, of the socket send buffer size.  If the value is 0 or less,
+     * it defaults to the VM's default value.
+     */
+    @Attribute(defaultValue = "" + SOCKET_RCV_BUFFER_SIZE, dataType = Integer.class)
+    String getSocketReadBufferSize();
+
+    void setSocketReadBufferSize();
+
+    /**
+     * @deprecated This attribute is now ignored. Use socket-send-Buffer-size and/or socket-write-buffer-size instead.
+     */
+    @Deprecated
     @Attribute(defaultValue = "" + BUFFER_SIZE, dataType = Integer.class)
     String getBufferSizeBytes();
 
