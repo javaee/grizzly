@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.config;
 
-import com.sun.enterprise.module.bootstrap.DefaultErrorService;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.hk2.api.DynamicConfiguration;
 import org.glassfish.hk2.api.DynamicConfigurationService;
@@ -119,8 +118,6 @@ public class Utils {
 
             DynamicConfigurationService dcs = serviceLocator.getService(DynamicConfigurationService.class);
             DynamicConfiguration config = dcs.createDynamicConfiguration();
-
-            config.addActiveDescriptor(DefaultErrorService.class);
 
             config.commit();
 
