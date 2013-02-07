@@ -267,7 +267,17 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                           ByteBufferManager.DEFAULT_SMALL_BUFFER_SIZE));
         }
         transport.setSelectorRunnersCount(Integer.parseInt(transportConfig.getAcceptorThreads()));
-        transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));
+
+        final int readSize = Integer.parseInt(transportConfig.getSocketReadBufferSize());
+        if (readSize > 0) {
+            transport.setReadBufferSize(readSize);
+        }
+
+        final int writeSize = Integer.parseInt(transportConfig.getSocketWriteBufferSize());
+        if (writeSize > 0) {
+            transport.setWriteBufferSize(writeSize);
+        }
+
         transport.getKernelThreadPoolConfig().setPoolName(networkListener.getName() + "-kernel");
         transport.setIOStrategy(loadIOStrategy(transportConfig.getIOStrategy()));
         transport.setNIOChannelDistributor(

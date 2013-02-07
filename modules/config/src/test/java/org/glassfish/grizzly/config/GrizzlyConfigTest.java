@@ -41,10 +41,12 @@ package org.glassfish.grizzly.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.config.dom.NetworkAddressValidator;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
@@ -54,6 +56,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
@@ -171,6 +174,45 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             MemoryManager mm = genericGrizzlyListener.getTransport().getMemoryManager();
             assertEquals(ByteBufferManager.class.getName(), mm.getClass().getName());
             assertTrue(((ByteBufferManager) mm).isDirect());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+                grizzlyConfig.shutdown();
+            }
+        }
+    }
+
+    @Test
+    public void testSocketBufferConfiguration() throws Exception {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            configure();
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-socket.xml");
+            grizzlyConfig.setupNetwork();
+            GenericGrizzlyListener genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
+            Transport t = genericGrizzlyListener.getTransport();
+
+            assertEquals(-1, t.getReadBufferSize());
+            assertEquals(-1, t.getWriteBufferSize());
+
+            genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-2");
+            t = genericGrizzlyListener.getTransport();
+            assertEquals(8192, t.getReadBufferSize());
+            assertEquals(-1, t.getWriteBufferSize());
+
+            genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-3");
+            t = genericGrizzlyListener.getTransport();
+            assertEquals(-1, t.getReadBufferSize());
+            assertEquals(8000, t.getWriteBufferSize());
+
+            genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-4");
+            t = genericGrizzlyListener.getTransport();
+            assertEquals(6000, t.getReadBufferSize());
+            assertEquals(5000, t.getWriteBufferSize());
         } finally {
             if (grizzlyConfig != null) {
                 grizzlyConfig.shutdownNetwork();
