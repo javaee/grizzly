@@ -82,6 +82,8 @@ import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.AbstractThreadLocalMemoryManager;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -250,6 +252,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             transport = configureUDPTransport();
         } else {
             throw new GrizzlyConfigException("Unsupported transport type " + transportConfig.getName());
+        }
+
+        if (!Transport.BYTE_BUFFER_TYPE.equalsIgnoreCase(transportConfig.getByteBufferType())) {
+            transport.setMemoryManager(
+                    new ByteBufferManager(true,
+                                          AbstractThreadLocalMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+                                          ByteBufferManager.DEFAULT_SMALL_BUFFER_SIZE));
         }
         transport.setSelectorRunnersCount(Integer.parseInt(transportConfig.getAcceptorThreads()));
         transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));

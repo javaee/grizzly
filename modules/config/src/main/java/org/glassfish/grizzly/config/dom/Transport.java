@@ -47,6 +47,7 @@ import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 import org.glassfish.grizzly.IOStrategy;
 
+import javax.validation.constraints.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +56,7 @@ import java.util.List;
  */
 @Configured
 public interface Transport extends ConfigBeanProxy, PropertyBag {
+
     boolean DISPLAY_CONFIGURATION = false;
     boolean ENABLE_SNOOP = false;
     boolean TCP_NO_DELAY = true;
@@ -67,7 +69,7 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int READ_TIMEOUT = 30000;
     int WRITE_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
-    String BYTE_BUFFER_TYPE = "HEAP";
+    String BYTE_BUFFER_TYPE = "heap";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
     boolean DEDICATED_ACCEPTOR_ENABLED = false;
     
@@ -87,7 +89,8 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
      */
-    @Attribute(defaultValue = BYTE_BUFFER_TYPE)
+    @Attribute(defaultValue = BYTE_BUFFER_TYPE, dataType = String.class)
+    @Pattern(regexp = "heap|direct", flags = Pattern.Flag.CASE_INSENSITIVE)
     String getByteBufferType();
 
     void setByteBufferType(String value);
