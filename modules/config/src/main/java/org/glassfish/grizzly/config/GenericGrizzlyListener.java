@@ -486,6 +486,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         poolConfig.setCorePoolSize(minThreads);
         poolConfig.setMaxPoolSize(maxThreads);
         poolConfig.setQueueLimit(maxQueueSize);
+
+        // we specify the classloader that loaded this class to ensure
+        // we present the same initial classloader no matter what mode
+        // GlassFish is being run in.
+        // See http://java.net/jira/browse/GLASSFISH-19639
+        poolConfig.setInitialClassLoader(this.getClass().getClassLoader());
+
         poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
         if (transactionTimeoutMillis > 0 && !Utils.isDebugVM()) {
             poolConfig.setTransactionTimeout(delayedExecutor,
