@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,21 +41,22 @@
 package org.glassfish.grizzly;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutorService;
+import java.nio.ByteOrder;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -448,6 +449,17 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
         };
 
         testInWorkerThread(mm, r);
+    }
+
+    @Test
+    public void testByteOrderRestored() {
+        Buffer b = mm.allocate(1024);
+        if (b instanceof HeapBuffer) {
+            b.order(ByteOrder.LITTLE_ENDIAN);
+            assertEquals(ByteOrder.LITTLE_ENDIAN, b.order());
+            b.dispose();
+            assertEquals(ByteOrder.BIG_ENDIAN, b.order());
+        }
     }
 
     private void testInWorkerThread(final MemoryManager mm,
