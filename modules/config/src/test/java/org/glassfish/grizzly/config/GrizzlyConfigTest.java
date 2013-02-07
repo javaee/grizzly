@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,11 +51,15 @@ import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -127,6 +131,49 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             Assert.assertEquals("5", threadPool.getMaxThreadPoolSize());
         } finally {
             if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
+        }
+    }
+
+    @Test
+    public void testDefaultBufferConfiguration() throws Exception {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            configure();
+            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+            grizzlyConfig.setupNetwork();
+            final String bufferType = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findTransport().getByteBufferType();
+            Assert.assertEquals("heap", bufferType);
+            GenericGrizzlyListener genericGrizzlyListener =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
+            MemoryManager mm = genericGrizzlyListener.getTransport().getMemoryManager();
+            assertEquals(HeapMemoryManager.class.getName(), mm.getClass().getName());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+                grizzlyConfig.shutdown();
+            }
+        }
+    }
+
+    @Test
+    public void testDirectBufferConfiguration() throws Exception {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            configure();
+            grizzlyConfig = new GrizzlyConfig("grizzly-direct-buffer.xml");
+            grizzlyConfig.setupNetwork();
+            final String bufferType = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findTransport().getByteBufferType();
+            Assert.assertEquals("direct", bufferType);
+            GenericGrizzlyListener genericGrizzlyListener =
+                                           (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
+            MemoryManager mm = genericGrizzlyListener.getTransport().getMemoryManager();
+            assertEquals(ByteBufferManager.class.getName(), mm.getClass().getName());
+            assertTrue(((ByteBufferManager) mm).isDirect());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
                 grizzlyConfig.shutdown();
             }
         }
