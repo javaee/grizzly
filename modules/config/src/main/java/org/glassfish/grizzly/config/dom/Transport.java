@@ -146,7 +146,10 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     /**
      * Dump the requests/response information in server.log. Useful for debugging purpose, but significantly reduce
      * performance as the request/response bytes are translated to String.
+     *
+     * @deprecated this option is ignored by the runtime.
      */
+    @Deprecated
     @Attribute(defaultValue = "" + ENABLE_SNOOP, dataType = Boolean.class)
     String getEnableSnoop();
 
