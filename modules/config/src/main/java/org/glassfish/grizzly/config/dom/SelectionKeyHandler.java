@@ -46,9 +46,12 @@ import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
- * Defines Transport's SelectionKey handling logic
+ * Defines Transport's SelectionKey handling logic.
+ *
+ * @deprecated This element is effectively ignored.  No equivalent replacement.
  */
 @Configured
+@Deprecated
 public interface SelectionKeyHandler extends ConfigBeanProxy, PropertyBag {
     /**
      * SelectionKey handler name, which could be used as reference

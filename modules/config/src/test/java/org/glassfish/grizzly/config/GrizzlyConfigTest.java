@@ -62,9 +62,7 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Created Jan 5, 2009
@@ -171,7 +169,7 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
             GenericGrizzlyListener genericGrizzlyListener =
                     (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
             NIOTransport transport = (NIOTransport) genericGrizzlyListener.getTransport();
-            assertEquals(TestSelectionKeyHandler.class.getName(), transport.getSelectionKeyHandler().getClass().getName());
+            assertNotSame(TestSelectionKeyHandler.class.getName(), transport.getSelectionKeyHandler().getClass().getName());
         } finally {
             if (grizzlyConfig != null) {
                 grizzlyConfig.shutdownNetwork();

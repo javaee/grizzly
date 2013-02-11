@@ -264,14 +264,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 
         String selectorName = transportConfig.getSelectionKeyHandler();
         if (selectorName != null) {
-            SelectionKeyHandler handler = getSelectionKeyHandlerByName(selectorName, transportConfig);
-            if (handler == null) {
-                throw new IllegalStateException("Unable to configure transport using SelectionKeyHandler named " + selectorName);
-            }
-            try {
-                transport.setSelectionKeyHandler((org.glassfish.grizzly.nio.SelectionKeyHandler) Utils.newInstance(handler.getClassname()));
-            } catch (Exception e) {
-                throw new IllegalArgumentException(e);
+            if (getSelectionKeyHandlerByName(selectorName, transportConfig) != null) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.warning("Element, selection-key-handler, has been deprecated and is effectively ignored by the runtime.");
+                }
             }
         }
 

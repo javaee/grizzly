@@ -189,8 +189,11 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
 
     /**
      * Use public SelectionKey handler, which was defined earlier in the document.
+     * @deprecated This attribute as well as the named selection-key-handler element this attribute refers to has been
+     *  deprecated and is effectively ignored by the runtime.  No equivalent functionality is available.
      */
     @Attribute
+    @Deprecated
     String getSelectionKeyHandler();
 
     void setSelectionKeyHandler(String value);
