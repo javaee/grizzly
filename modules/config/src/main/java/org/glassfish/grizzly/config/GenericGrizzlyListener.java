@@ -66,10 +66,12 @@ import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.ProtocolChain;
 import org.glassfish.grizzly.config.dom.ProtocolChainInstanceHandler;
 import org.glassfish.grizzly.config.dom.ProtocolFilter;
+import org.glassfish.grizzly.config.dom.SelectionKeyHandler;
 import org.glassfish.grizzly.config.dom.Spdy;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
+import org.glassfish.grizzly.config.dom.Transports;
 import org.glassfish.grizzly.config.portunif.HttpRedirectFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -252,6 +254,15 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             transport = configureUDPTransport();
         } else {
             throw new GrizzlyConfigException("Unsupported transport type " + transportConfig.getName());
+        }
+
+        String selectorName = transportConfig.getSelectionKeyHandler();
+        if (selectorName != null) {
+            if (getSelectionKeyHandlerByName(selectorName, transportConfig) != null) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.warning("Element, selection-key-handler, has been deprecated and is effectively ignored by the runtime.");
+                }
+            }
         }
 
         if (!Transport.BYTE_BUFFER_TYPE.equalsIgnoreCase(transportConfig.getByteBufferType())) {
@@ -892,5 +903,19 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             ssl = (Ssl) DefaultProxy.createDummyProxy(protocol, Ssl.class);
         }
         return ssl;
+    }
+
+    private static SelectionKeyHandler getSelectionKeyHandlerByName(final String name,
+                                                                    final Transport transportConfig) {
+        Transports transports = transportConfig.getParent();
+        List<SelectionKeyHandler> handlers = transports.getSelectionKeyHandler();
+        if (!handlers.isEmpty()) {
+            for (SelectionKeyHandler handler : handlers) {
+                if (handler.getName().equals(name)) {
+                    return handler;
+                }
+            }
+        }
+        return null;
     }
 }
