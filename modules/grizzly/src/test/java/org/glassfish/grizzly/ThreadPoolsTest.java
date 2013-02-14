@@ -60,7 +60,7 @@ public class ThreadPoolsTest {
      */
     @Test
     public void testThreadPoolCoreThreadInitialization() throws Exception {
-        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        final ThreadPoolConfig config = ThreadPoolConfig.newConfig();
         config.setCorePoolSize(5);
         config.setMaxPoolSize(5);
         Field workers = AbstractThreadPool.class.getDeclaredField("workers");
