@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -78,28 +78,11 @@ public class SyncThreadPool extends AbstractThreadPool {
             config.setQueue(new LinkedList<Runnable>()).getQueue();
 
         this.maxQueuedTasks = config.getQueueLimit();
-    }
-
-    public void start() {
-        synchronized (stateLock) {
-            ProbeNotifier.notifyThreadPoolStarted(this);
-            
-            while (currentPoolSize < config.getCorePoolSize()) {
-                startWorker(new SyncThreadWorker(true));
-            }
+        final int corePoolSize = config.getCorePoolSize();
+        while (currentPoolSize < corePoolSize) {
+            startWorker(new SyncThreadWorker(true));
         }
-    }
-
-    public void stop() {
-        shutdownNow();
-    }
-
-    public int getCurrentPoolSize() {
-        return currentPoolSize;
-    }
-
-    public int getActiveThreadsCount() {
-        return activeThreadsCount;
+        ProbeNotifier.notifyThreadPoolStarted(this);
     }
 
     @Override
