@@ -140,13 +140,13 @@ public class AjpAddOn implements AddOn {
         }
 
         if (idx >= 0) {
-            builder.add(httpCodecFilterIdx, createAjpMessageFilter());
+            builder.add(idx, createAjpMessageFilter());
 
             final AjpHandlerFilter ajpHandlerFilter = createAjpHandlerFilter();
             ajpHandlerFilter.setSecret(secret);
             ajpHandlerFilter.setTomcatAuthentication(isTomcatAuthentication);
 
-            builder.add(httpCodecFilterIdx + 1, ajpHandlerFilter);
+            builder.add(idx + 1, ajpHandlerFilter);
         }
     }
 
