@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,8 @@ import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ArraySet;
 
 public class NetworkListener {
@@ -120,8 +122,22 @@ public class NetworkListener {
     /**
      * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
-    private TCPNIOTransport transport =
-        TCPNIOTransportBuilder.newInstance().build();
+    private TCPNIOTransport transport;
+    
+    {
+        final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
+        final int coresCount = Runtime.getRuntime().availableProcessors() * 2;
+        
+        transport = builder
+                .setIOStrategy(SameThreadIOStrategy.getInstance())
+                .setWorkerThreadPoolConfig(ThreadPoolConfig.defaultConfig()
+                .setPoolName("Grizzly-worker")
+                .setCorePoolSize(coresCount)
+                .setMaxPoolSize(coresCount)
+                .setMemoryManager(builder.getMemoryManager()))
+                .build();
+    }
+    
     /**
      * Flag indicating whether or not this listener is secure.  Defaults to <code>false</code>
      */
@@ -868,7 +884,8 @@ public class NetworkListener {
      * Sets the time, in seconds, within which a request must complete its
      * processing.  A value less than or equal to zero will disable this
      * timeout. Note that this configuration option is only considered when the
-     * transport is configured to use the {@link org.glassfish.grizzly.strategies.WorkerThreadIOStrategy}.
+     * transport's {@link org.glassfish.grizzly.Transport#getWorkerThreadPool()}
+     * thread pool is used to run a {@link HttpHandler}.
      *
      * @param transactionTimeout timeout in seconds
      */

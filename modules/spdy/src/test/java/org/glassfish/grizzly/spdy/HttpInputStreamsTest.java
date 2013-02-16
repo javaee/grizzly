@@ -1301,7 +1301,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
             Connection connection = null;
             try {
                 connection = connectFuture.get(30, TimeUnit.MINUTES);
-                testResult.get(60, TimeUnit.SECONDS);
+                testResult.get(6000, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {

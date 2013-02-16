@@ -882,10 +882,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     public Buffer read(final Connection connection, Buffer buffer)
             throws IOException {
 
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread = (currentThread instanceof WorkerThread) &&
-                ((WorkerThread) currentThread).isSelectorThread();
-        
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         int read;
 
@@ -900,7 +896,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                     try {
                         final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
                         read = readSimpleByteBuffer(tcpConnection,
-                                directByteBuffer, isSelectorThread);
+                                directByteBuffer);
                         
                         directByteBuffer.flip();
 
@@ -911,7 +907,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                     }
                 } else {
                     buffer = memoryManager.allocateAtLeast(receiveBufferSize);
-                    read = readSimple(tcpConnection, buffer, isSelectorThread);
+                    read = readSimple(tcpConnection, buffer);
                 }
                 
                 tcpConnection.onRead(buffer, read);
@@ -956,16 +952,16 @@ public final class TCPNIOTransport extends NIOTransport implements
                         final ByteBuffer[] byteBuffers = array.getArray();
                         final int size = array.size();
 
-                        if (!isSelectorThread) {
-                            read = doReadInLoop(socketChannel, byteBuffers, 0, size);
-                        } else {
+                        //if (!isSelectorThread) {
+                        //    read = doReadInLoop(socketChannel, byteBuffers, 0, size);
+                        //} else {
                             read = (int) socketChannel.read(byteBuffers, 0, size);
-                        }
+                        //}
 
                         array.restore();
                         array.recycle();
                     } else {
-                        read = readSimple(tcpConnection, buffer, isSelectorThread);
+                        read = readSimple(tcpConnection, buffer);
                     }
 
                 } catch (Exception e) {
@@ -998,31 +994,31 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     private int readSimple(final TCPNIOConnection tcpConnection,
-            final Buffer buffer, final boolean isSelectorThread) throws IOException {
+            final Buffer buffer) throws IOException {
 
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
         final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, buffer.toByteBuffer());
-        } else {
+        //if (!isSelectorThread) {
+        //    read = doReadInLoop(socketChannel, buffer.toByteBuffer());
+        //} else {
             read = socketChannel.read(buffer.toByteBuffer());
-        }
+        //}
 
         return read;
     }
     
     private int readSimpleByteBuffer(final TCPNIOConnection tcpConnection,
-            final ByteBuffer byteBuffer, final boolean isSelectorThread) throws IOException {
+            final ByteBuffer byteBuffer) throws IOException {
 
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
         final int read;
-        if (!isSelectorThread) {
-            read = doReadInLoop(socketChannel, byteBuffer);
-        } else {
+        //if (!isSelectorThread) {
+        //    read = doReadInLoop(socketChannel, byteBuffer);
+        //} else {
             read = socketChannel.read(byteBuffer);
-        }
+        //}
 
         return read;
     }

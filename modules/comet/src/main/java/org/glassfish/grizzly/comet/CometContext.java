@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,9 +53,9 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
@@ -108,8 +108,9 @@ public class CometContext<E> {
         + " invoking that method is the same as the Servlet.service() thread.";
     protected final static Logger logger = Logger.getLogger(CometContext.class.getName());
     private final Map<Object,Object> attributes;
+      
+    protected final static ThreadLocal<Request> REQUEST_LOCAL = new ThreadLocal<Request>();
     
-    protected final static ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
     /**
      * The context path associated with this instance.
      */
@@ -231,10 +232,10 @@ public class CometContext<E> {
         if (!CometEngine.getEngine().isCometEnabled()) {
             throw new IllegalStateException(COMET_NOT_ENABLED);
         }
-        Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER
-            .createAttribute("HttpServerFilter.Request");
-        final Connection c = connection.get();
-        final Response response = httpRequestInProcessAttr.get(c).getResponse();
+        final Request request = REQUEST_LOCAL.get();
+        final Response response = request.getResponse();
+        final Connection c = request.getContext().getConnection();
+        
         handler.setResponse(response);
         handler.setCometContext(this);
         try {

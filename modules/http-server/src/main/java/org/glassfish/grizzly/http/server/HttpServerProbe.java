@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -112,7 +112,18 @@ public interface HttpServerProbe {
     public void onRequestCancelEvent(HttpServerFilter filter,
             Connection connection, Request request);
 
-
+    /**
+     * Method will be called, before invoking
+     * {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
+     *
+     * @param filter {@link HttpServerFilter}, the event belongs to.
+     * @param connection {@link Connection}, the event belongs to.
+     * @param request received {@link Request}.
+     * @param httpHandler {@link HttpHandler} to be invoked.
+     */
+    public void onBeforeServiceEvent(HttpServerFilter filter,
+            Connection connection, Request request, HttpHandler httpHandler);
+    
     // ---------------------------------------------------------- Nested Classes
 
 
@@ -158,10 +169,14 @@ public interface HttpServerProbe {
         @Override
         public void onRequestTimeoutEvent(HttpServerFilter filter, Connection connection, Request request) {}
 
+
+        @Override
+        public void onRequestCancelEvent(HttpServerFilter filter, Connection connection, Request request) {}
+
         /**
          * {@inheritDoc}
          */
         @Override
-        public void onRequestCancelEvent(HttpServerFilter filter, Connection connection, Request request) {}
+        public void onBeforeServiceEvent(HttpServerFilter filter, Connection connection, Request request, HttpHandler httpHandler) {}
     }
 }

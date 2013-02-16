@@ -124,12 +124,32 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
+     * Sets the {@link ThreadPoolConfig} that will be used to construct the
+     *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
+     *  that require worker threads
+     */
+    public T setWorkerThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
+        transport.setWorkerThreadPoolConfig(threadPoolConfig);
+        return getThis();
+    }
+    
+    /**
      * @return the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} which will run the {@link NIOTransport}'s
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
     public ThreadPoolConfig getSelectorThreadPoolConfig() {
         return transport.getKernelThreadPoolConfig();
+    }
+
+    /**
+     * Sets the {@link ThreadPoolConfig} that will be used to construct the
+     *  {@link java.util.concurrent.ExecutorService} which will run the {@link NIOTransport}'s
+     *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
+     */
+    public T setSelectorThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
+        transport.setKernelThreadPoolConfig(threadPoolConfig);
+        return getThis();
     }
 
     /**

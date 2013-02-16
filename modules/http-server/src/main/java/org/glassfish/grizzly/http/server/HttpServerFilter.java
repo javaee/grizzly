@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -168,14 +168,14 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProgress.set(context, handlerRequest);
                 final Response handlerResponse = handlerRequest.getResponse();
 
-                handlerRequest.initialize(/*handlerResponse, */request, ctx, this);
-                final SuspendStatus suspendStatus = handlerResponse.initialize(
-                        handlerRequest, response, ctx, suspendedResponseQueue, this);
+                handlerRequest.initialize(request, ctx, this);
+                handlerResponse.initialize(handlerRequest, response, ctx,
+                        suspendedResponseQueue, this);
 
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
 
-                boolean wasSuspended;
+                boolean wasSuspended = false;
                 
                 try {
                     ctx.setMessage(handlerResponse);
@@ -186,7 +186,8 @@ public class HttpServerFilter extends BaseFilter
                     } else {
                         final HttpHandler httpHandlerLocal = httpHandler;
                         if (httpHandlerLocal != null) {
-                            httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
+                            wasSuspended = !httpHandlerLocal.doHandle(
+                                    handlerRequest, handlerResponse);
                         }
                     }
                 } catch (Exception t) {
@@ -207,9 +208,6 @@ public class HttpServerFilter extends BaseFilter
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Unexpected error", t);
                     throw new IllegalStateException(t);
-                } finally {
-                    // don't forget to invalidate the suspendStatus
-                    wasSuspended = suspendStatus.getAndInvalidate();
                 }
                 
                 if (!wasSuspended) {

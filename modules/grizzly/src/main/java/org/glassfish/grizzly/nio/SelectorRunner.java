@@ -68,6 +68,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.threadpool.Threads;
+import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.StateHolder;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -179,10 +182,7 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void postpone() {
-        final Thread currentThread = Thread.currentThread();
-        if (currentThread instanceof WorkerThread) {
-            ((WorkerThread) currentThread).setSelectorThread(false);
-        }
+        Threads.setService(false);
         
         runnerThreadActivityCounter.compareAndSet(1, 0);
         selectorRunnerThread = null;
@@ -262,10 +262,7 @@ public final class SelectorRunner implements Runnable {
         }
 
         setRunnerThread(currentThread);
-        final boolean isWorkerThread = currentThread instanceof WorkerThread;
-        if (isWorkerThread) {
-            ((WorkerThread) currentThread).setSelectorThread(true);
-        }
+        Threads.setService(true);
         
         final StateHolder<State> transportStateHolder = transport.getState();
 
@@ -295,9 +292,7 @@ public final class SelectorRunner implements Runnable {
                 }
             }
 
-            if (isWorkerThread) {
-                ((WorkerThread) currentThread).setSelectorThread(false);
-            }
+            Threads.setService(false);
         }
     }
 

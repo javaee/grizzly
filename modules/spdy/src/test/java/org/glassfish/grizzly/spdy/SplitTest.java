@@ -173,10 +173,12 @@ public class SplitTest extends AbstractSpdyTest {
                 TCPNIOTransportBuilder.newInstance().build();
         final HttpServer server = createWebServer(httpHandlers);
 
+
         try {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
+            
             clientTransport.setProcessor(createClientFilterChain(spdyMode, isSecure,
                     new ClientFilter(testResultFuture)));
 
