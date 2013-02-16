@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -55,7 +54,6 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -112,8 +110,7 @@ public class HttpServerFilter extends BaseFilter
             final DelayedExecutor delayedExecutor) {
         this.config = config;
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
-        httpRequestInProgress = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                        createAttribute("HttpServerFilter.Request");
+        httpRequestInProgress = Attribute.create("HttpServerFilter.Request");
     }
 
     @SuppressWarnings({"UnusedDeclaration"})

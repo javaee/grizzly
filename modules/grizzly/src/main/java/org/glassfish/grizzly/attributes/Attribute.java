@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,114 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  *         {@link IndexedAttributeHolder}, could be as fast as access to array.
  */
 public final class Attribute<T> {
+    
+    /**
+     * Create Attribute using default attribute builder
+     * {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} with name.
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param name attribute name
+
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final String name) {
+        return create(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER, name);
+    }
+
+    /**
+     * Create Attribute with name.
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param builder {@link AttributeBuilder} to be used
+     * @param name attribute name
+
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final AttributeBuilder builder,
+            final String name) {
+        return builder.createAttribute(name);
+    }
+
+    /**
+     * Create Attribute using default attribute builder
+     * {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} with name and default value.
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, java.lang.Object)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param name attribute name
+     * @param defaultValue attribute's default value
+     * 
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final String name,
+            final T defaultValue) {
+        return create(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER,
+                name, defaultValue);
+    }
+
+    /**
+     * Create Attribute with name and default value.
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, java.lang.Object)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param builder {@link AttributeBuilder} to be used
+     * @param name attribute name
+     * @param defaultValue attribute's default value
+     * 
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final AttributeBuilder builder,
+            final String name, final T defaultValue) {
+        return builder.createAttribute(name, defaultValue);
+        
+    }
+
+    /**
+     * Create Attribute using default attribute builder
+     * {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER}
+     * with name and initializer, which will be called, if
+     * Attribute's value is null on a AttributedObject.
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param name attribute name
+     * @param initializer NullaryFunction, which will be called, if Attribute's
+     *                    value is null on a AttributedObject 
+     * 
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final String name,
+            final NullaryFunction<T> initializer) {
+        return create(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER,
+                name, initializer);
+    }
+
+    /**
+     * Create Attribute with name and initializer, which will be called, if
+     * Attribute's value is null on a AttributedObject
+     * 
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
+     * 
+     * @param <T> Type of attribute value
+     * @param builder {@link AttributeBuilder} to be used
+     * @param name attribute name
+     * @param initializer NullaryFunction, which will be called, if Attribute's
+     *                    value is null on a AttributedObject 
+     * 
+     * @return Attribute<T>
+     */
+    public static <T> Attribute<T> create(final AttributeBuilder builder,
+            final String name, final NullaryFunction<T> initializer) {
+        return builder.createAttribute(name, initializer);
+    }
+
     /**
      * AttributeBuilder, which was used to create this attribute
      */

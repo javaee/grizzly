@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,7 @@ public class TunnelFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(TunnelFilter.class);
     
     private Attribute<Connection> peerConnectionAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TunnelFilter.peerConnection");
+            Attribute.create("TunnelFilter.peerConnection");
 
     // Transport, which will be used to create peer connection
     private final SocketConnectorHandler transport;

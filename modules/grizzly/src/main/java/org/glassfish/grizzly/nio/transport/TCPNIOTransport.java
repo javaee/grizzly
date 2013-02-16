@@ -70,6 +70,7 @@ import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
@@ -177,7 +178,7 @@ public class TCPNIOTransport extends NIOTransport
                 new TCPNIOTemporarySelectorReader(this),
                 new TCPNIOTemporarySelectorWriter(this));
 
-        attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
+        attributeBuilder = AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }

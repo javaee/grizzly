@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,7 +74,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     
     public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
     private static final Attribute<IdleRecord> IDLE_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            Attribute.create(
             IDLE_ATTRIBUTE_NAME, new NullaryFunction<IdleRecord>() {
 
         @Override

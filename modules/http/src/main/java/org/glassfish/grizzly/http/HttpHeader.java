@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -114,7 +114,7 @@ public abstract class HttpHeader extends HttpPacket
     private boolean isContentEncodingsSelected;
 
     private final AttributeHolder attributes =
-            new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+            new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
     private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;

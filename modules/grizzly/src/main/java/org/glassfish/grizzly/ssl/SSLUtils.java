@@ -47,7 +47,6 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -66,8 +65,7 @@ public final class SSLUtils {
             SSLUtils.class + ".ssl-connection-context";
 
     static final Attribute<SSLConnectionContext> SSL_CTX_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            SSL_CONNECTION_CTX_ATTR_NAME);
+            Attribute.create(SSL_CONNECTION_CTX_ATTR_NAME);
 
     private static final SSLConnectionContext.Allocator HS_UNWRAP_ALLOCATOR =
             new SSLConnectionContext.Allocator() {

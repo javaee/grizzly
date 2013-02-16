@@ -88,8 +88,7 @@ public class PUFilter extends BaseFilter {
      */    
     public PUFilter(final boolean isCloseUnrecognizedConnection) {
         this.isCloseUnrecognizedConnection = isCloseUnrecognizedConnection;
-        puContextAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+        puContextAttribute = Attribute.create(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
     }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,14 +69,13 @@ public class ActivityCheckFilter extends BaseFilter {
     
     public static final String ACTIVE_ATTRIBUTE_NAME = "connection-active-attribute";
     private static final Attribute<ActiveRecord> IDLE_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            ACTIVE_ATTRIBUTE_NAME, new NullaryFunction<ActiveRecord>() {
-
-        @Override
-        public ActiveRecord evaluate() {
-            return new ActiveRecord();
-        }
-    });
+            Attribute.create(ACTIVE_ATTRIBUTE_NAME,
+            new NullaryFunction<ActiveRecord>() {
+                @Override
+                public ActiveRecord evaluate() {
+                    return new ActiveRecord();
+                }
+            });
     
     private final long timeoutMillis;
     private final DelayedExecutor.DelayQueue<Connection> queue;

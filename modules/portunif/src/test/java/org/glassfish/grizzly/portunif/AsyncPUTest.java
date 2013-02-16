@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -299,7 +299,7 @@ public class AsyncPUTest {
 
     private static final class ClientResultFilter extends BaseFilter {
         private static Attribute<AtomicInteger> responseCounterAttr =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                Attribute.create(
                 ClientResultFilter.class.getName() + ".responseCounter",
                 new NullaryFunction<AtomicInteger>() {
 
@@ -342,7 +342,7 @@ public class AsyncPUTest {
 
     private static class StringDuplicatorFilter extends BaseFilter {
         private static final Attribute<AtomicInteger> duplicationsCounterAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<AtomicInteger>createAttribute(
+                Attribute.create(
                 StringDuplicatorFilter.class.getName() + ".duplicationsCounterAttribute",
                 new NullaryFunction<AtomicInteger>() {
 

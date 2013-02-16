@@ -41,6 +41,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -112,7 +113,7 @@ public class Context implements AttributeStorage, Cacheable {
     protected boolean wasSuspended;
 
     public Context() {
-        attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+        attributes = new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
     }
 
     /**

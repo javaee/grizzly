@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,9 +41,9 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
-import java.util.Properties;
-import org.glassfish.grizzly.attributes.AttributeBuilder;
 import java.io.InputStream;
+import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,8 +56,6 @@ import java.util.regex.Pattern;
  */
 public class Grizzly {
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)(\\.\\d+)*){1}(?:-(.+))?");
-    
-    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
     
     private static final String dotedVersion;
     private static final int major;
@@ -77,7 +75,7 @@ public class Grizzly {
             is = Grizzly.class.getResourceAsStream("version.properties");
             prop.load(is);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger(Grizzly.class).log(Level.WARNING, "Can not load Grizzly version information");
         } finally {
             if (is != null) {
                 try {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,11 +91,11 @@ public class FilterChainTest extends TestCase {
     private static final int PORT = 7788;
     
     private static final Attribute<AtomicInteger> counterAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            Attribute.create(
             FilterChainTest.class.getName() + ".counter");
     
     private static final Attribute<CompositeBuffer> bufferAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            Attribute.create(
             FilterChainTest.class.getName() + ".buffer",
             new NullaryFunction<CompositeBuffer>() {
 

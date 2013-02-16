@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,6 @@ package org.glassfish.grizzly.config.portunif;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.portunif.PUContext;
@@ -64,7 +63,7 @@ import org.glassfish.grizzly.portunif.ProtocolFinder;
 public class HttpProtocolFinder implements ProtocolFinder {
     private static final char[] METHOD_FIRST_LETTERS = new char[] {'G', 'P', 'O', 'H', 'D', 'T', 'C'};
     private final Attribute<ParsingState> parsingStateAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            Attribute.create(
                     HttpProtocolFinder.class + "-" + hashCode()
                             + ".parsingStateAttribute");
 

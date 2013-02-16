@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
@@ -505,7 +506,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 }
                 
                 final DefaultWorkerThread thread =
-                        new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
+                        new DefaultWorkerThread(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER,
                         config.getPoolName() + '(' + counter.incrementAndGet() + ')',
                         ((threadLocalPoolProvider != null) ? threadLocalPoolProvider.createThreadLocalPool() : null),
                         r);

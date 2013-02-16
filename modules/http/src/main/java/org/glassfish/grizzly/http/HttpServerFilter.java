@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -210,10 +209,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         super(chunkingEnabled, maxHeadersSize);
 
         this.httpRequestInProcessAttr =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                        createAttribute(HTTP_SERVER_REQUEST_ATTR_NAME);
-        this.keepAliveContextAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("HttpServerFilter.KeepAliveContext");
+                Attribute.create(HTTP_SERVER_REQUEST_ATTR_NAME);
+        this.keepAliveContextAttr =
+                Attribute.create("HttpServerFilter.KeepAliveContext");
 
         keepAliveQueue = executor != null ?
                 executor.createDelayQueue(
