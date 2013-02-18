@@ -108,7 +108,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -500,6 +499,7 @@ public class Request {
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
         inputBuffer.initialize(request, ctx);
+        
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
@@ -2493,18 +2493,6 @@ public class Request {
 
         this.requestedSessionURL = flag;
 
-    }
-
-    /**
-     * Initiates asynchronous data receiving.
-     *
-     * This is service method, usually users don't have to call it explicitly.
-     */
-    public void initiateAsyncronousDataReceiving() {
-        httpServerFilter.reregisterForReadAttr.set(ctx, Boolean.TRUE);
-        // resume context to pass control to HttpServerFilter, which is going to
-        // check the reregisterForReadAttr and enable asynchronous reading.
-        ctx.resume();
     }
     
     /**

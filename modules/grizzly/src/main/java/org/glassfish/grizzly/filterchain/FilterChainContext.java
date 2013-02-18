@@ -242,6 +242,38 @@ public final class FilterChainContext implements AttributeStorage {
         }
     }
 
+    /**
+     * This method invocation suggests the {@link FilterChain} to create a
+     * copy of this {@link FilterChainContext} and resume/fork its execution
+     * starting from the current {@link Filter}.
+     */
+    public void fork() {
+        fork(null);
+    }
+
+    /**
+     * This method invocation suggests the {@link FilterChain} to create a
+     * copy of this {@link FilterChainContext} and resume/fork its execution
+     * starting from the current {@link Filter}.
+     * <p/>
+     * If <code>nextAction</code> parameter is not null - then its value is treated
+     * as a result of the current {@link Filter} execution on the forked
+     * {@link FilterChain} processing. So during the forked {@link FilterChain}
+     * processing the current {@link Filter} will not be invoked, but
+     * the processing will be continued as if the current {@link Filter}
+     * returned <code>nextAction</code> as a result.
+     * For example if we call <code>fork(ctx.getInvokeAction());</code> the forked
+     * {@link FilterChain} processing will start with the next {@link Filter} in
+     * chain.
+     */
+    public void fork(final NextAction nextAction) {
+        try {
+            predefinedNextAction = getForkAction(nextAction);
+            ProcessorExecutor.execute(internalContext);
+        } catch (Exception e) {
+            logger.log(Level.FINE, "Exception during running Processor", e);
+        }
+    }
 
     /**
      * Get the current processing task state.
@@ -566,17 +598,37 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
-     * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
-     * to suspend the current {@link FilterChainContext}, but does not disable
-     * correspondent {@link IOEvent}, so if the same {@link IOEvent} occurs on
-     * the {@link Connection} - it will be processed using new
-     * {@link FilterChainContext}.
+     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
+     *         to forget about the current {@link FilterChainContext}, create a copy of it
+     *         and continue/fork {@link FilterChain} processing using the copied
+     *         {@link FilterChainContext} starting from the current {@link Filter}.
      */
     public NextAction getForkAction() {
+        return getForkAction(null);
+    }
+
+    /**
+     * @return {@link NextAction} implementation, which suggests the {@link FilterChain}
+     *         to forget about the current {@link FilterChainContext}, create a copy of it
+     *         and continue/fork {@link FilterChain} processing using the copied
+     *         {@link FilterChainContext} starting from the current {@link Filter}.
+     *         <p/>
+     *         If <code>nextAction</code> parameter is not null - then its value is treated
+     *         as a result of the current {@link Filter} execution on the forked
+     *         {@link FilterChain} processing. So during the forked {@link FilterChain}
+     *         processing the current {@link Filter} will not be invoked, but
+     *         the processing will be continued as if the current {@link Filter}
+     *         returned <code>nextAction</code> as a result.
+     *         For example if we call <code>fork(ctx.getInvokeAction());</code> the forked
+     *         {@link FilterChain} processing will start with the next {@link Filter} in
+     *         chain.
+     */
+    public NextAction getForkAction(final NextAction nextAction) {
         final FilterChainContext contextCopy = copy();
         // Copy doesn't copy address
         contextCopy.addressHolder = addressHolder;
-        
+        contextCopy.predefinedNextAction = nextAction;
+
         return new ForkAction(contextCopy);
     }
 

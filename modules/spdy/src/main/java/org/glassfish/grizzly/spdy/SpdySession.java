@@ -413,7 +413,12 @@ final class SpdySession {
         upstreamContext.getInternalContext().setIoEvent(IOEvent.READ,
                 new IOEventProcessingHandler.Adapter() {
                     @Override
-                    public void onComplete(final Context context, Object data) throws IOException {
+                    public void onReregister(final Context context) throws IOException {
+                        spdyStream.inputBuffer.onReadEventComplete();
+                    }
+
+                    @Override
+                    public void onComplete(Context context, Object data) throws IOException {
                         spdyStream.inputBuffer.onReadEventComplete();
                     }
                 });
