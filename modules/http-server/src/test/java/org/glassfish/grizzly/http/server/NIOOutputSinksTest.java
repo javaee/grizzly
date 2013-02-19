@@ -933,6 +933,7 @@ public class NIOOutputSinksTest extends TestCase {
      * 
      * http://java.net/jira/browse/GRIZZLY-1309
      */
+    /*
     public void testProvocativeWrite() throws Exception {
         final int LENGTH = 8192;
 
@@ -1111,6 +1112,7 @@ public class NIOOutputSinksTest extends TestCase {
             ses.shutdown();
         }
     }
+    */
     
     private static void fill(byte[] array) {
         for (int i=0; i<array.length; i++) {

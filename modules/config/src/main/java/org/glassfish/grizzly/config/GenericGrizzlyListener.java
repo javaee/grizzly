@@ -66,9 +66,11 @@ import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.ProtocolChain;
 import org.glassfish.grizzly.config.dom.ProtocolChainInstanceHandler;
 import org.glassfish.grizzly.config.dom.ProtocolFilter;
+import org.glassfish.grizzly.config.dom.SelectionKeyHandler;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
+import org.glassfish.grizzly.config.dom.Transports;
 import org.glassfish.grizzly.config.portunif.HttpRedirectFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -88,6 +90,8 @@ import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.AbstractMemoryManager;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -257,8 +261,34 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         } else {
             throw new GrizzlyConfigException("Unsupported transport type " + transportConfig.getName());
         }
+
+        String selectorName = transportConfig.getSelectionKeyHandler();
+        if (selectorName != null) {
+            if (getSelectionKeyHandlerByName(selectorName, transportConfig) != null) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.warning("Element, selection-key-handler, has been deprecated and is effectively ignored by the runtime.");
+                }
+            }
+        }
+
+        if (!Transport.BYTE_BUFFER_TYPE.equalsIgnoreCase(transportConfig.getByteBufferType())) {
+            transport.setMemoryManager(
+                    new ByteBufferManager(true,
+                                          AbstractMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+                                          ByteBufferManager.DEFAULT_SMALL_BUFFER_SIZE));
+        }
         transport.setSelectorRunnersCount(Integer.parseInt(transportConfig.getAcceptorThreads()));
-        transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));
+
+        final int readSize = Integer.parseInt(transportConfig.getSocketReadBufferSize());
+        if (readSize > 0) {
+            transport.setReadBufferSize(readSize);
+        }
+
+        final int writeSize = Integer.parseInt(transportConfig.getSocketWriteBufferSize());
+        if (writeSize > 0) {
+            transport.setWriteBufferSize(writeSize);
+        }
+
         transport.getKernelThreadPoolConfig().setPoolName(networkListener.getName() + "-kernel");
         transport.setIOStrategy(loadIOStrategy(transportConfig.getIOStrategy()));
         transport.setNIOChannelDistributor(
@@ -486,6 +516,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         poolConfig.setCorePoolSize(minThreads);
         poolConfig.setMaxPoolSize(maxThreads);
         poolConfig.setQueueLimit(maxQueueSize);
+
+        // we specify the classloader that loaded this class to ensure
+        // we present the same initial classloader no matter what mode
+        // GlassFish is being run in.
+        // See http://java.net/jira/browse/GLASSFISH-19639
+        poolConfig.setInitialClassLoader(this.getClass().getClassLoader());
+
         poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
         if (transactionTimeoutMillis > 0 && !Utils.isDebugVM()) {
             poolConfig.setTransactionTimeout(delayedExecutor,
@@ -809,5 +846,19 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             ssl = (Ssl) DefaultProxy.createDummyProxy(protocol, Ssl.class);
         }
         return ssl;
+    }
+
+    private static SelectionKeyHandler getSelectionKeyHandlerByName(final String name,
+                                                                    final Transport transportConfig) {
+        Transports transports = transportConfig.getParent();
+        List<SelectionKeyHandler> handlers = transports.getSelectionKeyHandler();
+        if (!handlers.isEmpty()) {
+            for (SelectionKeyHandler handler : handlers) {
+                if (handler.getName().equals(name)) {
+                    return handler;
+                }
+            }
+        }
+        return null;
     }
 }

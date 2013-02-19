@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,35 +37,62 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.config;
 
-package org.glassfish.grizzly.config.dom;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.nio.DefaultSelectionKeyHandler;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.SelectionKeyHandler;
 
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.types.PropertyBag;
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
 
-/**
- * Defines Transport's SelectionKey handling logic.
- *
- * @deprecated This element is effectively ignored.  No equivalent replacement.
- */
-@Configured
-@Deprecated
-public interface SelectionKeyHandler extends ConfigBeanProxy, PropertyBag {
-    /**
-     * SelectionKey handler name, which could be used as reference
-     */
-    @Attribute(key = true, required = true, dataType = String.class)
-    String getName();
+public class TestSelectionKeyHandler implements SelectionKeyHandler {
 
-    void setName(String value);
+    private final SelectionKeyHandler delegate = new DefaultSelectionKeyHandler();
 
-    /**
-     * SelectionKey handler implementation class
-     */
-    @Attribute(required = true, dataType = String.class)
-    String getClassname();
+    @Override
+    public void onKeyRegistered(SelectionKey key) {
+        delegate.onKeyRegistered(key);
+    }
 
-    void setClassname(String value);
+    @Override
+    public void onKeyDeregistered(SelectionKey key) {
+        delegate.onKeyDeregistered(key);
+    }
+
+    @Override
+    public boolean onProcessInterest(SelectionKey key, int interest) throws IOException {
+        return delegate.onProcessInterest(key, interest);
+    }
+
+    @Override
+    public void cancel(SelectionKey key) throws IOException {
+        delegate.cancel(key);
+    }
+
+    @Override
+    public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
+        return delegate.getConnectionForKey(selectionKey);
+    }
+
+    @Override
+    public void setConnectionForKey(NIOConnection connection, SelectionKey selectionKey) {
+        delegate.setConnectionForKey(connection, selectionKey);
+    }
+
+    @Override
+    public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
+        return delegate.ioEvent2SelectionKeyInterest(ioEvent);
+    }
+
+    @Override
+    public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
+        return delegate.selectionKeyInterest2IoEvent(selectionKeyInterest);
+    }
+
+    @Override
+    public IOEvent[] getIOEvents(int interest) {
+        return delegate.getIOEvents(interest);
+    }
 }

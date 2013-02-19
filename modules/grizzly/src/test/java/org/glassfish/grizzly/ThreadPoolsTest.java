@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,34 +38,40 @@
  * holder.
  */
 
-package org.glassfish.grizzly.config.dom;
+package org.glassfish.grizzly;
 
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.types.PropertyBag;
+import org.glassfish.grizzly.threadpool.AbstractThreadPool;
+import org.glassfish.grizzly.threadpool.FixedThreadPool;
+import org.glassfish.grizzly.threadpool.SyncThreadPool;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.junit.Test;
 
-/**
- * Defines Transport's SelectionKey handling logic.
- *
- * @deprecated This element is effectively ignored.  No equivalent replacement.
- */
-@Configured
-@Deprecated
-public interface SelectionKeyHandler extends ConfigBeanProxy, PropertyBag {
-    /**
-     * SelectionKey handler name, which could be used as reference
-     */
-    @Attribute(key = true, required = true, dataType = String.class)
-    String getName();
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 
-    void setName(String value);
+import static junit.framework.Assert.assertEquals;
+
+public class ThreadPoolsTest {
 
     /**
-     * SelectionKey handler implementation class
+     * Added for http://java.net/jira/browse/GRIZZLY-1435.
+     * @throws Exception
      */
-    @Attribute(required = true, dataType = String.class)
-    String getClassname();
+    @Test
+    public void testThreadPoolCoreThreadInitialization() throws Exception {
+        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
+        config.setCorePoolSize(5);
+        config.setMaxPoolSize(5);
+        Field workers = AbstractThreadPool.class.getDeclaredField("workers");
+        workers.setAccessible(true);
 
-    void setClassname(String value);
+        final SyncThreadPool syncThreadPool = new SyncThreadPool(config);
+        assertEquals("Pool did not properly initialize threads based on core pool size configuration.", 5, ((Map) workers.get(syncThreadPool)).size());
+
+        config.setQueue(new ArrayBlockingQueue<Runnable>(5));
+        final FixedThreadPool fixedThreadPool = new FixedThreadPool(config);
+        assertEquals("Pool did not properly initialize threads based on core pool size configuration.", 5, ((Map) workers.get(fixedThreadPool)).size());
+    }
+
 }

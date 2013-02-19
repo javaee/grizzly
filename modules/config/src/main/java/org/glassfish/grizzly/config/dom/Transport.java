@@ -47,6 +47,7 @@ import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 import org.glassfish.grizzly.IOStrategy;
 
+import javax.validation.constraints.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +56,7 @@ import java.util.List;
  */
 @Configured
 public interface Transport extends ConfigBeanProxy, PropertyBag {
+
     boolean DISPLAY_CONFIGURATION = false;
     boolean ENABLE_SNOOP = false;
     boolean TCP_NO_DELAY = true;
@@ -66,7 +68,9 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     int READ_TIMEOUT = 30000;
     int WRITE_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
-    String BYTE_BUFFER_TYPE = "HEAP";
+    int SOCKET_RCV_BUFFER_SIZE = -1;
+    int SOCKET_SND_BUFFER_SIZE = -1;
+    String BYTE_BUFFER_TYPE = "heap";
     String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
     boolean DEDICATED_ACCEPTOR_ENABLED = false;
     
@@ -78,6 +82,28 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
 
     void setAcceptorThreads(String value);
 
+    /**
+     * The size, in bytes, of the socket send buffer size.  If the value is 0 or less,
+     * it defaults to the VM's default value.
+     */
+    @Attribute(defaultValue = "" + SOCKET_SND_BUFFER_SIZE, dataType = Integer.class)
+    String getSocketWriteBufferSize();
+
+    void setSocketWriteBufferSize();
+
+    /**
+     * The size, in bytes, of the socket send buffer size.  If the value is 0 or less,
+     * it defaults to the VM's default value.
+     */
+    @Attribute(defaultValue = "" + SOCKET_RCV_BUFFER_SIZE, dataType = Integer.class)
+    String getSocketReadBufferSize();
+
+    void setSocketReadBufferSize();
+
+    /**
+     * @deprecated This attribute is now ignored. Use socket-send-Buffer-size and/or socket-write-buffer-size instead.
+     */
+    @Deprecated
     @Attribute(defaultValue = "" + BUFFER_SIZE, dataType = Integer.class)
     String getBufferSizeBytes();
 
@@ -86,7 +112,8 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
      */
-    @Attribute(defaultValue = BYTE_BUFFER_TYPE)
+    @Attribute(defaultValue = BYTE_BUFFER_TYPE, dataType = String.class)
+    @Pattern(regexp = "heap|direct", flags = Pattern.Flag.CASE_INSENSITIVE)
     String getByteBufferType();
 
     void setByteBufferType(String value);
@@ -119,7 +146,10 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
     /**
      * Dump the requests/response information in server.log. Useful for debugging purpose, but significantly reduce
      * performance as the request/response bytes are translated to String.
+     *
+     * @deprecated this option is ignored by the runtime.
      */
+    @Deprecated
     @Attribute(defaultValue = "" + ENABLE_SNOOP, dataType = Boolean.class)
     String getEnableSnoop();
 
@@ -159,8 +189,11 @@ public interface Transport extends ConfigBeanProxy, PropertyBag {
 
     /**
      * Use public SelectionKey handler, which was defined earlier in the document.
+     * @deprecated This attribute as well as the named selection-key-handler element this attribute refers to has been
+     *  deprecated and is effectively ignored by the runtime.  No equivalent functionality is available.
      */
     @Attribute
+    @Deprecated
     String getSelectionKeyHandler();
 
     void setSelectionKeyHandler(String value);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -97,7 +97,7 @@ public final class SSLUtils {
     private static final int MIN_VERSION = 0x0300;
     private static final int MAX_MAJOR_VERSION = 0x03;
 
-    public static SSLConnectionContext getSslConnectionContext(
+    static SSLConnectionContext obtainSslConnectionContext(
             final Connection connection) {
         SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
         if (sslCtx == null) {
@@ -108,13 +108,19 @@ public final class SSLUtils {
         return sslCtx;
     }
     
+    public static SSLConnectionContext getSslConnectionContext(
+            final Connection connection) {
+        return SSL_CTX_ATTR.get(connection);
+    }
+
     public static SSLEngine getSSLEngine(final Connection connection) {
-        return getSslConnectionContext(connection).getSslEngine();
+        final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
+        return sslCtx == null ? null : sslCtx.getSslEngine();
     }
 
     public static void setSSLEngine(final Connection connection,
             SSLEngine sslEngine) {
-        getSslConnectionContext(connection).configure(sslEngine);
+        obtainSslConnectionContext(connection).configure(sslEngine);
     }
 
     /*
