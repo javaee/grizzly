@@ -52,6 +52,8 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -138,17 +140,42 @@ public class SpdyFramingFilter extends BaseFilter {
 
 
 
+    @SuppressWarnings("unchecked")
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        SpdyFrame frame = ctx.getMessage();
-
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
+        final Object message = ctx.getMessage();
+        
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: {0}", frame.toString());
+            LOGGER.log(Level.FINE, "Tx: {0}", message);
         }
+        
+        final MemoryManager memoryManager = ctx.getMemoryManager();
+        
+        Buffer resultBuffer = null;
+        
+        if (message instanceof SpdyFrame) {
+            final SpdyFrame frame = (SpdyFrame) message;
 
-        final Buffer buffer = frame.toBuffer(ctx.getMemoryManager());
-        frame.recycle();
-        ctx.setMessage(buffer);
+            resultBuffer = frame.toBuffer(memoryManager);
+            frame.recycle();
+        } else {
+            final List<SpdyFrame> frames = (List<SpdyFrame>) message;
+            final int framesCount = frames.size();
+            
+            for (int i = 0; i < framesCount; i++) {
+                final SpdyFrame frame = frames.get(i);
+                
+                final Buffer buffer = frame.toBuffer(memoryManager);
+                frame.recycle();
+
+                resultBuffer = Buffers.appendBuffers(memoryManager,
+                        resultBuffer, buffer);
+            }
+            
+            frames.clear();
+        }
+        
+        ctx.setMessage(resultBuffer);
         return ctx.getInvokeAction();
     }
 
