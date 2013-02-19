@@ -340,7 +340,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public boolean isDirect() {
-        throw new UnsupportedOperationException("Not supported in CompositeBuffers.");
+        return buffers[0].isDirect();
     }
 
     @Override

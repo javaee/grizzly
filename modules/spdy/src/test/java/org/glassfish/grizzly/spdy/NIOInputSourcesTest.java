@@ -299,6 +299,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
         Transport transport = httpServer.getListeners().iterator().next().getTransport();
         final ByteBufferManager memoryManager = new ByteBufferManager();
+        memoryManager.setDirect(true);
 
         transport.setMemoryManager(memoryManager);
         doTest(httpServer, httpHandler, request, expected, testResult, strategy, 60);
