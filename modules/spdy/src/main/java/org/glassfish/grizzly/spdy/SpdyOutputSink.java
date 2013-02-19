@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -74,12 +76,6 @@ final class SpdyOutputSink {
     private final AtomicInteger outputQueueSize = new AtomicInteger();
     final TaskQueue<OutputQueueRecord> outputQueue =
             TaskQueue.createTaskQueue(null);
-    // current output record
-    //private final AtomicReference<OutputQueueRecord> currentQueueRecord =
-    //        new AtomicReference<OutputQueueRecord>();
-    // output records queue
-    //private final ConcurrentLinkedQueue<OutputQueueRecord> outputQueue =
-    //        new ConcurrentLinkedQueue<OutputQueueRecord>();
     
     // number of sent bytes, which are still unconfirmed by server via (WINDOW_UPDATE) message
     private final AtomicInteger unconfirmedBytes = new AtomicInteger();
@@ -94,6 +90,8 @@ final class SpdyOutputSink {
     // associated spdy stream
     private final SpdyStream spdyStream;
 
+    private List<SpdyFrame> tmpOutputList;
+    
     SpdyOutputSink(final SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
@@ -210,7 +208,8 @@ final class SpdyOutputSink {
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
         final HttpContent httpContent = HttpContent.isContent(httpPacket) ? (HttpContent) httpPacket : null;
         
-        SpdyFrame spdyFrame;
+        int framesAvailFlag = 0;
+        SpdyFrame headerFrame = null;
         
         // If HTTP header hasn't been commited - commit it
         if (!httpHeader.isCommitted()) {
@@ -226,7 +225,7 @@ final class SpdyOutputSink {
                     compressedHeaders = SpdyEncoderUtils.encodeSynReplyHeaders(spdySession,
                                                                                (HttpResponsePacket) httpHeader);
                 }
-                spdyFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
+                headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
                         last(isNoContent).compressedHeaders(compressedHeaders).build();
             } else {
                 Buffer compressedHeaders;
@@ -234,23 +233,25 @@ final class SpdyOutputSink {
                     compressedHeaders = SpdyEncoderUtils.encodeSynStreamHeaders(spdySession,
                                                                                (HttpRequestPacket) httpHeader);
                 }
-                spdyFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
                         associatedStreamId(spdyStream.getAssociatedToStreamId()).
                         last(isNoContent).compressedHeaders(compressedHeaders).build();
             }
 
             httpHeader.setCommitted(true);
-
-            writeDownStream(spdyFrame, completionHandler, isNoContent);
+            framesAvailFlag = 1;
+            
             if (isNoContent) {
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
+                writeDownStream(headerFrame, completionHandler, isNoContent);
                 return;
             }
         }
         
+        SpdyFrame dataFrame = null;
         OutputQueueRecord outputQueueRecord = null;
-        boolean isLast;
+        boolean isLast = false;
         
         // if there is a payload to send now
         if (httpContent != null) {
@@ -260,6 +261,13 @@ final class SpdyOutputSink {
             
             // Check if output queue is not empty - add new element
             if (outputQueueSize.getAndIncrement() > 0) {
+                // Flush header frame if any
+                if (headerFrame != null) {
+                    writeDownStream(headerFrame, null, false);
+                    framesAvailFlag = 0;
+                    headerFrame = null;
+                }
+                
                 outputQueueRecord = new OutputQueueRecord(
                         data, completionHandler, isLast);
                 outputQueue.offer(outputQueueRecord);
@@ -270,6 +278,8 @@ final class SpdyOutputSink {
                     // if not - return
                     return;
                 }
+                
+                outputQueueRecord = null;
             }
             
             // our element is first in the output queue
@@ -296,13 +306,33 @@ final class SpdyOutputSink {
                 unconfirmedBytes.addAndGet(data.remaining());
 
                 // encode spdydata frame
-                DataFrame dataFrame =
-                        DataFrame.builder().streamId(spdyStream.getStreamId()).
-                                data(data).last(isLast).build();
-                writeDownStream(dataFrame, completionHandler, isLast);
+                dataFrame = DataFrame.builder()
+                        .streamId(spdyStream.getStreamId())
+                        .data(data).last(isLast)
+                        .build();
+                framesAvailFlag |= 2;
             }
         }
 
+        switch (framesAvailFlag) {
+            case 1: {
+                writeDownStream(headerFrame, null, false);
+                break;
+            }
+            case 2: {
+                writeDownStream(dataFrame, completionHandler, isLast);
+                break;
+            }
+                
+            case 3: {
+                writeDownStream(asList(headerFrame, dataFrame),
+                        completionHandler, isLast);
+                break;
+            }
+                
+            default: throw new IllegalStateException("Unexpected flag: " + framesAvailFlag);
+        }
+        
 //        // append header and payload buffers
 //        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
 //                                     headerBuffer, contentBuffer, true);
@@ -432,6 +462,33 @@ final class SpdyOutputSink {
             final CompletionHandler<WriteResult> completionHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
                 null, frame, completionHandler, null);
+    }
+    
+    private void writeDownStream(final List<SpdyFrame> frames,
+            final CompletionHandler<WriteResult> completionHandler,
+            final boolean isLast) {
+        writeDownStream0(frames, completionHandler);
+        
+        if (isLast) {
+            terminate();
+        }
+    }
+
+    private void writeDownStream0(final List<SpdyFrame> frames,
+            final CompletionHandler<WriteResult> completionHandler) {
+        spdySession.getDownstreamChain().write(spdySession.getConnection(),
+                null, frames, completionHandler, null);
+    }
+
+    private List<SpdyFrame> asList(final SpdyFrame frame1, final SpdyFrame frame2) {
+        if (tmpOutputList == null) {
+            tmpOutputList = new ArrayList<SpdyFrame>(2);
+        }
+        
+        tmpOutputList.add(frame1);
+        tmpOutputList.add(frame2);
+        
+        return tmpOutputList;
     }
     
     synchronized void close() {

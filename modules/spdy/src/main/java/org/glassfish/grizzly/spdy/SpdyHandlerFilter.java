@@ -685,8 +685,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 HttpPacket.isHttp(message)) {
             
             // Get HttpPacket
-            final HttpPacket input = (HttpPacket) ctx.getMessage();
-            final HttpHeader httpHeader = input.getHttpHeader();
+            final HttpPacket httpPacket = (HttpPacket) ctx.getMessage();
+            final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
             if (!httpHeader.isCommitted()) {
                 if (httpHeader.isRequest()) {
@@ -717,7 +717,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
                 assert spdyStream != null;
 
-                spdyStream.writeDownStream(input,
+                spdyStream.writeDownStream(httpPacket,
                         ctx.getTransportContext().getCompletionHandler());
                 
                 return ctx.getStopAction();
