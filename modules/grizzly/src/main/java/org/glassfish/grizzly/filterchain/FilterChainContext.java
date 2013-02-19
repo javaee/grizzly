@@ -216,7 +216,7 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public void resume() {
         internalContext.resume();
-        
+
         getRunnable().run();
     }
 
@@ -1003,6 +1003,7 @@ public final class FilterChainContext implements AttributeStorage {
         internalContext.reset();
         transportFilterContext.reset();
         copyListeners.clear();
+        predefinedNextAction = null;
     }
 
     public void completeAndRecycle() {
