@@ -621,7 +621,7 @@ public class Response {
      *
      * @since 2.1.2
      */
-    public NIOOutputStream getOutputStream() {
+    public OutputStream getOutputStream() {
         return getNIOOutputStream();
     }
 
@@ -652,7 +652,7 @@ public class Response {
      * @throws IllegalStateException if {@link #getOutputStream()} or
      *  {@link #getNIOOutputStream()} were already invoked.
      */
-    public NIOWriter getWriter() {
+    public Writer getWriter() {
         return getNIOWriter();
     }
 

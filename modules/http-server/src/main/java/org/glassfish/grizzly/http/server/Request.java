@@ -921,7 +921,7 @@ public class Request {
      *
      * @since 2.2
      */
-    public NIOInputStream getInputStream() {
+    public InputStream getInputStream() {
         return getNIOInputStream();
     }
 
@@ -1113,7 +1113,7 @@ public class Request {
      *
      * @since 2.2
      */
-    public NIOReader getReader() {
+    public Reader getReader() {
         return getNIOReader();
     }
 

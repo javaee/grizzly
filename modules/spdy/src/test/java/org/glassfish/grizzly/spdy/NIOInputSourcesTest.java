@@ -794,8 +794,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getInputStream();
-                final NIOOutputStream writer = res.getOutputStream();                
+                final NIOInputStream reader = req.getNIOInputStream();
+                final NIOOutputStream writer = res.getNIOOutputStream();
 
                 res.suspend();
 
@@ -889,8 +889,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
                     @Override
                     public void run() {
-                        final NIOInputStream reader = req.getInputStream();
-                        final NIOOutputStream writer = res.getOutputStream();
+                        final NIOInputStream reader = req.getNIOInputStream();
+                        final NIOOutputStream writer = res.getNIOOutputStream();
                         
                         reader.notifyAvailable(new ReadHandler() {
 
@@ -976,8 +976,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getInputStream();
-                final NIOOutputStream writer = res.getOutputStream();                
+                final NIOInputStream reader = req.getNIOInputStream();
+                final NIOOutputStream writer = res.getNIOOutputStream();
 
                 res.suspend();
 
@@ -1072,7 +1072,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 if (encoding != null) {
                     res.setContentType("text/plain;charset=" + encoding);
                 }
-                final NIOReader reader = req.getReader();
+                final NIOReader reader = req.getNIOReader();
                 int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
