@@ -88,7 +88,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
     */
-    public static Charset DEFAULT_HTTP_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
+    public static final Charset DEFAULT_HTTP_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
     private static final long serialVersionUID = -1L;
 

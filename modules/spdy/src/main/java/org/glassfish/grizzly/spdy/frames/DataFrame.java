@@ -50,7 +50,7 @@ public class DataFrame extends SpdyFrame {
     private static final ThreadCache.CachedTypeIndex<DataFrame> CACHE_IDX =
                     ThreadCache.obtainIndex(DataFrame.class, 8);
 
-    public static byte FLAG_FIN = 0x01;
+    public final static byte FLAG_FIN = 0x01;
 
     private Buffer data;
     private int streamId;

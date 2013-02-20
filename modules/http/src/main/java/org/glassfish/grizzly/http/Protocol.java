@@ -71,7 +71,7 @@ public enum Protocol {
         }
         
         throw new IllegalStateException("Unknown protocol " +
-                new String(protocolBytes, offset, len));
+                new String(protocolBytes, offset, len, Charsets.ASCII_CHARSET));
     }
 
     public static Protocol valueOf(final Buffer protocolBuffer,
@@ -137,7 +137,7 @@ public enum Protocol {
         try {
             protocolBytes = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            protocolBytes = protocolString.getBytes();
+            protocolBytes = protocolString.getBytes(Charsets.ASCII_CHARSET);
         }
     }
 
