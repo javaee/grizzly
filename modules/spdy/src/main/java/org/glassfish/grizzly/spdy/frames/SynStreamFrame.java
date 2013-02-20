@@ -57,13 +57,13 @@ public class SynStreamFrame extends SpdyFrame {
      * Marks this frame as the last frame to be transmitted on this stream and
      * puts the sender in the half-closed.
      */
-    public static byte FLAG_FIN = 0x01;
+    public static final byte FLAG_FIN = 0x01;
 
     /**
      * A stream created with this flag puts the recipient in the half-closed
      * state.
      */
-    public static byte FLAG_UNIDIRECTIONAL = 0x02;
+    public static final byte FLAG_UNIDIRECTIONAL = 0x02;
 
     protected int streamId;
     protected int associatedToStreamId;

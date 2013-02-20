@@ -824,7 +824,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         Constants.STATUS_HEADER_BYTES, 1)) {
                     if (valueEnd < 3) {
                         throw new IllegalStateException("Unknown status code: " +
-                                new String(headersArray, valueStart, valueEnd - valueStart));
+                                new String(headersArray, valueStart, valueEnd - valueStart, Charsets.UTF8_CHARSET));
                     }
 
                     
