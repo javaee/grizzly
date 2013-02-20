@@ -239,12 +239,10 @@ public final class FilterChainContext implements AttributeStorage {
     }
     
     /**
-     * Resume the current FilterChain task processing by completing the current
-     * {@link Filter} (the Filter, which suspended the processing) with the
-     * passed {@link NextAction}.
+     * Resume the current FilterChain task processing and throwing the specified
+     * error.
      * 
-     * @param nextAction the {@link NextAction}, based on which {@link FilterChain}
-     * will continue processing.
+     * @param error the error that will be thrown once FilterChainProcessing has resumed.
      */
     public void resume(final Throwable error) {
         internalContext.resume();
@@ -957,6 +955,8 @@ public final class FilterChainContext implements AttributeStorage {
         internalContext.reset();
         transportFilterContext.reset();
         copyListeners.clear();
+        predefinedNextAction = null;
+        predefinedThrowable = null;
     }
 
     public void completeAndRecycle() {
