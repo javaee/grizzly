@@ -114,8 +114,7 @@ final class SpdyOutputSink {
                 outputQueueSize.get() > 0) {
             
             // pick up the first output record in the queue
-            OutputQueueRecord outputQueueRecord =
-                    outputQueue.poll();
+            OutputQueueRecord outputQueueRecord = outputQueue.poll();
 
             // if there is nothing to write - return
             if (outputQueueRecord == null) {
@@ -261,13 +260,9 @@ final class SpdyOutputSink {
             
             // Check if output queue is not empty - add new element
             if (outputQueueSize.getAndIncrement() > 0) {
-                // Flush header frame if any
-                if (headerFrame != null) {
-                    writeDownStream(headerFrame, null, false);
-                    framesAvailFlag = 0;
-                    headerFrame = null;
-                }
-                
+                // if the queue is not empty - the headers should have been sent
+                assert headerFrame == null;
+
                 outputQueueRecord = new OutputQueueRecord(
                         data, completionHandler, isLast);
                 outputQueue.offer(outputQueueRecord);
@@ -333,26 +328,11 @@ final class SpdyOutputSink {
             default: throw new IllegalStateException("Unexpected flag: " + framesAvailFlag);
         }
         
-//        // append header and payload buffers
-//        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
-//                                     headerBuffer, contentBuffer, true);
-//
-//        if (resultBuffer != null) {
-//            // if the result buffer != null
-//            if (resultBuffer.isComposite()) {
-//                ((CompositeBuffer) resultBuffer).disposeOrder(
-//                        CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
-//            }
-//
-//            // send the buffer
-//            writeDownStream(resultBuffer, completionHandler, isLast);
-//        }
-
         if (outputQueueRecord == null) {
-            // if we managed to send entire HttpPacket - decrease the counter
-            //if (contentBuffer != null) {
+            if (httpContent != null) {
+                // if we managed to send entire HttpPacket - decrease the counter
                 outputQueueSize.decrementAndGet();
-            //}
+            }
             
             return;
         }
@@ -363,8 +343,7 @@ final class SpdyOutputSink {
             outputQueue.setCurrentElement(outputQueueRecord);
 
             // check if situation hasn't changed and we can't send the data chunk now
-            if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
-                    outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
+            if (outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
                 
                 // if we can send the output record now - do that
                 
