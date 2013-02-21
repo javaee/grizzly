@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
 /**
@@ -129,6 +130,26 @@ public interface Writer<L> {
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler);
+
+    /**
+     * Method writes the {@link WritableMessage} to the specific address.
+     *
+     *
+     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress the destination address the {@link WritableMessage} will be
+     *        sent to
+     * @param message the {@link WritableMessage}, from which the data will be written
+     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
+     *        which will get notified, when write will be completed
+     * @param messageCloner the {@link MessageCloner}, which will be able to
+     *          clone the message in case it can't be completely written in the
+     *          current thread.
+     */
+    public void write(
+            Connection connection,
+            L dstAddress, WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
+            MessageCloner<WritableMessage> messageCloner);
 
     /**
          * Return <code>true</code> if the connection has not exceeded it's maximum

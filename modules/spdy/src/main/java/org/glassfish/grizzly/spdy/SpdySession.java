@@ -58,6 +58,7 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -316,7 +317,7 @@ final class SpdySession {
             final CompletionHandler<WriteResult> completionHandler) {
         
         downstreamChain.write(connection,
-                null, frame, completionHandler, null);        
+                null, frame, completionHandler, (MessageCloner) null);        
     }
 
     void initCommunication(final FilterChainContext context,

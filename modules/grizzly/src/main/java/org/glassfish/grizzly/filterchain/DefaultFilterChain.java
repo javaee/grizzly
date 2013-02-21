@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -401,7 +402,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     public void write(final Connection connection,
             final Object dstAddress, final Object message,
             final CompletionHandler<WriteResult> completionHandler) {
-        write(connection, dstAddress, message, completionHandler, null);
+        write(connection, dstAddress, message, completionHandler,
+                (MessageCloner) null);
+    }
+
+    @Override
+    public void write(final Connection connection,
+            final Object dstAddress, final Object message,
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner messageCloner) {
+        final FilterChainContext context = obtainFilterChainContext(connection);
+        context.transportFilterContext.completionHandler = completionHandler;
+        context.transportFilterContext.cloner = messageCloner;
+        context.setAddress(dstAddress);
+        context.setMessage(message);
+        context.setOperation(Operation.WRITE);
+        ProcessorExecutor.execute(context.internalContext);
     }
 
     

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -65,6 +66,22 @@ public abstract class TemporarySelectorWriter
         this.transport = transport;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(final Connection connection,
+            final SocketAddress dstAddress, final WritableMessage message,
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            final MessageCloner<WritableMessage> messageCloner) {
+        
+        write(connection, dstAddress, message, completionHandler,
+                null,
+                connection.getWriteTimeout(TimeUnit.MILLISECONDS),
+                TimeUnit.MILLISECONDS);
+    }
+
+    
     /**
      * {@inheritDoc}
      */

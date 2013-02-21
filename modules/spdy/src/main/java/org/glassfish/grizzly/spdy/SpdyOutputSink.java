@@ -45,8 +45,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -70,7 +73,7 @@ import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
  */
 final class SpdyOutputSink {
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
-            new OutputQueueRecord(null, null, true);
+            new OutputQueueRecord(null, null, null, true);
     
     // current output queue size
     private final AtomicInteger outputQueueSize = new AtomicInteger();
@@ -127,13 +130,18 @@ final class SpdyOutputSink {
                 return;
             }
             
-            CompletionHandler<WriteResult> completionHandler =
+            AggregatingCompletionHandler completionHandler =
                     outputQueueRecord.completionHandler;
+            AggregatingMessageCloner messageCloner =
+                    outputQueueRecord.messageCloner;
             boolean isLast = outputQueueRecord.isLast;
             
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
-            final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
+            final int idx = checkOutputWindow(outputQueueRecord.buffer);
+            
+            final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                    outputQueueRecord.buffer, idx);
             final Buffer dataChunkToSend = outputQueueRecord.buffer;
 
             outputQueueRecord = null;
@@ -143,10 +151,10 @@ final class SpdyOutputSink {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore,
-                        completionHandler, isLast);
+                        completionHandler, messageCloner, isLast);
+                outputQueueRecord.incCompletionCounter();
                 
-                // reset completion handler and isLast for the current chunk
-                completionHandler = null;
+                // reset isLast for the current chunk
                 isLast = false;
             }
 
@@ -160,7 +168,8 @@ final class SpdyOutputSink {
                         last(isLast).streamId(spdyStream.getStreamId()).build();
 
                 // send a spdydata frame
-                writeDownStream(dataFrame, completionHandler, isLast);
+                writeDownStream(dataFrame, completionHandler,
+                        messageCloner, isLast);
             }
             
             if (outputQueueRecord != null) {
@@ -196,7 +205,27 @@ final class SpdyOutputSink {
      * @throws IOException 
      */
     public synchronized void writeDownStream(final HttpPacket httpPacket,
-            CompletionHandler<WriteResult> completionHandler)
+            final CompletionHandler<WriteResult> completionHandler)
+            throws IOException {
+        writeDownStream(httpPacket, completionHandler, null);
+    }
+
+    /**
+     * Send an {@link HttpPacket} to the {@link SpdyStream}.
+     * 
+     * The writeDownStream(...) methods have to be synchronized with shutdown().
+     * 
+     * @param httpPacket {@link HttpPacket} to send
+     * @param completionHandler the {@link CompletionHandler},
+     *          which will be notified about write progress.
+     * @param messageCloner the {@link MessageCloner}, which will be able to
+     *          clone the message in case it can't be completely written in the
+     *          current thread.
+     * @throws IOException 
+     */
+    synchronized <E> void writeDownStream(final HttpPacket httpPacket,
+            CompletionHandler<WriteResult> completionHandler,
+            MessageCloner<WritableMessage> messageCloner)
             throws IOException {
 
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
@@ -243,7 +272,8 @@ final class SpdyOutputSink {
             if (isNoContent) {
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerFrame, completionHandler, isNoContent);
+                writeDownStream(headerFrame, completionHandler,
+                        messageCloner, isNoContent);
                 return;
             }
         }
@@ -254,17 +284,31 @@ final class SpdyOutputSink {
         
         // if there is a payload to send now
         if (httpContent != null) {
+            AggregatingCompletionHandler aggrCompletionHandler = null;
+            AggregatingMessageCloner aggrMessageCloner = null;
             
             isLast = httpContent.isLast();
-            final Buffer data = httpContent.getContent();
+            Buffer data = httpContent.getContent();
             
             // Check if output queue is not empty - add new element
             if (outputQueueSize.getAndIncrement() > 0) {
                 // if the queue is not empty - the headers should have been sent
                 assert headerFrame == null;
 
+                aggrCompletionHandler = AggregatingCompletionHandler.create(completionHandler);
+                aggrMessageCloner = AggregatingMessageCloner.create(messageCloner);
+
+                if (aggrMessageCloner != null) {
+                    data = (Buffer) aggrMessageCloner.clone(
+                            spdySession.getConnection(), data);
+                }
+                
                 outputQueueRecord = new OutputQueueRecord(
-                        data, completionHandler, isLast);
+                        data, aggrCompletionHandler, aggrMessageCloner, isLast);
+                // Should be called before flushing headerFrame, so
+                // AggregatingCompletionHanlder will not pass completed event to the parent
+                outputQueueRecord.incCompletionCounter();
+                
                 outputQueue.offer(outputQueueRecord);
                 
                 // check if our element wasn't forgotten (async)
@@ -274,6 +318,7 @@ final class SpdyOutputSink {
                     return;
                 }
                 
+                outputQueueRecord.decCompletionCounter();
                 outputQueueRecord = null;
             }
             
@@ -282,15 +327,30 @@ final class SpdyOutputSink {
             
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
-            Buffer dataChunkToStore = checkOutputWindow(data);
+            final int fitWindowIdx = checkOutputWindow(data);
 
             // if there is a chunk to store
-            if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
+            if (fitWindowIdx != -1) {
+                aggrCompletionHandler = AggregatingCompletionHandler.create(
+                        completionHandler, aggrCompletionHandler);
+                aggrMessageCloner = AggregatingMessageCloner.create(
+                        messageCloner, aggrMessageCloner);
+                
+                if (aggrMessageCloner != null) {
+                    data = (Buffer) aggrMessageCloner.clone(
+                            spdySession.getConnection(), data);
+                }
+                
+                final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                        data, fitWindowIdx);
+                
                 // Create output record for the chunk to be stored
-                outputQueueRecord =
-                        new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
+                outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
+                                                            aggrCompletionHandler,
+                                                            aggrMessageCloner,
+                                                            isLast);
+                outputQueueRecord.incCompletionCounter();
                 // reset completion handler and isLast for the current chunk
-                completionHandler = null;
                 isLast = false;
             }
             
@@ -307,21 +367,30 @@ final class SpdyOutputSink {
                         .build();
                 framesAvailFlag |= 2;
             }
+            
+            completionHandler = aggrCompletionHandler == null ?
+                    completionHandler :
+                    aggrCompletionHandler;
+            messageCloner = aggrMessageCloner == null ?
+                    messageCloner :
+                    aggrMessageCloner;
         }
 
         switch (framesAvailFlag) {
             case 1: {
-                writeDownStream(headerFrame, null, false);
+                writeDownStream(headerFrame, completionHandler,
+                        messageCloner, false);
                 break;
             }
             case 2: {
-                writeDownStream(dataFrame, completionHandler, isLast);
+                writeDownStream(dataFrame, completionHandler,
+                        messageCloner, isLast);
                 break;
             }
                 
             case 3: {
                 writeDownStream(asList(headerFrame, dataFrame),
-                        completionHandler, isLast);
+                        completionHandler, messageCloner, isLast);
                 break;
             }
                 
@@ -347,10 +416,17 @@ final class SpdyOutputSink {
                 
                 // if we can send the output record now - do that
                 
-                completionHandler = outputQueueRecord.completionHandler;
+                final AggregatingCompletionHandler aggrCompletionHandler =
+                        outputQueueRecord.completionHandler;
+                final AggregatingMessageCloner aggrMessageCloner =
+                        outputQueueRecord.messageCloner;
+                
                 isLast = outputQueueRecord.isLast;
                 
-                final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
+                final int fitWindowIdx = checkOutputWindow(outputQueueRecord.buffer);
+                
+                final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                        outputQueueRecord.buffer, fitWindowIdx);
                 final Buffer dataChunkToSend = outputQueueRecord.buffer;
                 
                 outputQueueRecord = null;
@@ -358,10 +434,13 @@ final class SpdyOutputSink {
                 // if there is a chunk to store
                 if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                     // Create output record for the chunk to be stored
-                    outputQueueRecord =
-                            new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
-                    // reset completion handler and isLast for the current chunk
-                    completionHandler = null;
+                    outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
+                                                                aggrCompletionHandler,
+                                                                aggrMessageCloner,
+                                                                isLast);
+                    outputQueueRecord.incCompletionCounter();
+                    
+                    // reset isLast for the current chunk
                     isLast = false;
                 }
 
@@ -375,7 +454,8 @@ final class SpdyOutputSink {
                     DataFrame frame =
                             DataFrame.builder().streamId(spdyStream.getStreamId()).
                                     data(dataChunkToSend).last(isLast).build();
-                    writeDownStream(frame, completionHandler, isLast);
+                    writeDownStream(frame, aggrCompletionHandler,
+                            aggrMessageCloner, isLast);
                 }
                 
                 if (outputQueueRecord == null) {
@@ -389,48 +469,58 @@ final class SpdyOutputSink {
     }
     
     /**
-     * The method is responsible for checking the current output window size
-     * and split (if needed) current buffer into 2 chunked: the one to be sent
-     * now and the one to be stored in the output queue and processed later.
+     * The method is responsible for checking the current output window size.
+     * The returned integer value is an index in the passed buffer. The buffer's
+     * [position; index] part fits to output window and might be sent now,
+     * the remainder (index; limit) has to be stored in queue and sent later.
+     * The <tt>-1</tt> returned value means entire buffer could be sent now.
      * 
      * @param data the output queue data.
-     * 
-     * @return the chunk to be stored, the passed Buffer will represent the chunk
-     * to be sent.
      */
-    private Buffer checkOutputWindow(final Buffer data) {
+    private int checkOutputWindow(final Buffer data) {
         final int size = data.remaining();
         
         // take a snapshot of the current output window state
         final int unconfirmedBytesNow = unconfirmedBytes.get();
         final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
 
-        Buffer dataChunkToStore = null;
-        
         // Check if data chunk is overflowing the output window
         if (unconfirmedBytesNow + size > windowSizeLimit) { // Window overflowed
             final int dataSizeAllowedToSend = windowSizeLimit - unconfirmedBytesNow;
 
             // Split data chunk into 2 chunks - one to be sent now and one to be stored in the output queue
-
-            dataChunkToStore =
-                    data.split(data.position() + dataSizeAllowedToSend);
+            return data.position() + dataSizeAllowedToSend;
         }
-        
-        return dataChunkToStore;
+
+        return -1;
     }
-    
+
+    private Buffer splitOutputBufferIfNeeded(final Buffer buffer, final int idx) {
+        if (idx == -1) {
+            return null;
+        }
+
+        return buffer.split(idx);
+    }
+
     void writeWindowUpdate(final int currentUnackedBytes) {
         WindowUpdateFrame frame =
                 WindowUpdateFrame.builder().streamId(spdyStream.getStreamId()).
-                        delta(currentUnackedBytes).build();
+                delta(currentUnackedBytes).build();
         writeDownStream0(frame, null);
     }
-    
+
     private void writeDownStream(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler,
             final boolean isLast) {
-        writeDownStream0(frame, completionHandler);
+        writeDownStream(frame, completionHandler, null, isLast);
+    }
+
+    private void writeDownStream(final SpdyFrame frame,
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner messageCloner,
+            final boolean isLast) {
+        writeDownStream0(frame, completionHandler, messageCloner);
         
         if (isLast) {
             terminate();
@@ -438,15 +528,23 @@ final class SpdyOutputSink {
     }
     
     private void writeDownStream0(final SpdyFrame frame,
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner messageCloner) {
+        spdySession.getDownstreamChain().write(spdySession.getConnection(),
+                null, frame, completionHandler, messageCloner);
+    }
+    
+    private void writeDownStream0(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frame, completionHandler, null);
+                null, frame, completionHandler, (MessageCloner) null);
     }
     
     private void writeDownStream(final List<SpdyFrame> frames,
             final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner messageCloner,
             final boolean isLast) {
-        writeDownStream0(frames, completionHandler);
+        writeDownStream0(frames, completionHandler, messageCloner);
         
         if (isLast) {
             terminate();
@@ -454,9 +552,10 @@ final class SpdyOutputSink {
     }
 
     private void writeDownStream0(final List<SpdyFrame> frames,
-            final CompletionHandler<WriteResult> completionHandler) {
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner messageCloner) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frames, completionHandler, null);
+                null, frames, completionHandler, messageCloner);
     }
 
     private List<SpdyFrame> asList(final SpdyFrame frame1, final SpdyFrame frame2) {
@@ -514,15 +613,150 @@ final class SpdyOutputSink {
     
     private static class OutputQueueRecord {
         private final Buffer buffer;
-        private final CompletionHandler<WriteResult> completionHandler;
+        private final AggregatingCompletionHandler completionHandler;
+        private final AggregatingMessageCloner messageCloner;
+        
         private final boolean isLast;
         
         public OutputQueueRecord(final Buffer buffer,
-                final CompletionHandler<WriteResult> completionHandler,
+                final AggregatingCompletionHandler completionHandler,
+                final AggregatingMessageCloner messageCloner,
                 final boolean isLast) {
             this.buffer = buffer;
             this.completionHandler = completionHandler;
+            this.messageCloner = messageCloner;
             this.isLast = isLast;
         }
-    }    
+
+        private void incCompletionCounter() {
+            if (completionHandler != null) {
+                completionHandler.counter++;
+            }
+        }
+
+        private void decCompletionCounter() {
+            if (completionHandler != null) {
+                completionHandler.counter--;
+            }
+        }
+    }
+
+    private static class AggregatingCompletionHandler
+            implements CompletionHandler<WriteResult> {
+
+        private static AggregatingCompletionHandler create(
+                final CompletionHandler<WriteResult> parentCompletionHandler) {
+            return parentCompletionHandler == null
+                    ? null
+                    : new AggregatingCompletionHandler(parentCompletionHandler);
+        }
+
+        private static AggregatingCompletionHandler create(
+                final CompletionHandler<WriteResult> parentCompletionHandler,
+                final AggregatingCompletionHandler aggrCompletionHandler) {
+            return aggrCompletionHandler != null
+                    ? aggrCompletionHandler
+                    : create(parentCompletionHandler);
+        }
+        
+        private final CompletionHandler<WriteResult> parentCompletionHandler;
+        
+        private boolean isDone;
+        private int counter;
+        private long writtenSize;
+        
+        public AggregatingCompletionHandler(
+                final CompletionHandler<WriteResult> parentCompletionHandler) {
+            this.parentCompletionHandler = parentCompletionHandler;
+        }
+
+        @Override
+        public void cancelled() {
+            if (!isDone) {
+                isDone = true;
+                parentCompletionHandler.cancelled();
+            }
+        }
+
+        @Override
+        public void failed(Throwable throwable) {
+            if (!isDone) {
+                isDone = true;
+                parentCompletionHandler.failed(throwable);
+            }
+        }
+
+        @Override
+        public void completed(final WriteResult result) {
+            if (isDone) {
+                return;
+            }
+            
+            if (--counter == 0) {
+                isDone = true;
+                final long initialWrittenSize = result.getWrittenSize();
+                writtenSize += initialWrittenSize;
+                
+                try {
+                    result.setWrittenSize(writtenSize);
+                    parentCompletionHandler.completed(result);
+                } finally {
+                    result.setWrittenSize(initialWrittenSize);
+                }
+            } else {
+                updated(result);
+                writtenSize += result.getWrittenSize();
+            }
+        }
+
+        @Override
+        public void updated(final WriteResult result) {
+            final long initialWrittenSize = result.getWrittenSize();
+            
+            try {
+                result.setWrittenSize(writtenSize + initialWrittenSize);
+                parentCompletionHandler.updated(result);
+            } finally {
+                result.setWrittenSize(initialWrittenSize);
+            }
+        }
+    }
+
+    private static class AggregatingMessageCloner implements MessageCloner<WritableMessage> {
+        
+        private static AggregatingMessageCloner create(
+                final MessageCloner<WritableMessage> parentMessageCloner) {
+            return parentMessageCloner == null
+                    ? null
+                    : new AggregatingMessageCloner(parentMessageCloner);
+        }
+
+        private static AggregatingMessageCloner create(
+                final MessageCloner<WritableMessage> parentMessageCloner,
+                final AggregatingMessageCloner aggrMessageCloner) {
+            return aggrMessageCloner != null
+                    ? aggrMessageCloner
+                    : create(parentMessageCloner);
+        }
+
+        private final MessageCloner<WritableMessage> parentMessageCloner;
+        
+        private boolean isCloned;
+        
+        public AggregatingMessageCloner(
+                final MessageCloner<WritableMessage> parentMessageCloner) {
+            this.parentMessageCloner = parentMessageCloner;
+        }
+
+        @Override
+        public WritableMessage clone(Connection connection,
+                WritableMessage originalMessage) {
+            if (isCloned) {
+                return originalMessage;
+            }
+            
+            isCloned = true;
+            return parentMessageCloner.clone(connection, originalMessage);
+        }
+    }
 }

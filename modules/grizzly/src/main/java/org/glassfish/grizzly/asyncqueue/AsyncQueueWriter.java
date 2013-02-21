@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,25 +66,6 @@ public interface AsyncQueueWriter<L>
      * {@link NIOConnection} depending on connections write buffer size.
      */
     public static final int AUTO_SIZE = -2;
-    
-    /**
-     * Method writes the {@link Buffer} to the specific address.
-     *
-     *
-     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WritableMessage} will be
-     *        sent to
-     * @param message the {@link WritableMessage}, from which the data will be written
-     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
-     *        which will get notified, when write will be completed
-     * @param cloner {@link MessageCloner}, which will be invoked by
-     *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
-     *        channel directly and has to be put on a asynchronous queue
-     */
-    public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            MessageCloner<WritableMessage> cloner);
 
     /**
      * Method writes the {@link Buffer} to the specific address.

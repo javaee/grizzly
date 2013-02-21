@@ -41,6 +41,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -327,6 +328,13 @@ public class Context implements AttributeStorage, Cacheable {
             throw new UnsupportedOperationException("Not supported.");
         }
         
+        @Override
+        public void write(Connection connection, Object dstAddress,
+                Object message, CompletionHandler completionHandler,
+                MessageCloner messageCloner) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
         @Override
         @Deprecated
         public void write(Connection connection, Object dstAddress,

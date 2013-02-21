@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Futures;
@@ -67,17 +68,19 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public final void write(
             final Connection connection,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
-        write(connection, null, message, completionHandler, null);
+        write(connection, null, message, completionHandler, (MessageCloner) null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public final GrizzlyFuture<WriteResult<WritableMessage, L>> write(
             final Connection connection,
             final L dstAddress, final WritableMessage message) {
@@ -85,7 +88,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
                 Futures.<WriteResult<WritableMessage, L>>createSafeFuture();
         
         write(connection, dstAddress, message,
-                Futures.toCompletionHandler(future), null);
+                Futures.toCompletionHandler(future), (MessageCloner) null);
         
         return future;
     }
@@ -94,10 +97,11 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public final void write(
             final Connection connection,
             final L dstAddress, final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
-        write(connection, dstAddress, message, completionHandler, null);
+        write(connection, dstAddress, message, completionHandler, (MessageCloner) null);
     }
 }
