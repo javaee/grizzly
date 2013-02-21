@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -81,15 +81,11 @@ public interface AsyncQueueWriter<L>  extends Writer<L>, AsyncQueue {
      *        which will get notified, when write will be completed
      * @param lifeCycleHandler {@link LifeCycleHandler}, which gives developer
      *        finer control over message write process.
-     * @param cloner {@link MessageCloner}, which will be invoked by
-     *        <tt>AsyncQueueWriter</tt>, if message could not be written to a
-     *        channel directly and has to be put on a asynchronous queue    
      */
     public void write(
             Connection<L> connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            LifeCycleHandler lifeCycleHandler,
-            MessageCloner<WritableMessage> cloner);
+            LifeCycleHandler lifeCycleHandler);
 
     /**
      * Configures the maximum number of bytes pending to be written

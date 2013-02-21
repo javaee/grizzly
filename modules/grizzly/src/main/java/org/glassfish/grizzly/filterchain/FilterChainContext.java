@@ -59,7 +59,6 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
@@ -683,13 +682,13 @@ public final class FilterChainContext implements AttributeStorage {
     }
     
     public void write(final Object message) {
-        write(null, message, null, null, null,
+        write(null, message, null, null,
                 transportFilterContext.isBlocking());
     }
 
 
     public void write(final Object message, final boolean blocking) {
-        write(null, message, null, null, null, blocking);
+        write(null, message, null, null, blocking);
     }
 
 
@@ -699,7 +698,7 @@ public final class FilterChainContext implements AttributeStorage {
         write(null,
               message,
               completionHandler,
-              null, null,
+              null,
               transportFilterContext.isBlocking());
 
     }
@@ -709,7 +708,7 @@ public final class FilterChainContext implements AttributeStorage {
                       final CompletionHandler<WriteResult> completionHandler,
                       final boolean blocking) {
 
-        write(null, message, completionHandler, null, null, blocking);
+        write(null, message, completionHandler, null, blocking);
 
     }
 
@@ -722,7 +721,6 @@ public final class FilterChainContext implements AttributeStorage {
               message,
               completionHandler,
               null,
-              null,
               transportFilterContext.isBlocking());
 
     }
@@ -733,7 +731,7 @@ public final class FilterChainContext implements AttributeStorage {
                       final CompletionHandler<WriteResult> completionHandler,
                       final boolean blocking) {
 
-        write(address, message, completionHandler, null, null, blocking);
+        write(address, message, completionHandler, null, blocking);
 
     }
 
@@ -756,36 +754,6 @@ public final class FilterChainContext implements AttributeStorage {
                       final CompletionHandler<WriteResult> completionHandler,
                       final LifeCycleHandler lifeCycleHandler,
                       final boolean blocking) {
-        write(address,
-              message,
-              completionHandler,
-              lifeCycleHandler,
-              null,
-              blocking);
-        
-    }
-
-    public void write(final Object address,
-                      final Object message,
-                      final CompletionHandler<WriteResult> completionHandler,
-                      final LifeCycleHandler lifeCycleHandler,
-                      final MessageCloner cloner) {
-        
-        write(address,
-              message,
-              completionHandler,
-              lifeCycleHandler,
-              cloner,
-              transportFilterContext.isBlocking());
-    }
-
-
-    public void write(final Object address,
-                      final Object message,
-                      final CompletionHandler<WriteResult> completionHandler,
-                      final LifeCycleHandler lifeCycleHandler,
-                      final MessageCloner cloner,
-                      final boolean blocking) {
 
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection(),
@@ -797,7 +765,6 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
-        newContext.transportFilterContext.cloner = cloner;
         newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -1006,7 +973,6 @@ public final class FilterChainContext implements AttributeStorage {
         private boolean isBlocking;
         CompletionHandler completionHandler;
         LifeCycleHandler lifeCycleHandler;
-        MessageCloner cloner;
 
         public void configureBlocking(boolean isBlocking) {
             this.isBlocking = isBlocking;
@@ -1032,19 +998,10 @@ public final class FilterChainContext implements AttributeStorage {
             this.lifeCycleHandler = lifeCycleHandler;
         }
         
-        public MessageCloner getMessageCloner() {
-            return cloner;
-        }
-
-        public void setMessageCloner(final MessageCloner cloner) {
-            this.cloner = cloner;
-        }
-
         void reset() {
             isBlocking = false;
             completionHandler = null;
             lifeCycleHandler = null;
-            cloner = null;
         }
     }
 

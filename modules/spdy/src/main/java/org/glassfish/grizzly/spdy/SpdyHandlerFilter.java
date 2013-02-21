@@ -54,6 +54,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
 import org.glassfish.grizzly.http.HttpBaseFilter;
@@ -717,8 +718,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
                 assert spdyStream != null;
 
+                final TransportContext transportContext = ctx.getTransportContext();
+
                 spdyStream.writeDownStream(httpPacket,
-                        ctx.getTransportContext().getCompletionHandler());
+                        transportContext.getCompletionHandler(),
+                        transportContext.getLifeCycleHandler());
                 
                 return ctx.getStopAction();
             } finally {

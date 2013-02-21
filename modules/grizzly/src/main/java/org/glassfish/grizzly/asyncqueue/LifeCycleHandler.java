@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,10 +56,17 @@ public interface LifeCycleHandler {
      * This method is invoked, when message write process can not be completed
      * in this thread (thread which initialized write process).
      * 
+     * The <tt>LifeCycleHandler</tt> may decide to clone the original message and
+     * return it to the writer, so the original message might be immediately reused.
+     * Or it may decide to return the original message and writer will keep working
+     * with it.
+     * 
      * @param connection {@link Connection}
      * @param message {@link WritableMessage}
+     * 
+     * @return the message, which writer will write asynchronously.
      */
-    public void onThreadContextSwitch(Connection connection, WritableMessage message);
+    public WritableMessage onThreadContextSwitch(Connection connection, WritableMessage message);
 
     /**
      * This method is invoked, when message is about to be written to the channel.
@@ -79,8 +86,9 @@ public interface LifeCycleHandler {
          * {@inheritDoc}
          */
         @Override
-        public void onThreadContextSwitch(final Connection connection,
+        public WritableMessage onThreadContextSwitch(final Connection connection,
                 final WritableMessage message) {
+            return message;
         }
 
         /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,6 @@ import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -113,16 +112,14 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                     ctx.getTransportContext();
 
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
-            final MessageCloner cloner = transportContext.getMessageCloner();
             final LifeCycleHandler lifeCycleHandler = transportContext.getLifeCycleHandler();
             
             transportContext.setCompletionHandler(null);
-            transportContext.setMessageCloner(null);
             transportContext.setLifeCycleHandler(null);
 
             if (!transportContext.isBlocking()) {
                 transport.getAsyncQueueWriter().write(connection, null,
-                        message, completionHandler, lifeCycleHandler, cloner);
+                        message, completionHandler, lifeCycleHandler);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,
                         null, message, completionHandler, lifeCycleHandler);

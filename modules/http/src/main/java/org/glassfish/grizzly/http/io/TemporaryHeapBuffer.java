@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,8 +67,6 @@ final class TemporaryHeapBuffer extends HeapBuffer {
     }
 
     Buffer cloneContent() {
-//        final byte[] clonedBytes = Arrays.copyOfRange(heap,
-//                offset + pos, offset + lim);
         final int length = remaining();
         
         final Buffer buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
@@ -76,9 +74,6 @@ final class TemporaryHeapBuffer extends HeapBuffer {
         buffer.put(heap, offset + pos, length);
         buffer.flip();
 
-        // reset the mutable buffer content with the cloned array
-//        reset(clonedBytes, 0, clonedBytes.length);
-        
         dispose();
         
         return buffer;

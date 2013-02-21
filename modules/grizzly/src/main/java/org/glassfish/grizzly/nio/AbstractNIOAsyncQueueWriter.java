@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,6 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 
 
@@ -159,16 +158,6 @@ public abstract class AbstractNIOAsyncQueueWriter
         this.isAllowDirectWrite = isAllowDirectWrite;
     }
     
-    @Override
-    public void write(
-            final Connection<SocketAddress> connection, SocketAddress dstAddress,
-            final WritableMessage message,
-            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final LifeCycleHandler lifeCycleHandler) {
-        write(connection, dstAddress, message, completionHandler,
-                lifeCycleHandler, null);
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -177,8 +166,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             final Connection<SocketAddress> connection, final SocketAddress dstAddress,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            final LifeCycleHandler lifeCycleHandler,
-            final MessageCloner<WritableMessage> cloner) {
+            final LifeCycleHandler lifeCycleHandler) {
         
 
         final WriteResult<WritableMessage, SocketAddress> currentResult =
@@ -239,7 +227,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // Max number of reentrants is reached
                 
                 queueRecord.setMessage(
-                        cloneRecordIfNeeded(nioConnection, cloner, message));
+                        notifyThreadContextSwitch(nioConnection,
+                        lifeCycleHandler, message));
                 
                 if (isCurrent) { //current but can't write because of maxReentrants limit
                     writeTaskQueue.setCurrentElement(queueRecord);
@@ -248,10 +237,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                     offerToTaskQueue(nioConnection, queueRecord, writeTaskQueue);
                 }
 
-                if (lifeCycleHandler != null) {
-                    lifeCycleHandler.onThreadContextSwitch(nioConnection, message);
-                }
-                
                 return;
             }
             
@@ -288,7 +273,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
             
             queueRecord.setMessage(
-                    cloneRecordIfNeeded(nioConnection, cloner, message));
+                    notifyThreadContextSwitch(nioConnection, lifeCycleHandler, message));
             
             if (isCurrent) { //current but not finished.                
                 writeTaskQueue.setCurrentElement(queueRecord);
@@ -443,18 +428,19 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
     
-    private static WritableMessage cloneRecordIfNeeded(
+    private static WritableMessage notifyThreadContextSwitch(
             final Connection connection,
-            final MessageCloner<WritableMessage> cloner,
+            final LifeCycleHandler lifeCycleHandler,
             final WritableMessage message) {
         
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST,
-                    "AsyncQueueWriter.write clone. connection={0} cloner={1}",
-                    new Object[] {connection, cloner});
+                    "AsyncQueueWriter.write notifyThreadContextSwitch. connection={0} lifeCycleHandler={1}",
+                    new Object[] {connection, lifeCycleHandler});
         }
         
-        return cloner == null ? message : cloner.clone(connection, message);
+        return lifeCycleHandler == null ? message
+                : lifeCycleHandler.onThreadContextSwitch(connection, message);
     }
 
     protected AsyncWriteQueueRecord createRecord(final Connection connection,

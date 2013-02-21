@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,10 +64,11 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.OutputSink;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer.Reentrant;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -934,7 +935,7 @@ public class OutputBuffer implements OutputSink {
     }
 
     private void flushBuffer(final Buffer bufferToFlush,
-            final boolean isLast, final MessageCloner<Buffer> messageCloner)
+            final boolean isLast, final LifeCycleHandler lifeCycleHandler)
             throws IOException {
         
         final HttpContent.Builder builder = outputHeader.httpContentBuilder();
@@ -943,8 +944,7 @@ public class OutputBuffer implements OutputSink {
         ctx.write(null,
                 builder.build(),
                 onAsyncErrorCompletionHandler,
-                null,
-                messageCloner,
+                lifeCycleHandler,
                 IS_BLOCKING);
     }
 
@@ -1155,17 +1155,20 @@ public class OutputBuffer implements OutputSink {
 
     
     /**
-     * The {@link MessageCloner}, responsible for cloning Buffer content, if it
-     * wasn't possible to write it in the current Thread (it was added to async
-     * write queue).
+     * The {@link LifeCycleHandler}, responsible for cloning Buffer content,
+     * if it wasn't possible to write it in the current Thread (it was added
+     * to async write queue).
      * We do this, because {@link #write(byte[], int, int)} method is not aware
      * of async write queues, and content of the passed byte[] might be changed
      * by user application once in gets control back.
      */
-    private final class ByteArrayCloner implements MessageCloner<Buffer> {
+    private final class ByteArrayCloner extends LifeCycleHandler.Adapter {
+
         @Override
-        public Buffer clone(final Connection connection,
-                final Buffer originalMessage) {
+        public WritableMessage onThreadContextSwitch(final Connection connection,
+                final WritableMessage message) {
+
+            final Buffer originalMessage = (Buffer) message;
             
             // Buffer was disposed somewhere on the way to async write queue -
             // just return the original message

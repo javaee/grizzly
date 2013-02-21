@@ -68,7 +68,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -89,7 +90,6 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  */
 public class SSLBaseFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLBaseFilter.class);
-    protected static final MessageCloner<Buffer> COPY_CLONER = new OnWriteCopyCloner();
 
     private static final Allocator MM_ALLOCATOR = new Allocator() {
         @Override
@@ -318,8 +318,7 @@ public class SSLBaseFilter extends BaseFilter {
 
             ctx.write(null, output,
                     transportContext.getCompletionHandler(),
-                    transportContext.getLifeCycleHandler(),
-                    COPY_CLONER,
+                    new OnWriteCopyCloner(transportContext.getLifeCycleHandler()),
                     transportContext.isBlocking());
 
             return ctx.getStopAction();
@@ -990,32 +989,45 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
     
-    private static final class OnWriteCopyCloner implements MessageCloner<Buffer> {
+    private static final class OnWriteCopyCloner extends LifeCycleHandler.Adapter {
+
+        private final LifeCycleHandler parentHandler;
+
+        public OnWriteCopyCloner(final LifeCycleHandler parentHandler) {
+            this.parentHandler = parentHandler;
+        }
+                
         @Override
-        public Buffer clone(final Connection connection,
-                final Buffer originalMessage) {
+        public WritableMessage onThreadContextSwitch(final Connection connection,
+                WritableMessage message) {
+            if (parentHandler != null) {
+                message = parentHandler.onThreadContextSwitch(connection, message);
+            }
+            
+            final Buffer originalBuffer = (Buffer) message;
+            
             final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
 
             final int copyThreshold = sslCtx.getNetBufferSize() / 2;
 
             final Buffer lastOutputBuffer = sslCtx.resetLastOutputBuffer();
 
-            final int totalRemaining = originalMessage.remaining();
+            final int totalRemaining = originalBuffer.remaining();
 
             if (totalRemaining < copyThreshold) {
                 return move(connection.getTransport().getMemoryManager(),
-                        originalMessage);
+                        originalBuffer);
             }
             if (lastOutputBuffer.remaining() < copyThreshold) {
                 final Buffer tmpBuf =
                         copy(connection.getTransport().getMemoryManager(),
-                        originalMessage);
+                        originalBuffer);
 
-                if (originalMessage.isComposite()) {
-                    ((CompositeBuffer) originalMessage).replace(
+                if (originalBuffer.isComposite()) {
+                    ((CompositeBuffer) originalBuffer).replace(
                             lastOutputBuffer, tmpBuf);
                 } else {
-                    assert originalMessage == lastOutputBuffer;
+                    assert originalBuffer == lastOutputBuffer;
                 }
 
                 lastOutputBuffer.tryDispose();
@@ -1024,7 +1036,7 @@ public class SSLBaseFilter extends BaseFilter {
             }
 
 
-            return originalMessage;
+            return originalBuffer;
         }
     }
 }

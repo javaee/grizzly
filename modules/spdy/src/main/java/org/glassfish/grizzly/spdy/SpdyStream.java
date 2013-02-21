@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,7 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -218,11 +219,19 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     void writeDownStream(final HttpPacket httpPacket,
-            CompletionHandler<WriteResult> completionHandler)
+            final CompletionHandler<WriteResult> completionHandler)
             throws IOException {
         outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
+    void writeDownStream(final HttpPacket httpPacket,
+            final CompletionHandler<WriteResult> completionHandler,
+            final LifeCycleHandler lifeCycleHandler)
+            throws IOException {
+        outputSink.writeDownStream(httpPacket, completionHandler,
+                lifeCycleHandler);
+    }
+
     @Override
     public GrizzlyFuture<Closeable> close() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();

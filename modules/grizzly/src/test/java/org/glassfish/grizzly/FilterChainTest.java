@@ -56,7 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -840,11 +840,11 @@ public class FilterChainTest extends TestCase {
                 Arrays.fill(bytesData, (byte) (counter++ % 10));
                 final Buffer b = Buffers.wrap(transport.getMemoryManager(), bytesData);
                 
-                ctx.write(null, b, null, null, new MessageCloner() {
+                ctx.write(null, b, null, new LifeCycleHandler.Adapter() {
 
                     @Override
-                    public Object clone(final Connection connection,
-                            final Object originalMessage) {
+                    public WritableMessage onThreadContextSwitch(final Connection connection,
+                            final WritableMessage originalMessage) {
                         final Buffer originalBuffer = (Buffer) originalMessage;
                         final int remaining = originalBuffer.remaining();
 

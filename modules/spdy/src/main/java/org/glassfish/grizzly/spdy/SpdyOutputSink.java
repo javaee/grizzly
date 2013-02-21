@@ -45,7 +45,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -70,7 +73,7 @@ import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
  */
 final class SpdyOutputSink {
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
-            new OutputQueueRecord(null, null, true);
+            new OutputQueueRecord(null, null, null, true);
     
     // current output queue size
     private final AtomicInteger outputQueueSize = new AtomicInteger();
@@ -114,8 +117,7 @@ final class SpdyOutputSink {
                 outputQueueSize.get() > 0) {
             
             // pick up the first output record in the queue
-            OutputQueueRecord outputQueueRecord =
-                    outputQueue.poll();
+            OutputQueueRecord outputQueueRecord = outputQueue.poll();
 
             // if there is nothing to write - return
             if (outputQueueRecord == null) {
@@ -128,13 +130,18 @@ final class SpdyOutputSink {
                 return;
             }
             
-            CompletionHandler<WriteResult> completionHandler =
+            AggregatingCompletionHandler completionHandler =
                     outputQueueRecord.completionHandler;
+            AggregatingLifeCycleHandler lifeCycleHandler =
+                    outputQueueRecord.lifeCycleHandler;
             boolean isLast = outputQueueRecord.isLast;
             
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
-            final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
+            final int idx = checkOutputWindow(outputQueueRecord.buffer);
+            
+            final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                    outputQueueRecord.buffer, idx);
             final Buffer dataChunkToSend = outputQueueRecord.buffer;
 
             outputQueueRecord = null;
@@ -144,10 +151,10 @@ final class SpdyOutputSink {
                 // Create output record for the chunk to be stored
                 outputQueueRecord =
                         new OutputQueueRecord(dataChunkToStore,
-                        completionHandler, isLast);
+                        completionHandler, lifeCycleHandler, isLast);
+                outputQueueRecord.incCompletionCounter();
                 
-                // reset completion handler and isLast for the current chunk
-                completionHandler = null;
+                // reset isLast for the current chunk
                 isLast = false;
             }
 
@@ -161,7 +168,8 @@ final class SpdyOutputSink {
                         last(isLast).streamId(spdyStream.getStreamId()).build();
 
                 // send a spdydata frame
-                writeDownStream(dataFrame, completionHandler, isLast);
+                writeDownStream(dataFrame, completionHandler,
+                        lifeCycleHandler, isLast);
             }
             
             if (outputQueueRecord != null) {
@@ -197,9 +205,29 @@ final class SpdyOutputSink {
      * @throws IOException 
      */
     public synchronized void writeDownStream(final HttpPacket httpPacket,
-            CompletionHandler<WriteResult> completionHandler)
+            final CompletionHandler<WriteResult> completionHandler)
             throws IOException {
+        writeDownStream(httpPacket, completionHandler, null);
+    }
 
+    int counter = 0;
+    /**
+     * Send an {@link HttpPacket} to the {@link SpdyStream}.
+     * 
+     * The writeDownStream(...) methods have to be synchronized with shutdown().
+     * 
+     * @param httpPacket {@link HttpPacket} to send
+     * @param completionHandler the {@link CompletionHandler},
+     *          which will be notified about write progress.
+     * @param lifeCycleHandler the {@link LifeCycleHandler},
+     *          which will be notified about write progress.
+     * @throws IOException 
+     */
+    synchronized void writeDownStream(final HttpPacket httpPacket,
+            CompletionHandler<WriteResult> completionHandler,
+            LifeCycleHandler lifeCycleHandler)
+            throws IOException {
+        
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated) {
             throw new IOException("The output stream has been terminated");
@@ -244,7 +272,8 @@ final class SpdyOutputSink {
             if (isNoContent) {
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerFrame, completionHandler, isNoContent);
+                writeDownStream(headerFrame, completionHandler,
+                        lifeCycleHandler, isNoContent);
                 return;
             }
         }
@@ -255,21 +284,32 @@ final class SpdyOutputSink {
         
         // if there is a payload to send now
         if (httpContent != null) {
-            
+            counter += httpContent.getContent().remaining();
+            AggregatingCompletionHandler aggrCompletionHandler = null;
+            AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
+        
             isLast = httpContent.isLast();
-            final Buffer data = httpContent.getContent();
+            Buffer data = httpContent.getContent();
             
             // Check if output queue is not empty - add new element
             if (outputQueueSize.getAndIncrement() > 0) {
-                // Flush header frame if any
-                if (headerFrame != null) {
-                    writeDownStream(headerFrame, null, false);
-                    framesAvailFlag = 0;
-                    headerFrame = null;
+                // if the queue is not empty - the headers should have been sent
+                assert headerFrame == null;
+                
+                aggrCompletionHandler = AggregatingCompletionHandler.create(completionHandler);
+                aggrLifeCycleHandler = AggregatingLifeCycleHandler.create(lifeCycleHandler);
+
+                if (aggrLifeCycleHandler != null) {
+                    data = (Buffer) aggrLifeCycleHandler.onThreadContextSwitch(
+                            spdySession.getConnection(), data);
                 }
                 
                 outputQueueRecord = new OutputQueueRecord(
-                        data, completionHandler, isLast);
+                        data, aggrCompletionHandler, aggrLifeCycleHandler, isLast);
+                // Should be called before flushing headerFrame, so
+                // AggregatingCompletionHanlder will not pass completed event to the parent
+                outputQueueRecord.incCompletionCounter();
+                
                 outputQueue.offer(outputQueueRecord);
                 
                 // check if our element wasn't forgotten (async)
@@ -279,6 +319,7 @@ final class SpdyOutputSink {
                     return;
                 }
                 
+                outputQueueRecord.decCompletionCounter();
                 outputQueueRecord = null;
             }
             
@@ -287,15 +328,30 @@ final class SpdyOutputSink {
             
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
-            Buffer dataChunkToStore = checkOutputWindow(data);
+            final int fitWindowIdx = checkOutputWindow(data);
 
             // if there is a chunk to store
-            if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
+            if (fitWindowIdx != -1) {
+                aggrCompletionHandler = AggregatingCompletionHandler.create(
+                        completionHandler, aggrCompletionHandler);
+                aggrLifeCycleHandler = AggregatingLifeCycleHandler.create(
+                        lifeCycleHandler, aggrLifeCycleHandler);
+                
+                if (aggrLifeCycleHandler != null) {
+                    data = (Buffer) aggrLifeCycleHandler.onThreadContextSwitch(
+                            spdySession.getConnection(), data);
+                }
+                
+                final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                        data, fitWindowIdx);
+                
                 // Create output record for the chunk to be stored
-                outputQueueRecord =
-                        new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
+                outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
+                                                            aggrCompletionHandler,
+                                                            aggrLifeCycleHandler,
+                                                            isLast);
+                outputQueueRecord.incCompletionCounter();
                 // reset completion handler and isLast for the current chunk
-                completionHandler = null;
                 isLast = false;
             }
             
@@ -312,47 +368,41 @@ final class SpdyOutputSink {
                         .build();
                 framesAvailFlag |= 2;
             }
+            
+            completionHandler = aggrCompletionHandler == null ?
+                    completionHandler :
+                    aggrCompletionHandler;
+            lifeCycleHandler = aggrLifeCycleHandler == null ?
+                    lifeCycleHandler :
+                    aggrLifeCycleHandler;
         }
 
         switch (framesAvailFlag) {
             case 1: {
-                writeDownStream(headerFrame, null, false);
+                writeDownStream(headerFrame, completionHandler,
+                        lifeCycleHandler, false);
                 break;
             }
             case 2: {
-                writeDownStream(dataFrame, completionHandler, isLast);
+                writeDownStream(dataFrame, completionHandler,
+                        lifeCycleHandler, isLast);
                 break;
             }
                 
             case 3: {
                 writeDownStream(asList(headerFrame, dataFrame),
-                        completionHandler, isLast);
+                        completionHandler, lifeCycleHandler, isLast);
                 break;
             }
                 
             default: throw new IllegalStateException("Unexpected flag: " + framesAvailFlag);
         }
         
-//        // append header and payload buffers
-//        final Buffer resultBuffer = Buffers.appendBuffers(memoryManager,
-//                                     headerBuffer, contentBuffer, true);
-//
-//        if (resultBuffer != null) {
-//            // if the result buffer != null
-//            if (resultBuffer.isComposite()) {
-//                ((CompositeBuffer) resultBuffer).disposeOrder(
-//                        CompositeBuffer.DisposeOrder.LAST_TO_FIRST);
-//            }
-//
-//            // send the buffer
-//            writeDownStream(resultBuffer, completionHandler, isLast);
-//        }
-
         if (outputQueueRecord == null) {
-            // if we managed to send entire HttpPacket - decrease the counter
-            //if (contentBuffer != null) {
+            if (httpContent != null) {
+                // if we managed to send entire HttpPacket - decrease the counter
                 outputQueueSize.decrementAndGet();
-            //}
+            }
             
             return;
         }
@@ -363,15 +413,21 @@ final class SpdyOutputSink {
             outputQueue.setCurrentElement(outputQueueRecord);
 
             // check if situation hasn't changed and we can't send the data chunk now
-            if (unconfirmedBytes.get() == 0 && outputQueueSize.get() == 1 &&
-                    outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
+            if (outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
                 
                 // if we can send the output record now - do that
                 
-                completionHandler = outputQueueRecord.completionHandler;
+                final AggregatingCompletionHandler aggrCompletionHandler =
+                        outputQueueRecord.completionHandler;
+                final AggregatingLifeCycleHandler aggrLifeCycleHandler =
+                        outputQueueRecord.lifeCycleHandler;
+                
                 isLast = outputQueueRecord.isLast;
                 
-                final Buffer dataChunkToStore = checkOutputWindow(outputQueueRecord.buffer);
+                final int fitWindowIdx = checkOutputWindow(outputQueueRecord.buffer);
+                
+                final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                        outputQueueRecord.buffer, fitWindowIdx);
                 final Buffer dataChunkToSend = outputQueueRecord.buffer;
                 
                 outputQueueRecord = null;
@@ -379,10 +435,13 @@ final class SpdyOutputSink {
                 // if there is a chunk to store
                 if (dataChunkToStore != null && dataChunkToStore.hasRemaining()) {
                     // Create output record for the chunk to be stored
-                    outputQueueRecord =
-                            new OutputQueueRecord(dataChunkToStore, completionHandler, isLast);
-                    // reset completion handler and isLast for the current chunk
-                    completionHandler = null;
+                    outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
+                                                                aggrCompletionHandler,
+                                                                aggrLifeCycleHandler,
+                                                                isLast);
+                    outputQueueRecord.incCompletionCounter();
+                    
+                    // reset isLast for the current chunk
                     isLast = false;
                 }
 
@@ -396,7 +455,8 @@ final class SpdyOutputSink {
                     DataFrame frame =
                             DataFrame.builder().streamId(spdyStream.getStreamId()).
                                     data(dataChunkToSend).last(isLast).build();
-                    writeDownStream(frame, completionHandler, isLast);
+                    writeDownStream(frame, aggrCompletionHandler,
+                            aggrLifeCycleHandler, isLast);
                 }
                 
                 if (outputQueueRecord == null) {
@@ -410,35 +470,38 @@ final class SpdyOutputSink {
     }
     
     /**
-     * The method is responsible for checking the current output window size
-     * and split (if needed) current buffer into 2 chunked: the one to be sent
-     * now and the one to be stored in the output queue and processed later.
+     * The method is responsible for checking the current output window size.
+     * The returned integer value is an index in the passed buffer. The buffer's
+     * [position; index] part fits to output window and might be sent now,
+     * the remainder (index; limit) has to be stored in queue and sent later.
+     * The <tt>-1</tt> returned value means entire buffer could be sent now.
      * 
      * @param data the output queue data.
-     * 
-     * @return the chunk to be stored, the passed Buffer will represent the chunk
-     * to be sent.
      */
-    private Buffer checkOutputWindow(final Buffer data) {
+    private int checkOutputWindow(final Buffer data) {
         final int size = data.remaining();
         
         // take a snapshot of the current output window state
         final int unconfirmedBytesNow = unconfirmedBytes.get();
         final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
 
-        Buffer dataChunkToStore = null;
-        
         // Check if data chunk is overflowing the output window
         if (unconfirmedBytesNow + size > windowSizeLimit) { // Window overflowed
             final int dataSizeAllowedToSend = windowSizeLimit - unconfirmedBytesNow;
 
             // Split data chunk into 2 chunks - one to be sent now and one to be stored in the output queue
-
-            dataChunkToStore =
-                    data.split(data.position() + dataSizeAllowedToSend);
+            return data.position() + dataSizeAllowedToSend;
         }
         
-        return dataChunkToStore;
+        return -1;
+    }
+    
+    private Buffer splitOutputBufferIfNeeded(final Buffer buffer, final int idx) {
+        if (idx == -1) {
+            return null;
+        }
+        
+        return buffer.split(idx);
     }
     
     void writeWindowUpdate(final int currentUnackedBytes) {
@@ -451,7 +514,14 @@ final class SpdyOutputSink {
     private void writeDownStream(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler,
             final boolean isLast) {
-        writeDownStream0(frame, completionHandler);
+        writeDownStream(frame, completionHandler, null, isLast);
+    }
+
+    private void writeDownStream(final SpdyFrame frame,
+            final CompletionHandler<WriteResult> completionHandler,
+            final LifeCycleHandler lifeCycleHandler,
+            final boolean isLast) {
+        writeDownStream0(frame, completionHandler, lifeCycleHandler);
         
         if (isLast) {
             terminate();
@@ -459,15 +529,23 @@ final class SpdyOutputSink {
     }
     
     private void writeDownStream0(final SpdyFrame frame,
+            final CompletionHandler<WriteResult> completionHandler,
+            final LifeCycleHandler lifeCycleHandler) {
+        spdySession.getDownstreamChain().write(spdySession.getConnection(),
+                null, frame, completionHandler, lifeCycleHandler);
+    }
+    
+    private void writeDownStream0(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
                 null, frame, completionHandler, null);
     }
-    
+
     private void writeDownStream(final List<SpdyFrame> frames,
             final CompletionHandler<WriteResult> completionHandler,
+            final LifeCycleHandler lifeCycleHandler,
             final boolean isLast) {
-        writeDownStream0(frames, completionHandler);
+        writeDownStream0(frames, completionHandler, lifeCycleHandler);
         
         if (isLast) {
             terminate();
@@ -475,9 +553,10 @@ final class SpdyOutputSink {
     }
 
     private void writeDownStream0(final List<SpdyFrame> frames,
-            final CompletionHandler<WriteResult> completionHandler) {
+            final CompletionHandler<WriteResult> completionHandler,
+            final LifeCycleHandler lifeCycleHandler) {
         spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frames, completionHandler, null);
+                null, frames, completionHandler, lifeCycleHandler);
     }
 
     private List<SpdyFrame> asList(final SpdyFrame frame1, final SpdyFrame frame2) {
@@ -532,18 +611,166 @@ final class SpdyOutputSink {
             terminate();
         }
     }
-    
+
     private static class OutputQueueRecord {
         private final Buffer buffer;
-        private final CompletionHandler<WriteResult> completionHandler;
+        private final AggregatingCompletionHandler completionHandler;
+        private final AggregatingLifeCycleHandler lifeCycleHandler;
+        
         private final boolean isLast;
         
         public OutputQueueRecord(final Buffer buffer,
-                final CompletionHandler<WriteResult> completionHandler,
+                final AggregatingCompletionHandler completionHandler,
+                final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean isLast) {
             this.buffer = buffer;
             this.completionHandler = completionHandler;
+            this.lifeCycleHandler = lifeCycleHandler;
             this.isLast = isLast;
         }
+        
+        private void incCompletionCounter() {
+            if (completionHandler != null) {
+                completionHandler.counter++;
+            }
+        }
+        
+        private void decCompletionCounter() {
+            if (completionHandler != null) {
+                completionHandler.counter--;
+            }
+        }
     }    
+
+    private static class AggregatingCompletionHandler
+            implements CompletionHandler<WriteResult> {
+
+        private static AggregatingCompletionHandler create(
+                final CompletionHandler<WriteResult> parentCompletionHandler) {
+            return parentCompletionHandler == null
+                    ? null
+                    : new AggregatingCompletionHandler(parentCompletionHandler);
+        }
+
+        private static AggregatingCompletionHandler create(
+                final CompletionHandler<WriteResult> parentCompletionHandler,
+                final AggregatingCompletionHandler aggrCompletionHandler) {
+            return aggrCompletionHandler != null
+                    ? aggrCompletionHandler
+                    : create(parentCompletionHandler);
+        }
+        
+        private final CompletionHandler<WriteResult> parentCompletionHandler;
+        
+        private boolean isDone;
+        private int counter;
+        private long writtenSize;
+        
+        public AggregatingCompletionHandler(
+                final CompletionHandler<WriteResult> parentCompletionHandler) {
+            this.parentCompletionHandler = parentCompletionHandler;
+        }
+
+        @Override
+        public void cancelled() {
+            if (!isDone) {
+                isDone = true;
+                parentCompletionHandler.cancelled();
+            }
+        }
+
+        @Override
+        public void failed(Throwable throwable) {
+            if (!isDone) {
+                isDone = true;
+                parentCompletionHandler.failed(throwable);
+            }
+        }
+
+        @Override
+        public void completed(final WriteResult result) {
+            if (isDone) {
+                return;
+            }
+            
+            if (--counter == 0) {
+                isDone = true;
+                final long initialWrittenSize = result.getWrittenSize();
+                writtenSize += initialWrittenSize;
+                
+                try {
+                    result.setWrittenSize(writtenSize);
+                    parentCompletionHandler.completed(result);
+                } finally {
+                    result.setWrittenSize(initialWrittenSize);
+                }
+            } else {
+                updated(result);
+                writtenSize += result.getWrittenSize();
+            }
+        }
+
+        @Override
+        public void updated(final WriteResult result) {
+            final long initialWrittenSize = result.getWrittenSize();
+            
+            try {
+                result.setWrittenSize(writtenSize + initialWrittenSize);
+                parentCompletionHandler.updated(result);
+            } finally {
+                result.setWrittenSize(initialWrittenSize);
+            }
+        }
+    }
+
+    private static class AggregatingLifeCycleHandler implements LifeCycleHandler {
+        
+        private static AggregatingLifeCycleHandler create(
+                final LifeCycleHandler parentLifyCycleHandler) {
+            return parentLifyCycleHandler == null
+                    ? null
+                    : new AggregatingLifeCycleHandler(parentLifyCycleHandler);
+        }
+
+        private static AggregatingLifeCycleHandler create(
+                final LifeCycleHandler parentLifyCycleHandler,
+                final AggregatingLifeCycleHandler aggrLifeCycleHandler) {
+            return aggrLifeCycleHandler != null
+                    ? aggrLifeCycleHandler
+                    : create(parentLifyCycleHandler);
+        }
+
+        private final LifeCycleHandler parentLifyCycleHandler;
+        
+        private boolean isThreadSwitched;
+        private boolean isBeforeWriteCalled;
+        
+        public AggregatingLifeCycleHandler(
+                final LifeCycleHandler parentLifyCycleHandler) {
+            this.parentLifyCycleHandler = parentLifyCycleHandler;
+        }
+
+        @Override
+        public WritableMessage onThreadContextSwitch(final Connection connection,
+                final WritableMessage message) {
+            if (isThreadSwitched) {
+                return message;
+            }
+            
+            isThreadSwitched = true;
+            return parentLifyCycleHandler.onThreadContextSwitch(connection, message);
+        }
+
+        @Override
+        public void onBeforeWrite(final Connection connection,
+                final WritableMessage message) {
+            
+            if (isBeforeWriteCalled) {
+                return;
+            }
+            
+            isBeforeWriteCalled = true;
+            parentLifyCycleHandler.onBeforeWrite(connection, message);
+        }
+    }
 }
