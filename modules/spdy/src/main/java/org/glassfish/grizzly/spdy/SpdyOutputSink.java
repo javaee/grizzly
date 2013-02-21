@@ -210,7 +210,6 @@ final class SpdyOutputSink {
         writeDownStream(httpPacket, completionHandler, null);
     }
 
-    int counter = 0;
     /**
      * Send an {@link HttpPacket} to the {@link SpdyStream}.
      * 
@@ -284,7 +283,6 @@ final class SpdyOutputSink {
         
         // if there is a payload to send now
         if (httpContent != null) {
-            counter += httpContent.getContent().remaining();
             AggregatingCompletionHandler aggrCompletionHandler = null;
             AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
         
