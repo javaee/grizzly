@@ -187,11 +187,11 @@ public class PayloadReplayTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testParametersReplay() throws Exception {
-        final String argRus = "аргумент";
+        final String argRus = "\u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442";
         final String arg1Rus = argRus + "1";
         final String arg2Rus = argRus + "2";
         
-        final String valueRus = "значение";
+        final String valueRus = "\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435";
         final String value1Rus = valueRus + "1";
         final String value2Rus = valueRus + "2";
         

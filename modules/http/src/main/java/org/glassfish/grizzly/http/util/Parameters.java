@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -94,7 +94,9 @@ public final class Parameters {
     private boolean didMerge = false;
     MimeHeaders headers;
     DataChunk queryDC;
-//    UDecoder urlDec;
+    
+    final DataChunk decodedQuery = DataChunk.newInstance();
+    
     public static final int INITIAL_SIZE = 4;
     // Garbage-less parameter merging.
     // In a sub-request with parameters, the new parameters
@@ -130,6 +132,10 @@ public final class Parameters {
         }
     }
 
+    public Charset getEncoding() {
+        return encoding;
+    }
+    
     public void setQueryStringEncoding(final Charset queryStringEncoding) {
         this.queryStringEncoding = queryStringEncoding;
         if (debug > 0) {
@@ -137,6 +143,9 @@ public final class Parameters {
         }
     }
 
+    public Charset getQueryStringEncoding() {
+        return queryStringEncoding;
+    }
 
     public void recycle() {
 
@@ -145,7 +154,9 @@ public final class Parameters {
         currentChild = null;
         didMerge = false;
         encoding = null;
+        queryStringEncoding = null;
         parameterCount = 0;
+        decodedQuery.recycle();
 
     }
     // -------------------- Sub-request support --------------------
@@ -318,11 +329,10 @@ public final class Parameters {
         if (debug > 0) {
             log("Decoding query " + queryDC + ' ' + queryStringEncoding);
         }
-        // TODO obtain the bytes instead of converter to string
-        //      then call processParameters(byte[], int, int, String) directly
-//        MessageBytes decodedQuery = MessageBytes.newInstance();
-//        decodedQuery.setString(queryBC.toString());
-        processParameters(queryDC, queryStringEncoding);
+        
+        decodedQuery.duplicate(queryDC);
+        
+        processParameters(decodedQuery, queryStringEncoding);
 
     }
     // --------------------
