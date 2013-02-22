@@ -1042,7 +1042,15 @@ public class Request {
 
     }
 
-
+    /**
+     * Returns the low-level parameters holder for finer control over parameters.
+     * 
+     * @return {@link Parameters}.
+     */
+    public Parameters getParameters() {
+        return parameters;
+    }
+    
     /**
      * Return the value of the specified request parameter, if any; otherwise,
      * return <code>null</code>.  If there is more than one value defined,
@@ -1969,10 +1977,6 @@ public class Request {
      */
     protected void parseRequestParameters() {
 
-        // getCharacterEncoding() may have been overridden to search for
-        // hidden form field containing request encoding
-        final String enc = getCharacterEncoding();
-
         // Delay updating requestParametersParsed to TRUE until
         // after getCharacterEncoding() has been called, because
         // getCharacterEncoding() may cause setCharacterEncoding() to be
@@ -1980,20 +1984,25 @@ public class Request {
         // requestParametersParsed is TRUE
         requestParametersParsed = true;
 
-        Charset charset;
+        Charset charset = null;
 
-        if (enc != null) {
-            try {
-                charset = Charsets.lookupCharset(enc);
-            } catch (Exception e) {
-                charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
-            }
-        } else {
-            charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
+        if (parameters.getEncoding() == null) {
+            // getCharacterEncoding() may have been overridden to search for
+            // hidden form field containing request encoding
+            charset = lookupCharset(getCharacterEncoding());
+            
+            parameters.setEncoding(charset);
         }
-
-        parameters.setEncoding(charset);
-        parameters.setQueryStringEncoding(charset);
+        
+        if (parameters.getQueryStringEncoding() == null) {
+            if (charset == null) {
+                // getCharacterEncoding() may have been overridden to search for
+                // hidden form field containing request encoding
+                charset = lookupCharset(getCharacterEncoding());
+            }
+            
+            parameters.setQueryStringEncoding(charset);
+        }
 
         parameters.handleQueryParameters();
 
@@ -2035,6 +2044,21 @@ public class Request {
 
     }
 
+    private Charset lookupCharset(final String enc) {
+        Charset charset;
+        if (enc != null) {
+            try {
+                charset = Charsets.lookupCharset(enc);
+            } catch (Exception e) {
+                charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
+            }
+        } else {
+            charset = org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET;
+        }
+        
+        return charset;
+    }
+    
     private boolean checkPostContentType(final String contentType) {
         return ((contentType != null)
                   && contentType.trim().startsWith(FORM_POST_CONTENT_TYPE));
