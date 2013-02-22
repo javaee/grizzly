@@ -969,6 +969,7 @@ public class InputBuffer {
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
 
+            final boolean isLast = c.isLast();
             // Check if HttpContent is chunked message trailer w/ headers
             checkHttpTrailer(c);
             
@@ -977,6 +978,11 @@ public class InputBuffer {
             updateInputContentBuffer(b);
             rr.recycle();
             c.recycle();
+
+            if (isLast) {
+                finished();
+                break;
+            }
         }
 
         if (read > 0 || requestedLen == 0) {

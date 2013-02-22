@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,6 +62,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
+import org.glassfish.grizzly.http.util.Constants;
 
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.utils.Charsets;
@@ -145,6 +146,35 @@ public class ParametersTest {
         // p%C3%A4rameter=%C3%A4
         testEncodedQueryParameter(paramName, paramValue, Charsets.UTF8_CHARSET);
     }
+    
+    @Test
+    public void testQueryParameterEncodingReset() throws UnsupportedEncodingException {
+        String paramName = "\u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442";
+        String paramValue = "\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435";
+        
+        UEncoder encoder = new UEncoder();
+        encoder.setEncoding(Charsets.UTF8_CHARSET.name());
+        String encodedQueryString = encoder.encodeURL(paramName) + "=" + encoder.encodeURL(paramValue);
+        
+        Parameters parameters = new Parameters();
+        parameters.setQueryStringEncoding(Constants.DEFAULT_HTTP_CHARSET);
+        DataChunk queryStringDataChunk = DataChunk.newInstance();
+        queryStringDataChunk.setBuffer(
+                Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, encodedQueryString));
+        parameters.setQuery(queryStringDataChunk);
+        parameters.handleQueryParameters();
+        
+        // the parameter should not be found
+        assertNull(parameters.getParameter(paramName));
+        
+        // reset the query encoding
+        parameters.recycle();
+        parameters.setQueryStringEncoding(Charsets.UTF8_CHARSET);
+        parameters.handleQueryParameters();
+        
+        assertEquals(paramValue, parameters.getParameter(paramName));
+    }
+    
 
     public void testEncodedQueryParameter(String paramName, String paramValue, Charset charset) throws UnsupportedEncodingException {
         String charsetName = charset.name();
