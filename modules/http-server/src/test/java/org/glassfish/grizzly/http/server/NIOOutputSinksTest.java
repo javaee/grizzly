@@ -76,6 +76,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 import static org.glassfish.grizzly.Writer.Reentrant;
 
@@ -933,7 +934,6 @@ public class NIOOutputSinksTest extends TestCase {
      * 
      * http://java.net/jira/browse/GRIZZLY-1309
      */
-    /*
     public void testProvocativeWrite() throws Exception {
         final int LENGTH = 8192;
 
@@ -946,6 +946,7 @@ public class NIOOutputSinksTest extends TestCase {
                 new NetworkListener("Grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
+        listener.getTransport().setIOStrategy(WorkerThreadIOStrategy.getInstance());
         server.addListener(listener);
         
         final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
@@ -1112,7 +1113,7 @@ public class NIOOutputSinksTest extends TestCase {
             ses.shutdown();
         }
     }
-    */
+
     
     private static void fill(byte[] array) {
         for (int i=0; i<array.length; i++) {
