@@ -81,6 +81,7 @@ import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
@@ -1985,7 +1986,7 @@ public class Response {
             return suspendStatus;
         }        
         
-        private class SuspendCloseListener implements CloseListener {
+        private class SuspendCloseListener implements GenericCloseListener {
             private final int expectedModCount;
 
             public SuspendCloseListener(int expectedModCount) {

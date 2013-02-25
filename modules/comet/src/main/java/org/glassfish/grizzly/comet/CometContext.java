@@ -48,13 +48,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
-import org.glassfish.grizzly.Closeable;
-import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
@@ -522,7 +520,7 @@ public class CometContext<E> {
     }
 
     private class CometCompletionHandler implements CompletionHandler<Response>,
-            CloseListener {
+            GenericCloseListener {
         private final CometHandler handler;
 
         public CometCompletionHandler(CometHandler handler) {

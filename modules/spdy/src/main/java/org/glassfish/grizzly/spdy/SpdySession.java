@@ -54,6 +54,7 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorExecutor;
@@ -543,7 +544,7 @@ final class SpdySession {
         }
     }
     
-    private final class ConnectionCloseListener implements CloseListener {
+    private final class ConnectionCloseListener implements GenericCloseListener {
 
         @Override
         public void onClosed(final Closeable closeable, final CloseType type)

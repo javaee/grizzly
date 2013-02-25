@@ -43,7 +43,13 @@ import java.io.IOException;
 
 /**
  * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
+ * While this interface is public, it's not intended for public consumption at this time.
+ * This interface will be changing in 3.0.
  */
-public interface CloseListener {
-    void onClosed(Closeable closeable, CloseType type) throws IOException;
+public interface CloseListener<T extends Closeable, C extends ICloseType> {
+    void onClosed(T closeable, C type) throws IOException;
 }
+
+
+
+

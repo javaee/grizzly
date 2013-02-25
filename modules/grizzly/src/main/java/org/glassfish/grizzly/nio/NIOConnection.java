@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,14 +99,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             new AtomicReference<Object>();
     
     // closeTypeFlag, "null" value means the connection is open.
-    protected final AtomicReference<CloseType> closeTypeFlag =
-            new AtomicReference<CloseType>();
+    protected final AtomicReference<org.glassfish.grizzly.CloseType> closeTypeFlag =
+            new AtomicReference<org.glassfish.grizzly.CloseType>();
     
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;
     protected short zeroByteReadCount;
-    private final Queue<CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener>();
+    private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
+            new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -415,7 +415,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final boolean isClosedLocally) {
         
         if (closeTypeFlag.compareAndSet(null,
-                isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
+                isClosedLocally
+                        ? org.glassfish.grizzly.CloseType.LOCALLY
+                        : org.glassfish.grizzly.CloseType.REMOTELY)) {
             
             preClose();
             notifyCloseListeners();
@@ -461,8 +463,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public void addCloseListener(final CloseListener closeListener) {
-        CloseType closeType = closeTypeFlag.get();
+    public void addCloseListener(final org.glassfish.grizzly.CloseListener closeListener) {
+        org.glassfish.grizzly.CloseType closeType = closeTypeFlag.get();
         
         // check if connection is still open
         if (closeType == null) {
@@ -473,7 +475,17 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             if (closeType != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 try {
-                    closeListener.onClosed(this, closeType);
+                    if (closeListener instanceof CloseListener) {
+                        CloseType closeLocal;
+                        if (closeType == org.glassfish.grizzly.CloseType.LOCALLY) {
+                            closeLocal = CloseType.LOCALLY;
+                        } else {
+                            closeLocal = CloseType.REMOTELY;
+                        }
+                        ((CloseListener) closeListener).onClosed(this, closeLocal);
+                    } else {
+                        closeListener.onClosed(this, closeType);
+                    }
                 } catch (IOException ignored) {
                 }
             }
@@ -489,8 +501,18 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeCloseListener(final CloseListener closeListener) {
+    public boolean removeCloseListener(final org.glassfish.grizzly.CloseListener closeListener) {
         return closeListeners.remove(closeListener);
+    }
+
+    @Override
+    public void addCloseListener(CloseListener closeListener) {
+        addCloseListener((org.glassfish.grizzly.CloseListener) closeListener);
+    }
+
+    @Override
+    public boolean removeCloseListener(CloseListener closeListener) {
+        return removeCloseListener((org.glassfish.grizzly.CloseListener) closeListener);
     }
 
     /**
@@ -669,12 +691,22 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners() {
-        final CloseType closeType = closeTypeFlag.get();
+        final org.glassfish.grizzly.CloseType closeType = closeTypeFlag.get();
         
-        CloseListener closeListener;
+        org.glassfish.grizzly.CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
-                closeListener.onClosed(this, closeType);
+                if (closeListener instanceof CloseListener) {
+                    CloseType closeLocal;
+                    if (closeType == org.glassfish.grizzly.CloseType.LOCALLY) {
+                        closeLocal = CloseType.LOCALLY;
+                    } else {
+                        closeLocal = CloseType.REMOTELY;
+                    }
+                    ((CloseListener) closeListener).onClosed(this, closeLocal);
+                } else {
+                    closeListener.onClosed(this, closeType);
+                }
             } catch (IOException ignored) {
             }
         }

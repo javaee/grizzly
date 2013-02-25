@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -160,7 +161,7 @@ public class WebSocketEngine {
                         WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
                 holder.application = app;
                 protocolHandler.handshake(ctx, app, requestContent);
-                request.getConnection().addCloseListener(new CloseListener() {
+                request.getConnection().addCloseListener(new GenericCloseListener() {
                     @Override
                     public void onClosed(final Closeable closeable,
                             final CloseType type) throws IOException {

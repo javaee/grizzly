@@ -39,8 +39,17 @@
  */
 package org.glassfish.grizzly;
 
-public enum CloseType implements ICloseType {
-    LOCALLY, REMOTELY
+
+/**
+ * This interface was added to 2.3 to avoid having to declare {@link CloseListener} with
+ * parameter types.  This interface will not be present in 3.0.  In 3.0, it will
+ * be required that all close listeners implement {@link CloseListener} without generic arguments.
+ *
+ * @since 2.3
+ *
+ * @deprecated
+ */
+@Deprecated
+public interface GenericCloseListener extends CloseListener<Closeable,CloseType>{
+
 }
-
-

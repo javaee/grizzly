@@ -1,4 +1,4 @@
-/*
+package org.glassfish.grizzly;/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
@@ -37,10 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly;
 
-public enum CloseType implements ICloseType {
-    LOCALLY, REMOTELY
+/**
+ * Added for backwards compatibility.  This will be removed in 3.0.
+ * @since 2.3
+ * @deprecated
+ */
+@Deprecated
+public interface ICloseType {
 }
-
-

@@ -350,7 +350,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             final FutureImpl<Boolean> connectedCloseFuture = new SafeFutureImpl<Boolean>();
             final FutureImpl<Boolean> acceptedCloseFuture = new SafeFutureImpl<Boolean>();
             
-            connectedConnection.addCloseListener(new CloseListener() {
+            connectedConnection.addCloseListener(new GenericCloseListener() {
 
                 @Override
                 public void onClosed(Closeable closeable, CloseType type) throws IOException {
@@ -358,7 +358,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 }
             });
             
-            acceptedConnection.addCloseListener(new CloseListener() {
+            acceptedConnection.addCloseListener(new GenericCloseListener() {
 
                 @Override
                 public void onClosed(Closeable closeable, CloseType type) throws IOException {

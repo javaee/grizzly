@@ -53,6 +53,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -400,7 +401,7 @@ public class SSLFilter extends SSLBaseFilter {
      * Close listener, which is used to notify handshake completion handler about
      * failure, if <tt>Connection</tt> will be unexpectedly closed.
      */
-    private final class ConnectionCloseListener implements CloseListener {
+    private final class ConnectionCloseListener implements GenericCloseListener {
         @Override
         public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.http.KeepAliveProbe;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -52,7 +53,6 @@ import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 
 /**
@@ -217,7 +217,7 @@ public class KeepAlive extends JmxObject {
         @Override
         public void onConnectionAcceptEvent(Connection connection) {
             keepAliveConnectionsCount.incrementAndGet();
-            connection.addCloseListener(new CloseListener() {
+            connection.addCloseListener(new GenericCloseListener() {
 
                 @Override
                 public void onClosed(final Closeable closeable,

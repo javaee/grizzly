@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -292,14 +292,38 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * will be closed.
      * 
      * @param closeListener {@link CloseListener}.
+     *
+     * @since 2.3
      */
+    void addCloseListener(org.glassfish.grizzly.CloseListener closeListener);
+
+    /**
+     * Remove the {@link CloseListener}.
+     *
+     * @param closeListener {@link CloseListener}.
+     *
+     * @since 2.3
+     */
+    boolean removeCloseListener(org.glassfish.grizzly.CloseListener closeListener);
+
+    /**
+     * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
+     * will be closed.
+     * @param closeListener {@link CloseListener}
+     *
+     * @deprecated use {@link #addCloseListener(org.glassfish.grizzly.CloseListener)}
+     */
+    @Deprecated
     void addCloseListener(CloseListener closeListener);
 
     /**
      * Remove the {@link CloseListener}.
      *
      * @param closeListener {@link CloseListener}.
+     *
+     * @deprecated use {@link #removeCloseListener(org.glassfish.grizzly.CloseListener)}
      */
+    @Deprecated
     boolean removeCloseListener(CloseListener closeListener);
     
     /**
@@ -308,5 +332,33 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * @param error {@link Throwable}.
      */
     void notifyConnectionError(Throwable error);
+
+
+    // ------------------------------------------------------------------- Nested Classes
+
+    /**
+     * This interface will be removed in 3.0.
+     *
+     * @deprecated use {@link org.glassfish.grizzly.CloseListener}
+     *
+     * @see GenericCloseListener
+     */
+    @Deprecated
+    public static interface CloseListener extends org.glassfish.grizzly.CloseListener<Connection, CloseType> {
+
+        @Override
+        void onClosed(Connection connection, CloseType type) throws IOException;
+
+    }
+
+    /**
+     * This enum will be removed in 3.0.
+     *
+     * @deprecated use {@link org.glassfish.grizzly.CloseType}
+     */
+    @Deprecated
+    public enum CloseType implements ICloseType {
+        LOCALLY, REMOTELY
+    }
 
 }
