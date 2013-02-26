@@ -49,7 +49,6 @@
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-websockets-server</artifactId>
     <packaging>jar</packaging>
     <version>2.3-SNAPSHOT</version>
@@ -68,13 +67,17 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <configuration>
                     <instructions>
                         <Import-Package>
                             *,
                         </Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version}</Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
+                        <Export-Package>
+                            org.glassfish.grizzly.*;-split-package:=merge-first;version=${project.version}
+                        </Export-Package>
+                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime
+                        </Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>

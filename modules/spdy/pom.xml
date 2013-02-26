@@ -49,7 +49,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-spdy</artifactId>
     <packaging>bundle</packaging>
     <version>2.3-SNAPSHOT</version>
@@ -77,7 +76,8 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-<!--                <configuration>
+                <version>2.13</version>
+                <!--                <configuration>
                     <argLine>
                         -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/npn/npn-boot/1.1.1.v20121030/npn-boot-1.1.1.v20121030.jar
                     </argLine>

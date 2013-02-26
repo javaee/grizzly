@@ -89,10 +89,13 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <configuration>
                     <instructions>
-                        <Bundle-Name>Grizzly OSGi HttpService Bundle</Bundle-Name>
-                        <Bundle-Description>An implementation of the OSGi HttpService using Grizzly.
+                        <Bundle-Name>Grizzly OSGi HttpService Bundle
+                        </Bundle-Name>
+                        <Bundle-Description>An implementation of the OSGi
+                            HttpService using Grizzly.
                         </Bundle-Description>
                         <Bundle-Activator>
                             org.glassfish.grizzly.osgi.httpservice.Activator

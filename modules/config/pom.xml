@@ -49,7 +49,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <version>2.3-SNAPSHOT</version>
     <name>grizzly-config</name>
@@ -101,9 +100,6 @@
                 <version>${hk2.version}</version>
                 <executions>
                     <execution>
-                        <configuration>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
-                        </configuration>
                         <goals>
                             <goal>generate-injectors</goal>
                         </goals>
@@ -135,9 +131,6 @@
                 <version>${hk2.version}</version>
                 <executions>
                     <execution>
-                        <configuration>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
-                        </configuration>
                         <goals>
                             <goal>generate-inhabitants</goal>
                         </goals>
@@ -145,10 +138,6 @@
                     <execution>
                         <id>test</id>
                         <phase>process-test-classes</phase>
-                        <configuration>
-                            <test>true</test>
-                            <classpath>${project.build.directory}/classpath.txt</classpath>
-                        </configuration>
                         <goals>
                             <goal>generate-inhabitants</goal>
                         </goals>
@@ -168,7 +157,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>1.4.0</version>
+                <version>${felix-version}</version>
                 <configuration>
                     <supportedProjectTypes>
                         <supportedProjectType>bundle</supportedProjectType>
@@ -189,6 +178,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.13</version>
                 <configuration>
                     <argLine>-Xms256m -Xmx512m</argLine>
                 </configuration>

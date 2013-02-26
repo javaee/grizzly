@@ -69,14 +69,17 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
                 <version>1.4.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>org.glassfish.grizzly.*</Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>org.glassfish.grizzly.http.writerbm.Server</Main-Class>
+                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime
+                        </Embed-Dependency>
+                        <Main-Class>org.glassfish.grizzly.http.writerbm.Server
+                        </Main-Class>
                     </instructions>
                 </configuration>
             </plugin>
