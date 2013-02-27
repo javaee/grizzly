@@ -263,7 +263,7 @@ public class SSLAttributesTest {
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 httpServer.getListener("grizzly").getTransport())
-                .filterChain(builder.build())
+                .processor(builder.build())
                 .build();
 
         Future<Connection> connectFuture = connectorHandler.connect("localhost", PORT);
