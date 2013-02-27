@@ -636,13 +636,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                         final FilterChainBuilder builder,
                                         final boolean secure) {
         if (spdyElement != null) {
+            Class<?> spdyMode;
+                try {
+                    spdyMode = Utils.loadClass("org.glassfish.grizzly.spdy.SpdyMode");
+                } catch (ClassNotFoundException cnfe) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine("Unable to load class org.glassfish.grizzly.spdy.SpdyMode.  SPDY support cannot be enabled");
+                    }
+                    return;
+                }
+            Object[] enumConstants = spdyMode.getEnumConstants();
+            Object mode;
             if (!secure) {
                 logger.log(Level.WARNING,
-                           "SPDY support cannot be enabled as SSL isn't configured for listener {0}",
-                           listener.getName());
-                return;
+                           "SSL is not enabled for listener {0}.  SPDY support will be enabled, but will not be secured.  Some clients may not be able to use SPDY in this configuration.",
+                           listener.getName() );
+                mode = enumConstants[0];
+            } else {
+                mode = enumConstants[1];
             }
-            final AddOn spdyAddon = loadAddOn(locator, "spdy", "org.glassfish.grizzly.spdy.SpdyAddOn");
+
+            final AddOn spdyAddon = loadAddOn("org.glassfish.grizzly.spdy.SpdyAddOn", new Class[] { spdyMode }, mode);
             if (spdyAddon != null) {
                 // Spdy requires access to more information compared to the other addons
                 // that are currently leveraged.  As such, we'll need to mock out a
@@ -734,6 +748,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
      */
     private AddOn loadAddOn(ServiceLocator habitat, String name, String addOnClassName) {
         return Utils.newInstance(habitat, AddOn.class, name, addOnClassName);
+    }
+
+    /**
+     * Load {@link AddOn} with the specific service name and classname.
+     */
+    private AddOn loadAddOn(String addOnClassName, Class[] argTypes, Object... args) {
+        return Utils.newInstance(null, AddOn.class, name, addOnClassName, argTypes, args);
     }
 
     /**

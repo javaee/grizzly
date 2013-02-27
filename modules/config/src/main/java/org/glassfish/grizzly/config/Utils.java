@@ -173,8 +173,10 @@ public class Utils {
                                         Class<?>[] argTypes, 
                                         Object[] args) {
             boolean isInitialized = false;
-    
-            E instance = habitat.getService(clazz, name);
+            E instance = null;
+            if (habitat != null) {
+                instance = habitat.getService(clazz, name);
+            }
             if (instance == null) {
                 try {
                     if (argTypes == null || argTypes.length == 0) {
