@@ -507,14 +507,22 @@ public class InputBuffer {
     /**
      * Fill the buffer (blocking) up to the requested length.
      * 
-     * @param length
+     * @param length how much content should attempt to buffer,
+     * <code>-1</code> means buffer entire request.
+     * 
      * @throws IOException
      */
     public void fillFully(final int length) throws IOException {
-        int remaining = length - inputContentBuffer.remaining();
+        if (length == 0) return;
+        
+        if (length > 0) {
+            final int remaining = length - inputContentBuffer.remaining();
 
-        if (remaining > 0) {
-            fill(remaining);
+            if (remaining > 0) {
+                fill(remaining);
+            }
+        } else {
+            fill(-1);
         }
     }
 
@@ -906,10 +914,11 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Used to add additional http message chunk content to {@link #inputContentBuffer}.
+     * Used to add additional HTTP message chunk content to {@link #inputContentBuffer}.
      * </p>
      *
-     * @param requestedLen how much content should attempt to be read
+     * @param requestedLen how much content should attempt to be read,
+     * <code>-1</code> means read till the end of the message.
      *
      * @return the number of bytes actually read
      *

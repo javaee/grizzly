@@ -806,6 +806,13 @@ public class Request {
     }
 
     /**
+     * Returns {@link HttpServerFilter}, which dispatched this request.
+     */
+    public HttpServerFilter getHttpFilter() {
+        return httpServerFilter;
+    }
+    
+    /**
      * Returns the part of this request's URL that calls the HttpHandler.
      * This includes either the HttpHandler name or a path to the HttpHandler,
      * but does not include any extra path information or a query string.
@@ -1981,6 +1988,15 @@ public class Request {
 
             if (!checkPostContentType(getContentType())) return;
 
+            final int maxFormPostSize = httpServerFilter.getConfiguration().getMaxFormPostSize();
+            if ((maxFormPostSize > 0) && (len > maxFormPostSize)) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning("Post too large");
+                }
+                
+                throw new IllegalStateException("Post too large");
+            }
+            
             try {
                 final Buffer formData = getPostBody(len);
                 parameters.processParameters(formData, formData.position(), len);

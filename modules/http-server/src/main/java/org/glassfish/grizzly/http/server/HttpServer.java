@@ -620,6 +620,9 @@ public class HttpServer {
             
             config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());
             
+            config.setMaxFormPostSize(listener.getMaxFormPostSize());
+            config.setMaxBufferedPostSize(listener.getMaxBufferedPostSize());
+            
             httpServerFilter.setHttpHandler(httpHandlerChain);
             
             httpServerFilter.getMonitoringConfig().addProbes(
