@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,6 +62,7 @@ public final class FileCacheEntry implements Runnable {
     public String lastModifiedHeader;
     public long contentLength = -1;
     public long fileSize = -1;
+    public String server;
 
     public volatile long timeoutMillis;
 
@@ -89,6 +90,7 @@ public final class FileCacheEntry implements Runnable {
         sb.append(", fileSize=").append(fileSize);
         sb.append(", timeoutMillis=").append(timeoutMillis);
         sb.append(", fileCache=").append(fileCache);
+        sb.append(", server=").append(server);
         sb.append('}');
         return sb.toString();
     }
