@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.server.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -59,6 +60,16 @@ public class RequestUtils {
         Object certificates = null;
 
         if (request.getRequest().isSecure()) {
+            if (request.getRequest().getUpgradeDC().isNull()) {
+                // It's normal HTTP request, not upgraded one
+                try {
+                    request.getInputBuffer().fillFully(
+                            request.getHttpFilter().getConfiguration().getMaxBufferedPostSize());
+                } catch (IOException e) {
+                    throw new IllegalStateException("Can't complete SSL re-negotation", e);
+                }
+            }
+            
             SSLBaseFilter.CertificateEvent event = new SSLBaseFilter.CertificateEvent(true);
             request.getContext().notifyDownstream(event);
             certificates = event.getCertificates();
