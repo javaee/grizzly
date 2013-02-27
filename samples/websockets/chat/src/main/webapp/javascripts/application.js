@@ -3,7 +3,7 @@ var websocket = null;
 var name  = null;
 
 var app = {
-    url: 'ws://localhost:8080/grizzly-websockets-chat/chat',
+    url: 'ws://' + window.location.host + '/grizzly-websockets-chat/chat',
     initialize: function() {
         if ("WebSocket" in window || "MozWebSocket" in window) {
             $('login-name').focus();
