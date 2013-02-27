@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -229,6 +229,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         entry.contentLength = response.getContentLength();
         entry.host = host;
         entry.Etag = headers.getHeader(Header.ETag);
+        entry.server = headers.getHeader(Header.Server);
 
         fileCacheMap.put(key, entry);
         
@@ -378,6 +379,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         boolean flushBody = checkIfHeaders(entry, request);
 
         response.setContentType(entry.contentType);
+
+        if (entry.server != null) {
+            response.addHeader(Header.Server, entry.server);
+        }
 
         if (flushBody) {
             if (entry.type == CacheType.TIMESTAMP) {

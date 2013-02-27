@@ -65,6 +65,7 @@ import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.CharChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
@@ -222,7 +223,7 @@ public class ServletHandler extends HttpHandler {
             setDispatcherPath(request, getCombinedPath(servletRequest));
 
             //TODO: Make this configurable.
-            servletResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
+            servletResponse.addHeader(Header.Server.toString(), "grizzly/" + Grizzly.getDotedVersion());
             
             if (expectationHandler != null) {
                 final AckActionImpl ackAction = new AckActionImpl(response);
