@@ -323,7 +323,7 @@ public class SSLBaseFilter extends BaseFilter {
 
     protected NextAction unwrapAll(final FilterChainContext ctx,
             final SSLConnectionContext sslCtx) throws SSLException {
-        final Buffer input = ctx.getMessage();
+        Buffer input = ctx.getMessage();
         
         Buffer output = null;
         
@@ -339,6 +339,13 @@ public class SSLBaseFilter extends BaseFilter {
 
             final SSLConnectionContext.SslResult result =
                     sslCtx.unwrap(input, output, MM_ALLOCATOR);
+            
+            if (isHandshaking(sslCtx.getSslEngine())) {
+                input = rehandshake(ctx, sslCtx);
+                if (input == null) {
+                    break;
+                }
+            }
             
             output = result.getOutput();
 
@@ -676,55 +683,37 @@ public class SSLBaseFilter extends BaseFilter {
         }
         final Connection c = context.getConnection();
         sslEngine.getSession().invalidate();
+
         try {
-                sslEngine.beginHandshake();
-                notifyHandshakeStart(c);
-            } catch (SSLHandshakeException e) {
-                // If we catch SSLHandshakeException at this point it may be due
-                // to an older SSL peer that hasn't made its SSL/TLS renegotiation
-                // secure.  This will be the case with Oracle's VM older than
-                // 1.6.0_22 or native applications using OpenSSL libraries
-                // older than 0.9.8m.
-                //
-                // What we're trying to accomplish here is an attempt to detect
-                // this issue and log a useful message for the end user instead
-                // of an obscure exception stack trace in the server's log.
-                // Note that this probably will only work on Oracle's VM.
-                if (e.toString().toLowerCase().contains("insecure renegotiation")) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.severe("Secure SSL/TLS renegotiation is not " +
-                                "supported by the peer.  This is most likely due" +
-                                " to the peer using an older SSL/TLS " +
-                                "implementation that does not implement RFC 5746.");
-                    }
-                    // we could return null here and let the caller
-                    // decided what to do, but since the SSLEngine will
-                    // close the channel making further actions useless,
-                    // we'll report the entire cause.
+            sslEngine.beginHandshake();
+        } catch (SSLHandshakeException e) {
+            // If we catch SSLHandshakeException at this point it may be due
+            // to an older SSL peer that hasn't made its SSL/TLS renegotiation
+            // secure.  This will be the case with Oracle's VM older than
+            // 1.6.0_22 or native applications using OpenSSL libraries
+            // older than 0.9.8m.
+            //
+            // What we're trying to accomplish here is an attempt to detect
+            // this issue and log a useful message for the end user instead
+            // of an obscure exception stack trace in the server's log.
+            // Note that this probably will only work on Oracle's VM.
+            if (e.toString().toLowerCase().contains("insecure renegotiation")) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.severe("Secure SSL/TLS renegotiation is not "
+                            + "supported by the peer.  This is most likely due"
+                            + " to the peer using an older SSL/TLS "
+                            + "implementation that does not implement RFC 5746.");
                 }
-                throw e;
+                // we could return null here and let the caller
+                // decided what to do, but since the SSLEngine will
+                // close the channel making further actions useless,
+                // we'll report the entire cause.
             }
-
+            throw e;
+        }
+        
         try {
-            // write the initial handshake bytes to the client
-            final Buffer buffer = handshakeWrap(c, sslCtx, null);
-
-            try {
-                context.write(buffer);
-            } catch (Exception e) {
-                buffer.dispose();
-                throw new IOException("Unexpected exception", e);
-            }
-
-            // read the bytes returned by the client
-            ReadResult result = context.read();
-            Buffer m = (Buffer) result.getMessage();
-            doHandshakeSync(sslCtx, context, m, handshakeTimeoutMillis);
-
-        } catch (Throwable t) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Error during handshake", t);
-            }
+            rehandshake(context, sslCtx);
         } finally {
             if (!authConfigured) {
                 sslEngine.setNeedClientAuth(false);
@@ -732,6 +721,23 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
 
+    private Buffer rehandshake(final FilterChainContext context,
+            final SSLConnectionContext sslCtx) throws SSLException {
+        final Connection c = context.getConnection();
+        
+        notifyHandshakeStart(c);
+
+        try {
+            return doHandshakeSync(sslCtx, context, null, handshakeTimeoutMillis);
+
+        } catch (Throwable t) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Error during handshake", t);
+            }
+        }
+        
+        return null;
+    }
 
     /**
      * <p>
