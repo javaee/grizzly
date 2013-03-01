@@ -295,9 +295,13 @@ public class SSLFilter extends SSLBaseFilter {
     protected void notifyHandshakeFailed(Connection connection, Throwable t) {
         final SSLHandshakeContext handshakeContext =
                 handshakeContextAttr.get(connection);
-        handshakeContext.failed(t);
+        if (handshakeContext != null) {
+            handshakeContext.failed(t);
+        }
+
+        super.notifyHandshakeFailed(connection, t);
     }
-    
+
     // ----------------------------------------------------------- Inner Classes
 
 
