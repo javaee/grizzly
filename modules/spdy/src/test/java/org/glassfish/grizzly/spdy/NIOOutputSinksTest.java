@@ -78,7 +78,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.DelayFilter;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -272,8 +271,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(spdyMode, isSecure);
-        // assume 1st filter in chain is transport
-        filterChainBuilder.add(1, new DelayFilter(5, 0));
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
@@ -555,8 +552,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(spdyMode, isSecure);
-        // assume 1st filter in chain is transport
-        filterChainBuilder.add(1, new DelayFilter(5, 0));
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
