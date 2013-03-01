@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,10 +53,12 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.http.*;
+import org.glassfish.grizzly.http.util.UEncoder;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -102,6 +104,54 @@ public class BasicConfigTest {
             String scheme = props.get("scheme");
             assertNotNull(scheme);
             assertEquals("https", scheme);
+        } finally {
+            server.stop();
+        }
+    }
+    
+    @Test
+    public void testDefaultQueryParametersEncoding() throws Exception {
+        final String paramName = "\u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442";
+        final String paramValue = "\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435";
+
+        UEncoder encoder = new UEncoder();
+        encoder.setEncoding(Charsets.UTF8_CHARSET.name());
+        String encodedQueryString = encoder.encodeURL(paramName) + "=" + encoder.encodeURL(paramValue);
+        
+        final HttpServer server = createWebServer(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final String parameterValue = request.getParameter(paramName);
+                
+                response.setCharacterEncoding(Charsets.UTF8_CHARSET.name());
+                response.getWriter().write("value=" + parameterValue + "\n");
+            }
+        });
+
+        // Set the default query encoding.
+        server.getServerConfiguration().setDefaultQueryEncoding(Charsets.UTF8_CHARSET);
+        
+        try {
+            server.start();
+            
+            final HttpPacket request = createRequest("/test?" + encodedQueryString, null);
+            final HttpContent response = doTest(request, 1000);
+
+            final String responseContent = response.getContent().toStringContent(Charsets.UTF8_CHARSET);
+            Map<String, String> props = new HashMap<String, String>();
+
+            BufferedReader reader = new BufferedReader(new StringReader(responseContent));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] nameValue = line.split("=");
+                assertEquals(2, nameValue.length);
+                props.put(nameValue[0], nameValue[1]);
+            }
+
+            String value = props.get("value");
+            assertNotNull(value);
+            assertEquals(paramValue, value);
         } finally {
             server.stop();
         }

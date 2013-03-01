@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.nio.charset.Charset;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.utils.JdkVersion;
 
@@ -71,6 +72,11 @@ public class ServerFilterConfiguration {
      * up by framework during runtime.
      */
     private String scheme;
+    
+    /**
+     * Default query string encoding (query part of request URI).
+     */
+    private Charset defaultQueryEncoding;
 
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
@@ -93,6 +99,7 @@ public class ServerFilterConfiguration {
         this.isReuseSessionID = configuration.isReuseSessionID;
         this.maxFormPostSize = configuration.maxFormPostSize;
         this.maxBufferedPostSize = configuration.maxBufferedPostSize;
+        this.defaultQueryEncoding = configuration.defaultQueryEncoding;
     }
     
     /**
@@ -342,7 +349,23 @@ public class ServerFilterConfiguration {
     public void setMaxBufferedPostSize(final int maxBufferedPostSize) {
         this.maxBufferedPostSize = maxBufferedPostSize < 0 ? -1 : maxBufferedPostSize;
     }
-        
+
+    /**
+     * Returns the default character encoding used to decode request URI's query part.
+     * <code>null</code> value means specific request's character encoding will be used.
+     */
+    public Charset getDefaultQueryEncoding() {
+        return defaultQueryEncoding;
+    }
+
+    /**
+     * Sets the default character encoding used to decode request URI's query part.
+     * <code>null</code> value means specific request's character encoding will be used.
+     */
+    public void setDefaultQueryEncoding(final Charset defaultQueryEncoding) {
+        this.defaultQueryEncoding = defaultQueryEncoding;
+    }
+    
     // --------------------------------------------------------- Private Methods
 
 

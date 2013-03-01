@@ -503,6 +503,7 @@ public class Request {
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
+        parameters.setQueryStringEncoding(httpServerFilter.getConfiguration().getDefaultQueryEncoding());
 
         final DataChunk remoteUser = request.remoteUser();
         if (!remoteUser.isNull()) {
