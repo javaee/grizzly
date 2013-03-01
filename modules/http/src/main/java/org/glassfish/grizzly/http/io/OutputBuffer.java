@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -507,19 +507,21 @@ public class OutputBuffer {
         updateNonBlockingStatus();
         
         checkCurrentBuffer();
+        
+        if (!currentBuffer.hasRemaining()) {
+            if (canWritePayloadChunk()) {
+                doCommit();
+                flushBinaryBuffers(false);
 
-        if (currentBuffer.hasRemaining()) {
-            currentBuffer.put((byte) b);
-        } else {
-            doCommit();
-            flushBinaryBuffers(false);
-//            finishCurrentBuffer();
-            checkCurrentBuffer();
-            blockAfterWriteIfNeeded();
-
-            currentBuffer.put((byte) b);
+                checkCurrentBuffer();
+                blockAfterWriteIfNeeded();
+            } else {
+                finishCurrentBuffer();
+                checkCurrentBuffer();
+            }
         }
-
+        
+        currentBuffer.put((byte) b);
     }
 
 
@@ -655,8 +657,9 @@ public class OutputBuffer {
 
             assert currentBuffer != null;
             currentBuffer.put(b, off, len);
-        } else {  // If b[] is too big - try to send it to wire right away.
-
+        } else if (canWritePayloadChunk()) {
+            // If b[] is too big - try to send it to wire right away (if chunking is allowed)
+            
             // wrap byte[] with a thread local buffer
             temporaryWriteBuffer.reset(b, off, len);
 
@@ -675,6 +678,15 @@ public class OutputBuffer {
             }
             
             blockAfterWriteIfNeeded();
+        } else {
+            // if we can't write the chunk - buffer it.
+            finishCurrentBuffer();
+            final Buffer cloneBuffer = memoryManager.allocate(len);
+            cloneBuffer.put(b, off, len);
+            cloneBuffer.flip();
+            checkCompositeBuffer();
+            
+            compositeBuffer.append(cloneBuffer);
         }
     }
 
@@ -761,8 +773,9 @@ public class OutputBuffer {
         finishCurrentBuffer();
         checkCompositeBuffer();
         compositeBuffer.append(buffer);
-
-        if (compositeBuffer.remaining() > bufferSize) {
+        
+        if (canWritePayloadChunk() &&
+                compositeBuffer.remaining() > bufferSize) {
             flush();
         }
     }
@@ -899,7 +912,11 @@ public class OutputBuffer {
 
     // --------------------------------------------------------- Private Methods
 
-
+    private boolean canWritePayloadChunk() {
+        return outputHeader.isChunkingAllowed()
+                || outputHeader.getContentLength() != -1;
+    }
+    
     private void handleAsyncErrors() throws IOException {
         final Throwable t = asyncError.get();
         if (t != null) {
@@ -1243,8 +1260,6 @@ public class OutputBuffer {
                 try {
                     final Reentrant reentrant = Reentrant.getWriteReentrant();
                     if (!reentrant.isMaxReentrantsReached()) {
-                        isNonBlockingWriteGuaranteed = true;
-                        
                         notifyWritePossible();
                     } else {
                         notifyWritePossibleAsync(ctx.getConnection());
