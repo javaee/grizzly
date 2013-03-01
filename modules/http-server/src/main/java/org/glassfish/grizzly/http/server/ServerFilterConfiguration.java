@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.nio.charset.Charset;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.utils.JdkVersion;
 
@@ -68,6 +69,11 @@ public class ServerFilterConfiguration {
      * up by framework during runtime.
      */
     private String scheme;
+    
+    /**
+     * Default query string encoding (query part of request URI).
+     */
+    private Charset defaultQueryEncoding;
 
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
@@ -88,6 +94,7 @@ public class ServerFilterConfiguration {
         this.passTraceRequest = configuration.passTraceRequest;
         this.maxRequestParameters = configuration.maxRequestParameters;
         this.isReuseSessionID = configuration.isReuseSessionID;
+        this.defaultQueryEncoding = configuration.defaultQueryEncoding;
     }
     
     /**
@@ -298,6 +305,26 @@ public class ServerFilterConfiguration {
         this.isReuseSessionID = isReuseSessionID;
     }
 
+    /**
+     * Returns the default character encoding used to decode request URI's query part.
+     * <code>null</code> value means specific request's character encoding will be used.
+     * 
+     * @since 2.2.22
+     */
+    public Charset getDefaultQueryEncoding() {
+        return defaultQueryEncoding;
+    }
+
+    /**
+     * Sets the default character encoding used to decode request URI's query part.
+     * <code>null</code> value means specific request's character encoding will be used.
+     * 
+     * @since 2.2.22
+     */
+    public void setDefaultQueryEncoding(final Charset defaultQueryEncoding) {
+        this.defaultQueryEncoding = defaultQueryEncoding;
+    }
+    
     // --------------------------------------------------------- Private Methods
 
 
