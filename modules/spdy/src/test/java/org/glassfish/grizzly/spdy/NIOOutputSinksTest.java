@@ -340,7 +340,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                         out.write(b);
                         sent += bufferSize;
                         writeCounter.addAndGet(bufferSize);
-                        assertTrue(request.getContext().getConnection().canWrite());
                     }
                 } catch (Throwable e) {
                     LOGGER.log(Level.SEVERE, "Unexpected error", e);
@@ -618,7 +617,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     out.write(b);
                     sent += bufferSize;
                     writeCounter.addAndGet(bufferSize);
-                    assertTrue(request.getContext().getConnection().canWrite());
                 }
             }
         };
