@@ -72,11 +72,13 @@ import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
  * @author Alexey Stashok
  */
 final class SpdyOutputSink {
+    private static final int EMPTY_QUEUE_RECORD_SIZE = 1;
+    
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
             new OutputQueueRecord(null, null, null, true);
     
     // current output queue size
-    private final AtomicInteger outputQueueSize = new AtomicInteger();
+//    private final AtomicInteger outputQueueSize = new AtomicInteger();
     final TaskQueue<OutputQueueRecord> outputQueue =
             TaskQueue.createTaskQueue();
     
@@ -110,11 +112,11 @@ final class SpdyOutputSink {
         final int unconfirmedBytesNow = unconfirmedBytes.addAndGet(-delta);
         
         // get the current peer's window size limit
-        final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
+        final int windowSizeLimit = spdyStream.getPeerWindowSize();
         
         // try to write until window limit allows
-        while (unconfirmedBytesNow < (windowSizeLimit * 3 / 4) &&
-                outputQueueSize.get() > 0) {
+        while (isWantToWrite(unconfirmedBytesNow, windowSizeLimit) &&
+                !outputQueue.isEmpty()) {
             
             // pick up the first output record in the queue
             OutputQueueRecord outputQueueRecord = outputQueue.poll();
@@ -126,6 +128,7 @@ final class SpdyOutputSink {
             
             // if it's terminating record - processFin
             if (outputQueueRecord == TERMINATING_QUEUE_RECORD) {
+                outputQueue.releaseSpace(EMPTY_QUEUE_RECORD_SIZE);
                 writeEmptyFin();
                 return;
             }
@@ -161,8 +164,11 @@ final class SpdyOutputSink {
             // if there is a chunk to sent
             if (dataChunkToSend != null &&
                     (dataChunkToSend.hasRemaining() || isLast)) {
+                final int dataChunkToSendSize = dataChunkToSend.remaining();
+                
                 // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
+                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                outputQueue.releaseSpace(dataChunkToSendSize);
 
                 DataFrame dataFrame = DataFrame.builder().data(dataChunkToSend).
                         last(isLast).streamId(spdyStream.getStreamId()).build();
@@ -170,15 +176,17 @@ final class SpdyOutputSink {
                 // send a spdydata frame
                 writeDownStream(dataFrame, completionHandler,
                         lifeCycleHandler, isLast);
+                
+                
+                // pass peer-window-size as max, even though these values are independent.
+                // later we may want to decouple outputQueue's max-size and peer-window-size
+                outputQueue.onSizeDecreased(windowSizeLimit);
             }
             
             if (outputQueueRecord != null) {
                 // if there is a chunk to be stored - store it and return
                 outputQueue.setCurrentElement(outputQueueRecord);
                 break;
-            } else {
-                // if current record has been sent - try to take the next one for output queue
-                outputQueueSize.decrementAndGet();
             }
         }
     }
@@ -288,9 +296,10 @@ final class SpdyOutputSink {
         
             isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
+            final int dataSize = data.remaining();
             
             // Check if output queue is not empty - add new element
-            if (outputQueueSize.getAndIncrement() > 0) {
+            if (outputQueue.reserveSpace(dataSize) > dataSize) {
                 // if the queue is not empty - the headers should have been sent
                 assert headerFrame == null;
                 
@@ -311,7 +320,7 @@ final class SpdyOutputSink {
                 outputQueue.offer(outputQueueRecord);
                 
                 // check if our element wasn't forgotten (async)
-                if (outputQueueSize.get() != 1 ||
+                if (outputQueue.size() != dataSize ||
                         !outputQueue.remove(outputQueueRecord)) {
                     // if not - return
                     return;
@@ -356,8 +365,13 @@ final class SpdyOutputSink {
             // if there is a chunk to send
             if (data != null &&
                     (data.hasRemaining() || isLast)) {
+                spdyStream.onDataFrameSend();
+                
+                final int dataChunkToSendSize = data.remaining();
+                
                 // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(data.remaining());
+                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                outputQueue.releaseSpace(dataChunkToSendSize);
 
                 // encode spdydata frame
                 dataFrame = DataFrame.builder()
@@ -393,15 +407,10 @@ final class SpdyOutputSink {
                 break;
             }
                 
-            default: throw new IllegalStateException("Unexpected flag: " + framesAvailFlag);
+            default: break; // we can't write even single byte from the buffer
         }
         
         if (outputQueueRecord == null) {
-            if (httpContent != null) {
-                // if we managed to send entire HttpPacket - decrease the counter
-                outputQueueSize.decrementAndGet();
-            }
-            
             return;
         }
         
@@ -410,8 +419,16 @@ final class SpdyOutputSink {
             // set the outputQueueRecord as the current
             outputQueue.setCurrentElement(outputQueueRecord);
 
+            // update the unconfirmed bytes counter
+            final int unconfirmedBytesNow = unconfirmedBytes.get();
+
+            // get the current peer's window size limit
+            final int windowSizeLimit = spdyStream.getPeerWindowSize();
+            
+
             // check if situation hasn't changed and we can't send the data chunk now
-            if (outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
+            if (isWantToWrite(unconfirmedBytesNow, windowSizeLimit) &&
+                    outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
                 
                 // if we can send the output record now - do that
                 
@@ -446,20 +463,18 @@ final class SpdyOutputSink {
                 // if there is a chunk to send
                 if (dataChunkToSend != null &&
                         (dataChunkToSend.hasRemaining() || isLast)) {
-                        // update unconfirmed bytes counter
-                        unconfirmedBytes.addAndGet(dataChunkToSend.remaining());
+                    final int dataChunkToSendSize = dataChunkToSend.remaining();
+                    
+                    // update unconfirmed bytes counter
+                    unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                    outputQueue.releaseSpace(dataChunkToSendSize);
 
                     // encode spdydata frame
                     DataFrame frame =
                             DataFrame.builder().streamId(spdyStream.getStreamId()).
-                                    data(dataChunkToSend).last(isLast).build();
+                            data(dataChunkToSend).last(isLast).build();
                     writeDownStream(frame, aggrCompletionHandler,
                             aggrLifeCycleHandler, isLast);
-                }
-                
-                if (outputQueueRecord == null) {
-                    // if we managed to send entire HttpPacket - decrease the counter
-                    outputQueueSize.decrementAndGet();
                 }
             } else {
                 break; // will be (or already) written asynchronously
@@ -481,7 +496,7 @@ final class SpdyOutputSink {
         
         // take a snapshot of the current output window state
         final int unconfirmedBytesNow = unconfirmedBytes.get();
-        final int windowSizeLimit = spdySession.getPeerInitialWindowSize();
+        final int windowSizeLimit = spdyStream.getPeerWindowSize();
 
         // Check if data chunk is overflowing the output window
         if (unconfirmedBytesNow + size > windowSizeLimit) { // Window overflowed
@@ -572,14 +587,15 @@ final class SpdyOutputSink {
         if (!isLastFrameQueued && !isTerminated) {
             isLastFrameQueued = true;
             
-            if (outputQueueSize.getAndIncrement() == 0) {
+            if (outputQueue.isEmpty()) {
                 writeEmptyFin();
                 return;
             }
             
+            outputQueue.reserveSpace(EMPTY_QUEUE_RECORD_SIZE);
             outputQueue.offer(TERMINATING_QUEUE_RECORD);
             
-            if (outputQueueSize.get() == 1 &&
+            if (outputQueue.size() == EMPTY_QUEUE_RECORD_SIZE &&
                     outputQueue.remove(TERMINATING_QUEUE_RECORD)) {
                 writeEmptyFin();
             }
@@ -608,6 +624,11 @@ final class SpdyOutputSink {
 
             terminate();
         }
+    }
+
+    private boolean isWantToWrite(final int unconfirmedBytesNow,
+            final int windowSizeLimit) {
+        return unconfirmedBytesNow < (windowSizeLimit * 3 / 4);
     }
 
     private static class OutputQueueRecord {

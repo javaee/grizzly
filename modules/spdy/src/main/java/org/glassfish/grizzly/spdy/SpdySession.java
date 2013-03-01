@@ -318,7 +318,7 @@ final class SpdySession {
                 null, frame, completionHandler, null);        
     }
 
-    void initCommunication(final FilterChainContext context,
+    boolean initCommunication(final FilterChainContext context,
             final boolean isUpStream) {
         
         if (downstreamChain == null) {
@@ -337,9 +337,13 @@ final class SpdySession {
                         downstreamChain = (FilterChain) context.getFilterChain().subList(
                                 context.getEndIdx() + 1, context.getFilterIdx());
                     }
+                    
+                    return true;
                 }
             }
         }
+        
+        return false;
     }
     
     FilterChain getUpstreamChain() {

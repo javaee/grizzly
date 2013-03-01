@@ -114,9 +114,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     
     private final ExecutorService threadPool;
 
-    // TODO: In the future, we may wish to allow this to be adjusted at runtime...
-    private final int maxConcurrentStreams;
-    private final int initialWindowSize;
+    private volatile int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
+    private volatile int initialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
 
     /**
      * Constructs SpdyHandlerFilter.
@@ -136,26 +135,16 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
      */
     public SpdyHandlerFilter(final SpdyMode spdyMode,
             final ExecutorService threadPool) {
-        this(spdyMode, threadPool, DEFAULT_MAX_CONCURRENT_STREAMS, DEFAULT_INITIAL_WINDOW_SIZE);
+        this.spdyMode = spdyMode;
+        this.threadPool = threadPool;
     }
 
     /**
-     * Constructs SpdyHandlerFilter.
-     * 
-     * @param spdyMode {@link SpdyMode}.
-     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
-     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
-     * @param maxConcurrentStreams the default maximum number of concurrent streams allowed for one session. Negative value means "unlimited".
-     * @param initialWindowSize the default initial window size (in bytes) for new streams.
+     * Sets the default maximum number of concurrent streams allowed for one session.
+     * Negative value means "unlimited".
      */
-    public SpdyHandlerFilter(final SpdyMode spdyMode,
-                            final ExecutorService threadPool,
-                            final int maxConcurrentStreams,
-                            final int initialWindowSize) {
-        this.spdyMode = spdyMode;
-        this.threadPool = threadPool;
+    public void setMaxConcurrentStreams(final int maxConcurrentStreams) {
         this.maxConcurrentStreams = maxConcurrentStreams;
-        this.initialWindowSize = initialWindowSize;
     }
 
     /**
@@ -167,7 +156,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     /**
-     * Returns the default initial window size (in bytes) for new streams.
+     * Sets the default initial stream window size (in bytes) for new SPDY sessions.
+     */
+    public void setInitialWindowSize(final int initialWindowSize) {
+        this.initialWindowSize = initialWindowSize;
+    }
+
+    /**
+     * Returns the default initial stream window size (in bytes) for new SPDY sessions.
      */
     public int getInitialWindowSize() {
         return initialWindowSize;
@@ -1192,11 +1188,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         SpdySession spdySession = SpdySession.get(connection);
         if (spdySession == null) {
             spdySession = createSpdySession(connection, true);
-            // send the configuration for this session
-            sendSettingsIfNeeded(spdySession, context);
         }
         
-        spdySession.initCommunication(context, isUpStream);
+        if (spdySession.initCommunication(context, isUpStream)) {
+            sendSettingsIfNeeded(spdySession, context);
+        }
 
         return spdySession;
     }

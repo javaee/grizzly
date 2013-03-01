@@ -89,7 +89,9 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private final int priority;
     private final int slot;
     private final SpdySession spdySession;
-    final int outboundQueueSizeInBytes = 1204 * 1024; // TODO:  We need a realistic setting here
+    
+    private volatile int peerWindowSize = -1;
+    private volatile int localWindowSize = -1;
     
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
@@ -151,6 +153,16 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return spdySession;
     }
 
+    public int getPeerWindowSize() {
+        return peerWindowSize != -1 ? peerWindowSize :
+                spdySession.getPeerInitialWindowSize();
+    }
+
+    public int getLocalWindowSize() {
+        return localWindowSize != -1 ? localWindowSize :
+                spdySession.getLocalInitialWindowSize();
+    }
+    
     public HttpRequestPacket getSpdyRequest() {
         return spdyRequest;
     }
@@ -192,9 +204,11 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
 
     @Override
     public boolean canWrite() {
+        final int peerWindowSizeNow = getPeerWindowSize();
+        
         // TODO:  remove this inspection
         //noinspection ConstantConditions
-        if (outboundQueueSizeInBytes < 0) {
+        if (peerWindowSizeNow < 0) {
             return true;
         }
 
@@ -202,12 +216,14 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 outputSink.outputQueue;
         final int size = taskQueue.size();
 
-        return size == 0 || size < outboundQueueSizeInBytes;
+        return size == 0 || size < peerWindowSizeNow;
     }
 
     @Override
     public void notifyWritePossible(WriteHandler writeHandler) {
-        outputSink.outputQueue.notifyWhenOperable(writeHandler, outboundQueueSizeInBytes);
+        // pass peer-window-size as max, even though these values are independent.
+        // later we may want to decouple outputQueue's max-size and peer-window-size
+        outputSink.outputQueue.notifyWhenOperable(writeHandler, getPeerWindowSize());
     }
 
     void onPeerWindowUpdate(final int delta) {
@@ -335,10 +351,32 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         }
     }
     
+    /**
+     * On first received data frame we have to figure out the peer
+     * window size used for this stream.
+     */
+    void onDataFrameReceive() {
+        if (peerWindowSize == -1) {
+            peerWindowSize = spdySession.getPeerInitialWindowSize();
+        }
+    }
+    
+    /**
+     * On first sent data frame we have to figure out our local
+     * window size used for this stream.
+     */
+    void onDataFrameSend() {
+        if (localWindowSize == -1) {
+            localWindowSize = spdySession.getLocalInitialWindowSize();
+        }
+    }
+    
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
     
     void offerInputData(final Buffer data, final boolean isLast) {
+        onDataFrameReceive();
+        
         final boolean isFirstBufferCached = (cachedInputBuffer == null);
         cachedIsLast |= isLast;
         cachedInputBuffer = Buffers.appendBuffers(

@@ -131,7 +131,7 @@ public class SpdyFramingFilter extends BaseFilter {
             remainder = remainder2;
         }
         
-        ctx.setMessage(frameList.size() > 1 ? frameList : frame);
+        ctx.setMessage(frameList.size() > 1 ? frameList : frameList.remove(0));
         
         return ctx.getInvokeAction(
                 (remainder.hasRemaining()) ? remainder : null,
@@ -151,14 +151,15 @@ public class SpdyFramingFilter extends BaseFilter {
         
         final MemoryManager memoryManager = ctx.getMemoryManager();
         
-        Buffer resultBuffer = null;
-        
         if (message instanceof SpdyFrame) {
             final SpdyFrame frame = (SpdyFrame) message;
 
-            resultBuffer = frame.toBuffer(memoryManager);
+            ctx.setMessage(frame.toBuffer(memoryManager));
+            
             frame.recycle();
-        } else {
+        } else if (message instanceof List) {
+            Buffer resultBuffer = null;
+            
             final List<SpdyFrame> frames = (List<SpdyFrame>) message;
             final int framesCount = frames.size();
             
@@ -171,11 +172,11 @@ public class SpdyFramingFilter extends BaseFilter {
                 resultBuffer = Buffers.appendBuffers(memoryManager,
                         resultBuffer, buffer);
             }
-            
             frames.clear();
+            
+            ctx.setMessage(resultBuffer);
         }
         
-        ctx.setMessage(resultBuffer);
         return ctx.getInvokeAction();
     }
 
