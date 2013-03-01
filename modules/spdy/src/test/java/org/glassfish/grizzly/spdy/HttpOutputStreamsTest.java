@@ -1146,7 +1146,7 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                res = parseResult.get(60000, TimeUnit.SECONDS);
+                res = parseResult.get(60, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {

@@ -581,7 +581,7 @@ public class NetworkListener {
      *
      * @param filterChain the {@link FilterChain}.
      */
-    public void setFilterChain(final FilterChain filterChain) {
+    void setFilterChain(final FilterChain filterChain) {
         if (!transport.isStopped()) {
             return;
         }
