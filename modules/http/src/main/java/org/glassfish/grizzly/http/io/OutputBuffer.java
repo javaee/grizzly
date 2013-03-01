@@ -65,7 +65,6 @@ import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
@@ -165,6 +164,8 @@ public class OutputBuffer {
     private boolean isNonBlockingWriteGuaranteed;
     private boolean isLastWriteNonBlocking;
     
+    private HttpContext httpContext;
+    
     
     // ---------------------------------------------------------- Public Methods
 
@@ -177,6 +178,7 @@ public class OutputBuffer {
 
         this.sendfileEnabled = sendfileEnabled;
         this.ctx = ctx;
+        httpContext = HttpContext.get(ctx);
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(false));
@@ -332,6 +334,7 @@ public class OutputBuffer {
         fileTransferRequested = false;
         encoder = null;
         ctx = null;
+        httpContext = null;
         memoryManager = null;
         handler = null;
         isNonBlockingWriteGuaranteed = false;
@@ -804,12 +807,10 @@ public class OutputBuffer {
             return true;
         }        
         
-        final Connection c = ctx.getConnection();
-        if (asyncWriter.canWrite(c)) {
+        if (httpContext.getOutputSink().canWrite()) {
             isNonBlockingWriteGuaranteed = true;
             return true;
         }
-
         return false;
     }
 
@@ -869,13 +870,9 @@ public class OutputBuffer {
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.notifyWritePossible(asyncWriteHandler);
+            httpContext.getOutputSink().notifyCanWrite(asyncWriteHandler);
         } catch (Exception ignored) {
         }
-    }
-    
-    private int getMaxAsyncWriteQueueSize() {
-        return ctx.getConnection().getMaxAsyncWriteQueueSize();
     }
 
     /**
@@ -931,15 +928,13 @@ public class OutputBuffer {
             return;
         }
         
-        final Connection connection = ctx.getConnection();
-        
-        if (asyncWriter.canWrite(connection)) {
+        if (httpContext.getOutputSink().canWrite()) {
             return;
         }
         
         final FutureImpl<Boolean> future = Futures.createSafeFuture();
         
-        asyncWriter.notifyWritePossible(connection, new WriteHandler() {
+        httpContext.getOutputSink().notifyCanWrite(new WriteHandler() {
 
             @Override
             public void onWritePossible() throws Exception {
@@ -954,7 +949,7 @@ public class OutputBuffer {
         
         try {
             final long writeTimeout =
-                    connection.getReadTimeout(TimeUnit.MILLISECONDS);
+                    ctx.getConnection().getReadTimeout(TimeUnit.MILLISECONDS);
             if (writeTimeout >= 0) {
                 future.get(writeTimeout, TimeUnit.MILLISECONDS);
             } else {
