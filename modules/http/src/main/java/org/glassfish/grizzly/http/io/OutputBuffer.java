@@ -817,7 +817,7 @@ public class OutputBuffer implements OutputSink {
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            c.notifyWritePossible(asyncWriteHandler);
+            httpContext.getOutputSink().notifyWritePossible(asyncWriteHandler);
         } catch (Exception ignored) {
         }
     }
