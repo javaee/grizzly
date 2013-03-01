@@ -474,18 +474,20 @@ public class OutputBuffer implements OutputSink {
         
         checkCurrentBuffer();
         
-        if (currentBuffer.hasRemaining()) {
-            currentBuffer.put((byte) b);
-        } else {
-            doCommit();
-            flushBinaryBuffers(false);
-//            finishCurrentBuffer();
-            checkCurrentBuffer();
-            blockAfterWriteIfNeeded();
-            
-            currentBuffer.put((byte) b);
-        }
+        if (!currentBuffer.hasRemaining()) {
+            if (canWritePayloadChunk()) {
+                doCommit();
+                flushBinaryBuffers(false);
 
+                checkCurrentBuffer();
+                blockAfterWriteIfNeeded();
+            } else {
+                finishCurrentBuffer();
+                checkCurrentBuffer();
+            }
+        }
+        
+        currentBuffer.put((byte) b);
     }
 
 
@@ -621,7 +623,8 @@ public class OutputBuffer implements OutputSink {
 
             assert currentBuffer != null;
             currentBuffer.put(b, off, len);
-        } else {  // If b[] is too big - try to send it to wire right away.
+        } else if (canWritePayloadChunk()) {
+            // If b[] is too big - try to send it to wire right away (if chunking is allowed)
             
             // wrap byte[] with a thread local buffer
             temporaryWriteBuffer.reset(b, off, len);
@@ -641,6 +644,15 @@ public class OutputBuffer implements OutputSink {
             }
             
             blockAfterWriteIfNeeded();
+        } else {
+            // if we can't write the chunk - buffer it.
+            finishCurrentBuffer();
+            final Buffer cloneBuffer = memoryManager.allocate(len);
+            cloneBuffer.put(b, off, len);
+            cloneBuffer.flip();
+            checkCompositeBuffer();
+            
+            compositeBuffer.append(cloneBuffer);
         }
     }
 
@@ -728,7 +740,8 @@ public class OutputBuffer implements OutputSink {
         checkCompositeBuffer();
         compositeBuffer.append(buffer);
         
-        if (compositeBuffer.remaining() > bufferSize) {
+        if (canWritePayloadChunk() &&
+                compositeBuffer.remaining() > bufferSize) {
             flush();
         }
     }
@@ -843,7 +856,11 @@ public class OutputBuffer implements OutputSink {
 
     // --------------------------------------------------------- Private Methods
 
-
+    private boolean canWritePayloadChunk() {
+        return outputHeader.isChunkingAllowed()
+                || outputHeader.getContentLength() != -1;
+    }
+    
     private void handleAsyncErrors() throws IOException {
         final Throwable t = asyncError.get();
         if (t != null) {
@@ -1125,7 +1142,7 @@ public class OutputBuffer implements OutputSink {
                     checkCurrentBuffer();
                 }
             }
-        } while(res == CoderResult.OVERFLOW);
+        } while (res == CoderResult.OVERFLOW);
         
         bufferArray.recycle();
         

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,13 +41,15 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Writer;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -71,6 +73,12 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 /**
  * Test transfer-encoding application
@@ -78,9 +86,25 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
  * @author Alexey Stashok
  */
 @SuppressWarnings("unchecked")
-public class TransferEncodingTest extends TestCase {
+@RunWith(Parameterized.class)
+public class TransferEncodingTest {
     private static final int PORT = 8041;
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> getIsBinary() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                });
+    }
+
+    private final boolean isBinary;
+
+    public TransferEncodingTest(boolean isBinary) {
+        this.isBinary = isBinary;
+    }    
+    
+    @Test
     public void testExplicitContentType() throws Exception {
         final int msgSize = 10;
 
@@ -91,6 +115,7 @@ public class TransferEncodingTest extends TestCase {
         assertEquals(msgSize, response.getHttpHeader().getContentLength());
     }
 
+    @Test
     public void testExplicitChunking() throws Exception {
         final int msgSize = 10;
 
@@ -101,26 +126,74 @@ public class TransferEncodingTest extends TestCase {
         assertTrue(response.getHttpHeader().isChunked());
     }
 
+    @Test
     public void testSmallMessageAutoContentLength() throws Exception {
         final int msgSize = 10;
 
-        final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
-        final HttpPacket request = createRequest("/index.html", null);
-        final HttpContent response = doTest(httpHandler, request, 10);
+        final HttpPacket request1 = createRequest("/index.html", null);
+        final HttpHandler httpHandler1 = new AutoTransferEncodingHandler(msgSize, false);
+        final HttpContent response1 = doTest(httpHandler1, request1, 10);
 
-        assertEquals(msgSize, response.getHttpHeader().getContentLength());
+        assertEquals(msgSize, response1.getHttpHeader().getContentLength());
+        
+        final HttpPacket request2 = createRequest("/index.html", null);
+        final HttpHandler httpHandler2 = new AutoTransferEncodingHandler(msgSize, true);
+        final HttpContent response2 = doTest(httpHandler2, request2, 10);
+
+        assertEquals(msgSize, response2.getHttpHeader().getContentLength());
+        
     }
 
+    @Test
+    public void testLargeMessageChunkingDisabled() throws Exception {
+        final int msgSize = 1024 * 24;
+
+        final HttpPacket request1 = createRequest("/index.html", null);
+        final HttpHandler httpHandler1 = new AutoTransferEncodingHandler(msgSize, false) {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                // disable chunking
+                response.getResponse().setChunkingAllowed(false);
+                super.service(request, response);
+            }
+        };
+        
+        final HttpContent response1 = doTest(httpHandler1, request1, 10);
+        assertEquals(msgSize, response1.getHttpHeader().getContentLength());
+        
+        final HttpPacket request2 = createRequest("/index.html", null);
+        final HttpHandler httpHandler2 = new AutoTransferEncodingHandler(msgSize, true) {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                // disable chunking
+                response.getResponse().setChunkingAllowed(false);
+                super.service(request, response);
+            }
+        };
+        
+        final HttpContent response2 = doTest(httpHandler2, request2, 10);
+        assertEquals(msgSize, response2.getHttpHeader().getContentLength());        
+    }
+
+    @Test
     public void testLargeMessageAutoChunking() throws Exception {
         final int msgSize = 1024 * 24;
 
-        final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
-        final HttpPacket request = createRequest("/index.html", null);
-        final HttpContent response = doTest(httpHandler, request, 10);
+        final HttpPacket request1 = createRequest("/index.html", null);
+        final HttpHandler httpHandler1 = new AutoTransferEncodingHandler(msgSize, false);
+        final HttpContent response1 = doTest(httpHandler1, request1, 10);
 
-        assertTrue(response.getHttpHeader().isChunked());
+        assertTrue(response1.getHttpHeader().isChunked());
+        
+        final HttpPacket request2 = createRequest("/index.html", null);
+        final HttpHandler httpHandler2 = new AutoTransferEncodingHandler(msgSize, true);
+        final HttpContent response2 = doTest(httpHandler2, request2, 10);
+
+        assertTrue(response2.getHttpHeader().isChunked());
+        
     }
-
+    
+    @Test
     public void testLongContentLength() throws Exception {
         final long contentLength = Long.MAX_VALUE;
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -368,14 +441,23 @@ public class TransferEncodingTest extends TestCase {
         @Override
         public void service(Request request, Response response) throws Exception {
             response.setContentLength(length);
-            final StringBuilder sb = new StringBuilder(length);
-            for (int i = 0; i < length; i++) {
-                sb.append((char) ('0' + (i % 10)));
-            }
             
-            response.getWriter().write(sb.toString());
-        }
+            if (isBinary) {
+                final byte[] buf = new byte[length];
+                for (int i = 0; i < length; i++) {
+                    buf[i] = (byte) ('0' + (i % 10));
+                }
+                
+                response.getOutputStream().write(buf);
+            } else {
+                final StringBuilder sb = new StringBuilder(length);
+                for (int i = 0; i < length; i++) {
+                    sb.append((char) ('0' + (i % 10)));
+                }
 
+                response.getWriter().write(sb.toString());
+            }
+        }
     }
 
     public class ExplicitChunkingHandler extends HttpHandler {
@@ -388,27 +470,65 @@ public class TransferEncodingTest extends TestCase {
         @Override
         public void service(Request request, Response response) throws Exception {
             response.getResponse().setChunked(true);
-            final StringBuilder sb = new StringBuilder(length);
-            for (int i = 0; i < length; i++) {
-                sb.append((char) ('0' + (i % 10)));
-            }
 
-            response.getWriter().write(sb.toString());
+            if (isBinary) {
+                final byte[] buf = new byte[length];
+                for (int i = 0; i < length; i++) {
+                    buf[i] = (byte) ('0' + (i % 10));
+                }
+                
+                response.getOutputStream().write(buf);
+            } else {
+                final StringBuilder sb = new StringBuilder(length);
+                for (int i = 0; i < length; i++) {
+                    sb.append((char) ('0' + (i % 10)));
+                }
+
+                response.getWriter().write(sb.toString());
+            }
         }
     }
 
     public class AutoTransferEncodingHandler extends HttpHandler {
         private final int length;
-
-        public AutoTransferEncodingHandler(int length) {
+        private final boolean isBatch;
+        
+        public AutoTransferEncodingHandler(int length, boolean isBatch) {
             this.length = length;
+            this.isBatch = isBatch;
         }
-
+        
         @Override
         public void service(Request request, Response response) throws Exception {
-            final Writer writer = response.getWriter();
-            for (int i = 0; i < length; i++) {
-                writer.write((char) ('0' + (i % 10)));
+            if (isBinary) {
+                final OutputStream os = response.getOutputStream();
+                if (isBatch) {
+                    final byte[] buf = new byte[length];
+                    for (int i = 0; i < length; i++) {
+                        buf[i] = (byte) ('0' + (i % 10));
+                    }
+                    
+                    os.write(buf);
+                } else {
+                    for (int i = 0; i < length; i++) {
+                        os.write(('0' + (i % 10)));
+                    }
+                }
+                
+            } else {
+                final Writer writer = response.getWriter();
+                if (isBatch) {
+                    final char[] buf = new char[length];
+                    for (int i = 0; i < length; i++) {
+                        buf[i] = (char) ('0' + (i % 10));
+                    }
+                    
+                    writer.write(buf);
+                } else {
+                    for (int i = 0; i < length; i++) {
+                        writer.write((char) ('0' + (i % 10)));
+                    }
+                }
             }
         }
     }
