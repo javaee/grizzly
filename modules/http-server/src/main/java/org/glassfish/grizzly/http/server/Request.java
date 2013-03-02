@@ -2082,7 +2082,7 @@ public class Request {
 
         localesParsed = true;
 
-        final Iterable<String> values = getHeaders("accept-language");
+        final Iterable<String> values = getHeaders(Header.AcceptLanguage);
 
         for (String value : values) {
             parseLocalesHeader(value);

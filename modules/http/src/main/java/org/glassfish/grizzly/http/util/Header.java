@@ -54,6 +54,7 @@ public enum Header {
     Accept("Accept"),
     AcceptCharset("Accept-Charset"),
     AcceptEncoding("Accept-Encoding"),
+    AcceptLanguage("Accept-Language"),
     AcceptRanges("Accept-Ranges"),
     Age("Age"),
     Allow("Allow"),
