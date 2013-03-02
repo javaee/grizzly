@@ -202,10 +202,7 @@ public class Request {
     private static final String match =
         ';' + Globals.SESSION_PARAMETER_NAME + '=';
 
-    /**
-     * The match string for identifying a session ID parameter.
-     */
-    private static final char[] SESSION_ID = match.toCharArray();
+    private static final String CHUNKED = "chunked";
 
 
     // -------------------------------------------------------------------- //
@@ -403,14 +400,6 @@ public class Request {
      * The Subject associated with the current AccessControllerContext
      */
     protected Subject subject = null;
-
-
-    /**
-     * Post data buffer.
-     */
-    protected static final int CACHED_POST_LEN = 8192;
-    protected byte[] postData = null;
-
 
     /**
      * Hash map used in the getParametersMap method.
@@ -2015,31 +2004,35 @@ public class Request {
             return;
         }
 
-        final int len = getContentLength();
+        int len = getContentLength();
+        if (len < 0 && !CHUNKED.equalsIgnoreCase(getHeader(Header.TransferEncoding))) {
+            return;
+        } else {
+            len = httpServerFilter.getConfiguration().getMaxBufferedPostSize();
+        }
 
-        if (len > 0) {
-
-            if (!checkPostContentType(getContentType())) return;
-
-            final int maxFormPostSize = httpServerFilter.getConfiguration().getMaxFormPostSize();
-            if ((maxFormPostSize > 0) && (len > maxFormPostSize)) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning("Post too large");
-                }
-                
-                throw new IllegalStateException("Post too large");
+        final int maxFormPostSize = httpServerFilter.getConfiguration().getMaxFormPostSize();
+        if ((maxFormPostSize > 0) && (len > maxFormPostSize)) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.warning("Post too large");
             }
-            
+
+            throw new IllegalStateException("Post too large");
+        }
+
+        if (!checkPostContentType(getContentType())) return;
+
+        int read = 0;
+        try {
+            final Buffer formData = getPostBody(len);
+            read = formData.remaining();
+            parameters.processParameters(formData, formData.position(), read);
+        } catch (Exception ignored) {
+        } finally {
             try {
-                final Buffer formData = getPostBody(len);
-                parameters.processParameters(formData, formData.position(), len);
-            } catch (Exception ignored) {
-            } finally {
-                try {
-                    skipPostBody(len);
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Exception occurred during body skip", e);
-                }
+                skipPostBody(read);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Exception occurred during body skip", e);
             }
         }
 
