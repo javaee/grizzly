@@ -122,7 +122,7 @@ public class ParametersTest {
                     return ctx.getStopAction();
                 }
             });
-            clientTransport.setProcessor(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChainBuilder.build());
             clientTransport.start();
 
             server.start();
