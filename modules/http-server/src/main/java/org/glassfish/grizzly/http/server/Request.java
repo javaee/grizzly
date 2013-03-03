@@ -489,10 +489,8 @@ public class Request {
         this.httpServerFilter = httpServerFilter;
         inputBuffer.initialize(request, ctx);
         
-
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
-        parameters.setQueryStringEncoding(httpServerFilter.getConfiguration().getDefaultQueryEncoding());
 
         final DataChunk remoteUser = request.remoteUser();
         if (!remoteUser.isNull()) {
@@ -502,7 +500,7 @@ public class Request {
         if (httpServerFilter != null) {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
-
+            parameters.setQueryStringEncoding(configuration.getDefaultQueryEncoding());
             sendFileEnabled = configuration.isSendFileEnabled();
             final String overridingScheme = configuration.getScheme();
 
@@ -794,7 +792,7 @@ public class Request {
      * @return a String containing the name or path of the HttpHandler being
      * called, as specified in the request URL
      * @throws IllegalStateException if HttpHandler path was not set explicitly
-     *          and attempt to URI-decode {@link RequestURIRef#getDecodedURI()}
+     *          and attempt to URI-decode {@link org.glassfish.grizzly.http.util.RequestURIRef#getDecodedURI()}
      *          failed.
      */
     public String getHttpHandlerPath() {
