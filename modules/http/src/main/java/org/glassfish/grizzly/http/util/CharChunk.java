@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1007,7 +1007,21 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         return true;
     }
 
-
+    public boolean endsWith(String s) {
+        char[] c = buff;
+        int len = s.length();
+        if (c == null || len > end - start) {
+            return false;
+        }
+        int off = end - len;
+        for (int i = 0; i < len; i++) {
+            if (c[off++] != s.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
     // -------------------- Hash code  --------------------
     
     // normal hash.
