@@ -77,7 +77,7 @@ public abstract class AbstractSpdyTest {
         if (NextProtoNegSupport.isEnabled()) {
             modes.add(new Object[] {SpdyMode.NPN, Boolean.TRUE});
         } else {
-            LOGGER.info("NPN support is not by this JDK, so NPN mode will be skipped");
+            LOGGER.info("NPN is not supported by this JDK, so NPN mode will be skipped");
         }
         
         return modes;
