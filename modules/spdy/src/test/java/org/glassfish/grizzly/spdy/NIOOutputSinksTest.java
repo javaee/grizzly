@@ -97,7 +97,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
-
+    
     @Parameterized.Parameters
     public static Collection<Object[]> getSpdyModes() {
         return AbstractSpdyTest.getSpdyModes();
@@ -231,10 +231,10 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         };
 
         final HttpServer server = createWebServer(httpHandler);
+        spdyAddon.setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
-            setInitialSpdyWindowSize(server, maxWindowSize);
             
             clientTransport.start();
 
@@ -349,10 +349,10 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         };
 
         final HttpServer server = createWebServer(httpHandler);
+        spdyAddon.setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
-            setInitialSpdyWindowSize(server, maxWindowSize);
             
             clientTransport.start();
 
@@ -509,10 +509,10 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         };
 
         final HttpServer server = createWebServer(httpHandler);
+        spdyAddon.setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
-            setInitialSpdyWindowSize(server, maxWindowSize);
             
             clientTransport.start();
 
@@ -623,10 +623,10 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
 
         final HttpServer server = createWebServer(httpHandler);
+        spdyAddon.setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
-            setInitialSpdyWindowSize(server, maxWindowSize);
             
             clientTransport.start();
 
@@ -847,10 +847,10 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         };
 
         final HttpServer server = createWebServer(httpHandler);
+        spdyAddon.setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
-            setInitialSpdyWindowSize(server, maxWindowSize);
             
             clientTransport.start();
 
@@ -1196,13 +1196,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
     }
 
-    private void setInitialSpdyWindowSize(final HttpServer server,
-            final int windowSize) {
-        
-        setInitialSpdyWindowSize(
-                server.getListener("grizzly").getFilterChain(), windowSize);
-    }
-    
     private void setInitialSpdyWindowSize(final FilterChain filterChain,
             final int windowSize) {
         

@@ -83,7 +83,9 @@ public abstract class AbstractSpdyTest {
         return modes;
     }
     
-    protected static HttpServer createServer(final String docRoot, final int port,
+    protected SpdyAddOn spdyAddon;
+    
+    protected HttpServer createServer(final String docRoot, final int port,
             final SpdyMode spdyMode,
             final boolean isSecure,
             final HttpHandlerRegistration... registrations) {
@@ -98,7 +100,8 @@ public abstract class AbstractSpdyTest {
             listener.setSSLEngineConfig(getServerSSLEngineConfigurator());
         }
 
-        listener.registerAddOn(new SpdyAddOn(spdyMode));
+        spdyAddon = new SpdyAddOn(spdyMode);
+        listener.registerAddOn(spdyAddon);
         
         ServerConfiguration sconfig = server.getServerConfiguration();
         
