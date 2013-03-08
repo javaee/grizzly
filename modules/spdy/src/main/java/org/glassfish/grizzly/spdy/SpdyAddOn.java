@@ -60,7 +60,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+
+import static org.glassfish.grizzly.spdy.Constants.DEFAULT_INITIAL_WINDOW_SIZE;
+import static org.glassfish.grizzly.spdy.Constants.DEFAULT_MAX_CONCURRENT_STREAMS;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -79,6 +81,9 @@ public class SpdyAddOn implements AddOn {
 
     private final SpdyMode mode;
 
+    private int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
+    private int initialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    
     public SpdyAddOn() {
         this(SpdyMode.NPN);
     }
@@ -106,13 +111,44 @@ public class SpdyAddOn implements AddOn {
             }
             
             configureNpn(builder);
-            transport.setIOStrategy(SameThreadIOStrategy.getInstance());
+
             transport.getMonitoringConfig().addProbes(new SpdyNpnConfigProbe());
         } else {
             updateFilterChain(mode, builder);
         }
     }
 
+    // ------------------------------------------------------ Getters / Setters
+    
+    /**
+     * Sets the default maximum number of concurrent streams allowed for one session.
+     * Negative value means "unlimited".
+     */
+    public void setMaxConcurrentStreams(final int maxConcurrentStreams) {
+        this.maxConcurrentStreams = maxConcurrentStreams;
+    }
+
+    /**
+     * Returns the default maximum number of concurrent streams allowed for one session.
+     * Negative value means "unlimited".
+     */
+    public int getMaxConcurrentStreams() {
+        return maxConcurrentStreams;
+    }
+
+    /**
+     * Sets the default initial stream window size (in bytes) for new SPDY sessions.
+     */
+    public void setInitialWindowSize(final int initialWindowSize) {
+        this.initialWindowSize = initialWindowSize;
+    }
+
+    /**
+     * Returns the default initial stream window size (in bytes) for new SPDY sessions.
+     */
+    public int getInitialWindowSize() {
+        return initialWindowSize;
+    }    
 
     // ------------------------------------------------------- Protected Methods
 

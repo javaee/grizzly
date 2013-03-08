@@ -152,7 +152,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         }
     }
     
-    private static HttpServer createServer(final HttpHandlerRegistration... registrations) {
+    private HttpServer createServer(final HttpHandlerRegistration... registrations) {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
     
