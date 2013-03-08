@@ -275,14 +275,21 @@ public class SSLBaseFilter extends BaseFilter {
                 final FilterChain connectionFilterChain = sslCtx.getNewConnectionFilterChain();
                 sslCtx.setNewConnectionFilterChain(null);
                 if (connectionFilterChain != null) {
-                    NextAction suspendAction = ctx.getSuspendAction();
-                    ctx.suspend();
                     connection.setProcessor(connectionFilterChain);
-                    final FilterChainContext newContext =
-                            obtainProtocolChainContext(ctx, connectionFilterChain);
-                    ProcessorExecutor.execute(newContext.getInternalContext());
-                    return suspendAction;
+
+                    if (hasRemaining) {
+                        NextAction suspendAction = ctx.getSuspendAction();
+                        ctx.setMessage(buffer);
+                        ctx.suspend();
+                        final FilterChainContext newContext =
+                                obtainProtocolChainContext(ctx, connectionFilterChain);
+                        ProcessorExecutor.execute(newContext.getInternalContext());
+                        return suspendAction;
+                    } else {
+                        return ctx.getStopAction();
+                    }
                 }
+
                 if (hasRemaining) {
                     ctx.setMessage(buffer);
                     return unwrapAll(ctx, sslCtx);
