@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -266,6 +266,24 @@ public class MapperTest extends HttpServerAbstractTest {
         }
     }
 
+    public void testDefaultContext() throws Exception {
+        try {
+            startHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test", "/");
+            String alias = "/foo/*";
+            addServlet(ctx, alias);
+            ctx.deploy(httpServer);
+            HttpURLConnection conn = getConnection("/foo/bar/baz", PORT);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals("/foo/bar/baz", conn.getHeaderField("request-uri"));
+            assertEquals("", conn.getHeaderField("context-path"));
+            assertEquals("/foo", conn.getHeaderField("servlet-path"));
+            assertEquals("/bar/baz", conn.getHeaderField("path-info"));
+        } finally {
+            stopHttpServer();
+        }
+    }
+
 
     // --------------------------------------------------------- Private Methods
 
@@ -284,6 +302,8 @@ public class MapperTest extends HttpServerAbstractTest {
                 resp.setHeader("Servlet-Path", req.getServletPath());
                 resp.setHeader("Request-Was", req.getRequestURI());
                 resp.setHeader("Servlet-Name", getServletName());
+                resp.setHeader("Request-Uri", req.getRequestURI());
+                resp.setHeader("Context-Path", req.getContextPath());
                 resp.getWriter().write(alias);
             }
         });

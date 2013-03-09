@@ -37,9 +37,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.npn;
+package org.glassfish.grizzly.spdy;
 
-import java.util.List;
+import java.io.IOException;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -47,9 +47,16 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
+
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.npn.ClientSideNegotiator;
+import org.glassfish.grizzly.npn.NegotiationSupport;
+import org.glassfish.grizzly.npn.ServerSideNegotiator;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLUtils;
@@ -57,17 +64,10 @@ import org.glassfish.grizzly.ssl.SSLUtils;
 /**
  * Grizzly TLS Next Protocol Negotiation support class.
  * 
- * Current implementation serves as a Grizzly adapter of Jetty
- * org.eclipse.jetty.npn.NextProtoNego implementation, and requires OpenJDK 7+.
- * 
- * In order to enable TLS Next Protocol Negotiation it's required to download corresponding
- * Jetty npn_boot.jar (http://wiki.eclipse.org/Jetty/Feature/NPN#Versions).
- * There are 2 options npn_boot.jar might be used:
- * 1) Specify this jar using java -Xbootclasspath parameter (http://wiki.eclipse.org/Jetty/Feature/NPN#Starting_the_JVM).
- * 2) Copy npn_boot.jar to the JDK endorsed folder (check system property "java.endorsed.dirs").
  */
 public class NextProtoNegSupport {
     private final static Logger LOGGER = Grizzly.logger(NextProtoNegSupport.class);
+    private static final String CONNECTION_KEY = Connection.class.getName();
     
     private static final NextProtoNegSupport INSTANCE;
     
@@ -75,7 +75,7 @@ public class NextProtoNegSupport {
         
         boolean isExtensionFound = false;
         try {
-            ClassLoader.getSystemClassLoader().loadClass("sun.security.ssl.NextProtoNegoExtension");
+            ClassLoader.getSystemClassLoader().loadClass("sun.security.ssl.GrizzlyNPN");
             isExtensionFound = true;
         } catch (Throwable e) {
             LOGGER.log(Level.FINE, "TLS Next Protocol Negotiation extension is not found:", e);
@@ -95,12 +95,16 @@ public class NextProtoNegSupport {
         
         return INSTANCE;
     }
+
+    public static Connection getConnection(final SSLEngine engine) {
+        return (Connection) engine.getSession().getValue(CONNECTION_KEY);
+    }
     
-    private final Map<Object, ServerSideNegotiator> serverSideNegotiators = 
+    private final Map<Object, ServerSideNegotiator> serverSideNegotiators =
             new WeakHashMap<Object, ServerSideNegotiator>();
     private final ReadWriteLock serverSideLock = new ReentrantReadWriteLock();
     
-    private final Map<Object, ClientSideNegotiator> clientSideNegotiators = 
+    private final Map<Object, ClientSideNegotiator> clientSideNegotiators =
             new WeakHashMap<Object, ClientSideNegotiator>();
     private final ReadWriteLock clientSideLock = new ReentrantReadWriteLock();
 
@@ -126,7 +130,16 @@ public class NextProtoNegSupport {
                 }
                 
                 if (negotiator != null) {
-                    JettyBridge.putClientProvider(connection, sslEngine, negotiator);
+                    // add a CloseListener to ensure we remove the
+                    // negotiator associated with this SSLEngine
+                    connection.addCloseListener(new CloseListener() {
+                        @Override
+                        public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                            NegotiationSupport.removeClientNegotiator(sslEngine);
+                        }
+                    });
+                    sslEngine.getSession().putValue(CONNECTION_KEY, connection);
+                    NegotiationSupport.addNegotiator(sslEngine, negotiator);
                 }
             } else {
                 ServerSideNegotiator negotiator;
@@ -142,7 +155,17 @@ public class NextProtoNegSupport {
                 }
                 
                 if (negotiator != null) {
-                    JettyBridge.putServerProvider(connection, sslEngine, negotiator);
+
+                    // add a CloseListener to ensure we remove the
+                    // negotiator associated with this SSLEngine
+                    connection.addCloseListener(new CloseListener() {
+                        @Override
+                        public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                            NegotiationSupport.removeServerNegotiator(sslEngine);
+                        }
+                    });
+                    sslEngine.getSession().putValue(CONNECTION_KEY, connection);
+                    NegotiationSupport.addNegotiator(sslEngine, negotiator);
                 }
             }
             
@@ -202,63 +225,5 @@ public class NextProtoNegSupport {
             clientSideLock.writeLock().unlock();
         }
     }
-    
-    public interface ServerSideNegotiator {
-        public List<String> supportedProtocols(Connection connection);
-        public void onSuccess(Connection connection, String protocol);
-        public void onNoDeal(Connection connection);
-    }
 
-    public interface ClientSideNegotiator {
-        public boolean wantNegotiate(Connection connection);
-        public String selectProtocol(Connection connection, List<String> protocols);
-        public void onNoDeal(Connection connection);
-    }
-    
-    private static class JettyBridge {
-
-        public static void putServerProvider(final Connection connection,
-                final SSLEngine sslEngine,
-                final ServerSideNegotiator negotiator) {
-            org.eclipse.jetty.npn.NextProtoNego.put(sslEngine,
-                    new org.eclipse.jetty.npn.NextProtoNego.ServerProvider() {
-                        @Override
-                        public void unsupported() {
-                            negotiator.onNoDeal(connection);
-                        }
-
-                        @Override
-                        public List<String> protocols() {
-                            return negotiator.supportedProtocols(connection);
-                        }
-
-                        @Override
-                        public void protocolSelected(final String protocol) {
-                            negotiator.onSuccess(connection, protocol);
-                        }
-                    });
-        }
-
-        public static void putClientProvider(final Connection connection,
-                final SSLEngine sslEngine,
-                final ClientSideNegotiator negotiator) {
-            org.eclipse.jetty.npn.NextProtoNego.put(sslEngine,
-                    new org.eclipse.jetty.npn.NextProtoNego.ClientProvider() {
-                        @Override
-                        public boolean supports() {
-                            return negotiator.wantNegotiate(connection);
-                        }
-
-                        @Override
-                        public void unsupported() {
-                            negotiator.onNoDeal(connection);
-                        }
-
-                        @Override
-                        public String selectProtocol(List<String> protocols) {
-                            return negotiator.selectProtocol(connection, protocols);
-                        }
-                    });
-        }
-    }
 }

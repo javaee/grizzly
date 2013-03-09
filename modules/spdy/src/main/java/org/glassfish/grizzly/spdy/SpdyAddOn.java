@@ -48,21 +48,22 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.npn.NextProtoNegSupport;
+import org.glassfish.grizzly.npn.ServerSideNegotiator;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLConnectionContext;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import static org.glassfish.grizzly.spdy.Constants.DEFAULT_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.spdy.Constants.DEFAULT_MAX_CONCURRENT_STREAMS;
+
+import javax.net.ssl.SSLEngine;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -208,13 +209,13 @@ public class SpdyAddOn implements AddOn {
         // ------------------------------------------------------ Nested Classes
 
 
-        private static final class ProtocolNegotiator implements NextProtoNegSupport.ServerSideNegotiator {
+        private static final class ProtocolNegotiator implements ServerSideNegotiator {
 
             private static final String HTTP11 = "http/1.1";
             private static final String SPDY3 = "spdy/3";
 
-            private final List<String> supportedProtocols =
-                    Collections.unmodifiableList(Arrays.asList(SPDY3, HTTP11));
+            private final LinkedHashSet<String> supportedProtocols =
+                    new LinkedHashSet<String>(Arrays.asList(SPDY3, HTTP11));
             private final FilterChain spdyFilterChain;
 
             // ---------------------------------------------------- Constructors
@@ -229,16 +230,16 @@ public class SpdyAddOn implements AddOn {
 
 
             @Override
-            public List<String> supportedProtocols(final Connection connection) {
+            public LinkedHashSet<String> supportedProtocols(final SSLEngine engine) {
                 return supportedProtocols;
             }
 
             @Override
-            public void onSuccess(final Connection connection,
-                                  final String protocol) {
+            public void onSuccess(final SSLEngine engine, final String protocol) {
 
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
+                final Connection connection = NextProtoNegSupport.getConnection(engine);
+                if (LOGGER.isLoggable(Level.INFO)) {
+                    LOGGER.log(Level.INFO, "NPN onSuccess. Connection={0} protocol={1}",
                             new Object[]{connection, protocol});
                 }
 
@@ -252,8 +253,8 @@ public class SpdyAddOn implements AddOn {
             }
 
             @Override
-            public void onNoDeal(final Connection connection) {
-
+            public void onNoDeal(final SSLEngine engine) {
+                final Connection connection = NextProtoNegSupport.getConnection(engine);
                 // Default to the transport FilterChain.
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.spdy;
 
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,7 +50,7 @@ import org.glassfish.grizzly.ConnectorHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.npn.NextProtoNegSupport;
+import org.glassfish.grizzly.npn.ClientSideNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
@@ -73,7 +73,7 @@ public class SpdyConnectorHandler<E> implements ConnectorHandler<E> {
     @Override
     public Future<Connection> connect(final E remoteAddress) {
         final FutureImpl<Connection> futureImpl =
-                Futures.<Connection>createSafeFuture();
+                Futures.createSafeFuture();
         connect(remoteAddress, Futures.toCompletionHandler(futureImpl));
         return futureImpl;
     }
@@ -111,7 +111,7 @@ public class SpdyConnectorHandler<E> implements ConnectorHandler<E> {
                 NextProtoNegSupport.getInstance().configure(sslFilter);
                 NextProtoNegSupport.getInstance().setClientSideNegotiator(
                         connection, NPN_NEGOTIATOR);
-                
+
                 try {
                     sslFilter.handshake(connection,
                             new CompletionHandlerAdapter<Connection, SSLEngine>(
@@ -144,13 +144,13 @@ public class SpdyConnectorHandler<E> implements ConnectorHandler<E> {
         }
     }
     
-    private static class NpnNegotiator
-            implements NextProtoNegSupport.ClientSideNegotiator {
+    private static class NpnNegotiator implements ClientSideNegotiator {
         
         private static final String SPDY3_PROTOCOL = "spdy/3";
 
         @Override
-        public boolean wantNegotiate(final Connection connection) {
+        public boolean wantNegotiate(final SSLEngine engine) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN wantNegotiate. Connection={0}",
                         new Object[]{connection});
@@ -159,23 +159,21 @@ public class SpdyConnectorHandler<E> implements ConnectorHandler<E> {
         }
 
         @Override
-        public String selectProtocol(final Connection connection,
-                final List<String> protocols) {
-            
+        public String selectProtocol(final SSLEngine engine,
+                                     final LinkedHashSet<String> protocols) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN selectProtocol. Connection={0}, protocols={1}",
                         new Object[]{connection, protocols});
             }
-            
-            if (protocols.indexOf(SPDY3_PROTOCOL) != -1) {
-                return SPDY3_PROTOCOL;
-            }
-            
-            return "";
+
+            return (protocols.contains(SPDY3_PROTOCOL) ? SPDY3_PROTOCOL : "");
+
         }
 
         @Override
-        public void onNoDeal(Connection connection) {
+        public void onNoDeal(final SSLEngine engine) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
                         new Object[]{connection});
