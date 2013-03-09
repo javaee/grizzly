@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,11 +49,12 @@ import java.util.logging.Logger;
 
 public class WebSocketsServlet extends HttpServlet {
 
-    private final ChatApplication app = new ChatApplication();
+    private ChatApplication app;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        WebSocketEngine.getEngine().register(app);
+        app = new ChatApplication();
+        WebSocketEngine.getEngine().register(config.getServletContext().getContextPath(), "/chat", app);
     }
 
     @Override

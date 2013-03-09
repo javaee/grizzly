@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,7 +69,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         final String name = "/detect";
         final WebSocketApplication serverApp = createServerApp(name);
         WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
-        server.register(name, serverApp);
+        server.register("", name, serverApp);
         server.start();
         try {
             Assert.assertEquals("There should be no clients connected", 0, serverApp.getWebSockets().size());
@@ -94,7 +94,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         final String name = "/dirty";
         final WebSocketApplication app = createServerApp(name);
         WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
-        server.register(name, app);
+        server.register("", name, app);
         server.start();
         try {
             Assert.assertEquals("There should be no clients connected", 0, app.getWebSockets().size());
@@ -151,7 +151,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
             }
         };
         WebSocketServer server = WebSocketServer.createServer(WebSocketsTest.PORT);
-        server.register("/echo", app);
+        server.register("", "/echo", app);
         server.start();
         try {
             cleanDisconnect(app);
