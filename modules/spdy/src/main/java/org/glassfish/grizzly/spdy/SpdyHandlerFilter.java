@@ -41,6 +41,7 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
@@ -77,7 +78,7 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpCodecUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.npn.NextProtoNegSupport;
+import org.glassfish.grizzly.npn.ClientSideNegotiator;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.spdy.frames.CredentialFrame;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
@@ -93,6 +94,8 @@ import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
 import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
+
+import javax.net.ssl.SSLEngine;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
@@ -1263,13 +1266,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
     }
 
-    private static class ClientNpnNegotiator
-            implements NextProtoNegSupport.ClientSideNegotiator {
+    private static class ClientNpnNegotiator implements ClientSideNegotiator {
         
         private static final String SPDY3_PROTOCOL = "spdy/3";
 
         @Override
-        public boolean wantNegotiate(final Connection connection) {
+        public boolean wantNegotiate(final SSLEngine engine) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN wantNegotiate. Connection={0}",
                         new Object[]{connection});
@@ -1278,23 +1281,20 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
 
         @Override
-        public String selectProtocol(final Connection connection,
-                final List<String> protocols) {
-            
+        public String selectProtocol(final SSLEngine engine,
+                                     final LinkedHashSet<String> protocols) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN selectProtocol. Connection={0}, protocols={1}",
                         new Object[]{connection, protocols});
             }
             
-            if (protocols.indexOf(SPDY3_PROTOCOL) != -1) {
-                return SPDY3_PROTOCOL;
-            }
-            
-            return "";
+            return (protocols.contains(SPDY3_PROTOCOL) ? SPDY3_PROTOCOL : "");
         }
 
         @Override
-        public void onNoDeal(Connection connection) {
+        public void onNoDeal(final SSLEngine engine) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
                         new Object[]{connection});
