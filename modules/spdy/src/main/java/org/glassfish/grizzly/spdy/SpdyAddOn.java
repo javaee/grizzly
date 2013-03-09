@@ -238,8 +238,8 @@ public class SpdyAddOn implements AddOn {
             public void onSuccess(final SSLEngine engine, final String protocol) {
 
                 final Connection connection = NextProtoNegSupport.getConnection(engine);
-                if (LOGGER.isLoggable(Level.INFO)) {
-                    LOGGER.log(Level.INFO, "NPN onSuccess. Connection={0} protocol={1}",
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
                             new Object[]{connection, protocol});
                 }
 
