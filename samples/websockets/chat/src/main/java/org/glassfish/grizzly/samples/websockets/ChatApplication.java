@@ -77,11 +77,6 @@ public class ChatApplication extends WebSocketApplication {
         return new ChatWebSocket(handler, request, listeners);
     }
 
-    @Override
-    public boolean isApplicationRequest(HttpRequestPacket request) {
-        return "/grizzly-websockets-chat/chat".equals(request.getRequestURI());
-    }
-
     /**
      * Method is called, when {@link ChatWebSocket} receives a {@link Frame}.
      * @param websocket {@link ChatWebSocket}

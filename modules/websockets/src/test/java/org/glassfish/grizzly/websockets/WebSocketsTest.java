@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,7 +68,6 @@ import org.junit.runners.Parameterized;
 @SuppressWarnings({"StringContatenationInLoop"})
 @RunWith(Parameterized.class)
 public class WebSocketsTest extends BaseWebSocketTestUtilities {
-    private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 5;
     private final Version version;
 
@@ -137,7 +136,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 //    @Test
     public void ssl() throws Exception {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
 
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
@@ -234,7 +233,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         
         final HttpServer server = HttpServer.createSimpleServer(".", 8051);
         server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
-        WebSocketEngine.getEngine().register("/grizzly-websockets-chat/chat", app);
+        WebSocketEngine.getEngine().register("", "/chat", app);
         
         final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.<Boolean>create();
         WebSocketClient client = new WebSocketClient("ws://localhost:8051/chat",
