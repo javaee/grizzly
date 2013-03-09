@@ -49,15 +49,17 @@ import java.util.logging.Logger;
 
 public class WebSocketsServlet extends HttpServlet {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    private final ChatApplication app = new ChatApplication();
+    private ChatApplication app;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        WebSocketEngine.getEngine().register(app);
+        app = new ChatApplication();
+        WebSocketEngine.getEngine().register(config.getServletContext().getContextPath(), "/chat", app);
     }
 
     @Override
     public void destroy() {
+        // IMPORTANT - You can leak memory if you don't unregister.
         WebSocketEngine.getEngine().unregister(app);
     }
 }

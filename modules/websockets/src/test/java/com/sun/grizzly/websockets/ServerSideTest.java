@@ -68,7 +68,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         TrackingWebSocket socket = null;
         try {
             socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
@@ -102,7 +104,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void single() throws IOException, InstantiationException, ExecutionException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 1);
         socket.connect();
         try {
@@ -122,7 +126,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     @SuppressWarnings({"StringContatenationInLoop"})
     @Test
     public void sendAndWait() throws IOException, InstantiationException, InterruptedException, ExecutionException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         CountDownWebSocket socket = new CountDownWebSocket(version, String.format("ws://localhost:%s/echo", PORT));
         socket.connect();
 
@@ -154,7 +160,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
@@ -188,7 +196,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
         WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version) {

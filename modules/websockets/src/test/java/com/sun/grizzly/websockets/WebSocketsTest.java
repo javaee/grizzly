@@ -76,7 +76,9 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
     }
 
     private void run(final Servlet servlet) throws Exception {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         WebSocketClient client = null;
         try {
             final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
@@ -182,7 +184,9 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void testGetOnServlet() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        ServletAdapter a = new ServletAdapter(new EchoServlet());
+        a.setProperty(ServletAdapter.LOAD_ON_STARTUP, true);
+        final SelectorThread thread = createSelectorThread(PORT, a);
         URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
         final InputStream content = (InputStream) urlConnection.getContent();
@@ -194,7 +198,5 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             thread.stopEndpoint();
         }
     }
-
-
 
 }

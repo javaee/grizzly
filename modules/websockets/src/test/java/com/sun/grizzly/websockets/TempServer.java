@@ -41,27 +41,46 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 public class TempServer {
+    static ServletAdapter a = new ServletAdapter(new EchoServlet());
+
     public static void main(String[] args) throws Exception {
+          a.setServletPath("/path");
         final SelectorThread thread = selectorThread();
         thread.start();
+        Thread.sleep(10000);
+        final CountDownLatch latch = new CountDownLatch(1);
+        WebSocketClient client = new WebSocketClient(
+                "ws://localhost:" + 8080 + "/echo",
+                new WebSocketAdapter() {
+                    @Override
+                    public void onConnect(WebSocket socket) {
+                        socket.send("HELLO");
+                    }
+
+                    @Override
+                    public void onMessage(WebSocket socket, String text) {
+                        System.out.println("ECHO: " + text);
+                        latch.countDown();
+                    }
+                });
+        client.connect(10, TimeUnit.SECONDS);
+        latch.await(10, TimeUnit.SECONDS);
+        client.close();
+        a.destroy();
+        selectorThread().stopEndpoint();
     }
 
     private static SelectorThread selectorThread() throws Exception {
-        return WebSocketsTest.createSelectorThread(8080, setUpWSEngine());
+        return WebSocketsTest.createSelectorThread(8080, a);
     }
 
-    private static SelectorThread sslSelectorThread() throws Exception {
-        return WebSocketsTest.createSSLSelectorThread(8080, setUpWSEngine());
-    }
 
-    private static Adapter setUpWSEngine() {
-        final EchoServlet servlet = new EchoServlet();
-        WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
-//        final ServletAdapter adapter = new ServletAdapter(servlet);
-        return new StaticResourcesAdapter("src/test/resources");
-    }
 }

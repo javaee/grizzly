@@ -63,10 +63,6 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
 
         SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
         WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return (request.requestURI().toString().contains("/ping"));
-            }
 
             @Override
             public void onPing(WebSocket socket, byte[] bytes) {
@@ -76,7 +72,7 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
             }
 
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/ping", app);
 
         WebSocketClient client = new WebSocketClient(
                 "ws://localhost:" + PORT + "/ping",
@@ -106,10 +102,6 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
 
         SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
         WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return (request.requestURI().toString().contains("/ping"));
-            }
 
             @Override
             public void onConnect(WebSocket socket) {
@@ -127,7 +119,7 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
                 latch.countDown();
             }
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/ping", app);
 
         WebSocketClient client = new WebSocketClient(
                 "ws://localhost:" + PORT + "/ping",
@@ -155,10 +147,6 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
         final CountDownLatch latch = new CountDownLatch(1);
         SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
         WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return (request.requestURI().toString().contains("/ping"));
-            }
 
             @Override
             public void onPong(WebSocket socket, byte[] bytes) {
@@ -167,7 +155,7 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
                 latch.countDown();
             }
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/ping", app);
 
         WebSocketClient client = new WebSocketClient(
                 "ws://localhost:" + PORT + "/ping",
@@ -224,11 +212,6 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
         SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
         WebSocketApplication app = new WebSocketApplication() {
             @Override
-            public boolean isApplicationRequest(Request request) {
-                return (request.requestURI().toString().contains("/ping"));
-            }
-
-            @Override
             public void onConnect(WebSocket socket) {
                 try {
                     socket.sendPong("Surprise!".getBytes("UTF-8"));
@@ -267,7 +250,7 @@ public class PingPongTest extends BaseWebSocketTestUtilities {
                 fail("No response expected for unsolicited pong");
             }
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/ping", app);
 
         WebSocketClient client = new WebSocketClient(
                 "ws://localhost:" + PORT + "/ping",

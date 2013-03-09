@@ -42,6 +42,7 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -54,12 +55,10 @@ public class EchoServlet extends HttpServlet {
     public static final String RESPONSE_TEXT = "Nothing to see";
     private WebSocketApplication app;
 
-    public EchoServlet() {
+
+    @Override
+    public void init(ServletConfig config) throws ServletException {
         app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return request.requestURI().equals("/echo");
-            }
 
             public void onMessage(WebSocket socket, String data) {
                 socket.send(data);
@@ -71,7 +70,7 @@ public class EchoServlet extends HttpServlet {
             public void onClose(WebSocket socket, DataFrame frame) {
             }
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register(config.getServletContext().getContextPath(), "/echo", app);
     }
 
     @Override

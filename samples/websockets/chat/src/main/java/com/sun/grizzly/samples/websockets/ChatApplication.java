@@ -54,12 +54,6 @@ public class ChatApplication extends WebSocketApplication {
     }
 
     @Override
-    public boolean isApplicationRequest(Request request) {
-        final String uri = request.requestURI().toString();
-        return uri.endsWith("/chat");
-    }
-
-    @Override
     public void onMessage(WebSocket socket, String text) {
         if (text.startsWith("login:")) {
             login((ChatWebSocket) socket, text);

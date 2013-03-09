@@ -44,11 +44,22 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
+import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
 public class WebSocketsServlet extends HttpServlet {
+
+    private WebSocketApplication app;
+
     @Override
     public void init(ServletConfig config) throws ServletException {
-        WebSocketEngine.getEngine().register(new StickiesApplication());
+        app = new StickiesApplication();
+        WebSocketEngine.getEngine().register("", "/", app);
+    }
+
+    @Override
+    public void destroy() {
+        // IMPORTANT - You can leak memory if you don't unregister.
+        WebSocketEngine.getEngine().unregister(app);
     }
 }
