@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -188,7 +188,7 @@ public class WebSocketServer {
         }
     }
 
-    public void register(String name, WebSocketApplication application) {
-        WebSocketEngine.getEngine().register(name, application);
+    public void register(String contextPath, String urlPattern, WebSocketApplication application) {
+        WebSocketEngine.getEngine().register(contextPath, urlPattern, application);
     }
 }

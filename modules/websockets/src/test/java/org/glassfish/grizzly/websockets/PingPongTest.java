@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.websockets;
 
 import org.glassfish.grizzly.PortRange;
-import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 
@@ -60,12 +59,8 @@ public class PingPongTest {
         final CountDownLatch latch = new CountDownLatch(2);
 
         WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
-        server.register("/ping", 
+        server.register("", "/ping",
                 new WebSocketApplication() {
-                    @Override
-                    public boolean isApplicationRequest(HttpRequestPacket request) {
-                        return (request.getRequestURI().contains("/ping"));
-                    }
 
                     @Override
                     public void onPing(WebSocket socket, byte[] bytes) {
@@ -103,12 +98,8 @@ public class PingPongTest {
         final CountDownLatch latch = new CountDownLatch(2);
 
         WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
-        server.register("/ping",
+        server.register("", "/ping",
                 new WebSocketApplication() {
-                    @Override
-                    public boolean isApplicationRequest(HttpRequestPacket request) {
-                        return (request.getRequestURI().contains("/ping"));
-                    }
 
                     @Override
                     public void onConnect(WebSocket socket) {
@@ -148,12 +139,8 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
-        server.register("/ping",
+        server.register("", "/ping",
                 new WebSocketApplication() {
-                    @Override
-                    public boolean isApplicationRequest(HttpRequestPacket request) {
-                        return (request.getRequestURI().contains("/ping"));
-                    }
 
                     @Override
                     public void onPong(WebSocket socket, byte[] bytes) {
@@ -216,12 +203,8 @@ public class PingPongTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         WebSocketServer server = new WebSocketServer("0.0.0.0", new PortRange(PORT));
-        server.register("/ping",
+        server.register("", "/ping",
                 new WebSocketApplication() {
-                    @Override
-                    public boolean isApplicationRequest(HttpRequestPacket request) {
-                        return (request.getRequestURI().contains("/ping"));
-                    }
 
                     @Override
                     public void onConnect(WebSocket socket) {

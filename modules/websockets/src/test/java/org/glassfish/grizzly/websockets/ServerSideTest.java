@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,7 +67,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void steadyFlow()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
         TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version,
             5 * ITERATIONS);
@@ -102,7 +102,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void single()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
         TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version, 1);
         socket.connect();
@@ -124,7 +124,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void sendAndWait()
         throws IOException, InstantiationException, InterruptedException, ExecutionException, URISyntaxException {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
         CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT), version);
         socket.connect();
@@ -158,7 +158,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void multipleClients()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
@@ -194,7 +194,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void bigPayload()
         throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
         WebSocketServer server = WebSocketServer.createServer(PORT);
-        server.register("/echo", new EchoApplication());
+        server.register("", "/echo", new EchoApplication());
         server.start();
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);

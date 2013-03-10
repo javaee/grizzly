@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -165,14 +165,20 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     /**
-     * Checks application specific criteria to determine if this application can 
+     * Checks application specific criteria to determine if this application can
      * process the request as a WebSocket connection.
      *
      * @param request the incoming HTTP request.
-     *                
      * @return <code>true</code> if this application can service this request
+     *         <p/>
+     *         +* @deprecated URI mapping shouldn't be intrinsic to the application.
+     *         +*  WebSocketApplications should be registered using {@link WebSocketEngine#register(String, String, WebSocketApplication)}
+     *         +*  using standard Servlet url-pattern rules.
      */
-    public abstract boolean isApplicationRequest(HttpRequestPacket request);
+    public boolean isApplicationRequest(HttpRequestPacket request) {
+        return false;
+    }
+
 
     /**
      * Return the websocket extensions supported by this <code>WebSocketApplication</code>.
