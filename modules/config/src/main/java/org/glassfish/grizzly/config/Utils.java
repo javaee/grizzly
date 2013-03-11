@@ -186,7 +186,9 @@ public class Utils {
                     }
                     isInitialized = true;
                 } catch (Exception ignored) {
-                    ignored.printStackTrace();
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, ignored.toString(), ignored);
+                    }
                 }
             } else {
                 isInitialized = true;
