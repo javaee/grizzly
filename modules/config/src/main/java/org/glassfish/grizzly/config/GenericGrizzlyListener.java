@@ -643,7 +643,23 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                         final FilterChainBuilder builder,
                                         final boolean secure) {
         if (spdyElement != null) {
-            Class<?> spdyMode;
+
+            // Spdy without NPN is supported, but warn that there may
+            // be consequences to this configuration.
+            if (!secure) {
+                logger.log(Level.WARNING,
+                        "SSL is not enabled for listener {0}.  SPDY support will be enabled, but will not be secured.  Some clients may not be able to use SPDY in this configuration.",
+                        listener.getName());
+            }
+
+            // first try to lookup a service appropriate for the mode
+            // that has been configured.
+            final String serviceName = ((secure) ? "spdy-npn" : "spdy-plane");
+            AddOn spdyAddon = locator.getService(AddOn.class, serviceName);
+
+            // if no service was found, attempt to load via reflection.
+            if (spdyAddon == null) {
+                Class<?> spdyMode;
                 try {
                     spdyMode = Utils.loadClass("org.glassfish.grizzly.spdy.SpdyMode");
                 } catch (ClassNotFoundException cnfe) {
@@ -652,18 +668,11 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     }
                     return;
                 }
-            Object[] enumConstants = spdyMode.getEnumConstants();
-            Object mode;
-            if (!secure) {
-                logger.log(Level.WARNING,
-                           "SSL is not enabled for listener {0}.  SPDY support will be enabled, but will not be secured.  Some clients may not be able to use SPDY in this configuration.",
-                           listener.getName() );
-                mode = enumConstants[0];
-            } else {
-                mode = enumConstants[1];
+                Object[] enumConstants = spdyMode.getEnumConstants();
+                Object mode = ((secure) ? enumConstants[1] : enumConstants[0]);
+                spdyAddon = loadAddOn("org.glassfish.grizzly.spdy.SpdyAddOn", new Class[]{spdyMode}, mode);
             }
 
-            final AddOn spdyAddon = loadAddOn("org.glassfish.grizzly.spdy.SpdyAddOn", new Class[] { spdyMode }, mode);
             if (spdyAddon != null) {
                 // Spdy requires access to more information compared to the other addons
                 // that are currently leveraged.  As such, we'll need to mock out a
