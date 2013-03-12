@@ -124,7 +124,6 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
-            <!--suppress MavenModelInspection -->
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -151,5 +150,30 @@
             <version>${hk2.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-config</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.main.common</groupId>
+            <artifactId>glassfish-api</artifactId>
+            <version>4.0-b72</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.main.common</groupId>
+            <artifactId>internal-api</artifactId>
+            <version>4.0-b72</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.main.admin</groupId>
+            <artifactId>config-api</artifactId>
+            <version>4.0-b72</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 </project>

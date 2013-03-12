@@ -48,9 +48,18 @@ import org.jvnet.hk2.config.types.PropertyBag;
 @Configured
 public interface Spdy extends ConfigBeanProxy, PropertyBag {
 
-    int MAX_CONCURRENT_STREAMS = 50;
-    boolean SPDY2_ENABLED = true;
-    int INITIAL_WINDOW_SIZE_IN_BYTES = 64 * 1024;
+    final int MAX_CONCURRENT_STREAMS = 50;
+    final boolean SPDY2_ENABLED = true;
+    final int INITIAL_WINDOW_SIZE_IN_BYTES = 64 * 1024;
+    final boolean ENABLED = true;
+
+    /**
+     * Enables SPDY support.
+     */
+    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
+    boolean getEnabled();
+
+    void setEnabled(boolean enabled);
 
     /**
      * Configures the number of concurrent streams allowed per SPDY connection.

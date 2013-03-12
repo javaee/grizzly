@@ -37,9 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.spdy;
+package org.glassfish.grizzly.spdy.glassfish;
 
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.spdy.SpdyAddOn;
+import org.glassfish.grizzly.spdy.SpdyMode;
 import org.jvnet.hk2.annotations.ContractsProvided;
 import org.jvnet.hk2.annotations.Service;
 

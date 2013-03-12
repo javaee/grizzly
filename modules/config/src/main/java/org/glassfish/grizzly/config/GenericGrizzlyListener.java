@@ -642,7 +642,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                         final Spdy spdyElement,
                                         final FilterChainBuilder builder,
                                         final boolean secure) {
-        if (spdyElement != null) {
+        if (spdyElement != null && spdyElement.getEnabled()) {
 
             // Spdy without NPN is supported, but warn that there may
             // be consequences to this configuration.
