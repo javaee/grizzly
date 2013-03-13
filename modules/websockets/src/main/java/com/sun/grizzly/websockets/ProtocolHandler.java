@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -162,14 +162,20 @@ public abstract class ProtocolHandler {
 
     protected abstract HandShake createHandShake(URL url);
 
+    public DataFrame toDataFrame(String data) {
+        return new DataFrame(new TextFrameType(), data);
+    }
+    
+    public DataFrame toDataFrame(byte[] data) {
+        return new DataFrame(new BinaryFrameType(), data);
+    }
+
     public void send(byte[] data) {
-        send(new DataFrame(new BinaryFrameType(), data));
+        send(toDataFrame(data));
     }
 
     public void send(String data) {
-        final DataFrame frame = new DataFrame(new TextFrameType(), data);
-        frame.setPayload(Utf8Utils.encode(new StrictUtf8(), data));
-        send(frame);
+        send(toDataFrame(data));
     }
 
     public void stream(boolean last, byte[] bytes, int off, int len) {

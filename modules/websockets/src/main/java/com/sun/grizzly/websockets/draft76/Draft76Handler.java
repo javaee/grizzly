@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package com.sun.grizzly.websockets.draft76;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.ProtocolError;
 import com.sun.grizzly.websockets.ProtocolHandler;
@@ -92,8 +91,18 @@ public class Draft76Handler extends ProtocolHandler {
     }
 
     @Override
+    public DataFrame toDataFrame(String data) {
+        return new DataFrame(Draft76FrameType.TEXT, data);
+    }
+    
+    @Override
+    public DataFrame toDataFrame(byte[] data) {
+        throw new WebSocketException("Binary data not supported in draft -76");
+    }
+
+    @Override
     public void send(String data) {
-        send(new DataFrame(Draft76FrameType.TEXT, data));
+        send(toDataFrame(data));
     }
 
     @Override

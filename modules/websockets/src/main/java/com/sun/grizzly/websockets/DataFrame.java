@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,12 +40,19 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 /**
  * In memory representation of a websocket frame.
  *
  * @see <a href="http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-05#section-4.3">Frame Definition</a>
  */
 public class DataFrame {
+    public static final StrictUtf8 STRICT_UTF8_CHARSET = new StrictUtf8();
+    public static final float STRICT_UTF8_MAX_BYTES_PER_CHAR =
+            STRICT_UTF8_CHARSET.newEncoder().maxBytesPerChar();
+    
     private String payload;
     private byte[] bytes;
     private final FrameType type;
@@ -93,9 +100,15 @@ public class DataFrame {
 
     public byte[] getBytes() {
         if (payload != null) {
-            bytes = Utf8Utils.encode(new StrictUtf8(), payload);
+            bytes = Utf8Utils.encode(STRICT_UTF8_CHARSET, payload);
         }
         return bytes;
+    }
+
+    public void toStream(final OutputStream os) throws IOException {
+        if (payload != null) {
+            Utf8Utils.encode(STRICT_UTF8_CHARSET, payload, os);
+        }
     }
 
     public void respond(WebSocket socket) {

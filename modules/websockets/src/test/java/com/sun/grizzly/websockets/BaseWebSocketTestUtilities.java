@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,10 +66,10 @@ public class BaseWebSocketTestUtilities {
     protected static final int PORT = 1725;
 
     @Parameterized.Parameters
-    public static List<Version[]> versions() {
-        final List<Version[]> versions = new ArrayList<Version[]>();
+    public static List<Object[]> parameters() {
+        final List<Object[]> versions = new ArrayList<Object[]>();
         for (Version version : Version.values()) {
-            versions.add(new Version[]{version});
+            versions.add(new Object[]{version});
         }
         return versions;
     }

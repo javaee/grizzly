@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,65 +37,68 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package com.sun.grizzly.websockets;
 
-package com.sun.grizzly.websockets.draft76;
+/**
+ * The default {@link Broadcaster} optimized to send the same text to a set of
+ * clients.
+ * NOTE: works with {@link DefaultWebSocket}s and inherited classes.
+ * 
+ * @author Alexey Stashok
+ */
+public class OptimizedBroadcaster implements Broadcaster {
 
-import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FrameType;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.frametypes.Utf8DecodingError;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-
-enum Draft76FrameType implements FrameType {
-    TEXT {
-        public void setPayload(DataFrame frame, byte[] data) {
-            try {
-                frame.setPayload(new String(data, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new Utf8DecodingError(e.getMessage(), e);
+    /**
+     * {@inheritDoc}
+     */
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final String text) {
+        
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(text);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException e) {
+                }
             }
         }
-
-        public byte[] getBytes(DataFrame frame) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream(2 +
-                    (int) (frame.getTextPayload().length() * DataFrame.STRICT_UTF8_MAX_BYTES_PER_CHAR));
-            
-            try {
-                out.write((byte) 0x00);
-                frame.toStream(out);
-                out.write((byte) 0xFF);
-                return out.toByteArray();
-            } catch (IOException ignored) {
-            }
-            
-            throw new IllegalStateException("Unexpected error");
-        }
-
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onMessage(frame.getTextPayload());
-        }
-    },
-
-    CLOSING {
-        public void setPayload(DataFrame frame, byte[] data) {
-            frame.setPayload(data);
-        }
-
-        public byte[] getBytes(DataFrame frame) {
-            return new byte[]{(byte) 0xFF, 0x00};
-        }
-
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onClose(frame);
-            socket.close();
-        }
-    };
-
-    public DataFrame create(boolean fin, byte[] data) {
-        return new DataFrame(this, data);
     }
-
+    
+    /**
+     * {@inheritDoc}
+     */
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final byte[] binary) {
+        
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(binary);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException e) {
+                }
+            }
+        }
+    }    
 }

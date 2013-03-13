@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,8 @@ public class DefaultWebSocket implements WebSocket {
     protected HttpServletRequest request;
     protected HttpServletResponse response;
 
+    protected Broadcaster broadcaster = new DummyBroadcaster();
+    
     enum State {
         NEW,
         CONNECTED,
@@ -208,6 +210,24 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    public void broadcast(Iterable<? extends WebSocket> recipients,
+            String data) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcast(recipients, data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public void broadcast(Iterable<? extends WebSocket> recipients,
+            byte[] data) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcast(recipients, data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -246,6 +266,29 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    protected byte[] toRawData(String text) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(text);
+        return protocolHandler.frame(dataFrame);
+    }
+
+    protected byte[] toRawData(byte[] binary) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(binary);
+        return protocolHandler.frame(dataFrame);
+    }
+
+    protected void sendRaw(byte[] rawData) {
+        protocolHandler.getNetworkHandler().write(rawData);
+    }
+
+    protected Broadcaster getBroadcaster() {
+        return broadcaster;
+    }
+
+    protected void setBroadcaster(Broadcaster broadcaster) {
+        this.broadcaster = broadcaster;
+    }
+    
+    
     public final HttpServletRequest getRequest() {
         return request;
     }

@@ -63,6 +63,10 @@ import com.sun.grizzly.websockets.glassfish.GlassfishSupport;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.security.Principal;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
@@ -71,6 +75,8 @@ import javax.servlet.http.HttpSession;
 
 public class ServerNetworkHandler extends BaseNetworkHandler {
 
+    final AtomicBoolean isInWriteQueue = new AtomicBoolean();
+    
     private static final Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Request request;
     private final Response response;
@@ -80,15 +86,32 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final InternalOutputBuffer outputBuffer;
     private UDecoder urlDecoder = new UDecoder();
     private final ProtocolHandler protocolHandler;
-    private boolean isClosed;
-
-    public ServerNetworkHandler(Request req, Response resp,
+    private volatile boolean isClosed;
+    
+    private final ByteChunk tmpByteChunk = new ByteChunk();
+    
+    private final WebSocketApplication application;
+    
+    private final Queue<byte[]> outputQueue;
+    private final AtomicInteger outputQueueSize;
+    
+    public ServerNetworkHandler(WebSocketApplication app, Request req, Response resp,
             ProtocolHandler protocolHandler, Mapper mapper) {
+        this.application = app;
+        
+        if (app.isWriterThreadsEnabled()) {
+            outputQueue = new ConcurrentLinkedQueue<byte[]>();
+            outputQueueSize = new AtomicInteger();
+        } else {
+            outputQueue = null;
+            outputQueueSize = null;
+        }
+        
         request = req;
         response = resp;
-        final WSGrizzlyRequestImpl grizzlyRequest = new WSGrizzlyRequestImpl();
+        final WSGrizzlyRequestImpl grizzlyRequest = new WSGrizzlyRequestImpl(1024);
         grizzlyRequest.setRequest(request);
-        final GrizzlyResponse grizzlyResponse = new GrizzlyResponse();
+        final GrizzlyResponse grizzlyResponse = new GrizzlyResponse(false, false, 1024);
         grizzlyResponse.setResponse(response);
         grizzlyRequest.setResponse(grizzlyResponse);
         grizzlyResponse.setRequest(grizzlyRequest);
@@ -115,20 +138,18 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     @Override
     protected int read() {
         int read;
-        ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-
+        
         Throwable error = null;
 
         try {
-            ByteChunk bytes = new ByteChunk();
-            if (chunk.getLength() > 0) {
-                newChunk.append(chunk);
-            }
-
-            read = inputBuffer.doRead(bytes, request);
+            read = inputBuffer.doRead(tmpByteChunk, request);
             if (read > 0) {
-                newChunk.append(bytes);
+                chunk.recycle();
+                chunk.append(tmpByteChunk);
             }
+            
+            tmpByteChunk.reset();
+            tmpByteChunk.recycle();
         } catch (Throwable e) {
             error = e;
             read = -1;
@@ -137,7 +158,6 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         if (read == -1) {
             throw new WebSocketException("Connection closed", error);
         }
-        chunk.setBytes(newChunk.getBytes(), 0, newChunk.getEnd());
         return read;
     }
 
@@ -158,7 +178,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 byte[] bytes = new byte[count];
                 int total = 0;
                 while (total < count) {
-                    if (chunk.getLength() < count) {
+                    if (chunk.getLength() <= 0) {
                         read();
                     }
                     total += chunk.substract(bytes, total, count - total);
@@ -179,18 +199,62 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public void write(byte[] bytes) {
-        synchronized (outputBuffer) {
+        if (!application.isWriterThreadsEnabled()) {
             try {
-                ByteChunk buffer = new ByteChunk();
-                buffer.setBytes(bytes, 0, bytes.length);
-                outputBuffer.doWrite(buffer, response);
-                outputBuffer.flush();
+                synchronized (outputBuffer) {
+                    ByteChunk buffer = new ByteChunk();
+                    buffer.setBytes(bytes, 0, bytes.length);
+                    outputBuffer.doWrite(buffer, response);
+                    outputBuffer.flush();
+                }
             } catch (IOException e) {
                 throw new WebSocketException(e.getMessage(), e);
             }
+        } else {
+            if (isClosed) {
+                throw new WebSocketException("Websocket is closed");
+            }
+
+            outputQueue.offer(bytes);
+            outputQueueSize.incrementAndGet();
+
+            final int buffersQueued = application.buffersQueued.incrementAndGet();
+            
+            if (isClosed) {
+                application.buffersQueued.addAndGet(-outputQueueSize.getAndSet(0));
+                throw new WebSocketException("Websocket is closed");
+            }
+            
+            application.scheduleForWriting(this);
         }
     }
 
+    synchronized void flushWriteQueue() throws IOException {
+        if (isClosed) {
+            throw new WebSocketException("Websocket is closed");
+        }
+        
+        final int queueSize = outputQueueSize.getAndSet(0);
+        application.buffersQueued.addAndGet(-queueSize);
+        
+        if (queueSize > 0) {
+            ByteChunk buffer = new ByteChunk();
+
+            for (int i = 0; i < queueSize; i++) {
+                final byte[] buf = outputQueue.poll();
+
+                buffer.setBytes(buf, 0, buf.length);
+                outputBuffer.doWrite(buffer, response);
+            }
+
+            outputBuffer.flush();
+        }
+    }
+    
+    boolean isWriteQueueEmpty() {
+        return outputQueue.isEmpty();
+    }
+    
     public boolean ready() {
         synchronized (chunk) {
             return chunk.getLength() != 0;
@@ -208,6 +272,12 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     public synchronized void close() {
         if (!isClosed) {
             isClosed = true;
+            
+            if (outputQueue != null) {
+                application.buffersQueued.addAndGet(-outputQueueSize.getAndSet(0));
+                outputQueue.clear();
+            }
+            
             //            key.cancel();
             protocolHandler.getProcessorTask().setAptCancelKey(true);
 //            protocolHandler.getProcessorTask().terminateProcess();
@@ -225,6 +295,10 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     private class WSGrizzlyRequestImpl extends GrizzlyRequest {
+
+        public WSGrizzlyRequestImpl(int inputBufferSize) {
+            super(inputBufferSize);
+        }
 
         /**
          * Make method visible for websockets

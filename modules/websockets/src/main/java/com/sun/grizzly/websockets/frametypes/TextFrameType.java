@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,20 +40,11 @@
 
 package com.sun.grizzly.websockets.frametypes;
 
-import com.sun.grizzly.util.Charsets;
 import com.sun.grizzly.websockets.BaseFrameType;
 import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FramingException;
-import com.sun.grizzly.websockets.StrictUtf8;
 import com.sun.grizzly.websockets.Utf8Utils;
 import com.sun.grizzly.websockets.WebSocket;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CodingErrorAction;
 
 public class TextFrameType extends BaseFrameType {
     @Override
@@ -65,7 +56,8 @@ public class TextFrameType extends BaseFrameType {
     public byte[] getBytes(DataFrame dataFrame) {
         final byte[] bytes = dataFrame.getBytes();
         if (bytes == null) {
-            setPayload(dataFrame, Utf8Utils.encode(new StrictUtf8(), dataFrame.getTextPayload()));
+            setPayload(dataFrame, Utf8Utils.encode(DataFrame.STRICT_UTF8_CHARSET,
+                    dataFrame.getTextPayload()));
         }
         return dataFrame.getBytes();
     }

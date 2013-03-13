@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,57 +37,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+/**
+ * General Broadcaster API to send the same message to a set of clients.
+ * 
+ * @author Alexey Stashok
+ */
+public interface Broadcaster {
 
-public class TrackingWebSocket extends WebSocketClient {
-    final Set<String> sent = Collections.<String>newSetFromMap(
-            new ConcurrentHashMap<String, Boolean>());
+    public void broadcast(final Iterable<? extends WebSocket> websockets,
+            final String text);
     
-    private final CountDownLatch received;
-    private String name;
-
-    public TrackingWebSocket(Version version, String address, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, version, listeners);
-        received = new CountDownLatch(count);
-    }
-
-    public TrackingWebSocket(Version version, String address, String name, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, version, listeners);
-        this.name = name;
-        received = new CountDownLatch(count);
-    }
-
-    @Override
-    public void send(String data) {
-        sent.add(data);
-        super.send(data);
-    }
-
-    @Override
-    public void onMessage(String frame) {
-        super.onMessage(frame);
-        if(sent.remove(frame)) {
-            received.countDown();
-        }
-    }
-
-    public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public CountDownLatch getReceived() {
-        return received;
-    }
+    public void broadcast(final Iterable<? extends WebSocket> websockets,
+            final byte[] binary);
+    
 }
