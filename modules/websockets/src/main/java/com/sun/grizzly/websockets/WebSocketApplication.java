@@ -56,11 +56,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class WebSocketApplication extends WebSocketAdapter {
-
-//    static final int NORMAL_QUEUE_SIZE = 65536 * 5;
-//    static final int EXCEEDED_QUEUE_SIZE = 65536 * 100;
+    private final static Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    
     private final Set<WebSocket> sockets = Collections.newSetFromMap(
             new ConcurrentHashMap<WebSocket, Boolean>());
     
@@ -354,7 +355,10 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         public void run() {
             try {
                 while (isRunning) {
-                    System.out.println("Totally queued: " + buffersQueued + " number of writers: " + writers.size());
+                    if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "Totally queued: {0} number of writers: {1}",
+                                new Object[]{buffersQueued, writers.size()});
+                    }
 
                     if (writerTimeoutMillis > 0) {
                         final long currentTimeMillis = System.currentTimeMillis();
