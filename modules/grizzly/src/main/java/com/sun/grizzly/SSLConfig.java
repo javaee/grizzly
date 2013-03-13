@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.util.SSLUtils;
+import java.io.ByteArrayInputStream;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -113,6 +114,9 @@ public class SSLConfig {
     private String trustStoreFile;
     private String keyStoreFile;
 
+    private byte[] trustStoreBytes;
+    private byte[] keyStoreBytes;
+    
     private String trustManagerFactoryAlgorithm;
     private String keyManagerFactoryAlgorithm;
 
@@ -240,27 +244,59 @@ public class SSLConfig {
     }
 
     /**
-     * Sets trust store file name, also makes sute that if other trust store
-     * configutation parameters are not set to set them to default values.
+     * Sets trust store file name, also makes sure that if other trust store
+     * configuration parameters are not set to set them to default values.
+     * Method resets trust store bytes if any have been set before via
+     * {@link #setTrustStoreBytes(byte[])}.
      * 
      * @param trustStoreFile
      *            File name of trust store.
      */
     public void setTrustStoreFile(String trustStoreFile) {
         this.trustStoreFile = trustStoreFile;
+        this.trustStoreBytes = null;
+    }
+
+    /**
+     * Sets trust store payload as byte array.
+     * Method resets trust store file if any has been set before via
+     * {@link #setTrustStoreFile(java.lang.String)}.
+     * 
+     * @param trustStoreBytes
+     *            trust store payload.
+     */
+    public void setTrustStoreBytes(byte[] trustStoreBytes) {
+        this.trustStoreBytes = trustStoreBytes;
+        this.trustStoreFile = null;
     }
 
     /**
      * Sets key store file name, also makes sure that if other key store
      * configuration parameters are not set to set them to default values.
+     * Method resets key store bytes if any have been set before via
+     * {@link #setKeyStoreBytes(byte[])}.
      * 
      * @param keyStoreFile
      *            File name of key store.
      */
     public void setKeyStoreFile(String keyStoreFile) {
         this.keyStoreFile = keyStoreFile;
+        this.keyStoreBytes = null;
     }
 
+    /**
+     * Sets key store payload as byte array.
+     * Method resets key store file if any has been set before via
+     * {@link #setKeyStoreFile(java.lang.String)}.
+     * 
+     * @param keyStoreBytes
+     *            key store payload.
+     */
+    public void setKeyStoreBytes(byte[] keyStoreBytes) {
+        this.keyStoreBytes = keyStoreBytes;
+        this.keyStoreFile = null;
+    }
+    
     /**
      * Sets the trust manager factory algorithm.
      * 
@@ -345,7 +381,7 @@ public class SSLConfig {
     public boolean validateConfiguration(boolean needsKeyStore) {
         boolean valid = true;
 
-        if (keyStoreFile != null) {
+        if (keyStoreBytes != null || keyStoreFile != null) {
             try {
                 KeyStore keyStore;
                 if (keyStoreProvider != null) {
@@ -358,7 +394,9 @@ public class SSLConfig {
                                     : KeyStore.getDefaultType());
                 }
                 InputStream keyStoreInputStream = null;
-                if (!keyStoreFile.equals("NONE")) {
+                if (keyStoreBytes != null) {
+                    keyStoreInputStream = new ByteArrayInputStream(keyStoreBytes);
+                } else if (!keyStoreFile.equals("NONE")) {
                     keyStoreInputStream = new FileInputStream(keyStoreFile);
                 }
                 keyStore.load(keyStoreInputStream, keyStorePass);
@@ -406,7 +444,7 @@ public class SSLConfig {
             valid &= !needsKeyStore;
         }
 
-        if (trustStoreFile != null) {
+        if (trustStoreBytes != null || trustStoreFile != null) {
             try {
                 KeyStore trustStore;
                 if (trustStoreProvider != null) {
@@ -419,7 +457,9 @@ public class SSLConfig {
                                     : KeyStore.getDefaultType());
                 }
                 InputStream trustStoreInputStream = null;
-                if (!trustStoreFile.equals("NONE")) {
+                if (trustStoreBytes != null) {
+                    trustStoreInputStream = new ByteArrayInputStream(trustStoreBytes);
+                } else if (!trustStoreFile.equals("NONE")) {
                     trustStoreInputStream = new FileInputStream(trustStoreFile);
                 }
                 trustStore.load(trustStoreInputStream, trustStorePass);
@@ -474,7 +514,7 @@ public class SSLConfig {
             TrustManagerFactory trustManagerFactory = null;
             KeyManagerFactory keyManagerFactory = null;
 
-            if (keyStoreFile != null) {
+            if (keyStoreBytes != null || keyStoreFile != null) {
                 try {
                     KeyStore keyStore;
                     if (keyStoreProvider != null) {
@@ -487,7 +527,9 @@ public class SSLConfig {
                                         : KeyStore.getDefaultType());
                     }
                     InputStream keyStoreInputStream = null;
-                    if (!keyStoreFile.equals("NONE")) {
+                    if (keyStoreBytes != null) {
+                        keyStoreInputStream = new ByteArrayInputStream(keyStoreBytes);
+                    } else if (!keyStoreFile.equals("NONE")) {
                         keyStoreInputStream = new FileInputStream(keyStoreFile);
                     }
                     keyStore.load(keyStoreInputStream, keyStorePass);
@@ -533,7 +575,7 @@ public class SSLConfig {
                 }
             }
 
-            if (trustStoreFile != null) {
+            if (trustStoreBytes != null || trustStoreFile != null) {
                 try {
                     KeyStore trustStore;
                     if (trustStoreProvider != null) {
@@ -547,7 +589,9 @@ public class SSLConfig {
                                         : KeyStore.getDefaultType());
                     }
                     InputStream trustStoreInputStream = null;
-                    if (!trustStoreFile.equals("NONE")) {
+                    if (trustStoreBytes != null) {
+                        trustStoreInputStream = new ByteArrayInputStream(trustStoreBytes);
+                    } else if (!trustStoreFile.equals("NONE")) {
                         trustStoreInputStream = new FileInputStream(
                                 trustStoreFile);
                     }
@@ -634,6 +678,9 @@ public class SSLConfig {
         trustStoreFile = props.getProperty(TRUST_STORE_FILE);
         keyStoreFile = props.getProperty(KEY_STORE_FILE);
 
+        trustStoreBytes = null;
+        keyStoreBytes = null;
+        
         securityProtocol = "TLS";
     }
 }
