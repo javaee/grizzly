@@ -240,12 +240,10 @@ public final class Charsets {
     }
 
     private final static class DecoderResolver implements CharsetCodecResolver {
-        @Override
         public Charset charset(final Object element) {
             return ((CharsetDecoder) element).charset();
         }
 
-        @Override
         public Object newElement(final Charset charset) {
             return charset.newDecoder();
         }
@@ -254,12 +252,10 @@ public final class Charsets {
 
     private final static class EncoderResolver implements CharsetCodecResolver {
 
-        @Override
         public Charset charset(final Object element) {
             return ((CharsetEncoder) element).charset();
         }
 
-        @Override
         public Object newElement(final Charset charset) {
             return charset.newEncoder();
         }
