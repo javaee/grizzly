@@ -130,7 +130,7 @@ public class SSLSelectorThread extends SelectorThread {
      * Create and configure {@link SSLReadFilter}
      * @return {@link SSLReadFilter}
      */
-    private ProtocolFilter createSSLReadFilter() {
+    protected ProtocolFilter createSSLReadFilter() {
         SSLReadFilter readFilter = new SSLReadFilter();
         readFilter.setSSLContext(sslContext);
         readFilter.setClientMode(clientMode);

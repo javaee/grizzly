@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,6 +90,8 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String URI_ENCODING = "UTF-8";
     String VERSION = "HTTP/1.1";
     String SCHEME_PATTERN = "http|https";
+    boolean BUFFER_RESPONSE_ENABLED = true;
+    
 
     @Attribute(defaultValue = DEFAULT_ADAPTER)
     String getAdapter();
@@ -389,4 +391,15 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      */
     void setMaxRequestParameters();
 
+    /**
+     * @since 1.9.57
+     */
+    @Attribute(defaultValue = "" + BUFFER_RESPONSE_ENABLED, dataType = Boolean.class)
+    String getBufferResponseEnabled();
+
+    /**
+     * @since 1.9.57
+     */
+    void setBufferResponseEnabled();
+    
 }

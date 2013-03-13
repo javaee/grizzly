@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -117,14 +117,22 @@ public class GrizzlyRequest {
 
 
     public GrizzlyRequest() {
+        this(GrizzlyInputBuffer.DEFAULT_BUFFER_SIZE);
+    }
+
+    public GrizzlyRequest(final int inputBufferSize) {
          // START OF SJSAS 6231069
         formats = (SimpleDateFormat[]) staticDateFormats.get();
         formats[0].setTimeZone(TimeZone.getTimeZone("GMT"));
         formats[1].setTimeZone(TimeZone.getTimeZone("GMT"));
         formats[2].setTimeZone(TimeZone.getTimeZone("GMT"));
         // END OF SJSAS 6231069
+        
+        inputBuffer = new GrizzlyInputBuffer(inputBufferSize);
+        inputStream = new GrizzlyInputStream(inputBuffer);
+        reader = new GrizzlyReader(inputBuffer);
     }
-
+    
 
     // ------------------------------------------------------------- Properties
     /**
@@ -313,20 +321,19 @@ public class GrizzlyRequest {
     /**
      * The associated input buffer.
      */
-    protected GrizzlyInputBuffer inputBuffer = new GrizzlyInputBuffer();
+    protected final GrizzlyInputBuffer inputBuffer;
 
 
     /**
      * GrizzlyInputStream.
      */
-    protected GrizzlyInputStream inputStream = 
-        new GrizzlyInputStream(inputBuffer);
+    protected GrizzlyInputStream inputStream;
 
 
     /**
      * Reader.
      */
-    protected GrizzlyReader reader = new GrizzlyReader(inputBuffer);
+    protected GrizzlyReader reader;
 
 
     /**
