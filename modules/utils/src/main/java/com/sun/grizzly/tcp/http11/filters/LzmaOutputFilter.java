@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -165,12 +165,13 @@ public class LzmaOutputFilter implements OutputFilter {
     protected class FakeOutputStream
             extends OutputStream {
 
-        protected ByteChunk outputChunk = new ByteChunk();
-        protected byte[] singleByteBuffer = new byte[4096];
+        protected final ByteChunk outputChunk = new ByteChunk();
+        protected byte[] singleByteBuffer;
         protected int offset = 0;
 
         public void write(int b)
                 throws IOException {
+            checkSingleByteBuffer();
             if (offset >= singleByteBuffer.length) {
                 flush();
             }
@@ -224,6 +225,12 @@ public class LzmaOutputFilter implements OutputFilter {
                 logger.info("LzmaOutputFilter write: " + sb.toString());
             }
         }
+
+        private void checkSingleByteBuffer() {
+            if (singleByteBuffer == null) {
+                singleByteBuffer = new byte[4096];
+            }
+         }
     }
 
     public static class ReusableByteArrayInputStream extends ByteArrayInputStream {
