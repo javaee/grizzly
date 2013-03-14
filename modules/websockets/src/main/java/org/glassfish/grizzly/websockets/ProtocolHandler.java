@@ -133,11 +133,11 @@ public abstract class ProtocolHandler {
         return toDataFrame(data, true);
     }
     
-    protected DataFrame toDataFrame(String data, boolean last) {
+    public DataFrame toDataFrame(String data, boolean last) {
         return new DataFrame(new TextFrameType(), data, last);
     }
     
-    protected DataFrame toDataFrame(byte[] data, boolean last) {
+    public DataFrame toDataFrame(byte[] data, boolean last) {
         return new DataFrame(new BinaryFrameType(), data, last);
     }
 

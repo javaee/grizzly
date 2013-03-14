@@ -102,5 +102,52 @@ public class OptimizedBroadcaster implements Broadcaster {
                 }
             }
         }
-    }    
+    }
+
+    @Override
+    public void broadcastFragment(Iterable<? extends WebSocket> recipients,
+            String text, boolean last) {
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(text, last);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException wse) {
+                }
+            }
+        }
+    }
+
+    @Override
+    public void broadcastFragment(Iterable<? extends WebSocket> recipients, byte[] binary, boolean last) {
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(binary, last);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException wse) {
+                }
+            }
+        }
+    }
 }

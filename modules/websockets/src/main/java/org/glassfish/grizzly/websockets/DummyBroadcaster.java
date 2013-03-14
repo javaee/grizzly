@@ -52,6 +52,7 @@ public class DummyBroadcaster implements Broadcaster {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void broadcast(final Iterable<? extends WebSocket> recipients,
             final String text) {
         
@@ -72,6 +73,7 @@ public class DummyBroadcaster implements Broadcaster {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void broadcast(final Iterable<? extends WebSocket> recipients,
             final byte[] binary) {
         
@@ -87,6 +89,48 @@ public class DummyBroadcaster implements Broadcaster {
                 }
             }
         }
-
     }    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            final String text, final boolean last) {
+        for (WebSocket websocket : recipients) {
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                
+                try {
+                    websocket.stream(last, text);
+                } catch (WebSocketException e) {
+                }
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            final byte[] binary, final boolean last) {
+        
+        for (WebSocket websocket : recipients) {
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                
+                try {
+                    websocket.stream(last, binary, 0, binary.length);
+                } catch (WebSocketException e) {
+                }
+            }
+        }
+    }
+    
+    
 }

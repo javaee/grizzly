@@ -104,6 +104,7 @@ public interface WebSocket {
      * Broadcasts the data to the remote end-point set.
      * </p>
      *
+     * @param recipients
      * @param data
      */
     void broadcast(final Iterable<? extends WebSocket> recipients, String data);
@@ -113,10 +114,33 @@ public interface WebSocket {
      * Broadcasts the data to the remote end-point set.
      * </p>
      *
+     * @param recipients
      * @param data
      */
     void broadcast(final Iterable<? extends WebSocket> recipients, byte[] data);
     
+    /**
+     * <p>
+     * Broadcasts the data fragment to the remote end-point set.
+     * </p>
+     *
+     * @param recipients
+     * @param data
+     */
+    void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            String data, boolean last);
+    
+    /**
+     * <p>
+     * Broadcasts the data fragment to the remote end-point set.
+     * </p>
+     *
+     * @param recipients
+     * @param data
+     */
+    void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            byte[] data, boolean last);
+
     /**
      * Sends a <code>ping</code> frame with the specified payload (if any).
      * </p>
