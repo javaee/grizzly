@@ -233,6 +233,25 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    public void broadcastFragment(Iterable<? extends WebSocket> recipients,
+            String data, boolean last) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcastFragment(recipients, data, last);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public void broadcastFragment(Iterable<? extends WebSocket> recipients,
+            byte[] data, boolean last) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcastFragment(recipients, data, last);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    
     /**
      * {@inheritDoc}
      */
@@ -274,12 +293,20 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     protected byte[] toRawData(String text) {
-        final DataFrame dataFrame = protocolHandler.toDataFrame(text);
-        return protocolHandler.frame(dataFrame);
+        return toRawData(text, true);
     }
 
     protected byte[] toRawData(byte[] binary) {
-        final DataFrame dataFrame = protocolHandler.toDataFrame(binary);
+        return toRawData(binary, true);
+    }
+
+    protected byte[] toRawData(String fragment, boolean last) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(fragment, last);
+        return protocolHandler.frame(dataFrame);
+    }
+
+    protected byte[] toRawData(byte[] binary, boolean last) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(binary, last);
         return protocolHandler.frame(dataFrame);
     }
 

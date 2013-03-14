@@ -46,10 +46,15 @@ package org.glassfish.grizzly.websockets;
  */
 public interface Broadcaster {
 
-    public void broadcast(final Iterable<? extends WebSocket> websockets,
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
             final String text);
     
-    public void broadcast(final Iterable<? extends WebSocket> websockets,
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
             final byte[] binary);
     
+    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            final String text, final boolean last);
+    
+    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+            final byte[] binary, final boolean last);
 }
