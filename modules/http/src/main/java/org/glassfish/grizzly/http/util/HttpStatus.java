@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -175,6 +175,38 @@ public class HttpStatus {
         response.setReasonPhrase(Buffers.wrap(null, reasonPhraseBytes));
     }
 
+    /**
+     * Filter non-printable ASCII characters.
+     * 
+     * @param message
+     */
+    public static DataChunk filterNonPrintableCharacters(DataChunk message) {
+
+        if (message == null || message.isNull())
+            return (null);
+
+        try {
+            message.toChars(Charsets.ASCII_CHARSET);
+        } catch (CharConversionException ignored) {
+
+        }
+        final CharChunk charChunk = message.getCharChunk();
+        final char[] content = charChunk.getChars();
+        
+        final int start = charChunk.getStart();
+        final int end = charChunk.getEnd();
+        
+
+        for (int i = start; i < end; i++) {
+            char c = content[i];
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                content[i] = ' ';
+            }
+        }
+        
+        return message;
+    }
+    
     /**
      * Filter the specified message string for characters that are sensitive
      * in HTML.  This avoids potential attacks caused by including JavaScript
