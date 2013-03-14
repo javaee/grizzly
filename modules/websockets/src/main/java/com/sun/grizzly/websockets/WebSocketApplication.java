@@ -47,6 +47,7 @@ import java.io.InterruptedIOException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -62,8 +63,7 @@ import java.util.logging.Logger;
 public abstract class WebSocketApplication extends WebSocketAdapter {
     private final static Logger LOGGER = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     
-    private final Set<WebSocket> sockets = Collections.newSetFromMap(
-            new ConcurrentHashMap<WebSocket, Boolean>());
+    private final Map<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
     
     private boolean isRunning = true;
     private final boolean isWriterThreadsEnabled;
@@ -145,15 +145,15 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @return a set of {@link WebSocket}s, registered with the application.
      */
     protected Set<WebSocket> getWebSockets() {
-        return sockets;
+        return sockets.keySet();
     }
 
     protected boolean add(WebSocket socket) {
-        return sockets.add(socket);
+        return sockets.put(socket, Boolean.TRUE) == null;
     }
 
     public boolean remove(WebSocket socket) {
-        return sockets.remove(socket);
+        return sockets.remove(socket) != null;
     }
 
     @Override
@@ -221,7 +221,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
 
         isRunning = false;
 
-        for (WebSocket webSocket : sockets) {
+        for (WebSocket webSocket : sockets.keySet()) {
             if (webSocket.isConnected()) {
                 webSocket.onClose(null);
             }

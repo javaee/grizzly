@@ -42,14 +42,14 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class TrackingWebSocket extends WebSocketClient {
-    final Set<String> sent = Collections.<String>newSetFromMap(
-            new ConcurrentHashMap<String, Boolean>());
+    final Map<String, Boolean> sent = new ConcurrentHashMap<String, Boolean>();
     
     private final CountDownLatch received;
     private String name;
@@ -67,14 +67,14 @@ public class TrackingWebSocket extends WebSocketClient {
 
     @Override
     public void send(String data) {
-        sent.add(data);
+        sent.put(data, Boolean.TRUE);
         super.send(data);
     }
 
     @Override
     public void onMessage(String frame) {
         super.onMessage(frame);
-        if(sent.remove(frame)) {
+        if (sent.remove(frame) != null) {
             received.countDown();
         }
     }

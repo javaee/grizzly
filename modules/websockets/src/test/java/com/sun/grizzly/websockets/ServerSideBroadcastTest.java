@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
@@ -66,25 +65,25 @@ public class ServerSideBroadcastTest extends BaseWebSocketTestUtilities {
     public static final int ITERATIONS = 50;
     private final Version version;
     private final Broadcaster broadcaster;
-    
+
     @Parameterized.Parameters
     public static List<Object[]> parameters() {
         final Broadcaster[] broadcasters = {new DummyBroadcaster(), new OptimizedBroadcaster()};
-        
+
         final List<Object[]> versions = BaseWebSocketTestUtilities.parameters();
         final List<Object[]> resultList = new ArrayList<Object[]>();
-        
+
         for (int i = 0; i < broadcasters.length; i++) {
             for (int j = 0; j < versions.size(); j++) {
                 final Broadcaster broadcaster = broadcasters[i];
                 final Version version = (Version) versions.get(j)[0];
-                resultList.add(new Object[] {version, broadcaster});
+                resultList.add(new Object[]{version, broadcaster});
             }
         }
-        
+
         return resultList;
     }
-    
+
     public ServerSideBroadcastTest(Version version, Broadcaster broadcaster) {
         this.version = version;
         this.broadcaster = broadcaster;
@@ -93,39 +92,39 @@ public class ServerSideBroadcastTest extends BaseWebSocketTestUtilities {
     @Test
     public void broadcast() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final int websocketsCount = 5;
-        
+
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new BroadcastServlet(broadcaster)));
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
             String[] messages = {
-                    "test message",
-                    "let's try again",
-                    "3rd time's the charm!",
-                    "ok.  just one more",
-                    "now, we're done"
+                "test message",
+                "let's try again",
+                "3rd time's the charm!",
+                "ok.  just one more",
+                "now, we're done"
             };
-            
+
             final String address = String.format("ws://localhost:%s/broadcast", PORT);
             for (int x = 0; x < websocketsCount; x++) {
                 final TrackingWebSocket socket =
                         new TrackingWebSocket(version, address, x + "",
                         messages.length * websocketsCount * ITERATIONS);
-                
+
                 socket.connect();
                 clients.add(socket);
             }
-            
+
             for (int count = 0; count < ITERATIONS; count++) {
                 for (String message : messages) {
                     for (TrackingWebSocket socket : clients) {
                         final String msgToSend =
                                 String.format("%s: count %s: %s", socket.getName(), count, message);
-                        
+
                         for (TrackingWebSocket rcpts : clients) {
-                            rcpts.sent.add(msgToSend);
+                            rcpts.sent.put(msgToSend, Boolean.TRUE);
                         }
-                        
+
                         socket.send(msgToSend);
                     }
                 }
@@ -144,48 +143,48 @@ public class ServerSideBroadcastTest extends BaseWebSocketTestUtilities {
         System.out.printf("%s: sent %s messages in %.3fs for %.3f msg/s\n", method, total, time, total / time);
     }
 
-public static class BroadcastServlet extends HttpServlet {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    public static final String RESPONSE_TEXT = "Nothing to see";
-    private WebSocketApplication app;
+    public static class BroadcastServlet extends HttpServlet {
 
-    public BroadcastServlet(final Broadcaster broadcaster) {
-        app = new WebSocketApplication() {
+        private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+        public static final String RESPONSE_TEXT = "Nothing to see";
+        private WebSocketApplication app;
 
-            @Override
-            public WebSocket createWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
-                final DefaultWebSocket ws =
-                        (DefaultWebSocket) super.createWebSocket(protocolHandler, listeners);
-                ws.setBroadcaster(broadcaster);
-                return ws;
-            }
-            
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return request.requestURI().equals("/broadcast");
-            }
+        public BroadcastServlet(final Broadcaster broadcaster) {
+            app = new WebSocketApplication() {
+                @Override
+                public WebSocket createWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+                    final DefaultWebSocket ws =
+                            (DefaultWebSocket) super.createWebSocket(protocolHandler, listeners);
+                    ws.setBroadcaster(broadcaster);
+                    return ws;
+                }
 
-            public void onMessage(WebSocket socket, String data) {
-                socket.broadcast(getWebSockets(), data);
-            }
+                @Override
+                public boolean isApplicationRequest(Request request) {
+                    return request.requestURI().equals("/broadcast");
+                }
 
-            public void onClose(WebSocket socket, DataFrame frame) {
-            }
-        };
-        WebSocketEngine.getEngine().register(app);
+                public void onMessage(WebSocket socket, String data) {
+                    socket.broadcast(getWebSockets(), data);
+                }
+
+                public void onClose(WebSocket socket, DataFrame frame) {
+                }
+            };
+            WebSocketEngine.getEngine().register(app);
+        }
+
+        @Override
+        public void destroy() {
+            WebSocketEngine.getEngine().unregister(app);
+            super.destroy();
+        }
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            resp.setContentType("text/plain; charset=iso-8859-1");
+            resp.getWriter().write(RESPONSE_TEXT);
+            resp.getWriter().flush();
+        }
     }
-
-    @Override
-    public void destroy() {
-        WebSocketEngine.getEngine().unregister(app);
-        super.destroy();
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("text/plain; charset=iso-8859-1");
-        resp.getWriter().write(RESPONSE_TEXT);
-        resp.getWriter().flush();
-    }
-}    
 }
