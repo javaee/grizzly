@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,23 +39,29 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
-import java.util.Arrays;
+import org.glassfish.grizzly.utils.Charsets;
 
 public class Utf8Utils {
-
+    private static final byte[] EMPTY_ARRAY = new byte[0];
 
     public static byte[] encode(Charset charset, String string) {
-        CharsetEncoder ce = charset.newEncoder();
+        if (string.length() == 0) {
+            return EMPTY_ARRAY;
+        }
+
+
+        CharsetEncoder ce = Charsets.getCharsetEncoder(charset);
+
         int en = scale(string.length(), ce.maxBytesPerChar());
         byte[] ba = new byte[en];
-        if (string.length() == 0)
-            return ba;
 
         ce.reset();
         ByteBuffer bb = ByteBuffer.wrap(ba);
@@ -73,6 +79,35 @@ public class Utf8Utils {
             throw new Error(x);
         }
         return safeTrim(ba, bb.position());
+    }
+
+    public static void encode(Charset charset, String string, OutputStream os)
+            throws IOException {
+        
+        if (string.length() == 0)
+            return;
+        
+        final CharsetEncoder ce = Charsets.getCharsetEncoder(charset);
+        int en = scale(string.length(), ce.maxBytesPerChar());
+        byte[] ba = new byte[en];
+
+        ce.reset();
+        ByteBuffer bb = ByteBuffer.wrap(ba);
+        CharBuffer cb = CharBuffer.wrap(string);
+        try {
+            CoderResult cr = ce.encode(cb, bb, true);
+            if (!cr.isUnderflow())
+                cr.throwException();
+            cr = ce.flush(bb);
+            if (!cr.isUnderflow())
+                cr.throwException();
+        } catch (CharacterCodingException x) {
+            // Substitution is always enabled,
+            // so this shouldn't happen
+            throw new Error(x);
+        }
+        
+        os.write(ba, 0, bb.position());
     }
 
     private static int scale(int len, float expansionFactor) {

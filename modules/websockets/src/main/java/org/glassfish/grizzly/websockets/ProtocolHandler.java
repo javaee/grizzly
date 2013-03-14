@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -125,24 +125,40 @@ public abstract class ProtocolHandler {
     }
 */
 
+    public DataFrame toDataFrame(String data) {
+        return toDataFrame(data, true);
+    }
+    
+    public DataFrame toDataFrame(byte[] data) {
+        return toDataFrame(data, true);
+    }
+    
+    protected DataFrame toDataFrame(String data, boolean last) {
+        return new DataFrame(new TextFrameType(), data, last);
+    }
+    
+    protected DataFrame toDataFrame(byte[] data, boolean last) {
+        return new DataFrame(new BinaryFrameType(), data, last);
+    }
+
     public abstract HandShake createHandShake(HttpContent requestContent);
 
     public abstract HandShake createHandShake(URI uri);
 
     public GrizzlyFuture<DataFrame> send(byte[] data) {
-        return send(new DataFrame(new BinaryFrameType(), data));
+        return send(toDataFrame(data));
     }
 
     public GrizzlyFuture<DataFrame> send(String data) {
-        return send(new DataFrame(new TextFrameType(), data));
+        return send(toDataFrame(data));
     }
 
     public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
-        return send(new DataFrame(new BinaryFrameType(), bytes, last));
+        return send(toDataFrame(bytes, last));
     }
 
     public GrizzlyFuture<DataFrame> stream(boolean last, String fragment) {
-        return send(new DataFrame(new TextFrameType(), fragment, last));
+        return send(toDataFrame(fragment, last));
     }
 
     public GrizzlyFuture<DataFrame> close(int code, String reason) {

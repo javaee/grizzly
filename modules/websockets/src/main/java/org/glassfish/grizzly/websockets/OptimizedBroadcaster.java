@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,23 +37,70 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * The default {@link Broadcaster} optimized to send the same text to a set of
+ * clients.
+ * NOTE: works with {@link DefaultWebSocket}s and inherited classes.
+ * 
+ * @author Alexey Stashok
+ */
+public class OptimizedBroadcaster implements Broadcaster {
 
-import org.junit.runners.Parameterized;
-
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
-
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        for (Version version : Version.values()) {
-            versions.add(new Object[]{version});
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final String text) {
+        
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(text);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException wse) {
+                }
+            }
         }
-        return versions;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final byte[] binary) {
+        
+        byte[] rawDataToSend = null;
+        
+        for (WebSocket websocket : recipients) {
+            final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
+            
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                if (rawDataToSend == null) {
+                    rawDataToSend = defaultWebSocket.toRawData(binary);
+                }
+                
+                try {
+                    defaultWebSocket.sendRaw(rawDataToSend);
+                } catch (WebSocketException e) {
+                }
+            }
+        }
+    }    
 }
