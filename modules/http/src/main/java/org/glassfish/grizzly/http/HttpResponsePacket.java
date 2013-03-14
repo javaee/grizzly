@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,6 +99,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
     private boolean allowCustomReasonPhrase = true;
 
     /**
+     * Do we need to encode HTML sensitive characters in custom reason phrase.
+     */
+    private boolean isHtmlEncodingCustomReasonPhrase = true;
+    
+    /**
      * Returns {@link HttpResponsePacket} builder.
      *
      * @return {@link Builder}.
@@ -181,6 +186,21 @@ public abstract class HttpResponsePacket extends HttpHeader {
         this.allowCustomReasonPhrase = allowCustomReasonPhrase;
     }
 
+    /**
+     * Returns if we need to encode HTML sensitive characters in custom reason phrase.
+     */
+    public boolean isHtmlEncodingCustomReasonPhrase() {
+        return isHtmlEncodingCustomReasonPhrase;
+    }
+
+    /**
+     * Sets if we need to encode HTML sensitive characters in custom reason phrase.
+     */
+    public void setHtmlEncodingCustomReasonPhrase(boolean isHtmlEncodingCustomReasonPhrase) {
+        this.isHtmlEncodingCustomReasonPhrase = isHtmlEncodingCustomReasonPhrase;
+    }
+
+    
     /**
      * Gets the custom status reason phrase for this response as {@link DataChunk}
      * (avoid creation of a String object}.
@@ -290,6 +310,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
         httpStatus = null;
         acknowledgment = false;
         allowCustomReasonPhrase = true;
+        isHtmlEncodingCustomReasonPhrase = true;
         reasonPhraseC.recycle();
         locale = null;
         contentLanguage = null;

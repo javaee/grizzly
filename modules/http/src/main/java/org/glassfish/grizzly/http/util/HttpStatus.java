@@ -138,7 +138,7 @@ public class HttpStatus {
         reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
         statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
         
-        this.toStringValue = status + (reasonPhrase != null ? " " + reasonPhrase : "");
+        this.toStringValue = status + " " + reasonPhrase;
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -182,6 +182,38 @@ public class HttpStatus {
     @Override
     public String toString() {
         return toStringValue;
+    }
+    
+    /**
+     * Filter non-printable ASCII characters.
+     * 
+     * @param message
+     */
+    public static DataChunk filterNonPrintableCharacters(DataChunk message) {
+
+        if (message == null || message.isNull())
+            return (null);
+
+        try {
+            message.toChars(Charsets.ASCII_CHARSET);
+        } catch (CharConversionException ignored) {
+
+        }
+        final CharChunk charChunk = message.getCharChunk();
+        final char[] content = charChunk.getChars();
+        
+        final int start = charChunk.getStart();
+        final int end = charChunk.getEnd();
+        
+
+        for (int i = start; i < end; i++) {
+            char c = content[i];
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                content[i] = ' ';
+            }
+        }
+        
+        return message;
     }
     
     /**
