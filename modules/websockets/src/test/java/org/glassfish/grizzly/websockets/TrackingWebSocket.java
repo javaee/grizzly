@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,8 @@ package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +51,9 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.GrizzlyFuture;
 
 public class TrackingWebSocket extends WebSocketClient {
-    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
+    final Set<String> sent = Collections.<String>newSetFromMap(
+            new ConcurrentHashMap<String, Boolean>());
+    
     private final CountDownLatch received;
     private String name;
 
@@ -68,14 +71,14 @@ public class TrackingWebSocket extends WebSocketClient {
 
     @Override
     public GrizzlyFuture<DataFrame> send(String data) {
-        sent.put(data, Boolean.FALSE);
+        sent.add(data);
         return super.send(data);
     }
 
     @Override
     public void onMessage(String message) {
         super.onMessage(message);
-        if(sent.remove(message) != null) {
+        if (sent.remove(message)) {
             received.countDown();
         }
     }

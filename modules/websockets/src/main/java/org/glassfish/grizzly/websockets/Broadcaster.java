@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,23 +37,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * General Broadcaster API to send the same message to a set of clients.
+ * 
+ * @author Alexey Stashok
+ */
+public interface Broadcaster {
 
-import org.junit.runners.Parameterized;
-
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
-
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        for (Version version : Version.values()) {
-            versions.add(new Object[]{version});
-        }
-        return versions;
-    }
+    public void broadcast(final Iterable<? extends WebSocket> websockets,
+            final String text);
+    
+    public void broadcast(final Iterable<? extends WebSocket> websockets,
+            final byte[] binary);
+    
 }

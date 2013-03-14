@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -247,9 +247,10 @@ public class WebSocketFilter extends BaseFilter {
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         // get the associated websocket
         final WebSocket websocket = getWebSocket(ctx.getConnection());
+        final Object msg = ctx.getMessage();
         // if there is one
-        if (websocket != null) {
-            final DataFrame frame = (DataFrame) ctx.getMessage();
+        if (websocket != null && DataFrame.isDataFrame(msg)) {
+            final DataFrame frame = (DataFrame) msg;
             final WebSocketHolder holder = WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection());
             final Buffer wrap = Buffers.wrap(ctx.getMemoryManager(), holder.handler.frame(frame));
             ctx.setMessage(wrap);

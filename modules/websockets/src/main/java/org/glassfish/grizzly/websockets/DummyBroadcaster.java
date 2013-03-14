@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,23 +37,56 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * The default {@link Broadcaster}, which iterates over set of clients and sends
+ * the same text of binary message separately to each client.
+ * So the text/binary -> websocket-frame transformation is being done for
+ * each client separately.
+ * 
+ * @author Alexey Stashok
+ */
+public class DummyBroadcaster implements Broadcaster {
 
-import org.junit.runners.Parameterized;
-
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
-
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        for (Version version : Version.values()) {
-            versions.add(new Object[]{version});
+    /**
+     * {@inheritDoc}
+     */
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final String text) {
+        
+        for (WebSocket websocket : recipients) {
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                
+                try {
+                    websocket.send(text);
+                } catch (WebSocketException e) {
+                }
+            }
         }
-        return versions;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    public void broadcast(final Iterable<? extends WebSocket> recipients,
+            final byte[] binary) {
+        
+        for (WebSocket websocket : recipients) {
+            if (!websocket.isConnected()) {
+                continue;
+            } else {
+                
+                
+                try {
+                    websocket.send(binary);
+                } catch (WebSocketException e) {
+                }
+            }
+        }
+
+    }    
 }

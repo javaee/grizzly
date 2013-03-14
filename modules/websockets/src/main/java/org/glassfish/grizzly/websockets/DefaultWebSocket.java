@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,10 +45,14 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 import org.glassfish.grizzly.websockets.frametypes.PingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
@@ -60,6 +64,8 @@ public class DefaultWebSocket implements WebSocket {
     protected final ProtocolHandler protocolHandler;
     protected final HttpRequestPacket request;
 
+    protected Broadcaster broadcaster = new DummyBroadcaster();
+    
     enum State {
         NEW, CONNECTED, CLOSING, CLOSED
     }
@@ -209,6 +215,24 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    public void broadcast(Iterable<? extends WebSocket> recipients,
+            String data) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcast(recipients, data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public void broadcast(Iterable<? extends WebSocket> recipients,
+            byte[] data) {
+        if (state.get() == State.CONNECTED) {
+            broadcaster.broadcast(recipients, data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -249,4 +273,31 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    protected byte[] toRawData(String text) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(text);
+        return protocolHandler.frame(dataFrame);
+    }
+
+    protected byte[] toRawData(byte[] binary) {
+        final DataFrame dataFrame = protocolHandler.toDataFrame(binary);
+        return protocolHandler.frame(dataFrame);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void sendRaw(byte[] rawData) {
+        final Connection connection = protocolHandler.getConnection();
+        final MemoryManager mm = connection.getTransport().getMemoryManager();
+        final Buffer buffer = Buffers.wrap(mm, rawData);
+        buffer.allowBufferDispose(false);
+        
+        connection.write(buffer);
+    }
+
+    protected Broadcaster getBroadcaster() {
+        return broadcaster;
+    }
+
+    protected void setBroadcaster(Broadcaster broadcaster) {
+        this.broadcaster = broadcaster;
+    }
 }
