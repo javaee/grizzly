@@ -140,16 +140,24 @@ public class WebSocketEngine {
     }
 
     public WebSocketApplication getApplication(Request request) {
-        // try the Mapper first...
-        MappingData data = new MappingData();
-        try {
-            mapper.map(request.serverName(), request.requestURI(), data);
-            if (data.wrapper != null) {
-                return (WebSocketApplication) data.wrapper;
-            }
-        } catch (Exception e) {
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.log(Level.SEVERE, e.toString(), e);
+        return getApplication(request, true);
+    }
+    
+    public WebSocketApplication getApplication(Request request,
+            final boolean checkPrivateMapper) {
+        
+        if (checkPrivateMapper) {
+            // try the Mapper first...
+            MappingData data = new MappingData();
+            try {
+                mapper.map(request.serverName(), request.requestURI(), data);
+                if (data.wrapper != null) {
+                    return (WebSocketApplication) data.wrapper;
+                }
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, e.toString(), e);
+                }
             }
         }
         for (WebSocketApplication application : applications) {
@@ -171,7 +179,8 @@ public class WebSocketEngine {
         final MimeHeaders mimeHeaders = request.getMimeHeaders();
         if (isUpgradable(request)) {
             try {
-                final WebSocketApplication app = getApplication(request);
+                final WebSocketApplication app = getApplication(request,
+                        mapper == null);
                 WebSocket socket = null;
                 try {
                     if (app != null) {
