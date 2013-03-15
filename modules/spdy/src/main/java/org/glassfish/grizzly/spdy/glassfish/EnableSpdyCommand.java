@@ -79,7 +79,7 @@ public class EnableSpdyCommand implements AdminCommand {
     @Param(name = "target", optional = true, defaultValue = SystemPropertyConstants.DAS_SERVER_NAME)
     String target;
 
-    @Param(name = "max-concurrent-streams", optional = true, defaultValue = "50")
+    @Param(name = "max-concurrent-streams", optional = true, defaultValue = "100")
     String maxStreams;
 
     @Param(name = "initial-window-size-bytes", optional = true, defaultValue = "65536")
