@@ -184,7 +184,7 @@ public class SettingsFrame extends SpdyFrame {
                 if ((setSettings & (1 << i)) != 0) {
                     // internal representation of settings starts at zero, but the spec
                     // defines the settings starting at one, so offset accordingly.
-                    buffer.putInt(0x80000000 | (i + 1));
+                    buffer.putInt((i + 1));
                     buffer.putInt(settingSlots[i]);
                 }
             }

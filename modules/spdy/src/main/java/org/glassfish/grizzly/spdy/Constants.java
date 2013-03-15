@@ -48,7 +48,7 @@ import org.glassfish.grizzly.utils.Charsets;
 public class Constants {
     public static final int SPDY_VERSION = 3;
     
-    public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 50;
+    public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 100;
     public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
         
     static byte[] HOST_HEADER_BYTES = ":host".getBytes(Charsets.ASCII_CHARSET);
