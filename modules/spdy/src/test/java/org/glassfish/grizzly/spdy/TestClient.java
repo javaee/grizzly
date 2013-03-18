@@ -41,16 +41,12 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.URL;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -58,12 +54,10 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 
@@ -93,7 +87,7 @@ public class TestClient {
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     true, false, false);
             
-            clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+//            clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
         } else {
             throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
         }
@@ -117,34 +111,39 @@ public class TestClient {
         try {
             transport.start();
             
-            SpdyConnectorHandler<SocketAddress> connectorHandler =
-                    new SpdyConnectorHandler<SocketAddress>(transport);
-            
-            final Future<Connection> connectFuture = connectorHandler.connect(
-//                    new InetSocketAddress("www.google.com", 443));
-                    new InetSocketAddress("localhost", 7070));
+            final Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("www.google.com", 443));
+//                    new InetSocketAddress("localhost", 7070));
             final Connection spdyConnection = connectFuture.get(10, TimeUnit.SECONDS);
             
             final SpdySession spdySession = SpdySession.get(spdyConnection);
             
 
-//            final HttpRequestPacket request = HttpRequestPacket.builder()
-//                    .method(Method.GET)
-//                    .uri("/")
-//                    .protocol(Protocol.HTTP_1_1)
-//                    .header(Header.Host, "www.google.com:443")
-//                    .build();
-//            spdyConnection.write(request);
+            // We can initiate SPDY SYN_STREAM either
+            
+            // 1)
+            final HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method(Method.GET)
+                    .uri("/")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header(Header.Host, "www.google.com:443")
+                   .build();
+            request.setExpectContent(false);
+            spdyConnection.write(request);
+            
+            // Or
+            
+            // 2)
             
             final SpdyStream spdyStream = spdySession.getStreamBuilder()
                     .method(Method.GET)
-//                    .uri("/")
-                    .uri("/download/Sherlock%20Holmes%20Omnibus.epub")
-                    .protocol(Protocol.HTTP_1_1)
+                    .uri("/")
+                   .protocol(Protocol.HTTP_1_1)
                     .header(Header.Host, "www.google.com:443")
+                    .fin(true)
                     .open();
-
-            System.out.println("SPDY_STREAM_ID=" + spdyStream.getStreamId());
+            
+            
 //            HttpContent httpContent =
 //                    HttpContent.builder(spdyStream.getSpdyRequest())
 //                    .content(Buffers.EMPTY_BUFFER)

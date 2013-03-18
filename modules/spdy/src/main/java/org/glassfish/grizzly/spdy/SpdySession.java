@@ -288,8 +288,9 @@ final class SpdySession {
 
     SpdyStream openStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot) {
+            final int priority, final int slot, final boolean fin) {
         
+        spdyRequest.setExpectContent(!fin);
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
                 priority, slot);
@@ -433,6 +434,7 @@ final class SpdySession {
         private int associatedToStreamId;
         private int priority;
         private int slot;
+        private boolean isFin;
         
         protected StreamBuilder() {
             packet = SpdyRequest.create();
@@ -516,6 +518,18 @@ final class SpdySession {
         }
         
         /**
+         * Sets the <code>fin</code> flag of a {@link SpdyStream}.
+         * 
+         * @param fin
+         * 
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder fin(final boolean fin) {
+            this.isFin = fin;
+            return this;
+        }
+        
+        /**
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
@@ -528,7 +542,7 @@ final class SpdySession {
                 final SpdyStream spdyStream = openStream(
                         (HttpRequestPacket) packet,
                         getNextLocalStreamId(),
-                        associatedToStreamId, priority, slot);
+                        associatedToStreamId, priority, slot, isFin);
                 
                 
                 connection.write(packet);
