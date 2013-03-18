@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -98,7 +98,16 @@ public class HeadersFrame extends SpdyFrame {
         return null;
     }
 
-
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("HeadersFrame");
+        sb.append("{streamId=").append(header.streamId);
+        sb.append(", fin=").append(isFlagSet(FLAG_FIN));
+        sb.append('}');
+        return sb.toString();
+    }
+    
     // ---------------------------------------------------------- Nested Classes
 
 

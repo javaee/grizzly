@@ -101,7 +101,8 @@ public class SpdyFramingFilter extends BaseFilter {
             SpdyFrame frame = SpdyFrame.wrap(message);
             ctx.setMessage(frame);
             if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
+                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                        new Object[] {ctx.getConnection(), frame});
             }
             return ctx.getInvokeAction();
         }
@@ -111,7 +112,8 @@ public class SpdyFramingFilter extends BaseFilter {
             SpdyFrame frame = SpdyFrame.wrap(message);
             ctx.setMessage(frame);
             if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
+                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                        new Object[] {ctx.getConnection(), frame});
             }
             return ctx.getInvokeAction(remainder, null);
         }
@@ -119,7 +121,8 @@ public class SpdyFramingFilter extends BaseFilter {
         final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
         SpdyFrame frame = SpdyFrame.wrap(message);
         if (logit) {
-            LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
+            LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                    new Object[] {ctx.getConnection(), frame});
         }
         frameList.add(frame);
 
@@ -135,7 +138,8 @@ public class SpdyFramingFilter extends BaseFilter {
             final Buffer remainder2 = remainder.split(position + totalLen);
             final SpdyFrame f = SpdyFrame.wrap(remainder);
             if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", f.toString());
+                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                        new Object[] {ctx.getConnection(), f});
             }
             frameList.add(f);
             remainder = remainder2;
@@ -156,8 +160,9 @@ public class SpdyFramingFilter extends BaseFilter {
         final Object message = ctx.getMessage();
         
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Tx: {0}", message);
-        }
+                LOGGER.log(LOGGER_LEVEL, "Tx: connection={0}, frame={1}",
+                        new Object[] {ctx.getConnection(), message});
+       }
         
         final MemoryManager memoryManager = ctx.getMemoryManager();
         
