@@ -108,7 +108,7 @@ import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCU
 public class SpdyHandlerFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
 
-    private static final ClientNpnNegotiator CLIENT_NPN_NEGOTIATOR =
+    private static final ClientNpnNegotiator DEFAULT_CLIENT_NPN_NEGOTIATOR =
             new ClientNpnNegotiator();
 
     private static final TransferEncoding FIXED_LENGTH_ENCODING = new FixedLengthTransferEncoding();
@@ -712,7 +712,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     spdyStream = spdySession.openStream(
                             (HttpRequestPacket) httpHeader,
                             spdySession.getNextLocalStreamId(),
-                            0, 0, 0);
+                            0, 0, 0, !httpHeader.isExpectContent());
                 }
 
                 assert spdyStream != null;
@@ -747,7 +747,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 final SSLFilter sslFilter = (SSLFilter) filterChain.get(idx);
                 NextProtoNegSupport.getInstance().configure(sslFilter);
                 NextProtoNegSupport.getInstance().setClientSideNegotiator(
-                        connection, CLIENT_NPN_NEGOTIATOR);
+                        connection, getClientNpnNegotioator());
 
                 sslFilter.handshake(connection, null);
             }
@@ -770,6 +770,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }*/
 
         return ctx.getInvokeAction();
+    }
+
+    /**
+     * Returns the client NPN negotiator to be used if this filter is used in
+     * the client-side filter chain.
+     */
+    protected ClientSideNegotiator getClientNpnNegotioator() {
+        return DEFAULT_CLIENT_NPN_NEGOTIATOR;
     }
 
     /**
