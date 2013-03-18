@@ -348,6 +348,7 @@
         </profile>
     </profiles>
     <modules>
+        <module>bom</module>
         <module>modules/</module>
         <module>samples/</module>
         <module>extras/</module>
