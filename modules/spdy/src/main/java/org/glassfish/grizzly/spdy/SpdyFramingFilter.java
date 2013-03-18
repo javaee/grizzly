@@ -58,12 +58,15 @@ import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
- *
- * @author oleksiys
+ * The {@link Filter} responsible for transforming SPDY {@link SpdyFrame}s
+ * to {@link Buffer}s and vise versa.
+ * 
+ * @author Grizzly team
  */
 public class SpdyFramingFilter extends BaseFilter {
 
     private static final Logger LOGGER = Grizzly.logger(SpdyFramingFilter.class);
+    private static final Level LOGGER_LEVEL = Level.FINE;
 
     static final int HEADER_LEN = 8;
     
@@ -92,9 +95,14 @@ public class SpdyFramingFilter extends BaseFilter {
             return ctx.getStopAction(message);
         }
         
+        final boolean logit = LOGGER.isLoggable(LOGGER_LEVEL);
+        
         if (message.remaining() == totalLen) {
             SpdyFrame frame = SpdyFrame.wrap(message);
             ctx.setMessage(frame);
+            if (logit) {
+                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
+            }
             return ctx.getInvokeAction();
         }
         
@@ -102,14 +110,16 @@ public class SpdyFramingFilter extends BaseFilter {
         if (remainder.remaining() < HEADER_LEN) {
             SpdyFrame frame = SpdyFrame.wrap(message);
             ctx.setMessage(frame);
+            if (logit) {
+                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
+            }
             return ctx.getInvokeAction(remainder, null);
         }
 
-        final boolean logit = LOGGER.isLoggable(Level.FINE);
         final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
         SpdyFrame frame = SpdyFrame.wrap(message);
         if (logit) {
-            LOGGER.log(Level.FINE, "Rx: {0}", frame.toString());
+            LOGGER.log(LOGGER_LEVEL, "Rx: {0}", frame.toString());
         }
         frameList.add(frame);
 
@@ -125,7 +135,7 @@ public class SpdyFramingFilter extends BaseFilter {
             final Buffer remainder2 = remainder.split(position + totalLen);
             final SpdyFrame f = SpdyFrame.wrap(remainder);
             if (logit) {
-                LOGGER.log(Level.FINE, "Rx: {0}", f.toString());
+                LOGGER.log(LOGGER_LEVEL, "Rx: {0}", f.toString());
             }
             frameList.add(f);
             remainder = remainder2;
@@ -145,8 +155,8 @@ public class SpdyFramingFilter extends BaseFilter {
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Object message = ctx.getMessage();
         
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: {0}", message);
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            LOGGER.log(LOGGER_LEVEL, "Tx: {0}", message);
         }
         
         final MemoryManager memoryManager = ctx.getMemoryManager();
