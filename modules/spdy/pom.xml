@@ -61,6 +61,8 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
+                <extensions>true</extensions>
                 <executions>
                     <execution>
                         <id>bundle-manifest</id>
@@ -71,6 +73,24 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            org.glassfish.api*;resolution=optional,
+                            org.glassfish.internal.*;resolution=optional,
+                            org.glassfish.config.*;resolution=optional,
+                            org.glassfish.hk2.*;resolution=optional,
+                            org.jvnet.hk2.*;resolution=optional,
+                            javax.inject.*;resolution=optional,
+                            com.sun.enterprise.config.*;resolution=optional,
+                            *,
+                        </Import-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.spdy.*;version=${project.version},
+                        </Export-Package>
+                    </instructions>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.glassfish.hk2</groupId>
