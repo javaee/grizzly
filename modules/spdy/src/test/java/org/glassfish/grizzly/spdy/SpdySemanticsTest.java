@@ -40,24 +40,34 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.spdy.frames.CompressedHeadersBuilder;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
@@ -153,6 +163,178 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         }
     }
     
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testMaxConcurrentStreamsOnServer() throws Exception {
+        final int maxConcurrentStreams = 50;
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                request.getInputStream().read();
+            }
+        }, "/test"));
+        spdyAddon.setMaxConcurrentStreams(maxConcurrentStreams);
+        
+        try {
+            server.start();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder();
+            
+            final BlockingQueue<SpdyFrame> clientInQueue =
+                    new LinkedBlockingQueue<SpdyFrame>();
+            
+            clientFilterChainBuilder.add(new BaseFilter() {
+                @Override
+                public NextAction handleRead(final FilterChainContext ctx) {
+                    final Object message = ctx.getMessage();
+                    if (message instanceof List) {
+                        final List<SpdyFrame> spdyFrames = (List<SpdyFrame>) message;
+                        clientInQueue.addAll(spdyFrames);
+                    } else {
+                        final SpdyFrame spdyFrame = (SpdyFrame) message;
+                        clientInQueue.offer(spdyFrame);
+                    }
+                    
+                    return ctx.getInvokeAction();
+                }
+            });
+            
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                for (int i = 0; i < maxConcurrentStreams + 1; i++) {
+
+                    final Buffer headers = CompressedHeadersBuilder.newInstance()
+                            .method(Method.POST)
+                            .scheme("http")
+                            .path("/test")
+                            .version(Protocol.HTTP_1_1)
+                            .host("localhost" + PORT)
+                            .contentLength(10)
+                            .build(deflater);
+
+                    connection.write(SynStreamFrame.builder()
+                            .streamId(i * 2 + 1)
+                            .compressedHeaders(headers)
+                            .build());
+                }
+                
+                while (true) {
+                    final SpdyFrame frame =
+                            clientInQueue.poll(10, TimeUnit.SECONDS);
+                    
+                    assertNotNull(frame);
+                    
+                    if (frame instanceof SettingsFrame) {
+                        // skip
+                        continue;
+                    } else if (frame instanceof RstStreamFrame) {
+                        final RstStreamFrame rst = (RstStreamFrame) frame;
+                        assertEquals(50 * 2 + 1, rst.getStreamId());
+                        assertEquals(RstStreamFrame.REFUSED_STREAM, rst.getStatusCode());
+                        break;
+                    } else {
+                        fail("Unexpected frame: " + frame);
+                    }
+                }
+                
+                
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testMaxConcurrentStreamsOnClient() throws Exception {
+        final int maxConcurrentStreams = 50;
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                request.getInputStream().read();
+            }
+        }, "/test"));
+        spdyAddon.setMaxConcurrentStreams(maxConcurrentStreams * 2);
+        
+        try {
+            server.start();
+            
+            final FilterChain clientFilterChain =
+                    createClientFilterChain(SpdyMode.PLAIN, false);
+            setMaxConcurrentStreams(clientFilterChain, maxConcurrentStreams);
+            clientTransport.setProcessor(clientFilterChain);
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                
+                boolean isExceptionThrown = false;
+                
+                for (int i = 0; i < maxConcurrentStreams + 1; i++) {
+                    final HttpRequestPacket request = HttpRequestPacket.builder()
+                            .method(Method.POST)
+                            .uri("/test")
+                            .protocol(Protocol.HTTP_1_1)
+                            .contentLength(10)
+                            .header(Header.Host, "localhost:" + PORT)
+                            .build();
+                    Future<WriteResult> sendFuture = connection.write(request);
+                    
+                    try {
+                        sendFuture.get(10, TimeUnit.SECONDS);
+                    } catch (ExecutionException ee) {
+                        final Throwable cause = ee.getCause();
+                        assertTrue(cause instanceof SpdyRstStreamException);
+                        
+                        final SpdyRstStreamException rstException =
+                                (SpdyRstStreamException) cause;
+                        assertEquals(maxConcurrentStreams, i);
+                        assertEquals(RstStreamFrame.REFUSED_STREAM,
+                                rstException.getRstReason());
+                        isExceptionThrown = true;
+                    }
+                }
+                
+                assertTrue(isExceptionThrown);
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
     private HttpServer createServer(final HttpHandlerRegistration... registrations) {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
@@ -167,4 +349,13 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         
         return builder;
     }
+    
+    private void setMaxConcurrentStreams(final FilterChain filterChain,
+            final int maxConcurrentStreams) {
+        
+        final int spdyFilterIdx = filterChain.indexOfType(SpdyHandlerFilter.class);
+        final SpdyHandlerFilter spdyHandlerFilter =
+                (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
+        spdyHandlerFilter.setMaxConcurrentStreams(maxConcurrentStreams);
+    }    
 }

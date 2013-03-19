@@ -73,6 +73,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -118,7 +119,8 @@ final class SpdySession {
     private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     
-    private volatile int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
+    private volatile int localMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
+    private int peerMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
 
     public static SpdySession get(final Connection connection) {
         return SPDY_SESSION_ATTR.get(connection);
@@ -178,19 +180,34 @@ final class SpdySession {
     }
 
     /**
-     * Returns the default maximum number of concurrent streams allowed for this session.
+     * Returns the maximum number of concurrent streams allowed for this session by our side.
      */
-    public int getMaxConcurrentStreams() {
-        return maxConcurrentStreams;
+    public int getLocalMaxConcurrentStreams() {
+        return localMaxConcurrentStreams;
     }
 
     /**
-     * Sets the default maximum number of concurrent streams allowed for this session.
+     * Sets the default maximum number of concurrent streams allowed for this session by our side.
      */
-    public void setMaxConcurrentStreams(int maxConcurrentStreams) {
-        this.maxConcurrentStreams = maxConcurrentStreams;
+    public void setLocalMaxConcurrentStreams(int localMaxConcurrentStreams) {
+        this.localMaxConcurrentStreams = localMaxConcurrentStreams;
     }
 
+    /**
+     * Returns the maximum number of concurrent streams allowed for this session by peer.
+     */
+    public int getPeerMaxConcurrentStreams() {
+        return peerMaxConcurrentStreams;
+    }
+
+    /**
+     * Sets the default maximum number of concurrent streams allowed for this session by peer.
+     */
+    void setPeerMaxConcurrentStreams(int peerMaxConcurrentStreams) {
+        this.peerMaxConcurrentStreams = peerMaxConcurrentStreams;
+    }
+
+    
     int getNextLocalStreamId() {
         lastLocalStreamId += 2;
         return lastLocalStreamId;
@@ -271,7 +288,7 @@ final class SpdySession {
 
     SpdyStream acceptStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot) {
+            final int priority, final int slot) throws SpdyRstStreamException {
         
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
@@ -280,6 +297,10 @@ final class SpdySession {
         synchronized(sessionLock) {
             if (isClosed()) {
                 return null; // if the session is closed is set - return null to ignore stream creation
+            }
+            
+            if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
+                throw new SpdyRstStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -291,7 +312,8 @@ final class SpdySession {
 
     SpdyStream openStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot, final boolean fin) {
+            final int priority, final int slot, final boolean fin)
+            throws SpdyRstStreamException {
         
         spdyRequest.setExpectContent(!fin);
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
@@ -301,6 +323,10 @@ final class SpdySession {
         synchronized(sessionLock) {
             if (isClosed()) {
                 return null; // if the session is closed is set - return null to ignore stream creation
+            }
+            
+            if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
+                throw new SpdyRstStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -543,7 +569,7 @@ final class SpdySession {
          * @return <tt>HttpRequestPacket</tt>
          */
         @SuppressWarnings("unchecked")
-        public final SpdyStream open() {
+        public final SpdyStream open() throws SpdyRstStreamException {
             newClientStreamLock.lock();
 
             try {
