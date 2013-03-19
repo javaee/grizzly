@@ -230,7 +230,20 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         if (frame.getHeader().isControl()) {
             processControlFrame(spdySession, context, frame);
         } else {
-            processDataFrame(spdySession.getStream(frame.getHeader().getStreamId()), frame);
+            final SpdyStream spdyStream = spdySession.getStream(frame.getHeader().getStreamId());
+            
+            if (spdyStream == null) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "DataFrame came for unexisting stream: connection={0}, frame={1}, stream={2}",
+                            new Object[]{context.getConnection(), frame, spdyStream});
+                }
+                
+                frame.recycle();
+                
+                return;
+            }
+        
+            processDataFrame(spdyStream, frame);
         }
 
     }
