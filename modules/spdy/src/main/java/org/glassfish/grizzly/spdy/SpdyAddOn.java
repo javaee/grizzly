@@ -165,7 +165,7 @@ public class SpdyAddOn implements AddOn {
     // ----------------------------------------------------- Private Methods
 
 
-    private static void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
+    private void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
         final int idx = removeHttpServerCodecFilter(builder);
         insertSpdyFilters(mode, builder, idx);
     }
@@ -177,16 +177,20 @@ public class SpdyAddOn implements AddOn {
         return idx;
     }
 
-    private static void insertSpdyFilters(SpdyMode mode,
+    private void insertSpdyFilters(SpdyMode mode,
             FilterChainBuilder builder, int idx) {
         
         builder.add(idx, new SpdyFramingFilter());
-        builder.add(idx + 1, new SpdyHandlerFilter(mode));
+        
+        final SpdyHandlerFilter spdyHandlerFilter = new SpdyHandlerFilter(mode);
+        spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());
+        spdyHandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
+        builder.add(idx + 1, spdyHandlerFilter);
     }
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static final class SpdyNpnConfigProbe extends TransportProbe.Adapter {
+    private final class SpdyNpnConfigProbe extends TransportProbe.Adapter {
 
 
         // ----------------------------------------- Methods from TransportProbe
@@ -209,7 +213,7 @@ public class SpdyAddOn implements AddOn {
         // ------------------------------------------------------ Nested Classes
 
 
-        private static final class ProtocolNegotiator implements ServerSideNegotiator {
+        private final class ProtocolNegotiator implements ServerSideNegotiator {
 
             private static final String HTTP11 = "http/1.1";
             private static final String SPDY3 = "spdy/3";
