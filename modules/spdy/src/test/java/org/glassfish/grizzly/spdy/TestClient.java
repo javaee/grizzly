@@ -120,6 +120,7 @@ public class TestClient {
 
             // We can initiate SPDY SYN_STREAM either
             
+// ----------------------------------------------------------------------------            
             // 1)
             final HttpRequestPacket request = HttpRequestPacket.builder()
                     .method(Method.GET)
@@ -132,15 +133,18 @@ public class TestClient {
             
             // Or
             
-            // 2)
+// ----------------------------------------------------------------------------            
+            // 2) uncomment if want to test
             
-            final SpdyStream spdyStream = spdySession.getStreamBuilder()
-                    .method(Method.GET)
-                    .uri("/")
-                   .protocol(Protocol.HTTP_1_1)
-                    .header(Header.Host, "www.google.com:443")
-                    .fin(true)
-                    .open();
+//            final SpdyStream spdyStream = spdySession.getStreamBuilder()
+//                    .method(Method.GET)
+//                    .uri("/")
+//                   .protocol(Protocol.HTTP_1_1)
+//                    .header(Header.Host, "www.google.com:443")
+//                    .fin(true)
+//                    .open();
+            
+// ----------------------------------------------------------------------------            
             
             
 //            HttpContent httpContent =
