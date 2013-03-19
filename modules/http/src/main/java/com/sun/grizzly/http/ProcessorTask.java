@@ -670,24 +670,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             requestInfo.setWorkerThreadID(Thread.currentThread().getId());
         }
 
-        // Set the remote address
-        remoteAddr = null;
-        remoteHost = null;
-        localName = null;
-        localAddr = null;
-        remotePort = -1;
-        localPort = -1;
-        connectionHeaderValueSet = false;
-
-        // Error flag
-        error = false;
-        keepAlive = true;
-
         if (request.getServerPort() == 0) {
             request.setServerPort(selectorThread.getPort());
         }
         
-        terminateFlag.set(false);
     }
 
 
@@ -2239,6 +2225,19 @@ public class ProcessorTask extends TaskBase implements Processor,
         aptCancelKey = false;
         key = null;
         isProcessingCompleted = false;
+        // Set the remote address
+        remoteAddr = null;
+        remoteHost = null;
+        localName = null;
+        localAddr = null;
+        remotePort = -1;
+        localPort = -1;
+        connectionHeaderValueSet = false;
+
+        // Error flag
+        error = false;
+        keepAlive = true;
+        terminateFlag.set(false);
     }
 
     // ----------------------------------------------------- Compression ----//
