@@ -328,6 +328,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         case SettingsFrame.SETTINGS_ROUND_TRIP_TIME:
                             break;
                         case SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS:
+                            spdySession.setPeerMaxConcurrentStreams(settingsFrame.getSetting(i));
                             break;
                         case SettingsFrame.SETTINGS_CURRENT_CWND:
                             break;
@@ -379,22 +380,35 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         final SpdyRequest spdyRequest = SpdyRequest.create();
         spdyRequest.setConnection(context.getConnection());
-        final SpdyStream spdyStream = spdySession.acceptStream(spdyRequest,
-                streamId, associatedToStreamId, priority, slot);
-        if (spdyStream == null) { // GOAWAY has been sent, so ignoring this request
-            spdyRequest.recycle();
-            frame.getHeader().getUnderlying().dispose();
-            frame.recycle();
-            return;
-        }
-        
-        final Buffer decoded;
 
+        final boolean isFinSet = synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN);
+        final SpdyStream spdyStream;
+        final Buffer decoded;
+        
         try {
+            spdyStream = spdySession.acceptStream(spdyRequest,
+                    streamId, associatedToStreamId, priority, slot);
+            if (spdyStream == null) { // GOAWAY has been sent, so ignoring this request
+                spdyRequest.recycle();
+                frame.getHeader().getUnderlying().dispose();
+                frame.recycle();
+                return;
+            }
             final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
             inflaterOutputStream.write(synStreamFrame.getCompressedHeaders());
             decoded = inflaterOutputStream.checkpoint();
+        } catch (SpdyRstStreamException srse) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SynStream error (rst stream): connection={0} streamId={1} reason={2}",
+                        new Object[]{context.getConnection(), streamId, srse.getRstReason()});
+            }
+            sendRstStream(context, streamId, srse.getRstReason(), null);
+            return;
         } catch (IOException dfe) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SynStream error (rst stream): connection="
+                        + context.getConnection() + " streamId=" + streamId, dfe);
+            }
             sendRstStream(context, streamId, RstStreamFrame.PROTOCOL_ERROR, null);
             return;
         } finally {
@@ -408,7 +422,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
         
         prepareIncomingRequest(spdyRequest);
-        if (synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN)) {
+        if (isFinSet) {
             spdyRequest.setExpectContent(false);
         }
         
@@ -791,7 +805,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         final SpdySession spdySession = new SpdySession(connection, isServer);
         spdySession.setLocalInitialWindowSize(initialWindowSize);
-        spdySession.setMaxConcurrentStreams(maxConcurrentStreams);
+        spdySession.setLocalMaxConcurrentStreams(maxConcurrentStreams);
         
         SpdySession.bind(connection, spdySession);
         
@@ -1212,7 +1226,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final FilterChainContext context) {
 
         final boolean isConcurrentStreamsUpdated =
-                spdySession.getMaxConcurrentStreams() >= 0;
+                spdySession.getLocalMaxConcurrentStreams() >= 0;
         final boolean isInitialWindowUpdated =
                 spdySession.getLocalInitialWindowSize() != DEFAULT_INITIAL_WINDOW_SIZE;
         
