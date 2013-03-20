@@ -63,6 +63,7 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -935,7 +936,14 @@ public class InputBuffer {
             // Check if HttpContent is chunked message trailer w/ headers
             checkHttpTrailer(c);
             
-            final Buffer b = c.getContent();
+            final Buffer b;
+            try {
+                b = c.getContent();
+            } catch (HttpBrokenContentException e) {
+                final Throwable cause = e.getCause();
+                throw Exceptions.makeIOException(cause != null ? cause : e);
+            }
+            
             read += b.remaining();
             updateInputContentBuffer(b);
             rr.recycle();
