@@ -80,12 +80,12 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
@@ -180,6 +180,11 @@ public class Response {
      */
     protected FilterChainContext ctx;
 
+    /**
+     * Grizzly {@link HttpContext} associated with the current Request/Response
+     * processing.
+     */
+    protected HttpContext httpContext;
 
     /**
      * The associated output buffer.
@@ -262,6 +267,7 @@ public class Response {
                 && serverFilter.getConfiguration().isSendFileEnabled());
         outputBuffer.initialize(this, ctx);
         this.ctx = ctx;
+        this.httpContext = HttpContext.get(ctx);
         this.delayQueue = delayQueue;
     }
 
@@ -1781,12 +1787,10 @@ public class Response {
 
         suspendedContext.init(completionHandler, timeoutHandler);
 
-        final Connection connection = ctx.getConnection();
-
         HttpServerProbeNotifier.notifyRequestSuspend(
-                request.httpServerFilter, connection, request);
+                request.httpServerFilter, ctx.getConnection(), request);
 
-        connection.addCloseListener(suspendedContext.closeListener);
+        httpContext.getCloseable().addCloseListener(suspendedContext.closeListener);
 
         if (timeout > 0) {
             final long timeoutMillis =
@@ -1869,9 +1873,7 @@ public class Response {
             
             suspendState = SuspendState.RESUMING;
 
-            final Connection connection = ctx.getConnection();
-
-            connection.removeCloseListener(closeListener);
+            httpContext.getCloseable().removeCloseListener(closeListener);
 
             if (completionHandler != null) {
                 completionHandler.completed(Response.this);
@@ -1882,7 +1884,7 @@ public class Response {
             suspendState = SuspendState.RESUMED;
 
             HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
-                    connection, request);
+                    ctx.getConnection(), request);
             
             return true;
         }
@@ -1905,9 +1907,7 @@ public class Response {
 
             suspendState = SuspendState.CANCELLING;
             
-            final Connection connection = ctx.getConnection();
-
-            connection.removeCloseListener(closeListener);
+            httpContext.getCloseable().removeCloseListener(closeListener);
 
             if (completionHandler != null) {
                 completionHandler.cancelled();
@@ -1917,7 +1917,7 @@ public class Response {
             reset();
 
             HttpServerProbeNotifier.notifyRequestCancel(
-                    request.httpServerFilter, connection, request);
+                    request.httpServerFilter, ctx.getConnection(), request);
             
             final InputBuffer inputBuffer = request.getInputBuffer();
             if (!inputBuffer.isFinished()) {
