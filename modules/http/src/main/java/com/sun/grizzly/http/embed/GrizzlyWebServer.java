@@ -550,6 +550,18 @@ public class GrizzlyWebServer {
         supportHttp();
         return (SelectorThread)grizzlyListener;
     }
+
+
+    /**
+     * Set a custom selector thread implementation that this GrizzlyWebServer
+     * instance should use.  This should only be used by advanced users.
+     * @param selectorThread
+     *
+     * @since 1.9.57
+     */
+    public void setSelectorThread(final SelectorThread selectorThread) {
+        grizzlyListener = selectorThread;
+    }
     
     
     /**
