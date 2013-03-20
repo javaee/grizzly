@@ -316,9 +316,7 @@ public class OutputBuffer implements OutputSink {
 
     public void endRequest()
         throws IOException {
-
-        handleAsyncErrors();
-
+        
         if (finished) {
             return;
         }
@@ -330,7 +328,10 @@ public class OutputBuffer implements OutputSink {
         }
 
         if (!closed) {
-            close();
+            try {
+                close();
+            } catch (IOException ignored) {
+            }
         }
         
         if (ctx != null) {

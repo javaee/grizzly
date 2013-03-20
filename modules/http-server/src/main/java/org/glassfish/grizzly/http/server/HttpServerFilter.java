@@ -177,7 +177,7 @@ public class HttpServerFilter extends BaseFilter
                 } catch (Exception t) {
                     LOGGER.log(Level.WARNING, "Exception during HttpHandler invokation", t);
                     
-                    handlerRequest.getRequest().getProcessingState().setError(true);
+                    request.getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
                         final ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
