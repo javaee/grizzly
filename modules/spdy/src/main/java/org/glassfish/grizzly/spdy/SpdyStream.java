@@ -288,7 +288,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             }
         }
     }
-        
+
     @Override
     public void addCloseListener(CloseListener closeListener) {
         CloseType closeType = closeTypeFlag.get();
@@ -318,7 +318,17 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public boolean removeCloseListener(CloseListener closeListener) {
         return closeListeners.remove(closeListener);
     }
-        
+    
+    void terminate(final Termination termination) {
+        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
+            
+            inputBuffer.terminate(termination);
+            outputSink.terminate(termination);
+            
+            notifyCloseListeners();
+        }
+    }
+    
     void onProcessingComplete() {
         isProcessingComplete = true;
         terminateInput();
@@ -447,6 +457,28 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 closeListener.onClosed(this, closeType);
             } catch (IOException ignored) {
             }
+        }
+    }
+    
+    protected enum TerminationType {
+        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
+    }
+    
+    protected static class Termination {
+        private final TerminationType type;
+        private final String description;
+
+        public Termination(final TerminationType type, final String description) {
+            this.type = type;
+            this.description = description;
+        }
+
+        public TerminationType getType() {
+            return type;
+        }
+
+        public String getDescription() {
+            return description;
         }
     }    
 }

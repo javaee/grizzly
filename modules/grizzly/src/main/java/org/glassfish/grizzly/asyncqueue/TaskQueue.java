@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,7 +52,7 @@ import org.glassfish.grizzly.WriteHandler;
  *
  * @author Alexey Stashok
  */
-public final class TaskQueue<E> {
+public final class TaskQueue<E extends AsyncQueueRecord> {
     private volatile boolean isClosed;
     
     /**
@@ -62,9 +62,6 @@ public final class TaskQueue<E> {
     
     private final AtomicReference<E> currentElement;
     private final AtomicInteger spaceInBytes = new AtomicInteger();
-    
-    // refused/(pushed back) bytes counter
-    private final AtomicInteger refusedBytes = new AtomicInteger();
     
     private final MutableMaxQueueSize maxQueueSizeHolder;
     
@@ -83,7 +80,7 @@ public final class TaskQueue<E> {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createTaskQueue(
+    public static <E extends AsyncQueueRecord> TaskQueue<E> createTaskQueue(
             final MutableMaxQueueSize maxQueueSizeHolder) {
         return new TaskQueue<E>(maxQueueSizeHolder);
     }
@@ -301,8 +298,8 @@ public final class TaskQueue<E> {
                 error = new IOException("Connection closed");
             }
             
-            AsyncWriteQueueRecord record;
-            while ((record = (AsyncWriteQueueRecord) obtainCurrentElementAndReserve()) != null) {
+            AsyncQueueRecord record;
+            while ((record = poll()) != null) {
                 record.notifyFailure(error);
             }
         }
