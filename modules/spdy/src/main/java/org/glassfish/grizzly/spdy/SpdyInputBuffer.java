@@ -312,13 +312,7 @@ final class SpdyInputBuffer {
      * consumer to poll Termination input element.
      */
     void terminate() {
-        final Termination terminationFlagLocal =
-                new Termination(TerminationType.FORCED, "Terminated");
-        
-        if (close(terminationFlagLocal)) {
-            // Don't wait for Termination input to be polled - assign it right here
-            this.terminationFlag = terminationFlagLocal;
-        }
+        terminate(new Termination(TerminationType.FORCED, "Terminated"));
     }
     
     /**

@@ -67,7 +67,6 @@ import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -79,7 +78,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
@@ -861,8 +859,6 @@ public class OutputBuffer {
         
         // This point might be reached if OutputBuffer is in non-blocking mode
         assert !IS_BLOCKING;
-        
-        final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
         
         if (asyncWriteHandler == null) {
             asyncWriteHandler = new InternalWriteHandler();
