@@ -56,6 +56,8 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.spdy.SpdyStream.Termination;
+import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -107,7 +109,7 @@ final class SpdyInputBuffer {
         // If input stream has been terminated - send error message upstream
         if (isTerminated()) {
             spdySession.sendMessageUpstream(spdyStream, 
-                    buildBrokenHttpContent(new EOFException(terminationFlag.description)));
+                    buildBrokenHttpContent(new EOFException(terminationFlag.getDescription())));
             
             return;
         }
@@ -310,12 +312,26 @@ final class SpdyInputBuffer {
      * consumer to poll Termination input element.
      */
     void terminate() {
-        if (close(terminationFlag)) {
+        final Termination terminationFlagLocal =
+                new Termination(TerminationType.FORCED, "Terminated");
+        
+        if (close(terminationFlagLocal)) {
             // Don't wait for Termination input to be polled - assign it right here
-            terminationFlag = new Termination(TerminationType.FORCED, "Terminated");
+            this.terminationFlag = terminationFlagLocal;
         }
     }
     
+    /**
+     * Same as {@link #close()}, but sets the terminate flag w/o waiting for
+     * consumer to poll Termination input element.
+     */
+    void terminate(final Termination terminationFlag) {
+        if (close(terminationFlag)) {
+            // Don't wait for Termination input to be polled - assign it right here
+            this.terminationFlag = terminationFlag;
+        }
+    }
+
     /**
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
@@ -441,7 +457,7 @@ final class SpdyInputBuffer {
         } else {
             // create broken HttpContent
             httpContent = buildBrokenHttpContent(
-                    new EOFException(terminationFlag.description));
+                    new EOFException(terminationFlag.getDescription()));
         }
         
         return httpContent;
@@ -472,20 +488,6 @@ final class SpdyInputBuffer {
         
         private Buffer toBuffer() {
             return !isService ? (Buffer) content : Buffers.EMPTY_BUFFER;
-        }
-    }
-    
-    private enum TerminationType {
-        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
-    }
-    
-    private static class Termination {
-        private final TerminationType type;
-        private final String description;
-
-        public Termination(final TerminationType type, final String description) {
-            this.type = type;
-            this.description = description;
         }
     }
 }

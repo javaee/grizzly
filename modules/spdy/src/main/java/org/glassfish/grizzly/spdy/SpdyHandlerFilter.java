@@ -96,6 +96,8 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
 
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.spdy.SpdyStream.Termination;
+import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
@@ -373,7 +375,17 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                   final FilterChainContext context,
                                   final SpdyFrame frame) {
 
-//        @TODO: implement RST_STREAM
+        final RstStreamFrame rstFrame = (RstStreamFrame) frame;
+        final int streamId = rstFrame.getStreamId();
+        final SpdyStream spdyStream = spdySession.getStream(streamId);
+        if (spdyStream == null) {
+            // If the stream is not found - just ignore the rst
+            frame.recycle();
+            return;
+        }
+        
+        spdyStream.terminate(
+                new Termination(TerminationType.RST, "Reset by peer"));
     }
     
     private void processSynStream(final SpdySession spdySession,

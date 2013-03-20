@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -59,10 +61,12 @@ import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.spdy.frames.CompressedHeadersBuilder;
@@ -70,6 +74,7 @@ import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -102,9 +107,13 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 @Override
                 public NextAction handleRead(final FilterChainContext ctx)
                         throws Exception {
-                    final SpdyFrame spdyFrame = ctx.getMessage();
-                    clientInQueue.offer(spdyFrame);
-                    
+                    final Object msg = ctx.getMessage();
+                    if (msg instanceof List) {
+                        clientInQueue.addAll((List<SpdyFrame>) msg);
+                    } else {
+                        clientInQueue.offer((SpdyFrame) msg);
+                    }
+
                     return ctx.getInvokeAction();
                 }
             });
@@ -335,6 +344,142 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         }
     }
     
+    /**
+     * Check rst frame, when it comes during server read and write
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRstFrame() throws Exception {
+        final FutureImpl<Boolean> writeHandlerFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> readHandlerFuture = Futures.<Boolean>createSafeFuture();
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final byte[] outputBuffer = new byte[1024];
+                int counter = 0;
+                
+                try {
+                    while (true) {
+                        Arrays.fill(outputBuffer, (byte) counter);
+                        response.getOutputStream().write(outputBuffer);
+                        counter = (++counter) % 0x7F;
+                    }
+                } catch (Exception e) {
+                    writeHandlerFuture.failure(e);
+                } finally {
+                    writeHandlerFuture.result(Boolean.TRUE);
+                }
+            }
+        }, "/write"),
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                try {
+                    request.getInputStream().read();
+                } catch (Exception e) {
+                    readHandlerFuture.failure(e);
+                } finally {
+                    readHandlerFuture.result(Boolean.TRUE);
+                }
+            }
+        }, "/read"));
+        
+        final NetworkListener listener = server.getListener("grizzly");
+        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getTransport().setBlockingWriteTimeout(-1, TimeUnit.MILLISECONDS);
+        
+        try {
+            server.start();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder();
+            
+            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final int streamId1 = 1;
+                final int streamId2 = 3;
+                
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                final Buffer headers1 = CompressedHeadersBuilder.newInstance()
+                        .method(Method.GET)
+                        .scheme("http")
+                        .path("/write")
+                        .version(Protocol.HTTP_1_1)
+                        .host("localhost" + PORT)
+                        .build(deflater);
+                
+                connection.write(SynStreamFrame.builder()
+                        .streamId(streamId1)
+                        .compressedHeaders(headers1)
+                        .last(true)
+                        .build());
+                
+                final Buffer headers2 = CompressedHeadersBuilder.newInstance()
+                        .method(Method.POST)
+                        .scheme("http")
+                        .path("/read")
+                        .version(Protocol.HTTP_1_1)
+                        .host("localhost" + PORT)
+                        .contentLength(10)
+                        .build(deflater);
+                
+                connection.write(SynStreamFrame.builder()
+                        .streamId(streamId2)
+                        .compressedHeaders(headers2)
+                        .build());
+
+                // Wait before sending rst
+                Thread.sleep(2000);
+                
+                // sending rsts
+                connection.write(
+                        RstStreamFrame.builder()
+                        .statusCode(RstStreamFrame.CANCEL)
+                        .streamId(streamId1)
+                        .build());
+                
+                connection.write(
+                        RstStreamFrame.builder()
+                        .statusCode(RstStreamFrame.INTERNAL_ERROR)
+                        .streamId(streamId2)
+                        .build());
+                
+                try {
+                    writeHandlerFuture.get(10, TimeUnit.SECONDS);
+                    fail("The IOException had to be thrown");
+                } catch (ExecutionException e) {
+                    assertTrue(e.getCause() instanceof IOException);
+                }
+                
+                try {
+                    readHandlerFuture.get(10, TimeUnit.SECONDS);
+                    fail("The IOException had to be thrown");
+                } catch (ExecutionException e) {
+                    assertTrue(e.getCause() instanceof IOException);
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
     private HttpServer createServer(final HttpHandlerRegistration... registrations) {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
@@ -357,5 +502,5 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         final SpdyHandlerFilter spdyHandlerFilter =
                 (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
         spdyHandlerFilter.setMaxConcurrentStreams(maxConcurrentStreams);
-    }    
+    }
 }

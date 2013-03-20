@@ -48,6 +48,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueRecord;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http.HttpContent;
@@ -56,6 +57,8 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.spdy.SpdyStream.Termination;
+import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
@@ -87,8 +90,8 @@ final class SpdyOutputSink {
 
     // true, if last output frame has been queued
     private volatile boolean isLastFrameQueued;
-    // true, if last output frame has been sent or forcibly terminated
-    private boolean isTerminated;
+    // not null if last output frame has been sent or forcibly terminated
+    private Termination terminationFlag;
     
     // associated spdy session
     private final SpdySession spdySession;
@@ -134,7 +137,7 @@ final class SpdyOutputSink {
             }
             
             AggregatingCompletionHandler completionHandler =
-                    outputQueueRecord.completionHandler;
+                    outputQueueRecord.aggrCompletionHandler;
             AggregatingLifeCycleHandler lifeCycleHandler =
                     outputQueueRecord.lifeCycleHandler;
             boolean isLast = outputQueueRecord.isLast;
@@ -236,8 +239,8 @@ final class SpdyOutputSink {
             throws IOException {
         
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
-        if (isTerminated) {
-            throw new IOException("The output stream has been terminated");
+        if (isTerminated()) {
+            throw new IOException(terminationFlag.getDescription());
         }
         
         final HttpHeader httpHeader = httpPacket.getHttpHeader();
@@ -433,7 +436,7 @@ final class SpdyOutputSink {
                 // if we can send the output record now - do that
                 
                 final AggregatingCompletionHandler aggrCompletionHandler =
-                        outputQueueRecord.completionHandler;
+                        outputQueueRecord.aggrCompletionHandler;
                 final AggregatingLifeCycleHandler aggrLifeCycleHandler =
                         outputQueueRecord.lifeCycleHandler;
                 
@@ -584,7 +587,7 @@ final class SpdyOutputSink {
     }
     
     synchronized void close() {
-        if (!isLastFrameQueued && !isTerminated) {
+        if (!isLastFrameQueued && !isTerminated()) {
             isLastFrameQueued = true;
             
             if (outputQueue.isEmpty()) {
@@ -602,20 +605,26 @@ final class SpdyOutputSink {
         }
     }
 
-    synchronized void terminate() {
-        if (!isTerminated) {
-            isTerminated = true;
+    void terminate() {
+        terminate(new Termination(TerminationType.FIN,
+                    "The output stream has been terminated"));
+    }
+    
+    synchronized void terminate(final Termination terminationFlag) {
+        if (!isTerminated()) {
+            this.terminationFlag = terminationFlag;
+            outputQueue.onClose();
             // NOTIFY STREAM
             spdyStream.onOutputClosed();
         }
     }
     
     boolean isTerminated() {
-        return isTerminated;
+        return terminationFlag != null;
     }
     
     private void writeEmptyFin() {
-        if (!isTerminated) {
+        if (!isTerminated()) {
             // SEND LAST
             DataFrame dataFrame =
                     DataFrame.builder().streamId(spdyStream.getStreamId()).
@@ -631,9 +640,9 @@ final class SpdyOutputSink {
         return unconfirmedBytesNow < (windowSizeLimit * 3 / 4);
     }
 
-    private static class OutputQueueRecord {
+    private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult>{
         private final Buffer buffer;
-        private final AggregatingCompletionHandler completionHandler;
+        private final AggregatingCompletionHandler aggrCompletionHandler;
         private final AggregatingLifeCycleHandler lifeCycleHandler;
         
         private final boolean isLast;
@@ -642,22 +651,28 @@ final class SpdyOutputSink {
                 final AggregatingCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean isLast) {
+            super(null, null, null, null);
+            
             this.buffer = buffer;
-            this.completionHandler = completionHandler;
+            this.aggrCompletionHandler = completionHandler;
             this.lifeCycleHandler = lifeCycleHandler;
             this.isLast = isLast;
         }
         
         private void incCompletionCounter() {
-            if (completionHandler != null) {
-                completionHandler.counter++;
+            if (aggrCompletionHandler != null) {
+                aggrCompletionHandler.counter++;
             }
         }
         
         private void decCompletionCounter() {
-            if (completionHandler != null) {
-                completionHandler.counter--;
+            if (aggrCompletionHandler != null) {
+                aggrCompletionHandler.counter--;
             }
+        }
+
+        @Override
+        public void recycle() {
         }
     }    
 
