@@ -353,9 +353,7 @@ public class OutputBuffer {
 
     public void endRequest()
         throws IOException {
-
-        handleAsyncErrors();
-
+        
         if (finished) {
             return;
         }
@@ -367,7 +365,10 @@ public class OutputBuffer {
         }
 
         if (!closed) {
-            close();
+            try {
+                close();
+            } catch (IOException ignored) {
+            }
         }
 
         if (ctx != null) {
