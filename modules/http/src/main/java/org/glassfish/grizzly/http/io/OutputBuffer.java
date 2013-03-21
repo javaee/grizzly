@@ -1066,8 +1066,12 @@ public class OutputBuffer implements OutputSink {
         // flush the buffer - need to take care of encoding at this point
         final CharsetEncoder enc = getEncoder();
 
-
         checkCurrentBuffer();
+        
+        if (!currentBuffer.hasRemaining()) {
+            finishCurrentBuffer();
+            checkCurrentBuffer();
+        }
         
         final CoderResult res = !currentBuffer.isComposite()
                 ? convertToSimpleBuffer(charBuf, enc)
