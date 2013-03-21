@@ -46,7 +46,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
 
-public class SynReplyFrame extends SpdyFrame {
+public class SynReplyFrame extends HeadersProviderFrame {
 
     private static final ThreadCache.CachedTypeIndex<SynReplyFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(SynReplyFrame.class, 8);
@@ -55,8 +55,6 @@ public class SynReplyFrame extends SpdyFrame {
     public static final byte FLAG_FIN = 0x01;
 
     private int streamId;
-    private Buffer compressedHeaders;
-    private boolean dispose;
 
 
     // ------------------------------------------------------------ Constructors
@@ -90,16 +88,6 @@ public class SynReplyFrame extends SpdyFrame {
         return streamId;
     }
 
-    public Buffer getCompressedHeaders() {
-        if (compressedHeaders == null) {
-            compressedHeaders = (header.buffer.isComposite())
-                    ? header.buffer.slice()
-                    : header.buffer;
-            dispose = header.buffer == compressedHeaders;
-        }
-        return compressedHeaders;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -117,10 +105,6 @@ public class SynReplyFrame extends SpdyFrame {
     @Override
     public void recycle() {
         streamId = 0;
-        if (dispose) {
-            compressedHeaders.dispose();
-        }
-        compressedHeaders = null;
         super.recycle();
     }
 
@@ -158,7 +142,7 @@ public class SynReplyFrame extends SpdyFrame {
     // ---------------------------------------------------------- Nested Classes
 
 
-    public static class SynReplyFrameBuilder extends SpdyFrameBuilder<SynReplyFrameBuilder> {
+    public static class SynReplyFrameBuilder extends HeadersProviderFrameBuilder<SynReplyFrameBuilder> {
 
         private SynReplyFrame synReplyFrame;
 
@@ -177,16 +161,6 @@ public class SynReplyFrame extends SpdyFrame {
 
         public SynReplyFrameBuilder streamId(final int streamId) {
             synReplyFrame.streamId = streamId;
-            return this;
-        }
-
-        /**
-         * Sets compressed headers buffer.
-         * 
-         * @see CompressedHeadersBuilder
-         */
-        public SynReplyFrameBuilder compressedHeaders(final Buffer compressedHeaders) {
-            synReplyFrame.compressedHeaders = compressedHeaders;
             return this;
         }
 

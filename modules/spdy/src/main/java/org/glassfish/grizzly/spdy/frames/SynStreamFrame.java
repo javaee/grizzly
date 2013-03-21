@@ -46,7 +46,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
 
-public class SynStreamFrame extends SpdyFrame {
+public class SynStreamFrame extends HeadersProviderFrame {
 
     private static final ThreadCache.CachedTypeIndex<SynStreamFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(SynStreamFrame.class, 8);
@@ -69,8 +69,6 @@ public class SynStreamFrame extends SpdyFrame {
     protected int associatedToStreamId;
     protected int priority;
     protected int slot;
-    protected Buffer compressedHeaders;
-    private boolean dispose;
 
 
     // ------------------------------------------------------------ Constructors
@@ -116,15 +114,6 @@ public class SynStreamFrame extends SpdyFrame {
         return slot;
     }
 
-    public Buffer getCompressedHeaders() {
-        if (compressedHeaders == null) {
-            compressedHeaders = (header.buffer.isComposite())
-                                            ? header.buffer.slice()
-                                            : header.buffer;
-            dispose = header.buffer == compressedHeaders;
-        }
-        return compressedHeaders;
-    }
 
     @Override
     public String toString() {
@@ -150,10 +139,6 @@ public class SynStreamFrame extends SpdyFrame {
         associatedToStreamId = 0;
         priority = 0;
         slot = 0;
-        if (dispose) {
-            compressedHeaders.dispose();
-        }
-        compressedHeaders = null;
         super.recycle();
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -200,7 +185,7 @@ public class SynStreamFrame extends SpdyFrame {
     // ---------------------------------------------------------- Nested Classes
 
 
-    public static class SynStreamFrameBuilder extends SpdyFrameBuilder<SynStreamFrameBuilder> {
+    public static class SynStreamFrameBuilder extends HeadersProviderFrameBuilder<SynStreamFrameBuilder> {
 
         private SynStreamFrame synStreamFrame;
 
@@ -234,16 +219,6 @@ public class SynStreamFrame extends SpdyFrame {
 
         public SynStreamFrameBuilder slot(final int slot) {
             synStreamFrame.slot = slot;
-            return this;
-        }
-
-        /**
-         * Sets compressed headers buffer.
-         * 
-         * @see CompressedHeadersBuilder
-         */
-        public SynStreamFrameBuilder compressedHeaders(final Buffer compressedHeaders) {
-            synStreamFrame.compressedHeaders = compressedHeaders;
             return this;
         }
 
