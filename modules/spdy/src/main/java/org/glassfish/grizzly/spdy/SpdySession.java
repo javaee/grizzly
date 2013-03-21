@@ -590,7 +590,7 @@ final class SpdySession {
                 if (!isClosed()) {
                     closeFlag = type;
                     for (SpdyStream stream : streamsMap.values()) {
-                        stream.close(null, false);
+                        stream.closedRemotely();
                     }
                 }
             }

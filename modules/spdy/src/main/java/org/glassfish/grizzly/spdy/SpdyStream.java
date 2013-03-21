@@ -71,6 +71,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.utils.Futures;
 
+import static org.glassfish.grizzly.spdy.Constants.*;
 /**
  *
  * @author oleksiys
@@ -268,8 +269,14 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         if (closeTypeFlag.compareAndSet(null,
                 isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
             
-            closeInput();
-            closeOutput();
+            final Termination termination = isClosedLocally ?
+                    LOCAL_CLOSE_TERMINATION : 
+                    PEER_CLOSE_TERMINATION;
+            
+            // Terminate the input, dicard already bufferred data
+            inputBuffer.terminate(termination);
+            // Terminate the output, discard all the pending data in the output buffer
+            outputSink.terminate(termination);
             
             notifyCloseListeners();
 
@@ -279,6 +286,54 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         }
     }
 
+    /**
+     * Notifies the SpdyStream that it's been closed remotely.
+     */
+    void closedRemotely() {
+        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
+            // Schedule (add to the stream's input queue) the Termination,
+            // which will be invoked once read by the user code.
+            // This way we simulate Java Socket behavior
+            inputBuffer.close(
+                    new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
+                @Override
+                public void doTask() {
+                    close(null, false);
+                }
+            });
+        }
+    }
+    
+    /**
+     * Notify the SpdyStream that peer sent RST_FRAME.
+     * 
+     * @param termination the reason
+     */
+    void resetRemotely() {
+        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
+            // initiat graceful shutdown for input, so user is able to read
+            // the bufferred data
+            inputBuffer.close(RESET_TERMINATION);
+            
+            // forcibly terminate the output, so no more data will be sent
+            outputSink.terminate(RESET_TERMINATION);
+        }
+    }
+    
+    void onProcessingComplete() {
+        isProcessingComplete = true;
+        if (closeTypeFlag.compareAndSet(null, CloseType.LOCALLY)) {
+            
+            final Termination termination = 
+                    LOCAL_CLOSE_TERMINATION;
+            
+            inputBuffer.terminate(termination);
+            outputSink.close();
+            
+            notifyCloseListeners();
+        }
+    }
+    
     @Override
     public void addCloseListener(CloseListener closeListener) {
         CloseType closeType = closeTypeFlag.get();
@@ -307,46 +362,6 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     @Override
     public boolean removeCloseListener(CloseListener closeListener) {
         return closeListeners.remove(closeListener);
-    }
-    
-    void terminate(final Termination termination) {
-        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
-            
-            inputBuffer.terminate(termination);
-            outputSink.terminate(termination);
-            
-            notifyCloseListeners();
-        }
-    }
-    
-    void onProcessingComplete() {
-        isProcessingComplete = true;
-        terminateInput();
-        closeOutput();
-    }
-    
-    void closeInput() {
-        inputBuffer.close();
-    }
-    
-    void terminateInput() {
-        inputBuffer.terminate();
-    }
-
-    boolean isInputTerminated() {
-        return inputBuffer.isTerminated();
-    }
-    
-    void closeOutput() {
-        outputSink.close();
-    }
-    
-    void terminateOutput() {
-        outputSink.terminate();
-    }
-
-    boolean isOutputTerminated() {
-        return outputSink.isTerminated();
     }
 
     void onInputClosed() {
@@ -469,6 +484,9 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
 
         public String getDescription() {
             return description;
+        }
+        
+        public void doTask() {
         }
     }    
 }

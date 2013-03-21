@@ -58,13 +58,13 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.spdy.SpdyStream.Termination;
-import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
 import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 
+import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
  * Class represents an output sink associated with specific {@link SpdyStream}. 
@@ -296,7 +296,7 @@ final class SpdyOutputSink {
         if (httpContent != null) {
             AggregatingCompletionHandler aggrCompletionHandler = null;
             AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
-        
+
             isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
             final int dataSize = data.remaining();
@@ -540,7 +540,7 @@ final class SpdyOutputSink {
         writeDownStream0(frame, completionHandler, lifeCycleHandler);
         
         if (isLast) {
-            terminate();
+            terminate(OUT_FIN_TERMINATION);
         }
     }
     
@@ -564,7 +564,7 @@ final class SpdyOutputSink {
         writeDownStream0(frames, completionHandler, lifeCycleHandler);
         
         if (isLast) {
-            terminate();
+            terminate(OUT_FIN_TERMINATION);
         }
     }
 
@@ -586,8 +586,12 @@ final class SpdyOutputSink {
         return tmpOutputList;
     }
     
+    /**
+     * Closes the output sink by adding last DataFrame with the FIN flag to a queue.
+     * If the output sink is already closed - method does nothing.
+     */
     synchronized void close() {
-        if (!isLastFrameQueued && !isTerminated()) {
+        if (!isClosed()) {
             isLastFrameQueued = true;
             
             if (outputQueue.isEmpty()) {
@@ -605,11 +609,10 @@ final class SpdyOutputSink {
         }
     }
 
-    void terminate() {
-        terminate(new Termination(TerminationType.FIN,
-                    "The output stream has been terminated"));
-    }
-    
+    /**
+     * Unlike {@link #close()} this method forces the output sink termination
+     * by setting termination flag and canceling all the pending writes.
+     */
     synchronized void terminate(final Termination terminationFlag) {
         if (!isTerminated()) {
             this.terminationFlag = terminationFlag;
@@ -619,7 +622,11 @@ final class SpdyOutputSink {
         }
     }
     
-    boolean isTerminated() {
+    boolean isClosed() {
+        return isLastFrameQueued || isTerminated();
+    }
+    
+    private boolean isTerminated() {
         return terminationFlag != null;
     }
     
@@ -631,7 +638,7 @@ final class SpdyOutputSink {
                             data(Buffers.EMPTY_BUFFER).last(true).build();
             writeDownStream0(dataFrame, null);
 
-            terminate();
+            terminate(OUT_FIN_TERMINATION);
         }
     }
 
