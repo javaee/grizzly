@@ -77,6 +77,7 @@ public class HeadersFrame extends HeadersProviderFrame {
     static HeadersFrame create(final SpdyHeader header) {
         HeadersFrame frame = create();
         frame.initialize(header);
+        frame.streamId = header.buffer.getInt() & 0x7FFFFFFF;
         return frame;
     }
 
