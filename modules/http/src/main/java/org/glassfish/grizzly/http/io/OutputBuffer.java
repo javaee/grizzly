@@ -1115,8 +1115,13 @@ public class OutputBuffer {
         // flush the buffer - need to take care of encoding at this point
         final CharsetEncoder enc = getEncoder();
 
-
         checkCurrentBuffer();
+        
+        if (!currentBuffer.hasRemaining()) {
+            finishCurrentBuffer();
+            checkCurrentBuffer();
+        }
+        
         ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
         int bufferPos = currentBuffer.position();
         int byteBufferPos = currentByteBuffer.position();
