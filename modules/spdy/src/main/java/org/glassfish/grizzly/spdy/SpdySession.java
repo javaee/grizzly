@@ -48,7 +48,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.Deflater;
 
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
@@ -598,7 +597,7 @@ final class SpdySession {
                 if (!isClosed()) {
                     closeFlag = type;
                     for (SpdyStream stream : streamsMap.values()) {
-                        stream.close(null, false);
+                        stream.closedRemotely();
                     }
                 }
             }

@@ -96,8 +96,6 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
 
 import javax.net.ssl.SSLEngine;
-import org.glassfish.grizzly.spdy.SpdyStream.Termination;
-import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
@@ -113,8 +111,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     private static final ClientNpnNegotiator DEFAULT_CLIENT_NPN_NEGOTIATOR =
             new ClientNpnNegotiator();
 
-    private static final TransferEncoding FIXED_LENGTH_ENCODING = new FixedLengthTransferEncoding();
-
+    private static final TransferEncoding FIXED_LENGTH_ENCODING =
+            new FixedLengthTransferEncoding();
+    
     private final SpdyMode spdyMode;
     
     private final ExecutorService threadPool;
@@ -307,12 +306,12 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         if (stream != null) {
             stream.onPeerWindowUpdate(delta);
         } else {
-            if (LOGGER.isLoggable(Level.WARNING)) {
+            if (LOGGER.isLoggable(Level.FINE)) {
                 final StringBuilder sb = new StringBuilder(64);
                 sb.append("\nStream id=")
                         .append(streamId)
                         .append(" was not found. Ignoring the message");
-                LOGGER.warning(sb.toString());
+                LOGGER.fine(sb.toString());
             }
         }
     }
@@ -384,8 +383,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             return;
         }
         
-        spdyStream.terminate(
-                new Termination(TerminationType.RST, "Reset by peer"));
+        // Notify the stream that it has been reset remotely
+        spdyStream.resetRemotely();
     }
     
     private void processSynStream(final SpdySession spdySession,
@@ -453,7 +452,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         final boolean isExpectContent = spdyRequest.isExpectContent();
         if (!isExpectContent) {
-            spdyStream.closeInput();
+            spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
         }
         
         sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
@@ -684,7 +683,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final boolean isFin = synReplyFrame.isFlagSet(SynReplyFrame.FLAG_FIN);
         if (isFin) {
             spdyResponse.setExpectContent(false);
-            spdyStream.closeInput();
+            spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
         }
         
         final Buffer decoded;

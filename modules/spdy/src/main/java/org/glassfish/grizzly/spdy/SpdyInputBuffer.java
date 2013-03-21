@@ -45,6 +45,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -57,8 +58,9 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.spdy.SpdyStream.Termination;
-import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
 import org.glassfish.grizzly.utils.DataStructures;
+
+import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
  *
@@ -69,9 +71,6 @@ final class SpdyInputBuffer {
     
     private static final long NULL_CONTENT_LENGTH = Long.MIN_VALUE;
     
-    private static final Termination FIN_TERMINATION =
-            new Termination(TerminationType.FIN, "Frame with the FIN flag");
-    
     private final AtomicInteger inputQueueSize = new AtomicInteger();
     private final BlockingQueue<InputElement> inputQueue =
             DataStructures.getLTQInstance(InputElement.class);
@@ -79,7 +78,8 @@ final class SpdyInputBuffer {
     // true, if the input is closed
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
     // the termination flag. When is not null contains the reason why input was terminated
-    private volatile Termination terminationFlag;
+    private final AtomicReference<Termination> closeFlag =
+            new AtomicReference<Termination>();
     
     private final SpdyStream spdyStream;
     private final SpdySession spdySession;
@@ -107,9 +107,10 @@ final class SpdyInputBuffer {
         }
         
         // If input stream has been terminated - send error message upstream
-        if (isTerminated()) {
+        if (isClosed()) {
             spdySession.sendMessageUpstream(spdyStream, 
-                    buildBrokenHttpContent(new EOFException(terminationFlag.getDescription())));
+                    buildBrokenHttpContent(
+                        new EOFException(closeFlag.get().getDescription())));
             
             return;
         }
@@ -236,7 +237,7 @@ final class SpdyInputBuffer {
      * @throws IOException
      */
     private Buffer poll0() throws IOException {
-        if (isTerminated()) {
+        if (isClosed()) {
             // if input is terminated - return empty buffer
             return Buffers.EMPTY_BUFFER;
         }
@@ -305,40 +306,23 @@ final class SpdyInputBuffer {
         sendWindowUpdate(buffer);
 
         return buffer;
-    }
-    
-    /**
-     * Same as {@link #close()}, but sets the terminate flag w/o waiting for
-     * consumer to poll Termination input element.
-     */
-    void terminate() {
-        terminate(new Termination(TerminationType.FORCED, "Terminated"));
-    }
-    
-    /**
-     * Same as {@link #close()}, but sets the terminate flag w/o waiting for
-     * consumer to poll Termination input element.
-     */
-    void terminate(final Termination terminationFlag) {
-        if (close(terminationFlag)) {
-            // Don't wait for Termination input to be polled - assign it right here
-            this.terminationFlag = terminationFlag;
-        }
-    }
+    }    
 
     /**
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
     void close() {
         close(spdyStream.closeTypeFlag.get() == CloseType.REMOTELY ?
-                new Termination(TerminationType.PEER_CLOSE, "Closed by peer") :
-                new Termination(TerminationType.LOCAL_CLOSE, "Closed locally"));
+                PEER_CLOSE_TERMINATION :
+                LOCAL_CLOSE_TERMINATION);
     }
     
     /**
+     * Graceful input buffer close.
+     * 
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
-    private boolean close(final Termination termination) {
+    boolean close(final Termination termination) {
         if (isInputClosed.compareAndSet(false, true)) {
             offer0(new InputElement(termination, true, true));
             return true;
@@ -348,10 +332,27 @@ final class SpdyInputBuffer {
     }
 
     /**
+     * Forcibly closes the input buffer.
+     * 
+     * All the bufferred data will be discarded.
+     */
+    void terminate(final Termination termination) {
+        final boolean isSet = closeFlag.compareAndSet(null, termination);
+        
+        if (isInputClosed.compareAndSet(false, true)) {
+            offer0(new InputElement(termination, true, true));
+        }
+        
+        if (isSet) {
+            spdyStream.onInputClosed();
+        }
+    }
+    
+    /**
      * Returns <tt>true</tt> if the <tt>InputBuffer</tt> has been closed.
      */
-    boolean isTerminated() {
-        return terminationFlag != null;
+    boolean isClosed() {
+        return closeFlag.get() != null;
     }
     
     /**
@@ -361,16 +362,24 @@ final class SpdyInputBuffer {
     private void checkEOF(final InputElement inputElement) {
         // first of all it has to be the last element
         if (inputElement.isLast) {
-            // create appropriate terminationFlag info
-            terminationFlag = !inputElement.isService
-                    ? FIN_TERMINATION
-                    : (Termination) inputElement.content;
             
-            // mark the input buffer as closed
-            isInputClosed.set(true);
+            final Termination termination = !inputElement.isService
+                                      ? IN_FIN_TERMINATION
+                                      : (Termination) inputElement.content;
+            
+            if (closeFlag.compareAndSet(null, termination)) {
+                // create appropriate terminationFlag info
+                closeFlag.set(termination);
 
-            // NOTIFY SpdyStream
-            spdyStream.onInputClosed();
+                // mark the input buffer as closed
+                isInputClosed.set(true);
+
+                // Let termination run some logic if needed.
+                termination.doTask();
+
+                // NOTIFY SpdyStream
+                spdyStream.onInputClosed();
+            }
         }
     }
 
@@ -434,8 +443,8 @@ final class SpdyInputBuffer {
      * return {@link HttpBrokenContent}.
      */
     private HttpContent buildHttpContent(final Buffer payload) {
-        final Termination localTermination = terminationFlag;
-        final boolean isFin = localTermination == FIN_TERMINATION;
+        final Termination localTermination = closeFlag.get();
+        final boolean isFin = localTermination == IN_FIN_TERMINATION;
         
         final HttpContent httpContent;
         
@@ -451,7 +460,7 @@ final class SpdyInputBuffer {
         } else {
             // create broken HttpContent
             httpContent = buildBrokenHttpContent(
-                    new EOFException(terminationFlag.getDescription()));
+                    new EOFException(localTermination.getDescription()));
         }
         
         return httpContent;
