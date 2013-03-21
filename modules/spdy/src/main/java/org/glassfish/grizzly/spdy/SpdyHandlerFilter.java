@@ -84,6 +84,7 @@ import org.glassfish.grizzly.spdy.frames.CredentialFrame;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
 import org.glassfish.grizzly.spdy.frames.HeadersFrame;
+import org.glassfish.grizzly.spdy.frames.HeadersProviderFrame;
 import org.glassfish.grizzly.spdy.frames.PingFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
@@ -259,7 +260,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 break;
             }
             case SettingsFrame.TYPE: {
-                processSettings(spdySession, context, frame);
+                processSettings(spdySession, frame);
                 break;
             }
             case SynReplyFrame.TYPE: {
@@ -267,23 +268,23 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 break;
             }
             case PingFrame.TYPE: {
-                processPing(spdySession, context, frame);
+                processPing(spdySession, frame);
                 break;
             }
             case RstStreamFrame.TYPE: {
-                processRstStream(spdySession, context, frame);
+                processRstStream(spdySession, frame);
                 break;
             }
             case GoAwayFrame.TYPE: {
-                processGoAwayFrame(spdySession, context, frame);
+                processGoAwayFrame(spdySession, frame);
                 break;
             }
             case WindowUpdateFrame.TYPE: {
-                processWindowUpdateFrame(spdySession, context, frame);
+                processWindowUpdateFrame(spdySession, frame);
                 break;
             }
             case HeadersFrame.TYPE:
-            case CredentialFrame.TYPE:
+            case CredentialFrame.TYPE: // Will remain unimplemented for the time being.
             default: {
                 LOGGER.log(Level.WARNING, "Unknown or unhandled control-frame [version={0} type={1} flags={2} length={3}]",
                         new Object[]{frame.getHeader().getVersion(),
@@ -295,7 +296,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processWindowUpdateFrame(final SpdySession spdySession,
-                                          final FilterChainContext context,
                                           final SpdyFrame frame) {
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
         final int streamId = updateFrame.getStreamId();
@@ -317,15 +317,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processGoAwayFrame(final SpdySession spdySession,
-                                      final FilterChainContext context,
-                                      final SpdyFrame frame) {
+                                    final SpdyFrame frame) {
 
         GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
         spdySession.setGoAway(goAwayFrame.getLastGoodStreamId());
     }
     
     private void processSettings(final SpdySession spdySession,
-                                      final FilterChainContext context,
                                       final SpdyFrame frame) {
 
         SettingsFrame settingsFrame = (SettingsFrame) frame;
@@ -361,7 +359,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processPing(final SpdySession spdySession,
-                             final FilterChainContext context,
                              final SpdyFrame frame) {
         PingFrame pingFrame = (PingFrame) frame;
 
@@ -371,7 +368,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processRstStream(final SpdySession spdySession,
-                                  final FilterChainContext context,
                                   final SpdyFrame frame) {
 
         final RstStreamFrame rstFrame = (RstStreamFrame) frame;
@@ -407,8 +403,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         final boolean isFinSet = synStreamFrame.isFlagSet(SynStreamFrame.FLAG_FIN);
         final SpdyStream spdyStream;
-        final Buffer decoded;
-        
+
         try {
             spdyStream = spdySession.acceptStream(spdyRequest,
                     streamId, associatedToStreamId, priority, slot);
@@ -418,9 +413,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 frame.recycle();
                 return;
             }
-            final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
-            inflaterOutputStream.write(synStreamFrame.getCompressedHeaders());
-            decoded = inflaterOutputStream.checkpoint();
+            decodeHeaders(spdyRequest, spdySession, synStreamFrame);
         } catch (SpdyRstStreamException srse) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "SynStream error (rst stream): connection={0} streamId={1} reason={2}",
@@ -439,12 +432,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.getHeader().getUnderlying().dispose();
         }
 
-        if (decoded.hasArray()) {
-            processSynStreamHeadersArray(spdyRequest, decoded);
-        } else {
-            processSynStreamHeadersBuffer(spdyRequest, decoded);
-        }
-        
         prepareIncomingRequest(spdyRequest);
         if (isFinSet) {
             spdyRequest.setExpectContent(false);
@@ -456,6 +443,28 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
         
         sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
+    }
+
+    private void decodeHeaders(final HttpHeader httpHeader,
+                               final SpdySession spdySession,
+                               final HeadersProviderFrame headersProviderFrame)
+    throws IOException {
+        final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
+        inflaterOutputStream.write(headersProviderFrame.getCompressedHeaders());
+        Buffer decoded = inflaterOutputStream.checkpoint();
+        if (httpHeader.isRequest()) {
+            if (decoded.hasArray()) {
+                processSynStreamHeadersArray((SpdyRequest) httpHeader, decoded);
+            } else {
+                processSynStreamHeadersBuffer((SpdyRequest) httpHeader, decoded);
+            }
+        } else {
+            if (decoded.hasArray()) {
+                processSynReplyHeadersArray((SpdyResponse) httpHeader, decoded);
+            } else {
+                processSynReplyHeadersBuffer((SpdyResponse) httpHeader, decoded);
+            }
+        }
     }
 
     private void processSynStreamHeadersArray(SpdyRequest spdyRequest, Buffer decoded) {
@@ -686,12 +695,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
         }
         
-        final Buffer decoded;
-
         try {
-            final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
-            inflaterOutputStream.write(synReplyFrame.getCompressedHeaders());
-            decoded = inflaterOutputStream.checkpoint();
+            decodeHeaders(spdyResponse, spdySession, synReplyFrame);
         } catch (IOException dfe) {
             sendRstStream(context, streamId, RstStreamFrame.PROTOCOL_ERROR, null);
             return;
@@ -699,12 +704,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.getHeader().getUnderlying().dispose();
         }
 
-        if (decoded.hasArray()) {
-            processSynReplyHeadersArray(spdyResponse, decoded);
-        } else {
-            processSynReplyHeadersBuffer(spdyResponse, decoded);
-        }
-        
         bind(spdyRequest, spdyResponse);
         
         sendUpstream(spdySession, spdyStream, spdyResponse, !isFin);
@@ -723,7 +722,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 HttpPacket.isHttp(message)) {
             
             // Get HttpPacket
-            final HttpPacket httpPacket = (HttpPacket) ctx.getMessage();
+            final HttpPacket httpPacket = ctx.getMessage();
             final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
             if (!httpHeader.isCommitted()) {

@@ -41,9 +41,12 @@ package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
-public class HeadersFrame extends SpdyFrame {
+import static org.glassfish.grizzly.spdy.Constants.SPDY_VERSION;
+
+public class HeadersFrame extends HeadersProviderFrame {
 
     private static final ThreadCache.CachedTypeIndex<HeadersFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(HeadersFrame.class, 8);
@@ -51,11 +54,14 @@ public class HeadersFrame extends SpdyFrame {
     public static final int TYPE = 8;
     public static final byte FLAG_FIN = 0x01;
 
+    private int streamId;
+
 
     // ------------------------------------------------------------ Constructors
 
 
     private HeadersFrame() { }
+
 
     // ---------------------------------------------------------- Public Methods
 
@@ -95,7 +101,16 @@ public class HeadersFrame extends SpdyFrame {
 
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
-        return null;
+        final Buffer buffer = memoryManager.allocate(12);
+        buffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | WINDOW_UPDATE_FRAME
+        buffer.putInt((flags << 24) | compressedHeaders.remaining() + 4); // FLAGS | LENGTH
+        buffer.putInt(streamId & 0x7FFFFFFF); // X | STREAM_ID
+        buffer.trim();
+        CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager, buffer);
+        cb.append(compressedHeaders);
+        cb.allowBufferDispose(true);
+        cb.allowInternalBuffersDispose(true);
+        return cb;
     }
 
     @Override
@@ -103,6 +118,7 @@ public class HeadersFrame extends SpdyFrame {
         final StringBuilder sb = new StringBuilder();
         sb.append("HeadersFrame");
         sb.append("{streamId=").append(header.streamId);
+        sb.append(", compressedHeaders=").append(compressedHeaders);
         sb.append(", fin=").append(isFlagSet(FLAG_FIN));
         sb.append('}');
         return sb.toString();
@@ -111,7 +127,7 @@ public class HeadersFrame extends SpdyFrame {
     // ---------------------------------------------------------- Nested Classes
 
 
-    public static class HeadersFrameBuilder extends SpdyFrameBuilder<HeadersFrameBuilder> {
+    public static class HeadersFrameBuilder extends HeadersProviderFrameBuilder<HeadersFrameBuilder> {
 
         private HeadersFrame headersFrame;
 
