@@ -78,6 +78,7 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
@@ -87,6 +88,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpUpgradeHandler;
 import javax.servlet.http.Part;
+import javax.servlet.http.WebConnection;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
@@ -1540,8 +1542,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
         } else if (isUpgrade()) {
             if (httpUpgradeHandler != null) {
-                WebConnectionImpl wc =
-                        new WebConnectionImpl(
+                final WebConnection wc = WebConnectionFactory.create(
                         this,
                         getInputStream(),
                         servletResponse.getOutputStream());
@@ -1825,5 +1826,16 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 //        }           
 //    }
 
-
+    /**
+     * The static factory is required to avoid NoClassDefFoundError when
+     * running w/ Servlet 3.0 API and JDK6
+     */
+    static class WebConnectionFactory {
+        static WebConnection create(
+                final HttpServletRequestImpl req,
+                final ServletInputStream inputStream,
+                final ServletOutputStream outputStream) {
+            return new WebConnectionImpl(req, inputStream, outputStream);
+        }
+    }
 }
