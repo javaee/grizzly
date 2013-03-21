@@ -172,15 +172,15 @@ final class SpdyOutputSink {
                     (dataChunkToSend.hasRemaining() || isLast)) {
                 final int dataChunkToSendSize = dataChunkToSend.remaining();
                 
-                // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSendSize);
-                outputQueue.releaseSpace(dataChunkToSendSize);
-
                 DataFrame dataFrame = DataFrame.builder().data(dataChunkToSend).
                         last(isLast).streamId(spdyStream.getStreamId()).build();
 
                 // send a spdydata frame
                 writeDownStream(dataFrame, completionHandler, isLast);
+                
+                // update unconfirmed bytes counter
+                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                outputQueue.releaseSpace(dataChunkToSendSize);
                 
                 // pass peer-window-size as max, even though these values are independent.
                 // later we may want to decouple outputQueue's max-size and peer-window-size
@@ -296,13 +296,18 @@ final class SpdyOutputSink {
         
         // if there is a payload to send now
         if (httpContent != null) {
-            AggregatingCompletionHandler aggrCompletionHandler = null;
-            
             isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
-            boolean isDataCloned = false;
-            
             final int dataSize = data.remaining();
+            
+            if (isLast && dataSize == 0) {
+                close();
+                return;
+            }
+            
+            AggregatingCompletionHandler aggrCompletionHandler = null;
+            
+            boolean isDataCloned = false;
             
             // Check if output queue is not empty - add new element
             if (outputQueue.reserveSpace(dataSize) > dataSize) {
