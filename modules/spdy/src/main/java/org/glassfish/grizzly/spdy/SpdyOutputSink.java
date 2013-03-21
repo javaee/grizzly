@@ -169,10 +169,6 @@ final class SpdyOutputSink {
                     (dataChunkToSend.hasRemaining() || isLast)) {
                 final int dataChunkToSendSize = dataChunkToSend.remaining();
                 
-                // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSendSize);
-                outputQueue.releaseSpace(dataChunkToSendSize);
-
                 DataFrame dataFrame = DataFrame.builder().data(dataChunkToSend).
                         last(isLast).streamId(spdyStream.getStreamId()).build();
 
@@ -180,6 +176,10 @@ final class SpdyOutputSink {
                 writeDownStream(dataFrame, completionHandler,
                         lifeCycleHandler, isLast);
                 
+                
+                // update unconfirmed bytes counter
+                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                outputQueue.releaseSpace(dataChunkToSendSize);
                 
                 // pass peer-window-size as max, even though these values are independent.
                 // later we may want to decouple outputQueue's max-size and peer-window-size
@@ -294,13 +294,18 @@ final class SpdyOutputSink {
         
         // if there is a payload to send now
         if (httpContent != null) {
-            AggregatingCompletionHandler aggrCompletionHandler = null;
-            AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
-
             isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
             final int dataSize = data.remaining();
             
+            if (isLast && dataSize == 0) {
+                close();
+                return;
+            }
+            
+            AggregatingCompletionHandler aggrCompletionHandler = null;
+            AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
+
             // Check if output queue is not empty - add new element
             if (outputQueue.reserveSpace(dataSize) > dataSize) {
                 // if the queue is not empty - the headers should have been sent
