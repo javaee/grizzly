@@ -47,6 +47,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
@@ -63,10 +64,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.HttpServerAbstractTest;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * Basic Servlet 3.1 non-blocking output tests.
@@ -80,6 +83,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
         System.out.println("testNonBlockingOutputByteByByte");
         try {
             final int MAX_TIME_MILLIS = 10 * 1000;
+            final FutureImpl<Boolean> blockFuture =
+                    Futures.<Boolean>createSafeFuture();
             
             newHttpServer(PORT);
             
@@ -112,6 +117,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
                             return;
                         }
                     }
+                    
+                    blockFuture.result(Boolean.TRUE);
                     System.out.println("--> prevCanWriite = " + prevCanWrite
                             + ", count = " + count);
                 }
@@ -146,9 +153,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
                     }
                     System.out.println();
                     if (first) {
-                        int sleepInSec = 5;
-                        System.out.println("Sleeping " + sleepInSec + " sec... Giving servlet some time to overload output buffer");
-                        Thread.sleep(sleepInSec * 1000);
+                        System.out.println("Waiting for server to run into async output mode...");
+                        blockFuture.get(60, TimeUnit.SECONDS);
                         first = false;
                     }
                 }
@@ -170,6 +176,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
         System.out.println("testNonBlockingOutput");
         try {
             final int MAX_TIME_MILLIS = 10 * 1000;
+            final FutureImpl<Boolean> blockFuture =
+                    Futures.<Boolean>createSafeFuture();
             
             newHttpServer(PORT);
             
@@ -202,7 +210,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
                             return;
                         }
                     }
-                    //output.flush();
+                    
+                    blockFuture.result(Boolean.TRUE);
                     System.out.println("--> prevCanWriite = " + prevCanWrite
                             + ", count = " + count);
                 }
@@ -244,9 +253,8 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
                     }
                     System.out.println();
                     if (first) {
-                        int sleepInSec = 5;
-                        System.out.println("Sleeping " + sleepInSec + " sec... Giving servlet some time to overload output buffer");
-                        Thread.sleep(sleepInSec * 1000);
+                        System.out.println("Waiting for server to run into async output mode...");
+                        blockFuture.get(60, TimeUnit.SECONDS);
                         first = false;
                     }
                 }
