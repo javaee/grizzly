@@ -405,7 +405,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             final String alias, final String originalAlias) {
         
         final MappingData mappingData = request.obtainMappingData();
-        mappingData.contextPath.setString("/");
+        mappingData.contextPath.setString("");
         mappingData.wrapperPath.setString(alias);
         
         if (alias.length() != originalAlias.length()) {
