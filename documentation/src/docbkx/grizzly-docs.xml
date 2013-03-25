@@ -75,6 +75,8 @@
 
   <xi:include href="content/ajp.xml" xpointer="element(/1)" />
 
+  <xi:include href="content/spdy.xml" xpointer="element(/1)" />
+
   <xi:include href="content/jaxws.xml" xpointer="element(/1)" />
 
   <xi:include href="content/monitoring.xml" xpointer="element(/1)" />

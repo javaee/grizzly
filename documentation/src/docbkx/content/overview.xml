@@ -90,14 +90,14 @@
     <para>Grizzly source are located in the Java.Net git <link
     xlink:href="http://java.net/projects/grizzly/sources/git/show">repository</link>.</para>
 
-    <para>Grizzly 2.x trunk could be checked out using following
-    command:<programlisting>git clone git://java.net/grizzly~git
-</programlisting></para>
+    <para>Grizzly 2.3 trunk could be checked out using following
+      command:<programlisting>git clone git://java.net/grizzly~git
+git checkout 2.3.x</programlisting></para>
 
     <para>Latest stable Grizzly @project.version@ release could be checked out using following
-    command:<programlisting>git clone git://java.net/grizzly~git
+      command:<programlisting>git clone git://java.net/grizzly~git
 cd grizzly~git
-git checkout 2_1_2</programlisting></para>
+git checkout 2_3</programlisting></para>
   </section>
 
   <section xml:id="overview-help">
