@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter version="5.0" xml:id="ajp" xmlns="http://docbook.org/ns/docbook"
+<chapter version="5.0" xml:id="spdy" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -49,7 +49,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>SPDY</title>
 
-  <section xml:id="ajp-overview">
+  <section xml:id="spdy-overview">
     <title>Overview</title>
 
     <para>Starting with 2.3, Grizzly offers support for SPDY/3.  The goal of SPDY is to reduce web
@@ -83,7 +83,7 @@
       </itemizedlist></para>
   </section>
 
-  <section xml:id="ajp-workings">
+  <section xml:id="spdy-workings">
     <title>How it works</title>
 
     <para>The SPDY protocol implementation is mainly represented by two Filters: SpdyFramingFilter,
@@ -111,7 +111,7 @@ listener.registerAddOn(spdyAddon);
 httpServer.addListener(listener);</programlisting>
   </section>
 
-  <section xml:id="ajp-config">
+  <section xml:id="spdy-config">
     <title>SPDY Configuration (Grizzly standalone)</title>
     <para>Here's the high-level overview of getting SPDY working with a standalone Grizzly HTTP application.<itemizedlist>
         <listitem>
@@ -147,7 +147,7 @@ httpServer.addListener(listener);</programlisting>
       </tgroup>
     </table>
   </section>
-  <section>
+  <section xml:id="spdy-config-gf">
     <title>SPDY Configuration (GlassFish 4)</title>
     <para>There's a little more involved when configuring GlassFish 4 for SPDY support.<itemizedlist>
         <listitem>

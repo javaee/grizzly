@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter version="5.0" xml:id="websockets" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -92,8 +92,8 @@
 
   </section>
 
-  <section>
-    <title xml:id="ws-api">The Grizzly WebSocket API</title>
+  <section xml:id="ws-api">
+    <title>The Grizzly WebSocket API</title>
 
     <para>Understanding how to use the WebSocket API is very simple as there
     are only a few core entities that developers need to be familiar with. We'll
