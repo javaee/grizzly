@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,4 +85,21 @@ public class CompressionEncodingFilterTest {
         assertFalse(filter.applyEncoding(response));
     }
 
+    @Test
+    public void testMinSizeSetting() throws Exception {
+
+        final CompressionEncodingFilter filter =
+                new CompressionEncodingFilter(CompressionLevel.ON,
+                                              1024,
+                                              new String[0],
+                                              new String[0],
+                                              new String[] {"gzip"});
+        HttpRequestPacket request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "compress;q=0.5, gzip;q=1.0").build();
+        HttpResponsePacket response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).contentLength(1023).build();
+        assertFalse(filter.applyEncoding(response));
+        
+        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "compress;q=0.5, gzip;q=1.0").build();
+        response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).contentLength(1024).build();
+        assertTrue(filter.applyEncoding(response));
+    }
 }
