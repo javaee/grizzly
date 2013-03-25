@@ -80,11 +80,11 @@
       <listitem>
         <para><emphasis role="bold">Selector runners count</emphasis></para>
 
-        <para>The Grizzly runtime will automatically set the SelectorRunner
-        count value equal to <link
-        xlink:href="http://download.oracle.com/javase/6/docs/api/java/lang/Runtime.html#availableProcessors()">Runtime.getRuntime().availableProcessors()</link>.
-        Depending on usecase, developers may change this value to better suit
-        their needs.</para>
+        <para>The Grizzly runtime will automatically set the SelectorRunner count value equal to
+            <link
+            xlink:href="http://download.oracle.com/javase/6/docs/api/java/lang/Runtime.html#availableProcessors()"
+            >Runtime.getRuntime().availableProcessors()</link>. Depending on the usecase, developers
+          may change this value to better suit their needs.</para>
 
         <para>Scott Oaks, from the Glassfish performance team, <link
         xlink:href="http://weblogs.java.net/blog/2007/12/03/glassfish-tuning-primer">suggests</link>

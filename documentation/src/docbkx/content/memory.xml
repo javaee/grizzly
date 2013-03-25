@@ -84,10 +84,11 @@
     <para>The <emphasis>MemoryManager</emphasis> is the main interface for
     allocating/deallocating <emphasis>Buffer</emphasis> instances:</para>
 
-    <programlisting language="java">public interface MemoryManager&lt;E extends Buffer&gt;
-        extends JmxMonitoringAware&lt;MemoryProbe&gt; {
+    <programlisting language="java">public interface MemoryManager&lt;E extends Buffer>
+        extends JmxMonitoringAware&lt;MemoryProbe> {
+
     /**
-     * Allocates a {@link Buffer} of the required size.
+     * Allocated {@link Buffer} of the required size.
      *
      * @param size {@link Buffer} size to be allocated.
      * @return allocated {@link Buffer}.
@@ -95,7 +96,7 @@
     public E allocate(int size);
 
     /**
-     * Allocates {@link Buffer} at least of the provided size.
+     * Allocated {@link Buffer} at least of the provided size.
      * This could be useful for usecases like Socket.read(...), where
      * we're not sure how many bytes are available, but want to read as
      * much as possible.
@@ -104,7 +105,7 @@
      * @return allocated {@link Buffer}.
      */
     public E allocateAtLeast(int size);
-    
+
     /**
      * Reallocate {@link Buffer} to a required size.
      * Implementation may choose the way, how reallocation could be done, either
@@ -122,75 +123,60 @@
      * Release {@link Buffer}.
      * Implementation may ignore releasing and let JVM Garbage collector to take
      * care about the {@link Buffer}, or return {@link Buffer} to pool, in case
-     * of more complex &lt;tt&gt;MemoryManager&lt;/tt&gt; implementation.
+     * of more complex &lt;tt>MemoryManager&lt;/tt> implementation.
      *
      * @param buffer {@link Buffer} to be released.
      */
-    public void release(E buffer);</programlisting>
+    public void release(E buffer);
+    
+    /**
+     * Return &lt;tt>true&lt;/tt> if next {@link #allocate(int)} or {@link #allocateAtLeast(int)} call,
+     * made in the current thread for the given memory size, going to return a {@link Buffer} based
+     * on direct {@link java.nio.ByteBuffer}, or &lt;tt>false&lt;/tt> otherwise.
+     * 
+     * @param size
+     * @return 
+     */
+    public boolean willAllocateDirect(int size);
+}</programlisting>
 
-    <para>There is typically a single <emphasis>MemoryManager</emphasis>
-    servicing all transports defined within the Grizzly runtime. This
-    <emphasis>MemoryManager</emphasis> can be obtained by calling:</para>
+    <para>There is typically a single <emphasis>MemoryManager</emphasis> servicing all transports
+      defined within the Grizzly runtime. This <emphasis>MemoryManager</emphasis> can be obtained by
+      referencing the static member of the MemoryManager interface:</para>
 
-    <programlisting language="java">TransportFactory.getInstance().getDefaultMemoryManager();</programlisting>
+    <programlisting language="java">MemoryManager.DEFAULT_MEMORY_MANAGER</programlisting>
 
-    <para>Conversely, custom <emphasis>MemoryManager</emphasis>
-    implementations may be made available to the application by
-    calling:</para>
+    <para>Conversely, custom <emphasis>MemoryManager</emphasis> implementations may be made as the
+      default MemoryManager by defining the system property <emphasis role="italic"
+        >org.glassfish.grizzly.DEFAULT_MEMORY_MANAGER</emphasis> that references the fully qualified
+      class name of the MemoryManager implementation to use.  Note that this implementation must
+      have a public no-arg constructor in order for the runtime to properly set the new
+      default.</para>
 
-    <programlisting language="java">TransportFactory.getInstance().setDefaultMemoryManager(MemoryManager defaultMemoryManager);</programlisting>
-
-    <para>The <emphasis>MemoryManager</emphasis> instance exposed by the
-    <emphasis>TransportFactory</emphasis> can be obtained without calling the
-    <emphasis>TransportFactory</emphasis> directly as it will be available on
-    the <emphasis>NIOTransport</emphasis> being used by the
-    application.</para>
-
-    <para>Grizzly @project.version@ includes two <emphasis>MemoryManager</emphasis>
-    implementations: <emphasis>HeapMemoryManager</emphasis> and
-    <emphasis>ByteBufferManager</emphasis>. By default, the Grizzly runtime
-    will use the <emphasis>HeapMemoryManager</emphasis>, however if a Grizzly
-    application requires Direct ByteBuffer access, then the
-    <emphasis>ByteBufferManager</emphasis> can be used.</para>
+    <para>Grizzly @project.version@ includes two <emphasis>MemoryManager</emphasis> implementations:
+        <emphasis>HeapMemoryManager</emphasis> and <emphasis>ByteBufferManager</emphasis>. By
+      default, the Grizzly runtime will use the <emphasis>HeapMemoryManager</emphasis>, however if a
+      Grizzly application requires direct ByteBuffer access, then the
+        <emphasis>ByteBufferManager</emphasis> can be used.</para>
 
     <section xml:id="mem-bytebufmm">
       <title>ByteBufferManager</title>
 
-      <para>The <emphasis>ByteBufferManager</emphasis> implementation vends
-      Buffers that wrap JDK ByteBuffer instances.</para>
-
-      <figure>
-        <title>ByteBufferManager UML Diagram</title>
-
-        <mediaobject>
-          <imageobject>
-            <imagedata fileref="../images/coreframework/bbmmanager-uml.png"
-                       scale="99"></imagedata>
-          </imageobject>
-        </mediaobject>
-      </figure>
+      <para>The <emphasis>ByteBufferManager</emphasis> implementation vends Grizzly Buffer instances
+        that wrap JDK ByteBuffer instances.  This is the MemoryManager to use if the Grizzly
+        application requires direct ByteBuffer usage.   </para>
+      <para>It should be noted that this MemoryManager, during our benchmarking, showed to have a
+        little more overhead when using typical heap buffers.  As such, if direct memory isn't
+        needed, we recommend that the default HeapMemoryManager be used.</para>
     </section>
 
     <section xml:id="mem-heapmm">
       <title>HeapMemoryManager</title>
 
-      <para>Developers may wonder why Grizzly have a
-      <emphasis>HeapMemoryManager</emphasis> when the
-      <emphasis>ByteBufferManager</emphasis> can be used with both direct and
-      heap ByteBuffers. The main reason is cheaper allocation performance as
-      well as making operations such a trim() and shrink() (covered later in
-      this section) cheap as well.</para>
-
-      <figure>
-        <title>HeapMemoryManager UML Diagram</title>
-
-        <mediaobject>
-          <imageobject>
-            <imagedata fileref="../images/coreframework/heapmmanager-uml.png"
-                       scale="99"></imagedata>
-          </imageobject>
-        </mediaobject>
-      </figure>
+      <para>The HeapMemoryManager is the default MemoryManager.  Instead of wrapping ByteBuffer
+        instances, this MemoryManager will allocate Buffer instances that wrap byte arrays directly.
+        This MemoryManager offers better performance characteristics for operations such as trimming
+        or splitting.  </para>
     </section>
 
     <section xml:id="mem-pools">

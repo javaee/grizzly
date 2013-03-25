@@ -145,15 +145,7 @@
   <para>Grizzly @project.version@ provides general interface <emphasis
   role="italic">org.glassfish.grizzly.IOStrategy:</emphasis></para>
 
-  <programlisting language="java">/**
- * &lt;tt&gt;strategy&lt;/tt&gt; is responsible for making decision how
- * {@link Runnable} task will be run: in current thread, worker thread.
- *
- * &lt;tt&gt;strategy&lt;/tt&gt; can make any other processing decisions.
- * 
- * @author Alexey Stashok
- */
-public interface IOStrategy extends WorkerThreadPoolConfigProducer {
+  <programlisting language="java">public interface IOStrategy extends WorkerThreadPoolConfigProducer {
 
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
@@ -163,10 +155,10 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * @param connection the {@link Connection} upon which the provided
      *  {@link IOEvent} occurred.
      * @param ioEvent the {@link IOEvent} that triggered execution of this
-     *  &lt;code&gt;strategy&lt;/code&gt;
+     *  &lt;code>strategy&lt;/code>
      *
-     * @return &lt;tt&gt;true&lt;/tt&gt;, if this thread should keep processing IOEvents on
-     * the current and other Connections, or &lt;tt&gt;false&lt;/tt&gt; if this thread
+     * @return &lt;tt>true&lt;/tt>, if this thread should keep processing IOEvents on
+     * the current and other Connections, or &lt;tt>false&lt;/tt> if this thread
      * should hand-off the farther IOEvent processing on any Connections,
      * which means IOStrategy is becoming responsible for continuing IOEvent
      * processing (possibly starting new thread, which will handle IOEvents).
@@ -176,6 +168,30 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
     boolean executeIoEvent(final Connection connection, final IOEvent ioEvent)
     throws IOException;
 
+    /**
+     * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
+     * method to allow the strategy implementation to decide how the
+     * {@link IOEvent} will be handled.
+     *
+     * @param connection the {@link Connection} upon which the provided
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
+     *  &lt;code>strategy&lt;/code>
+     * @param isIoEventEnabled &lt;tt>true&lt;/tt> if IOEvent is still enabled on the
+     *  {@link Connection}, or &lt;tt>false&lt;/tt> if IOEvent was preliminary disabled
+     *  or IOEvent is being simulated.
+     *
+     * @return &lt;tt>true&lt;/tt>, if this thread should keep processing IOEvents on
+     * the current and other Connections, or &lt;tt>false&lt;/tt> if this thread
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
+     *
+     * @throws IOException if an error occurs processing the {@link IOEvent}.
+     */
+    boolean executeIoEvent(final Connection connection, final IOEvent ioEvent,
+            final boolean isIoEventEnabled) throws IOException;
+    
 }</programlisting>
 
   <para>And the IOStrategy implementation may decide what to do with the
@@ -206,8 +222,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
       </listitem>
     </orderedlist></para>
 
-  <para>The strategies are assigned per Transport, so it's possible to get/set
-  the IOStrategy using Transport's <emphasis
-  role="italic">get/setStrategy</emphasis> methods. By default TCP and UDP
-  transports use the worker-thread IOStrategy.</para>
+  <para>The strategies are assigned per Transport, so it's possible to get/set the IOStrategy using
+    Transport's <emphasis role="italic">get/setIOStrategy</emphasis> methods. By default TCP and UDP
+    transports use the worker-thread IOStrategy.</para>
 </section>

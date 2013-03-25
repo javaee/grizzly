@@ -80,11 +80,11 @@
           </row>
 
           <row>
-            <entry>kernelThreadPoolConfig</entry>
+            <entry>selectorThreadPoolConfig</entry>
 
-            <entry>This propery exposes a ThreadPoolConfig instance that
-            allows configuration of the kernel thread pool used by the
-            transport that will be constructed by this builder.</entry>
+            <entry>This propery exposes a ThreadPoolConfig instance that allows configuration of the
+              selector/kernel thread pool used by the transport that will be constructed by this
+              builder.</entry>
           </row>
 
           <row>

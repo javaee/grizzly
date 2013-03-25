@@ -221,47 +221,38 @@ ctx.write(trailer);</programlisting>
       <para>Custom transfer-encoding implementations may be provided by
       implementing the TransferEncoding interface:</para>
 
-      <programlisting language="java">/**
- * Abstraction, which represents HTTP transfer-encoding.
- * The implementation should take care about possible HTTP content fragmentation.
- *
- * @see FixedLengthTransferEncoding
- * @see ChunkedTransferEncoding
- * 
- * @author Alexey Stashok
- */
-public interface TransferEncoding {
+      <programlisting language="java">public interface TransferEncoding {
     /**
-     * Return &lt;tt&gt;true&lt;/tt&gt; if this encoding should be used to parse the
-     * content of the passed {@link HttpHeader}, or &lt;tt&gt;false&lt;/tt&gt; otherwise.
+     * Return &lt;tt>true&lt;/tt> if this encoding should be used to parse the
+     * content of the passed {@link HttpHeader}, or &lt;tt>false&lt;/tt> otherwise.
      * 
      * @param httpPacket {@link HttpHeader}.
-     * @return &lt;tt&gt;true&lt;/tt&gt; if this encoding should be used to parse the
-     * content of the passed {@link HttpHeader}, or &lt;tt&gt;false&lt;/tt&gt; otherwise.
+     * @return &lt;tt>true&lt;/tt> if this encoding should be used to parse the
+     * content of the passed {@link HttpHeader}, or &lt;tt>false&lt;/tt> otherwise.
      */
     public boolean wantDecode(HttpHeader httpPacket);
 
     /**
-     * Return &lt;tt&gt;true&lt;/tt&gt; if this encoding should be used to serialize the
-     * content of the passed {@link HttpHeader}, or &lt;tt&gt;false&lt;/tt&gt; otherwise.
+     * Return &lt;tt>true&lt;/tt> if this encoding should be used to serialize the
+     * content of the passed {@link HttpHeader}, or &lt;tt>false&lt;/tt> otherwise.
      *
      * @param httpPacket {@link HttpHeader}.
-     * @return &lt;tt&gt;true&lt;/tt&gt; if this encoding should be used to serialize the
-     * content of the passed {@link HttpHeader}, or &lt;tt&gt;false&lt;/tt&gt; otherwise.
+     * @return &lt;tt>true&lt;/tt> if this encoding should be used to serialize the
+     * content of the passed {@link HttpHeader}, or &lt;tt>false&lt;/tt> otherwise.
      */
     public boolean wantEncode(HttpHeader httpPacket);
 
     /**
      * This method will be called by {@link HttpCodecFilter} to let
-     * &lt;tt&gt;TransferEncoding&lt;/tt&gt; prepare itself for the content serialization.
-     * At this time &lt;tt&gt;TransferEncoding&lt;/tt&gt; is able to change, update HTTP
+     * &lt;tt>TransferEncoding&lt;/tt> prepare itself for the content serialization.
+     * At this time &lt;tt>TransferEncoding&lt;/tt> is able to change, update HTTP
      * packet headers.
      *
-     * @param c connection associated with this packet.
+     * @param ctx {@link FilterChainContext}
      * @param httpHeader HTTP packet headers.
      * @param content ready HTTP content (might be null).
      */
-    public void prepareSerialize(Connection c,
+    public void prepareSerialize(FilterChainContext ctx,
                                  HttpHeader httpHeader,
                                  HttpContent content);
 
@@ -269,24 +260,24 @@ public interface TransferEncoding {
      * Parse HTTP packet payload, represented by {@link Buffer} using specific
      * transfer encoding.
      *
-     * @param connection {@link Connection}
+     * @param ctx {@link FilterChainContext}
      * @param httpPacket {@link HttpHeader} with parsed headers.
      * @param buffer {@link Buffer} HTTP message payload.
      * @return {@link ParsingResult}
      */
-    public ParsingResult parsePacket(Connection connection,
+    public ParsingResult parsePacket(FilterChainContext ctx,
             HttpHeader httpPacket, Buffer buffer);
 
     /**
      * Serialize HTTP packet payload, represented by {@link HttpContent}
      * using specific transfer encoding.
      *
-     * @param connection {@link Connection}
+     * @param ctx {@link FilterChainContext}
      * @param httpContent {@link HttpContent} with parsed {@link HttpContent#getHttpHeader()}.
      *
      * @return serialized {@link Buffer}
      */
-    public Buffer serializePacket(Connection connection,
+    public Buffer serializePacket(FilterChainContext ctx,
             HttpContent httpContent);
 }</programlisting>
 
@@ -317,26 +308,36 @@ public interface TransferEncoding {
 public interface ContentEncoding {
 
     /**
-     * Get the &lt;tt&gt;ContentEncoding&lt;/tt&gt; name.
+     * Get the &lt;tt>ContentEncoding&lt;/tt> name.
      *
-     * @return the &lt;tt&gt;ContentEncoding&lt;/tt&gt; name.
+     * @return the &lt;tt>ContentEncoding&lt;/tt> name.
      */
     String getName();
 
     /**
-     * Get the &lt;tt&gt;ContentEncoding&lt;/tt&gt; aliases.
+     * Get the &lt;tt>ContentEncoding&lt;/tt> aliases.
      * 
-     * @return the &lt;tt&gt;ContentEncoding&lt;/tt&gt; aliases.
+     * @return the &lt;tt>ContentEncoding&lt;/tt> aliases.
      */
     String[] getAliases();
 
     /**
      * Method should implement the logic, which decides if HTTP packet with
-     * the specific {@link HttpHeader} should be encoded using this &lt;tt&gt;ContentEncoding&lt;/tt&gt;.
+     * the specific {@link HttpHeader} should be decoded using this &lt;tt>ContentEncoding&lt;/tt>.
      *
      * @param header HTTP packet header.
-     * @return &lt;tt&gt;true&lt;/tt&gt;, if this &lt;tt&gt;ContentEncoding&lt;/tt&gt; should be used to
-     * encode the HTTP packet, or &lt;tt&gt;false&lt;/tt&gt; otherwise.
+     * @return &lt;tt>true&lt;/tt>, if this &lt;tt>ContentEncoding&lt;/tt> should be used to
+     * decode the HTTP packet, or &lt;tt>false&lt;/tt> otherwise.
+     */
+    boolean wantDecode(HttpHeader header);
+
+    /**
+     * Method should implement the logic, which decides if HTTP packet with
+     * the specific {@link HttpHeader} should be encoded using this &lt;tt>ContentEncoding&lt;/tt>.
+     *
+     * @param header HTTP packet header.
+     * @return &lt;tt>true&lt;/tt>, if this &lt;tt>ContentEncoding&lt;/tt> should be used to
+     * encode the HTTP packet, or &lt;tt>false&lt;/tt> otherwise.
      */
     boolean wantEncode(HttpHeader header);
 

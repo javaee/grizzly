@@ -308,6 +308,11 @@ try {
             user specified, it will bind to port 8080 (settable only by
             constructor).</entry>
           </row>
+          <row>
+            <entry>portRange</entry>
+            <entry>Range of ports to attempt to bind the server to.  The first port that can be
+              bound will be used.</entry>
+          </row>
 
           <row>
             <entry>keepAlive</entry>
@@ -392,6 +397,22 @@ try {
             to be written to a particular connection. If bytes aren't being
             consumed and this value is exceeded, the connection will be
             closed.</entry>
+          </row>
+          <row>
+            <entry>maxRequestHeaders</entry>
+            <entry>Maximum number of headers allowed within a particular request.  If this value is
+              exceeded, the request will be rejected.</entry>
+          </row>
+          <row>
+            <entry>maxResponseHeaders</entry>
+            <entry>Maximum number of headers a response may send to a client.  If this value is
+              exceeded, an error will be sent to the client.</entry>
+          </row>
+          <row>
+            <entry>maxPendingBytes</entry>
+            <entry>Maximum number of bytes that may be pending to be written on a single connection.
+              If this value is exceeded, an exception will be raised.  Note that this configuration
+              is only relevant when using non-blocking HTTP streams.  </entry>
           </row>
         </tbody>
       </tgroup>
@@ -581,71 +602,56 @@ try {
     <section xml:id="hsf-nio-streams-non-blocking">
       <title>Non-Blocking Writing</title>
 
-      <para>The methods getOutputStream() and getWriter() on Response return
-      instances of NIOOutputStream and NIOWriter. In addition to the methods
-      defined by java.io.OutputStream and java.io.Writer, these entities both
-      implement the NIOOutputSink interface.</para>
+      <para>The methods getOutputStream() and getWriter() on Response return instances of
+        NIOOutputStream and NIOWriter. In addition to the methods defined by java.io.OutputStream
+        and java.io.Writer, these entities both implement the org.glassfish.grizzly.OutputSink
+        interface.</para>
 
       <programlisting language="java">/**
- * &lt;p&gt;
+ * &lt;p>
  * This interface defines methods to allow an {@link java.io.OutputStream} or
  * {@link java.io.Writer} to allow the developer to check with the runtime
  * whether or not it's possible to write a certain amount of data, or if it's
  * not possible, to be notified when it is.
- * &lt;/p&gt;
+ * &lt;/p>
  *
  * @since 2.0
  */
-public interface NIOOutputSink {
+public interface OutputSink {
 
 
     /**
-     * Instructs the &lt;code&gt;NIOOutputSink&lt;/code&gt; to invoke the provided
-     * {@link WriteHandler} when it is possible to write &lt;code&gt;length&lt;/code&gt;
-     * bytes.
+     * Instructs the &lt;code>OutputSink&lt;/code> to invoke the provided
+     * {@link WriteHandler} when it is possible to write more bytes (or characters).
      *
      * Note that once the {@link WriteHandler} has been notified, it will not
      * be considered for notification again at a later point in time. 
      *
      * @param handler the {@link WriteHandler} that should be notified
-     *  when it's possible to write &lt;code&gt;length&lt;/code&gt; bytes.
-     * @param length the number of bytes that require writing.
+     *  when it's possible to write more data.
      *
      * @throws IllegalStateException if this method is invoked and a handler
      *  from a previous invocation is still present (due to not having yet been
      *  notified).  
+     * 
+     * @since 2.3
      */
-    void notifyCanWrite(final WriteHandler handler, final int length);
+    void notifyCanWrite(final WriteHandler handler);
 
-
+   
     /**
-     * @param length specifies the number of bytes that require writing
-     *
-     * @return &lt;code&gt;true&lt;/code&gt; if a write to this &lt;code&gt;NIOOutputSink&lt;/code&gt;
-     *  will succeed, otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     * @return &lt;code>true&lt;/code> if a write to this &lt;code>OutputSink&lt;/code>
+     *  will succeed, otherwise returns &lt;code>false&lt;/code>.
+     * 
+     * @since 2.3
      */
-    boolean canWrite(final int length);
+    boolean canWrite();
 
 }</programlisting>
 
-      <para>The typical flow when using these methods is to call canWrite()
-      with the desired length. Whether or not the desired amount of data will
-      depened, primarily, on the configuration value of maxPendingWrites
-      property on the NetworkListener being used to process the current
-      request.</para>
-
-      <para>For example, if the client is on a slow connection, and the OS
-      network buffer is full, the write queue maintained by the Transport
-      implementation would start to full up. If an attempt to write is made
-      that will exeed the queue limit, a
-      PendingWriteQueueLimitExceededException will be thrown. However, if the
-      developer calls canWrite() with the desired length, and the return value
-      is false, then it is know there, that the write would fail. This
-      condition can be gracefully be handled by calling notifyCanWrite()
-      providing a WriteHandler and the desired length. Once the pending write
-      queue drains enough to support the length, the WriteHandler will be
-      notified to allow the developer to continue sending content to the
-      client.</para>
+      <para>The typical flow when using these methods is to call canWrite().  If the call to this
+        method returns false, the application should call notifyCanWrite() providing a WriteHandler
+        that will be invoked when I/O is possible.</para>
 
       <para>For Grizzly @project.version@ HTTP applications that deal in
       primarily binary data and are using Grizzly Buffers, they can leverage
@@ -680,31 +686,31 @@ public interface BinaryNIOOutputSink extends NIOOutputSink {
       non-blocking reads called NIOInputSource.</para>
 
       <programlisting language="java">/**
- * &lt;p&gt;
+ * &lt;p>
  * This interface defines methods to allow an {@link InputStream} or
- * {@link Reader} to notify the developer &lt;em&gt;when&lt;/em&gt; and &lt;em&gt;how much&lt;/em&gt;
+ * {@link Reader} to notify the developer &lt;em>when&lt;/em> and &lt;em>how much&lt;/em>
  * data is ready to be read without blocking.
- * &lt;/p&gt;
+ * &lt;/p>
  *
  * @since 2.0
  */
-public interface NIOInputSource {
+public interface InputSource {
 
 
     /**
-     * &lt;p&gt;
+     * &lt;p>
      * Notify the specified {@link ReadHandler} when any number of bytes
      * can be read without blocking.
-     * &lt;/p&gt;
+     * &lt;/p>
      *
-     * &lt;p&gt;
+     * &lt;p>
      * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
-     * &lt;/p&gt;
+     * &lt;/p>
      *
      * @param handler the {@link ReadHandler} to notify.
      *
-     * @throws IllegalArgumentException if &lt;code&gt;handler&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;,
-     *  or if &lt;code&gt;size&lt;/code&gt; is less than zero.
+     * @throws IllegalArgumentException if &lt;code>handler&lt;/code> is &lt;code>null&lt;/code>,
+     *  or if &lt;code>size&lt;/code> is less than zero.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
@@ -716,20 +722,20 @@ public interface NIOInputSource {
 
 
     /**
-     * &lt;p&gt;
+     * &lt;p>
      * Notify the specified {@link ReadHandler} when the number of bytes that
      * can be read without blocking is greater or equal to the specified
-     * &lt;code&gt;size&lt;/code&gt;.
-     * &lt;/p&gt;
+     * &lt;code>size&lt;/code>.
+     * &lt;/p>
      *
      * @param handler the {@link ReadHandler} to notify.
      * @param size the least number of bytes that must be available before
-     *  the {@link ReadHandler} is invoked.  If size is &lt;code&gt;0&lt;/code&gt;, the
+     *  the {@link ReadHandler} is invoked.  If size is &lt;code>0&lt;/code>, the
      *  handler will be notified as soon as data is available no matter the
      *  size.
      *
-     * @throws IllegalArgumentException if &lt;code&gt;handler&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;,
-     *  or if &lt;code&gt;size&lt;/code&gt; is less than zero.
+     * @throws IllegalArgumentException if &lt;code>handler&lt;/code> is &lt;code>null&lt;/code>,
+     *  or if &lt;code>size&lt;/code> is less than zero.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
@@ -741,8 +747,8 @@ public interface NIOInputSource {
 
 
     /**
-     * @return &lt;code&gt;true&lt;/code&gt; when all data for this particular request
-     *  has been read, otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     * @return &lt;code>true&lt;/code> when all data for this particular request
+     *  has been read, otherwise returns &lt;code>false&lt;/code>.
      */
     boolean isFinished();
 
@@ -756,8 +762,8 @@ public interface NIOInputSource {
 
 
     /**
-     * @return &lt;code&gt;true&lt;/code&gt; if data can be obtained without blocking,
-     *  otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     * @return &lt;code>true&lt;/code> if data can be obtained without blocking,
+     *  otherwise returns &lt;code>false&lt;/code>.
      */
     boolean isReady();
 
@@ -943,76 +949,75 @@ public class WebSocketAddOn implements AddOn {
     the following code snippets are part of a single example that makes use
     nested classes.</para>
 
-    <programlisting language="java" linenumbering="numbered"
-                    startinglinenumber="304">/**
- * This handler using non-blocking streams to read POST data and echo it
- * back to the client.
- */
-private static class NonBlockingEchoHandler extends HttpHandler {
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">/**
+     * This handler using non-blocking streams to read POST data and echo it
+     * back to the client.
+     */
+    private static class NonBlockingEchoHandler extends HttpHandler {
 
 
-    // -------------------------------------------- Methods from HttpHandler
+        // -------------------------------------------- Methods from HttpHandler
 
 
-    @Override
-    public void service(final Request request,
-                        final Response response) throws Exception {
+        @Override
+        public void service(final Request request,
+                            final Response response) throws Exception {
 
-        final char[] buf = new char[128];
-        final NIOReader in = request.getNIOReader(); // put the stream in non-blocking mode
-        final NIOWriter out = response.getNIOWriter();
+            final char[] buf = new char[128];
+            final NIOReader in = request.getNIOReader(); // return the non-blocking InputStream
+            final NIOWriter out = response.getNIOWriter();
 
-        response.suspend();
+            response.suspend();
 
-        // If we don't have more data to read - onAllDataRead() will be called
-        in.notifyAvailable(new ReadHandler() {
+            // If we don't have more data to read - onAllDataRead() will be called
+            in.notifyAvailable(new ReadHandler() {
 
-            @Override
-            public void onDataAvailable() throws Exception {
-                System.out.printf("[onDataAvailable] echoing %d bytes\n", in.readyData());
-                echoAvailableData(in, out, buf);
-                in.notifyAvailable(this);
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                System.out.println("[onError]" + t);
-                response.resume();
-            }
-
-            @Override
-            public void onAllDataRead() throws Exception {
-                System.out.printf("[onAllDataRead] length: %d\n", in.readyData());
-                try {
+                @Override
+                public void onDataAvailable() throws Exception {
+                    System.out.printf("[onDataAvailable] echoing %d bytes\n", in.readyData());
                     echoAvailableData(in, out, buf);
-                } finally {
-                    try {
-                        in.close();
-                    } catch (IOException ignored) {
-                    }
+                    in.notifyAvailable(this);
+                }
 
-                    try {
-                        out.close();
-                    } catch (IOException ignored) {
-                    }
-
+                @Override
+                public void onError(Throwable t) {
+                    System.out.println("[onError]" + t);
                     response.resume();
                 }
-            }
-        });
 
-    }
+                @Override
+                public void onAllDataRead() throws Exception {
+                    System.out.printf("[onAllDataRead] length: %d\n", in.readyData());
+                    try {
+                        echoAvailableData(in, out, buf);
+                    } finally {
+                        try {
+                            in.close();
+                        } catch (IOException ignored) {
+                        }
 
-    private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
-            throws IOException {
-            
-        while(in.isReady()) {
-            int len = in.read(buf);
-            out.write(buf, 0, len);
+                        try {
+                            out.close();
+                        } catch (IOException ignored) {
+                        }
+
+                        response.resume();
+                    }
+                }
+            });
+
         }
-    }
 
-} // END NonBlockingEchoHandler</programlisting>
+        private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
+                throws IOException {
+            
+            while(in.isReady()) {
+                int len = in.read(buf);
+                out.write(buf, 0, len);
+            }
+        }
+
+    } // END NonBlockingEchoHandler</programlisting>
 
     <para>As can be gleened from the name of the class, this HttpHandler
     implementation simply echoes POST data back to the client.</para>
@@ -1021,25 +1026,23 @@ private static class NonBlockingEchoHandler extends HttpHandler {
 
     <itemizedlist>
       <listitem>
-        <para>line 318 - Configures the stream for non-blocking use
-        cases.</para>
+        <para>Calling one of the getNIO{Reader,Writer} methods configures the stream for
+          non-blocking use cases.</para>
       </listitem>
 
       <listitem>
-        <para>lines 321 - Response is suspended. service() method will exit.
-        ReadHandler implementation will be notified as data becomes
-        available.</para>
+        <para>The Response is suspended; the service() method will exit. ReadHandler implementation
+          will be notified as data becomes available.</para>
       </listitem>
 
       <listitem>
-        <para>line 327-330 - onDataAvailable callback invoked as data is
-        received by the server</para>
+        <para>The ReadHandler's onDataAvailable callback invoked as data is received by the server
+          and echoed back to the client.</para>
       </listitem>
 
       <listitem>
-        <para>lines 338-356 - onAllDataRead callback invoked when client has
-        finished message. All content is read and echoed back to the
-        client.</para>
+        <para>The ReadHandler's onAllDataRead callback invoked when client has finished message. Any
+          remaining data is echoed back to the client and the response is resumed.</para>
       </listitem>
     </itemizedlist>
 
@@ -1077,8 +1080,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
     the example going. Let's start with the client Filter that sends
     request.</para>
 
-    <programlisting language="java" linenumbering="numbered"
-                    startinglinenumber="199">private static final class ClientFilter extends BaseFilter {
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="199">private static final class ClientFilter extends BaseFilter {
 
             private static final String[] CONTENT = {
                 "contentA-",
@@ -1087,14 +1089,14 @@ private static class NonBlockingEchoHandler extends HttpHandler {
                 "contentD"
             };
 
-            private FutureImpl&lt;String&gt; future;
+            private FutureImpl&lt;String> future;
 
             private StringBuilder sb = new StringBuilder();
 
             // ---------------------------------------------------- Constructors
 
 
-            private ClientFilter(FutureImpl&lt;String&gt; future) {
+            private ClientFilter(FutureImpl&lt;String> future) {
                 this.future = future;                
             }
 
@@ -1172,7 +1174,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
                 builder.uri("/echo");
                 builder.chunked(true);
                 HttpRequestPacket packet = builder.build();
-                packet.addHeader("Host", HOST + ':' + PORT);
+                packet.addHeader(Header.Host, HOST + ':' + PORT);
                 return packet;
 
             }
@@ -1185,27 +1187,22 @@ private static class NonBlockingEchoHandler extends HttpHandler {
 
     <itemizedlist>
       <listitem>
-        <para>lines 226-261 - When the connection is established with the
-        server, the handleConnect() method of this Filter will be invoked.
-        When this happens we create a HttpRequestPacket, which contains only
-        message part of a POST request. wThe request is then written.</para>
-
-        <itemizedlist>
-          <listitem>
-            <para>lines 237-249 writes the body of the message in 2 second
-            intervals.</para>
-          </listitem>
-        </itemizedlist>
+        <para>lWhen the connection is established with the server, the handleConnect() method of
+          this Filter will be invoked. When this happens, we create a HttpRequestPacket, which
+          contains only message part of a POST request. wThe request is then written.</para>
+      </listitem>
+      <listitem>
+        <para>The message of the body of the message in 2 second intervals.</para>
       </listitem>
 
       <listitem>
-        <para>line 255 - Write the trailer to signify the end of the request
-        since the chunked transfer encoding is being used.</para>
+        <para>When all data has been written, write the trailer to signify the end of the request
+          since the chunked transfer encoding is being used.</para>
       </listitem>
 
       <listitem>
-        <para>lines 265-280 - Read the response from the server. Store the
-        final result in a future to be retrieved later.</para>
+        <para>Read the response from the server. Store the final result in a future to be retrieved
+          later.</para>
       </listitem>
     </itemizedlist>
 
