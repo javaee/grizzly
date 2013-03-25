@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,10 +55,10 @@ public class CompressionEncodingFilter implements EncodingFilter {
     private final String[] aliases;
 
     public CompressionEncodingFilter(CompressionLevel compressionLevel,
-                                     int compressionMinSize,
-                                     String[] compressableMimeTypes,
-                                     String[] noCompressionUserAgents,
-                                     String[] aliases) {
+            int compressionMinSize,
+            String[] compressableMimeTypes,
+            String[] noCompressionUserAgents,
+            String[] aliases) {
         this.compressionLevel = compressionLevel;
         this.compressionMinSize = compressionMinSize;
         this.compressableMimeTypes = compressableMimeTypes;
@@ -88,7 +88,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 final MimeHeaders responseHeaders = responsePacket.getHeaders();
                 // Check if content is already encoded (no matter which encoding)
                 final DataChunk contentEncodingMB =
-                    responseHeaders.getValue(Header.ContentEncoding);
+                        responseHeaders.getValue(Header.ContentEncoding);
                 if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
                     return false;
                 }
@@ -106,38 +106,39 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 // Check for incompatible Browser
                 if (noCompressionUserAgents.length > 0) {
                     final DataChunk userAgentValueDC =
-                        requestHeaders.getValue(Header.UserAgent);
+                            requestHeaders.getValue(Header.UserAgent);
                     if (userAgentValueDC != null &&
-                         indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
+                            indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
                         return false;
                     }
                 }
                 // Check if sufficient len to trig the compression
                 final long contentLength = responsePacket.getContentLength();
                 if (contentLength == -1
-                    || contentLength > compressionMinSize) {
+                        || contentLength >= compressionMinSize) {
+
+                    boolean found = true;
                     // Check for compatible MIME-TYPE
                     if (compressableMimeTypes.length > 0) {
-                        final boolean found =
-                                indexOfStartsWith(compressableMimeTypes,
-                                        responsePacket.getContentType()) != -1;
-                        if (found) {
-                            responsePacket.setChunked(true);
-                            responsePacket.setContentLength(-1);
-                        }
-                        return found;
+                        found = indexOfStartsWith(compressableMimeTypes,
+                                responsePacket.getContentType()) != -1;
+                    }
+
+                    if (found) {
+                        responsePacket.setChunked(true);
+                        responsePacket.setContentLength(-1);
+                        return true;
                     }
                 }
-                responsePacket.setChunked(true);
-                responsePacket.setContentLength(-1);
-                return true;
+
+                return false;
         }
     }
 
     private boolean userAgentRequestsCompression(MimeHeaders requestHeaders) {
         // Check if browser support gzip encoding
         final DataChunk acceptEncodingDC =
-            requestHeaders.getValue(Header.AcceptEncoding);
+                requestHeaders.getValue(Header.AcceptEncoding);
         if (acceptEncodingDC == null) {
             return false;
         }
