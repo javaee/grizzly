@@ -477,6 +477,10 @@ public final class FilterChainContext implements AttributeStorage {
      * process next {@link Filter} in chain.
      */
     public NextAction getInvokeAction(final Object unparsedChunk) {
+        if (unparsedChunk == null) {
+            return INVOKE_ACTION;
+        }
+        
         cachedInvokeAction.setUnparsedChunk(unparsedChunk);
         return cachedInvokeAction;
     }
