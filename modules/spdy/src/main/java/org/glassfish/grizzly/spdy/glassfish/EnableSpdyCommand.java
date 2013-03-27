@@ -41,6 +41,7 @@ package org.glassfish.grizzly.spdy.glassfish;
 
 import com.sun.enterprise.config.serverbeans.Config;
 import com.sun.enterprise.util.SystemPropertyConstants;
+import java.util.Locale;
 import org.glassfish.api.ActionReport;
 import org.glassfish.api.Param;
 import org.glassfish.api.admin.AdminCommand;
@@ -84,6 +85,12 @@ public class EnableSpdyCommand implements AdminCommand {
 
     @Param(name = "initial-window-size-bytes", optional = true, defaultValue = "65536")
     String initialWindowSize;
+
+    @Param(name = "max-frame-length-in-bytes", optional = true, defaultValue = "16777216")
+    String maxFrameLengthInBytes;
+
+    @Param(name = "mode", optional = true, defaultValue = "npn")
+    String mode;
 
     @Inject
     @Named(ServerEnvironment.DEFAULT_INSTANCE_NAME)
@@ -140,6 +147,16 @@ public class EnableSpdyCommand implements AdminCommand {
                         if (initialWindowSizeLocal > 0) {
                             spdy.setInitialWindowSizeInBytes(initialWindowSizeLocal);
                         }
+                    }
+                    if (maxFrameLengthInBytes != null) {
+                        int maxFrameLengthInBytesLocal = Integer.parseInt(maxFrameLengthInBytes);
+                        if (maxFrameLengthInBytesLocal > 0 && maxFrameLengthInBytesLocal < (1 << 24)) {
+                            spdy.setMaxFrameLengthInBytes(maxFrameLengthInBytesLocal);
+                        }
+                    }
+                    if (mode != null) {
+                        String modeLocal = mode.toLowerCase(Locale.US);
+                        spdy.setMode(modeLocal);
                     }
                     param.setSpdy(spdy);
                 return spdy;

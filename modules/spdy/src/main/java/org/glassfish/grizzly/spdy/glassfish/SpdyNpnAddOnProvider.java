@@ -39,18 +39,29 @@
  */
 package org.glassfish.grizzly.spdy.glassfish;
 
+import org.glassfish.grizzly.config.ConfigAwareElement;
+import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.glassfish.grizzly.config.dom.Spdy;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.spdy.SpdyAddOn;
 import org.glassfish.grizzly.spdy.SpdyMode;
+import org.glassfish.hk2.api.ServiceLocator;
 import org.jvnet.hk2.annotations.ContractsProvided;
 import org.jvnet.hk2.annotations.Service;
 
 @Service(name="spdy-npn")
 @ContractsProvided({SpdyNpnAddOnProvider.class, AddOn.class})
-public class SpdyNpnAddOnProvider extends SpdyAddOn {
+public class SpdyNpnAddOnProvider extends SpdyAddOn implements ConfigAwareElement<Spdy> {
 
     public SpdyNpnAddOnProvider() {
         super(SpdyMode.NPN);
     }
 
+    @Override
+    public void configure(final ServiceLocator habitat,
+            final NetworkListener networkListener, final Spdy spdy) {
+        setInitialWindowSize(spdy.getInitialWindowSizeInBytes());
+        setMaxConcurrentStreams(spdy.getMaxConcurrentStreams());
+        setMaxFrameLength(spdy.getMaxFrameLengthInBytes());
+    }    
 }
