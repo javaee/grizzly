@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.config.dom;
 
+import javax.validation.constraints.Pattern;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
@@ -52,7 +53,26 @@ public interface Spdy extends ConfigBeanProxy, PropertyBag {
     boolean SPDY2_ENABLED = true;
     int INITIAL_WINDOW_SIZE_IN_BYTES = 64 * 1024;
     int MAX_FRAME_LENGTH_IN_BYTES = 1 << 24;
+    final boolean ENABLED = true;
+    final String MODE_PATTERN = "(npn|plain)";
 
+    /**
+     * Enables SPDY support.
+     */
+    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
+    boolean getEnabled();
+
+    void setEnabled(boolean enabled);
+
+    /**
+     * SPDY mode.
+     */
+    @Attribute(dataType = String.class)
+    @Pattern(regexp = MODE_PATTERN)
+    String getMode();
+
+    void setMode(String mode);
+    
     /**
      * Configures the number of concurrent streams allowed per SPDY connection.
      * The default is 50.
