@@ -40,16 +40,20 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -59,6 +63,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -67,12 +72,16 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.spdy.frames.CompressedHeadersBuilder;
+import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
+import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
 import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
@@ -86,7 +95,15 @@ import static org.junit.Assert.*;
  */
 public class SpdySemanticsTest extends AbstractSpdyTest {
     private static final int PORT = 18303;
+    private static final Logger LOGGER = Grizzly.logger(SpdySemanticsTest.class);
     
+    private static final SpdyFrame CLOSE_FRAME = new SpdyFrame() {
+        @Override
+        public Buffer toBuffer(final MemoryManager memoryManager) {
+            return null;
+        }
+    };
+
     @Test
     @SuppressWarnings("unchecked")
     public void testSettingsFrameOnConnect() throws Exception {
@@ -319,10 +336,10 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                         sendFuture.get(10, TimeUnit.SECONDS);
                     } catch (ExecutionException ee) {
                         final Throwable cause = ee.getCause();
-                        assertTrue(cause instanceof SpdyRstStreamException);
+                        assertTrue(cause instanceof SpdyStreamException);
                         
-                        final SpdyRstStreamException rstException =
-                                (SpdyRstStreamException) cause;
+                        final SpdyStreamException rstException =
+                                (SpdyStreamException) cause;
                         assertEquals(maxConcurrentStreams, i);
                         assertEquals(RstStreamFrame.REFUSED_STREAM,
                                 rstException.getRstReason());
@@ -479,6 +496,239 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         }
     }
     
+    /**
+     * Check the oversized control frame processing
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testOversizedControlFrame() throws Exception {
+        final int maxFrameLen = 1024;
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                request.getInputStream().read();
+            }
+        }, "/test"));
+        
+        spdyAddon.setMaxFrameLength(maxFrameLen);
+        
+        final NetworkListener listener = server.getListener("grizzly");
+        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getTransport().setWriteTimeout(-1, TimeUnit.MILLISECONDS);
+        
+        try {
+            server.start();
+            
+            final BlockingQueue<SpdyFrame> clientInQueue =
+                    new LinkedBlockingQueue<SpdyFrame>();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder()
+                    .add(new RawClientFilter(clientInQueue));
+                        
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final int streamId = 1;
+                
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                connection.write(
+                        createSynStream(streamId, "/test", maxFrameLen, deflater));
+                
+                boolean hasRstCome = false;
+                
+                while (true) {
+                    final SpdyFrame frame =
+                            clientInQueue.poll(10, TimeUnit.SECONDS);
+                    
+                    assertNotNull(frame);
+                    
+                    if (frame instanceof SettingsFrame) {
+                        // skip
+                        continue;
+                    } else if (frame instanceof RstStreamFrame) {
+                        final RstStreamFrame rst = (RstStreamFrame) frame;
+                        assertEquals(streamId, rst.getStreamId());
+                        assertEquals(RstStreamFrame.FRAME_TOO_LARGE, rst.getStatusCode());
+                        hasRstCome = true;
+                        
+                    } else if (frame == CLOSE_FRAME) {
+                        if (!hasRstCome) {
+                            // closed w/o RST frame - also ok, if the server could no
+                            // extract stream-id.
+                            // Print a warning just in case
+                            LOGGER.warning("No RST frame");
+                        }
+                        break;
+                    } else {
+                        fail("Unexpected frame: " + frame);
+                    }
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    /**
+     * Check the oversized control frame processing
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testOversizedDataFrame() throws Exception {
+        final int maxFrameLen = 1024;
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final InputStream inputStream = request.getInputStream();
+                final byte[] buf = new byte[256];
+                while (inputStream.read(buf) != -1) {
+                    // read all the available input bytes
+                }
+            }
+        }, "/test"));
+        
+        spdyAddon.setMaxFrameLength(maxFrameLen);
+        
+        final NetworkListener listener = server.getListener("grizzly");
+        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getTransport().setWriteTimeout(-1, TimeUnit.MILLISECONDS);
+        
+        try {
+            server.start();
+            
+            final BlockingQueue<SpdyFrame> clientInQueue =
+                    new LinkedBlockingQueue<SpdyFrame>();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder()
+                    .add(new RawClientFilter(clientInQueue));
+            
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                final MemoryManager mm = clientTransport.getMemoryManager();
+
+                final Random r = new Random();
+                int normalRequestsCounter = 0;
+                Buffer remainder = null;
+                
+                final int dataSize = 4096;
+                
+                // Randomly try different testcases
+                final Buffer[][] options = new Buffer[5][];
+                options[0] = allowDispose(new Buffer[] {mm.allocate(dataSize)}, false);
+                options[1] = allowDispose(new Buffer[] {mm.allocate(dataSize / 2), mm.allocate(dataSize / 2)}, false);
+                options[2] = allowDispose(new Buffer[] {mm.allocate(dataSize - maxFrameLen), mm.allocate(maxFrameLen)}, false);
+                options[3] = allowDispose(new Buffer[] {mm.allocate(maxFrameLen), mm.allocate(dataSize - maxFrameLen)}, false);
+                options[4] = allowDispose(new Buffer[] {mm.allocate(maxFrameLen), mm.allocate(maxFrameLen), mm.allocate(maxFrameLen), mm.allocate(maxFrameLen)}, false);
+
+                final int normalOption = 4;
+                final int streamsCount = 100;
+                
+                for (int i = 0; i < streamsCount; i++) {
+                    final int option = r.nextInt(options.length);
+                    final boolean isNormal = (option == normalOption);
+                    
+                    if (isNormal) {
+                        normalRequestsCounter++;
+                    }
+                    
+                    final int streamId = i * 2 + 1;
+                    final Buffer synStream =
+                            createSynStream(streamId, Method.POST,
+                            "/test", dataSize, 0, false, deflater)
+                            .toBuffer(mm);
+
+                    final Buffer[] data = toDataFrameBuffers(streamId, makeCopy(options[option]), mm);
+                    
+                    final boolean leaveRemainder = (i < (streamsCount - 1)) && r.nextBoolean();
+                    
+                    Buffer newRemainder = null;
+                    if (leaveRemainder) {
+                        final Buffer lastBuffer = data[data.length - 1];
+                        newRemainder = lastBuffer.split(lastBuffer.position() + lastBuffer.remaining() / 2);
+                    }
+                    
+                    final CompositeBuffer bufferToSend = CompositeBuffer.newBuffer(mm, data);
+                    bufferToSend.prepend(synStream);
+                    if (remainder != null) {
+                        bufferToSend.prepend(remainder);
+                    }
+                    
+                    remainder = newRemainder;
+                    
+                    connection.write(bufferToSend);
+                    
+                    Thread.sleep(2);
+                }
+                
+                int repliesGot = 0;
+                
+                while (true) {
+                    final SpdyFrame frame =
+                            clientInQueue.poll(10, TimeUnit.SECONDS);
+                    
+                    assertNotNull("We expect more frames. Expected=" + normalRequestsCounter + " got=" + repliesGot, frame);
+                    assertTrue("Connection  was unexpectedly closed", frame != CLOSE_FRAME);
+                    
+                    if (!frame.getHeader().isControl()) {
+                        // skip DataFrame
+                        continue;
+                    }
+                    
+                    switch (frame.getHeader().getType()) {
+                        case SynReplyFrame.TYPE:
+                            repliesGot++;
+                            if (repliesGot == normalRequestsCounter) {
+                                return;
+                            }
+                        case SettingsFrame.TYPE:
+                        case RstStreamFrame.TYPE:
+                            break;
+                        default:
+                            fail("Unexpected frame: " + frame);
+                    }
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
     private HttpServer createServer(final HttpHandlerRegistration... registrations) {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
@@ -501,5 +751,109 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         final SpdyHandlerFilter spdyHandlerFilter =
                 (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
         spdyHandlerFilter.setMaxConcurrentStreams(maxConcurrentStreams);
+    }
+    
+    private SynStreamFrame createSynStream(final int streamId, final String uri,
+            final int headersCount, final Deflater deflater) throws IOException {
+        return createSynStream(streamId, Method.GET, uri, -1, headersCount,
+                true, deflater);
+    }
+    
+    private SynStreamFrame createSynStream(final int streamId, final Method method,
+            final String uri, final int contentLength,
+            final int headersCount, final boolean isLast,
+            final Deflater deflater) throws IOException {
+
+        final CompressedHeadersBuilder builder =
+                CompressedHeadersBuilder.newInstance()
+                .method(method)
+                .scheme("http")
+                .path(uri)
+                .version(Protocol.HTTP_1_1)
+                .host("localhost" + PORT);
+
+        if (contentLength >= 0) {
+            builder.contentLength(contentLength);
+        }
+        
+        for (int i = 0; i < headersCount; i++) {
+            builder.header("h-" + i, "v-" + i);
+        }
+
+        final Buffer headers = builder.build(deflater);
+
+        return SynStreamFrame.builder()
+                .streamId(streamId)
+                .compressedHeaders(headers)
+                .last(isLast)
+                .build();
+    }
+
+    private Buffer[] allowDispose(Buffer[] buffers, boolean b) {
+        if (buffers != null) {
+            for (Buffer buffer : buffers) {
+                buffer.allowBufferDispose(b);
+            }
+        }
+        
+        return buffers;
+    }
+
+    private Buffer[] makeCopy(Buffer[] buffers) {
+        final Buffer[] newBuffers = new Buffer[buffers.length];
+        for (int i = 0; i < buffers.length; i++) {
+            final Buffer buffer = buffers[i];
+            final Buffer copy = buffer.duplicate();
+            copy.allowBufferDispose(false);
+            
+            newBuffers[i] = copy;
+        }
+        
+        return newBuffers;
+    }
+
+    private Buffer[] toDataFrameBuffers(final int streamId,
+            final Buffer[] data, final MemoryManager mm) {
+        
+        final Buffer[] dataFrameBuffers = new Buffer[data.length];
+        for (int i = 0; i < data.length; i++) {
+            dataFrameBuffers[i] = DataFrame.builder()
+                    .streamId(streamId)
+                    .data(data[i])
+                    .last(i == data.length - 1)
+                    .build()
+                    .toBuffer(mm);
+        }
+        
+        return dataFrameBuffers;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static class RawClientFilter extends BaseFilter {
+        private final BlockingQueue<SpdyFrame> clientInQueue;
+
+        public RawClientFilter(BlockingQueue<SpdyFrame> clientInQueue) {
+            this.clientInQueue = clientInQueue;
+        }
+        
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx)
+                throws IOException {
+            final Object msg = ctx.getMessage();
+            if (msg instanceof List) {
+                clientInQueue.addAll((List<SpdyFrame>) msg);
+            } else {
+                clientInQueue.offer((SpdyFrame) msg);
+            }
+
+            return ctx.getInvokeAction();
+        }
+
+        @Override
+        public NextAction handleClose(FilterChainContext ctx) throws IOException {
+            clientInQueue.offer(CLOSE_FRAME);
+
+            return ctx.getStopAction();
+        }
     }
 }

@@ -37,62 +37,29 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.spdy;
 
-package org.glassfish.grizzly.config.dom;
+import java.io.IOException;
 
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.types.PropertyBag;
+/**
+ * SPDY Stream exception.
+ * 
+ * @author Alexey Stashok
+ */
+public final class SpdyStreamException extends IOException {
+    private final int streamId;
+    private final int rstReason;
 
-@Configured
-public interface Spdy extends ConfigBeanProxy, PropertyBag {
+    public SpdyStreamException(final int streamId, final int rstReason) {
+        this.streamId = streamId;
+        this.rstReason = rstReason;
+    }
 
-    final int MAX_CONCURRENT_STREAMS = 50;
-    final boolean SPDY2_ENABLED = true;
-    final int INITIAL_WINDOW_SIZE_IN_BYTES = 64 * 1024;
-    int MAX_FRAME_LENGTH_IN_BYTES = 1 << 24;
-    final boolean ENABLED = true;
+    public int getStreamId() {
+        return streamId;
+    }
 
-    /**
-     * Enables SPDY support.
-     */
-    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
-    boolean getEnabled();
-
-    void setEnabled(boolean enabled);
-
-    /**
-     * Configures the number of concurrent streams allowed per SPDY connection.
-     * The default is 50.
-     */
-    @Attribute(defaultValue = "" + MAX_CONCURRENT_STREAMS, dataType = Integer.class)
-    int getMaxConcurrentStreams();
-
-    void setMaxConcurrentStreams(int maxConcurrentStreams);
-
-    /**
-     * Configures the initial window size in bytes.  The default is 64K.
-     */
-    @Attribute(defaultValue = "" + INITIAL_WINDOW_SIZE_IN_BYTES, dataType = Integer.class)
-    int getInitialWindowSizeInBytes();
-
-    void setInitialWindowSizeInBytes(int initialWindowSizeInBytes);
-
-    /**
-     * Configures the maximum length of SPDY frame to be accepted.  The default is 2^24.
-     */
-    @Attribute(defaultValue = "" + MAX_FRAME_LENGTH_IN_BYTES, dataType = Integer.class)
-    int getMaxFrameLengthInBytes();
-
-    void setMaxFrameLengthInBytes(int maxFrameLengthInBytes);
-    
-    /**
-     * Toggles support for SPDY/2.  By default, SPDY/2 support is enabled.
-     * @return
-     */
-    @Attribute(defaultValue = "" + SPDY2_ENABLED, dataType = Boolean.class)
-    boolean getSpdy2Enabled();
-
-    void setSpdy2Enabled(boolean spdy2Enabled);
+    public int getRstReason() {
+        return rstReason;
+    }
 }

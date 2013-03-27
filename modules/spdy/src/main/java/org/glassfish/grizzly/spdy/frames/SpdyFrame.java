@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,8 +41,8 @@ package org.glassfish.grizzly.spdy.frames;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.SpdySessionException;
 
 public abstract class SpdyFrame implements Cacheable {
 
@@ -58,7 +58,7 @@ public abstract class SpdyFrame implements Cacheable {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static SpdyFrame wrap(final Buffer buffer) {
+    public static SpdyFrame wrap(final Buffer buffer) throws SpdySessionException {
         SpdyHeader header = SpdyHeader.wrap(buffer);
         if (header.control) {
             switch (header.type) {
@@ -81,7 +81,8 @@ public abstract class SpdyFrame implements Cacheable {
                 case CredentialFrame.TYPE:
                     return CredentialFrame.create(header);
                 default:
-                    throw new IllegalStateException("Unhandled control frame");
+                    throw new SpdySessionException(
+                            RstStreamFrame.PROTOCOL_ERROR, header.getStreamId());
 
             }
         } else {
@@ -109,6 +110,14 @@ public abstract class SpdyFrame implements Cacheable {
         return header;
     }
 
+    /**
+     * Returns <tt>true</tt> if this is a service frame (not real SpdyFrame),
+     * or <tt>false</tt> otherwise.
+     */
+    public boolean isService() {
+        return false;
+    }
+    
     public abstract Buffer toBuffer(final MemoryManager memoryManager);
 
 

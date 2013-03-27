@@ -46,14 +46,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.frames.OversizedFrame;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -64,92 +70,147 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * @author Grizzly team
  */
 public class SpdyFramingFilter extends BaseFilter {
-
+    private static final int DEFAULT_MAX_FRAME_LENGTH = 1 << 24;
+    
     private static final Logger LOGGER = Grizzly.logger(SpdyFramingFilter.class);
     private static final Level LOGGER_LEVEL = Level.FINE;
 
     static final int HEADER_LEN = 8;
     
-    private final Attribute<ArrayList<SpdyFrame>> framesAttr =
+    private final Attribute<FrameParsingState> frameParsingState =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                    SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<ArrayList<SpdyFrame>>() {
-                @Override
-                public ArrayList<SpdyFrame> evaluate() {
-                    return new ArrayList<SpdyFrame>(4);
-                }
-            });
+            SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<FrameParsingState>() {
+        @Override
+        public FrameParsingState evaluate() {
+            return new FrameParsingState();
+        }
+    });
 
+    private volatile int maxFrameLength = DEFAULT_MAX_FRAME_LENGTH;
+    
+    /**
+     * Returns the maximum allowed SPDY frame length.
+     */
+    public int getMaxFrameLength() {
+        return maxFrameLength;
+    }
+
+    /**
+     * Sets the maximum allowed SPDY frame length.
+     */
+    public void setMaxFrameLength(final int maxFrameLength) {
+        this.maxFrameLength = maxFrameLength;
+    }
+        
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        final FrameParsingState parsingState = frameParsingState.get(connection);
+        
         final Buffer message = ctx.getMessage();
-        if (message.remaining() < HEADER_LEN) {
-            return ctx.getStopAction(message);
+        
+        if (parsingState.bytesToSkip > 0) {
+            if (!skip(parsingState, message)) {
+                return ctx.getStopAction();
+            }
         }
         
-        int position = message.position();
+        final SpdySessionException error;
         
-        int len = getMessageLength(message, position);
-        int totalLen = len + HEADER_LEN;
-        
-        if (message.remaining() < totalLen) {
-            return ctx.getStopAction(message);
-        }
-        
-        final boolean logit = LOGGER.isLoggable(LOGGER_LEVEL);
-        
-        if (message.remaining() == totalLen) {
-            SpdyFrame frame = SpdyFrame.wrap(message);
-            ctx.setMessage(frame);
+        try {
+            ParsingResult parsingResult = parseFrame(ctx, parsingState, message);
+
+            SpdyFrame frame = parsingResult.frame();
+            Buffer remainder = parsingResult.remainder();
+
+            if (frame == null) {
+                return ctx.getStopAction(remainder);
+            }
+
+            final boolean logit = LOGGER.isLoggable(LOGGER_LEVEL);
             if (logit) {
                 LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
-                        new Object[] {ctx.getConnection(), frame});
+                        new Object[] {connection, frame});
             }
-            return ctx.getInvokeAction();
-        }
-        
-        Buffer remainder = message.split(position + totalLen);
-        if (remainder.remaining() < HEADER_LEN) {
-            SpdyFrame frame = SpdyFrame.wrap(message);
-            ctx.setMessage(frame);
-            if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
-                        new Object[] {ctx.getConnection(), frame});
-            }
-            return ctx.getInvokeAction(remainder, null);
-        }
 
-        final List<SpdyFrame> frameList = framesAttr.get(ctx.getConnection());
-        SpdyFrame frame = SpdyFrame.wrap(message);
-        if (logit) {
-            LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
-                    new Object[] {ctx.getConnection(), frame});
-        }
-        frameList.add(frame);
-
-        while (remainder.remaining() >= HEADER_LEN) {
-            position = remainder.position();
-            len = getMessageLength(remainder, position);
-            totalLen = len + HEADER_LEN;
-            
-            if (remainder.remaining() < totalLen) {
-                break;
+            if (frame.isService()) {
+                // on service frame - pass it upstream keeping remainder
+                ctx.setMessage(frame);
+                return ctx.getInvokeAction(
+                        remainder.hasRemaining() ? remainder : null);
             }
             
-            final Buffer remainder2 = remainder.split(position + totalLen);
-            final SpdyFrame f = SpdyFrame.wrap(remainder);
-            if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
-                        new Object[] {ctx.getConnection(), f});
+            if (!remainder.hasRemaining()) {
+                ctx.setMessage(frame);
+                return ctx.getInvokeAction();
             }
-            frameList.add(f);
-            remainder = remainder2;
+
+            final List<SpdyFrame> frameList = parsingState.getList();
+            frameList.add(frame);
+
+            while (remainder.remaining() >= HEADER_LEN) {
+                parsingResult = parseFrame(ctx, parsingState, remainder);
+
+                frame = parsingResult.frame();
+                remainder = parsingResult.remainder();
+
+                if (frame == null) {
+                    break;
+                }
+
+                if (logit) {
+                    LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                            new Object[] {connection, frame});
+                }
+
+                frameList.add(frame);
+                
+                if (frame.isService()) {
+                    // on service frame - pass ready frames upstream, keeping remainder for later processing
+                    ctx.setMessage(frameList.size() > 1 ? frameList : frameList.remove(0));
+
+                    return ctx.getInvokeAction(
+                            remainder.hasRemaining() ? remainder : null);
+                }
+            }
+
+            ctx.setMessage(frameList.size() > 1 ? frameList : frameList.remove(0));
+
+            return ctx.getInvokeAction(
+                    (remainder.hasRemaining()) ? remainder : null, null);
+            
+        } catch (SpdySessionException e) {
+            error = e;
         }
         
-        ctx.setMessage(frameList.size() > 1 ? frameList : frameList.remove(0));
-        
-        return ctx.getInvokeAction(
-                (remainder.hasRemaining()) ? remainder : null,
-                null);
+        // ------------ ERROR processing block -----------------------------
+        final int streamId = error.getStreamId();
+
+        final Buffer sndBuffer;
+        if (streamId != -1) {
+            final RstStreamFrame rstStreamFrame = 
+                    RstStreamFrame.builder()
+                    .statusCode(error.getRstReason())
+                    .streamId(streamId)
+                    .build();
+            sndBuffer = rstStreamFrame.toBuffer(ctx.getMemoryManager());
+        } else {
+            // Only service frame may have -1 stream id
+            sndBuffer = Buffers.EMPTY_BUFFER;
+        }
+
+        // send last message and close the connection
+        final NextAction suspendAction = ctx.getSuspendAction();
+        ctx.write(sndBuffer, new EmptyCompletionHandler<WriteResult>() {
+
+            @Override
+            public void completed(WriteResult result) {
+                connection.closeSilently();
+                ctx.completeAndRecycle();
+            }
+        });
+
+        return suspendAction;
     }
 
 
@@ -158,19 +219,19 @@ public class SpdyFramingFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Object message = ctx.getMessage();
-        
+
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                LOGGER.log(LOGGER_LEVEL, "Tx: connection={0}, frame={1}",
-                        new Object[] {ctx.getConnection(), message});
-       }
-        
+            LOGGER.log(LOGGER_LEVEL, "Tx: connection={0}, frame={1}",
+                    new Object[]{ctx.getConnection(), message});
+        }
+
         final MemoryManager memoryManager = ctx.getMemoryManager();
-        
+
         if (message instanceof SpdyFrame) {
             final SpdyFrame frame = (SpdyFrame) message;
 
             ctx.setMessage(frame.toBuffer(memoryManager));
-            
+
             frame.recycle();
         } else if (message instanceof List) {
             Buffer resultBuffer = null;
@@ -198,11 +259,112 @@ public class SpdyFramingFilter extends BaseFilter {
 
     // --------------------------------------------------------- Private Methods
 
+    private ParsingResult parseFrame(final FilterChainContext ctx,
+            final FrameParsingState state,
+            final Buffer buffer) throws SpdySessionException {
+        
+        final int bufferSize = buffer.remaining();
+        
+        if (bufferSize < HEADER_LEN) {
+            return state.parsingResult.reset(null, buffer);
+        }
+        
+        final int bufferPos = buffer.position();
+        final int len = getMessageLength(buffer, bufferPos);
+        
+        if (!checkFrameLength(len)) {
+            state.bytesToSkip = len;
+            
+            return state.parsingResult.reset(
+                    createOversizedFrame(ctx, buffer), buffer);
+        }
 
+        int totalLen = len + HEADER_LEN;
+        
+        if (buffer.remaining() < totalLen) {
+            return state.parsingResult.reset(null, buffer);
+        }
+
+        final Buffer remainder = buffer.split(bufferPos + totalLen);
+        final SpdyFrame frame = SpdyFrame.wrap(buffer);
+
+        return state.parsingResult.reset(frame, remainder);
+    }
+    
     private static int getMessageLength(Buffer message, int position) {
         return ((message.get(position + 5) & 0xFF) << 16)
                 + ((message.get(position + 6) & 0xFF) << 8)
                 + (message.get(position + 7) & 0xFF);
     }
 
+    private boolean checkFrameLength(final int frameLen) {
+        return frameLen <= maxFrameLength;
+    }
+
+    private boolean skip(final FrameParsingState parsingState,
+            final Buffer message) {
+        
+        final int dec = Math.min(parsingState.bytesToSkip, message.remaining());
+        parsingState.bytesToSkip -= dec;
+        
+        message.position(message.position() + dec);
+        
+        if (message.hasRemaining()) {
+            message.shrink();
+            return true;
+        }
+        
+        message.tryDispose();
+        return false;
+    }
+
+    private SpdyFrame createOversizedFrame(
+            final FilterChainContext ctx,
+            final Buffer message) {
+        
+        final org.glassfish.grizzly.spdy.frames.SpdyHeader spdyHeader =
+                org.glassfish.grizzly.spdy.frames.SpdyHeader.wrap(message);
+        final OversizedFrame oversizedFrame = OversizedFrame.create(spdyHeader);
+        
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            LOGGER.log(LOGGER_LEVEL, "Rx: oversized frame! connection={0}, header={1}",
+                    new Object[]{ctx.getConnection(), spdyHeader});
+        }
+        
+        return oversizedFrame;
+    }
+
+    private final static class FrameParsingState {
+        private List<SpdyFrame> spdyFrameList;
+        private int bytesToSkip;
+        private final ParsingResult parsingResult = new ParsingResult();
+        
+        List<SpdyFrame> getList() {
+            if (spdyFrameList == null) {
+                spdyFrameList = new ArrayList<SpdyFrame>(4);
+            }
+            
+            return spdyFrameList;
+        }
+    }
+
+    private final static class ParsingResult {
+        private SpdyFrame frame;
+        private Buffer remainder;
+        
+        private ParsingResult reset(final SpdyFrame frame, final Buffer remainder) {
+            this.frame = frame;
+            this.remainder = remainder;
+            
+            return this;
+        }
+
+        private SpdyFrame frame() {
+            return frame;
+        }
+
+        private Buffer remainder() {
+            return remainder;
+        }
+    }
 }
