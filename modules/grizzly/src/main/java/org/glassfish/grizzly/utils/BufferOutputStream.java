@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -115,6 +115,15 @@ public class BufferOutputStream extends OutputStream {
     }
 
     // ----------------------------------------------- Public methods
+    
+
+    public void setInitialOutputBuffer(final Buffer initialBuffer) {
+        if (currentBuffer != null || compositeBuffer != null) {
+            throw new IllegalStateException("Can not set initial buffer on non-reset OutputStream");
+        }
+        
+        currentBuffer = initialBuffer;
+    }
     
     /**
      * Get the result {@link Buffer} (not flipped).
