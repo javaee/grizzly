@@ -285,7 +285,7 @@ final class SpdySession {
 
     SpdyStream acceptStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot) throws SpdyRstStreamException {
+            final int priority, final int slot) throws SpdyStreamException {
         
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
@@ -297,7 +297,7 @@ final class SpdySession {
             }
             
             if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
-                throw new SpdyRstStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
+                throw new SpdyStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -310,7 +310,7 @@ final class SpdySession {
     SpdyStream openStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
             final int priority, final int slot, final boolean fin)
-            throws SpdyRstStreamException {
+            throws SpdyStreamException {
         
         spdyRequest.setExpectContent(!fin);
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
@@ -323,7 +323,7 @@ final class SpdySession {
             }
             
             if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
-                throw new SpdyRstStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
+                throw new SpdyStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -561,7 +561,7 @@ final class SpdySession {
          * @return <tt>HttpRequestPacket</tt>
          */
         @SuppressWarnings("unchecked")
-        public final SpdyStream open() throws SpdyRstStreamException {
+        public final SpdyStream open() throws SpdyStreamException {
             newClientStreamLock.lock();
 
             try {

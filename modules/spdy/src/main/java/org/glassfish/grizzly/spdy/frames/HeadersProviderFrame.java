@@ -67,6 +67,7 @@ public abstract class HeadersProviderFrame extends SpdyFrame {
     @Override
     public void recycle() {
         if (dispose) {
+            dispose = false;
             compressedHeaders.dispose();
         }
         compressedHeaders = null;

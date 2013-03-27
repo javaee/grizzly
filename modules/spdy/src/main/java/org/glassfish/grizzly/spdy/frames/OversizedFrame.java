@@ -37,29 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.spdy;
-
-import java.io.IOException;
+package org.glassfish.grizzly.spdy.frames;
 
 /**
- * SPDY Stream reset exception.
+ * The {@link ServiceFrame}, which signals about oversized frame received from peer.
+ * The {@link OversizedFrame#getHeader()} contains the original SPDY frame header.
  * 
  * @author Alexey Stashok
  */
-public final class SpdyRstStreamException extends IOException {
-    private final int streamId;
-    private final int rstReason;
+public class OversizedFrame extends ServiceFrame {
+    public static final int CODE = -100;
 
-    public SpdyRstStreamException(final int streamId, final int rstReason) {
-        this.streamId = streamId;
-        this.rstReason = rstReason;
+    protected OversizedFrame() {
+    }
+    
+    public static OversizedFrame create(final SpdyHeader header) {
+        final OversizedFrame frame = new OversizedFrame();
+        frame.initialize(header);
+        return frame;
     }
 
-    public int getStreamId() {
-        return streamId;
-    }
-
-    public int getRstReason() {
-        return rstReason;
+    @Override
+    public int getServiceCode() {
+        return CODE;
     }
 }

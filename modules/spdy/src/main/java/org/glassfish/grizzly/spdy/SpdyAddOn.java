@@ -60,8 +60,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
-import static org.glassfish.grizzly.spdy.Constants.DEFAULT_INITIAL_WINDOW_SIZE;
-import static org.glassfish.grizzly.spdy.Constants.DEFAULT_MAX_CONCURRENT_STREAMS;
+import static org.glassfish.grizzly.spdy.Constants.*;
 
 import javax.net.ssl.SSLEngine;
 
@@ -84,6 +83,7 @@ public class SpdyAddOn implements AddOn {
 
     private int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
     private int initialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    private int maxFrameLength = DEFAULT_MAX_FRAME_SIZE;
     
     public SpdyAddOn() {
         this(SpdyMode.NPN);
@@ -122,6 +122,14 @@ public class SpdyAddOn implements AddOn {
     // ------------------------------------------------------ Getters / Setters
     
     /**
+     * Returns the default maximum number of concurrent streams allowed for one session.
+     * Negative value means "unlimited".
+     */
+    public int getMaxConcurrentStreams() {
+        return maxConcurrentStreams;
+    }
+    
+    /**
      * Sets the default maximum number of concurrent streams allowed for one session.
      * Negative value means "unlimited".
      */
@@ -130,27 +138,34 @@ public class SpdyAddOn implements AddOn {
     }
 
     /**
-     * Returns the default maximum number of concurrent streams allowed for one session.
-     * Negative value means "unlimited".
+     * Returns the default initial stream window size (in bytes) for new SPDY sessions.
      */
-    public int getMaxConcurrentStreams() {
-        return maxConcurrentStreams;
+    public int getInitialWindowSize() {
+        return initialWindowSize;
     }
-
+    
     /**
      * Sets the default initial stream window size (in bytes) for new SPDY sessions.
      */
     public void setInitialWindowSize(final int initialWindowSize) {
         this.initialWindowSize = initialWindowSize;
     }
+  
+    /**
+     * Returns the maximum allowed SPDY frame length.
+     */
+    public int getMaxFrameLength() {
+        return maxFrameLength;
+    }
 
     /**
-     * Returns the default initial stream window size (in bytes) for new SPDY sessions.
+     * Sets the maximum allowed SPDY frame length.
      */
-    public int getInitialWindowSize() {
-        return initialWindowSize;
-    }    
+    public void setMaxFrameLength(final int maxFrameLength) {
+        this.maxFrameLength = maxFrameLength;
+    }
 
+    
     // ------------------------------------------------------- Protected Methods
 
 
@@ -180,7 +195,9 @@ public class SpdyAddOn implements AddOn {
     private void insertSpdyFilters(SpdyMode mode,
             FilterChainBuilder builder, int idx) {
         
-        builder.add(idx, new SpdyFramingFilter());
+        final SpdyFramingFilter spdyFramingFilter = new SpdyFramingFilter();
+        spdyFramingFilter.setMaxFrameLength(getMaxFrameLength());
+        builder.add(idx, spdyFramingFilter);
         
         final SpdyHandlerFilter spdyHandlerFilter = new SpdyHandlerFilter(mode);
         spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());

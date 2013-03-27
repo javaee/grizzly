@@ -39,8 +39,17 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.glassfish.grizzly.spdy.SpdyStream.Termination;
 import org.glassfish.grizzly.spdy.SpdyStream.TerminationType;
+import org.glassfish.grizzly.spdy.frames.HeadersFrame;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
+import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
+import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
+import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -52,7 +61,8 @@ public class Constants {
     
     public static final int DEFAULT_MAX_CONCURRENT_STREAMS = 100;
     public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
-        
+    public static final int DEFAULT_MAX_FRAME_SIZE = 1 << 24;
+    
     static byte[] HOST_HEADER_BYTES = ":host".getBytes(Charsets.ASCII_CHARSET);
     static byte[] METHOD_HEADER_BYTES = ":method".getBytes(Charsets.ASCII_CHARSET);
     static byte[] PATH_HEADER_BYTES = ":path".getBytes(Charsets.ASCII_CHARSET);
@@ -76,6 +86,16 @@ public class Constants {
     
     static final Termination RESET_TERMINATION =
             new Termination(TerminationType.RST, "Reset by peer");
+
+    static final Termination FRAME_TOO_LARGE_TERMINATION =
+            new Termination(TerminationType.LOCAL_CLOSE, "SpdyFrame sent by peer is too big");
+    
+    static final Set<Integer> CTRL_FRAMES_WITH_STREAM_ID =
+            Collections.<Integer>unmodifiableSet(
+                new HashSet<Integer>(
+                    Arrays.asList(SynStreamFrame.TYPE, SynReplyFrame.TYPE,
+                        RstStreamFrame.TYPE, HeadersFrame.TYPE,
+                        WindowUpdateFrame.TYPE)));
 
     
     public static final byte[] SPDY_ZLIB_DICTIONARY = {

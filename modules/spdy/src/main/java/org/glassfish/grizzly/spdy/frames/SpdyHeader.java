@@ -100,7 +100,7 @@ public class SpdyHeader implements Cacheable {
     // ---------------------------------------------------------- Public Methods
 
 
-    static SpdyHeader wrap(final Buffer buffer) {
+    public static SpdyHeader wrap(final Buffer buffer) {
         SpdyHeader header = ThreadCache.takeFromCache(CACHE_IDX);
         if (header == null) {
             header = new SpdyHeader();
