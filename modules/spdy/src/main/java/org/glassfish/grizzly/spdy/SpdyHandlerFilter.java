@@ -183,7 +183,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
         
-        final SpdySession spdySession = checkSpdySession(ctx, true);
+         final SpdySession spdySession = checkSpdySession(ctx, true);
         
         final Object message = ctx.getMessage();
 

@@ -45,14 +45,18 @@ import java.util.List;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
+import org.glassfish.grizzly.utils.BufferOutputStream;
 
 import static org.glassfish.grizzly.http.util.Constants.*;
+import static org.glassfish.grizzly.http.util.DataChunk.Type.Buffer;
+import static org.glassfish.grizzly.http.util.DataChunk.Type.Bytes;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
@@ -67,7 +71,11 @@ class SpdyEncoderUtils {
     static Buffer encodeSynReplyHeaders(final SpdySession spdySession,
             final HttpResponsePacket response) throws IOException {
 
-        Buffer buffer = spdySession.getMemoryManager().allocateAtLeast(2048);
+        final Buffer compressedBuffer =
+                spdySession.getMemoryManager().allocateAtLeast(2048);
+        final Buffer plainBuffer =
+                spdySession.getMemoryManager().allocateAtLeast(2048);
+        
         final MimeHeaders headers = response.getHeaders();
         
         headers.removeHeader(Header.Connection);
@@ -80,11 +88,22 @@ class SpdyEncoderUtils {
         final SpdyDeflaterOutputStream deflaterOutputStream =
                 spdySession.getDeflaterOutputStream();
 
-        deflaterOutputStream.setInitialOutputBuffer(buffer);
+        deflaterOutputStream.setInitialOutputBuffer(compressedBuffer);
+
+        // Serialize user headers first, so we know their count
+        final BufferOutputStream userHeadersBOS = spdySession.getPlainOutputStream();
+        final DataOutputStream userHeadersDOS = spdySession.getPlainDataOutputStream();
+        userHeadersBOS.setInitialOutputBuffer(plainBuffer);
         
-        final int mimeHeadersCount = headers.size();
+        final int userHeadersNum = encodeUserHeaders(spdySession, headers, userHeadersDOS);
+        userHeadersDOS.flush();
+        final Buffer userHeadersBuffer = userHeadersBOS.getBuffer();
+        userHeadersBOS.reset();
         
-        dataOutputStream.writeInt(mimeHeadersCount + 2);
+        // get the plain user headers buffer
+        userHeadersBuffer.trim();
+        
+        dataOutputStream.writeInt(userHeadersNum + 2);
 
 
         if (response.isCustomReasonPhraseSet()) {
@@ -100,10 +119,11 @@ class SpdyEncoderUtils {
         
         encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
                 response.getProtocol().getProtocolBytes());
-                
-        encodeUserHeaders(spdySession, headers, dataOutputStream);
-        
+
+
         dataOutputStream.flush();
+        deflaterOutputStream.write(userHeadersBuffer);
+        userHeadersBuffer.dispose();
         
         return deflaterOutputStream.checkpoint();
     }
@@ -112,7 +132,11 @@ class SpdyEncoderUtils {
     static Buffer encodeSynStreamHeaders(final SpdySession spdySession,
             final HttpRequestPacket request) throws IOException {
 
-        Buffer outputBuffer = spdySession.getMemoryManager().allocateAtLeast(2048);
+        final Buffer outputBuffer =
+                spdySession.getMemoryManager().allocateAtLeast(2048);
+        final Buffer plainBuffer =
+                spdySession.getMemoryManager().allocateAtLeast(2048);
+        
         final MimeHeaders headers = request.getHeaders();
         
         final DataOutputStream dataOutputStream =
@@ -121,7 +145,7 @@ class SpdyEncoderUtils {
                 spdySession.getDeflaterOutputStream();
 
         deflaterOutputStream.setInitialOutputBuffer(outputBuffer);
-        
+
         final String hostHeader = headers.getHeader(Header.Host);
 
         headers.removeHeader(Header.Connection);
@@ -130,9 +154,21 @@ class SpdyEncoderUtils {
         headers.removeHeader(Header.ProxyConnection);
         headers.removeHeader(Header.TransferEncoding);
         
-        final int mimeHeadersCount = headers.size();
         
-        dataOutputStream.writeInt(mimeHeadersCount + 5);
+        // Serialize user headers first, so we know their count
+        final BufferOutputStream userHeadersBOS = spdySession.getPlainOutputStream();
+        final DataOutputStream userHeadersDOS = spdySession.getPlainDataOutputStream();
+        userHeadersBOS.setInitialOutputBuffer(plainBuffer);
+        
+        final int userHeadersNum = encodeUserHeaders(spdySession, headers, userHeadersDOS);
+        userHeadersDOS.flush();
+        final Buffer userHeadersBuffer = userHeadersBOS.getBuffer();
+        userHeadersBOS.reset();
+        
+        // get the plain user headers buffer
+        userHeadersBuffer.trim();
+
+        dataOutputStream.writeInt(userHeadersNum + 5);
 
         // ----------------- Parse URI scheme and path ----------------
         int schemeStart = -1;
@@ -182,20 +218,21 @@ class SpdyEncoderUtils {
                     HTTPS_BYTES);
         }
         
-        encodeUserHeaders(spdySession, headers, dataOutputStream);
-        
         dataOutputStream.flush();
+        deflaterOutputStream.write(userHeadersBuffer);
+        userHeadersBuffer.dispose();
         
         return deflaterOutputStream.checkpoint();
     }
 
     @SuppressWarnings("unchecked")
-    private static void encodeUserHeaders(final SpdySession spdySession,
+    private static int encodeUserHeaders(final SpdySession spdySession,
             final MimeHeaders headers,
             final DataOutputStream dataOutputStream) throws IOException {
         
         final int mimeHeadersCount = headers.size();
         final List tmpList = spdySession.tmpList;
+        int headersNum = 0;
         
         for (int i = 0; i < mimeHeadersCount; i++) {
             int valueSize = 0;
@@ -221,7 +258,8 @@ class SpdyEncoderUtils {
                     }
                 }
                 
-                encodeDataChunkWithLenPrefix(dataOutputStream, headers.getName(i));
+                headersNum++;
+                encodeDataChunkWithLenPrefixLowerCase(dataOutputStream, headers.getName(i));
                 
                 if (!tmpList.isEmpty()) {
                     final int extraValuesCount = tmpList.size();
@@ -252,6 +290,8 @@ class SpdyEncoderUtils {
                 }
             }
         }
+        
+        return headersNum;
     }
     
     private static void encodeDataChunkWithLenPrefix(final DataOutputStream dataOutputStream,
@@ -261,6 +301,15 @@ class SpdyEncoderUtils {
         dataOutputStream.writeInt(len);
         
         encodeDataChunk(dataOutputStream, dc);
+    }
+
+    private static void encodeDataChunkWithLenPrefixLowerCase(final DataOutputStream dataOutputStream,
+            final DataChunk dc) throws IOException {
+        
+        final int len = dc.getLength();
+        dataOutputStream.writeInt(len);
+        
+        encodeDataChunkLowerCase(dataOutputStream, dc);
     }
 
     private static void encodeDataChunk(final DataOutputStream dataOutputStream,
@@ -313,6 +362,74 @@ class SpdyEncoderUtils {
             final char c = s.charAt(i);
             if (c != 0) {
                 dataOutputStream.write(c);
+            } else {
+                dataOutputStream.write(' ');
+            }
+        }
+    }    
+
+    private static void encodeDataChunkLowerCase(final DataOutputStream dataOutputStream,
+            final DataChunk dc) throws IOException {
+        if (dc.isNull()) {
+            return;
+        }
+
+        switch (dc.getType()) {
+            case Bytes: {
+                final ByteChunk bc = dc.getByteChunk();
+                encodeDataChunkLowerCase(dataOutputStream, bc.getBuffer(), bc.getStart(),
+                        bc.getLength());
+
+                break;
+            }
+                
+            case Buffer: {
+                final BufferChunk bufferChunk = dc.getBufferChunk();
+                encodeDataChunkLowerCase(dataOutputStream, bufferChunk.getBuffer(),
+                        bufferChunk.getStart(), bufferChunk.getLength());
+                break;
+            }
+                
+            default: {
+                encodeDataChunkLowerCase(dataOutputStream, dc.toString());
+            }
+        }
+    }
+    
+    private static void encodeDataChunkLowerCase(final DataOutputStream dataOutputStream,
+            final byte[] array, final int offs, final int len) throws IOException {
+        
+            final int lim = offs + len;
+            
+            for (int i = offs; i < lim; i++) {
+                dataOutputStream.write(Ascii.toLower(array[i]));
+            }
+    }
+    
+    private static void encodeDataChunkLowerCase(final DataOutputStream dataOutputStream,
+            final Buffer buffer, final int offs, final int len) throws IOException {
+        
+        if (buffer.hasArray()) {
+            encodeDataChunkLowerCase(dataOutputStream, buffer.array(),
+                    buffer.arrayOffset() + offs, len);
+        } else {
+            final int lim = offs + len;
+
+            for (int i = offs; i < lim; i++) {
+                dataOutputStream.write(Ascii.toLower(buffer.get(i)));
+            }
+        }
+    }
+
+    private static void encodeDataChunkLowerCase(
+            final DataOutputStream dataOutputStream,
+            final String s) throws IOException {
+        final int len = s.length();
+        
+        for (int i = 0; i < len; i++) {
+            final char c = s.charAt(i);
+            if (c != 0) {
+                dataOutputStream.write(Ascii.toLower(c));
             } else {
                 dataOutputStream.write(' ');
             }
