@@ -1130,13 +1130,7 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
 
             FilterChain clientFilterChain = createClientFilterChain(
                     spdyMode, isSecure, new ClientFilter(parseResult));
-                    
-//                    FilterChainBuilder.stateless();
-//            clientFilterChainBuilder.add(new TransportFilter());
-//            clientFilterChainBuilder.add(new ChunkingFilter(1024));
-//            clientFilterChainBuilder.add(new HttpClientFilter());
-//            clientFilterChainBuilder.add(new ClientFilter(parseResult));
-            
+
             ctransport.setFilterChain(clientFilterChain);
 
             ctransport.start();

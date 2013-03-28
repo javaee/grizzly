@@ -60,9 +60,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpTrailer;
-import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
@@ -1246,33 +1244,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     private HttpPacket createRequest(final String method,
                                      final String content,
                                      final String encoding) {
-        Buffer contentBuffer;
-        try {
-        contentBuffer = content != null ?
-            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content.getBytes(encoding)) :
-            null;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(((content == null)))
-                .header("Host", "localhost");
-        if (content != null) {
-            b.contentLength(contentBuffer.remaining());
-        }
-
-        HttpRequestPacket request = b.build();
-        request.setCharacterEncoding(encoding);
-        request.setContentType("text/plain");
-
-        if (content != null) {
-            HttpContent.Builder cb = request.httpContentBuilder();
-            cb.content(contentBuffer);
-            return cb.build();
-        }
-
-        return request;
+        return createRequest(PORT, method, content, encoding);
     }
 
     private void doTest(HttpPacket request,

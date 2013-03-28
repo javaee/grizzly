@@ -66,7 +66,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -135,7 +134,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final EchoHandler httpHandler = new EchoHttpHandler(testResult, 1);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+        final HttpPacket request = createRequest(PORT, "POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 20);
         
     }
@@ -151,7 +150,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final EchoHandler httpHandler = new EchoHttpHandler(testResult, 1000);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+        final HttpPacket request = createRequest(PORT, "POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 20);
 
     }
@@ -365,7 +364,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+        final HttpPacket request = createRequest(PORT, "POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 60);
 
     }
@@ -381,7 +380,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final String encoding = "UTF-16";
         final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, encoding);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, encoding);
+        final HttpPacket request = createRequest(PORT, "POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
         doTest(httpHandler, expected, testResult, filter, 60);
 
@@ -398,7 +397,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1000, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+        final HttpPacket request = createRequest(PORT, "POST", expected, null);
         doTest(httpHandler, request, expected, testResult, null, 20);
 
     }
@@ -565,7 +564,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                HttpRequestPacket packet = (HttpRequestPacket) createRequest("POST", null, null);
+                HttpRequestPacket packet = (HttpRequestPacket) createRequest(PORT, "POST", null, null);
                 packet.setContentLength(5000);
                 connection.write(packet);
 
@@ -718,45 +717,6 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         return sb.toString();
 
     }
-
-
-    @SuppressWarnings({"unchecked"})
-    private HttpPacket createRequest(final String method,
-                                     final String content,
-                                     String encoding) {
-
-        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(true).header("Host", "localhost:" + PORT);
-
-        HttpRequestPacket request = b.build();
-
-        if (content != null) {
-            HttpContent.Builder cb = request.httpContentBuilder();
-            MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
-            Buffer contentBuffer;
-            if (encoding != null) {
-                try {
-                    byte[] bytes = content.getBytes(encoding);
-                    contentBuffer = Buffers.wrap(mm, bytes);
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                contentBuffer = Buffers.wrap(mm, content);
-            }
-
-            cb.content(contentBuffer);
-            HttpContent c = cb.build();
-            if (encoding != null) {
-                c.getHttpHeader().addHeader("content-type", "text/plain;charset=" + encoding);
-            }
-            return c;
-
-        }
-
-        return request;
-    }
-
 
     // ---------------------------------------------------------- Nested Classes
 
