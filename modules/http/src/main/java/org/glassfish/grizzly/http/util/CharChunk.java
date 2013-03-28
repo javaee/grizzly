@@ -991,7 +991,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     @Override
     public final int indexOf(String s, int fromIndex) {
-        return indexOf(s, 0, s.length(), start);
+        return indexOf(s, 0, s.length(), fromIndex);
     }
 
     public final int indexOf(String src, int srcOff, int srcLen, int myOff) {

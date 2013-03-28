@@ -143,26 +143,28 @@ public class CompressionEncodingFilter implements EncodingFilter {
             return false;
         }
         String alias = null;
-        int idx;
+        int idx = -1;
         for (int i = 0, len = aliases.length; i < len; i++) {
             alias = aliases[i];
             idx = acceptEncodingDC.indexOf(alias, 0);
             if (idx != -1) {
                 break;
             }
-            alias = null;
         }
 
-        if (alias == null) {
+        if (idx == -1) {
             return false;
         }
 
+        assert alias != null;
+        
         // we only care about q=0/q=0.0.  If present, the user-agent
         // doesn't support this particular compression.
-        int qvalueStart = acceptEncodingDC.indexOf(';', alias.length());
+        int qvalueStart = acceptEncodingDC.indexOf(';', idx + alias.length());
         if (qvalueStart != -1) {
             qvalueStart = acceptEncodingDC.indexOf('=', qvalueStart);
-            final int qvalueEnd = acceptEncodingDC.indexOf(',', qvalueStart);
+            final int commaIdx = acceptEncodingDC.indexOf(',', qvalueStart);
+            final int qvalueEnd = commaIdx != -1 ? commaIdx : acceptEncodingDC.getLength();
             if (HttpUtils.convertQValueToFloat(acceptEncodingDC,
                     qvalueStart + 1,
                     qvalueEnd) == 0.0f) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,14 +63,21 @@ public class HttpUtils {
         DataChunk.Type type = dc.getType();
         try {
             switch (type) {
-                case String:
+                case String: {
                     qvalue = HttpUtils.convertQValueToFloat(dc.toString(), startIdx, stopIdx);
                     break;
-                case Buffer:
-                    qvalue = HttpUtils.convertQValueToFloat(dc.getBufferChunk().getBuffer(), startIdx, stopIdx);
+                }
+                case Buffer: {
+                    final BufferChunk bc = dc.getBufferChunk();
+                    final int offs = bc.getStart();
+                    qvalue = HttpUtils.convertQValueToFloat(bc.getBuffer(), offs + startIdx, offs + stopIdx);
                     break;
-                case Chars:
-                    qvalue = HttpUtils.convertQValueToFloat(dc.getCharChunk().getChars(), startIdx, stopIdx);
+                }
+                case Chars: {
+                    final CharChunk cc = dc.getCharChunk();
+                    final int offs = cc.getStart();
+                    qvalue = HttpUtils.convertQValueToFloat(cc.getChars(), offs + startIdx, offs + stopIdx);
+                }
             }
         } catch (Exception e) {
             qvalue = 0f;
