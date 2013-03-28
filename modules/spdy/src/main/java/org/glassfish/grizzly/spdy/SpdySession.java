@@ -74,7 +74,6 @@ import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
-import org.glassfish.grizzly.utils.BufferOutputStream;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -96,9 +95,7 @@ final class SpdySession {
     private SpdyDeflaterOutputStream deflaterOutputStream;
     private DataOutputStream deflaterDataOutputStream;
 
-    private BufferOutputStream plainOutputStream;
-    private DataOutputStream plainDataOutputStream;
-
+    private final ReentrantLock deflaterLock = new ReentrantLock();
     private int deflaterCompressionLevel = Deflater.DEFAULT_COMPRESSION;
     
     private int lastPeerStreamId;
@@ -113,7 +110,6 @@ final class SpdySession {
             new ConcurrentHashMap<Integer, SpdyStream>();
     
     final List<SpdyStream> streamsToFlushInput = new ArrayList<SpdyStream>();
-    final List tmpList = new ArrayList();
     
     private final Object sessionLock = new Object();
     
@@ -265,6 +261,10 @@ final class SpdySession {
         this.deflaterCompressionLevel = deflaterCompressionLevel;
     }    
 
+    ReentrantLock getDeflaterLock() {
+        return deflaterLock;
+    }
+
     SpdyDeflaterOutputStream getDeflaterOutputStream() {
         if (deflaterOutputStream == null) {
             deflaterOutputStream = new SpdyDeflaterOutputStream(
@@ -283,23 +283,6 @@ final class SpdySession {
         }
         
         return deflaterDataOutputStream;
-    }
-
-    BufferOutputStream getPlainOutputStream() {
-        if (plainOutputStream == null) {
-            plainOutputStream = new BufferOutputStream(getMemoryManager());
-        }
-        
-        return plainOutputStream;
-    }
-    
-    DataOutputStream getPlainDataOutputStream() {
-        if (plainDataOutputStream == null) {
-            plainDataOutputStream = new DataOutputStream(
-                    getPlainOutputStream());
-        }
-        
-        return plainDataOutputStream;
     }
 
     ReentrantLock getNewClientStreamLock() {

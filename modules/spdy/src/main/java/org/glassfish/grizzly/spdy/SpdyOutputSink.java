@@ -79,8 +79,7 @@ final class SpdyOutputSink {
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
             new OutputQueueRecord(null, null, true);
     
-    // current output queue size
-//    private final AtomicInteger outputQueueSize = new AtomicInteger();
+    // async output queue
     final TaskQueue<OutputQueueRecord> outputQueue =
             TaskQueue.createTaskQueue(new TaskQueue.MutableMaxQueueSize() {
 
@@ -250,171 +249,178 @@ final class SpdyOutputSink {
         
         int framesAvailFlag = 0;
         SpdyFrame headerFrame = null;
-        
-        // If HTTP header hasn't been commited - commit it
-        if (!httpHeader.isCommitted()) {
-            // do we expect any HTTP payload?
-            final boolean isNoContent = !httpHeader.isExpectContent() ||
-                    (httpContent != null && httpContent.isLast() &&
-                    !httpContent.getContent().hasRemaining());
-            
-            // encode HTTP packet header
-            if (!httpHeader.isRequest()) {
-                Buffer compressedHeaders;
-                synchronized (spdySession) { // TODO This sync point should be revisited for a more optimal solution.
-                    compressedHeaders = SpdyEncoderUtils.encodeSynReplyHeaders(spdySession,
-                                                                               (HttpResponsePacket) httpHeader);
-                }
-                headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
-                        last(isNoContent).compressedHeaders(compressedHeaders).build();
-            } else {
-                Buffer compressedHeaders;
-                synchronized (spdySession) {
-                    compressedHeaders = SpdyEncoderUtils.encodeSynStreamHeaders(spdySession,
-                                                                               (HttpRequestPacket) httpHeader);
-                }
-                headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                        associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                        last(isNoContent).compressedHeaders(compressedHeaders).build();
-            }
-
-            httpHeader.setCommitted(true);
-            framesAvailFlag = 1;
-            
-            if (isNoContent) {
-                // if we don't expect any HTTP payload, mark this frame as
-                // last and return
-                writeDownStream(headerFrame, completionHandler,
-                        messageCloner, isNoContent);
-                return;
-            }
-        }
-        
-        SpdyFrame dataFrame = null;
         OutputQueueRecord outputQueueRecord = null;
-        boolean isLast = false;
         
-        // if there is a payload to send now
-        if (httpContent != null) {
-            isLast = httpContent.isLast();
-            Buffer data = httpContent.getContent();
-            final int dataSize = data.remaining();
+        boolean isDeflaterLocked = false;
+        
+        try { // try-finally block to release deflater lock if needed
             
-            if (isLast && dataSize == 0) {
-                close();
-                return;
-            }
-            
-            AggregatingCompletionHandler aggrCompletionHandler = null;
-            
-            boolean isDataCloned = false;
-            
-            // Check if output queue is not empty - add new element
-            if (outputQueue.reserveSpace(dataSize) > dataSize) {
-                // if the queue is not empty - the headers should have been sent
-                assert headerFrame == null;
+            // If HTTP header hasn't been commited - commit it
+            if (!httpHeader.isCommitted()) {
+                // do we expect any HTTP payload?
+                final boolean isNoContent = !httpHeader.isExpectContent() ||
+                        (httpContent != null && httpContent.isLast() &&
+                        !httpContent.getContent().hasRemaining());
 
-                aggrCompletionHandler = AggregatingCompletionHandler.create(completionHandler);
-
-                if (messageCloner != null) {
-                    data = (Buffer) messageCloner.clone(
-                            spdySession.getConnection(), data);
-                    isDataCloned = true;
+                // encode HTTP packet header
+                if (!httpHeader.isRequest()) {
+                    final Buffer compressedHeaders =
+                            SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
+                            spdySession, (HttpResponsePacket) httpHeader);
+                    headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
+                            last(isNoContent).compressedHeaders(compressedHeaders).build();
+                } else {
+                    final Buffer compressedHeaders =
+                            SpdyEncoderUtils.encodeSynStreamHeadersAndLock(spdySession,
+                            (HttpRequestPacket) httpHeader);
+                    headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                            associatedStreamId(spdyStream.getAssociatedToStreamId()).
+                            last(isNoContent).compressedHeaders(compressedHeaders).build();
                 }
-                
-                outputQueueRecord = new OutputQueueRecord(
-                        data, aggrCompletionHandler, isLast);
-                // Should be called before flushing headerFrame, so
-                // AggregatingCompletionHanlder will not pass completed event to the parent
-                outputQueueRecord.incCompletionCounter();
-                
-                outputQueue.offer(outputQueueRecord);
-                
-                // check if our element wasn't forgotten (async)
-                if (outputQueue.size() != dataSize ||
-                        !outputQueue.remove(outputQueueRecord)) {
-                    // if not - return
+
+                isDeflaterLocked = true;
+                httpHeader.setCommitted(true);
+                framesAvailFlag = 1;
+
+                if (isNoContent) {
+                    // if we don't expect any HTTP payload, mark this frame as
+                    // last and return
+                    writeDownStream(headerFrame, completionHandler,
+                            messageCloner, isNoContent);
                     return;
                 }
-                
-                outputQueueRecord.decCompletionCounter();
-                outputQueueRecord = null;
             }
-            
-            // our element is first in the output queue
-            
-            
-            // check if output record's buffer is fitting into window size
-            // if not - split it into 2 parts: part to send, part to keep in the queue
-            final int fitWindowIdx = checkOutputWindow(data);
 
-            // if there is a chunk to store
-            if (fitWindowIdx != -1) {
-                aggrCompletionHandler = AggregatingCompletionHandler.create(
-                        completionHandler, aggrCompletionHandler);
-                
-                if (!isDataCloned && messageCloner != null) {
-                    data = (Buffer) messageCloner.clone(
-                            spdySession.getConnection(), data);
-                    isDataCloned = true;
+            SpdyFrame dataFrame = null;
+            boolean isLast = false;
+
+            // if there is a payload to send now
+            if (httpContent != null) {
+                isLast = httpContent.isLast();
+                Buffer data = httpContent.getContent();
+                final int dataSize = data.remaining();
+
+                if (isLast && dataSize == 0) {
+                    close();
+                    return;
                 }
-                
-                final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
-                        data, fitWindowIdx);
-                
-                // Create output record for the chunk to be stored
-                outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
-                                                            aggrCompletionHandler,
-                                                            isLast);
-                outputQueueRecord.incCompletionCounter();
-                // reset completion handler and isLast for the current chunk
-                isLast = false;
-            }
-            
-            // if there is a chunk to send
-            if (data != null &&
-                    (data.hasRemaining() || isLast)) {
-                spdyStream.onDataFrameSend();
-                
-                final int dataChunkToSendSize = data.remaining();
-                
-                // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSendSize);
-                outputQueue.releaseSpace(dataChunkToSendSize);
 
-                // encode spdydata frame
-                dataFrame = DataFrame.builder()
-                        .streamId(spdyStream.getStreamId())
-                        .data(data).last(isLast)
-                        .build();
-                framesAvailFlag |= 2;
-            }
-            
-            completionHandler = aggrCompletionHandler == null ?
-                    completionHandler :
-                    aggrCompletionHandler;
-            messageCloner = isDataCloned ? null : messageCloner;
-        }
+                AggregatingCompletionHandler aggrCompletionHandler = null;
 
-        switch (framesAvailFlag) {
-            case 1: {
-                writeDownStream(headerFrame, completionHandler,
-                        messageCloner, false);
-                break;
+                boolean isDataCloned = false;
+
+                // Check if output queue is not empty - add new element
+                if (outputQueue.reserveSpace(dataSize) > dataSize) {
+                    // if the queue is not empty - the headers should have been sent
+                    assert headerFrame == null;
+
+                    aggrCompletionHandler = AggregatingCompletionHandler.create(completionHandler);
+
+                    if (messageCloner != null) {
+                        data = (Buffer) messageCloner.clone(
+                                spdySession.getConnection(), data);
+                        isDataCloned = true;
+                    }
+
+                    outputQueueRecord = new OutputQueueRecord(
+                            data, aggrCompletionHandler, isLast);
+                    // Should be called before flushing headerFrame, so
+                    // AggregatingCompletionHanlder will not pass completed event to the parent
+                    outputQueueRecord.incCompletionCounter();
+
+                    outputQueue.offer(outputQueueRecord);
+
+                    // check if our element wasn't forgotten (async)
+                    if (outputQueue.size() != dataSize ||
+                            !outputQueue.remove(outputQueueRecord)) {
+                        // if not - return
+                        return;
+                    }
+
+                    outputQueueRecord.decCompletionCounter();
+                    outputQueueRecord = null;
+                }
+
+                // our element is first in the output queue
+
+
+                // check if output record's buffer is fitting into window size
+                // if not - split it into 2 parts: part to send, part to keep in the queue
+                final int fitWindowIdx = checkOutputWindow(data);
+
+                // if there is a chunk to store
+                if (fitWindowIdx != -1) {
+                    aggrCompletionHandler = AggregatingCompletionHandler.create(
+                            completionHandler, aggrCompletionHandler);
+
+                    if (!isDataCloned && messageCloner != null) {
+                        data = (Buffer) messageCloner.clone(
+                                spdySession.getConnection(), data);
+                        isDataCloned = true;
+                    }
+
+                    final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
+                            data, fitWindowIdx);
+
+                    // Create output record for the chunk to be stored
+                    outputQueueRecord = new OutputQueueRecord(dataChunkToStore,
+                                                                aggrCompletionHandler,
+                                                                isLast);
+                    outputQueueRecord.incCompletionCounter();
+                    // reset completion handler and isLast for the current chunk
+                    isLast = false;
+                }
+
+                // if there is a chunk to send
+                if (data != null &&
+                        (data.hasRemaining() || isLast)) {
+                    spdyStream.onDataFrameSend();
+
+                    final int dataChunkToSendSize = data.remaining();
+
+                    // update unconfirmed bytes counter
+                    unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                    outputQueue.releaseSpace(dataChunkToSendSize);
+
+                    // encode spdydata frame
+                    dataFrame = DataFrame.builder()
+                            .streamId(spdyStream.getStreamId())
+                            .data(data).last(isLast)
+                            .build();
+                    framesAvailFlag |= 2;
+                }
+
+                completionHandler = aggrCompletionHandler == null ?
+                        completionHandler :
+                        aggrCompletionHandler;
+                messageCloner = isDataCloned ? null : messageCloner;
             }
-            case 2: {
-                writeDownStream(dataFrame, completionHandler,
-                        messageCloner, isLast);
-                break;
+
+            switch (framesAvailFlag) {
+                case 1: {
+                    writeDownStream(headerFrame, completionHandler,
+                            messageCloner, false);
+                    break;
+                }
+                case 2: {
+                    writeDownStream(dataFrame, completionHandler,
+                            messageCloner, isLast);
+                    break;
+                }
+
+                case 3: {
+                    writeDownStream(asList(headerFrame, dataFrame),
+                            completionHandler, messageCloner, isLast);
+                    break;
+                }
+
+                default: break; // we can't write even single byte from the buffer
             }
-                
-            case 3: {
-                writeDownStream(asList(headerFrame, dataFrame),
-                        completionHandler, messageCloner, isLast);
-                break;
+        
+        } finally {
+            if (isDeflaterLocked) {
+                spdySession.getDeflaterLock().unlock();
             }
-                
-            default: break; // we can't write even single byte from the buffer
         }
         
         if (outputQueueRecord == null) {
@@ -442,7 +448,7 @@ final class SpdyOutputSink {
                 final AggregatingCompletionHandler aggrCompletionHandler =
                         outputQueueRecord.aggrCompletionHandler;
 
-                isLast = outputQueueRecord.isLast;
+                boolean isLast = outputQueueRecord.isLast;
                 
                 final int fitWindowIdx = checkOutputWindow(outputQueueRecord.buffer);
                 
