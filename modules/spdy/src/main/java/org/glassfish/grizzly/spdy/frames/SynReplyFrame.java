@@ -114,7 +114,7 @@ public class SynReplyFrame extends HeadersProviderFrame {
 
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
-        final Buffer frameBuffer = memoryManager.allocateAtLeast(12);
+        final Buffer frameBuffer = memoryManager.allocate(12);
 
         frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);  // C | SPDY_VERSION | SYN_REPLY
 

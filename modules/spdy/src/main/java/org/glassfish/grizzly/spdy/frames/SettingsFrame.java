@@ -175,7 +175,7 @@ public class SettingsFrame extends SpdyFrame {
         // 2) 4 bytes for the number of settings
         // 3) Then length will be the number of settings plus 8 bytes for each setting.
         final int length = 4 + (numberOfSettings * 8);
-        final Buffer buffer = memoryManager.allocateAtLeast(8 + length);
+        final Buffer buffer = memoryManager.allocate(8 + length);
         buffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE);
         buffer.putInt(length);
         buffer.putInt(numberOfSettings);

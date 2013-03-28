@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -143,7 +143,7 @@ public class RstStreamFrame extends SpdyFrame {
 
     @Override
     public Buffer toBuffer(MemoryManager memoryManager) {
-        final Buffer frameBuffer = memoryManager.allocateAtLeast(16);
+        final Buffer frameBuffer = memoryManager.allocate(16);
         frameBuffer.putInt(0x80000000 | (SPDY_VERSION << 16) | TYPE); // "C", version, RST_STREAM_FRAME
         frameBuffer.putInt(8); // Flags, Length
         frameBuffer.putInt(streamId & 0x7FFFFFFF); // Stream-ID
