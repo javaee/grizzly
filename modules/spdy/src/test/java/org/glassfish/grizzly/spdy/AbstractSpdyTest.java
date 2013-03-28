@@ -39,19 +39,28 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
@@ -202,6 +211,63 @@ public abstract class AbstractSpdyTest {
         }
 
         return sslContextConfigurator;
+    }
+    
+    @SuppressWarnings({"unchecked"})
+    protected HttpPacket createRequest(final int port,
+            final String method,
+            final String content,
+            String encoding) {
+        return createRequest(port, method, content, encoding, null);
+    }
+    
+    @SuppressWarnings({"unchecked"})
+    protected HttpPacket createRequest(final int port,
+            final String method,
+            final String content,
+            String encoding,
+            final Map<String, String> headers) {
+
+        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").header("Host", "localhost:" + port);
+
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                b.header(entry.getKey(), entry.getValue());
+            }
+        }
+        HttpRequestPacket request = b.build();
+
+        if (content != null) {
+            HttpContent.Builder cb = request.httpContentBuilder();
+            MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
+            Buffer contentBuffer;
+            if (encoding != null) {
+                try {
+                    byte[] bytes = content.getBytes(encoding);
+                    contentBuffer = Buffers.wrap(mm, bytes);
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                contentBuffer = Buffers.wrap(mm, content);
+            }
+
+            b.contentLength(contentBuffer.remaining());
+            
+            if (encoding != null) {
+                request.setCharacterEncoding(encoding);
+            }
+            
+            request.setContentType("text/plain");
+            
+            cb.content(contentBuffer);
+            HttpContent c = cb.build();
+            return c;
+
+        }
+
+        return request;
     }
     
     protected static class HttpHandlerRegistration {
