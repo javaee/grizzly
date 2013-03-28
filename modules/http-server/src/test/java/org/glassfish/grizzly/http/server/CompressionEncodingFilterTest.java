@@ -39,18 +39,45 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Random;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class CompressionEncodingFilterTest {
+    public enum HeaderType {String, Buffer, Chars};
     
+    private final HeaderType headerType;
+    private final Random r = new Random();
+    
+    public CompressionEncodingFilterTest(HeaderType headerType) {
+        this.headerType = headerType;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getHeaderTypes() {
+        return Arrays.asList(new Object[][]{
+                    {HeaderType.String},
+                    {HeaderType.Buffer},
+                    {HeaderType.Chars}
+                });
+    }
     
     // ------------------------------------------------------------ Test Methods
     
@@ -63,24 +90,46 @@ public class CompressionEncodingFilterTest {
                                               new String[0],
                                               new String[0],
                                               new String[] {"gzip"});
-        HttpRequestPacket request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "gzip").build();
+        HttpRequestPacket request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "gzip");
         HttpResponsePacket response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
         assertTrue(filter.applyEncoding(response));
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip;q=1.0, foo2").build();
+        
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "foo, gzip;q=1.0, foo2");
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
         assertTrue(filter.applyEncoding(response));
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip; q=1.0, foo2").build();
+        
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "foo, gzip; q=1.0, foo2");
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
         assertTrue(filter.applyEncoding(response));
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip;q=0, foo2").build();
-        response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
-        assertFalse(filter.applyEncoding(response));
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip; q=0, foo2").build();
+
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "foo, gzip;q=0, foo2");
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
         assertFalse(filter.applyEncoding(response));
 
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "foo, gzip; q=0, foo2");
+        response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
+        assertFalse(filter.applyEncoding(response));
+
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "compress; q=0.5, gzip;q=1.0");
+        response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).build();
+        assertTrue(filter.applyEncoding(response));
+
         // Check double-compression
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "foo, gzip;q=1.0, foo2").build();
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "foo, gzip;q=1.0, foo2");
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).header(Header.ContentEncoding, "gzip").build();
         assertFalse(filter.applyEncoding(response));
     }
@@ -94,12 +143,51 @@ public class CompressionEncodingFilterTest {
                                               new String[0],
                                               new String[0],
                                               new String[] {"gzip"});
-        HttpRequestPacket request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "compress;q=0.5, gzip;q=1.0").build();
+        HttpRequestPacket request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "compress;q=0.5, gzip;q=1.0");
         HttpResponsePacket response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).contentLength(1023).build();
         assertFalse(filter.applyEncoding(response));
         
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").header(Header.AcceptEncoding, "compress;q=0.5, gzip;q=1.0").build();
+        request = setAcceptEncoding(
+                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
+                "compress;q=0.5, gzip;q=1.0");
         response = HttpResponsePacket.builder(request).protocol(Protocol.HTTP_1_1).contentLength(1024).build();
         assertTrue(filter.applyEncoding(response));
+    }
+
+    private HttpRequestPacket setAcceptEncoding(HttpRequestPacket request, String acceptEncoding) {
+        switch (headerType) {
+            case String: {
+                request.addHeader(Header.AcceptEncoding, acceptEncoding);
+                break;
+            }
+            case Buffer: {
+                final byte[] encodingBytes =
+                        acceptEncoding.getBytes(Charsets.ASCII_CHARSET);
+                
+                final byte[] array = new byte[2048];
+                final int offs = r.nextInt(array.length - encodingBytes.length);
+                System.arraycopy(encodingBytes, 0, array, offs, encodingBytes.length);
+                final Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, array);
+                
+                request.getHeaders().addValue(Header.AcceptEncoding)
+                        .setBuffer(b, offs, offs + encodingBytes.length);
+                break;
+            }
+                
+            case Chars: {
+                final char[] array = new char[2048];
+                final int offs = r.nextInt(array.length - acceptEncoding.length());
+                
+                acceptEncoding.getChars(0, acceptEncoding.length(), array, offs);
+                
+                request.getHeaders().addValue(Header.AcceptEncoding)
+                        .setChars(array, offs, offs + acceptEncoding.length());
+                break;
+            }
+        }
+        
+        return request;
     }
 }
