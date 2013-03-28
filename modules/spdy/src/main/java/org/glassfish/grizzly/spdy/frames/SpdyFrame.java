@@ -129,6 +129,7 @@ public abstract class SpdyFrame implements Cacheable {
         if (header != null) {
             header.recycle();
         }
+        header = null;
         flags = 0;
     }
 
