@@ -39,10 +39,15 @@
  */
 package org.glassfish.grizzly.spdy.glassfish;
 
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.config.ConfigAwareElement;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.Spdy;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.spdy.NextProtoNegSupport;
 import org.glassfish.grizzly.spdy.SpdyAddOn;
 import org.glassfish.grizzly.spdy.SpdyMode;
 import org.glassfish.hk2.api.ServiceLocator;
@@ -53,6 +58,8 @@ import org.jvnet.hk2.annotations.Service;
 @ContractsProvided({SpdyNpnAddOnProvider.class, AddOn.class})
 public class SpdyNpnAddOnProvider extends SpdyAddOn implements ConfigAwareElement<Spdy> {
 
+    private FilterChainBuilder filterChainBuilder;
+    
     public SpdyNpnAddOnProvider() {
         super(SpdyMode.NPN);
     }
@@ -63,5 +70,48 @@ public class SpdyNpnAddOnProvider extends SpdyAddOn implements ConfigAwareElemen
         setInitialWindowSize(spdy.getInitialWindowSizeInBytes());
         setMaxConcurrentStreams(spdy.getMaxConcurrentStreams());
         setMaxFrameLength(spdy.getMaxFrameLengthInBytes());
-    }    
+    }
+
+    @Override
+    public void setup(
+            final org.glassfish.grizzly.http.server.NetworkListener networkListener,
+            final FilterChainBuilder builder) {
+        this.filterChainBuilder = builder;
+        super.setup(networkListener, builder);
+    }
+
+
+    @Override
+    protected TransportProbe getConfigProbe() {
+        return new SpdyNpnConfigProbe(filterChainBuilder);
+    }
+    
+    // ---------------------------------------------------------- Nested Classes
+
+    private final class SpdyNpnConfigProbe extends TransportProbe.Adapter {
+
+        private final FilterChainBuilder filterChainBuilder;
+
+        public SpdyNpnConfigProbe(FilterChainBuilder filterChainBuilder) {
+            this.filterChainBuilder = filterChainBuilder;
+        }
+        
+        // ----------------------------------------- Methods from TransportProbe
+
+
+        @Override
+        public void onBeforeStartEvent(Transport transport) {
+            final FilterChain dummyTransportFilterChain = filterChainBuilder.build();
+            
+            FilterChainBuilder builder = FilterChainBuilder.stateless();
+            for (int i = 0, len = dummyTransportFilterChain.size(); i < len; i++) {
+                builder.add(dummyTransportFilterChain.get(i));
+            }
+            
+            updateFilterChain(SpdyMode.NPN, builder);
+            NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
+                    new ProtocolNegotiator(builder.build()));
+        }
+
+    } // END SpdyTransportProbe    
 }
