@@ -125,6 +125,15 @@ class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
 
         return super.getContentType();
     }
+
+    @Override
+    public Object getAttribute(final String name) {
+        if (SpdyStream.SPDY_STREAM_ATTRIBUTE.equals(name)) {
+            return spdyResponse.getSpdyStream();
+        }
+        
+        return super.getAttribute(name);
+    }
     
     @Override
     protected void reset() {

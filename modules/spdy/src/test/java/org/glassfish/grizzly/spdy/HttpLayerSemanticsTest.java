@@ -69,6 +69,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import static org.glassfish.grizzly.spdy.AbstractSpdyTest.createClientFilterChain;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -134,6 +135,28 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
                 value12.equals(resDuplicatedHeader) ||
                 value21.equals(resDuplicatedHeader));
     }
+    
+    @Test
+    public void testSpdyStreamFromHttpHandler() throws Throwable {
+        final HttpRequestPacket requestPacket =
+                (HttpRequestPacket) createRequest(PORT, "GET", null, null, null);
+        final String spdyStreamIdHeader = "Spdy-Stream-Id";
+        final HttpContent resContent = doTest(requestPacket, 2000, new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final SpdyStream spdyStream =
+                        (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                response.addHeader(spdyStreamIdHeader,
+                        String.valueOf(spdyStream.getStreamId()));
+            }
+        });
+
+        final HttpResponsePacket responsePacket =
+                (HttpResponsePacket) resContent.getHttpHeader();
+
+        assertEquals("1", responsePacket.getHeader(spdyStreamIdHeader));
+    }    
     
     // --------------------------------------------------------- Private Methods
     
