@@ -113,7 +113,7 @@ public class SpdyAddOn implements AddOn {
             
             configureNpn(builder);
 
-            transport.getMonitoringConfig().addProbes(new SpdyNpnConfigProbe());
+            transport.getMonitoringConfig().addProbes(getConfigProbe());
         } else {
             updateFilterChain(mode, builder);
         }
@@ -168,6 +168,9 @@ public class SpdyAddOn implements AddOn {
     
     // ------------------------------------------------------- Protected Methods
 
+    protected TransportProbe getConfigProbe() {
+        return new SpdyNpnConfigProbe();
+    }
 
     protected void configureNpn(FilterChainBuilder builder) {
         final int idx = builder.indexOfType(SSLBaseFilter.class);
@@ -180,7 +183,7 @@ public class SpdyAddOn implements AddOn {
     // ----------------------------------------------------- Private Methods
 
 
-    private void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
+    protected void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
         final int idx = removeHttpServerCodecFilter(builder);
         insertSpdyFilters(mode, builder, idx);
     }
@@ -226,67 +229,63 @@ public class SpdyAddOn implements AddOn {
                     new ProtocolNegotiator(builder.build()));
         }
 
-
-        // ------------------------------------------------------ Nested Classes
-
-
-        private final class ProtocolNegotiator implements ServerSideNegotiator {
-
-            private static final String HTTP11 = "http/1.1";
-            private static final String SPDY3 = "spdy/3";
-
-            private final LinkedHashSet<String> supportedProtocols =
-                    new LinkedHashSet<String>(Arrays.asList(SPDY3, HTTP11));
-            private final FilterChain spdyFilterChain;
-
-            // ---------------------------------------------------- Constructors
-
-
-            private ProtocolNegotiator(final FilterChain filterChain) {
-                spdyFilterChain = filterChain;
-            }
-
-
-            // ------------------------------- Methods from ServerSideNegotiator
-
-
-            @Override
-            public LinkedHashSet<String> supportedProtocols(final SSLEngine engine) {
-                return supportedProtocols;
-            }
-
-            @Override
-            public void onSuccess(final SSLEngine engine, final String protocol) {
-
-                final Connection connection = NextProtoNegSupport.getConnection(engine);
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
-                            new Object[]{connection, protocol});
-                }
-
-                // If SPDY is supported, set the spdyFilterChain on the connection.
-                // If HTTP/1.1 is negotiated, then use the transport FilterChain.
-                if (SPDY3.equals(protocol)) {
-                    SSLConnectionContext sslCtx =
-                            SSLUtils.getSslConnectionContext(connection);
-                    sslCtx.setNewConnectionFilterChain(spdyFilterChain);
-                }
-            }
-
-            @Override
-            public void onNoDeal(final SSLEngine engine) {
-                final Connection connection = NextProtoNegSupport.getConnection(engine);
-                // Default to the transport FilterChain.
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
-                            new Object[]{ connection });
-                }
-                // TODO: Should we consider making this behavior configurable?
-                connection.closeSilently();
-            }
-
-        } // END ProtocolNegotiator
-
     } // END SpdyTransportProbe
 
+
+    protected final class ProtocolNegotiator implements ServerSideNegotiator {
+
+        private static final String HTTP11 = "http/1.1";
+        private static final String SPDY3 = "spdy/3";
+
+        private final LinkedHashSet<String> supportedProtocols =
+                new LinkedHashSet<String>(Arrays.asList(SPDY3, HTTP11));
+        private final FilterChain spdyFilterChain;
+
+        // ---------------------------------------------------- Constructors
+
+
+        public ProtocolNegotiator(final FilterChain filterChain) {
+            spdyFilterChain = filterChain;
+        }
+
+
+        // ------------------------------- Methods from ServerSideNegotiator
+
+
+        @Override
+        public LinkedHashSet<String> supportedProtocols(final SSLEngine engine) {
+            return supportedProtocols;
+        }
+
+        @Override
+        public void onSuccess(final SSLEngine engine, final String protocol) {
+
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
+                        new Object[]{connection, protocol});
+            }
+
+            // If SPDY is supported, set the spdyFilterChain on the connection.
+            // If HTTP/1.1 is negotiated, then use the transport FilterChain.
+            if (SPDY3.equals(protocol)) {
+                SSLConnectionContext sslCtx =
+                        SSLUtils.getSslConnectionContext(connection);
+                sslCtx.setNewConnectionFilterChain(spdyFilterChain);
+            }
+        }
+
+        @Override
+        public void onNoDeal(final SSLEngine engine) {
+            final Connection connection = NextProtoNegSupport.getConnection(engine);
+            // Default to the transport FilterChain.
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
+                        new Object[]{ connection });
+            }
+            // TODO: Should we consider making this behavior configurable?
+            connection.closeSilently();
+        }
+
+    } // END ProtocolNegotiator
 }

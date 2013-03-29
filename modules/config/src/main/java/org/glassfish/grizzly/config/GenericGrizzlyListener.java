@@ -368,15 +368,25 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     if (Boolean.valueOf(subProtocol.getSecurityEnabled())) {
                         final PUFilter extraSslPUFilter = new PUFilter();
                         
-                        configureSsl(habitat,
-                                     getSsl(subProtocol),
-                                     subProtocolFilterChainBuilder);
+                        final Filter addedSSLFilter = configureSsl(
+                                habitat, getSsl(subProtocol),
+                                subProtocolFilterChainBuilder);
                         
                         subProtocolFilterChainBuilder.add(extraSslPUFilter);
                         final FilterChainBuilder extraSslPUFilterChainBuilder =
                             extraSslPUFilter.getPUFilterChainBuilder();
-                        configureSubProtocol(habitat, networkListener,
-                                subProtocol, extraSslPUFilterChainBuilder);
+                        
+                        try {
+                            // temporary add SSL Filter, so subprotocol
+                            // will see it
+                            extraSslPUFilterChainBuilder.add(addedSSLFilter);
+                            configureSubProtocol(habitat, networkListener,
+                                    subProtocol, extraSslPUFilterChainBuilder);
+                        } finally {
+                            // remove SSL Filter
+                            extraSslPUFilterChainBuilder.remove(addedSSLFilter);
+                        }
+                        
                         extraSslPUFilter.register(protocolFinder,
                                 extraSslPUFilterChainBuilder.build());
                         
@@ -422,7 +432,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected static void configureSsl(final ServiceLocator habitat,
+    protected static Filter configureSsl(final ServiceLocator habitat,
                                        final Ssl ssl,
                                        final FilterChainBuilder filterChainBuilder) {
         final SSLEngineConfigurator serverConfig = new SSLConfigurator(habitat, ssl);
@@ -435,6 +445,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 Long.parseLong(ssl.getHandshakeTimeoutMillis()), TimeUnit.MILLISECONDS);
 
         filterChainBuilder.add(sslFilter);
+        return sslFilter;
     }
 
     private static boolean isRenegotiateOnClientAuthWant(final Ssl ssl) {
