@@ -77,6 +77,8 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  * @author oleksiys
  */
 public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
+    public static final String SPDY_STREAM_ATTRIBUTE = SpdyStream.class.getName();
+    
     private enum CompletionUnit {
         Input, Output, Complete
     }
