@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -114,12 +114,7 @@ public class TunnelFilter extends BaseFilter {
         }
 
         final Object message = ctx.getMessage();
-        if (message == null) { // resumed processing?
-            return ctx.getInvokeAction();
-        } else {
-            ctx.setMessage(null); // prepare for future resume
-        }
-        
+
         // if peer connection is already created - just forward data to peer
         redirectToPeer(ctx, peerConnection, message);
 
@@ -145,7 +140,7 @@ public class TunnelFilter extends BaseFilter {
             }
 
             private void finish() {
-                ctx.resume();
+                ctx.resumeNext();
             }
         });
 
