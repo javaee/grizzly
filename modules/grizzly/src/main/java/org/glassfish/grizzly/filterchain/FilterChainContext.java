@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -220,6 +220,14 @@ public final class FilterChainContext implements AttributeStorage {
         getRunnable().run();
     }
 
+    /**
+     * Resume processing of the current task starting from the Filter, which
+     * follows the Filter, which suspend the processing.
+     */
+    public void resumeNext() {
+        resume(getInvokeAction());
+    }
+    
     /**
      * Resume the current FilterChain task processing by completing the current
      * {@link Filter} (the Filter, which suspended the processing) with the
