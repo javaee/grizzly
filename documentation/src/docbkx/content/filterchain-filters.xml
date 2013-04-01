@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -191,11 +191,11 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
   processing, then the "rule" of serial event processing should still be
   observed.</emphasis></para>
 
-  <para>Additionally FilterChain Filters are able to initiate and handle
-  custom event notifications. The event initiator may choose to emit the event
-  upstream or downstream by FilterChain like:<programlisting language="java">public NextAction handleRead(FilterChainContext ctx) throws IOException {
+  <para>Additionally FilterChain Filters are able to initiate and handle custom event notifications.
+    The event initiator may choose to emit the event upstream or downstream by FilterChain
+    like:<programlisting language="java">public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Here we decide to notify downstream Filters
-        ctx.notifyDownstream(new MyEvent(...));
+        ctx.notifyDownstream(new OneEvent(...));
 
         // Notify upstream Filters
         ctx.notifyUpstream(new AnotherEvent(...));
@@ -333,7 +333,38 @@ ctx.notifyDownstream(event);</programlisting></para>
         WRITE event, which is being processed from last Filter to first. At
         the same time Filters can change the default I/O Event processing
         order by returning different types of NextAction:<itemizedlist>
-            <listitem>
+          <listitem>
+            <para><emphasis role="bold">StopAction</emphasis></para>
+            
+            <para><programlisting language="java">return ctx.getStopAction();</programlisting></para>
+            
+            <para>instructs the FilterChain to stop the processing of this
+              I/O Event. Usually StopAction is returned when there isn't
+              enough data to continue FilterChain processing, or it's the last
+              Filter in the chain.</para>
+            
+            <para>The StopAction could be
+                parameterized:<programlisting language="java">return ctx.getStopAction(incompleteChunk);
+
+or
+
+return ctx.getStopAction(incompleteChunk, appender);</programlisting></para>
+            
+            <para>An incompleteChunk in StopAction means there isn't enough data to continue
+              FilterChain processing. As more data becomes available but before FilterChain calls
+              the Filter, it will check if the Filter has any data stored after the last
+              invocation. If an incompleteChunk is present it will append the new data to the
+              stored one and pass the result as the FilterChainContext message.</para>
+            
+            <para>Note:  the incompleteChunk should be "appendable", so the FilterChain will know
+                how new data chunk should be appended to the stored one. So the incompleteChunk
+                should either implement <emphasis role="italic"
+                  >org.glassfish.grizzly.Appendable</emphasis> or <emphasis role="italic"
+                  >org.glassfish.grizzly.Appender</emphasis> should be passed as additional
+                parameter.</para>
+          </listitem>
+          
+          <listitem>
               <para><emphasis role="bold">InvokeAction</emphasis></para>
 
               <para><programlisting language="java">return ctx.getInvokeAction();</programlisting></para>
@@ -341,58 +372,47 @@ ctx.notifyDownstream(event);</programlisting></para>
               <para>instructs the FilterChain to run next Filter in chain
               according to the natural execution order.</para>
 
-              <para>It's possible to create the InvokeAction with a remainder
-              parameter:</para>
+            <para>It's possible to create the InvokeAction with an <emphasis role="bold"><emphasis
+                    role="italic">incompleteChunk</emphasis></emphasis> parameter:</para>
+            
+            <para><programlisting language="java">return ctx.getInvokeAction(incompleteChunk, appender);</programlisting></para>
+            
+            <para>this instructs the FilterChain to store the incompleteChunk and continue
+                FilterChain execution like it was with non-parameterized version. </para>
+            
+            <para>This feature is particularly useful for those cases a message or several messages
+                are parsed from the source Buffer and discover that there is a remainder whose data
+                is not enough to transform to an application message. So the developer can continue
+                the FilterChain processing with the message(s) that were parsed and store the
+                incompleteChunk remainder. As more data becomes available but before FilterChain
+                calls the Filter again, it will check if the Filter has any data stored after the
+                last invocation. If an incompleteChunk is present it will append the new data to the
+                stored one and pass the result as the FilterChainContext message.</para>
+              <para>Note: the incompleteChunk should be "appendable", so the FilterChain will know
+                how new data chunk should be appended to the stored one. So the incompleteChunk
+                should either implement <emphasis role="italic"
+                  >org.glassfish.grizzly.Appendable</emphasis> or <emphasis role="italic"
+                  >org.glassfish.grizzly.Appender</emphasis> should be passed as additional
+                parameter.</para>
+            
+            <para>Another option is to create the InvokeAction with an <emphasis role="bold"
+                    ><emphasis role="italic">unparsedChunk</emphasis></emphasis> parameter:</para>
 
-              <para><programlisting language="java">return ctx.getInvokeAction(remainder);</programlisting></para>
+              <para><programlisting language="java">return ctx.getInvokeAction(unparsedChunk);</programlisting></para>
 
-              <para>this instructs the FilterChain to store the remainder and
-              continue FilterChain execution like it was with
-              non-parameterized version. Once the FilterChain execution
-              completes, the remainder of the most recent Filter in chain will
-              be restored FilterChain processing will be re-initialed starting
-              from the Filter which stored the remainder.</para>
+              <para>this instructs the FilterChain to store the unparsedChunk and continue
+                FilterChain execution like it was with non-parameterized version. Unlike in the
+                "incompleteChunk" case described above, this time we don't know if unparsedChunk has
+                enough data to transform to application message(s) or not. Once the FilterChain
+                execution completes, the unparsedChunk of the most recent Filter in chain will be
+                restored FilterChain processing will be re-initialed immediately starting from the
+                Filter which stored the unparsedChunk.</para>
 
-              <para>This feature is particularly useful for those cases a
-              message is parsed from the source Buffer and discover that the
-              Buffer contains several messages. This allows the developer to
-              extract the first message and save the remainder to be processed
-              after the current message processing has been completed.</para>
-            </listitem>
-
-            <listitem>
-              <para><emphasis role="bold">StopAction</emphasis></para>
-
-              <para><programlisting language="java">return ctx.getStopAction();</programlisting></para>
-
-              <para>instructs the FilterChain to stop the processing of this
-              I/O Event. Usually StopAction is returned when there isn't
-              enough data to continue FilterChain processing, or it's the last
-              Filter in the chain.</para>
-
-              <para>Like InvokeAction, StopAction also could be
-              parameterized<programlisting language="java">return ctx.getStopAction(remainder);
-
-or
-
-return ctx.getStopAction(remainder, appender);</programlisting></para>
-
-              <para>A remainder in StopAction means there isn't enough data to
-              continue FilterChain processing. As more data becomes available
-              but before FilterChain calls the Filter, it will check if the
-              Filter has any data stored after the last invocation. If a
-              remainder is present it will append the new data to the stored
-              one and pass the result as the FilterChainContext
-              message.</para>
-
-              <para>Unlike remainder in the InvokeAction, the StopAction
-              remainder should be "appendable", so the FilterChain will know
-              how new data chunk should be appended to the stored one. So the
-              remainder should either implement <emphasis
-              role="italic">org.glassfish.grizzly.Appendable</emphasis> or
-              <emphasis
-              role="italic">org.glassfish.grizzly.Appender</emphasis> should
-              be passed as additional parameter.</para>
+              <para>This feature is particularly useful for those cases a message is parsed from the
+                source Buffer and discover that the Buffer contains a remainder, which may or may
+                not contain more messages. This allows the developer to extract the first message
+                and save the remainder to be processed after the current message processing has been
+                completed.</para>
             </listitem>
 
             <listitem>
@@ -410,14 +430,17 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
               <programlisting language="java">return ctx.getSuspendAction();</programlisting>
 
-              <para>Instructs the FilterChain to terminate (leave) the I/O
-              event processing in the current thread. The user will be able to
-              resume the I/O event processing by calling<programlisting
-              language="java">ctx.resume();</programlisting></para>
+              <para>Instructs the FilterChain to terminate (leave) the I/O event processing in the
+                current thread. The user will be able to resume the I/O event processing by
+                calling<programlisting language="java">ctx.resume();</programlisting>or
+                <programlisting language="java">ctx.resume(NextAction);</programlisting></para>
 
-              <para>Once <emphasis role="italic">ctx.resume()</emphasis> is
-              called, FilterChain resumes processing at the same Filter it was
-              suspended.</para>
+              <para><emphasis role="italic">ctx.resume()</emphasis> call resumes processing at the
+                same Filter it was suspended.</para>
+              <para><emphasis role="italic">ctx.resume(NextAction)</emphasis> call resumes
+                processing at the same Filter it was suspended, but instead of passing control to
+                the Filter - it simulates the Filter processing completion like if it returned
+                NextAction as the result.</para>
 
               <para>Please note, after returning SuspendAction and before I/O
               event processing will be resumed, Grizzly <link
