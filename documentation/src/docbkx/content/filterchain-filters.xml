@@ -432,15 +432,26 @@ return ctx.getStopAction(incompleteChunk, appender);</programlisting></para>
 
               <para>Instructs the FilterChain to terminate (leave) the I/O event processing in the
                 current thread. The user will be able to resume the I/O event processing by
-                calling<programlisting language="java">ctx.resume();</programlisting>or
-                <programlisting language="java">ctx.resume(NextAction);</programlisting></para>
-
-              <para><emphasis role="italic">ctx.resume()</emphasis> call resumes processing at the
-                same Filter it was suspended.</para>
-              <para><emphasis role="italic">ctx.resume(NextAction)</emphasis> call resumes
-                processing at the same Filter it was suspended, but instead of passing control to
-                the Filter - it simulates the Filter processing completion like if it returned
-                NextAction as the result.</para>
+                calling</para>
+              <para>
+                <itemizedlist>
+                  <listitem>
+                    <para><emphasis role="italic">ctx.resume()</emphasis>: resumes processing at the
+                      same Filter it was suspended.</para>
+                  </listitem>
+                  <listitem>
+                    <para><emphasis role="italic">ctx.resume(NextAction)</emphasis>: resumes
+                      processing at the same Filter it was suspended, but instead of passing control
+                      to the Filter - it simulates the Filter processing completion like if it
+                      returned NextAction as the result</para>
+                  </listitem>
+                  <listitem>
+                    <para><emphasis role="italic">ctx.resumeNext()</emphasis>: resumes processing at
+                      the Filter next to the Filter it was suspended at. Same as <emphasis
+                        role="italic">ctx.resume(ctx.getInvokeAction())</emphasis>.</para>
+                  </listitem>
+                </itemizedlist>
+              </para>
 
               <para>Please note, after returning SuspendAction and before I/O
               event processing will be resumed, Grizzly <link
