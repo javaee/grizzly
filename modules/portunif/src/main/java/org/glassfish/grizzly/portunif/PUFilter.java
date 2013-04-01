@@ -79,7 +79,6 @@ public class PUFilter extends BaseFilter {
             new ArraySet<PUProtocol>(PUProtocol.class);
     
     final Attribute<PUContext> puContextAttribute;
-    final Attribute<NextAction> terminateNextActionAttribute;
     final Attribute<FilterChainContext> suspendedContextAttribute;
 
     private final boolean isCloseUnrecognizedConnection;
@@ -102,9 +101,6 @@ public class PUFilter extends BaseFilter {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
-        terminateNextActionAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + '-' + hashCode() + ".terminateNextActionAttribute");
         suspendedContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".suspendedContext");
@@ -200,13 +196,6 @@ public class PUFilter extends BaseFilter {
     
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        final NextAction terminateNextAction;
-        if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
-            // We get here, when context is resumed after
-            // child protocol chain execution is complete.
-            return terminateNextAction;
-        }
-
         final Connection connection = ctx.getConnection();
         PUContext puContext = puContextAttribute.get(connection);
         if (puContext == null) {
@@ -231,8 +220,6 @@ public class PUFilter extends BaseFilter {
                 puContext.reset();
             }
             
-            terminateNextActionAttribute.set(ctx, ctx.getStopAction());
-
             final FilterChainContext filterChainContext =
                     obtainChildFilterChainContext(protocol, connection, ctx);
             
@@ -284,18 +271,10 @@ public class PUFilter extends BaseFilter {
 
         // if upstream event - pass it to the puFilter
         if (isUpstream(ctx)) {
-            final NextAction terminateNextAction;
-            if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
-                // We get here, when context is resumed after
-                // child protocol chain execution is complete.
-                return terminateNextAction;
-            }
-
             final Connection connection = ctx.getConnection();
             final PUContext puContext = puContextAttribute.get(connection);
             final PUProtocol protocol;
             if (puContext != null && (protocol = puContext.protocol) != null) {
-                terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
                 final FilterChain filterChain = protocol.getFilterChain();
                 final FilterChainContext context = filterChain.obtainFilterChainContext(connection);
@@ -367,11 +346,7 @@ public class PUFilter extends BaseFilter {
                     suspendedContextAttribute.get(context);
 
             assert suspendedContext != null;
-            
-            terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getForkAction());
-            
-            suspendedContext.resume();
+            suspendedContext.resume(suspendedContext.getForkAction());
         }
 
         @Override
@@ -382,10 +357,7 @@ public class PUFilter extends BaseFilter {
 
             assert suspendedContext != null;
             
-            terminateNextActionAttribute.set(suspendedContext,
-                    suspendedContext.getStopAction());                
-            
-            suspendedContext.resume();
+            suspendedContext.resume(suspendedContext.getStopAction());
         }
     }
 
@@ -410,7 +382,7 @@ public class PUFilter extends BaseFilter {
 
         @Override
         public void completed(final FilterChainContext context) {
-            suspendedContext.resume();
+            suspendedContext.resume(suspendedContext.getStopAction());
         }
 
         @Override
