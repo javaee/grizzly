@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -110,17 +110,7 @@ public class WebServerFilter extends BaseFilter {
     public NextAction handleRead(FilterChainContext ctx)
             throws IOException {
 
-        // Get the incoming message
-        final Object message = ctx.getMessage();
-        
-        // Check if this is DownloadCompletionHandler, which means download has
-        // been completed and HTTP request processing was resumed.
-        if (message instanceof DownloadCompletionHandler) {
-            // Download completed
-            return ctx.getStopAction();
-        }
-
-        // Otherwise cast message to a HttpContent
+        // Get the incoming message as HttpContent
         final HttpContent httpContent = (HttpContent) ctx.getMessage();
         // Get HTTP request message header
         final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
@@ -381,12 +371,8 @@ public class WebServerFilter extends BaseFilter {
          * Resume the HttpRequestPacket processing
          */
         private void resume() {
-            // Set this DownloadCompletionHandler as message
-            ctx.setMessage(this);
             // Resume the request processing
-            // After resume will be called - filter chain will execute
-            // WebServerFilter.handleRead(...) again with the ctx as FilterChainContext.
-            ctx.resume();
+            ctx.resume(ctx.getStopAction());
         }
     }
 }
