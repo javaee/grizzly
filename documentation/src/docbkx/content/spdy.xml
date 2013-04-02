@@ -143,6 +143,11 @@ httpServer.addListener(listener);</programlisting>
             <entry>Configures how much memory each stream will consume on the server side.  The
               default is 64KB.</entry>
           </row>
+          <row>
+            <entry>maxFrameLength</entry>
+            <entry>Configures the upper bound on allowable frame sizes.  Frames above this bound
+              will be rejected.</entry>
+          </row>
         </tbody>
       </tgroup>
     </table>
