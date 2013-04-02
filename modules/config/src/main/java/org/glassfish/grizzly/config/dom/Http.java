@@ -75,6 +75,7 @@ public interface Http extends ConfigBeanProxy, PropertyBag {
     int KEEP_ALIVE_TIMEOUT = 30;
     int MAX_CONNECTIONS = 256;
     int MAX_POST_SIZE = 2097152;
+    int MAX_SAVE_POST_SIZE = 4 * 1024;
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
@@ -210,6 +211,11 @@ public interface Http extends ConfigBeanProxy, PropertyBag {
     String getMaxPostSizeBytes();
 
     void setMaxPostSizeBytes(String max);
+
+    @Attribute(defaultValue = "" + MAX_SAVE_POST_SIZE, dataType = Integer.class)
+    String getMaxSavePostSizeBytes();
+
+    void setMaxSavePostSizeBytes(String max);
 
     @Attribute(dataType = Integer.class)
     String getNoCompressionUserAgents();

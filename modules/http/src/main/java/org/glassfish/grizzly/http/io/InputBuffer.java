@@ -964,7 +964,9 @@ public class InputBuffer {
     private int fill(final int requestedLen) throws IOException {
 
         int read = 0;
-        while (read < requestedLen && httpHeader.isExpectContent()) {
+        while ((requestedLen == -1 || read < requestedLen) &&
+                httpHeader.isExpectContent()) {
+            
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
 

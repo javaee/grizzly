@@ -2002,14 +2002,20 @@ public class Request {
             return;
         }
 
+        if (!checkPostContentType(getContentType())) return;
+
+        final int maxFormPostSize =
+                httpServerFilter.getConfiguration().getMaxFormPostSize();
+
         int len = getContentLength();
-        if (len < 0 && !CHUNKED.equalsIgnoreCase(getHeader(Header.TransferEncoding))) {
-            return;
-        } else {
-            len = httpServerFilter.getConfiguration().getMaxBufferedPostSize();
+        if (len < 0) {
+            if (!request.isChunked()) {
+                return;
+            }
+
+            len = maxFormPostSize;
         }
 
-        final int maxFormPostSize = httpServerFilter.getConfiguration().getMaxFormPostSize();
         if ((maxFormPostSize > 0) && (len > maxFormPostSize)) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.warning("Post too large");
@@ -2017,8 +2023,6 @@ public class Request {
 
             throw new IllegalStateException("Post too large");
         }
-
-        if (!checkPostContentType(getContentType())) return;
 
         int read = 0;
         try {

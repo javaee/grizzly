@@ -818,6 +818,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             maxRequestParameters = Http.MAX_REQUEST_PARAMETERS;
         }
         serverFilterConfiguration.setMaxRequestParameters(maxRequestParameters);
+        serverFilterConfiguration.setMaxFormPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
+        serverFilterConfiguration.setMaxBufferedPostSize(Integer.parseInt(http.getMaxSavePostSizeBytes()));
         return serverFilterConfiguration;
     }
 
