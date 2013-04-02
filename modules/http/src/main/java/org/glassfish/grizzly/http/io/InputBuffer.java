@@ -798,7 +798,7 @@ public class InputBuffer {
      * Appends the specified {@link Buffer} to the internal composite
      * {@link Buffer}.
      *
-     * @param httpContent the {@link Buffer} to append
+     * @param httpContent the {@link HttpContent} to append
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
@@ -928,7 +928,9 @@ public class InputBuffer {
     private int fill(final int requestedLen) throws IOException {
 
         int read = 0;
-        while (read < requestedLen && httpHeader.isExpectContent()) {
+        while ((requestedLen == -1 || read < requestedLen) &&
+                httpHeader.isExpectContent()) {
+            
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
             
