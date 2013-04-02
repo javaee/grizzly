@@ -249,7 +249,7 @@
         <screen>git clone git://java.net/grizzly~git
 cd grizzly~git
 git checkout 2_3
-cd samples/frameworksamples</screen>
+cd samples/framework-samples</screen>
       </listitem>
 
       <listitem>

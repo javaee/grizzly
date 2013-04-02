@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -454,8 +454,8 @@ try {
      *
      * @param timeout The maximum amount of time,
      * a {@link Response} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link Response#resume()}
-     * or {@link Response#cancel()}), the {@link Response} will be automatically
+     * nothing has been written or because the {@link Response#resume()}),
+     * the {@link Response} will be automatically
      * resumed and committed. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
@@ -471,16 +471,14 @@ try {
      * the current instance, and also to avoid committing response. When the
      * {@link Response#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
-     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. When the
-     * {@link Response#cancel()} is invoked, the container will
-     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
-     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. If the timeout expires, the
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;.
+     * If the timeout expires, the
      * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with 
      * the original &lt;tt&gt;attachment&lt;/tt&gt; and the {@link Response} committed.
      *
      * @param timeout The maximum amount of time the {@link Response} can be suspended.
      * When the timeout expires (because nothing has been written or because the
-     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * {@link Response#resume()}), the {@link Response}
      * will be automatically resumed and committed. Usage of any methods of a
      * {@link Response} that times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
@@ -498,16 +496,14 @@ try {
      * the current instance, and also to avoid committing response. When the
      * {@link Response#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
-     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. When the
-     * {@link Response#cancel()} is invoked, the container will
-     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
-     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. If the timeout expires, the
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;.
+     * If the timeout expires, the
      * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the 
      * original &lt;tt&gt;attachment&lt;/tt&gt; and the {@link Response} committed.
      *
      * @param timeout The maximum amount of time the {@link Response} can be suspended.
      * When the timeout expires (because nothing has been written or because the
-     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * {@link Response#resume()}), the {@link Response}
      * will be automatically resumed and committed. Usage of any methods of a
      * {@link Response} that times out will throw an {@link IllegalStateException}.
      * @param timeunit timeou
@@ -530,17 +526,6 @@ try {
      * Those operations commit the response.
      */
     public void resume() {
-        ...
-    }
-
-    /**
-     * Cancel the {@link Response} and finish/commit it. If a
-     * {@link CompletionHandler} has been defined, its 
-     * {@link CompletionHandler#cancelled()} will first be invoked, 
-     * then the {@link Response#finish()}.
-     * Those operations commit the response.
-     */
-    public void cancel() {
         ...
     }
 
@@ -602,7 +587,7 @@ try {
     <section xml:id="hsf-nio-streams-non-blocking">
       <title>Non-Blocking Writing</title>
 
-      <para>The methods getOutputStream() and getWriter() on Response return instances of
+      <para>The methods getNIOOutputStream() and getNIOWriter() on Response return instances of
         NIOOutputStream and NIOWriter. In addition to the methods defined by java.io.OutputStream
         and java.io.Writer, these entities both implement the org.glassfish.grizzly.OutputSink
         interface.</para>
@@ -704,13 +689,12 @@ public interface InputSource {
      * &lt;/p>
      *
      * &lt;p>
-     * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
+     * Invoking this method is equivalent to calling: notifyAvailable(handler, 1).
      * &lt;/p>
      *
      * @param handler the {@link ReadHandler} to notify.
      *
-     * @throws IllegalArgumentException if &lt;code>handler&lt;/code> is &lt;code>null&lt;/code>,
-     *  or if &lt;code>size&lt;/code> is less than zero.
+     * @throws IllegalArgumentException if &lt;code>handler&lt;/code> is &lt;code>null&lt;/code>.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
@@ -730,12 +714,10 @@ public interface InputSource {
      *
      * @param handler the {@link ReadHandler} to notify.
      * @param size the least number of bytes that must be available before
-     *  the {@link ReadHandler} is invoked.  If size is &lt;code>0&lt;/code>, the
-     *  handler will be notified as soon as data is available no matter the
-     *  size.
+     *  the {@link ReadHandler} is invoked.
      *
      * @throws IllegalArgumentException if &lt;code>handler&lt;/code> is &lt;code>null&lt;/code>,
-     *  or if &lt;code>size&lt;/code> is less than zero.
+     *  or if &lt;code>size&lt;/code> is less or equal to zero.
      * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
@@ -769,16 +751,14 @@ public interface InputSource {
 
 }</programlisting>
 
-      <para>The general idea behind non-blocking writes holds true for
-      non-blocking reads. The developer can check to see if data is available
-      to be read without blocking by calling isReady() or checking for a
-      non-zero return from readyData(). If no data can be read without
-      blocking, use notifyAvailable(ReadHandler) or
-      notifyAvailable(ReadHandler, int). When data is becomes available, the
-      ReadHandler will be invoked. Note that if no length is provided to the
-      notifyAvailable() methods, the ReadHandler will be invoked as soon as
-      any data becomes available. In this case, it's a good idea to check how
-      much can be read by another call to readyData().</para>
+      <para>The general idea behind non-blocking writes holds true for non-blocking reads. The
+        developer can check to see if data is available to be read without blocking by calling
+        isReady() or checking for a non-zero return from readyData(). If no data can be read without
+        blocking, use notifyAvailable(ReadHandler) or notifyAvailable(ReadHandler, int). When data
+        becomes available, the ReadHandler will be invoked. Note that if no length is provided to
+        the notifyAvailable() methods, the ReadHandler will be invoked as soon as any data becomes
+        available. In this case, it's a good idea to check how much can be read by another call to
+        readyData().</para>
 
       <para>For optimized reading of binary data, there is the specialized
       interface, BinaryNIOInputSource, that allows direct access to the Buffer
@@ -806,15 +786,20 @@ public interface BinaryNIOInputSource extends NIOInputSource {
 
 }</programlisting>
 
-      <para>One final word on NIOInputSource implementations with respect to
-      the Request object. In order for these methods to function properly,
-      developers must obtain the desired NIOInputSource by calling
-      Request.getInputStream(false) or Request.getReader(false). Specifiy a
-      value of false sets the NIOInputSources to work in non-blocking mode. If
-      the a value of true is provided to the getRead() or getInputStream()
-      methods, the NIOInputSource will be set to blocking mode. It's not
-      possible to change the mode after the initial invocations of these
-      methods.</para>
+      <para>One final word on InputStream, OutputStream, Reader, Writer and their NIO* counterparts
+        returning by Request and Response objects. Since Grizzly 2.3 there are no modes (NIO or
+        blocking) streams operate in. There are only two rules (actually one rule): <itemizedlist>
+          <listitem>
+            <para>if InputSource.isReady() returned true - next input operation (only one) is
+              guaranteed to be non-blocking, otherwise if InputSource.isReady() returned false or we
+              didn't check it - next input operation may block;</para>
+          </listitem>
+          <listitem>
+            <para>if OutputSink.canWrite() returned true - next output operation (only one) is
+              guaranteed to be non-blocking, otherwise if OutputSink.canWrite() returned false or we
+              didn't check it - next output operation may block;</para>
+          </listitem>
+        </itemizedlist></para>
     </section>
   </section>
 
@@ -941,6 +926,50 @@ public class WebSocketAddOn implements AddOn {
 }</programlisting></para>
   </section>
 
+  <section xml:id="httpserverframework-prioritization">
+    <title>Embedded prioritization mechanism</title>
+    <para>Starting with version 2.3, Grizzly provides embeded support for prioritizing incoming HTTP
+      requests processing implemented on a container level</para>
+    <para>In some cases it may have certain advantages comparing to application level prioritization
+      mechanism provided by HttpResponse's suspend/resume methods.</para>
+    <para>Every time before invoking HttpHandler.service(Request, Response) method, Grizzly HTTP
+      server asks HttpHandler which thread-pool it wants to be used:</para>
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">public class MyHttpHandler extends HttpHandler {
+    ...................................
+
+    /**
+     * Returns the &lt;tt>HttpHandler&lt;/tt> preferred {@link ExecutorService} to process
+     * passed {@link Request}. The &lt;tt>null&lt;/tt> return value means process in 
+     * current thread.
+     * 
+     * The default implementation returns &lt;tt>null&lt;/tt> if current thread is not
+     * {@link Transport} service thread ({@link Threads#isService()}). Otherwise
+     * returns worker thread pool of the {@link Transport} this {@link Request}
+     * belongs to ({@link org.glassfish.grizzly.Transport#getWorkerThreadPool()}).
+     * 
+     * @param request the {@link Request} to be processed.
+     * @return the &lt;tt>HttpHandler&lt;/tt> preferred {@link ExecutorService} to process
+     * passed {@link Request}. The &lt;tt>null&lt;/tt> return value means process in 
+     * current thread.
+     */
+    @Override
+    protected ExecutorService getThreadPool(final Request request) {
+        // return ExecutorService to process this Request
+    }
+}</programlisting>
+    <para>Unlike HttpResponse's suspend/resume mechanism this approach doesn't impact
+      Request/Response state and is completely transparent for application level.</para>
+    <para>Note: by default Grizzly configures HttpServer to use <link
+      linkend="iostrategies">SameThread IO strategy</link>, but at the same
+      time initializes worker thread-pool to be used by HttpHandlers by default. In case all
+      HttpHandlers (applications) use only custom thread pools controlled by developer's application
+      - it might be a good idea to prevent Grizzly creating the default worker thread-pool by
+      calling:</para>
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">networkListener.getTransport().setWorkerThreadPoolConfig(null);</programlisting>
+    <para>For more details please see the priorities sample in Grizzly http-server-framework <link
+        linkend="httpserverframework-other-samples">samples</link>.</para>
+  </section>
+  
   <section xml:id="httpserverframework-samples">
     <title>Samples</title>
 
@@ -949,7 +978,7 @@ public class WebSocketAddOn implements AddOn {
     the following code snippets are part of a single example that makes use
     nested classes.</para>
 
-    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">/**
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">    /**
      * This handler using non-blocking streams to read POST data and echo it
      * back to the client.
      */
@@ -1026,8 +1055,7 @@ public class WebSocketAddOn implements AddOn {
 
     <itemizedlist>
       <listitem>
-        <para>Calling one of the getNIO{Reader,Writer} methods configures the stream for
-          non-blocking use cases.</para>
+        <para>Getting NIOReader and NIOWriter to be able to leverage NIO features.</para>
       </listitem>
 
       <listitem>
@@ -1187,9 +1215,9 @@ public class WebSocketAddOn implements AddOn {
 
     <itemizedlist>
       <listitem>
-        <para>lWhen the connection is established with the server, the handleConnect() method of
-          this Filter will be invoked. When this happens, we create a HttpRequestPacket, which
-          contains only message part of a POST request. wThe request is then written.</para>
+        <para>When the connection is established with the server, the handleConnect() method of this
+          Filter will be invoked. When this happens, we create a HttpRequestPacket, which contains
+          only message part of a POST request. wThe request is then written.</para>
       </listitem>
       <listitem>
         <para>The message of the body of the message in 2 second intervals.</para>
@@ -1327,5 +1355,26 @@ INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
 
     <para>This example in its entirety is available within the samples section
     of the Grizzly @project.version@ repository.</para>
+  </section>
+  <section xml:id="httpserverframework-other-samples">
+    <title>Other samples</title>
+    
+    <para>The HTTP server framwork samples can be reviewed in one of two ways:</para>
+    
+    <itemizedlist>
+      <listitem>
+        <para>Directly from the git repository:</para>
+        
+        <screen>git clone git://java.net/grizzly~git
+cd grizzly~git
+git checkout 2_3
+cd samples/http-server-samples</screen>
+      </listitem>
+      
+      <listitem>
+        <para>Download the sample source bundle from: <link
+          xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/@project.version@/grizzly-http-server-samples-@project.version@-sources.jar">https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/@project.version@/grizzly-http-server-samples-@project.version@-sources.jar</link></para>
+      </listitem>
+    </itemizedlist>
   </section>
 </chapter>
