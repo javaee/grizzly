@@ -111,7 +111,7 @@
 
                 </executions>
                 <configuration>
-                    <highlightSource>false</highlightSource>
+                    <highlightSource>true</highlightSource>
                     <highlightDefaultLanguage>java</highlightDefaultLanguage>
                     <useExtensions>1</useExtensions>
                     <linenumberingExtension>1</linenumberingExtension>

@@ -88,7 +88,7 @@
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/httpframework/httppacket-uml.png"></imagedata>
+              <imagedata fileref="../images/httpframework/http-packet-classes.png"></imagedata>
           </imageobject>
         </mediaobject>
       </figure>

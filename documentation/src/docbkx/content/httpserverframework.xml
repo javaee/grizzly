@@ -934,7 +934,7 @@ public class WebSocketAddOn implements AddOn {
       mechanism provided by HttpResponse's suspend/resume methods.</para>
     <para>Every time before invoking HttpHandler.service(Request, Response) method, Grizzly HTTP
       server asks HttpHandler which thread-pool it wants to be used:</para>
-    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">public class MyHttpHandler extends HttpHandler {
+    <programlisting language="java">public class MyHttpHandler extends HttpHandler {
     ...................................
 
     /**
@@ -965,7 +965,7 @@ public class WebSocketAddOn implements AddOn {
       HttpHandlers (applications) use only custom thread pools controlled by developer's application
       - it might be a good idea to prevent Grizzly creating the default worker thread-pool by
       calling:</para>
-    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">networkListener.getTransport().setWorkerThreadPoolConfig(null);</programlisting>
+    <programlisting language="java">networkListener.getTransport().setWorkerThreadPoolConfig(null);</programlisting>
     <para>For more details please see the priorities sample in Grizzly http-server-framework <link
         linkend="httpserverframework-other-samples">samples</link>.</para>
   </section>
