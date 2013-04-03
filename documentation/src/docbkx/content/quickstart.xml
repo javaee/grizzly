@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -62,11 +62,8 @@
     &lt;version&gt;@project.version@&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
-  <para>Maven repository to be used is<programlisting language="xml">&lt;repository&gt;
-    &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
-    &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
-    &lt;url&gt;https://maven.java.net/content/repositories/releases/&lt;/url&gt;
-&lt;/repository&gt;</programlisting></para>
+  <para>All Grizzy maven artifacts are deployed on the <link xlink:href="http://repo1.maven.org/">Maven
+      Central</link> repository.</para>
 
   <para>Let's implement simple Echo client-server application. The client will
   get user's data from standard input, send data to Echo server and redirect

@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -51,12 +51,10 @@
   <title>Dependencies</title>
 
   <para>Grizzly is built, assembled and installed using Maven. Grizzly is
-  deployed to the Java.Net maven repository at the following location: <link
-  xlink:href="https://maven.java.net/content/repositories/releases/">https://maven.java.net/content/repositories/releases/</link>.
-  The Grizzly modules can be browsed at the following location: <link
-  xlink:href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/">https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/</link>.
-  Jars, Jar sources, Jar JavaDoc and samples are all available on the java.net
-  maven repository.</para>
+  deployed to the Maven Central repository at the following location: <link
+  xlink:href="http://repo1.maven.org/">http://repo1.maven.org/</link>.
+  Jars, Jar sources, Jar JavaDoc and samples are all available on the Maven Central
+  repository.</para>
 
   <para>An application depending on Grizzly requires that it in turn includes
   the set of jars that Grizzly depends on. Grizzly has a pluggable component

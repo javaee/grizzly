@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -105,10 +105,10 @@ git checkout 2_3</programlisting></para>
 
     <para>There are several ways to obtain help with Grizzly. The first
     resource is the <link
-    xlink:href="https://grizzly.dev.java.net/servlets/ProjectMailingListList">project
+      xlink:href="http://java.net/projects/grizzly/lists">project
     mailing lists</link>. The Grizzly team is very responsive to any mails
     sent to these lists. The second resource is the <link
-    xlink:href="https://grizzly.dev.java.net/issues/">project issue
+      xlink:href="http://java.net/jira/browse/GRIZZLY">project issue
     tracker</link>. If you find a bug with Grizzly, or have recommendations on
     how to improve Grizzly, this is the place to do it.</para>
   </section>
