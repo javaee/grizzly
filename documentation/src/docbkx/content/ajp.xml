@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -75,7 +75,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-filterchain.png"/>
+          <imagedata fileref="../images/ajp/httpserver-filterchain.png"></imagedata>
         </imageobject>
       </inlinemediaobject></para>
 
@@ -86,7 +86,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png"/>
+          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png"></imagedata>
         </imageobject>
       </inlinemediaobject></para>
 

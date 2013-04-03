@@ -159,6 +159,9 @@ httpServer.addListener(listener);</programlisting>
           <para>Copy the grizzly-npn-osgi-1.0.jar to the GF_HOME/modules directory.</para>
         </listitem>
         <listitem>
+          <para>Copy the grizzly-spdy-@project.version@.jar to the GF_HOME/modules directory.</para>
+        </listitem>
+        <listitem>
           <para>Update the domain.xml's JVM configuration section to include a reference to the
             grizzly-npn-bootstrap-1.0.jar within -Xbootclasspath
             (-Xbootclasspath/p:&lt;path-to-jar>.</para>

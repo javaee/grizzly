@@ -50,7 +50,7 @@
     <para>File sharing has become a very popular internet service where users are able to upload
             files and share them for group of people. Typically users will upload their files via a
             regular HTML form
-            like:<programlisting language="html">&lt;form action="upload" method="post" enctype="multipart/form-data">
+            like:<programlisting language="xml">&lt;form action="upload" method="post" enctype="multipart/form-data">
   &lt;input type="text" name="description"/>
   &lt;input type="file" name="fileName"/>
   &lt;input type="submit" value="submit"/>
