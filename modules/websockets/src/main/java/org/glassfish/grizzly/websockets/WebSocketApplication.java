@@ -170,9 +170,9 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @param request the incoming HTTP request.
      * @return <code>true</code> if this application can service this request
      *         <p/>
-     *         +* @deprecated URI mapping shouldn't be intrinsic to the application.
-     *         +*  WebSocketApplications should be registered using {@link WebSocketEngine#register(String, String, WebSocketApplication)}
-     *         +*  using standard Servlet url-pattern rules.
+     * @deprecated URI mapping shouldn't be intrinsic to the application.
+     *  WebSocketApplications should be registered using {@link WebSocketEngine#register(String, String, WebSocketApplication)}
+     *  using standard Servlet url-pattern rules.
      */
     public boolean isApplicationRequest(HttpRequestPacket request) {
         return false;

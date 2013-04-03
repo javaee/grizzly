@@ -46,15 +46,41 @@ package org.glassfish.grizzly.websockets;
  */
 public interface Broadcaster {
 
+    /**
+     * Broadcasts the provided <tt>text</tt> content to the specified recipients.
+     *
+     * @param recipients the recipients of the provided <tt>text</tt> content.
+     * @param text       textual content.
+     */
     public void broadcast(final Iterable<? extends WebSocket> recipients,
             final String text);
-    
+
+    /**
+     * Broadcasts the provided <tt>binary</tt> content to the specified recipients.
+     *
+     * @param recipients the recipients of the provided <tt>binary</tt> content.
+     * @param binary     binary content.
+     */
     public void broadcast(final Iterable<? extends WebSocket> recipients,
             final byte[] binary);
-    
+
+    /**
+     * Broadcasts the provided fragmented <tt>text</tt> content to the specified recipients.
+     *
+     * @param recipients the recipients of the provided fragmented <tt>text</tt> content.
+     * @param text       fragmented textual content.
+     * @param last       <tt>true</tt> if this is the last fragment, otherwise <tt>false</tt>.
+     */
     public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
             final String text, final boolean last);
-    
+
+    /**
+     * Broadcasts the provided fragmented <tt>binary</tt> content to the specified recipients.
+     *
+     * @param recipients the recipients of the provided fragmented <tt>binary</tt> content.
+     * @param binary     fragmented binary content.
+     * @param last       <tt>true</tt> if this is the last fragment, otherwise <tt>false</tt>.
+     */
     public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
             final byte[] binary, final boolean last);
 }
