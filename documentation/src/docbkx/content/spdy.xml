@@ -169,11 +169,12 @@ httpServer.addListener(listener);</programlisting>
         <listitem>
           <para>Run the asadmin command enable-spdy.  Here's an example of the command being run
             against the default ssl listener in GlassFish: </para>
-          <para>asadmin enable-spdy http-listener-2</para>
+          <para><emphasis role="italic">asadmin enable-spdy http-listener-2</emphasis></para>
         </listitem>
       </itemizedlist></para>
     <para>When running enable-spdy, it is possible to pass SpdyAddon configuration values via
-      --max-concurrent-streams and --initial-window-size-bytes.  These properties may also be set
-      after-the-fact using asadmin set.</para>
+      --max-concurrent-streams, --initial-window-size-bytes, and max-frame-length-in-bytes. These
+      properties may also be set after-the-fact using <emphasis role="italic">asadmin
+      set</emphasis>.</para>
   </section>
 </chapter>
