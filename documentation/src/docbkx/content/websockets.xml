@@ -393,7 +393,7 @@
                 here in Broadcaster and the defautl implementation of the WebSocket interface merely
                 delegates the call to the Broadcaster implementation.</para>
             <para>Here's what the Broadcaster API looks
-                like:<programlisting>/**
+                like:</para><programlisting>/**
  * Broadcasts the provided &lt;tt>text&lt;/tt> content to the specified recipients.
  * 
  * @param recipients the recipients of the provided &lt;tt>text&lt;/tt> content.
@@ -431,7 +431,7 @@ public void broadcastFragment(final Iterable&lt;? extends WebSocket> recipients,
  */
 public void broadcastFragment(final Iterable&lt;? extends WebSocket> recipients,
                               final byte[] binary, 
-                              final boolean last);</programlisting></para>
+                              final boolean last);</programlisting>
             <para>As can be seen from the listing above, it is possible to send complete or
                 fragmented messages in an optimized fashion.   It should be noted that, by default,
                 Grizzly will use an unoptimized version of the Broadcaster (to maintain behavioral
@@ -469,7 +469,6 @@ public void broadcastFragment(final Iterable&lt;? extends WebSocket> recipients,
                 do:<programlisting>WebSocketApplication app = new BroadcastApplication(new OptimizedBroadcaster());</programlisting></para>
             <para>NOTE:  org.glassfish.grizzly.websockets.OptimizedBroadcaster is included with the
                 distribution.</para>
-            <para> </para>
         </section>
 
     <section xml:id="ws-api-listener">

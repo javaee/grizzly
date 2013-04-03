@@ -57,7 +57,8 @@
       resources so that only one connection per client is required.  </para>
     <para>Currently, Grizzly implements only SPDY/3 support per <link
         xlink:href="http://tools.ietf.org/html/draft-mbelshe-httpbis-spdy-00"
-        >http://tools.ietf.org/html/draft-mbelshe-httpbis-spdy-00</link> with a few caveats.<itemizedlist>
+        >http://tools.ietf.org/html/draft-mbelshe-httpbis-spdy-00</link> with a few caveats.</para>
+    <itemizedlist>
         <listitem>
           <para>As Grizzly is primarily providing SPDY support for typical HTTP/1.1 use cases, the
             implementation ignores header frames that are sent out-of-band of the typical
@@ -80,7 +81,7 @@
             should work, but there may be some gotchas that would require us to release new versions
             of the Grizzly NPN implementation.</para>
         </listitem>
-      </itemizedlist></para>
+      </itemizedlist>
   </section>
 
   <section xml:id="spdy-workings">
@@ -113,7 +114,8 @@ httpServer.addListener(listener);</programlisting>
 
   <section xml:id="spdy-config">
     <title>SPDY Configuration (Grizzly standalone)</title>
-    <para>Here's the high-level overview of getting SPDY working with a standalone Grizzly HTTP application.<itemizedlist>
+    <para>Here's the high-level overview of getting SPDY working with a standalone Grizzly HTTP application.</para>
+    <itemizedlist>
         <listitem>
           <para>Include the grizzly-npn-bootstrap-1.0.jar in the bootclasspath of the Grizzly
             application:  -Xbootclasspath/p:&lt;path-to-jar>.</para>
@@ -121,7 +123,7 @@ httpServer.addListener(listener);</programlisting>
         <listitem>
           <para>Register the SpdyAddon with the NetworkListener.</para>
         </listitem>
-      </itemizedlist></para>
+      </itemizedlist>
     <para>The SpdyAddon currently exposes two properties that primarily control the memory
       characteristics of SPDY on the server side.</para>
 
@@ -154,7 +156,8 @@ httpServer.addListener(listener);</programlisting>
   </section>
   <section xml:id="spdy-config-gf">
     <title>SPDY Configuration (GlassFish 4)</title>
-    <para>There's a little more involved when configuring GlassFish 4 for SPDY support.<itemizedlist>
+    <para>There's a little more involved when configuring GlassFish 4 for SPDY support.</para>
+      <itemizedlist>
         <listitem>
           <para>Copy the grizzly-npn-osgi-1.0.jar to the GF_HOME/modules directory.</para>
         </listitem>
@@ -174,10 +177,57 @@ httpServer.addListener(listener);</programlisting>
             against the default ssl listener in GlassFish: </para>
           <para><emphasis role="italic">asadmin enable-spdy http-listener-2</emphasis></para>
         </listitem>
-      </itemizedlist></para>
+      </itemizedlist>
     <para>When running enable-spdy, it is possible to pass SpdyAddon configuration values via
       --max-concurrent-streams, --initial-window-size-bytes, and max-frame-length-in-bytes. These
       properties may also be set after-the-fact using <emphasis role="italic">asadmin
       set</emphasis>.</para>
+  </section>
+  <section>
+    <title>Dependencies</title>
+    <para>As stated previously, in order to use SPDY with Grizzly, you will need to use OpenJDK
+      7u14.  The following JARs are also required.  See the following table for details:
+      </para><table
+        frame="all">
+        <title>SPDY Dependencies</title>
+        <tgroup cols="2">
+          
+          <thead>
+            <row>
+              <entry>Dependency</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry><link
+                  xlink:href="http://search.maven.org/remotecontent?filepath=org/glassfish/grizzly/grizzly-npn-api/1.0/grizzly-npn-api-1.0.jar"
+                  >grizzly-npn-api-1.0.jar</link></entry>
+              <entry>This JAR exposes the Grizzly-side of the Next Protocol Negotiation API.
+                Typically won't be needed by developers unless they wish to expose custom protocols
+                via Next Protocol Negotiation. </entry>
+            </row>
+            <row>
+              <entry><link
+                  xlink:href="http://search.maven.org/remotecontent?filepath=org/glassfish/grizzly/grizzly-npn-bootstrap/1.0/grizzly-npn-bootstrap-1.0.jar"
+                  >grizzly-npn-bootstrap-1.0.jar</link></entry>
+              <entry>Includes both the Next Protocol Negotiation API and the SSL implementation
+                overrides.  This JAR must be specified on the bootclasspath in order for Next
+                Protocol Negotiation to function.</entry>
+            </row>
+            <row>
+              <entry><link
+                  xlink:href="http://search.maven.org/remotecontent?filepath=org/glassfish/grizzly/grizzly-npn-osgi/1.0/grizzly-npn-osgi-1.0.jar"
+                  >grizzly-npn-osgi-1.0.jar</link></entry>
+              <entry>This JAR is an OSGi bundle fragment.  It's used to ensure the Next Protocol
+                Negotiation API classes are properly available to an OSGi runtime.  </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    <para>One item to keep in mind is that the SSL part of the NPN implementation is sensitive the
+      the OpenJDK version being used.  It won't work with older update releases, and may not work
+      with newer.  If testing with a newer OpenJDK release and an issue is found, please log a <link
+        xlink:href="http://java.net/jira/browse/GRIZZLY">bug</link>.</para>
   </section>
 </chapter>
