@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,12 +42,17 @@ package org.glassfish.grizzly.samples.websockets;
 
 import java.awt.Frame;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.Broadcaster;
 import org.glassfish.grizzly.websockets.DataFrame;
+import org.glassfish.grizzly.websockets.OptimizedBroadcaster;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
@@ -64,6 +69,13 @@ import org.glassfish.grizzly.websockets.WebSocketListener;
  */
 public class ChatApplication extends WebSocketApplication {
     private static final Logger logger = Grizzly.logger(ChatApplication.class);
+
+    // Logged in members
+    private Set<WebSocket> members = Collections.newSetFromMap(
+            new ConcurrentHashMap<WebSocket, Boolean>());
+
+    // initialize optimized broadcaster
+    private final Broadcaster broadcaster = new OptimizedBroadcaster();
 
     /**
      * Creates a customized {@link WebSocket} implementation.
@@ -90,6 +102,7 @@ public class ChatApplication extends WebSocketApplication {
         if (data.startsWith("login:")) {
             // process login
             login((ChatWebSocket) websocket, data);
+            members.add(websocket);
         } else {
             // broadcast the message
             broadcast(((ChatWebSocket)websocket).getUser(), data);
@@ -100,7 +113,17 @@ public class ChatApplication extends WebSocketApplication {
      * {@inheritDoc}
      */
     @Override
+    public void onConnect(WebSocket socket) {
+        // do nothing
+        // override this method to take control over members list
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void onClose(WebSocket websocket, DataFrame frame) {
+        members.remove(websocket);
         broadcast("system", ((ChatWebSocket)websocket).getUser() + " left the chat");
     }
 
@@ -112,15 +135,9 @@ public class ChatApplication extends WebSocketApplication {
      */
     private void broadcast(String user, String text) {
         logger.log(Level.INFO, "Broadcasting: {0} from: {1}", new Object[]{text, user});
-        for (WebSocket websocket : getWebSockets()) {
-            if (!websocket.isConnected()) {
-                continue;
-            }
-            final ChatWebSocket chat = (ChatWebSocket) websocket;
-            if (chat.getUser() != null) {  // it may happen some websocket is on the list, but not logged in to the chat
-                chat.sendJson(user, text);
-            }
-        }
+        final String jsonMessage = toJsonp(user, text);
+        
+        broadcaster.broadcast(members, jsonMessage);
     }
 
     /**
@@ -138,4 +155,56 @@ public class ChatApplication extends WebSocketApplication {
             broadcast("system", websocket.getUser() + " has joined the chat.");
         }
     }
+    
+    private static String toJsonp(String name, String message) {
+        return "window.parent.app.update({ name: \"" + escape(name) +
+                "\", message: \"" + escape(message) + "\" });\n";
+    }
+
+    private static String escape(String orig) {
+        StringBuilder buffer = new StringBuilder(orig.length());
+
+        for (int i = 0; i < orig.length(); i++) {
+            char c = orig.charAt(i);
+            switch (c) {
+                case '\b':
+                    buffer.append("\\b");
+                    break;
+                case '\f':
+                    buffer.append("\\f");
+                    break;
+                case '\n':
+                    buffer.append("<br />");
+                    break;
+                case '\r':
+                    // ignore
+                    break;
+                case '\t':
+                    buffer.append("\\t");
+                    break;
+                case '\'':
+                    buffer.append("\\'");
+                    break;
+                case '\"':
+                    buffer.append("\\\"");
+                    break;
+                case '\\':
+                    buffer.append("\\\\");
+                    break;
+                case '<':
+                    buffer.append("&lt;");
+                    break;
+                case '>':
+                    buffer.append("&gt;");
+                    break;
+                case '&':
+                    buffer.append("&amp;");
+                    break;
+                default:
+                    buffer.append(c);
+            }
+        }
+
+        return buffer.toString();
+    }    
 }
