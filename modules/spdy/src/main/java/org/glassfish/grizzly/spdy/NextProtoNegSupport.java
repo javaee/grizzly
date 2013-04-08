@@ -67,7 +67,9 @@ import org.glassfish.grizzly.ssl.SSLUtils;
  */
 public class NextProtoNegSupport {
     private final static Logger LOGGER = Grizzly.logger(NextProtoNegSupport.class);
-    private static final String CONNECTION_KEY = Connection.class.getName();
+
+    private final static Map<SSLEngine, Connection> SSL_TO_CONNECTION_MAP =
+            new WeakHashMap<SSLEngine, Connection>();
     
     private static final NextProtoNegSupport INSTANCE;
     
@@ -97,9 +99,18 @@ public class NextProtoNegSupport {
     }
 
     public static Connection getConnection(final SSLEngine engine) {
-        return (Connection) engine.getSession().getValue(CONNECTION_KEY);
+        synchronized (SSL_TO_CONNECTION_MAP) {
+            return SSL_TO_CONNECTION_MAP.get(engine);
+        }
     }
     
+    private static void setConnection(final SSLEngine engine,
+            final Connection connection) {
+        synchronized (SSL_TO_CONNECTION_MAP) {
+            SSL_TO_CONNECTION_MAP.put(engine, connection);
+        }
+    }
+
     private final Map<Object, ServerSideNegotiator> serverSideNegotiators =
             new WeakHashMap<Object, ServerSideNegotiator>();
     private final ReadWriteLock serverSideLock = new ReentrantReadWriteLock();
@@ -138,7 +149,7 @@ public class NextProtoNegSupport {
                             NegotiationSupport.removeClientNegotiator(sslEngine);
                         }
                     });
-                    sslEngine.getSession().putValue(CONNECTION_KEY, connection);
+                    setConnection(sslEngine, connection);
                     NegotiationSupport.addNegotiator(sslEngine, negotiator);
                 }
             } else {
@@ -164,7 +175,7 @@ public class NextProtoNegSupport {
                             NegotiationSupport.removeServerNegotiator(sslEngine);
                         }
                     });
-                    sslEngine.getSession().putValue(CONNECTION_KEY, connection);
+                    setConnection(sslEngine, connection);
                     NegotiationSupport.addNegotiator(sslEngine, negotiator);
                 }
             }
