@@ -254,6 +254,10 @@ public class SpdyAddOn implements AddOn {
 
         @Override
         public LinkedHashSet<String> supportedProtocols(final SSLEngine engine) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "NPN supportedProtocols. Connection={0} sslEngine={1} supportedProtocols={2}",
+                        new Object[]{NextProtoNegSupport.getConnection(engine), engine, supportedProtocols});
+            }
             return supportedProtocols;
         }
 
@@ -262,8 +266,8 @@ public class SpdyAddOn implements AddOn {
 
             final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} protocol={1}",
-                        new Object[]{connection, protocol});
+                LOGGER.log(Level.FINE, "NPN onSuccess. Connection={0} sslEngine={1} protocol={2}",
+                        new Object[]{connection, engine, protocol});
             }
 
             // If SPDY is supported, set the spdyFilterChain on the connection.
@@ -280,8 +284,8 @@ public class SpdyAddOn implements AddOn {
             final Connection connection = NextProtoNegSupport.getConnection(engine);
             // Default to the transport FilterChain.
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
-                        new Object[]{ connection });
+                LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0} sslEngine={1}",
+                        new Object[]{connection, engine});
             }
             // TODO: Should we consider making this behavior configurable?
             connection.closeSilently();

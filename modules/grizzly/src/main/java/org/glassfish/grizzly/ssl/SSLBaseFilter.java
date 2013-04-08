@@ -275,8 +275,14 @@ public class SSLBaseFilter extends BaseFilter {
                 final FilterChain connectionFilterChain = sslCtx.getNewConnectionFilterChain();
                 sslCtx.setNewConnectionFilterChain(null);
                 if (connectionFilterChain != null) {
-                    connection.setFilterChain(connectionFilterChain);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "Applying new FilterChain after"
+                                + "SSLHandshake. Connection={0} filterchain={1}",
+                                new Object[]{connection, connectionFilterChain});
+                    }
                     
+                    connection.setFilterChain(connectionFilterChain);
+
                     if (hasRemaining) {
                         NextAction suspendAction = ctx.getSuspendAction();
                         ctx.setMessage(buffer);
