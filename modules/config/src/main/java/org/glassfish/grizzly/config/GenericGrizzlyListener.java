@@ -472,7 +472,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             final ThreadPool threadPool) {
         
         final String classname = threadPool.getClassname();
-        if (classname != null) {
+        if (classname != null &&
+                !ThreadPool.DEFAULT_THREAD_POOL_CLASS_NAME.equals(classname)) {
+            
             // Use custom thread pool
             try {
                 final ExecutorService customThreadPool =

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,9 @@ import java.util.List;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, PropertyBag {
+    String DEFAULT_THREAD_POOL_CLASS_NAME =
+            "org.glassfish.grizzly.threadpool.GrizzlyExecutorService";
+    
     int IDLE_THREAD_TIMEOUT = 900;
     int MAX_QUEUE_SIZE = 4096;
 
@@ -66,7 +69,7 @@ public interface ThreadPool extends ConfigBeanProxy, PropertyBag {
     /**
      * The classname of a thread pool implementation
      */
-    @Attribute()
+    @Attribute(defaultValue = DEFAULT_THREAD_POOL_CLASS_NAME)
     String getClassname();
 
     void setClassname(String value);
