@@ -167,7 +167,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
         HttpServletResponseImpl servletResponse = HttpServletResponseImpl.create();
         
         servletResponse.initialize(response, servletRequest);
-        servletRequest.initialize(request, servletResponse);
+        servletRequest.initialize(request, servletResponse, servletContext);
         
         return httpContext.handleSecurity(servletRequest, servletResponse);
     }
