@@ -106,6 +106,11 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     /**
      * When a {@link WebSocket#onClose(DataFrame)} is invoked, the {@link WebSocket}
      * will be unassociated with this application and closed.
+     *
+     * If this method is overridden, the overriding method <em>must</em>
+     * call {@link #remove(WebSocket)}.  This is necessary to ensure WebSocket
+     * instances are not leaked nor are message operations against closed sockets
+     * are performed.
      * 
      * @param socket the {@link WebSocket} being closed.
      * @param frame the closing frame.
@@ -118,7 +123,11 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
 
     /**
      * When a new {@link WebSocket} connection is made to this application, the
-     * {@link WebSocket} will be associated with this application.  
+     * {@link WebSocket} will be associated with this application.
+     *
+     * If this method is overridden, the overriding method <em>must</em>
+     * call {@link #add(WebSocket)}.  This is necessary to ensure bulk message
+     * sending via facilities such as {@link Broadcaster} function properly.
      * 
      * @param socket the new {@link WebSocket} connection.
      */
