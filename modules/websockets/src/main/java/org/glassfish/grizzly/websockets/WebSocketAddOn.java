@@ -46,12 +46,19 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * WebSockets {@link AddOn} for the {@link HttpServer}.
  * 
  * @author Alexey Stashok
  */
 public class WebSocketAddOn implements AddOn {
+
+    private long timeout = 15 * 60;
+
+
+    // ------------------------------------------------------ Methods from Addon
 
     /**
      * {@inheritDoc}
@@ -63,7 +70,19 @@ public class WebSocketAddOn implements AddOn {
 
         if (httpServerFilterIdx >= 0) {
             // Insert the WebSocketFilter right before HttpServerFilter
-            builder.add(httpServerFilterIdx, new WebSocketFilter());
+            builder.add(httpServerFilterIdx, new WebSocketFilter(timeout));
         }
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public long getTimeoutInSeconds() {
+        return timeout;
+    }
+
+    public void setTimeoutInSeconds(long timeout) {
+        this.timeout = timeout;
     }
 }
