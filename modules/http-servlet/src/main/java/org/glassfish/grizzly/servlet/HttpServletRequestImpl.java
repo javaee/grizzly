@@ -204,6 +204,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                            WebappContext context)
             throws IOException {
         this.request = request;
+        this.servletResponse = servletResponse;
         inputStream.initialize();
         contextImpl = context;
     }
