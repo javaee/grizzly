@@ -638,7 +638,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         // TODO: evaluate comet/websocket support over SPDY.
         configureCometSupport(habitat, networkListener, http, filterChainBuilder);
 
-        configureWebSocketSupport(habitat, http, filterChainBuilder);
+        configureWebSocketSupport(habitat, networkListener, http, filterChainBuilder);
 
         configureAjpSupport(habitat, networkListener, http, filterChainBuilder);
     }
@@ -727,27 +727,29 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     protected void configureWebSocketSupport(final ServiceLocator habitat,
+                                             final NetworkListener listener,
                                              final Http http,
                                              final FilterChainBuilder filterChainBuilder) {
         final boolean websocketsSupportEnabled = Boolean.parseBoolean(http.getWebsocketsSupportEnabled());
         if (websocketsSupportEnabled) {
-            final long timeoutSeconds = Integer.parseInt(http.getWebsocketsTimeoutSeconds());
-            Filter f;
-            if (timeoutSeconds != Http.WEBSOCKETS_TIMEOUT) {
-                f = loadFilter(habitat,
-                               "websockets",
-                               "org.glassfish.grizzly.websockets.WebSocketFilter",
-                               new Class<?>[] { Integer.TYPE },
-                               new Object[] { timeoutSeconds });
-                
-            } else {
-                f = loadFilter(habitat, "websockets", "org.glassfish.grizzly.websockets.WebSocketFilter");
-            }
-            final int httpServerFilterIdx = filterChainBuilder.indexOfType(HttpServerFilter.class);
-
-            if (httpServerFilterIdx >= 0 && f != null) {
-                // Insert the WebSocketFilter right after HttpCodecFilter
-                filterChainBuilder.add(httpServerFilterIdx, f);
+            AddOn wsAddOn = loadAddOn(habitat,
+                                      "websocket",
+                                      "org.glassfish.grizzly.websockets.WebSocketAddOn");
+            if (wsAddOn != null) {
+                if (!configureElement(habitat, listener, http, wsAddOn)) {
+                    // Dealing with a WebSocketAddOn created by reflection vs
+                    // an HK2 service.  We need to pass the configuration data
+                    // manually via reflection.
+                    try {
+                        Method m = wsAddOn.getClass().getDeclaredMethod("setTimeoutInSeconds", Long.TYPE);
+                        m.invoke(wsAddOn, Long.parseLong(http.getWebsocketsTimeoutSeconds()));
+                    } catch (Exception e) {
+                        if (logger.isLoggable(Level.WARNING)) {
+                            logger.log(Level.WARNING, e.toString(), e);
+                        }
+                    }
+                }
+                wsAddOn.setup(null, filterChainBuilder);
             }
         }
     }
