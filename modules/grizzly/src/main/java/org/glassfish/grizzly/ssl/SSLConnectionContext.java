@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -81,11 +81,6 @@ public final class SSLConnectionContext {
     
     private final Connection connection;
     private FilterChain newConnectionFilterChain;
-
-    /*
-     * This value may be non-null if NPN is use and a protocol is negotiated.
-     */
-    private FilterChain newFilterChain;
 
     public SSLConnectionContext(Connection connection) {
         this.connection = connection;
