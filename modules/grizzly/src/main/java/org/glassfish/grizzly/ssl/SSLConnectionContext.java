@@ -81,11 +81,6 @@ public final class SSLConnectionContext {
     
     private final Connection connection;
 
-    /*
-     * This value may be non-null if NPN is use and a protocol is negotiated.
-     */
-    private FilterChain newFilterChain;
-
     public SSLConnectionContext(Connection connection) {
         this.connection = connection;
     }    

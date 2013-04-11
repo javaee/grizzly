@@ -583,6 +583,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     spdyRequest.setSecure(valueSize == 5); // support http and https only
                     return valueEnd;
                 }
+                
+                break;
             } case 7: {
                 if (checkArraysContent(headersArray, nameStart,
                                 Constants.VERSION_HEADER_BYTES, 1)) {
@@ -673,7 +675,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
                 new Object[] {
-                    buffer.toStringContent(Charsets.ASCII_CHARSET, position, nameSize),
+                    buffer.toStringContent(Charsets.ASCII_CHARSET, nameStart - 1, nameSize),
                     buffer.toStringContent(Charsets.ASCII_CHARSET, valueStart, valueSize)});
 
         return valueEnd;
