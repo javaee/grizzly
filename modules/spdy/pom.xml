@@ -74,16 +74,16 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            org.glassfish.grizzly.npn*;version="[1.0.SNAPSHOT,2)",
+                            org.glassfish.grizzly.npn*;version="[1.0,2)",
                             org.glassfish.grizzly.*;version="[2.3,${project.version}]",
-                            org.glassfish.api*,
-                            org.glassfish.internal.*,
-                            org.glassfish.config.*,
-                            org.glassfish.hk2.*,
-                            org.jvnet.hk2.*,
-                            javax.inject.*,
-                            com.sun.enterprise.config.serverbeans.*,
-                            *,
+                            org.glassfish.api.*;resolution:=optional,
+                            org.glassfish.internal.*;resolution:=optional,
+                            org.glassfish.config.*;resolution:=optional,
+                            org.glassfish.hk2.*;resolution:=optional,
+                            org.jvnet.hk2.*;resolution:=optional,
+                            javax.inject.*;resolution:=optional,
+                            com.sun.enterprise.config.serverbeans.*;resolution:=optional,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.glassfish.grizzly.spdy.*;version=${project.version},
