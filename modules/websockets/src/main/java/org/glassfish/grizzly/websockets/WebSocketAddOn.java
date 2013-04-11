@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,8 +46,6 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * WebSockets {@link AddOn} for the {@link HttpServer}.
  * 
@@ -70,7 +68,7 @@ public class WebSocketAddOn implements AddOn {
 
         if (httpServerFilterIdx >= 0) {
             // Insert the WebSocketFilter right before HttpServerFilter
-            builder.add(httpServerFilterIdx, new WebSocketFilter(timeout));
+            builder.add(httpServerFilterIdx, createWebSocketFilter());
         }
     }
 
@@ -84,5 +82,9 @@ public class WebSocketAddOn implements AddOn {
 
     public void setTimeoutInSeconds(long timeout) {
         this.timeout = timeout;
+    }
+
+    protected WebSocketFilter createWebSocketFilter() {
+        return new WebSocketFilter(timeout);
     }
 }

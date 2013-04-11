@@ -54,6 +54,7 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
@@ -69,9 +70,10 @@ public abstract class ProtocolHandler {
     protected FilterChainContext ctx;
     protected boolean processingFragment;
     protected Charset utf8 = new StrictUtf8();
-        protected CharsetDecoder currentDecoder = utf8.newDecoder();
-        protected ByteBuffer remainder;
-
+    protected CharsetDecoder currentDecoder = utf8.newDecoder();
+    protected ByteBuffer remainder;
+    protected Mapper mapper;
+    
     public ProtocolHandler(boolean maskData) {
         this.maskData = maskData;
     }
@@ -105,6 +107,14 @@ public abstract class ProtocolHandler {
 
     public void setFilterChainContext(FilterChainContext ctx) {
         this.ctx = ctx;
+    }
+
+    protected Mapper getMapper() {
+        return mapper;
+    }
+
+    protected void setMapper(Mapper mapper) {
+        this.mapper = mapper;
     }
 
     public WebSocket getWebSocket() {
