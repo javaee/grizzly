@@ -204,7 +204,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                            WebappContext context)
             throws IOException {
         this.request = request;
-        request.getInputBuffer().setAsyncEnabled(false); // switch Grizzly input to blocking mode by default
+        this.servletResponse = servletResponse;        
         inputStream.initialize();
         contextImpl = context;
     }
