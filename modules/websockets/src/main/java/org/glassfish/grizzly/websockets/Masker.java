@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,14 +69,14 @@ public class Masker {
 
     public byte unmask() {
         final byte b = get();
-        return mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+        return mask == null ? b : (byte) (b ^ mask[index++ % Constants.MASK_SIZE]);
     }
 
     public byte[] unmask(int count) {
         byte[] bytes = get(count);
         if (mask != null) {
             for (int i = 0; i < bytes.length; i++) {
-                bytes[i] ^= mask[index++ % WebSocketEngine.MASK_SIZE];
+                bytes[i] ^= mask[index++ % Constants.MASK_SIZE];
             }
         }
 
@@ -84,12 +84,12 @@ public class Masker {
     }
 
     public void generateMask() {
-        mask = new byte[WebSocketEngine.MASK_SIZE];
+        mask = new byte[Constants.MASK_SIZE];
         new SecureRandom().nextBytes(mask);
     }
 
     public void mask(byte[] bytes, int location, byte b) {
-        bytes[location] = mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+        bytes[location] = mask == null ? b : (byte) (b ^ mask[index++ % Constants.MASK_SIZE]);
     }
 
     public void mask(byte[] target, int location, byte[] bytes) {
@@ -97,15 +97,15 @@ public class Masker {
             for (int i = 0; i < bytes.length; i++) {
                 target[location + i] = mask == null
                         ? bytes[i]
-                        : (byte) (bytes[i] ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+                        : (byte) (bytes[i] ^ mask[index++ % Constants.MASK_SIZE]);
             }
         }
     }
 
     public byte[] maskAndPrepend(byte[] packet) {
-        byte[] masked = new byte[packet.length + WebSocketEngine.MASK_SIZE];
-        System.arraycopy(getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
-        mask(masked, WebSocketEngine.MASK_SIZE, packet);
+        byte[] masked = new byte[packet.length + Constants.MASK_SIZE];
+        System.arraycopy(getMask(), 0, masked, 0, Constants.MASK_SIZE);
+        mask(masked, Constants.MASK_SIZE, packet);
         return masked;
     }
     
@@ -119,6 +119,6 @@ public class Masker {
     }
 
     public void readMask() {
-        mask = get(WebSocketEngine.MASK_SIZE);
+        mask = get(Constants.MASK_SIZE);
     }
 }

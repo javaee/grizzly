@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,13 +46,13 @@ import java.util.Locale;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FrameType;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
 import org.glassfish.grizzly.websockets.ProtocolError;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ContinuationFrameType;
@@ -72,8 +72,8 @@ public class Draft07Handler extends ProtocolHandler {
         final byte[] bytes = frame.getType().getBytes(frame);
         final byte[] lengthBytes = encodeLength(bytes.length);
 
-        int length = 1 + lengthBytes.length + bytes.length + (maskData ? WebSocketEngine.MASK_SIZE : 0);
-        int payloadStart = 1 + lengthBytes.length + (maskData ? WebSocketEngine.MASK_SIZE : 0);
+        int length = 1 + lengthBytes.length + bytes.length + (maskData ? Constants.MASK_SIZE : 0);
+        int payloadStart = 1 + lengthBytes.length + (maskData ? Constants.MASK_SIZE : 0);
         final byte[] packet = new byte[length];
         packet[0] = opcode;
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
@@ -81,8 +81,8 @@ public class Draft07Handler extends ProtocolHandler {
             Masker masker = new Masker();
             packet[1] |= 0x80;
             masker.mask(packet, payloadStart, bytes);
-            System.arraycopy(masker.getMask(), 0, packet, payloadStart - WebSocketEngine.MASK_SIZE,
-                    WebSocketEngine.MASK_SIZE);
+            System.arraycopy(masker.getMask(), 0, packet, payloadStart - Constants.MASK_SIZE,
+                    Constants.MASK_SIZE);
         } else {
             System.arraycopy(bytes, 0, packet, payloadStart, bytes.length);
         }
@@ -92,7 +92,7 @@ public class Draft07Handler extends ProtocolHandler {
     @Override
     public DataFrame parse(Buffer buffer) {
 
-        DataFrame dataFrame = null;
+        DataFrame dataFrame;
         try {
             switch (state.state) {
                 case 0:
@@ -162,7 +162,7 @@ public class Draft07Handler extends ProtocolHandler {
                     state.state++;
                 case 2:
                     if (state.masked) {
-                        if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
+                        if (buffer.remaining() < Constants.MASK_SIZE) {
                             // Don't have enough bytes to read mask
                             return null;
                         }

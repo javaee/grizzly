@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,24 +37,49 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
 
-import org.junit.runners.Parameterized;
+/**
+ * WebSocketHolder object, which gets associated with the Grizzly {@link org.glassfish.grizzly.Connection}.
+ */
+public final class WebSocketHolder {
+    public volatile WebSocket webSocket;
+    public volatile HandShake handshake;
+    public volatile WebSocketApplication application;
+    public volatile Buffer buffer;
+    public volatile ProtocolHandler handler;
 
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
+    private static final Attribute<WebSocketHolder> webSocketAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("web-socket");
 
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        versions.add(new Object[] { Version.DRAFT17 });
-//        for (Version version : Version.values()) {
-//            versions.add(new Object[]{version});
-//        }
-        return versions;
+    private WebSocketHolder(final ProtocolHandler handler, final WebSocket socket) {
+        this.handler = handler;
+        webSocket = socket;
+    }
+
+    public static boolean isWebSocketInProgress(final Connection connection) {
+        return (get(connection) != null);
+    }
+
+    public static WebSocket getWebSocket(Connection connection) {
+        final WebSocketHolder holder = get(connection);
+        return holder == null ? null : holder.webSocket;
+    }
+
+    public static WebSocketHolder get(final Connection connection) {
+        return webSocketAttribute.get(connection);
+    }
+
+    public static WebSocketHolder set(final Connection connection,
+                                      final ProtocolHandler handler,
+                                      final WebSocket socket) {
+        final WebSocketHolder holder = new WebSocketHolder(handler, socket);
+        webSocketAttribute.set(connection, holder);
+        return holder;
     }
 }

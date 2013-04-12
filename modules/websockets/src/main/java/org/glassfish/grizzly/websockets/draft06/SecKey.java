@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,9 +47,9 @@ import java.util.Random;
 
 import org.glassfish.grizzly.http.util.Base64Utils;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.HandshakeException;
 import org.glassfish.grizzly.websockets.WebSocket;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 
 /**
  * Class represents {@link WebSocket}'s security key, used during the handshake phase.
@@ -94,7 +94,7 @@ public class SecKey {
      *
      */
     public static SecKey generateServerKey(SecKey clientKey) throws HandshakeException {
-        String key = clientKey.getSecKey() + WebSocketEngine.SERVER_KEY_HASH;
+        String key = clientKey.getSecKey() + Constants.SERVER_KEY_HASH;
         final MessageDigest instance;
         try {
             instance = MessageDigest.getInstance("SHA-1");

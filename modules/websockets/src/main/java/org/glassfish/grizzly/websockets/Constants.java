@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,24 +37,25 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+public final class Constants {
 
-import org.junit.runners.Parameterized;
+    public static final String SEC_WS_ACCEPT = "Sec-WebSocket-Accept";
+    public static final String SEC_WS_KEY_HEADER = "Sec-WebSocket-Key";
+    public static final String SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String ORIGIN_HEADER = "Origin";
+    public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
+    public static final String SEC_WS_EXTENSIONS_HEADER = "Sec-WebSocket-Extensions";
+    public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
+    public static final String WEBSOCKET = "websocket";
+    public static final String RESPONSE_CODE_MESSAGE = "Switching Protocols";
+    public static final String RESPONSE_CODE_HEADER = "Response Code";
+    public static final int RESPONSE_CODE_VALUE = 101;
+    public static final String UPGRADE = "upgrade";
+    public static final String CONNECTION = "connection";
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+    public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    public static final int MASK_SIZE = 4;
 
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
-
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        versions.add(new Object[] { Version.DRAFT17 });
-//        for (Version version : Version.values()) {
-//            versions.add(new Object[]{version});
-//        }
-        return versions;
-    }
 }
