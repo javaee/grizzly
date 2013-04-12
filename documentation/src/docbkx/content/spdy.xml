@@ -167,7 +167,8 @@ httpServer.addListener(listener);</programlisting>
         <listitem>
           <para>Update the domain.xml's JVM configuration section to include a reference to the
             grizzly-npn-bootstrap-1.0.jar within -Xbootclasspath
-            (-Xbootclasspath/p:&lt;path-to-jar>.</para>
+            (-Xbootclasspath/p:&lt;path-to-jar>.  The io-strategy property on the transport named TCP will need to be set
+            to "org.glassfish.grizzly.strategies.SameThreadIOStrategy.</para>
         </listitem>
         <listitem>
           <para>Start the server.</para>
