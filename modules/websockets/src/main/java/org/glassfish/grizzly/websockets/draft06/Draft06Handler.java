@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,13 +45,13 @@ import java.net.URI;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FrameType;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
 import org.glassfish.grizzly.websockets.ProtocolError;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ContinuationFrameType;
@@ -112,7 +112,7 @@ public class Draft06Handler extends ProtocolHandler {
                 case 0:
                     state.masker = new Masker(buffer);
                     if (!maskData) {
-                        if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
+                        if (buffer.remaining() < Constants.MASK_SIZE) {
                             // Don't have enough bytes to read mask
                             return null;
                         }

@@ -132,11 +132,11 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-/*
+                /*
                 if (count % ITERATIONS / 5 == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
-*/
+                */
                 socket.send("test message " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);

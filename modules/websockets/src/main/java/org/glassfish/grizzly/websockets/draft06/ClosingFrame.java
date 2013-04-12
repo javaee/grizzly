@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,8 +50,8 @@ import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.ProtocolError;
 import org.glassfish.grizzly.websockets.StrictUtf8;
 import org.glassfish.grizzly.websockets.Utf8DecodingError;
+import org.glassfish.grizzly.websockets.Utils;
 import org.glassfish.grizzly.websockets.WebSocket;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 
 public class ClosingFrame extends DataFrame {
@@ -90,7 +90,7 @@ public class ClosingFrame extends DataFrame {
             throw new ProtocolError("Closing frame payload, if present, must be a minimum of 2 bytes in length");
         }
         if (bytes.length > 0) {
-            code = (int) WebSocketEngine.toLong(bytes, 0, 2);
+            code = (int) Utils.toLong(bytes, 0, 2);
             if (code < 1000 || code == 1004 || code == 1005 || code == 1006 || (code > 1011 && code < 3000) || code > 4999) {
                 throw new ProtocolError("Illegal status code: " + code);
             }
@@ -106,7 +106,7 @@ public class ClosingFrame extends DataFrame {
             return EMPTY_BYTES;
         }
 
-        final byte[] bytes = WebSocketEngine.toArray(code);
+        final byte[] bytes = Utils.toArray(code);
         final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes(new StrictUtf8());
         final byte[] frameBytes = new byte[2 + reasonBytes.length];
         System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);

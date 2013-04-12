@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,7 +54,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return this.wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
         }
     },
     DRAFT08("8") {
@@ -65,7 +65,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
         }
     },
 
@@ -77,7 +77,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
         }
     },
     DRAFT06("6") {
@@ -88,7 +88,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
         }
     };
 

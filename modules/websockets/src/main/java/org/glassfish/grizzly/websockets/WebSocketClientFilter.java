@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,24 +37,40 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 
-import org.junit.runners.Parameterized;
+import java.io.IOException;
 
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
+public class WebSocketClientFilter extends BaseWebSocketFilter {
 
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        versions.add(new Object[] { Version.DRAFT17 });
-//        for (Version version : Version.values()) {
-//            versions.add(new Object[]{version});
-//        }
-        return versions;
+
+    // ---------------------------------------- Methods from BaseWebSocketFilter
+
+
+    @Override
+    protected NextAction handleHandshake(FilterChainContext ctx, HttpContent content) throws IOException {
+        return handleClientHandShake(ctx, content);
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private static NextAction handleClientHandShake(FilterChainContext ctx, HttpContent content) {
+        final WebSocketHolder holder = WebSocketHolder.get(ctx.getConnection());
+        holder.handshake.validateServerResponse((HttpResponsePacket) content.getHttpHeader());
+        holder.webSocket.onConnect();
+
+        if (content.getContent().hasRemaining()) {
+            return ctx.getRerunFilterAction();
+        } else {
+            content.recycle();
+            return ctx.getStopAction();
+        }
     }
 }

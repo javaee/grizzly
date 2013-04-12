@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,9 +48,9 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.HandshakeException;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 
 public class HandShake06 extends HandShake {
     private final SecKey secKey;
@@ -65,18 +65,18 @@ public class HandShake06 extends HandShake {
     public HandShake06(HttpRequestPacket request) {
         super(request);
         final MimeHeaders mimeHeaders = request.getHeaders();
-        String header = mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER);
+        String header = mimeHeaders.getHeader(Constants.SEC_WS_EXTENSIONS_HEADER);
         if (header != null) {
             setExtensions(parseExtensionsHeader(header));
         }
-        secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
+        secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(Constants.SEC_WS_KEY_HEADER)));
     }
 
     public void setHeaders(HttpResponsePacket response) {
-        response.setReasonPhrase(WebSocketEngine.RESPONSE_CODE_MESSAGE);
-        response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, secKey.getSecKey());
+        response.setReasonPhrase(Constants.RESPONSE_CODE_MESSAGE);
+        response.setHeader(Constants.SEC_WS_ACCEPT, secKey.getSecKey());
         if (!getEnabledExtensions().isEmpty()) {
-            response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
+            response.setHeader(Constants.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
         }
     }
 
@@ -84,11 +84,11 @@ public class HandShake06 extends HandShake {
     public HttpContent composeHeaders() {
         final HttpContent httpContent = super.composeHeaders();
         final HttpHeader header = httpContent.getHttpHeader();
-        header.addHeader(WebSocketEngine.SEC_WS_KEY_HEADER, secKey.toString());
-        header.addHeader(WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin());
-        header.addHeader(WebSocketEngine.SEC_WS_VERSION, getVersion() + "");
+        header.addHeader(Constants.SEC_WS_KEY_HEADER, secKey.toString());
+        header.addHeader(Constants.SEC_WS_ORIGIN_HEADER, getOrigin());
+        header.addHeader(Constants.SEC_WS_VERSION, getVersion() + "");
         if (!getExtensions().isEmpty()) {
-            header.addHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, joinExtensions(getExtensions()));
+            header.addHeader(Constants.SEC_WS_EXTENSIONS_HEADER, joinExtensions(getExtensions()));
         }
         return httpContent;
     }
@@ -100,7 +100,7 @@ public class HandShake06 extends HandShake {
     @Override
     public void validateServerResponse(final HttpResponsePacket headers) throws HandshakeException {
         super.validateServerResponse(headers);
-        secKey.validateServerKey(headers.getHeader(WebSocketEngine.SEC_WS_ACCEPT));
+        secKey.validateServerKey(headers.getHeader(Constants.SEC_WS_ACCEPT));
     }
 
     public List<String> getEnabledExtensions() {

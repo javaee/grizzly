@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,24 +37,42 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-import org.junit.runners.Parameterized;
+public final class Utils {
 
-public class BaseWebSocketTestUtilities {
-    protected static final int PORT = 17250;
+    public static byte[] toArray(long length) {
+        long value = length;
+        byte[] b = new byte[8];
+        for (int i = 7; i >= 0 && value > 0; i--) {
+            b[i] = (byte) (value & 0xFF);
+            value >>= 8;
+        }
+        return b;
+    }
 
-    @Parameterized.Parameters
-    public static List<Object[]> parameters() {
-        final List<Object[]> versions = new ArrayList<Object[]>();
-        versions.add(new Object[] { Version.DRAFT17 });
-//        for (Version version : Version.values()) {
-//            versions.add(new Object[]{version});
-//        }
-        return versions;
+    public static long toLong(byte[] bytes, int start, int end) {
+        long value = 0;
+        for (int i = start; i < end; i++) {
+            value <<= 8;
+            value ^= (long) bytes[i] & 0xFF;
+        }
+        return value;
+    }
+
+    public static List<String> toString(byte[] bytes) {
+        return toString(bytes, 0, bytes.length);
+    }
+
+    public static List<String> toString(byte[] bytes, int start, int end) {
+        List<String> list = new ArrayList<String>();
+        for (int i = start; i < end; i++) {
+            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase(Locale.US));
+        }
+        return list;
     }
 }

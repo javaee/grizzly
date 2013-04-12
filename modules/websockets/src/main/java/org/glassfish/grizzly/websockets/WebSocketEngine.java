@@ -48,6 +48,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
@@ -71,30 +72,15 @@ import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
  * @see WebSocketApplication
  */
 public class WebSocketEngine {
-    public static final String SEC_WS_ACCEPT = "Sec-WebSocket-Accept";
-    public static final String SEC_WS_KEY_HEADER = "Sec-WebSocket-Key";
-    public static final String SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
-    public static final String ORIGIN_HEADER = "Origin";
-    public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
-    public static final String SEC_WS_EXTENSIONS_HEADER = "Sec-WebSocket-Extensions";
-    public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
-    public static final String WEBSOCKET = "websocket";
-    public static final String RESPONSE_CODE_MESSAGE = "Switching Protocols";
-    public static final String RESPONSE_CODE_HEADER = "Response Code";
-    public static final int RESPONSE_CODE_VALUE = 101;
-    public static final String UPGRADE = "upgrade";
-    public static final String CONNECTION = "connection";
-    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+
     public static final Version DEFAULT_VERSION = Version.DRAFT17;
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT = 30;
     private static final WebSocketEngine engine = new WebSocketEngine();
-    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-    public static final int MASK_SIZE = 4;
+    static final Logger logger = Logger.getLogger(Constants.WEBSOCKET);
+
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
-    private final Attribute<WebSocketHolder> webSocketAttribute =
-            Attribute.create("web-socket");
+
 
     // Association between WebSocketApplication and a value based on the
     // context path and url pattern.
@@ -116,36 +102,7 @@ public class WebSocketEngine {
         return engine;
     }
 
-    public static byte[] toArray(long length) {
-        long value = length;
-        byte[] b = new byte[8];
-        for (int i = 7; i >= 0 && value > 0; i--) {
-            b[i] = (byte) (value & 0xFF);
-            value >>= 8;
-        }
-        return b;
-    }
 
-    public static long toLong(byte[] bytes, int start, int end) {
-        long value = 0;
-        for (int i = start; i < end; i++) {
-            value <<= 8;
-            value ^= (long) bytes[i] & 0xFF;
-        }
-        return value;
-    }
-
-    public static List<String> toString(byte[] bytes) {
-        return toString(bytes, 0, bytes.length);
-    }
-
-    public static List<String> toString(byte[] bytes, int start, int end) {
-        List<String> list = new ArrayList<String>();
-        for (int i = start; i < end; i++) {
-            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase(Locale.US));
-        }
-        return list;
-    }
 
     public WebSocketApplication getApplication(HttpRequestPacket request) {
         return getApplication(request, true);
@@ -210,7 +167,7 @@ public class WebSocketEngine {
                 ctx.setMessage(null); // remove the message from the context, so underlying layers will not try to update it.
                 socket = app.createSocket(protocolHandler, request, app);
                 WebSocketHolder holder =
-                        WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
+                        WebSocketHolder.set(connection, protocolHandler, socket);
                 holder.application = app;
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
@@ -218,8 +175,7 @@ public class WebSocketEngine {
                     public void onClosed(final Closeable closeable,
                             final CloseType type) throws IOException {
                         
-                        final Connection connection = (Connection) closeable;
-                        final WebSocket webSocket = getWebSocket(connection);
+                        final WebSocket webSocket = WebSocketHolder.getWebSocket(connection);
                         webSocket.close();
                         webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,
                             "Close detected on connection"));
@@ -330,49 +286,12 @@ public class WebSocketEngine {
         mapper.setDefaultHostName("localhost");
     }
 
-    /**
-     * Returns <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
-     * <tt>false</tt> otherwise.
-     *
-     * @param connection Grizzly {@link Connection}.
-     *
-     * @return <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
-     *         <tt>false</tt> otherwise.
-     */
-    boolean webSocketInProgress(Connection connection) {
-        return webSocketAttribute.get(connection) != null;
-    }
-
-    /**
-     * Get the {@link WebSocket} associated with the Grizzly {@link Connection}, or <tt>null</tt>, if there none is
-     * associated.
-     *
-     * @param connection Grizzly {@link Connection}.
-     *
-     * @return the {@link WebSocket} associated with the Grizzly {@link Connection}, or <tt>null</tt>, if there none is
-     *         associated.
-     */
-    public WebSocket getWebSocket(Connection connection) {
-        final WebSocketHolder holder = getWebSocketHolder(connection);
-        return holder == null ? null : holder.webSocket;
-    }
-
-    public WebSocketHolder getWebSocketHolder(final Connection connection) {
-        return webSocketAttribute.get(connection);
-    }
-
-    public WebSocketHolder setWebSocketHolder(final Connection connection, ProtocolHandler handler, WebSocket socket) {
-        final WebSocketHolder holder = new WebSocketHolder(handler, socket);
-        webSocketAttribute.set(connection, holder);
-        return holder;
-    }
-
     private static void handleUnsupportedVersion(final FilterChainContext ctx,
                                                  final HttpRequestPacket request)
     throws IOException {
         HttpResponsePacket response = HttpResponsePacket.builder(request).build();
         response.setStatus(HttpStatus.BAD_REQUEST_400);
-        response.addHeader(WebSocketEngine.SEC_WS_VERSION, Version.getSupportedWireProtocolVersions());
+        response.addHeader(Constants.SEC_WS_VERSION, Version.getSupportedWireProtocolVersions());
         ctx.write(response);
     }
 
@@ -407,19 +326,4 @@ public class WebSocketEngine {
         return ctx;
     }
 
-    /**
-     * WebSocketHolder object, which gets associated with the Grizzly {@link Connection}.
-     */
-    public final static class WebSocketHolder {
-        public volatile WebSocket webSocket;
-        public volatile HandShake handshake;
-        public volatile WebSocketApplication application;
-        public volatile Buffer buffer;
-        public volatile ProtocolHandler handler;
-
-        WebSocketHolder(final ProtocolHandler handler, final WebSocket socket) {
-            this.handler = handler;
-            webSocket = socket;
-        }
-    }
 }

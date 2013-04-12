@@ -242,7 +242,7 @@ public abstract class ProtocolHandler {
      * Convert a byte[] to a long.  Used for rebuilding payload length.
      */
     public long decodeLength(byte[] bytes) {
-        return WebSocketEngine.toLong(bytes, 0, bytes.length);
+        return Utils.toLong(bytes, 0, bytes.length);
     }
 
     /**
@@ -261,7 +261,7 @@ public abstract class ProtocolHandler {
             lengthBytes = new byte[1];
             lengthBytes[0] = (byte) length;
         } else {
-            byte[] b = WebSocketEngine.toArray(length);
+            byte[] b = Utils.toArray(length);
             if (length <= 0xFFFF) {
                 lengthBytes = new byte[3];
                 lengthBytes[0] = 126;

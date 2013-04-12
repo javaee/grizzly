@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -89,12 +89,12 @@ public abstract class HandShake {
         MimeHeaders mimeHeaders = request.getHeaders();
         checkForHeader(request, "Upgrade", "WebSocket");
         checkForHeader(request, "Connection", "Upgrade");
-        origin = readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER);
+        origin = readHeader(mimeHeaders, Constants.SEC_WS_ORIGIN_HEADER);
         if (origin == null) {
-            origin = readHeader(mimeHeaders, WebSocketEngine.ORIGIN_HEADER);
+            origin = readHeader(mimeHeaders, Constants.ORIGIN_HEADER);
         }
         determineHostAndPort(mimeHeaders);
-        subProtocol = split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
+        subProtocol = split(mimeHeaders.getHeader(Constants.SEC_WS_PROTOCOL_HEADER));
         if (serverHostName == null) {
             throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
@@ -272,21 +272,21 @@ public abstract class HandShake {
             .header("Connection", "Upgrade")
             .upgrade("WebSocket");
         if (!getSubProtocol().isEmpty()) {
-            builder.header(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
+            builder.header(Constants.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
         }
         return HttpContent.builder(builder.build())
             .build();
     }
 
     public void validateServerResponse(HttpResponsePacket headers) {
-        if (WebSocketEngine.RESPONSE_CODE_VALUE != headers.getStatus()) {
+        if (Constants.RESPONSE_CODE_VALUE != headers.getStatus()) {
             throw new HandshakeException(String.format("Response code was not %s: %s",
-                WebSocketEngine.RESPONSE_CODE_VALUE, headers.getStatus()));
+                Constants.RESPONSE_CODE_VALUE, headers.getStatus()));
         }
-        checkForHeader(headers, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
-        checkForHeader(headers, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
+        checkForHeader(headers, Constants.UPGRADE, Constants.WEBSOCKET);
+        checkForHeader(headers, Constants.CONNECTION, Constants.UPGRADE);
         if (!getSubProtocol().isEmpty()) {
-            checkForHeader(headers, WebSocketEngine.SEC_WS_PROTOCOL_HEADER, WebSocketEngine.SEC_WS_PROTOCOL_HEADER);
+            checkForHeader(headers, Constants.SEC_WS_PROTOCOL_HEADER, Constants.SEC_WS_PROTOCOL_HEADER);
         }
     }
 
@@ -297,7 +297,7 @@ public abstract class HandShake {
         response.setHeader("Connection", "Upgrade");
         setHeaders(response);
         if (!getSubProtocol().isEmpty()) {
-            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
+            response.setHeader(Constants.SEC_WS_PROTOCOL_HEADER,
                 join(application.getSupportedProtocols(getSubProtocol())));
         }
         if (!application.getSupportedExtensions().isEmpty() && !getExtensions().isEmpty()) {
@@ -306,7 +306,7 @@ public abstract class HandShake {
                                  application.getSupportedExtensions());
             if (!intersection.isEmpty()) {
                 application.onExtensionNegotiation(intersection);
-                response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                response.setHeader(Constants.SEC_WS_EXTENSIONS_HEADER,
                                    joinExtensions(intersection));
             }
         }
