@@ -49,7 +49,6 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -149,19 +148,26 @@ public class WebSocketEngine {
     }
 
     public WebSocketApplication getApplication(HttpRequestPacket request) {
-        // try the Mapper first...
-        MappingData data = new MappingData();
-        try {
-            mapper.mapUriWithSemicolon(request.serverName(),
-                    request.getRequestURIRef().getDecodedRequestURIBC(),
-                                data,
-                                0);
-            if (data.wrapper != null) {
-                return (WebSocketApplication) data.wrapper;
-            }
-        } catch (Exception e) {
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.log(Level.SEVERE, e.toString(), e);
+        return getApplication(request, true);
+    }
+
+    public WebSocketApplication getApplication(HttpRequestPacket request,
+            final boolean checkPrivateMapper) {
+        if (checkPrivateMapper) {
+            // try the Mapper first...
+            MappingData data = new MappingData();
+            try {
+                mapper.mapUriWithSemicolon(request.serverName(),
+                        request.getRequestURIRef().getDecodedRequestURIBC(),
+                                    data,
+                                    0);
+                if (data.wrapper != null) {
+                    return (WebSocketApplication) data.wrapper;
+                }
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, e.toString(), e);
+                }
             }
         }
 
@@ -170,12 +176,24 @@ public class WebSocketEngine {
                 return application;
             }
         }
+        
         return null;
     }
-
-    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent) throws IOException {
-        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
-        final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
+    
+    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent)
+            throws IOException {
+        return upgrade(ctx, requestContent, null);
+    }
+    
+    // Mapper will be non-null when integrated in GF.
+    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent,
+            Mapper mapper) throws IOException {
+        final HttpRequestPacket request =
+                (HttpRequestPacket) requestContent.getHttpHeader();
+        final WebSocketApplication app =
+                WebSocketEngine.getEngine().getApplication(request,
+                mapper == null);
+        
         WebSocket socket = null;
         try {
             if (app != null) {
@@ -187,6 +205,9 @@ public class WebSocketEngine {
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setFilterChainContext(ctx);
                 protocolHandler.setConnection(connection);
+                protocolHandler.setMapper(mapper);
+                
+                ctx.setMessage(null); // remove the message from the context, so underlying layers will not try to update it.
                 socket = app.createSocket(protocolHandler, request, app);
                 WebSocketHolder holder =
                         WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);

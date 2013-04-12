@@ -39,30 +39,51 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
+import java.security.Principal;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.server.Constants;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.util.Mapper;
+import org.glassfish.grizzly.http.server.util.MappingData;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
+import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
+import org.glassfish.grizzly.servlet.WebappContext;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 import org.glassfish.grizzly.websockets.frametypes.PingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
+import org.glassfish.grizzly.websockets.glassfish.GlassfishSupport;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
-    private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
-    private final Queue<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
+    private static final Logger LOGGER = Grizzly.logger(DefaultWebSocket.class);
+    
+    private final Queue<WebSocketListener> listeners =
+            new ConcurrentLinkedQueue<WebSocketListener>();
+    
     protected final ProtocolHandler protocolHandler;
-    protected final HttpRequestPacket request;
+    protected final HttpServletRequest servletRequest;
 
     protected Broadcaster broadcaster = new DummyBroadcaster();
     
@@ -81,11 +102,45 @@ public class DefaultWebSocket implements WebSocket {
     public DefaultWebSocket(final ProtocolHandler protocolHandler,
                             final HttpRequestPacket request,
                             final WebSocketListener... listeners) {
+        
         this.protocolHandler = protocolHandler;
-        this.request = request;
+        final FilterChainContext ctx = protocolHandler.getFilterChainContext();
+        
+        if (ctx != null) { // ctx != null means server side.
+            final WSRequestImpl grizzlyRequest = new WSRequestImpl();
+            final Response grizzlyResponse = grizzlyRequest.getResponse();
+
+            grizzlyRequest.initialize(request, ctx, null);
+            grizzlyResponse.initialize(grizzlyRequest, request.getResponse(),
+                    ctx, null, null);
+
+            try {
+                // Has to be called before servlet request/response wrappers initialization
+                grizzlyRequest.parseSessionId();
+                
+                final WSServletRequestImpl grizzlyServletRequest =
+                        new WSServletRequestImpl();
+                final HttpServletResponseImpl grizzlyServletResponse =
+                        HttpServletResponseImpl.create();
+                
+                final Mapper mapper = protocolHandler.getMapper();
+                
+                grizzlyServletRequest.initialize(grizzlyRequest,
+                        grizzlyServletResponse, mapper);
+                grizzlyServletResponse.initialize(grizzlyResponse, grizzlyServletRequest);
+                
+                servletRequest = grizzlyServletRequest;
+            } catch (IOException e) {
+                throw new IllegalStateException("Unexpected exception", e);
+            }
+        } else {
+            servletRequest = null;
+        }
+        
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
+        
         protocolHandler.setWebSocket(this);
     }
 
@@ -96,22 +151,25 @@ public class DefaultWebSocket implements WebSocket {
      *  may return <code>null</code> depending on the context under which this
      *  {@link WebSocket} was created.
      */
-    public HttpRequestPacket getUpgradeRequest() {
-        return request;
+    public HttpServletRequest getUpgradeRequest() {
+        return servletRequest;
     }
     
     public Collection<WebSocketListener> getListeners() {
         return listeners;
     }
 
+    @Override
     public final boolean add(WebSocketListener listener) {
         return listeners.add(listener);
     }
 
+    @Override
     public final boolean remove(WebSocketListener listener) {
         return listeners.remove(listener);
     }
 
+    @Override
     public boolean isConnected() {
         return connected.contains(state.get());
     }
@@ -120,6 +178,7 @@ public class DefaultWebSocket implements WebSocket {
         state.set(State.CLOSED);
     }
 
+    @Override
     public void onClose(final DataFrame frame) {
         if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
             final ClosingFrame closing = (ClosingFrame) frame;
@@ -135,6 +194,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void onConnect() {
         state.set(State.CONNECTED);
         
@@ -171,6 +231,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void onPing(DataFrame frame) {
         send(new DataFrame(new PongFrameType(), frame.getBytes()));
         for (WebSocketListener listener : listeners) {
@@ -185,20 +246,24 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void close() {
         close(NORMAL_CLOSURE, null);
     }
 
+    @Override
     public void close(int code) {
         close(code, null);
     }
 
+    @Override
     public void close(int code, String reason) {
         if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
             protocolHandler.close(code, reason);
         }
     }
 
+    @Override
     public GrizzlyFuture<DataFrame> send(byte[] data) {
         if (isConnected()) {
             return protocolHandler.send(data);
@@ -207,6 +272,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public GrizzlyFuture<DataFrame> send(String data) {
         if (isConnected()) {
             return protocolHandler.send(data);
@@ -215,6 +281,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void broadcast(Iterable<? extends WebSocket> recipients,
             String data) {
         if (state.get() == State.CONNECTED) {
@@ -224,6 +291,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void broadcast(Iterable<? extends WebSocket> recipients,
             byte[] data) {
         if (state.get() == State.CONNECTED) {
@@ -233,6 +301,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void broadcastFragment(Iterable<? extends WebSocket> recipients,
             String data, boolean last) {
         if (state.get() == State.CONNECTED) {
@@ -242,6 +311,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public void broadcastFragment(Iterable<? extends WebSocket> recipients,
             byte[] data, boolean last) {
         if (state.get() == State.CONNECTED) {
@@ -276,6 +346,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public GrizzlyFuture<DataFrame> stream(boolean last, String fragment) {
         if (isConnected()) {
             return protocolHandler.stream(last, fragment);
@@ -284,6 +355,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
+    @Override
     public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
         if (isConnected()) {
             return protocolHandler.stream(last, bytes, off, len);
@@ -327,4 +399,167 @@ public class DefaultWebSocket implements WebSocket {
     protected void setBroadcaster(Broadcaster broadcaster) {
         this.broadcaster = broadcaster;
     }
+    
+    private class WSRequestImpl extends Request {
+
+        public WSRequestImpl() {
+            super(new WSResponseImpl());
+        }
+
+        /**
+         * Make method visible for websockets
+         */
+        @Override
+        protected void parseSessionId() {
+            // Try to get session id from request-uri
+            super.parseSessionId();
+
+            // Try to get session id from cookie
+            Cookie[] parsedCookies = getCookies();
+            if (parsedCookies != null) {
+                for (Cookie c : parsedCookies) {
+                    if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                        setRequestedSessionId(c.getValue());
+                        setRequestedSessionCookie(true);
+                        break;
+                    }
+                }
+            }
+        }
+    } // END WSRequestImpl    
+    
+    private class WSResponseImpl extends Response {
+
+        public WSResponseImpl() {
+        }
+    } // END WSResponseImpl 
+    
+    private class WSServletRequestImpl extends HttpServletRequestImpl {
+
+        private GlassfishSupport glassfishSupport;
+        private String pathInfo;
+        private String servletPath;
+        private String contextPath;
+        private boolean isUserPrincipalUpdated;
+        
+        public void initialize(Request request,
+                HttpServletResponseImpl servletResponse,
+                Mapper mapper) throws IOException {
+            
+            if (mapper != null) {
+                final MappingData mappingData = updatePaths(request, mapper);
+                glassfishSupport = new GlassfishSupport(mappingData.context,
+                        mappingData.wrapper, this);
+            } else {
+                glassfishSupport = new GlassfishSupport();
+                contextPath = request.getContextPath();
+            }
+            
+            super.initialize(request, servletResponse,
+                    new WebappContext("web-socket-ctx", contextPath));
+        }
+        
+        
+
+        @Override
+        protected void initSession() {
+            if (!glassfishSupport.isValid()) {
+                super.initSession();
+            }
+        }
+
+        @Override
+        public HttpSession getSession(boolean create) {
+            if (glassfishSupport.isValid()) {
+                return glassfishSupport.getSession(create);
+            }
+
+            return super.getSession(create);
+        }
+
+        @Override
+        public boolean isUserInRole(String role) {
+            if (glassfishSupport.isValid()) {
+                return glassfishSupport.isUserInRole(role);
+            }
+
+            return super.isUserInRole(role);
+        }
+
+        @Override
+        public Principal getUserPrincipal() {
+            checkGlassfishAuth();
+
+            return super.getUserPrincipal();
+        }
+
+        @Override
+        public String getRemoteUser() {
+            checkGlassfishAuth();
+
+            return super.getRemoteUser();
+        }
+
+        @Override
+        public String getAuthType() {
+            checkGlassfishAuth();
+
+            return super.getAuthType();
+        }
+
+        @Override
+        public String getContextPath() {
+            return contextPath;
+        }
+
+        @Override
+        public String getServletPath() {
+            return servletPath;
+        }
+
+        @Override
+        public String getPathInfo() {
+            return pathInfo;
+        }
+
+        private MappingData updatePaths(final Request request,
+                final Mapper mapper) {
+            
+            try {
+                final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
+                final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(true);
+
+                final MappingData mappingData = request.obtainMappingData();
+
+                mapper.mapUriWithSemicolon(request.getRequest().serverName(),
+                        decodedURI,
+                        mappingData,
+                        0);
+                
+                
+                pathInfo = mappingData.pathInfo.toString();
+                servletPath = mappingData.wrapperPath.toString();
+                contextPath = mappingData.contextPath.toString();
+
+                return mappingData;
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Unable to map request", e);
+                }
+                
+                pathInfo = null;
+                servletPath = null;
+                contextPath = null;
+            }
+
+            return null;
+        }
+
+        private void checkGlassfishAuth() {
+            if (glassfishSupport.isValid() && !isUserPrincipalUpdated) {
+                isUserPrincipalUpdated = true;
+                glassfishSupport.updateUserPrincipal(WSServletRequestImpl.this.request);
+            }
+        }
+    } // END WSServletRequestImpl    
 }

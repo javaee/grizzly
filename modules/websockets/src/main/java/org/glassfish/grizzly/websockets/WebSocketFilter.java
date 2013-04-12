@@ -316,7 +316,7 @@ public class WebSocketFilter extends BaseFilter {
         // get HTTP request headers
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         try {
-            if (!WebSocketEngine.getEngine().upgrade(ctx, requestContent)) {
+            if (doServerUpgrade(ctx, requestContent)) {
                 return ctx.getInvokeAction(); // not a WS request, pass to the next filter.
             }
             setIdleTimeout(ctx);
@@ -329,6 +329,11 @@ public class WebSocketFilter extends BaseFilter {
         
         return ctx.getStopAction();
 
+    }
+
+    protected boolean doServerUpgrade(final FilterChainContext ctx,
+            final HttpContent requestContent) throws IOException {
+        return !WebSocketEngine.getEngine().upgrade(ctx, requestContent);
     }
 
     private static WebSocket getWebSocket(final Connection connection) {
