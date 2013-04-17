@@ -351,6 +351,14 @@ final class SpdySession {
                 null, frame, completionHandler, (MessageCloner) null);        
     }
 
+    <K> void writeDownStream(final K anyMessage,
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner<K> messageCloner) {
+        
+        downstreamChain.write(connection,
+                null, anyMessage, completionHandler, messageCloner);        
+    }
+
     boolean initCommunication(final FilterChainContext context,
             final boolean isUpStream) {
         

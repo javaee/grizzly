@@ -48,10 +48,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
@@ -60,6 +63,7 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
@@ -72,6 +76,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -697,7 +702,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                             clientInQueue.poll(10, TimeUnit.SECONDS);
                     
                     assertNotNull("We expect more frames. Expected=" + normalRequestsCounter + " got=" + repliesGot, frame);
-                    assertTrue("Connection  was unexpectedly closed", frame != CLOSE_FRAME);
+                    assertTrue("Connection was unexpectedly closed", frame != CLOSE_FRAME);
                     
                     if (!frame.getHeader().isControl()) {
                         // skip DataFrame
@@ -717,6 +722,94 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                             fail("Unexpected frame: " + frame);
                     }
                 }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    /**
+     * Testing client side to properly process incorrect server side response,
+     * where DataFrame comes before SynReply
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRstOnMissedSynReply() throws Exception {
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final SpdyStream spdyStream =
+                        (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                
+                final FilterChainContext ctx = request.getContext();
+                
+                final DataFrame dataFrame = DataFrame.builder()
+                        .streamId(spdyStream.getStreamId())
+                        .data(Buffers.wrap(ctx.getMemoryManager(), "Unexpected data frame"))
+                        .last(false)
+                        .build();
+                
+                ctx.write(dataFrame);
+            }
+        }, "/test"));
+        
+        try {
+            final BlockingQueue<HttpPacket> clientQueue =
+                    new LinkedTransferQueue<HttpPacket>();
+            final FutureImpl<CloseType> closeFuture =
+                    Futures.<CloseType>createSafeFuture();
+            
+            server.start();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createClientFilterChainAsBuilder(SpdyMode.PLAIN, false);
+            
+            clientFilterChainBuilder.add(new BaseFilter() {
+                @Override
+                public NextAction handleRead(final FilterChainContext ctx)
+                        throws IOException {
+                    final HttpPacket packet = ctx.getMessage();
+                    clientQueue.add(packet);
+                    return ctx.getInvokeAction();
+                }
+            });
+            
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final SpdySession spdySession = SpdySession.get(connection);
+                
+                final SpdyStream spdyStream = spdySession.getStreamBuilder()
+                        .method(Method.GET)
+                        .uri("/test")
+                        .protocol(Protocol.HTTP_1_1)
+                        .header(Header.Host, "localhost:" + PORT)
+                        .fin(true)
+                        .open();
+                
+                spdyStream.addCloseListener(new CloseListener<SpdyStream, CloseType>() {
+                    @Override
+                    public void onClosed(SpdyStream closeable, CloseType type)
+                            throws IOException {
+                        closeFuture.result(type);
+                    }
+                });
+
+                assertEquals(CloseType.LOCALLY, closeFuture.get(10, TimeUnit.SECONDS));
+                assertTrue(clientQueue.isEmpty());
             } finally {
                 // Close the client connection
                 if (connection != null) {
