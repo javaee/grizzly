@@ -69,6 +69,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
@@ -78,7 +79,7 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  */
 public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public static final String SPDY_STREAM_ATTRIBUTE = SpdyStream.class.getName();
-    
+
     private enum CompletionUnit {
         Input, Output, Complete
     }
@@ -111,7 +112,10 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     // flag, which is indicating if SpdyStream processing has been marked as complete by external code
     volatile boolean isProcessingComplete;
-            
+    
+    // flag, which is indicating if SynStream or SynReply frames have already come for this SpdyStream
+    private boolean isSynFrameCame;
+    
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
         final HttpRequestPacket request = httpHeader.isRequest() ?
                 (HttpRequestPacket) httpHeader :
@@ -243,6 +247,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         outputSink.writeDownStream(httpPacket, completionHandler);
     }
     
+    @SuppressWarnings("unchecked")
     void writeDownStream(final HttpPacket httpPacket,
             final CompletionHandler<WriteResult> completionHandler,
             final LifeCycleHandler lifeCycleHandler)
@@ -337,6 +342,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public void addCloseListener(CloseListener closeListener) {
         CloseType closeType = closeTypeFlag.get();
         
@@ -397,11 +403,29 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             localWindowSize = spdySession.getLocalInitialWindowSize();
         }
     }
+
+    void onSynFrameCome() throws SpdyStreamException {
+        if (!isSynFrameCame) {
+            isSynFrameCame = true;
+        } else {
+            inputBuffer.close(UNEXPECTED_FRAME_TERMINATION);
+            throw new SpdyStreamException(getStreamId(),
+                    RstStreamFrame.PROTOCOL_ERROR, "Only one syn frame is allowed");
+        }
+    }
     
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
     
-    void offerInputData(final Buffer data, final boolean isLast) {
+    void offerInputData(final Buffer data, final boolean isLast)
+            throws SpdyStreamException {
+        if (!isSynFrameCame) {
+            close(null, true);
+            
+            throw new SpdyStreamException(getStreamId(),
+                    RstStreamFrame.PROTOCOL_ERROR, "DataFrame came before SynReply");
+        }
+        
         onDataFrameReceive();
         
         final boolean isFirstBufferCached = (cachedInputBuffer == null);
@@ -455,6 +479,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     /**
      * Notify all close listeners
      */
+    @SuppressWarnings("unchecked")
     private void notifyCloseListeners() {
         final CloseType closeType = closeTypeFlag.get();
         

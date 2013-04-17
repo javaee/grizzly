@@ -261,7 +261,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         return ctx.getStopAction();
     }
-
+    
     private void processInFrame(final SpdySession spdySession,
                                 final FilterChainContext context,
                                 final SpdyFrame frame)
@@ -461,11 +461,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             spdyRequest.setExpectContent(false);
         }
         
+        spdyStream.onSynFrameCome();
+        
         final boolean isExpectContent = spdyRequest.isExpectContent();
         if (!isExpectContent) {
             spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
         }
-        
+
         sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
     }
 
@@ -708,7 +710,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final HttpResponsePacket response = spdyRequest.getResponse();
         if (response == null) {
             spdyResponse = SpdyResponse.create();
-            spdyResponse.setRequest(spdyRequest);
         } else if (response instanceof SpdyResponse) {
             spdyResponse = (SpdyResponse) response;
         } else {
@@ -729,8 +730,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.recycle();
         }
 
-        bind(spdyRequest, spdyResponse);
+        spdyStream.onSynFrameCome();
         
+        bind(spdyRequest, spdyResponse);
         sendUpstream(spdySession, spdyStream, spdyResponse, !isFin);
     }
 
@@ -743,53 +745,61 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         final SpdySession spdySession = checkSpdySession(ctx, false);
 
-        if (spdySession != null &&
-                HttpPacket.isHttp(message)) {
+        if (spdySession != null) {
+            if (HttpPacket.isHttp(message)) {
             
-            // Get HttpPacket
-            final HttpPacket httpPacket = ctx.getMessage();
-            final HttpHeader httpHeader = httpPacket.getHttpHeader();
+                // Get HttpPacket
+                final HttpPacket httpPacket = ctx.getMessage();
+                final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
-            if (!httpHeader.isCommitted()) {
-                if (httpHeader.isRequest()) {
-                    prepareOutgoingRequest((HttpRequestPacket) httpHeader);
-                } else {
-                    prepareOutgoingResponse((HttpResponsePacket) httpHeader);
-                }
-            }
-            
-            final boolean isNewStream = httpHeader.isRequest() &&
-                    !httpHeader.isCommitted();
-            
-            final Lock newStreamLock = spdySession.getNewClientStreamLock();
-            
-            if (isNewStream) {
-                newStreamLock.lock();
-            }
-            
-            try {
-                SpdyStream spdyStream = SpdyStream.getSpdyStream(httpHeader);
-                
-                if (isNewStream && spdyStream == null) {
-                    spdyStream = spdySession.openStream(
-                            (HttpRequestPacket) httpHeader,
-                            spdySession.getNextLocalStreamId(),
-                            0, 0, 0, !httpHeader.isExpectContent());
+                if (!httpHeader.isCommitted()) {
+                    if (httpHeader.isRequest()) {
+                        prepareOutgoingRequest((HttpRequestPacket) httpHeader);
+                    } else {
+                        prepareOutgoingResponse((HttpResponsePacket) httpHeader);
+                    }
                 }
 
-                assert spdyStream != null;
+                final boolean isNewStream = httpHeader.isRequest() &&
+                        !httpHeader.isCommitted();
 
+                final Lock newStreamLock = spdySession.getNewClientStreamLock();
+
+                if (isNewStream) {
+                    newStreamLock.lock();
+                }
+
+                try {
+                    SpdyStream spdyStream = SpdyStream.getSpdyStream(httpHeader);
+
+                    if (isNewStream && spdyStream == null) {
+                        spdyStream = spdySession.openStream(
+                                (HttpRequestPacket) httpHeader,
+                                spdySession.getNextLocalStreamId(),
+                                0, 0, 0, !httpHeader.isExpectContent());
+                    }
+
+                    assert spdyStream != null;
+
+                    final TransportContext transportContext = ctx.getTransportContext();
+
+                    spdyStream.writeDownStream(httpPacket,
+                            transportContext.getCompletionHandler(),
+                            transportContext.getLifeCycleHandler());
+
+                    return ctx.getStopAction();
+                } finally {
+                    if (isNewStream) {
+                        newStreamLock.unlock();
+                    }
+                }
+            } else {
                 final TransportContext transportContext = ctx.getTransportContext();
-
-                spdyStream.writeDownStream(httpPacket,
+                spdySession.writeDownStream(message,
                         transportContext.getCompletionHandler(),
                         transportContext.getLifeCycleHandler());
-                
+                        
                 return ctx.getStopAction();
-            } finally {
-                if (isNewStream) {
-                    newStreamLock.unlock();
-                }
             }
         }
 
@@ -1360,7 +1370,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private static void processDataFrame(final SpdyStream spdyStream,
-                                         final SpdyFrame frame) {
+            final SpdyFrame frame) throws SpdyStreamException {
 
         DataFrame dataFrame = (DataFrame) frame;
         spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));

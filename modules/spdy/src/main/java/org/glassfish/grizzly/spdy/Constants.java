@@ -87,6 +87,9 @@ public class Constants {
     static final Termination RESET_TERMINATION =
             new Termination(TerminationType.RST, "Reset by peer");
 
+    static final Termination UNEXPECTED_FRAME_TERMINATION =
+            new Termination(TerminationType.LOCAL_CLOSE, "Unexpected SPDY frame");
+
     static final Termination FRAME_TOO_LARGE_TERMINATION =
             new Termination(TerminationType.LOCAL_CLOSE, "SpdyFrame sent by peer is too big");
     
