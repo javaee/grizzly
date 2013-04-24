@@ -333,7 +333,8 @@
         <module>samples/</module>
         <module>extras/</module>
         <module>documentation/</module>
-    </modules>    
+        <!-- <module>site/</module> -->
+    </modules>
     <reporting>
         <outputDirectory>target/site</outputDirectory>
         <plugins>

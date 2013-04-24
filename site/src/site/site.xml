@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Project Grizzly"
+         xmlns="http://maven.apache.org/DECORATION/1.3.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.3.0 http://maven.apache.org/xsd/decoration-1.3.0.xsd">
+    <bannerLeft>
+        <!-- Reflow Maven Skin, but with "Reflow" highlighted -->
+        <name><![CDATA[
+          <img src="images/grizzlyHead.png"/>&nbsp;Project <span class="color-highlight">Grizzly</span>
+          ]]>
+        </name>
+        <href>./</href>
+    </bannerLeft>
+
+    <skin>
+        <groupId>lt.velykis.maven.skins</groupId>
+        <artifactId>reflow-maven-skin</artifactId>
+        <version>1.0.0</version>
+    </skin>
+
+    <custom>
+        <reflowSkin>
+            <!-- Make this to 'false' for local development, i.e. file:// URLs -->
+            <protocolRelativeURLs>false</protocolRelativeURLs>
+            <brand>
+                <name>
+                    <![CDATA[Project <span class="color-highlight">Grizzly</span>]]>
+                </name>
+                <href>./</href>
+            </brand>
+            <slogan>NIO Event Development Simplified</slogan>
+            <!-- Global skin configuration -->
+            <highlightJs>true</highlightJs>
+            <highlightJsTheme>github</highlightJsTheme>
+            <theme>bootswatch-spacelab</theme>
+            <smoothScroll>true</smoothScroll>
+            <!--<absoluteResourceURL>https://grizzly.java.net</absoluteResourceURL>-->
+            <skinAttribution>false</skinAttribution>
+            <topNav>Download|Documentation|Contribute</topNav>
+            <bottomNav maxSpan="9">
+                <column>Main|Download</column>
+                <column>Contribute|Reports</column>
+            </bottomNav>
+            <toc>sidebar</toc>
+            <!-- Page Configuration -->
+            <pages>
+                <index project="site">
+                    <sections>
+                        <columns>3</columns>
+                    </sections>
+                    <toc>false</toc>
+                    <titleTemplate>Project Grizzly</titleTemplate>
+                </index>
+
+            </pages>
+        </reflowSkin>
+    </custom>
+
+    <body>
+
+        <menu name="Main" inherit="top">
+            <item name="Home" href="./"/>
+            <item name="Release Notes" href="changes-report.html"/>
+        </menu>
+        <menu name="Download" inherit="top">
+            <item name="Download" href="getting-started.html"/>
+            <item name="License" href="license.html"/>
+        </menu>
+        <menu name="Documentation" inherit="bottom">
+            <item name="Overview" href="documentation/overview.html"/>
+            <item name="Dependencies" href="documentation/dependencies.html"/>
+            <item name="Core Framework" href="hack">
+                <item name="Memory Management"
+                      href="documentation/memory.html"/>
+                <item name="I/O Strategies"
+                      href="documentation/iostrategies.html"/>
+                <item name="Transports and Connections"
+                      href="documentation/transportsconnections.html"/>
+                <item name="FilterChain and Filters"
+                      href="documentation/filterchainfilters.html"/>
+                <item name="Core configuration"
+                      href="documentation/coreconfig.html"/>
+                <item name="Port Unification"
+                      href="documentation/portunification.html"/>
+                <item name="Monitoring" href="documentation/monitoring.html"/>
+                <item name="Best Practices"
+                      href="documentation/bestpractices.html"/>
+                <item name="Quick Start" href="documentation/quickstart.html"/>
+                <item name="Samples" href="documentation/samples.html"/>
+            </item>
+            <item name="HTTP Components" href="hack">
+                <item name="Core HTTP Framework"
+                      href="documentation/httpframework.html"/>
+                <item name="HTTP Server Framework"
+                      href="documentation/httpserverframework.html"/>
+                <item name="HTTP Server Framework Extras"
+                      href="documentation/httpserverframeworkextras.html"/>
+                <item name="Comet" href="documentation/comet.html"/>
+                <item name="JAXWS" href="documentation/jaxws.html"/>
+                <item name="WebSockets" href="documentation/websockets.html"/>
+                <item name="AJP" href="documentation/ajp.html"/>
+                <item name="SPDY" href="documentation/spdy.html"/>
+            </item>
+        </menu>
+        <menu name="Contribute" inherit="bottom">
+            <item name="Contribute" href="contribute.html"/>
+            <item name="Issues"
+                  href="https://java.net/jira/browse/GRIZZLY/"/>
+        </menu>
+        <menu name="Maven documentation" ref="reports" inherit="bottom"/>
+
+    </body>
+</project>
