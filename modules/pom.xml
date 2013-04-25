@@ -59,6 +59,7 @@
             <id>coverage</id>
             <build>
                 <plugins>
+                    <!--
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                         <dependencies>
@@ -105,6 +106,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                    -->
                 </plugins>
             </build>
         </profile>
