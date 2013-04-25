@@ -32,14 +32,14 @@
             <!-- Global skin configuration -->
             <highlightJs>true</highlightJs>
             <highlightJsTheme>github</highlightJsTheme>
-            <theme>bootswatch-spacelab</theme>
+            <theme>bootswatch-cosmo</theme>
             <smoothScroll>true</smoothScroll>
             <!--<absoluteResourceURL>https://grizzly.java.net</absoluteResourceURL>-->
             <skinAttribution>false</skinAttribution>
             <topNav>Download|Documentation|Contribute</topNav>
             <bottomNav maxSpan="9">
                 <column>Main|Download</column>
-                <column>Contribute|Reports</column>
+                <column>Contribute</column>
             </bottomNav>
             <toc>sidebar</toc>
             <!-- Page Configuration -->
@@ -51,55 +51,60 @@
                     <toc>false</toc>
                     <titleTemplate>Project Grizzly</titleTemplate>
                 </index>
-
+                <contribute>
+                    <sections>
+                        <body/>
+                        <columns>3</columns>
+                    </sections>
+                    <toc>false</toc>
+                </contribute>
             </pages>
         </reflowSkin>
     </custom>
 
     <body>
-
         <menu name="Main" inherit="top">
-            <item name="Home" href="./"/>
+            <item name="Home" href="https://grizzly.java.net"/>
             <item name="Release Notes" href="changes-report.html"/>
         </menu>
         <menu name="Download" inherit="top">
-            <item name="Download" href="getting-started.html"/>
+            <item name="Download" href="dependencies.html"/>
             <item name="License" href="license.html"/>
         </menu>
         <menu name="Documentation" inherit="bottom">
-            <item name="Overview" href="documentation/overview.html"/>
-            <item name="Dependencies" href="documentation/dependencies.html"/>
+            <item name="Overview" href="overview.html"/>
+            <item name="Dependencies" href="dependencies.html"/>
             <item name="Core Framework" href="hack">
                 <item name="Memory Management"
-                      href="documentation/memory.html"/>
+                      href="memory.html"/>
                 <item name="I/O Strategies"
-                      href="documentation/iostrategies.html"/>
+                      href="iostrategies.html"/>
                 <item name="Transports and Connections"
-                      href="documentation/transportsconnections.html"/>
+                      href="transportsconnections.html"/>
                 <item name="FilterChain and Filters"
-                      href="documentation/filterchainfilters.html"/>
+                      href="filterchainfilters.html"/>
                 <item name="Core configuration"
-                      href="documentation/coreconfig.html"/>
+                      href="coreconfig.html"/>
                 <item name="Port Unification"
-                      href="documentation/portunification.html"/>
-                <item name="Monitoring" href="documentation/monitoring.html"/>
+                      href="portunification.html"/>
+                <item name="Monitoring" href="monitoring.html"/>
                 <item name="Best Practices"
-                      href="documentation/bestpractices.html"/>
-                <item name="Quick Start" href="documentation/quickstart.html"/>
-                <item name="Samples" href="documentation/samples.html"/>
+                      href="bestpractices.html"/>
+                <item name="Quick Start" href="quickstart.html"/>
+                <item name="Samples" href="samples.html"/>
             </item>
             <item name="HTTP Components" href="hack">
                 <item name="Core HTTP Framework"
-                      href="documentation/httpframework.html"/>
+                      href="httpframework.html"/>
                 <item name="HTTP Server Framework"
-                      href="documentation/httpserverframework.html"/>
+                      href="httpserverframework.html"/>
                 <item name="HTTP Server Framework Extras"
-                      href="documentation/httpserverframeworkextras.html"/>
-                <item name="Comet" href="documentation/comet.html"/>
-                <item name="JAXWS" href="documentation/jaxws.html"/>
-                <item name="WebSockets" href="documentation/websockets.html"/>
-                <item name="AJP" href="documentation/ajp.html"/>
-                <item name="SPDY" href="documentation/spdy.html"/>
+                      href="httpserverframeworkextras.html"/>
+                <item name="Comet" href="comet.html"/>
+                <item name="JAXWS" href="jaxws.html"/>
+                <item name="WebSockets" href="websockets.html"/>
+                <item name="AJP" href="ajp.html"/>
+                <item name="SPDY" href="spdy.html"/>
             </item>
         </menu>
         <menu name="Contribute" inherit="bottom">
@@ -107,7 +112,5 @@
             <item name="Issues"
                   href="https://java.net/jira/browse/GRIZZLY/"/>
         </menu>
-        <menu name="Maven documentation" ref="reports" inherit="bottom"/>
-
     </body>
 </project>

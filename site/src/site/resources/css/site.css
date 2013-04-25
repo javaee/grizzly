@@ -1,3 +1,11 @@
 .color-highlight {
-        color: #AE8C54;
+    color: #AE8C54;
+}
+
+h2 {
+    color: #AE8C54;
+}
+
+body {
+    background-image: url(../images/bg.png);
 }
