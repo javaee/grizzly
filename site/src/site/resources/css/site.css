@@ -1,8 +1,12 @@
 .color-highlight {
-    color: #AE8C54;
+    color: #000000;
 }
 
 h2 {
+    color: #AE8C54;
+}
+
+h1 {
     color: #AE8C54;
 }
 

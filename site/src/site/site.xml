@@ -6,7 +6,7 @@
     <bannerLeft>
         <!-- Reflow Maven Skin, but with "Reflow" highlighted -->
         <name><![CDATA[
-          <img src="images/grizzlyHead.png"/>&nbsp;Project <span class="color-highlight">Grizzly</span>
+          <img src="images/grizzlyHead.png"/>&nbsp;<span class="color-highlight">Project</span> Grizzly
           ]]>
         </name>
         <href>./</href>
