@@ -32,7 +32,7 @@ Source code
 Grizzly source may be viewed online on the Java.net git
 [repository](http://java.net/projects/grizzly/sources/git/show).
 
-[Read][scm.html] this documentation for more details on checking out the
+[Read](scm.html) this documentation for more details on checking out the
 sources, our branches, and tag schemes,
 
 Where to Get Help
