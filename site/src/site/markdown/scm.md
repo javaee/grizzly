@@ -58,7 +58,7 @@ If you're interested in working with an existing tag, you'll first need to issue
 `git fetch --tags` in order to obtain the tag references.  After successful completion
 of this command, you can issue `git checkout <tag name>` Note that when doing so, you'll
 get a message about being in a detached state - this is normal and nothing to worry about.
-All fetched tags can be listed using `git tag \-l` In general, we keep our tag names
+All fetched tags can be listed using `git tag -l` In general, we keep our tag names
 inline with the released version.  For example, if you wanted to checkout the tag
 for Grizzly 2.2.3, the tag name would be *2_2_3* This convention is consistent for
 all branches/versions/releases.
@@ -69,7 +69,7 @@ First, for anyone not familiar with Git, before attempting to work with the repo
 we highly recommend reading the [Git tutorial][gitorial].
 
 When collaborating, before you push your changes to the remote repository, it's best
-to issue `git pull \--rebase` This will 'replay' any changes that have occurred in the
+to issue `git pull --rebase` This will 'replay' any changes that have occurred in the
 remote repository since your last pull on top of your current work.  If you don't do this,
 Git will perform a merge for you, however, the result of the commit will look like
 you've touched files that you haven't.  This is fine, but it generally raises a few eyebrows.
