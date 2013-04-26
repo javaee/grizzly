@@ -29,24 +29,11 @@ Basically, Grizzly is able to run on any platform that [JDK
 Source code
 ===========
 
-Grizzly source are located in the Java.Net git
+Grizzly source may be viewed online on the Java.net git
 [repository](http://java.net/projects/grizzly/sources/git/show).
 
-Grizzly 2.3 trunk could be checked out using following command:
-
-```
-git clone git://java.net/grizzly~git
-git checkout 2.3.x
-```
-
-Latest stable Grizzly 2.3 release could be checked out
-using following command:
-
-```
-git clone git://java.net/grizzly~git
-cd grizzly~git
-git checkout 2_3
-```
+[Read][scm.html] this documentation for more details on checking out the
+sources, our branches, and tag schemes,
 
 Where to Get Help
 =================
@@ -68,7 +55,7 @@ There are several blog resources related to grizzly:
 
 -   <http://antwerkz.com>
 
--   [http://blogs.sun.com/rlubke](http://blogs.sun/com/rlubke)
+-   [http://notshabby.net](http://notshabby.net)
 
 -   <http://jfarcand.wordpress.com>
 

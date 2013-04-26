@@ -23,14 +23,14 @@ messages for processing, so they are not even aware of AJP protocol.
 Here is a FilterChain, which is being normally constructed, when Grizzly
 HttpServer being used:
 
-![](../images/ajp/httpserver-filterchain.png)
+![""](images/ajp/httpserver-filterchain.png)
 
 Now, what happens, if we want to use AJP? It's easy, we replace HTTP
 Filter, which works as a codec for Buffer \<-\> HTTP transformation,
 with the two Filters mentioned above: AjpMessageFilter and
 AjpHandlerFilter:
 
-![](../images/ajp/httpserver-ajp-filterchain.png)
+![""](images/ajp/httpserver-ajp-filterchain.png)
 
 So the Grizzly HttpServer Filter won't even notice it operates over AJP
 rather than plain HTTP.

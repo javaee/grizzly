@@ -5,7 +5,7 @@ In the previous sections we mentioned the *Processor*, and its role -
 processing I/O events occurred on Grizzly *Connection*s. The
 *FilterChain* is the most useful type of *Processor* used in Grizzly.
 
-![](../images/coreframework/filterchain-diagram.png)
+![""](images/coreframework/filterchain-diagram.png)
 
 *FilterChain*, according to its name, is a chain of *Filter*s. Each
 *Filter* represents a unit of processing work to be performed, whose
@@ -15,7 +15,7 @@ represented by a *FilterChainContext*.
 To give an idea how *FilterChain* may look like, here is example of
 *FilterChain*, which implements HTTP server logic:
 
-![](../images/coreframework/http-filterchain.png)
+![""](images/coreframework/http-filterchain.png)
 
 -   TransportFilter is responsible to read data from network
     *Connection* to a *Buffer*, and to write data from *Buffer* to a
@@ -31,7 +31,7 @@ To give an idea how *FilterChain* may look like, here is example of
 
 So, what if we want to implement HTTPS server? It's simple:
 
-![](../images/coreframework/https-filterchain.png)
+![""](images/coreframework/https-filterchain.png)
 
 we add just one SSLFilter, responsible for encoding/decoding SSL secured
 data.
@@ -118,7 +118,7 @@ and returns NextAction result.
 
 -   **FilterChainContext**
 
-    ![](../images/coreframework/filterchaincontext.png)
+    ![""](images/coreframework/filterchaincontext.png)
 
     FilterChainContext represents a context (state), associated with
     processing of specific I/O event on the specific Connection, so its

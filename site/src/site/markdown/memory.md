@@ -140,7 +140,7 @@ The following provides a flow diagram of how an allocation request to a
 *MemoryManager* with a *ThreadLocalPool* would typically work:
 
 ![MemoryManager Allocation Request
-Flow](../images/coreframework/mmflow.png)
+Flow](images/coreframework/mmflow.png)
 
 Buffers
 -------

@@ -375,7 +375,7 @@ public boolean isSuspended() {
 
 The following diagram describes a typical suspend/resume scenario:
 
-![Suspend/Resume](../images/httpserverframework/susres.png)
+![Suspend/Resume](images/httpserverframework/susres.png)
 
 The "Suspended Response Queue" warrants some explaination. If a
 suspended Response has defined a timeout, it will be added to the
@@ -1108,9 +1108,9 @@ look something like:
 
 ```
 Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.NetworkListener start
-INFO: Started listener bound to [0.0.0.0:8080]
+INFO: Started listener bound to \[0.0.0.0:8080]
 Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.HttpServer start
-INFO: [HttpServer] Started.
+INFO: \[HttpServer] Started.
 
 Client connected!
 
@@ -1122,34 +1122,34 @@ HttpRequestPacket (
    query=null
    protocol=HTTP/1.1
    content-length=-1
-   headers=[
+   headers=\[
       Host=localhost:8080]
 )
 (Client writing: contentA-)
-[onDataAvailable] echoing 9 bytes
+\[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentB-)
-[onDataAvailable] echoing 9 bytes
+\[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentC-)
-[onDataAvailable] echoing 9 bytes
+\[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentD)
-[onDataAvailable] echoing 8 bytes
+\[onDataAvailable] echoing 8 bytes
 
 
-[onAllDataRead] length: 0
+\[onAllDataRead] length: 0
 
 Echoed POST Data: contentA-contentB-contentC-contentD
 
 Sep 22, 2011 3:23:06 PM org.glassfish.grizzly.http.server.NetworkListener stop
-INFO: Stopped listener bound to [0.0.0.0:8080]
+INFO: Stopped listener bound to \[0.0.0.0:8080]
 ```
 
 A quick note about the output above, the (delay 2 seconds) isn't

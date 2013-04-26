@@ -621,9 +621,8 @@ public boolean isApplicationRequest(HttpRequestPacket request) {
 So to create a simple server-side WebSocket application, the developer,
 at a minimum, would extend this class. It's no longer required nor
 recommended to override isApplicationRequest(). Applications should be
-registered with the WebSocketEngine with a url pattern (See section
-[1.3.5](#ws-api-engine) for details). Additional functionality can be
-added as required for the application - keep in mind that the
+registered with the WebSocketEngine with a url pattern. Additional functionality
+can be added as required for the application - keep in mind that the
 WebSocketApplication is, itself, a WebSocketListener which will be added
 to each WebSocket registered with it. This allows handling all of the
 events exposed by WebSocketListener (as previously discussed). A word of

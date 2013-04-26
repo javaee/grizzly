@@ -10,7 +10,7 @@ some tips.
 
 -   **IOStrategy**
 
-    In the [IOStrategy](#iostrategies) section, we introduced different
+    In the [IOStrategy](iostrategies.html) section, we introduced different
     Grizzly IOStrategies.
 
     By default, Grizzly Transports use the worker-thread IOStrategy,
@@ -43,7 +43,7 @@ some tips.
 
 -   **Worker thread pool**
 
-    In the [Configuration](#threadpool-config) section, the different
+    In the [Configuration](coreconfig.html)  threadpool-config section, the different
     thread pool implementations, and their pros and cons, were
     discussed.
 

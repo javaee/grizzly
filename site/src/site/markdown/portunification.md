@@ -37,7 +37,7 @@ Each "unified" protocol, should be represented by a object pair:
 
 So the final FilterChain will look like:
 
-![](../images/portunification/portunification-diagram.png)
+![""](images/portunification/portunification-diagram.png)
 
 For better usability, Grizzly Port Unification introduces the PUProtocol
 abstraction, which holds ProtocolFinder + FilterChain pair.
@@ -57,11 +57,11 @@ FilterChain, which will be reponsible for redirecting custom protocol
 FilterChain processing back to the main FilterChain. So finally complete
 picture will look like:
 
-![](../images/portunification/portunification-diagram2.png)
+![""](images/portunification/portunification-diagram2.png)
 
 The PUFilter logic could be described using follwoing flowchart diagram:
 
-![](../images/portunification/pufilter-flowchart.png)
+![""](images/portunification/pufilter-flowchart.png)
 
 Sample
 ======

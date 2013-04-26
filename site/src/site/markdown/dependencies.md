@@ -79,8 +79,7 @@ dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers additionally to jars, required by [Core
-framework](#core-dep), require:
+Non-maven developers will need to download the core jars as well as:
 
 -   [grizzly-http.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http/2.3/grizzly-http-2.3.jar)
 
@@ -98,8 +97,7 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP
-framework](#http-dep), require:
+Non-maven developers will need to download the http and core jars as well as:
 
 -   [grizzly-http-server.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server/2.3/grizzly-http-server-2.3.jar)
 
@@ -117,8 +115,8 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP Server
-framework](#http-server-dep), require:
+Non-maven developers will need to download the http-server, http, and core jars
+as well as:
 
 -   [grizzly-http-servlet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3/grizzly-http-servlet-2.3.jar)
 
@@ -138,8 +136,7 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [Core
-framework](#core-dep), require:
+Non-maven developers will need to download the core jars as well as:
 
 -   [grizzly-portunif.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-portunif/2.3/grizzly-portunif-2.3.jar)
 
@@ -157,8 +154,8 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP Server
-framework](#http-server-dep), require:
+Non-maven developers will need to download the core, http, and http-server jars
+as well as:
 
 -   [grizzly-comet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-comet/2.3/grizzly-comet-2.3.jar)
 
@@ -176,8 +173,8 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP Server
-framework](#http-server-dep), require:
+Non-maven developers will need to download the core, http, and http-server jars
+as well as:
 
 -   [grizzly-websockets.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-websockets/2.3/grizzly-websockets-2.3.jar)
 
@@ -195,8 +192,8 @@ dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP Server
-framework](#http-server-dep), require:
+Non-maven developers will need to download the core, http, and http-server jars
+as well as:
 
 -   [grizzly-http-ajp.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-ajp/2.3/grizzly-http-ajp-2.3.jar)
 
@@ -214,8 +211,8 @@ following dependency needs to be added to the pom:
 </dependency>
 ```
 
-Non-maven developers, additionally to jars, required by [HTTP Server
-framework](#http-server-dep), require:
+Non-maven developers will need to download the core, http, and http-server jars
+as well as:
 
 -   [grizzly-http-server-jaxws.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server-jaxws/2.3/grizzly-http-server-jaxws-2.3.jar)
 

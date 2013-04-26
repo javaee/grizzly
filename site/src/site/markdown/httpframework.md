@@ -34,7 +34,7 @@ abstracts the network representation of an http protocol
 request/response into various different message objects.
 
 ![HTTP Message Constructions UML
-Diagram](../images/httpframework/http-packet-classes.png)
+Diagram](images/httpframework/http-packet-classes.png)
 
 As seen from the diagram all messages produced/consumed by the
 HttpCodecFilter are simply HttpPackets. From there, there are several

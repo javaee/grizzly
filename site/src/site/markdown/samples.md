@@ -3,14 +3,14 @@ Samples
 
 Let's summarize all the samples mentioned in this user's guide
 
--   [Core framework](#coreframework-samples)
+-   [Core framework](coreframeworksamples.html)
 
--   [HTTP framework](#httpframework-samples)
+-   [HTTP framework](httpframework.html))
 
--   [HTTP Server framework](#httpserverframework-samples)
+-   [HTTP Server framework](httpserverframework.html)
 
--   [Port unification](#pu-samples)
+-   [Port unification](portunification.html)
 
--   [AJP](#ajp-samples)
+-   [AJP](ajp.html)
 
 

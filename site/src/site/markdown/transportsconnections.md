@@ -16,7 +16,7 @@ The relationship between Transport and Connection is 1-to-many.
 
 - Transports
 
-    ![](../images/coreframework/transport-diagram.png)
+    ![""](images/coreframework/transport-diagram.png)
 
     Per class diagram above, Grizzly 2.3 has two Transport
     implementations: NIO TCP and NIO UDP, which is based on Java NIO,
@@ -27,7 +27,7 @@ The relationship between Transport and Connection is 1-to-many.
     diagram
 
     -   MemoryManager implements the memory allocation/release logic
-        (see the [Memory management](#memory) section);
+        (see the [Memory management](memory.html) section);
 
     -   ExecutorService represents the Transport associated thread-pool
 
@@ -37,7 +37,7 @@ The relationship between Transport and Connection is 1-to-many.
         but each Connection may have own customized Processor
 
     -   Strategy implements IOStrategy (see [I/O
-        Strategies](#iostrategies) section)
+        Strategies](iostrategies.html) section)
 
     -   NIOChannelDistributor is responsible for distributing newly
         created Connections among Transport NIO Selector threads
@@ -61,7 +61,7 @@ The relationship between Transport and Connection is 1-to-many.
 
 -   Connections
 
-    ![](../images/coreframework/connection-diagram.png)
+    ![""](images/coreframework/connection-diagram.png)
 
     On the diagram above we see how Connections are related to
     Transports and basic Connection abstractions. In Grizzly
@@ -98,7 +98,7 @@ The relationship between Transport and Connection is 1-to-many.
     The ConnectorHandler API is reponsible for establishing and
     initializing client connections.
 
-    ![](../images/coreframework/connectorhandler-diagram.png)
+    ![""](images/coreframework/connectorhandler-diagram.png)
 
     As we see from the diagram above, TCPNIOTransport and
     UDPNIOTransport implement the SocketConnectorHandler interface, so
@@ -129,7 +129,7 @@ The relationship between Transport and Connection is 1-to-many.
     call *ConnectorHandler.connect(...)* operation and get
     *Future\<Connection\>* as the result:
 
-    ![](../images/coreframework/connectorhandler-seq1.png)
+    ![""](images/coreframework/connectorhandler-seq1.png)
 
     So the above code just adds the connection object on the
     *SelectorRunner*'s queue, which is being processed from
@@ -152,7 +152,7 @@ The relationship between Transport and Connection is 1-to-many.
 
     In general the logic looks like:
 
-    ![](../images/coreframework/connectorhandler-seq2.png)
+    ![""](images/coreframework/connectorhandler-seq2.png)
 
     When talking about TCP transport, when we're on the server side and
     *TCPNIOServerConnection* accepts new client connection. In this case

@@ -101,7 +101,7 @@ Inside the handle(...) method we're able to process the passed multipart
 entry, check its content type, disposition etc., and finally initialize
 the asynchronous non-blocking processing of an entry's content using
 either the NIOInputStream (binary mode) or the NIOReader (text mode) API
-described in the http-server [section](#hsf-nio-streams)
+described in the http-server [documentation](httpserverframework.html):
 
 ```java
 NIOInputStream nioInputStream = multipartEntry.getNIOInputStream();
@@ -122,7 +122,7 @@ Also it's important to understand that multipart message processing is
 asynchronous, so we have to suspend HTTP request processing before
 starting the scan. Also, don't forget to resume the HTTP request
 processing inside the passed CompletionHandler. See http-server
-[section](#hsf-suspend-resume) for more information on HTTP request
+[documentation](httpserverframework.html) for more information on HTTP request
 suspend/resume.
 
 Dependencies
