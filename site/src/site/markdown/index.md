@@ -1,19 +1,26 @@
-## !["Get Started"][started] Get Started
+## ![Get Started][started] Get Started
 
-[Learn][learn] what it takes to get started using Grizzly for your projects.
+[Learn][quick] what it takes to get started using Grizzly in your projects.
 
-## !["Download"][download] Download
+## ![Documentation][docs] Documentation
+
+[Read][full] Grizzly\'s complete documentation online.
+
+## ![Download][download] Download
 
 Grizzly offers several modules that may be of interest for your projects.
 See our list of [dependencies][deps] for details.
 
-## !["Contribute"][contribute] Contribute
+## ![Contribute][contribute] Contribute
 
 Learn how you can [contribute][contpage] to the project.
 
 [contpage]: contribute.html
-[learn]: documentation/quickstart.html
-[deps]: documentation/dependencies.html
+[quick]: quickstart.html
+[deps]: dependencies.html
+[full]: documentation.html
+
 [started]: images/compass.png
 [download]: images/download.png
 [contribute]: images/settings.png
+[docs]: images/docs.png
