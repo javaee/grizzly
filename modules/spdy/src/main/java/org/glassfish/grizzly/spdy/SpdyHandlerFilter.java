@@ -43,8 +43,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -107,8 +108,15 @@ import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_W
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 
 /**
- *
- * @author oleksiys
+ * The {@link org.glassfish.grizzly.filterchain.Filter} serves as a bridge
+ * between SPDY and HTTP layers by converting {@link SpdyFrame}s into
+ * {@link HttpPacket}s and passing them up/down by the {@link FilterChain}.
+ * 
+ * Additionally this {@link org.glassfish.grizzly.filterchain.Filter} has
+ * logic responsible for checking SPDY protocol semantics and fire correspondent
+ * events and messages in case when SPDY semantics is broken.
+ * 
+ * @author Grizzly team
  */
 public class SpdyHandlerFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
@@ -209,6 +217,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 try {
                     processInFrame(spdySession, ctx, frame);
                 } catch (SpdyStreamException e) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "SpdyStreamException occurred on connection=" +
+                                ctx.getConnection() + " during SpdyFrame processing", e);
+                    }
+                    
                     sendRstStream(ctx, e.getStreamId(), e.getRstReason(), null);
                 }
             } else {
@@ -219,6 +232,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         try {
                             processInFrame(spdySession, ctx, framesList.get(i));
                         } catch (SpdyStreamException e) {
+                            if (LOGGER.isLoggable(Level.FINE)) {
+                                LOGGER.log(Level.FINE, "SpdyStreamException occurred on connection=" +
+                                        ctx.getConnection() + " during SpdyFrame processing", e);
+                            }
+                            
                             sendRstStream(ctx, e.getStreamId(), e.getRstReason(), null);
                         }
                     }
@@ -235,6 +253,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
             streamsToFlushInput.clear();
         } catch (SpdySessionException e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SpdySessionException occurred on connection=" +
+                        ctx.getConnection() + " during SpdyFrame processing", e);
+            }
+            
             final Connection connection = ctx.getConnection();
             
             sendRstStream(ctx, e.getStreamId(), e.getRstReason(),
@@ -247,6 +270,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             
             return ctx.getSuspendAction();
         } catch (IOException e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "IOException occurred on connection=" +
+                        ctx.getConnection() + " during SpdyFrame processing", e);
+            }            
             final Connection connection = ctx.getConnection();
             ctx.write(Buffers.EMPTY_BUFFER,
                     new EmptyCompletionHandler<WriteResult>() {
@@ -284,7 +311,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 
                 return;
             }
-        
+
+            if (spdyStream.isUnidirectional() &&
+                    spdyStream.isLocallyInitiatedStream()) {
+                throw new SpdyStreamException(spdyStream.getStreamId(),
+                        RstStreamFrame.PROTOCOL_ERROR,
+                        "Data frame came on unidirectional stream");
+            }
+            
             processDataFrame(spdyStream, frame);
         }
 
@@ -336,7 +370,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processWindowUpdateFrame(final SpdySession spdySession,
-                                          final SpdyFrame frame) {
+            final SpdyFrame frame) throws SpdyStreamException {
+        
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
         final int streamId = updateFrame.getStreamId();
         final int delta = updateFrame.getDelta();
@@ -403,7 +438,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         PingFrame pingFrame = (PingFrame) frame;
 
         // Send the same ping message back
-        pingFrame.reset();
         spdySession.writeDownStream(pingFrame);
     }
 
@@ -432,6 +466,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final int associatedToStreamId = synStreamFrame.getAssociatedToStreamId();
         final int priority = synStreamFrame.getPriority();
         final int slot = synStreamFrame.getSlot();
+        final boolean isUnidirectional = synStreamFrame.isFlagSet(
+                SynStreamFrame.FLAG_UNIDIRECTIONAL);
 
         if (frame.getHeader().getVersion() != SPDY_VERSION) {
             throw new SpdySessionException(streamId, RstStreamFrame.UNSUPPORTED_VERSION);
@@ -444,8 +480,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final SpdyStream spdyStream;
 
         try {
-            spdyStream = spdySession.acceptStream(spdyRequest,
-                    streamId, associatedToStreamId, priority, slot);
+            spdyStream = spdySession.acceptStream(spdyRequest, streamId,
+                    associatedToStreamId, priority, slot, isUnidirectional);
             if (spdyStream == null) { // GOAWAY has been sent, so ignoring this request
                 frame.getHeader().getUnderlying().tryDispose();
                 spdyRequest.recycle();
@@ -456,7 +492,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.recycle();
         }
 
-        prepareIncomingRequest(spdyRequest);
+        prepareIncomingRequest(spdyStream, spdyRequest);
         if (isFinSet) {
             spdyRequest.setExpectContent(false);
         }
@@ -584,6 +620,35 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
                     spdyRequest.setSecure(valueSize == 5); // support http and https only
                     return valueEnd;
+                } else if (spdyRequest.getSpdyStream().isUnidirectional() &&
+                        checkArraysContent(headersArray, nameStart,
+                        Constants.STATUS_HEADER_BYTES, 1)) { // support :status for unidirectional requests
+                    if (valueEnd < 3) {
+                        throw new IllegalStateException("Unknown status code: " +
+                                new String(headersArray, valueStart, valueEnd - valueStart, Charsets.UTF8_CHARSET));
+                    }
+
+                    
+                    spdyRequest.setUnidirectionalStatus(Ascii.parseInt(headersArray,
+                                                          valueStart,
+                                                          3));
+                    
+                    final int reasonPhraseIdx =
+                            HttpCodecUtils.skipSpaces(headersArray,
+                            valueStart + 3, valueEnd, valueEnd);
+                    
+                    if (reasonPhraseIdx != -1) {
+                        int reasonPhraseEnd = skipLastSpaces(headersArray,
+                                valueStart + 3, valueEnd) + 1;
+                        if (reasonPhraseEnd == 0) {
+                            reasonPhraseEnd = valueEnd;
+                        }
+                        
+                        spdyRequest.getUnidirectionalReasonPhraseRawDC().setBytes(
+                                headersArray, reasonPhraseIdx, reasonPhraseEnd);
+                    }
+                    
+                    return valueEnd;
                 }
                 
                 break;
@@ -662,6 +727,32 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
                     spdyRequest.setSecure(valueSize == 5); // support http and https only
                     return valueEnd;
+                } else if (spdyRequest.getSpdyStream().isUnidirectional() &&
+                        checkBufferContent(buffer, nameStart,
+                        Constants.STATUS_HEADER_BYTES, 1)) { // support :status for unidirectional requests
+                    if (valueEnd < 3) {
+                        throw new IllegalStateException("Unknown status code: " +
+                                buffer.toStringContent(Charsets.ASCII_CHARSET, valueEnd, (valueEnd - valueStart)));
+                    }
+
+                    spdyRequest.setUnidirectionalStatus(
+                            Ascii.parseInt(buffer, valueStart, 3));
+
+                    final int reasonPhraseIdx =
+                            HttpCodecUtils.skipSpaces(buffer, valueStart + 3, valueEnd);
+
+                    if (reasonPhraseIdx != -1) {
+                        int reasonPhraseEnd = skipLastSpaces(buffer,
+                                valueStart + 3, valueEnd) + 1;
+                        if (reasonPhraseEnd == 0) {
+                            reasonPhraseEnd = valueEnd;
+                        }
+
+                        spdyRequest.getUnidirectionalReasonPhraseRawDC().setBuffer(
+                                buffer, reasonPhraseIdx, reasonPhraseEnd);
+                    }
+
+                    return valueEnd;
                 }
                 
                 break;
@@ -703,6 +794,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.getHeader().getUnderlying().dispose();
             frame.recycle();
             return;
+        }
+        
+        if (spdyStream.isUnidirectional()) {
+            throw new SpdyStreamException(streamId, RstStreamFrame.PROTOCOL_ERROR,
+                    "SynReply came on unidirectional stream");
         }
         
         final HttpRequestPacket spdyRequest = spdyStream.getSpdyRequest();
@@ -749,66 +845,91 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         if (spdySession != null) {
             if (HttpPacket.isHttp(message)) {
-            
+
                 // Get HttpPacket
                 final HttpPacket httpPacket = ctx.getMessage();
                 final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
-                if (!httpHeader.isCommitted()) {
-                    if (httpHeader.isRequest()) {
-                        prepareOutgoingRequest((HttpRequestPacket) httpHeader);
-                    } else {
-                        prepareOutgoingResponse((HttpResponsePacket) httpHeader);
-                    }
+                if (httpHeader.isRequest()) {
+                    processOutgoingRequest(ctx, spdySession,
+                            (HttpRequestPacket) httpHeader, httpPacket);
+                } else {
+                    processOutgoingResponse(ctx, spdySession,
+                            (HttpResponsePacket) httpHeader, httpPacket);
                 }
-
-                final boolean isNewStream = httpHeader.isRequest() &&
-                        !httpHeader.isCommitted();
-
-                final Lock newStreamLock = spdySession.getNewClientStreamLock();
-
-                if (isNewStream) {
-                    newStreamLock.lock();
-                }
-
-                try {
-                    SpdyStream spdyStream = SpdyStream.getSpdyStream(httpHeader);
-
-                    if (isNewStream && spdyStream == null) {
-                        spdyStream = spdySession.openStream(
-                                (HttpRequestPacket) httpHeader,
-                                spdySession.getNextLocalStreamId(),
-                                0, 0, 0, !httpHeader.isExpectContent());
-                    }
-
-                    assert spdyStream != null;
-
-                    final TransportContext transportContext = ctx.getTransportContext();
-
-                    spdyStream.writeDownStream(httpPacket,
-                            transportContext.getCompletionHandler(),
-                            transportContext.getMessageCloner());
-
-                    return ctx.getStopAction();
-                } finally {
-                    if (isNewStream) {
-                        newStreamLock.unlock();
-                    }
-                }
+                
             } else {
                 final TransportContext transportContext = ctx.getTransportContext();
                 spdySession.writeDownStream(message,
                         transportContext.getCompletionHandler(),
                         transportContext.getMessageCloner());
-                        
-                
-                return ctx.getStopAction();
             }
+            
+            return ctx.getStopAction();
         }
 
         return ctx.getInvokeAction();
     }
 
+    @SuppressWarnings("unchecked")
+    private void processOutgoingRequest(final FilterChainContext ctx,
+            final SpdySession spdySession,
+            final HttpRequestPacket request,
+            final HttpPacket entireHttpPacket) throws IOException {
+
+        final boolean isNewStream = !request.isCommitted();
+        
+        if (isNewStream) {
+            prepareOutgoingRequest(request);
+            spdySession.getNewClientStreamLock().lock();
+        }
+        
+        try {
+            SpdyStream spdyStream = SpdyStream.getSpdyStream(request);
+
+            if (spdyStream == null) {
+                spdyStream = spdySession.openStream(
+                        request,
+                        spdySession.getNextLocalStreamId(),
+                        0, 0, 0, false, !request.isExpectContent());
+            }
+
+            assert spdyStream != null;
+
+            final TransportContext transportContext = ctx.getTransportContext();
+
+            spdyStream.writeDownStream(entireHttpPacket,
+                    transportContext.getCompletionHandler(),
+                    transportContext.getMessageCloner());
+
+        } finally {
+            if (isNewStream) {
+                spdySession.getNewClientStreamLock().unlock();
+            }
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void processOutgoingResponse(final FilterChainContext ctx,
+            final SpdySession spdySession,
+            final HttpResponsePacket response,
+            final HttpPacket entireHttpPacket) throws IOException {
+
+        final SpdyStream spdyStream = SpdyStream.getSpdyStream(response);
+        assert spdyStream != null;
+
+        if (!response.isCommitted()) {
+            prepareOutgoingResponse(response);
+            pushAssociatedResoureses(spdyStream);
+        }
+
+        final TransportContext transportContext = ctx.getTransportContext();
+
+        spdyStream.writeDownStream(entireHttpPacket,
+                transportContext.getCompletionHandler(),
+                transportContext.getMessageCloner());
+    }
+    
     private void processServiceFrame(
             final SpdySession spdySession,final ServiceFrame frame)
             throws SpdyStreamException, SpdySessionException {
@@ -959,7 +1080,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                             reasonPhraseEnd = valueEnd;
                         }
                         
-                        spdyResponse.getReasonPhraseDC().setBytes(
+                        spdyResponse.getReasonPhraseRawDC().setBytes(
                                 headersArray, reasonPhraseIdx, reasonPhraseEnd);
                     }
                     
@@ -1019,7 +1140,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                             reasonPhraseEnd = valueEnd;
                         }
 
-                        spdyResponse.getReasonPhraseDC().setBuffer(
+                        spdyResponse.getReasonPhraseRawDC().setBuffer(
                                 buffer, reasonPhraseIdx, reasonPhraseEnd);
                     }
 
@@ -1180,17 +1301,19 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
     }
     
-    private void prepareIncomingRequest(final SpdyRequest request) {
+    private void prepareIncomingRequest(final SpdyStream spdyStream,
+            final SpdyRequest request) {
 
         final ProcessingState state = request.getProcessingState();
         final HttpResponsePacket response = request.getResponse();
 
         final Method method = request.getMethod();
 
-        if (Method.GET.equals(method)
+        if (!spdyStream.isUnidirectional() &&
+                (Method.GET.equals(method)
                 || Method.HEAD.equals(method)
                 || (!Method.CONNECT.equals(method)
-                        && request.getContentLength() == 0)) {
+                        && request.getContentLength() == 0))) {
             request.setExpectContent(false);
         }
 
@@ -1232,8 +1355,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             // FixedLengthTransferEncoding will set proper Content-Length header
             FIXED_LENGTH_ENCODING.prepareSerialize(null, request, null);
         }
-    }    
-
+    }
+    
     private void prepareOutgoingResponse(final HttpResponsePacket response) {
         response.setProtocol(Protocol.HTTP_1_1);
     }    
@@ -1377,6 +1500,57 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         DataFrame dataFrame = (DataFrame) frame;
         spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
+    }
+
+    private void pushAssociatedResoureses(final SpdyStream spdyStream)
+            throws IOException {
+        final Map<String, PushData> pushDataMap =
+                spdyStream.getAssociatedResourcesToPush();
+        
+        if (pushDataMap != null) {           
+            final SpdySession spdySession = spdyStream.getSpdySession();
+            final ReentrantLock lock = spdySession.getNewClientStreamLock();
+            lock.lock();
+            
+            try {
+                for (Map.Entry<String, PushData> entry : pushDataMap.entrySet()) {
+                    final PushData pushData = entry.getValue();
+                    final OutputResource outputResource =
+                            pushData.getOutputResource();
+                    
+                    final UnidirectionalSpdyRequest.Builder builder =
+                            UnidirectionalSpdyRequest.unidirectionalBuilder()
+                            .status(pushData.getStatusCode())
+                            .uri(entry.getKey())
+                            .protocol(Protocol.HTTP_1_1)
+                            .contentType(pushData.getContentType());
+                    
+                    if (outputResource != null) {
+                        builder.contentLength(outputResource.remaining());
+                    }
+                    
+                    final HttpRequestPacket spdyRequest = builder.build();
+                    try {
+                        final SpdyStream pushStream = spdySession.openStream(
+                                spdyRequest,
+                                spdySession.getNextLocalStreamId(),
+                                spdyStream.getStreamId(),
+                                pushData.getPriority(),
+                                0,
+                                true,
+                                false);
+                        prepareOutgoingRequest(spdyRequest);
+                        
+                        pushStream.writeDownStream(outputResource);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.FINE,
+                                "Can not push: " + entry.getKey(), e);
+                    }
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 
     private static class ClientNpnNegotiator implements ClientSideNegotiator {

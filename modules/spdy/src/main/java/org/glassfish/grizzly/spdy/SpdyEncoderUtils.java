@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
@@ -139,7 +140,7 @@ class SpdyEncoderUtils {
     }
     
     @SuppressWarnings("unchecked")
-    static Buffer encodeSynStreamHeadersAndLock(final SpdySession spdySession,
+    static Buffer encodeSynStreamHeadersAndLock(final SpdyStream spdyStream,
             final HttpRequestPacket request) throws IOException {
 
         // ----------------- Parse URI scheme and path ----------------
@@ -159,7 +160,7 @@ class SpdyEncoderUtils {
             schemeLen = idx - schemeStart - 1;
         }
 
-
+        
         final int pathStart = schemeStart == -1 ?
                 idx :
                 ByteChunk.indexOf(requestURI, idx + 2, len, '/');
@@ -169,16 +170,35 @@ class SpdyEncoderUtils {
             throw new IllegalStateException("Request URI path is not set");
         }
         // ---------------------------------------------------------------
+
+        final MimeHeaders headers = request.getHeaders();
         
+        final String hostHeader = headers.getHeader(Header.Host);
+        final byte[] hostHeaderBytes;
+        final int hostHeaderStart;
+        final int hostHeaderLen;
+        
+        if (hostHeader == null) {
+            if (schemeStart == -1) {
+                throw new IllegalStateException("Missing the Host header");
+            }
+            
+            hostHeaderBytes = requestURI;
+            hostHeaderStart = schemeStart + schemeLen + 3;
+            hostHeaderLen = pathStart - hostHeaderStart;
+        } else {
+            hostHeaderBytes =
+                    hostHeader.getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
+            hostHeaderStart = 0;
+            hostHeaderLen = hostHeaderBytes.length;
+        }
+        
+        final SpdySession spdySession = spdyStream.getSpdySession();
         final MemoryManager mm = spdySession.getMemoryManager();
 
         final Buffer compressedBuffer = mm.allocate(2048);
         final Buffer plainBuffer = mm.allocate(2048);
         
-        final MimeHeaders headers = request.getHeaders();
-        
-        final String hostHeader = headers.getHeader(Header.Host);
-
         headers.removeHeader(Header.Connection);
         headers.removeHeader(Header.Host);
         headers.removeHeader(Header.KeepAlive);
@@ -211,7 +231,7 @@ class SpdyEncoderUtils {
             deflaterOutputStream.setInitialOutputBuffer(compressedBuffer);
 
             dataOutputStream.writeInt(userHeadersNum + 5);
-            
+
             encodeHeaderValue(dataOutputStream, Constants.METHOD_HEADER_BYTES,
                     request.getMethod().getMethodBytes());
 
@@ -220,9 +240,9 @@ class SpdyEncoderUtils {
 
             encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
                     request.getProtocol().getProtocolBytes());
-
+            
             encodeHeaderValue(dataOutputStream, Constants.HOST_HEADER_BYTES,
-                    hostHeader.getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
+                    hostHeaderBytes, hostHeaderStart, hostHeaderLen);
 
             if (schemeLen > 0) {
                 encodeHeaderValue(dataOutputStream, Constants.SCHEMA_HEADER_BYTES,
@@ -244,6 +264,150 @@ class SpdyEncoderUtils {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    static Buffer encodeUnidirectionalSynStreamHeadersAndLock(final SpdyStream spdyStream,
+            final HttpRequestPacket request) throws IOException {
+
+        // ----------------- Parse URI scheme and path ----------------
+        int schemeStart = -1;
+        int schemeLen = -1;
+
+        final byte[] requestURI =
+                request.getRequestURI().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
+        final int len = requestURI.length;
+
+        final int nonSpaceIdx = skipSpaces(requestURI, 0, len, len);
+        final int idx = ByteChunk.indexOf(requestURI, nonSpaceIdx, len, '/');
+
+        if (idx > 0 && idx < len - 1 &&
+                requestURI[idx - 1] == ':' && requestURI[idx + 1] == '/') {
+            schemeStart = nonSpaceIdx;
+            schemeLen = idx - schemeStart - 1;
+        }
+
+        
+        final int pathStart = schemeStart == -1 ?
+                idx :
+                ByteChunk.indexOf(requestURI, idx + 2, len, '/');
+        final int pathLen = len - pathStart;
+
+        if (pathStart == -1) {
+            throw new IllegalStateException("Request URI path is not set");
+        }
+        // ---------------------------------------------------------------
+
+        final MimeHeaders headers = request.getHeaders();
+        
+        final String hostHeader = headers.getHeader(Header.Host);
+        final byte[] hostHeaderBytes;
+        final int hostHeaderStart;
+        final int hostHeaderLen;
+        
+        if (hostHeader == null) {
+            if (schemeStart == -1) {
+                throw new IllegalStateException("Missing the Host header");
+            }
+            
+            hostHeaderBytes = requestURI;
+            hostHeaderStart = schemeStart + schemeLen + 3;
+            hostHeaderLen = pathStart - hostHeaderStart;
+        } else {
+            hostHeaderBytes =
+                    hostHeader.getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
+            hostHeaderStart = 0;
+            hostHeaderLen = hostHeaderBytes.length;
+        }
+        
+        final SpdySession spdySession = spdyStream.getSpdySession();
+        final MemoryManager mm = spdySession.getMemoryManager();
+
+        final Buffer compressedBuffer = mm.allocate(2048);
+        final Buffer plainBuffer = mm.allocate(2048);
+        
+        headers.removeHeader(Header.Connection);
+        headers.removeHeader(Header.Host);
+        headers.removeHeader(Header.KeepAlive);
+        headers.removeHeader(Header.ProxyConnection);
+        headers.removeHeader(Header.TransferEncoding);
+        
+        
+        // Serialize user headers first, so we know their count
+        final BufferOutputStream userHeadersBOS = new BufferOutputStream(mm);
+        final DataOutputStream userHeadersDOS = new DataOutputStream(userHeadersBOS);
+        userHeadersBOS.setInitialOutputBuffer(plainBuffer);
+        
+        final int userHeadersNum = encodeUserHeaders(spdySession, headers, userHeadersDOS);
+        userHeadersDOS.flush();
+        final Buffer userHeadersBuffer = userHeadersBOS.getBuffer();
+        userHeadersBOS.reset();
+        
+        // get the plain user headers buffer
+        userHeadersBuffer.trim();
+
+        // !!!! LOCK the deflater
+        spdySession.getDeflaterLock().lock();
+        
+        try {
+            final DataOutputStream dataOutputStream =
+                    spdySession.getDeflaterDataOutputStream();
+            final SpdyDeflaterOutputStream deflaterOutputStream =
+                    spdySession.getDeflaterOutputStream();
+
+            deflaterOutputStream.setInitialOutputBuffer(compressedBuffer);
+
+            dataOutputStream.writeInt(userHeadersNum + 5);
+
+            if (schemeLen > 0) {
+                encodeHeaderValue(dataOutputStream, Constants.SCHEMA_HEADER_BYTES,
+                        requestURI, schemeStart, schemeLen);
+            } else {
+                encodeHeaderValue(dataOutputStream, Constants.SCHEMA_HEADER_BYTES,
+                        HTTPS_BYTES);
+            }
+
+            encodeHeaderValue(dataOutputStream, Constants.HOST_HEADER_BYTES,
+                    hostHeaderBytes, hostHeaderStart, hostHeaderLen);
+
+            encodeHeaderValue(dataOutputStream, Constants.PATH_HEADER_BYTES,
+                    requestURI, pathStart, pathLen);
+
+            encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
+                    request.getProtocol().getProtocolBytes());
+            
+            if (request instanceof UnidirectionalSpdyRequest) {
+                final UnidirectionalSpdyRequest unidirectionalRequest =
+                        (UnidirectionalSpdyRequest) request;
+                final HttpStatus unidirectionalHttpStatus =
+                        unidirectionalRequest.getUnidirectionalHttpStatus();
+
+                if (unidirectionalRequest.isUnidirectionalCustomReasonPhraseSet()) {
+                    encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                            unidirectionalHttpStatus.getStatusBytes(), SPACE_BYTES,
+                            unidirectionalRequest.getUnidirectionalReasonPhraseRawDC()
+                            .toString().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
+                } else {
+                    encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                            unidirectionalHttpStatus.getStatusBytes(), SPACE_BYTES,
+                            unidirectionalHttpStatus.getReasonPhraseBytes());
+                }
+            } else {
+                encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                        HttpStatus.OK_200.getStatusBytes(), SPACE_BYTES,
+                        HttpStatus.OK_200.getReasonPhraseBytes());
+            }
+            
+            dataOutputStream.flush();
+            deflaterOutputStream.write(userHeadersBuffer);
+            
+            return deflaterOutputStream.checkpoint();
+        } catch (Exception e) {
+            spdySession.getDeflaterLock().unlock();
+            throw Exceptions.makeIOException(e);
+        } finally {
+            userHeadersBuffer.dispose();
+        }
+    }
+    
     @SuppressWarnings("unchecked")
     private static int encodeUserHeaders(final SpdySession spdySession,
             final MimeHeaders headers,

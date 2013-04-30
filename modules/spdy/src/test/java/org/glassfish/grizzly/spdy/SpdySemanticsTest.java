@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -63,6 +64,8 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
@@ -75,6 +78,7 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -810,6 +814,227 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
 
                 assertEquals(CloseType.LOCALLY, closeFuture.get(10, TimeUnit.SECONDS));
                 assertTrue(clientQueue.isEmpty());
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    /**
+     * Test RST reply from endpoint, when we try to send any frame on the
+     * unidirectional stream.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRstOnUnidirectionalStream() throws Exception {
+        final CountDownLatch serviceFinishLatch = new CountDownLatch(1);
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final SpdyStream spdyStream =
+                        (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                
+                final SpdyStream uSpdyStream =
+                        spdyStream.getSpdySession().getStreamBuilder()
+                        .associatedToStreamId(spdyStream.getStreamId())
+                        .method(Method.POST)
+                        .protocol(Protocol.HTTP_1_1)
+                        .unidirectional(true)
+                        .uri("https://localhost:" + PORT + "/my.jpg")
+                        .contentLength(1024)
+                        .fin(false)
+                        .open();
+                
+                serviceFinishLatch.await(120, TimeUnit.SECONDS);
+            }
+        }, "/test"));
+        
+        try {
+            final BlockingQueue<SpdyFrame> clientQueue =
+                    new LinkedTransferQueue<SpdyFrame>();
+            
+            server.start();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder();
+            
+            clientFilterChainBuilder.add(new BaseFilter() {
+                @Override
+                public NextAction handleRead(final FilterChainContext ctx)
+                        throws IOException {
+                    final SpdyFrame packet = ctx.getMessage();
+                    clientQueue.add(packet);
+                    return ctx.getInvokeAction();
+                }
+            });
+            
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                final SynStreamFrame synStream = SynStreamFrame.builder()
+                        .streamId(1)
+                        .compressedHeaders(CompressedHeadersBuilder.newInstance()
+                                .method(Method.GET)
+                                .scheme("https")
+                                .host("localhost:" + PORT)
+                                .path("/test")
+                                .version(Protocol.HTTP_1_1)
+                                .build(deflater))
+                        .last(true)
+                        .build();
+
+                connection.write(synStream);
+
+                assertTrue(clientQueue.poll(10, TimeUnit.SECONDS) instanceof SettingsFrame);
+                
+                final SynStreamFrame uSynStream = (SynStreamFrame) clientQueue.poll(10, TimeUnit.SECONDS);
+                assertTrue(uSynStream.isFlagSet(SynStreamFrame.FLAG_UNIDIRECTIONAL));
+                
+                final SpdyFrame unexpectedFrameToSend = SynReplyFrame.builder()
+                        .streamId(uSynStream.getStreamId())
+                        .compressedHeaders(CompressedHeadersBuilder.newInstance()
+                                .status(HttpStatus.OK_200)
+                                .version(Protocol.HTTP_1_1)
+                                .build(deflater))
+                        .last(true)
+                        .build();
+                
+                connection.write(unexpectedFrameToSend);
+                
+                final RstStreamFrame rstFrame = (RstStreamFrame) clientQueue.poll(10, TimeUnit.SECONDS);
+                
+                assertEquals(uSynStream.getStreamId(), rstFrame.getStreamId());
+                assertEquals(RstStreamFrame.PROTOCOL_ERROR, rstFrame.getStatusCode());
+            } finally {
+                serviceFinishLatch.countDown();
+                
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    /**
+     * Test associated stream to be closed when it's "parent" is closed.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testAssociatedStreamClose() throws Exception {
+        final FutureImpl<Boolean> uStreamCloseFuture =
+                Futures.<Boolean>createSafeFuture();
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final SpdyStream spdyStream =
+                        (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                
+                final SpdyStream uSpdyStream =
+                        spdyStream.getSpdySession().getStreamBuilder()
+                        .associatedToStreamId(spdyStream.getStreamId())
+                        .method(Method.POST)
+                        .protocol(Protocol.HTTP_1_1)
+                        .unidirectional(true)
+                        .uri("https://localhost:" + PORT + "/my.jpg")
+                        .contentLength(1024)
+                        .fin(false)
+                        .open();
+
+                final MemoryManager mm = uSpdyStream.getSpdySession().getMemoryManager();
+                final HttpHeader uRequest = uSpdyStream.getOutputHttpHeader();
+                
+                try {
+                    for (int i = 0; i < 1023; i++) {
+                        uSpdyStream.writeDownStream(
+                                HttpContent.builder(uRequest)
+                                .content(Buffers.wrap(mm, "A"))
+                                .last(false)
+                                .build());
+
+                        Thread.sleep(200);
+                    }
+                } catch (IOException e) {
+                    uStreamCloseFuture.result(Boolean.TRUE);
+                }
+            }
+        }, "/test"));
+        
+        try {
+            final BlockingQueue<SpdyFrame> clientQueue =
+                    new LinkedTransferQueue<SpdyFrame>();
+            
+            server.start();
+            final FilterChainBuilder clientFilterChainBuilder =
+                    createRawClientFilterChainAsBuilder();
+            
+            clientFilterChainBuilder.add(new RawClientFilter(clientQueue));
+            
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                final int mainStreamId = 1;
+                final SynStreamFrame synStream = SynStreamFrame.builder()
+                        .streamId(mainStreamId)
+                        .compressedHeaders(CompressedHeadersBuilder.newInstance()
+                                .method(Method.GET)
+                                .scheme("https")
+                                .host("localhost:" + PORT)
+                                .path("/test")
+                                .version(Protocol.HTTP_1_1)
+                                .build(deflater))
+                        .last(true)
+                        .build();
+
+                connection.write(synStream);
+
+                assertTrue(clientQueue.poll(10, TimeUnit.SECONDS) instanceof SettingsFrame);
+                
+                final SynStreamFrame uSynStream = (SynStreamFrame) clientQueue.poll(10, TimeUnit.SECONDS);
+                assertTrue(uSynStream.isFlagSet(SynStreamFrame.FLAG_UNIDIRECTIONAL));
+                
+                final RstStreamFrame rstMainStreamFrame = RstStreamFrame.builder()
+                        .streamId(mainStreamId)
+                        .statusCode(RstStreamFrame.CANCEL)
+                        .build();
+                
+                connection.write(rstMainStreamFrame);
+                
+                assertEquals(Boolean.TRUE, uStreamCloseFuture.get(10, TimeUnit.SECONDS));
             } finally {
                 // Close the client connection
                 if (connection != null) {

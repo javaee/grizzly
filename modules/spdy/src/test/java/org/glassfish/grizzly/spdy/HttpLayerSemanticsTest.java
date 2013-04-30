@@ -171,6 +171,7 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
 
     }
 
+    @SuppressWarnings("unchecked")
     private HttpContent doTest(
             final HttpPacket request,
             final int timeout,

@@ -85,10 +85,6 @@ public class PingFrame extends SpdyFrame {
         return pingId;
     }
 
-    public void reset() {
-        header.buffer.reset();
-    }
-
     @Override
     public boolean isFlagSet(byte flag) {
         return false;

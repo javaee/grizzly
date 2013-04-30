@@ -129,7 +129,7 @@ public class SpdyFramingFilter extends BaseFilter {
 
             final boolean logit = LOGGER.isLoggable(LOGGER_LEVEL);
             if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                LOGGER.log(LOGGER_LEVEL, "Rx [1]: connection={0}, frame={1}",
                         new Object[] {connection, frame});
             }
 
@@ -159,7 +159,7 @@ public class SpdyFramingFilter extends BaseFilter {
                 }
 
                 if (logit) {
-                    LOGGER.log(LOGGER_LEVEL, "Rx: connection={0}, frame={1}",
+                    LOGGER.log(LOGGER_LEVEL, "Rx [2]: connection={0}, frame={1}",
                             new Object[] {connection, frame});
                 }
 
@@ -273,10 +273,19 @@ public class SpdyFramingFilter extends BaseFilter {
         final int len = getMessageLength(buffer, bufferPos);
         
         if (!checkFrameLength(len)) {
-            state.bytesToSkip = len;
+            final SpdyFrame overSizedFrame = createOversizedFrame(ctx, buffer);
             
-            return state.parsingResult.reset(
-                    createOversizedFrame(ctx, buffer), buffer);
+            final Buffer remainder;
+            final int remaining = buffer.remaining();
+            
+            if (remaining > len) {
+                remainder = buffer.split(bufferPos + len);
+            } else {
+                remainder = Buffers.EMPTY_BUFFER;
+                state.bytesToSkip = len - remaining;
+            }
+            
+            return state.parsingResult.reset(overSizedFrame, remainder);
         }
 
         int totalLen = len + HEADER_LEN;
