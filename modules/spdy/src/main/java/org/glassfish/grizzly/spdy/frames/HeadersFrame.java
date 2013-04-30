@@ -86,6 +86,9 @@ public class HeadersFrame extends HeadersProviderFrame {
         return new HeadersFrameBuilder();
     }
 
+    public int getStreamId() {
+        return streamId;
+    }    
 
     // -------------------------------------------------- Methods from Cacheable
 
@@ -118,7 +121,7 @@ public class HeadersFrame extends HeadersProviderFrame {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("HeadersFrame");
-        sb.append("{streamId=").append(header.streamId);
+        sb.append("{streamId=").append(streamId);
         sb.append(", compressedHeaders=").append(compressedHeaders);
         sb.append(", fin=").append(isFlagSet(FLAG_FIN));
         sb.append('}');
@@ -144,6 +147,11 @@ public class HeadersFrame extends HeadersProviderFrame {
 
         // ------------------------------------------------------ Public Methods
 
+        public HeadersFrameBuilder streamId(final int streamId) {
+            headersFrame.streamId = streamId;
+            return this;
+        }
+        
         public HeadersFrameBuilder last(boolean last) {
             if (last) {
                 headersFrame.setFlag(HeadersFrame.FLAG_FIN);

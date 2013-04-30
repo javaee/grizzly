@@ -225,6 +225,8 @@ public class SynStreamFrame extends HeadersProviderFrame {
         public SynStreamFrameBuilder unidirectional(boolean unidirectional) {
             if (unidirectional) {
                 synStreamFrame.setFlag(SynStreamFrame.FLAG_UNIDIRECTIONAL);
+            } else {
+                synStreamFrame.clearFlag(SynStreamFrame.FLAG_UNIDIRECTIONAL);
             }
             return this;
         }
@@ -232,6 +234,8 @@ public class SynStreamFrame extends HeadersProviderFrame {
         public SynStreamFrameBuilder last(boolean last) {
             if (last) {
                 synStreamFrame.setFlag(SynStreamFrame.FLAG_FIN);
+            } else {
+                synStreamFrame.clearFlag(SynStreamFrame.FLAG_FIN);
             }
             return this;
         }
