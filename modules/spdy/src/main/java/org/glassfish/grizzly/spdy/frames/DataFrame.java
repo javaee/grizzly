@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -176,7 +176,9 @@ public class DataFrame extends SpdyFrame {
 
         public DataFrameBuilder last(boolean last) {
             if (last) {
-                dataFrame.setFlag(DataFrame.FLAG_FIN);
+                dataFrame.setFlag(SynReplyFrame.FLAG_FIN);
+            } else {
+                dataFrame.clearFlag(SynReplyFrame.FLAG_FIN);
             }
             return this;
         }

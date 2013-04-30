@@ -167,7 +167,10 @@ public class SynReplyFrame extends HeadersProviderFrame {
         public SynReplyFrameBuilder last(boolean last) {
             if (last) {
                 synReplyFrame.setFlag(SynReplyFrame.FLAG_FIN);
+            } else {
+                synReplyFrame.clearFlag(SynReplyFrame.FLAG_FIN);
             }
+            
             return this;
         }
 

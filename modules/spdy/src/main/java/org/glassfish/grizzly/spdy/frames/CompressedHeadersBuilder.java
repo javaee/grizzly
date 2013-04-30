@@ -53,7 +53,6 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.Constants;
-import org.glassfish.grizzly.spdy.SpdyStream;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -150,7 +149,7 @@ public final class CompressedHeadersBuilder {
      * @param version the HTTP version of this header.
      */
     public final CompressedHeadersBuilder version(Protocol version) {
-        return version(version.toString());
+        return version(version.getProtocolString());
     }
 
     /**
@@ -197,7 +196,12 @@ public final class CompressedHeadersBuilder {
      * @param path the path of this header.
      */
     public final CompressedHeadersBuilder status(HttpStatus status) {
-        return status(status.toString());
+        final StringBuilder sb = new StringBuilder();
+        sb.append(status.getStatusCode()).append(' ')
+                .append(new String(status.getReasonPhraseBytes(),
+                org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET));
+        
+        return status(sb.toString());
     }
 
     /**
