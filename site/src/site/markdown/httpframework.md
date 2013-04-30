@@ -975,7 +975,7 @@ details on what's going on here. Let's see the output of the examples in
 action. Here's the server start:
 
 ```no-highlight
-[586][target]$ java -cp grizzly-http-samples-2.3.jar org.glassfish.grizzly.samples.http.download.Server /tmp
+[586][target]$ java -cp grizzly-http-samples-2.3.2.jar org.glassfish.grizzly.samples.http.download.Server /tmp
 Jan 28, 2011 1:11:17 PM org.glassfish.grizzly.samples.http.download.Server main
 INFO: Press any key to stop the server...
 ```
@@ -983,7 +983,7 @@ INFO: Press any key to stop the server...
 And on the client side:
 
 ```no-highlight
-[574][ryanlubke.lunasa: target]$ java -cp grizzly-http-samples-2.3.jar org.glassfish.grizzly.samples.http.download.Client http://localhost:7777/test.html
+[574][ryanlubke.lunasa: target]$ java -cp grizzly-http-samples-2.3.2.jar org.glassfish.grizzly.samples.http.download.Client http://localhost:7777/test.html
 Jan 28, 2011 1:54:49 PM org.glassfish.grizzly.samples.http.download.ClientDownloadFilter handleConnect
 INFO: Connected... Sending the request: HttpRequestPacket (
    method=GET
@@ -1008,4 +1008,4 @@ INFO: Stopped transport...
 ```
 
 This example within the java.net maven repository:
-<https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-samples/2.3>.
+<https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-samples/2.3.2>.

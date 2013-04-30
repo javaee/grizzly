@@ -7,12 +7,21 @@ Once your java.net account is available, follow these [instructions][sshkeygen] 
 generating your SSH key and associating it with your account.
 
 Give the association about five minutes to take effect.  If everything is configured
-properly, the repository can be cloned by invoking:  `git clone ssh://<java.net ID>@git.java.net/grizzly~git`
+properly, the repository can be cloned by invoking:
+
+ ```bash
+git clone ssh://<java.net ID>@git.java.net/grizzly~git
+```
 
 If you're only interested in reading the latest version of the sources and do not wish
 to a) contribute code back to the repository or b) do not care about the history,
-you can speed up the clone process by invoking `git clone --depth 1 ssh://<java.net ID>@git.java.net/grizzly~git` instead.
-This should speed up the clone process considerably.
+you can speed up the clone process by invoking:
+
+```bash
+`git clone --depth 1 ssh://<java.net ID>@git.java.net/grizzly~git`
+```
+
+instead.  This should speed up the clone process considerably.
 
 [sshkeygen]: http://java.net/projects/help/pages/GeneratingAnSSHKey
 
@@ -60,7 +69,7 @@ of this command, you can issue `git checkout <tag name>` Note that when doing so
 get a message about being in a detached state - this is normal and nothing to worry about.
 All fetched tags can be listed using `git tag -l` In general, we keep our tag names
 inline with the released version.  For example, if you wanted to checkout the tag
-for Grizzly 2.2.3, the tag name would be *2_2_3* This convention is consistent for
+for Grizzly 2.3.2, the tag name would be *2_2_3* This convention is consistent for
 all branches/versions/releases.
 
 ## GIT Tips and Tricks for Developers

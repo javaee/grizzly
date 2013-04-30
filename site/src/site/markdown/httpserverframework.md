@@ -87,7 +87,7 @@ module in your project:
     <dependency>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-http-server</artifactId>
-        <version>2.3</version>
+        <version>2.3.2</version>
     </dependency>
 </dependencies>
 ```
@@ -156,7 +156,7 @@ HTTP Server Configuration
 </tr>
 <tr class="odd">
 <td align="left">version</td>
-<td align="left">Set the version of this server instance. If not explicitly set, the version will be 2.3.</td>
+<td align="left">Set the version of this server instance. If not explicitly set, the version will be 2.3.2.</td>
 </tr>
 </tbody>
 </table>
@@ -1106,11 +1106,11 @@ The comments within the Client code should be sufficient to explain
 what's going on here. When running the complete example the output will
 look something like:
 
-```
+```no-highlight
 Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.NetworkListener start
-INFO: Started listener bound to \[0.0.0.0:8080]
+INFO: Started listener bound to [0.0.0.0:8080]
 Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.HttpServer start
-INFO: \[HttpServer] Started.
+INFO: [HttpServer] Started.
 
 Client connected!
 
@@ -1126,25 +1126,25 @@ HttpRequestPacket (
       Host=localhost:8080]
 )
 (Client writing: contentA-)
-\[onDataAvailable] echoing 9 bytes
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentB-)
-\[onDataAvailable] echoing 9 bytes
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentC-)
-\[onDataAvailable] echoing 9 bytes
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
 (Client writing: contentD)
-\[onDataAvailable] echoing 8 bytes
+[onDataAvailable] echoing 8 bytes
 
 
-\[onAllDataRead] length: 0
+[onAllDataRead] length: 0
 
 Echoed POST Data: contentA-contentB-contentC-contentD
 
@@ -1157,7 +1157,7 @@ actually output. It's been added to visualize the artificial delay added
 by the Filter used by the client.
 
 This example in its entirety is available within the samples section of
-the Grizzly 2.3 repository.
+the Grizzly 2.3.2 repository.
 
 Other samples
 =============
@@ -1169,11 +1169,11 @@ The HTTP server framwork samples can be reviewed in one of two ways:
 ```
 git clone git://java.net/grizzly~git
 cd grizzly~git
-git checkout 2_3
+git checkout 2_3_2
 cd samples/http-server-samples
 ```
 
 -   Download the sample source bundle from:
-    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/2.3/grizzly-http-server-samples-2.3-sources.jar>
+    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/2.3.2/grizzly-http-server-samples-2.3.2-sources.jar>
 
 

@@ -106,7 +106,7 @@ support.
 
 -   Copy the grizzly-npn-osgi-1.0.jar to the GF\_HOME/modules directory.
 
--   Copy the grizzly-spdy-2.3.jar to the GF\_HOME/modules
+-   Copy the grizzly-spdy-2.3.2.jar to the GF\_HOME/modules
     directory.
 
 -   Update the domain.xml's JVM configuration section to include a

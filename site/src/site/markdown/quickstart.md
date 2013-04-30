@@ -14,7 +14,7 @@ pom:
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework</artifactId>
-    <version>2.3</version>
+    <version>2.3.2</version>
 </dependency>
 ```
 
@@ -301,7 +301,7 @@ public class EchoClient {
 
 EchoClient could be run easily using command line like
 
-```
+```no-highlight
 java -classpath grizzly-framework.jar EchoClient
 ```
 
@@ -310,7 +310,7 @@ or your favorite IDE.
 By default, if standard input and outtput were not changed - you'll see
 the following on the console:
 
-```
+```no-highlight
 Ready... ("q" to exit)
 ```
 
@@ -318,7 +318,7 @@ Now the client is ready for your input. Each time you typed a line and
 pressed \<ENTER\> - the line will be sent to the server and response
 got:
 
-```
+```no-highlight
 Ready... ("q" to exit)
 Hey there!
 Server echo: Hey there!

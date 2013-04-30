@@ -35,7 +35,7 @@ let us [know][grizzly-jira] or submit a patch.
 Are you using Grizzly?  We\'d love to hear how you\'re using it in your projects.
 Write a blog and drop us a note.
 
-[blog]: images/blog.png
+[blog]: images/blog2.png
 
 
 ## ![reviews][search] Code Review

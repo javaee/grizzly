@@ -55,13 +55,13 @@ following dependency needs to be added to the pom:
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework</artifactId>
-    <version>2.3</version>
+    <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers require:
 
--   [grizzly-framework.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-framework/2.3/grizzly-framework-2.3.jar)
+-   [grizzly-framework.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-framework/2.3.2/grizzly-framework-2.3.2.jar)
 
 -   [gmbal-api-only.jar](http://download.java.net/maven/2/org/glassfish/gmbal/gmbal-api-only/3.0.0-b023/gmbal-api-only-3.0.0-b023.jar)
 
@@ -75,13 +75,13 @@ dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core jars as well as:
 
--   [grizzly-http.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http/2.3/grizzly-http-2.3.jar)
+-   [grizzly-http.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http/2.3.2/grizzly-http-2.3.2.jar)
 
 HTTP Server framework
 =====================
@@ -93,13 +93,13 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the http and core jars as well as:
 
--   [grizzly-http-server.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server/2.3/grizzly-http-server-2.3.jar)
+-   [grizzly-http-server.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server/2.3.2/grizzly-http-server-2.3.2.jar)
 
 HTTP Servlet framework
 ======================
@@ -111,14 +111,14 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-servlet</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the http-server, http, and core jars
 as well as:
 
--   [grizzly-http-servlet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3/grizzly-http-servlet-2.3.jar)
+-   [grizzly-http-servlet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3.2/grizzly-http-servlet-2.3.2.jar)
 
 -   [servlet-api.jar](http://mirrors.ibiblio.org/pub/mirrors/maven2/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar)
 
@@ -132,13 +132,13 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-portunif</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core jars as well as:
 
--   [grizzly-portunif.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-portunif/2.3/grizzly-portunif-2.3.jar)
+-   [grizzly-portunif.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-portunif/2.3.2/grizzly-portunif-2.3.2.jar)
 
 Comet
 =====
@@ -150,14 +150,14 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-comet</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core, http, and http-server jars
 as well as:
 
--   [grizzly-comet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-comet/2.3/grizzly-comet-2.3.jar)
+-   [grizzly-comet.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-comet/2.3.2/grizzly-comet-2.3.2.jar)
 
 WebSockets
 ==========
@@ -169,14 +169,14 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-websockets</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core, http, and http-server jars
 as well as:
 
--   [grizzly-websockets.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-websockets/2.3/grizzly-websockets-2.3.jar)
+-   [grizzly-websockets.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-websockets/2.3.2/grizzly-websockets-2.3.2.jar)
 
 AJP
 ===
@@ -188,14 +188,14 @@ dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-ajp</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core, http, and http-server jars
 as well as:
 
--   [grizzly-http-ajp.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-ajp/2.3/grizzly-http-ajp-2.3.jar)
+-   [grizzly-http-ajp.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-ajp/2.3.2/grizzly-http-ajp-2.3.2.jar)
 
 JAX-WS
 ======
@@ -207,13 +207,13 @@ following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server-jaxws</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers will need to download the core, http, and http-server jars
 as well as:
 
--   [grizzly-http-server-jaxws.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server-jaxws/2.3/grizzly-http-server-jaxws-2.3.jar)
+-   [grizzly-http-server-jaxws.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-server-jaxws/2.3.2/grizzly-http-server-jaxws-2.3.2.jar)
 
 

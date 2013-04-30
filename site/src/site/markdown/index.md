@@ -1,34 +1,59 @@
+Writing scalable server applications in the Java™
+programming language has always been difficult. Before the advent of the Java
+New I/O API (NIO), thread management issues made it impossible for a server to
+scale to thousands of users. The Grizzly NIO framework has been designed to help
+developers to take advantage of the Java™ NIO API. Grizzly's goal is to help
+developers to build scalable and robust servers using NIO as well as offering extended
+framework components: Web Framework (HTTP/S), WebSocket, Comet, and more!.
+
 ![stack](images/stack.png)
 
 ---
 
 ## [![Get Started][started]][quick] Get Started
 
-Learn what it takes to get started using Grizzly in your projects.
+[Learn][quick] what it takes to get started using Grizzly in your projects.
 
 
 ## [![Documentation][docs]][full] Documentation
 
-Read Grizzly\'s complete documentation online.
+[Read][full] Grizzly\'s complete documentation online.
 
 
 ## [![Download][download]][deps] Download
 
 Grizzly offers several modules that may be of interest for your projects.
-See our list of dependencies for details.
+See our list of [dependencies][deps] for details.
 
 
 ## [![Contribute][contribute]][contpage] Contribute
 
-Learn how you can contribute to the project.
+[Learn][contpage] how you can contribute to the project.
 
+
+## [![Async HTTP Client][ahci]][ahc] Need an HTTP Client?
+
+We\'ve contributed a Grizzly-based provider to the Async HTTP Client project that,
+in addition to, HTTP, supports WebSockets and eventually, SPDY.
+
+For further details, visit the [Async HTTP Client][ahc] project site.
+
+
+## ![Blogs][blog] Developer Blogs
+* Alexey\'s [blog][alexey]
+* Ryan\'s [blog][ryan]
 
 [contpage]: contribute.html
 [quick]: quickstart.html
 [deps]: dependencies.html
 [full]: documentation.html
+[ahc]: https://github.com/AsyncHttpClient/async-http-client
+[alexey]: http://mytecc.wordpress.com
+[ryan]: http://notshabby.net
 
 [started]: images/compass.png
 [download]: images/download.png
 [contribute]: images/settings.png
 [docs]: images/docs.png
+[ahci]: images/reqres.png
+[blog]: images/blog2.png

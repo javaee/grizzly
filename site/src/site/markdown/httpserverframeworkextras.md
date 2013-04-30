@@ -23,7 +23,7 @@ where after you press "submit", a multipart HTTP request is generated.
 For the example above, the HTTP request will contain two parts: text
 description and chosen file content, like:
 
-```
+```no-highlight
 POST /upload HTTP/1.1
 Host: localhost:18080
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
@@ -135,14 +135,14 @@ module. The following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server-multipart</artifactId>
-     <version>2.3</version>
+     <version>2.3.2</version>
 </dependency>
 ```
 
 Non-maven developers: additional dependencies: [HTTP Server
 framework](#http-server-dep), required by:
 
--   [grizzly-http-server-multipart.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3/grizzly-http-server-multipart-2.3.jar)
+-   [grizzly-http-server-multipart.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3.2/grizzly-http-server-multipart-2.3.2.jar)
 
 Sample
 ------
@@ -398,4 +398,4 @@ is no more data to be processed, finish the upload by closing the local
 file output stream.
 
 The complete working sample could be downloaded
-[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/2.3/grizzly-http-multipart-samples-2.3-sources.jar)
+[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/2.3.2/grizzly-http-multipart-samples-2.3.2-sources.jar)

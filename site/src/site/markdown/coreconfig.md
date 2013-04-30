@@ -28,7 +28,7 @@ TCP and UDP NIOTransport implementations.
 </tr>
 <tr class="odd">
 <td align="left">IOStrategy</td>
-<td align="left">Sets the IOStrategy that will be used by this transport. Note that changing this value before the transport has been started may have an impact on the return value of the workerThreadPoolConfig property. If no value is explicitly set, the WorkerThreadIOStrategy will be employed. See the section on <a href="iostrategies.xml">IOStrategies</a> for specifics on each concrete IOStrategy included with Grizzly 2.3.</td>
+<td align="left">Sets the IOStrategy that will be used by this transport. Note that changing this value before the transport has been started may have an impact on the return value of the workerThreadPoolConfig property. If no value is explicitly set, the WorkerThreadIOStrategy will be employed. See the section on <a href="iostrategies.xml">IOStrategies</a> for specifics on each concrete IOStrategy included with Grizzly 2.3</td>
 </tr>
 <tr class="even">
 <td align="left">memoryManager</td>

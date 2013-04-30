@@ -72,7 +72,7 @@ could be descibed by the following ABNF:
 
 -   **add**
 
-```
+```no-highlight
         protocol  =  magic
                      value1
                      value2
@@ -85,7 +85,7 @@ could be descibed by the following ABNF:
 
 -   **sub**
 
-```
+```no-highlight
         protocol  =  magic
                      value1
                      value2
@@ -192,4 +192,4 @@ transport.start();
 ```
 
 Complete sample code could be found
-[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.3).
+[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.3.2).
