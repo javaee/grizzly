@@ -84,6 +84,13 @@ public class SpdyDeflaterOutputStream extends OutputStream {
         this.deflater = deflater;
     }
 
+    /**
+     * Returns the underlying {@link Deflater}.
+     */
+    public Deflater getDeflater() {
+        return deflater;
+    }
+    
     public int getBufferSize() {
         return bufferSize;
     }
