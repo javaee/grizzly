@@ -1,6 +1,6 @@
 ## Mailing Lists
 
-## users\@grizzly.java.net
+## Grizzly Users
 
 List for posting questions on using Grizzly.  You must be subscribed in order
 to post to this list.
@@ -8,14 +8,14 @@ to post to this list.
 ["Subscribe"][usersub] | ["Unsubscribe"][userunsub] | ["Archive"][userarchive]
 
 
-## dev\@grizzly.java.net
+## Grizzly Developers
 
 List for posting patches and discussing internal code implementation issues.  You
 must be subscribed in order to post to this list.
 
 ["Subscribe"][devsub] | ["Unsubscribe"][devunsub] | ["Archive"][devarchive]
 
-## commits\@grizzly.java.net
+## Grizzly Commits
 
 This is a read-only list where commit notifications are sent.
 

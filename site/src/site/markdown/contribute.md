@@ -2,7 +2,7 @@
 
 ---
 
-## ![bug][bug] Report Issues
+## [![bug][bug]][grizzly-jira] Report Issues
 
 Issue reporting is central to OSS projects.  If the issue isn't reported,
 we can't fix it.  Please report any bugs, feature, and/or improvment requests on the
@@ -12,9 +12,9 @@ we can't fix it.  Please report any bugs, feature, and/or improvment requests on
 [bug]: images/bug.png
 
 
-## ![git][git] Submit Patches
+## [![git][git]][scm] Submit Patches
 
-Have a fix or a feature you\'d like to share?  Open an issue and attach your
+Have a fix or a feature you\'d like to share?  Open an [issue][grizzly-jira] and attach your
 patch with details on what you\'re resolving and how you\'re resolving it.
 
 [git]: images/git.png
@@ -40,7 +40,7 @@ Write a blog and drop us a note.
 
 ## ![reviews][search] Code Review
 
-More eyes on the code means better quality.  Review our code for style issues,
+More eyes on the code means better quality.  Review our [code][scm] for style issues,
 potential issues, or glaring bugs.  Anything helps!
 
 [search]: images/search.png
@@ -48,9 +48,12 @@ potential issues, or glaring bugs.  Anything helps!
 
 ## ![support][support] Support the Community
 
-Have insight on an issue another is having?  Speak up!  Join our mailing
-lists or follow questions tagged with `grizzly` on [StackOverflow][stack].
+Have insight on an issue another is having?  Speak up!  Join our [mailing
+lists][list] or follow questions tagged with `grizzly` on [StackOverflow][stack].
 
 [stack]: http://stackoverflow.com/questions/tagged/grizzly
 [support]: images/conversation.png
+[list]: mailing.html
+
+[scm]: scm.html
 
