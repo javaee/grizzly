@@ -25,7 +25,7 @@
             <!-- =============== Global skin configuration ================= -->
 
             <!-- Make this to 'false' for local development, i.e. file:// URLs -->
-            <protocolRelativeURLs>false</protocolRelativeURLs>
+            <protocolRelativeURLs>true</protocolRelativeURLs>
 
             <!-- Brand on the top menu bar -->
             <brand>
@@ -63,7 +63,7 @@
 
             <!-- Misc Configuration -->
             <smoothScroll>true</smoothScroll>
-            <!--<absoluteResourceURL>https://grizzly.java.net</absoluteResourceURL>-->
+            <absoluteResourceURL>https://grizzly.java.net</absoluteResourceURL>
             <skinAttribution>false</skinAttribution>
 
             <!-- Per-Page Configuration (allows overriding of global) -->
@@ -159,8 +159,8 @@
                 <item name="AJP" href="ajp.html"/>
                 <item name="SPDY" href="spdy.html"/>
             </item>
-            <item name="Javadoc" href="https://grizzly.java.net/nonav/docs/2.3/apidocs"/>
-            <item name="XRef" href="https://grizzly.java.net/nonav/docs/2.3/xref"/>
+            <item name="Javadoc" href="https://grizzly.java.net/docs/2.3/apidocs"/>
+            <item name="XRef" href="https://grizzly.java.net/docs/2.3/xref"/>
         </menu>
         <menu name="Contribute">
             <item name="Contribute" href="contribute.html"/>
