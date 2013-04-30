@@ -46,7 +46,7 @@
             <theme>bootswatch-cosmo</theme>
 
             <!-- Top navbar configuration -->
-            <topNav>Documentation</topNav>
+            <topNav>Documentation|Download</topNav>
 
             <!-- Bottom nav configuration -->
             <bottomNav maxSpan="9">
