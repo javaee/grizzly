@@ -11,7 +11,7 @@ Usually we have two options: process the NIO event in the current
     The most useful IOStrategy, where Selector thread delegates NIO
     events processing to a worker threads.
 
-    ![""](images/coreframework/workerthread-strategy.gif)
+    ![""](images/coreframework/workerthread-strategy.png)
 
     This IOStrategy is very scalable and safe. We can change the size of
     selector and worker thread pool as required and there is no risk
@@ -25,7 +25,7 @@ Usually we have two options: process the NIO event in the current
     IOStrategy, the same-thread IOStrategy processes NIO events in the
     current thread, avoiding expensive [1] thread context switches.
 
-    ![""](images/coreframework/samethread-strategy.gif)
+    ![""](images/coreframework/samethread-strategy.png)
 
     This IOStrategy is still pretty scalable, because we can tune the
     selector thread pool size, but it does have drawbacks. Care needs to
@@ -40,7 +40,7 @@ Usually we have two options: process the NIO event in the current
     strategy could try to swap them smartly during runtime depending on
     the current conditions (load, gathered statistics... etc)?
 
-    ![""](images/coreframework/dynamic-strategy.gif)
+    ![""](images/coreframework/dynamic-strategy.png)
 
     Potentially this IOStrategy could bring a lot of benefit and allow
     finer control of the resources. However, it's important to not
@@ -52,7 +52,7 @@ Usually we have two options: process the NIO event in the current
     The last IOStrategy included with Grizzly 2.3, is the
     leader-follower strategy:
 
-    ![""](images/coreframework/leaderfollower-strategy.gif)
+    ![""](images/coreframework/leaderfollower-strategy.png)
 
     This IOStrategy is similar to worker-thread IOStrategy, but instead
     of passing NIO event processing to a worker thread, it changes
