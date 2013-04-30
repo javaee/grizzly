@@ -45,7 +45,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.Buffers;
 
 
 /**
@@ -224,9 +223,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
         if (isCustomReasonPhraseSet()) {
             return reasonPhraseC;
         } else {
-            final Buffer b = Buffers.wrap(null, httpStatus.getReasonPhraseBytes());
-            b.allowBufferDispose(true);
-            reasonPhraseC.setBuffer(b, b.position(), b.limit());
+            reasonPhraseC.setBytes(httpStatus.getReasonPhraseBytes());
             return reasonPhraseC;
         }
     }
