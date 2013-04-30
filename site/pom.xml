@@ -11,6 +11,50 @@
     <artifactId>site</artifactId>
     <packaging>pom</packaging>
 
+    <developers>
+        <developer>
+            <id>oleksiys</id>
+            <name>Oleksiy Stashok</name>
+            <email>oleksiys@java.net</email>
+            <url>http://blogs.sun.com/oleksiys/</url>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
+        <developer>
+            <id>rlubke</id>
+            <name>Ryan Lubke</name>
+            <email>rlubke@java.net</email>
+            <url>http://blogs.sun.com/rlubke</url>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <contributors>
+        <contributor>
+            <name>Bongjae Chang</name>
+            <url>https://weblogs.java.net/blogs/carryel</url>
+        </contributor>
+        <contributor>
+            <name>Jeanfrancois Arcand</name>
+            <url>http://jfarcand.wordpress.com</url>
+            <organization>Async IO</organization>
+            <organizationUrl>http://async-io.org</organizationUrl>
+        </contributor>
+        <contributor>
+            <name>Justin Lee</name>
+            <url>http://antwerkz.com</url>
+        </contributor>
+        <contributor>
+            <name>Marc Arens</name>
+            <organization>Open Xchange</organization>
+            <organizationUrl>http://www.open-xchange.com</organizationUrl>
+        </contributor>
+        <contributor>
+            <name>Matt Swift</name>
+        </contributor>
+    </contributors>
+
     <distributionManagement>
         <site>
             <id>website</id>

@@ -40,14 +40,16 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-bom</artifactId>
         <version>2.3.3-SNAPSHOT</version>
         <relativePath>bom/pom.xml</relativePath>
     </parent>
-    
+
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
@@ -79,14 +81,6 @@
     </mailingLists>
     <developers>
         <developer>
-            <id>jfarcand</id>
-            <name>Jeanfrancois Arcand</name>
-            <email>jfarcand@java.net</email>
-            <url>http://weblogs.java.net/blog/jfarcand/</url>
-            <organization>SUN Microsystems</organization>
-            <organizationUrl>http://www.sun.com</organizationUrl>
-        </developer>
-        <developer>
             <id>oleksiys</id>
             <name>Oleksiy Stashok</name>
             <email>oleksiys@java.net</email>
@@ -102,15 +96,31 @@
             <organization>Oracle Corporation</organization>
             <organizationUrl>http://www.oracle.com</organizationUrl>
         </developer>
-        <developer>
-            <id>cheeser</id>
-            <name>Justin Lee</name>
-            <email>justin.d.lee@oracle.com</email>
-            <url>http://antwerkz.com</url>
-            <organization>Oracle</organization>
-            <organizationUrl>http://www.oracle.com</organizationUrl>
-        </developer>
     </developers>
+    <contributors>
+        <contributor>
+            <name>Bongjae Chang</name>
+            <url>https://weblogs.java.net/blogs/carryel</url>
+        </contributor>
+        <contributor>
+            <name>Jeanfrancois Arcand</name>
+            <url>http://jfarcand.wordpress.com</url>
+            <organization>Async IO</organization>
+            <organizationUrl>http://async-io.org</organizationUrl>
+        </contributor>
+        <contributor>
+            <name>Justin Lee</name>
+            <url>http://antwerkz.com</url>
+        </contributor>
+        <contributor>
+            <name>Marc Arens</name>
+            <organization>Open Xchange</organization>
+            <organizationUrl>http://www.open-xchange.com</organizationUrl>
+        </contributor>
+        <contributor>
+            <name>Matt Swift</name>
+        </contributor>
+    </contributors>
     <licenses>
         <license>
             <name>CDDL+GPL</name>
@@ -119,7 +129,9 @@
     </licenses>
     <scm>
         <connection>scm:git:git://java.net/grizzly~git</connection>
-        <developerConnection>scm:git:ssh://${user.name}@git.java.net/grizzly~git</developerConnection>
+        <developerConnection>
+            scm:git:ssh://${user.name}@git.java.net/grizzly~git
+        </developerConnection>
         <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
     <organization>
@@ -187,7 +199,8 @@
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
-                    <compilerArgument>${maven.compiler.argument}</compilerArgument>
+                    <compilerArgument>${maven.compiler.argument}
+                    </compilerArgument>
                 </configuration>
             </plugin>
             <plugin>
@@ -216,11 +229,11 @@
                 </configuration>
             </plugin>
             <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <configuration>
-                        <retryFailedDeploymentCount>10</retryFailedDeploymentCount>
-                    </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <retryFailedDeploymentCount>10</retryFailedDeploymentCount>
+                </configuration>
             </plugin>
             <plugin>
                 <inherited>true</inherited>
@@ -232,7 +245,8 @@
                         <manifestEntries>
                             <mode>development</mode>
                             <url>${project.url}</url>
-                            <implementation-version>${project.version}</implementation-version>
+                            <implementation-version>${project.version}
+                            </implementation-version>
                             <package>org.glassfish.grizzly</package>
                         </manifestEntries>
                     </archive>
@@ -341,7 +355,8 @@
                     <debug>true</debug>
                     <links>
                         <link>http://download.oracle.com/javaee/6/api/</link>
-                        <link>http://download.oracle.com/javase/6/docs/api/</link>
+                        <link>http://download.oracle.com/javase/6/docs/api/
+                        </link>
                     </links>
                 </configuration>
             </plugin>
@@ -391,7 +406,8 @@
                 <version>2.4.0</version>
                 <configuration>
                     <excludeFilterFile>exclude-common.xml</excludeFilterFile>
-                    <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
+                    <xmlOutputDirectory>${project.reporting.outputDirectory}
+                    </xmlOutputDirectory>
                 </configuration>
             </plugin>
         </plugins>
@@ -461,18 +477,18 @@
                 <version>${servlet-version}</version>
             </dependency>
             <dependency>
-              <groupId>org.osgi</groupId>
-              <artifactId>org.osgi.core</artifactId>
-              <version>4.2.0</version>
-              <scope>provided</scope>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.core</artifactId>
+                <version>4.2.0</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
-              <groupId>org.osgi</groupId>
-              <artifactId>org.osgi.compendium</artifactId>
-              <version>4.2.0</version>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.compendium</artifactId>
+                <version>4.2.0</version>
             </dependency>
         </dependencies>
-    </dependencyManagement>  
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -482,7 +498,7 @@
         </dependency>
     </dependencies>
     <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hk2.version>2.1.57</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
@@ -490,6 +506,8 @@
         <felix-version>2.3.7</felix-version>
         <cobertura.version>2.4</cobertura.version>
         <gmbal.version>3.2.0-b003</gmbal.version>
-        <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>
+        <maven.compiler.argument>
+            -Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides
+        </maven.compiler.argument>
     </properties>
 </project>
