@@ -40,7 +40,13 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -92,6 +98,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private final int associatedToStreamId;
     private final int priority;
     private final int slot;
+    private final boolean isUnidirectional;
+    
     private final SpdySession spdySession;
     
     private volatile int peerWindowSize = -1;
@@ -116,6 +124,9 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     // flag, which is indicating if SynStream or SynReply frames have already come for this SpdyStream
     private boolean isSynFrameCame;
     
+    private Map<String, PushData> associatedResourcesToPush;
+    private Set<SpdyStream> associatedSpdyStreams;
+        
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
         final HttpRequestPacket request = httpHeader.isRequest() ?
                 (HttpRequestPacket) httpHeader :
@@ -132,9 +143,10 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     static SpdyStream create(final SpdySession spdySession,
             final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId,
-            final int priority, final int slot) {
+            final int priority, final int slot,
+            final boolean isUnidirectional) {
         final SpdyStream spdyStream = new SpdyStream(spdySession, spdyRequest,
-                streamId, associatedToStreamId, priority, slot);
+                streamId, associatedToStreamId, priority, slot, isUnidirectional);
         
         HTTP_RQST_SPDY_STREAM_ATTR.set(spdyRequest, spdyStream);
         
@@ -144,13 +156,15 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private SpdyStream(final SpdySession spdySession,
             final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId,
-            final int priority, final int slot) {
+            final int priority, final int slot,
+            final boolean isUnidirectional) {
         this.spdySession = spdySession;
         this.spdyRequest = spdyRequest;
         this.streamId = streamId;
         this.associatedToStreamId = associatedToStreamId;
         this.priority = priority;
         this.slot = slot;
+        this.isUnidirectional = isUnidirectional;
         
         inputBuffer = new SpdyInputBuffer(this);
         outputSink = new SpdyOutputSink(this);
@@ -178,6 +192,25 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return spdyRequest.getResponse();
     }
     
+    public PushData addPushResource(final String url,
+            final PushData pushResource) {
+        
+        if (associatedResourcesToPush == null) {
+            associatedResourcesToPush = new HashMap<String, PushData>();
+        }
+        
+        return associatedResourcesToPush.put(url, pushResource);
+    }
+
+    public PushData removePushResource(final String url) {
+        
+        if (associatedResourcesToPush == null) {
+            return null;
+        }
+        
+        return associatedResourcesToPush.remove(url);
+    }
+    
     public int getStreamId() {
         return streamId;
     }
@@ -192,6 +225,10 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
 
     public int getSlot() {
         return slot;
+    }
+
+    public boolean isUnidirectional() {
+        return isUnidirectional;
     }
     
     public boolean isLocallyInitiatedStream() {
@@ -233,7 +270,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         outputSink.outputQueue.notifyWhenOperable(writeHandler, getPeerWindowSize());
     }
 
-    void onPeerWindowUpdate(final int delta) {
+    void onPeerWindowUpdate(final int delta) throws SpdyStreamException {
         outputSink.onPeerWindowUpdate(delta);
     }
     
@@ -241,6 +278,10 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         outputSink.writeDownStream(httpPacket);
     }
     
+    void writeDownStream(final OutputResource resource) throws IOException {
+        outputSink.writeDownStream(resource);
+    }
+
     void writeDownStream(final HttpPacket httpPacket,
             final CompletionHandler<WriteResult> completionHandler)
             throws IOException {
@@ -325,6 +366,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             // forcibly terminate the output, so no more data will be sent
             outputSink.terminate(RESET_TERMINATION);
         }
+        
+        rstAssociatedStreams();
     }
     
     void onProcessingComplete() {
@@ -476,6 +519,45 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 spdyRequest;
     }
     
+    final Map<String, PushData> getAssociatedResourcesToPush() {
+        return associatedResourcesToPush;
+    }
+    
+    /**
+     * Add associated stream, so it might be closed when this stream is closed.
+     */
+    final void addAssociatedStream(final SpdyStream spdyStream)
+            throws SpdyStreamException {
+        if (associatedSpdyStreams == null) {
+            associatedSpdyStreams = Collections.newSetFromMap(
+                    new ConcurrentHashMap<SpdyStream, Boolean>(8));
+        }
+        
+        associatedSpdyStreams.add(spdyStream);
+        
+        if (isClosed() && associatedSpdyStreams.remove(spdyStream)) {
+            throw new SpdyStreamException(spdyStream.getStreamId(),
+                    RstStreamFrame.REFUSED_STREAM, "The parent stream is closed");
+        }
+    }
+
+    /**
+     * Reset associated streams, when peer resets the parent stream.
+     */
+    final void rstAssociatedStreams() {
+        if (associatedSpdyStreams != null) {
+            for (Iterator<SpdyStream> it = associatedSpdyStreams.iterator(); it.hasNext(); ) {
+                final SpdyStream associatedStream = it.next();
+                it.remove();
+                
+                try {
+                    associatedStream.resetRemotely();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+    
     /**
      * Notify all close listeners
      */
@@ -515,5 +597,5 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         
         public void doTask() {
         }
-    }    
+    }
 }

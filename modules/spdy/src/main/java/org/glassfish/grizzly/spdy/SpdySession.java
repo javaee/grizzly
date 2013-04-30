@@ -290,11 +290,12 @@ final class SpdySession {
 
     SpdyStream acceptStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot) throws SpdyStreamException {
+            final int priority, final int slot, final boolean isUnidirectional)
+            throws SpdyStreamException {
         
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
-                priority, slot);
+                priority, slot, isUnidirectional);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -312,15 +313,22 @@ final class SpdySession {
         return spdyStream;
     }
 
+    /**
+     * Method is not thread-safe, it is expected that it will be called
+     * within {@link #getNewClientStreamLock()} lock scope.
+     * The caller code is responsible for obtaining and releasing the mentioned
+     * {@link #getNewClientStreamLock()} lock.
+     */
     SpdyStream openStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
-            final int priority, final int slot, final boolean fin)
+            final int priority, final int slot, final boolean isUnidirectional,
+            final boolean fin)
             throws SpdyStreamException {
         
         spdyRequest.setExpectContent(!fin);
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
-                priority, slot);
+                priority, slot, isUnidirectional);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -329,6 +337,16 @@ final class SpdySession {
             
             if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
                 throw new SpdyStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
+            }
+            
+            if (associatedToStreamId > 0) {
+                final SpdyStream mainStream = getStream(associatedToStreamId);
+                if (mainStream == null) {
+                    throw new SpdyStreamException(streamId, RstStreamFrame.REFUSED_STREAM,
+                            "The parent stream does not exist");
+                }
+                
+                mainStream.addAssociatedStream(spdyStream);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -428,11 +446,14 @@ final class SpdySession {
     void deregisterStream(final SpdyStream spdyStream) {
         streamsMap.remove(spdyStream.getStreamId());
         
+        final boolean isCloseSession;
         synchronized (sessionLock) {
             // If we're in GOAWAY state and there are no streams left - close this session
-            if (isClosed() && streamsMap.isEmpty()) {
-                closeSession();
-            }
+            isCloseSession = isClosed() && streamsMap.isEmpty();
+        }
+        
+        if (isCloseSession) {
+            closeSession();
         }
     }
 
@@ -474,6 +495,7 @@ final class SpdySession {
         private int priority;
         private int slot;
         private boolean isFin;
+        private boolean isUnidirectional;
         
         protected StreamBuilder() {
             packet = SpdyRequest.create();
@@ -569,6 +591,18 @@ final class SpdySession {
         }
         
         /**
+         * Set the <code>unidirectional</code> parameter of a {@link SpdyStream}.
+         *
+         * @param unidirectional the unidirectional
+         *
+         * @return the current <code>Builder</code>
+         */
+        public StreamBuilder unidirectional(final boolean isUnidirectional) {
+            this.isUnidirectional = isUnidirectional;
+            return this;
+        }
+        
+        /**
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
@@ -581,7 +615,8 @@ final class SpdySession {
                 final SpdyStream spdyStream = openStream(
                         (HttpRequestPacket) packet,
                         getNextLocalStreamId(),
-                        associatedToStreamId, priority, slot, isFin);
+                        associatedToStreamId, priority,
+                        slot, isUnidirectional, isFin);
                 
                 
                 connection.write(packet);
@@ -599,12 +634,17 @@ final class SpdySession {
         public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
             
+            final boolean isClosing;
             synchronized (sessionLock) {
-                if (!isClosed()) {
+                isClosing = !isClosed();
+                if (isClosing) {
                     closeFlag = type;
-                    for (SpdyStream stream : streamsMap.values()) {
-                        stream.closedRemotely();
-                    }
+                }
+            }
+            
+            if (isClosing) {
+                for (SpdyStream stream : streamsMap.values()) {
+                    stream.closedRemotely();
                 }
             }
         }

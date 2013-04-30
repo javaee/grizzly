@@ -181,6 +181,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     writeCounter.addAndGet(b.length);
                     out.write(b);
                     out.flush();
+                    Thread.yield();
                 }
                 
                 response.suspend();
@@ -457,6 +458,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     writeCounter.addAndGet(data.length);
                     out.write(data);
                     out.flush();
+                    Thread.yield();
                 }                
 
                 response.suspend();
@@ -705,6 +707,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     try {
                         out.write(c);
                         out.flush();
+                        Thread.yield();
                     } catch (CustomException e) {
                         parseResult.result(Boolean.TRUE);
                         break;
@@ -840,6 +843,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     Arrays.fill(b, (byte) ('a' + (i++ % ('z' - 'a'))));
                     writeCounter.addAndGet(b.length);
                     out.write(b);
+                    Thread.yield();
                 }
 
                 clientTransport.resume();
@@ -1089,6 +1093,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                                 outputStream.write(b);
                                 outputStream.flush();
                                 sentBytesCount.addAndGet(size);
+                                Thread.yield();
                             }
 
                             if (notificationsCount.incrementAndGet() < notificationsNum) {
