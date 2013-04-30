@@ -86,4 +86,17 @@ public final class SpdyStreamException extends IOException {
     public int getRstReason() {
         return rstReason;
     }
+    
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder(128);
+        sb.append(getClass().getName())
+                .append(" streamId=").append(streamId)
+                .append(" rstReason=").append(rstReason);
+
+        String message = getLocalizedMessage();
+        
+        return message != null ?
+                (sb.append(": ").append(message).toString()) : sb.toString();
+    }    
 }
