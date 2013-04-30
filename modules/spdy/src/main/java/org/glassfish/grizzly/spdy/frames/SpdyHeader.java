@@ -81,7 +81,6 @@ public class SpdyHeader implements Cacheable {
 
     private void initialize(final Buffer buffer) {
         this.buffer = buffer;
-        buffer.mark();
         final long header = buffer.getLong();
         final int first32 = (int) (header >>> 32);
         final int second32 = (int) (header & 0xFFFFFFFFL);
