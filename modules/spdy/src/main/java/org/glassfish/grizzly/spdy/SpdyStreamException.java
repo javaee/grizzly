@@ -49,14 +49,31 @@ import java.io.IOException;
 public final class SpdyStreamException extends IOException {
     private final int streamId;
     private final int rstReason;
-
+    
     public SpdyStreamException(final int streamId, final int rstReason) {
-        this(streamId, rstReason, null);
+        this.streamId = streamId;
+        this.rstReason = rstReason;
     }
 
     public SpdyStreamException(final int streamId, final int rstReason,
             final String description) {
         super(description);
+        
+        this.streamId = streamId;
+        this.rstReason = rstReason;
+    }
+
+    public SpdyStreamException(final int streamId, final int rstReason,
+            final Throwable cause) {
+        super(cause);
+        
+        this.streamId = streamId;
+        this.rstReason = rstReason;
+    }
+    
+    public SpdyStreamException(final int streamId, final int rstReason,
+            final String description, final Throwable cause) {
+        super(description, cause);
         
         this.streamId = streamId;
         this.rstReason = rstReason;
