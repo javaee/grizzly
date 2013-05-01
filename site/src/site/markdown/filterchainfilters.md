@@ -116,9 +116,9 @@ public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) th
 As we see each Filter "handle" method has FilterChainContext parameter
 and returns NextAction result.
 
--   **FilterChainContext**
+- **FilterChainContext**
 
-    ![""](images/coreframework/filterchaincontext.png)
+    ![filter](images/coreframework/filterchaincontext.png)
 
     FilterChainContext represents a context (state), associated with
     processing of specific I/O event on the specific Connection, so its
@@ -126,91 +126,91 @@ and returns NextAction result.
 
     FilterChainContext contains following state information:
 
-    -   **Connection**
+    * **Connection**
 
-        The Connection I/O event occurred on;
+      The Connection I/O event occurred on;
 
-    -   **Address**
+    * **Address**
 
-        The peer address. In most cases it returns the same value as
-        *Connection.getPeerAddress()*, except in the case when we handle
-        a READ event on unbound UDP Connection. In this case, the
-        *FilterChainContext.getAddress()* will return the address of
-        peer, which sent data;
+      The peer address. In most cases it returns the same value as
+      *Connection.getPeerAddress()*, except in the case when we handle
+      a READ event on unbound UDP Connection. In this case, the
+      *FilterChainContext.getAddress()* will return the address of
+      peer, which sent data;
 
-    -   **Message**
+    * **Message**
 
-        The message being processed. This is the only value Filters may
-        change during the I/O event processing. Usually it is used
-        during the incoming/outgoing message parsing/serializing. Each
-        Filter is able to take initial message data, transform it to a
-        different representation, set it back and pass processing to the
-        next Filter in chain.
+      The message being processed. This is the only value Filters may
+      change during the I/O event processing. Usually it is used
+      during the incoming/outgoing message parsing/serializing. Each
+      Filter is able to take initial message data, transform it to a
+      different representation, set it back and pass processing to the
+      next Filter in chain.
 
-        For example, when handling READ event, HttpFilter gets message
-        from FilterChainContext as Grizzly Buffer, transforms it to a
-        HttpPacket, sets HttpPacket back to FilterChainContext message
-        and passes control to a HttpServerFilter, which will get
-        HttpPacket from the FilterChainContext and process it.
+      For example, when handling READ event, HttpFilter gets message
+      from FilterChainContext as Grizzly Buffer, transforms it to a
+      HttpPacket, sets HttpPacket back to FilterChainContext message
+      and passes control to a HttpServerFilter, which will get
+      HttpPacket from the FilterChainContext and process it.
 
-    In addition to holding the state, the FilterChainContext provides
-    support for commonly used I/O operations:
+      In addition to holding the state, the FilterChainContext provides
+      support for commonly used I/O operations:
 
-    -   **Read**
+    * **Read**
 
-            ReadResult readResult = ctx.read();
+      `ReadResult readResult = ctx.read();`
 
-        This operation performs a blocking FilterChain read starting at
-        the first Filter in chain (inclusive) upstream to this Filter
-        (exlusive).
+      This operation performs a blocking FilterChain read starting at
+      the first Filter in chain (inclusive) upstream to this Filter
+      (exlusive).
 
-        The operation will return a result, when processing of READ I/O
-        event will reach the current Filter and FilterChain will be
-        about to call handleRead(...) operation of this Filter.
+      The operation will return a result, when processing of READ I/O
+      event will reach the current Filter and FilterChain will be
+      about to call handleRead(...) operation of this Filter.
 
-    -   **Write**
+    * **Write**
 
-            `ctx.write(message);`
+      `ctx.write(message);`
 
-            or
+      or
 
-            `ctx.write(message, completionHandler);`
+      `ctx.write(message, completionHandler);`
 
-            or
+      or
 
-            `ctx.write(address, message, completionHandler);  // Unbound UDP only`
+      `ctx.write(address, message, completionHandler);  // Unbound UDP only`
 
-        This operation performs a non-blocking FilterChain write
-        starting at this Filter (exclusive) downstream to the first
-        Filter (inclusive). This operation initiates processing of WRITE
-        I/O event on the FilterChain starting from this Filter
-        (exclusive).
+      This operation performs a non-blocking FilterChain write
+      starting at this Filter (exclusive) downstream to the first
+      Filter (inclusive). This operation initiates processing of WRITE
+      I/O event on the FilterChain starting from this Filter
+      (exclusive).
 
-    -   **Flush**
+    * **Flush**
 
-            `ctx.flush();`
+      `ctx.flush();`
 
-            or
+      or
 
-            `ctx.flush(completionHandler);`
+      `ctx.flush(completionHandler);`
 
-        This operation initializes and notifies downstream filters about
-        special *TransportFilter.FlushEvent* so each Filter is able to
-        handle this event and make sure all the cached data was written
-        on the Connection.
+      This operation initializes and notifies downstream filters about
+      special *TransportFilter.FlushEvent* so each Filter is able to
+      handle this event and make sure all the cached data was written
+      on the Connection.
 
-    -   **Event notification**
+    * **Event notification**
 
-            `ctx.notifyUpstream(event);`
+      `ctx.notifyUpstream(event);`
 
-            or
+      or
 
-            `ctx.notifyDownstream(event);`
+      `ctx.notifyDownstream(event);`
 
-        This operation notifies all the upstream/downstream Filters in
-        the FilterChain about specific *FilterChainEvent*.
+      This operation notifies all the upstream/downstream Filters in
+      the FilterChain about specific *FilterChainEvent*.
 
--   **NextAction**
+- **NextAction**
 
     As stated previously, during processing of an I/O Event, the
     FilterChain is calling Filters one by one from first to last except
@@ -218,143 +218,143 @@ and returns NextAction result.
     the same time Filters can change the default I/O Event processing
     order by returning different types of NextAction:
 
-    -   **StopAction**
+    * **StopAction**
 
-            `return ctx.getStopAction();`
+      `return ctx.getStopAction();`
 
-        instructs the FilterChain to stop the processing of this I/O
-        Event. Usually StopAction is returned when there isn't enough
-        data to continue FilterChain processing, or it's the last Filter
-        in the chain.
+      instructs the FilterChain to stop the processing of this I/O
+      Event. Usually StopAction is returned when there isn't enough
+      data to continue FilterChain processing, or it's the last Filter
+      in the chain.
 
-        The StopAction could be parameterized:
+      The StopAction could be parameterized:
 
-            `return ctx.getStopAction(incompleteChunk);`
+      `return ctx.getStopAction(incompleteChunk);`
 
-            or
+      or
 
-            `return ctx.getStopAction(incompleteChunk, appender);`
+      `return ctx.getStopAction(incompleteChunk, appender);`
 
-        An incompleteChunk in StopAction means there isn't enough data
-        to continue FilterChain processing. As more data becomes
-        available but before FilterChain calls the Filter, it will check
-        if the Filter has any data stored after the last invocation. If
-        an incompleteChunk is present it will append the new data to the
-        stored one and pass the result as the FilterChainContext
-        message.
+      An incompleteChunk in StopAction means there isn't enough data
+      to continue FilterChain processing. As more data becomes
+      available but before FilterChain calls the Filter, it will check
+      if the Filter has any data stored after the last invocation. If
+      an incompleteChunk is present it will append the new data to the
+      stored one and pass the result as the FilterChainContext
+      message.
 
-        Note: the incompleteChunk should be "appendable", so the
-        FilterChain will know how new data chunk should be appended to
-        the stored one. So the incompleteChunk should either implement
-        *org.glassfish.grizzly.Appendable* or
-        *org.glassfish.grizzly.Appender* should be passed as additional
-        parameter.
+      Note: the incompleteChunk should be "appendable", so the
+      FilterChain will know how new data chunk should be appended to
+      the stored one. So the incompleteChunk should either implement
+      *org.glassfish.grizzly.Appendable* or
+      *org.glassfish.grizzly.Appender* should be passed as additional
+      parameter.
 
-    -   **InvokeAction**
+    * **InvokeAction**
 
-            `return ctx.getInvokeAction();`
+      `return ctx.getInvokeAction();`
 
-        instructs the FilterChain to run next Filter in chain according
-        to the natural execution order.
+      instructs the FilterChain to run next Filter in chain according
+      to the natural execution order.
 
-        It's possible to create the InvokeAction with an
-        ***incompleteChunk*** parameter:
+      It's possible to create the InvokeAction with an
+      ***incompleteChunk*** parameter:
 
-            `return ctx.getInvokeAction(incompleteChunk, appender);`
+      `return ctx.getInvokeAction(incompleteChunk, appender);`
 
-        this instructs the FilterChain to store the incompleteChunk and
-        continue FilterChain execution like it was with
-        non-parameterized version.
+      this instructs the FilterChain to store the incompleteChunk and
+      continue FilterChain execution like it was with
+      non-parameterized version.
 
-        This feature is particularly useful for those cases a message or
-        several messages are parsed from the source Buffer and discover
-        that there is a remainder whose data is not enough to transform
-        to an application message. So the developer can continue the
-        FilterChain processing with the message(s) that were parsed and
-        store the incompleteChunk remainder. As more data becomes
-        available but before FilterChain calls the Filter again, it will
-        check if the Filter has any data stored after the last
-        invocation. If an incompleteChunk is present it will append the
-        new data to the stored one and pass the result as the
-        FilterChainContext message.
+      This feature is particularly useful for those cases a message or
+      several messages are parsed from the source Buffer and discover
+      that there is a remainder whose data is not enough to transform
+      to an application message. So the developer can continue the
+      FilterChain processing with the message(s) that were parsed and
+      store the incompleteChunk remainder. As more data becomes
+      available but before FilterChain calls the Filter again, it will
+      check if the Filter has any data stored after the last
+      invocation. If an incompleteChunk is present it will append the
+      new data to the stored one and pass the result as the
+      FilterChainContext message.
 
-        Note: the incompleteChunk should be "appendable", so the
-        FilterChain will know how new data chunk should be appended to
-        the stored one. So the incompleteChunk should either implement
-        *org.glassfish.grizzly.Appendable* or
-        *org.glassfish.grizzly.Appender* should be passed as additional
-        parameter.
+      Note: the incompleteChunk should be "appendable", so the
+      FilterChain will know how new data chunk should be appended to
+      the stored one. So the incompleteChunk should either implement
+      *org.glassfish.grizzly.Appendable* or
+      *org.glassfish.grizzly.Appender* should be passed as additional
+      parameter.
 
-        Another option is to create the InvokeAction with an
-        ***unparsedChunk*** parameter:
+      Another option is to create the InvokeAction with an
+      ***unparsedChunk*** parameter:
 
-            `return ctx.getInvokeAction(unparsedChunk);`
+      `return ctx.getInvokeAction(unparsedChunk);`
 
-        this instructs the FilterChain to store the unparsedChunk and
-        continue FilterChain execution like it was with
-        non-parameterized version. Unlike in the "incompleteChunk" case
-        described above, this time we don't know if unparsedChunk has
-        enough data to transform to application message(s) or not. Once
-        the FilterChain execution completes, the unparsedChunk of the
-        most recent Filter in chain will be restored FilterChain
-        processing will be re-initialed immediately starting from the
-        Filter which stored the unparsedChunk.
+      this instructs the FilterChain to store the unparsedChunk and
+      continue FilterChain execution like it was with
+      non-parameterized version. Unlike in the "incompleteChunk" case
+      described above, this time we don't know if unparsedChunk has
+      enough data to transform to application message(s) or not. Once
+      the FilterChain execution completes, the unparsedChunk of the
+      most recent Filter in chain will be restored FilterChain
+      processing will be re-initialed immediately starting from the
+      Filter which stored the unparsedChunk.
 
-        This feature is particularly useful for those cases a message is
-        parsed from the source Buffer and discover that the Buffer
-        contains a remainder, which may or may not contain more
-        messages. This allows the developer to extract the first message
-        and save the remainder to be processed after the current message
-        processing has been completed.
+      This feature is particularly useful for those cases a message is
+      parsed from the source Buffer and discover that the Buffer
+      contains a remainder, which may or may not contain more
+      messages. This allows the developer to extract the first message
+      and save the remainder to be processed after the current message
+      processing has been completed.
 
-    -   **RerunFilterAction**
+    * **RerunFilterAction**
 
-            `return ctx.getRerunFilterAction();`
+      `return ctx.getRerunFilterAction();`
 
-        Instructs the FilterChain to re-run this Filter one more time.
-        This can useful to simplify I/O event processing code and avoid
-        recursions.
+      Instructs the FilterChain to re-run this Filter one more time.
+      This can useful to simplify I/O event processing code and avoid
+      recursions.
 
-    -   **SuspendAction**
+    * **SuspendAction**
 
-            `return ctx.getSuspendAction();`
+      `return ctx.getSuspendAction();`
 
-        Instructs the FilterChain to terminate (leave) the I/O event
-        processing in the current thread. The user will be able to
-        resume the I/O event processing by calling
+      Instructs the FilterChain to terminate (leave) the I/O event
+      processing in the current thread. The user will be able to
+      resume the I/O event processing by calling
 
-        -   *ctx.resume()*: resumes processing at the same Filter it was
-            suspended.
+       + `ctx.resume()`: resumes processing at the same Filter it was
+         suspended.
 
-        -   *ctx.resume(NextAction)*: resumes processing at the same
-            Filter it was suspended, but instead of passing control to
-            the Filter - it simulates the Filter processing completion
-            like if it returned NextAction as the result
+       + `ctx.resume(NextAction)`: resumes processing at the same
+         Filter it was suspended, but instead of passing control to
+         the Filter - it simulates the Filter processing completion
+         like if it returned NextAction as the result
 
-        -   *ctx.resumeNext()*: resumes processing at the Filter next to
-            the Filter it was suspended at. Same as
-            *ctx.resume(ctx.getInvokeAction())*.
+       + `ctx.resumeNext()`: resumes processing at the Filter next to
+         the Filter it was suspended at. Same as
+         `ctx.resume(ctx.getInvokeAction())`.
 
-        Please note, after returning SuspendAction and before I/O event
-        processing will be resumed, Grizzly [won't
-        initialize](#fc-serial-rule) the same I/O event processing on
-        the same Connection. For example if we return the SuspendAction
-        during READ event processing - Grizzly won't notify the
-        FilterChain about any new data coming on the same Connection,
-        until READ event of the suspended event has been completed.
+      Please note, after returning SuspendAction and before I/O event
+      processing will be resumed, Grizzly [won't
+      initialize](#fc-serial-rule) the same I/O event processing on
+      the same Connection. For example if we return the SuspendAction
+      during READ event processing - Grizzly won't notify the
+      FilterChain about any new data coming on the same Connection,
+      until READ event of the suspended event has been completed.
 
-    -   **ForkAction (was SuspendStopAction)**
+    * **ForkAction (was SuspendStopAction)**
 
-            return ctx.getForkAction();
+      `return ctx.getForkAction();`
 
-        This NextAction is very similar to
-        [SuspendAction](#suspend-action), except for one important
-        thing. After getting ForkAction, Grizzly will keep listening for
-        the same I/O events on the Connection and notify FilterChain if
-        they occur.
+      This NextAction is very similar to
+      [SuspendAction](#suspend-action), except for one important
+      thing. After getting ForkAction, Grizzly will keep listening for
+      the same I/O events on the Connection and notify FilterChain if
+      they occur.
 
-        Special care should be taken with this NextAction to ensure that
-        two or more threads are not processing the same I/O operation
-        simultaneously.
+      Special care should be taken with this NextAction to ensure that
+      two or more threads are not processing the same I/O operation
+      simultaneously.
 
 
