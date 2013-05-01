@@ -1529,6 +1529,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         builder.contentLength(outputResource.remaining());
                     }
                     
+                    // Add extra headers if any
+                    final Map<String, String> extraHeaders = pushData.getHeaders();
+                    if (extraHeaders != null) {
+                        for (Map.Entry<String, String> headerEntry : extraHeaders.entrySet()) {
+                            builder.header(headerEntry.getKey(), headerEntry.getValue());
+                        }
+                    }
+                    
                     final HttpRequestPacket spdyRequest = builder.build();
                     try {
                         final SpdyStream pushStream = spdySession.openStream(

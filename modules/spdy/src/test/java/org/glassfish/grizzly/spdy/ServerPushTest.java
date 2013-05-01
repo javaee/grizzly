@@ -86,6 +86,7 @@ import static org.junit.Assert.*;
 @SuppressWarnings("unchecked")
 public class ServerPushTest extends AbstractSpdyTest {
     private static final int PORT = 8004;
+    private static final Random RND = new Random();
 
     private final SpdyMode spdyMode;
     private final boolean isSecure;
@@ -166,6 +167,9 @@ public class ServerPushTest extends AbstractSpdyTest {
     private void doTestPushResource(final TestResourceFactory resourceFactory,
             final byte[] resourceAsciiPayloadToCheck) throws Exception {
         
+        final String extraHeaderName = "Extra-Header";
+        final String extraHeaderValue = "Extra-Value";
+        
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<HttpContent>();
         
@@ -177,21 +181,28 @@ public class ServerPushTest extends AbstractSpdyTest {
         final FilterChain clientFilterChain = filterChainBuilder.build();
         setInitialWindowSize(clientFilterChain, resourceAsciiPayloadToCheck.length / 16);
         clientTransport.setProcessor(clientFilterChain);
+        
+        final boolean hasExtraHeader = RND.nextBoolean();
+        
         final HttpHandler httpHandler = new HttpHandler() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
                 final SpdyStream spdyStream =
                         (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                final PushData.PushDataBuilder pushDataBuilder = PushData.builder()
+                        .contentType("image/png")
+                        .statusCode(200, "PUSH")
+                        .outputResource(resourceFactory.create(spdyStream));
+
+                if (hasExtraHeader) {
+                    pushDataBuilder.header(extraHeaderName, extraHeaderValue);
+                }
 
                 spdyStream.addPushResource(
                         "https://localhost:7070/getimages/push",
-                        PushData.builder()
-                        .contentType("image/png")
-                        .statusCode(200, "PUSH")
-                        .outputResource(resourceFactory.create(spdyStream))
-                        .build());
-                
+                        pushDataBuilder.build());
+
                 response.setStatus(200, "DONE");
             }
         };
@@ -241,6 +252,9 @@ public class ServerPushTest extends AbstractSpdyTest {
                 assertEquals("PUSH", pushedRequest.getUnidirectionalReasonPhrase());
                 assertEquals(resourceAsciiPayloadToCheck.length, pushedRequest.getContentLength());
                 assertEquals(resourceAsciiPayloadToCheck.length, pushedContent.getContent().remaining());
+                if (hasExtraHeader) {
+                    assertEquals(extraHeaderValue, pushedRequest.getHeader(extraHeaderName));
+                }
                 
                 assertEquals(200, mainResponse.getStatus());
                 assertEquals("DONE", mainResponse.getReasonPhrase());
