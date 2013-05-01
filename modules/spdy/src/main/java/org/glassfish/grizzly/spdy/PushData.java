@@ -39,6 +39,9 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import java.util.HashMap;
+import java.util.Map;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
 /**
@@ -59,6 +62,8 @@ public final class PushData {
     
     private String contentType;
 
+    private Map<String, String> headers;
+    
     public static PushDataBuilder builder() {
         return new PushDataBuilder();
     }
@@ -94,6 +99,14 @@ public final class PushData {
         return contentType;
     }
 
+    /**
+     * Returns additional headers to be pushed.
+     * <tt>null</tt> value means no additional headers to push.
+     */
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+    
     /**
      * PushData builder to be used to create {@link PushData} instance.
      */
@@ -169,6 +182,38 @@ public final class PushData {
             return this;
         }
 
+        /**
+         * Adds additional header to be pushed.
+         * @param name the header name.
+         * @param value the header value.
+         * 
+         * @return {@link PushDataBuilder}.
+         */
+        public PushDataBuilder header(final String name, final String value) {
+            if (pushData.headers == null) {
+                pushData.headers = new HashMap<String, String>(4);
+            }
+            
+            pushData.headers.put(name, value);
+            return this;
+        }
+        
+        /**
+         * Adds additional header to be pushed.
+         * @param name the header name.
+         * @param value the header value.
+         * 
+         * @return {@link PushDataBuilder}.
+         */
+        public PushDataBuilder header(final Header name, final String value) {
+            if (pushData.headers == null) {
+                pushData.headers = new HashMap<String, String>(4);
+            }
+            
+            pushData.headers.put(name.toString(), value);
+            return this;
+        }
+        
         /**
          * Returns the {@link PushData} instance.
          */
