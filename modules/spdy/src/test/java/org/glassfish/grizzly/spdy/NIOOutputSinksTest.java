@@ -180,7 +180,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     fill(b);
                     writeCounter.addAndGet(b.length);
                     out.write(b);
-                    out.flush();
                     Thread.yield();
                 }
                 
@@ -198,7 +197,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                             ioe.printStackTrace();
                         }
 
-                        assertTrue(c.canWrite());
+                        assertTrue(out.canWrite());
 
                         try {
                             clientTransport.resume();
@@ -457,7 +456,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     fill(data);
                     writeCounter.addAndGet(data.length);
                     out.write(data);
-                    out.flush();
                     Thread.yield();
                 }                
 
@@ -481,7 +479,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                         } catch (IOException ioe) {
                             ioe.printStackTrace();
                         }
-                        assertTrue(c.canWrite());
+                        assertTrue(out.canWrite());
                         try {
                             clientTransport.resume();
                         } catch (IOException ioe) {
@@ -1091,7 +1089,6 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                                 byte[] b = new byte[size];
                                 fill(b);
                                 outputStream.write(b);
-                                outputStream.flush();
                                 sentBytesCount.addAndGet(size);
                                 Thread.yield();
                             }
