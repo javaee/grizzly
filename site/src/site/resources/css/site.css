@@ -35,6 +35,27 @@ body {
     margin-top: -30px;
 }
 
+/* Link styles for img/headers */
+.project-site.page-index a.headerlink:link {
+    color: #AE8C54;
+    text-decoration: none;
+}
+
+.project-site.page-index a.headerlink:visited {
+    color: #AE8C54;
+    text-decoration: none;
+}
+
+.project-site.page-index a.headerlink:hover {
+    color: #AE8C54;
+    text-decoration: none;
+}
+
+.project-site.page-index a.headerlink:active {
+    color: #AE8C54;
+    text-decoration: none;
+}
+
 /*
    Tweak the color of the font in code/pre blocks.
    We have to do this as bootstrap's css is overriding that

@@ -10,28 +10,28 @@ framework components: Web Framework (HTTP/S), WebSocket, Comet, and more!.
 
 ---
 
-## [![Get Started][started]][quick] Get Started
+<h2><a href="quickstart.html" class="headerlink"><img src="images/compass.png"/> Get Started</a></h2>
 
 [Learn][quick] what it takes to get started using Grizzly in your projects.
 
 
-## [![Documentation][docs]][full] Documentation
+<h2><a href="documentation.html" class="headerlink"><img src="images/docs.png"/> Documentation</a></h2>
 
 [Read][full] Grizzly\'s complete documentation online.
 
 
-## [![Download][download]][deps] Download
+<h2><a href="dependencies.html" class="headerlink"><img src="images/download.png"/> Download</a></h2>
 
 Grizzly offers several modules that may be of interest for your projects.
 See our list of [dependencies][deps] for details.
 
 
-## [![Contribute][contribute]][contpage] Contribute
+<h2><a href="contribute.html" class="headerlink"><img src="images/settings.png"/> Contribute</a></h2>
 
 [Learn][contpage] how you can contribute to the project.
 
 
-## [![Async HTTP Client][ahci]][ahc] Need an HTTP Client?
+<h2><a href="https://github.com/AsyncHttpClient/async-http-client" class="headerlink"><img src="images/reqres.png"/> Need an HTTP Client</a></h2>
 
 We\'ve contributed a Grizzly-based provider to the Async HTTP Client project that,
 in addition to, HTTP, supports WebSockets and eventually, SPDY.
