@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,9 +58,6 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 
 /**
@@ -77,15 +74,6 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
-    private final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
-            new ThreadLocal<Reentrant>() {
-
-        @Override
-        protected Reentrant initialValue() {
-            return new Reentrant();
-        }
-    };
-
     protected final static int EMPTY_RECORD_SPACE_VALUE = 1;
 
     protected final NIOTransport transport;
@@ -96,17 +84,6 @@ public abstract class AbstractNIOAsyncQueueWriter
     
     private volatile boolean isAllowDirectWrite = true;
     
-    private final Attribute<Reentrant> reentrantsAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            AbstractNIOAsyncQueueWriter.class.getName() + hashCode() + ".reentrant",
-            new NullaryFunction<Reentrant>() {
-
-                @Override
-                public Reentrant evaluate() {
-                    return new Reentrant();
-                }
-            });
-
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
     }

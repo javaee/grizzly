@@ -338,7 +338,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
     }    
     
-    private final Attribute<CompositeQueueRecord> compositeBufferAttr =
+    private static final Attribute<CompositeQueueRecord> COMPOSITE_BUFFER_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                     TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
@@ -349,10 +349,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             final Connection connection = currentRecord.getConnection();
             
             CompositeQueueRecord compositeQueueRecord =
-                    compositeBufferAttr.get(connection);
+                    COMPOSITE_BUFFER_ATTR.get(connection);
             if (compositeQueueRecord == null) {
                 compositeQueueRecord = CompositeQueueRecord.create(connection);
-                compositeBufferAttr.set(connection, compositeQueueRecord);
+                COMPOSITE_BUFFER_ATTR.set(connection, compositeQueueRecord);
             }
 
             compositeQueueRecord.append(currentRecord);
