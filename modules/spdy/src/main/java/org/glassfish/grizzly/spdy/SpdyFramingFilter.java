@@ -77,9 +77,10 @@ public class SpdyFramingFilter extends BaseFilter {
 
     static final int HEADER_LEN = 8;
     
-    private final Attribute<FrameParsingState> frameParsingState =
+    private static final Attribute<FrameParsingState> frameParsingState =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            SpdyFramingFilter.class.getName() + "." + hashCode(), new NullaryFunction<FrameParsingState>() {
+            SpdyFramingFilter.class.getName() + ".frameParsingState",
+            new NullaryFunction<FrameParsingState>() {
         @Override
         public FrameParsingState evaluate() {
             return new FrameParsingState();

@@ -340,9 +340,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
     }    
     
-    private final Attribute<CompositeQueueRecord> compositeBufferAttr =
+    private static final Attribute<CompositeQueueRecord> COMPOSITE_BUFFER_ATTR =
             Attribute.create(
-                    TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
+            TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
     private CompositeQueueRecord createCompositeQueueRecord(
             final AsyncWriteQueueRecord currentRecord) {
@@ -351,10 +351,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             final Connection connection = currentRecord.getConnection();
             
             CompositeQueueRecord compositeQueueRecord =
-                    compositeBufferAttr.get(connection);
+                    COMPOSITE_BUFFER_ATTR.get(connection);
             if (compositeQueueRecord == null) {
                 compositeQueueRecord = CompositeQueueRecord.create(connection);
-                compositeBufferAttr.set(connection, compositeQueueRecord);
+                COMPOSITE_BUFFER_ATTR.set(connection, compositeQueueRecord);
             }
 
             compositeQueueRecord.append(currentRecord);
