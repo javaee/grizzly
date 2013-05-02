@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,9 +86,9 @@ public abstract class AbstractNIOAsyncQueueWriter
     
     private volatile boolean isAllowDirectWrite = true;
     
-    private final Attribute<Reentrant> reentrantsAttribute =
+    private static final Attribute<Reentrant> REENTRANTS_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            AbstractNIOAsyncQueueWriter.class.getName() + hashCode() + ".reentrant",
+            AbstractNIOAsyncQueueWriter.class.getName() + ".reentrant",
             new NullaryFunction<Reentrant>() {
 
                 @Override
@@ -546,7 +546,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final Thread t = Thread.currentThread();
         // If it's a Grizzly WorkerThread - use GrizzlyAttribute
         if (WorkerThread.class.isAssignableFrom(t.getClass())) {
-            return reentrantsAttribute.get((WorkerThread) t);
+            return REENTRANTS_ATTR.get((WorkerThread) t);
         }
 
         // ThreadLocal otherwise
