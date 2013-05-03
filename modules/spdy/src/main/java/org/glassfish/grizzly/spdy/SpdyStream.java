@@ -518,13 +518,13 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     HttpHeader getInputHttpHeader() {
-        return isLocallyInitiatedStream() ?
+        return (isLocallyInitiatedStream() ^ isUnidirectional()) ?
                 spdyRequest.getResponse() :
                 spdyRequest;
     }
     
     HttpHeader getOutputHttpHeader() {
-        return !isLocallyInitiatedStream() ?
+        return (!isLocallyInitiatedStream() ^ isUnidirectional()) ?
                 spdyRequest.getResponse() :
                 spdyRequest;
     }

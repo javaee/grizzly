@@ -797,6 +797,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 final SpdySession spdySession = SpdySession.get(connection);
                 
                 final SpdyStream spdyStream = spdySession.getStreamBuilder()
+                        .bidirectional()
                         .method(Method.GET)
                         .uri("/test")
                         .protocol(Protocol.HTTP_1_1)
@@ -825,7 +826,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             server.stop();
         }
     }
-    
+
     /**
      * Test RST reply from endpoint, when we try to send any frame on the
      * unidirectional stream.
@@ -846,10 +847,9 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 
                 final SpdyStream uSpdyStream =
                         spdyStream.getSpdySession().getStreamBuilder()
+                        .unidirectional()
                         .associatedToStreamId(spdyStream.getStreamId())
-                        .method(Method.POST)
                         .protocol(Protocol.HTTP_1_1)
-                        .unidirectional(true)
                         .uri("https://localhost:" + PORT + "/my.jpg")
                         .contentLength(1024)
                         .fin(false)
@@ -957,10 +957,9 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 
                 final SpdyStream uSpdyStream =
                         spdyStream.getSpdySession().getStreamBuilder()
+                        .unidirectional()
                         .associatedToStreamId(spdyStream.getStreamId())
-                        .method(Method.POST)
                         .protocol(Protocol.HTTP_1_1)
-                        .unidirectional(true)
                         .uri("https://localhost:" + PORT + "/my.jpg")
                         .contentLength(1024)
                         .fin(false)

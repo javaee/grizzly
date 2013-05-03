@@ -234,26 +234,26 @@ public class ServerPushTest extends AbstractSpdyTest {
                 assertNotNull("Second HttpContent is null", content2);
                 final HttpHeader header2 = content2.getHttpHeader();
 
-                final SpdyRequest pushedRequest;
+                final SpdyResponse pushedResponse;
                 final HttpContent pushedContent;
-                
                 final HttpResponsePacket mainResponse;
-                if (header1.isRequest()) {
-                    pushedRequest = (SpdyRequest) header1;
+                
+                if (SpdyStream.getSpdyStream(header1).isUnidirectional()) {
+                    pushedResponse = (SpdyResponse) header1;
                     pushedContent = content1;
                     mainResponse = (HttpResponsePacket) header2;
                 } else {
-                    pushedRequest = (SpdyRequest) header2;
+                    pushedResponse = (SpdyResponse) header2;
                     pushedContent = content2;
                     mainResponse = (HttpResponsePacket) header1;
                 }
                 
-                assertEquals(200, pushedRequest.getUnidirectionalStatus());
-                assertEquals("PUSH", pushedRequest.getUnidirectionalReasonPhrase());
-                assertEquals(resourceAsciiPayloadToCheck.length, pushedRequest.getContentLength());
+                assertEquals(200, pushedResponse.getStatus());
+                assertEquals("PUSH", pushedResponse.getReasonPhrase());
+                assertEquals(resourceAsciiPayloadToCheck.length, pushedResponse.getContentLength());
                 assertEquals(resourceAsciiPayloadToCheck.length, pushedContent.getContent().remaining());
                 if (hasExtraHeader) {
-                    assertEquals(extraHeaderValue, pushedRequest.getHeader(extraHeaderName));
+                    assertEquals(extraHeaderValue, pushedResponse.getHeader(extraHeaderName));
                 }
                 
                 assertEquals(200, mainResponse.getStatus());

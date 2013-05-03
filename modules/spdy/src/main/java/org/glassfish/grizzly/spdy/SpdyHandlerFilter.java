@@ -71,9 +71,6 @@ import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.ProcessingState;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.TransferEncoding;
-import org.glassfish.grizzly.http.util.Ascii;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpCodecUtils;
@@ -95,7 +92,6 @@ import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
 import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.utils.Charsets;
 
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -103,6 +99,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.spdy.frames.OversizedFrame;
 import org.glassfish.grizzly.spdy.frames.ServiceFrame;
 
+import static org.glassfish.grizzly.spdy.SpdyDecoderUtils.*;
 import static org.glassfish.grizzly.spdy.Constants.*;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
@@ -487,293 +484,78 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 spdyRequest.recycle();
                 return;
             }
-            decodeHeaders(spdyRequest, spdySession, synStreamFrame);
+            decodeHeaders(spdyRequest, spdyStream, synStreamFrame);
         } finally {
             frame.recycle();
         }
 
         prepareIncomingRequest(spdyStream, spdyRequest);
-        if (isFinSet) {
-            spdyRequest.setExpectContent(false);
-        }
-        
         spdyStream.onSynFrameCome();
         
-        final boolean isExpectContent = spdyRequest.isExpectContent();
-        if (!isExpectContent) {
-            spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
-        }
+        if (!isUnidirectional) {
+            // Bidirectional syn stream will be transformed to HTTP request packet
+            if (isFinSet) {
+                spdyRequest.setExpectContent(false);
+            }
 
-        sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
+            final boolean isExpectContent = spdyRequest.isExpectContent();
+            if (!isExpectContent) {
+                spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
+            }
+
+            sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
+        } else {
+            // Unidirectional syn stream will be transformed to HTTP response packet
+            spdyRequest.setExpectContent(false);
+            spdyStream.outputSink.terminate(IN_FIN_TERMINATION);
+            
+            final HttpResponsePacket spdyResponse = spdyRequest.getResponse();
+            
+            if (isFinSet) {
+                spdyResponse.setExpectContent(false);
+            }
+
+            sendUpstream(spdySession, spdyStream, spdyResponse, !isFinSet);
+        }
     }
 
     private void decodeHeaders(final HttpHeader httpHeader,
-            final SpdySession spdySession,
+            final SpdyStream spdyStream,
             final HeadersProviderFrame headersProviderFrame)
             throws IOException {
-        final SpdyInflaterOutputStream inflaterOutputStream = spdySession.getInflaterOutputStream();
+        
+        final SpdyInflaterOutputStream inflaterOutputStream =
+                spdyStream.getSpdySession().getInflaterOutputStream();
+        
         inflaterOutputStream.write(headersProviderFrame.getCompressedHeaders());
-        Buffer decoded = inflaterOutputStream.checkpoint();
+        final Buffer decodedHeaders = inflaterOutputStream.checkpoint();
         if (httpHeader.isRequest()) {
-            if (decoded.hasArray()) {
-                processSynStreamHeadersArray((SpdyRequest) httpHeader, decoded);
+            if (decodedHeaders.hasArray()) {
+                if (!spdyStream.isUnidirectional()) {
+                    processSynStreamHeadersArray((SpdyRequest) httpHeader,
+                            decodedHeaders);
+                } else {
+                    processUSynStreamHeadersArray((SpdyRequest) httpHeader,
+                            decodedHeaders);
+                }
             } else {
-                processSynStreamHeadersBuffer((SpdyRequest) httpHeader, decoded);
+                if (!spdyStream.isUnidirectional()) {
+                    processSynStreamHeadersBuffer((SpdyRequest) httpHeader,
+                            decodedHeaders);
+                } else {
+                    processUSynStreamHeadersBuffer((SpdyRequest) httpHeader,
+                            decodedHeaders);
+                }
             }
         } else {
-            if (decoded.hasArray()) {
-                processSynReplyHeadersArray((SpdyResponse) httpHeader, decoded);
+            if (decodedHeaders.hasArray()) {
+                processSynReplyHeadersArray((SpdyResponse) httpHeader,
+                        decodedHeaders);
             } else {
-                processSynReplyHeadersBuffer((SpdyResponse) httpHeader, decoded);
+                processSynReplyHeadersBuffer((SpdyResponse) httpHeader,
+                        decodedHeaders);
             }
         }
-    }
-
-    private void processSynStreamHeadersArray(SpdyRequest spdyRequest, Buffer decoded) {
-        final byte[] headersArray = decoded.array();
-        int position = decoded.arrayOffset() + decoded.position();
-
-        final int headersCount = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (headersArray[position + 4] == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynStreamHeader(spdyRequest, headersArray, position);
-            } else {
-                position = processNormalHeader(spdyRequest,
-                        headersArray, position);
-            }
-        }
-    }
-
-    private void processSynStreamHeadersBuffer(SpdyRequest spdyRequest, Buffer decoded) {
-
-        int position = decoded.position();
-        final int headersCount = decoded.getInt(position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (decoded.get(position + 4) == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynStreamHeader(spdyRequest, decoded, position);
-            } else {
-                position = processNormalHeader(spdyRequest, decoded, position);
-            }
-        }
-    }
-
-    private int processServiceSynStreamHeader(final SpdyRequest spdyRequest,
-            final byte[] headersArray, final int position) {
-
-        final int nameSize = getInt(headersArray, position);
-        final int valueSize = getInt(headersArray, position + nameSize + 4);
-
-        final int nameStart = position + 5; // Skip headerNameSize and following ':'
-        final int valueStart = position + nameSize + 8;
-        final int valueEnd = valueStart + valueSize;
-
-        switch (nameSize - 1) {
-            case 4: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.HOST_HEADER_BYTES, 1)) {
-                    spdyRequest.getHeaders().addValue(Header.Host)
-                            .setBytes(headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.PATH_HEADER_BYTES, 1)) {
-
-                    int questionIdx = -1;
-                    for (int i = 0; i < valueSize; i++) {
-                        if (headersArray[valueStart + i] == '?') {
-                            questionIdx = i + valueStart;
-                            break;
-                        }
-                    }
-
-                    if (questionIdx == -1) {
-                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, valueEnd);
-                    } else {
-                        spdyRequest.getRequestURIRef().init(headersArray, valueStart, questionIdx);
-                        if (questionIdx < valueEnd - 1) {
-                            spdyRequest.getQueryStringDC()
-                                    .setBytes(headersArray, questionIdx + 1, valueEnd);
-                        }
-                    }
-
-                    return valueEnd;
-                }
-
-                break;
-            } case 6: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.METHOD_HEADER_BYTES, 1)) {
-                    spdyRequest.getMethodDC().setBytes(
-                            headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkArraysContent(headersArray, nameStart,
-                        Constants.SCHEMA_HEADER_BYTES, 1)) {
-
-                    spdyRequest.setSecure(valueSize == 5); // support http and https only
-                    return valueEnd;
-                } else if (spdyRequest.getSpdyStream().isUnidirectional() &&
-                        checkArraysContent(headersArray, nameStart,
-                        Constants.STATUS_HEADER_BYTES, 1)) { // support :status for unidirectional requests
-                    if (valueEnd < 3) {
-                        throw new IllegalStateException("Unknown status code: " +
-                                new String(headersArray, valueStart, valueEnd - valueStart, Charsets.UTF8_CHARSET));
-                    }
-
-                    
-                    spdyRequest.setUnidirectionalStatus(Ascii.parseInt(headersArray,
-                                                          valueStart,
-                                                          3));
-                    
-                    final int reasonPhraseIdx =
-                            HttpCodecUtils.skipSpaces(headersArray,
-                            valueStart + 3, valueEnd, valueEnd);
-                    
-                    if (reasonPhraseIdx != -1) {
-                        int reasonPhraseEnd = skipLastSpaces(headersArray,
-                                valueStart + 3, valueEnd) + 1;
-                        if (reasonPhraseEnd == 0) {
-                            reasonPhraseEnd = valueEnd;
-                        }
-                        
-                        spdyRequest.getUnidirectionalReasonPhraseRawDC().setBytes(
-                                headersArray, reasonPhraseIdx, reasonPhraseEnd);
-                    }
-                    
-                    return valueEnd;
-                }
-                
-                break;
-            } case 7: {
-                if (checkArraysContent(headersArray, nameStart,
-                                Constants.VERSION_HEADER_BYTES, 1)) {
-                    spdyRequest.getProtocolDC().setBytes(
-                            headersArray, valueStart, valueEnd);
-
-                    return valueEnd;
-                }
-            }
-        }
-
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[]{new String(headersArray, nameStart - 1, nameSize, Charsets.ASCII_CHARSET),
-                    new String(headersArray, valueStart, valueSize, Charsets.ASCII_CHARSET)});
-
-        return valueEnd;
-    }
-
-    private int processServiceSynStreamHeader(final SpdyRequest spdyRequest,
-                                              final Buffer buffer, final int position) {
-
-        final int nameSize = buffer.getInt(position);
-        final int valueSize = buffer.getInt(position + nameSize + 4);
-
-        final int nameStart = position + 5; // Skip headerNameSize and following ':'
-        final int valueStart = position + nameSize + 8;
-        final int valueEnd = valueStart + valueSize;
-
-        switch (nameSize - 1) {
-            case 4: {
-                if (checkBufferContent(buffer, nameStart,
-                        Constants.HOST_HEADER_BYTES, 1)) {
-                    spdyRequest.getHeaders().addValue(Header.Host)
-                            .setBuffer(buffer, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkBufferContent(buffer, nameStart,
-                        Constants.PATH_HEADER_BYTES, 1)) {
-
-                    int questionIdx = -1;
-                    for (int i = 0; i < valueSize; i++) {
-                        if (buffer.get(valueStart + i) == '?') {
-                            questionIdx = i + valueStart;
-                            break;
-                        }
-                    }
-
-                    if (questionIdx == -1) {
-                        spdyRequest.getRequestURIRef().init(buffer, valueStart, valueEnd);
-                    } else {
-                        spdyRequest.getRequestURIRef().getOriginalRequestURIBC()
-                                .setBuffer(buffer, valueStart, questionIdx);
-                        if (questionIdx < valueEnd - 1) {
-                            spdyRequest.getQueryStringDC()
-                                    .setBuffer(buffer, questionIdx + 1, valueEnd);
-                        }
-                    }
-
-                    return valueEnd;
-                }
-
-                break;
-            }
-            case 6: {
-                if (checkBufferContent(buffer, nameStart,
-                        Constants.METHOD_HEADER_BYTES, 1)) {
-                    spdyRequest.getMethodDC().setBuffer(
-                            buffer, valueStart, valueEnd);
-
-                    return valueEnd;
-                } else if (checkBufferContent(buffer, nameStart,
-                        Constants.SCHEMA_HEADER_BYTES, 1)) {
-
-                    spdyRequest.setSecure(valueSize == 5); // support http and https only
-                    return valueEnd;
-                } else if (spdyRequest.getSpdyStream().isUnidirectional() &&
-                        checkBufferContent(buffer, nameStart,
-                        Constants.STATUS_HEADER_BYTES, 1)) { // support :status for unidirectional requests
-                    if (valueEnd < 3) {
-                        throw new IllegalStateException("Unknown status code: " +
-                                buffer.toStringContent(Charsets.ASCII_CHARSET, valueEnd, (valueEnd - valueStart)));
-                    }
-
-                    spdyRequest.setUnidirectionalStatus(
-                            Ascii.parseInt(buffer, valueStart, 3));
-
-                    final int reasonPhraseIdx =
-                            HttpCodecUtils.skipSpaces(buffer, valueStart + 3, valueEnd);
-
-                    if (reasonPhraseIdx != -1) {
-                        int reasonPhraseEnd = skipLastSpaces(buffer,
-                                valueStart + 3, valueEnd) + 1;
-                        if (reasonPhraseEnd == 0) {
-                            reasonPhraseEnd = valueEnd;
-                        }
-
-                        spdyRequest.getUnidirectionalReasonPhraseRawDC().setBuffer(
-                                buffer, reasonPhraseIdx, reasonPhraseEnd);
-                    }
-
-                    return valueEnd;
-                }
-                
-                break;
-            }
-            case 7: {
-                if (checkBufferContent(buffer, nameStart,
-                        Constants.VERSION_HEADER_BYTES, 1)) {
-                    spdyRequest.getProtocolDC().setBuffer(
-                            buffer, valueStart, valueEnd);
-
-                    return valueEnd;
-                }
-            }
-        }
-
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[] {
-                    buffer.toStringContent(Charsets.ASCII_CHARSET, nameStart - 1, nameSize),
-                    buffer.toStringContent(Charsets.ASCII_CHARSET, valueStart, valueSize)});
-
-        return valueEnd;
     }
     
     private void processSynReply(final SpdySession spdySession,
@@ -823,7 +605,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
         
         try {
-            decodeHeaders(spdyResponse, spdySession, synReplyFrame);
+            decodeHeaders(spdyResponse, spdyStream, synReplyFrame);
         } finally {
             frame.recycle();
         }
@@ -1045,262 +827,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
     }
     
-    private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
-            final byte[] headersArray, final int position) {
-
-        final int nameSize = getInt(headersArray, position);
-        final int valueSize = getInt(headersArray, position + nameSize + 4);
-
-        final int nameStart = position + 5; // Skip headerNameSize and following ':'
-        final int valueStart = position + nameSize + 8;
-        final int valueEnd = valueStart + valueSize;
-
-        switch (nameSize - 1) {
-            case 6: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.STATUS_HEADER_BYTES, 1)) {
-                    if (valueEnd < 3) {
-                        throw new IllegalStateException("Unknown status code: " +
-                                new String(headersArray, valueStart, valueEnd - valueStart, Charsets.UTF8_CHARSET));
-                    }
-
-                    
-                    spdyResponse.setStatus(Ascii.parseInt(headersArray,
-                                                          valueStart,
-                                                          3));
-                    
-                    final int reasonPhraseIdx =
-                            HttpCodecUtils.skipSpaces(headersArray,
-                            valueStart + 3, valueEnd, valueEnd);
-                    
-                    if (reasonPhraseIdx != -1) {
-                        int reasonPhraseEnd = skipLastSpaces(headersArray,
-                                valueStart + 3, valueEnd) + 1;
-                        if (reasonPhraseEnd == 0) {
-                            reasonPhraseEnd = valueEnd;
-                        }
-                        
-                        spdyResponse.getReasonPhraseRawDC().setBytes(
-                                headersArray, reasonPhraseIdx, reasonPhraseEnd);
-                    }
-                    
-                    return valueEnd;
-                }
-
-                break;
-            }
-
-            case 7: {
-                if (checkArraysContent(headersArray, nameStart,
-                        Constants.VERSION_HEADER_BYTES, 1)) {
-                    spdyResponse.setProtocol(Protocol.valueOf(headersArray,
-                            valueStart, valueEnd - valueStart));
-
-                    return valueEnd;
-                }
-            }
-        }
-
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[]{new String(headersArray, position, nameSize, Charsets.ASCII_CHARSET),
-                    new String(headersArray, valueStart, valueSize, Charsets.ASCII_CHARSET)});
-
-        return valueEnd;
-    }
-
-    private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
-                                                    final Buffer buffer,
-                                                    int position) {
-
-        final int nameSize = buffer.getInt(position);
-        final int valueSize = buffer.getInt(position + nameSize + 4);
-
-        final int nameStart = position + 5; // Skip headerNameSize and following ':'
-        final int valueStart = position + nameSize + 8;
-        final int valueEnd = valueStart + valueSize;
-
-        switch (nameSize - 1) {
-            case 6: {
-                if (checkBufferContent(buffer, nameStart,
-                        Constants.STATUS_HEADER_BYTES, 1)) {
-                    if (valueEnd < 3) {
-                        throw new IllegalStateException("Unknown status code: " +
-                                buffer.toStringContent(Charsets.ASCII_CHARSET, valueEnd, (valueEnd - valueStart)));
-                    }
-
-                    spdyResponse.setStatus(Ascii.parseInt(buffer, valueStart, 3));
-
-                    final int reasonPhraseIdx =
-                            HttpCodecUtils.skipSpaces(buffer, valueStart + 3, valueEnd);
-
-                    if (reasonPhraseIdx != -1) {
-                        int reasonPhraseEnd = skipLastSpaces(buffer,
-                                valueStart + 3, valueEnd) + 1;
-                        if (reasonPhraseEnd == 0) {
-                            reasonPhraseEnd = valueEnd;
-                        }
-
-                        spdyResponse.getReasonPhraseRawDC().setBuffer(
-                                buffer, reasonPhraseIdx, reasonPhraseEnd);
-                    }
-
-                    return valueEnd;
-                }
-
-                break;
-            }
-
-            case 7: {
-                if (checkBufferContent(buffer, nameStart,
-                        Constants.VERSION_HEADER_BYTES, 1)) {
-                    spdyResponse.setProtocol(Protocol.valueOf(buffer,
-                            valueStart, valueEnd - valueStart));
-
-                    return valueEnd;
-                }
-            }
-        }
-
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[]{buffer.toStringContent(Charsets.ASCII_CHARSET, position, nameSize),
-                             buffer.toStringContent(Charsets.ASCII_CHARSET, valueStart, valueSize)});
-
-        return valueEnd;
-    }
-    
-    private static int processNormalHeader(final HttpHeader httpHeader,
-            final byte[] headersArray, int position) {
-
-        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
-
-        final int headerNameSize = getInt(headersArray, position);
-        position += 4;
-
-        final int headerNamePosition = position;
-        
-        final DataChunk valueChunk =
-                mimeHeaders.addValue(headersArray, headerNamePosition, headerNameSize);
-
-        position += headerNameSize;
-
-        final int headerValueSize = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headerValueSize; i++) {
-            final byte b = headersArray[position + i];
-            if (b == 0) {
-                headersArray[position + i] = ',';
-            }
-        }
-
-        final int end = position + headerValueSize;
-
-        valueChunk.setBytes(headersArray, position, end);
-        
-        finalizeKnownHeader(httpHeader, headersArray,
-                headerNamePosition, headerNameSize,
-                position, end - position);
-        
-        return end;
-    }
-
-    private static int processNormalHeader(final HttpHeader httpHeader,
-                                           final Buffer headerBuffer,
-                                           int position) {
-
-        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
-
-        final int headerNameSize = headerBuffer.getInt(position);
-        position += 4;
-
-        final int headerNamePosition = position;
-
-        final DataChunk valueChunk =
-                mimeHeaders.addValue(headerBuffer, headerNamePosition, headerNameSize);
-
-        position += headerNameSize;
-
-        final int headerValueSize = headerBuffer.getInt(position);
-        position += 4;
-
-        for (int i = 0; i < headerValueSize; i++) {
-            final byte b = headerBuffer.get(position + i);
-            if (b == 0) {
-                headerBuffer.put(position + i, (byte) ',');
-            }
-        }
-
-        final int end = position + headerValueSize;
-
-        valueChunk.setBuffer(headerBuffer, position, end);
-
-        finalizeKnownHeader(httpHeader, headerBuffer,
-                headerNamePosition, headerNameSize,
-                position, end - position);
-
-        return end;
-    }
-
-    private static void finalizeKnownHeader(final HttpHeader httpHeader,
-            final byte[] array,
-            final int nameStart, final int nameLen,
-            final int valueStart, final int valueLen) {
-        
-        final int nameEnd = nameStart + nameLen;
-        
-        if (nameLen == Header.ContentLength.getLowerCaseBytes().length) {
-            if (httpHeader.getContentLength() == -1
-                    && ByteChunk.equalsIgnoreCaseLowerCase(array, nameStart, nameEnd,
-                    Header.ContentLength.getLowerCaseBytes())) {
-                httpHeader.setContentLengthLong(Ascii.parseLong(
-                        array, valueStart, valueLen));
-            }
-        } else if (nameLen == Header.Upgrade.getLowerCaseBytes().length) {
-            if (ByteChunk.equalsIgnoreCaseLowerCase(array, nameStart, nameEnd,
-                    Header.Upgrade.getLowerCaseBytes())) {
-                httpHeader.getUpgradeDC().setBytes(array, valueStart,
-                        valueStart + valueLen);
-            }
-        } else if (nameLen == Header.Expect.getLowerCaseBytes().length) {
-            if (ByteChunk.equalsIgnoreCaseLowerCase(array, nameStart, nameEnd,
-                    Header.Expect.getLowerCaseBytes())) {
-                ((SpdyRequest) httpHeader).requiresAcknowledgement(true);
-            }
-        }
-    }
-
-    private static void finalizeKnownHeader(final HttpHeader httpHeader,
-                                            final Buffer buffer,
-                                            final int nameStart, final int nameLen,
-                                            final int valueStart, final int valueLen) {
-
-        final int nameEnd = nameStart + nameLen;
-
-        if (nameLen == Header.ContentLength.getLowerCaseBytes().length) {
-            if (httpHeader.getContentLength() == -1
-                    && BufferChunk.equalsIgnoreCaseLowerCase(buffer, nameStart, nameEnd,
-                    Header.ContentLength.getLowerCaseBytes())) {
-                httpHeader.setContentLengthLong(Ascii.parseLong(
-                        buffer, valueStart, valueLen));
-            }
-        } else if (nameLen == Header.Upgrade.getLowerCaseBytes().length) {
-            if (BufferChunk.equalsIgnoreCaseLowerCase(buffer,
-                                                      nameStart,
-                                                      nameEnd,
-                                                      Header.Upgrade.getLowerCaseBytes())) {
-                httpHeader.getUpgradeDC().setBuffer(buffer, valueStart,
-                        valueStart + valueLen);
-            }
-        } else if (nameLen == Header.Expect.getLowerCaseBytes().length) {
-            if (BufferChunk.equalsIgnoreCaseLowerCase(buffer,
-                                                      nameStart,
-                                                      nameEnd,
-                                                      Header.Expect.getLowerCaseBytes())) {
-                ((SpdyRequest) httpHeader).requiresAcknowledgement(true);
-            }
-        }
-    }
-    
     private void prepareIncomingRequest(final SpdyStream spdyStream,
             final SpdyRequest request) {
 
@@ -1359,57 +885,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     
     private void prepareOutgoingResponse(final HttpResponsePacket response) {
         response.setProtocol(Protocol.HTTP_1_1);
+
+        if (response.getContentLength() != -1) {
+            // FixedLengthTransferEncoding will set proper Content-Length header
+            FIXED_LENGTH_ENCODING.prepareSerialize(null, response, null);
+        }
     }    
 
-    private static int getInt(final byte[] array, final int position) {
-        return ((array[position] & 0xFF) << 24) +
-                ((array[position + 1] & 0xFF) << 16) +
-                ((array[position + 2] & 0xFF) << 8) +
-                (array[position + 3] & 0xFF);
-    }
-
-    private static boolean checkArraysContent(final byte[] b1, final int pos1,
-            final byte[] control, final int pos2) {
-        for (int i = 0, len = control.length - pos2; i < len; i++) {
-            if (b1[pos1 + i] != control[pos2 + i]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static boolean checkBufferContent(final Buffer toTest, final int pos,
-            final byte[] control, final int pos2) {
-        for (int i = 0, len = control.length - pos2; i < len; i++) {
-            if (toTest.get(pos + i) != control[pos2 + i]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-    
-    private static int skipLastSpaces(byte[] array, int start, int end) {
-        for (int i = end - 1; i >= start; i--) {
-            if (HttpCodecUtils.isNotSpaceAndTab(array[i])) {
-                return i;
-            }
-        }
-        
-        return -1;
-    }
-
-    private static int skipLastSpaces(Buffer buffer, int start, int end) {
-        for (int i = end - 1; i >= start; i--) {
-            if (HttpCodecUtils.isNotSpaceAndTab(buffer.get(i))) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-    
     private static void sendRstStream(final FilterChainContext ctx,
             final int streamId, final int statusCode,
             final CompletionHandler<WriteResult> completionHandler) {
@@ -1460,41 +942,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
     }
     
-    private static void processSynReplyHeadersArray(SpdyResponse spdyResponse, Buffer decoded) {
-        final byte[] headersArray = decoded.array();
-        int position = decoded.arrayOffset() + decoded.position();
-
-        final int headersCount = getInt(headersArray, position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (headersArray[position + 4] == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynReplyHeader(spdyResponse, headersArray, position);
-            } else {
-                position = processNormalHeader(spdyResponse, headersArray, position);
-            }
-        }
-    }
-
-    private static void processSynReplyHeadersBuffer(SpdyResponse spdyResponse, Buffer decoded) {
-        int position = decoded.position();
-
-        final int headersCount = decoded.getInt(position);
-        position += 4;
-
-        for (int i = 0; i < headersCount; i++) {
-            final boolean isServiceHeader = (decoded.get(position + 4) == ':');
-
-            if (isServiceHeader) {
-                position = processServiceSynReplyHeader(spdyResponse, decoded, position);
-            } else {
-                position = processNormalHeader(spdyResponse, decoded, position);
-            }
-        }
-    }
-
     private static void processDataFrame(final SpdyStream spdyStream,
             final SpdyFrame frame) throws SpdyStreamException {
 
@@ -1518,26 +965,26 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     final OutputResource outputResource =
                             pushData.getOutputResource();
                     
-                    final UnidirectionalSpdyRequest.Builder builder =
-                            UnidirectionalSpdyRequest.unidirectionalBuilder()
-                            .status(pushData.getStatusCode())
-                            .uri(entry.getKey())
-                            .protocol(Protocol.HTTP_1_1)
-                            .contentType(pushData.getContentType());
+                    final SpdyRequest spdyRequest = SpdyRequest.create();
+                    final HttpResponsePacket spdyResponse = spdyRequest.getResponse();
+                    
+                    spdyRequest.setRequestURI(entry.getKey());
+                    spdyResponse.setStatus(pushData.getStatusCode());
+                    spdyResponse.setProtocol(Protocol.HTTP_1_1);
+                    spdyResponse.setContentType(pushData.getContentType());
                     
                     if (outputResource != null) {
-                        builder.contentLength(outputResource.remaining());
+                        spdyResponse.setContentLengthLong(outputResource.remaining());
                     }
                     
                     // Add extra headers if any
                     final Map<String, String> extraHeaders = pushData.getHeaders();
                     if (extraHeaders != null) {
                         for (Map.Entry<String, String> headerEntry : extraHeaders.entrySet()) {
-                            builder.header(headerEntry.getKey(), headerEntry.getValue());
+                            spdyResponse.addHeader(headerEntry.getKey(), headerEntry.getValue());
                         }
                     }
                     
-                    final HttpRequestPacket spdyRequest = builder.build();
                     try {
                         final SpdyStream pushStream = spdySession.openStream(
                                 spdyRequest,
@@ -1547,7 +994,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                 0,
                                 true,
                                 false);
-                        prepareOutgoingRequest(spdyRequest);
+                        prepareOutgoingResponse(spdyResponse);
                         
                         pushStream.writeDownStream(outputResource);
                     } catch (Exception e) {
