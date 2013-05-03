@@ -66,6 +66,113 @@ listener.registerAddOn(spdyAddon);
 httpServer.addListener(listener);
 ```
 
+SPDY Server Push
+================
+
+Starting with 2.3.3, Grizzly offers support for SPDY server push mechanism
+<http://tools.ietf.org/html/draft-mbelshe-httpbis-spdy-00#section-3.3>.
+
+> Quote:   
+SPDY enables a server to send multiple replies to a client for a
+single request.  The rationale for this feature is that sometimes a
+server knows that it will need to send multiple resources in response
+to a single request.  Without server push features, the client must
+first download the primary resource, then discover the secondary
+resource(s), and request them.  Pushing of resources avoids
+the round-trip delay...
+
+For sure here comes a question "what if the client already has pushed resource
+cached locally?" It is true, we probably should not push all the associated
+resources blindly, for example we probably should not push a huge file
+when we are not sure whather the client already has it, on other side it might
+be a good idea to push small icon, javascript, css resources even if the client
+has them already cached because additional round-trips
+(especially for mobile networks) might be more time consuming than
+receiving extra data.
+
+Grizzly provides *PushData* builder in order to construct the descriptor for the
+resource we want to push. For example:
+
+```java
+File imageFile = new File("imgs/1.png");
+
+PushData pushData = PushData.builder()
+    .statusCode(HttpStatus.OK_200)
+    .contentType("image/png")
+    .outputResource(
+            OutputResource.factory(spdyStream)
+            .createFileOutputResource(imageFile))
+    .build();
+
+spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushData);
+```
+
+In the sample above we instruct SPDY stream to initiate server push, and send
+image file represented by the [File](http://docs.oracle.com/javase/7/docs/api/java/io/File.html) object.
+Similarly it is possible to build *PushData* based on [Grizzly Buffer](https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/Buffer.html), byte[] or [String](http://docs.oracle.com/javase/7/docs/api/java/lang/String.html).
+
+It is also prossible to customize *PushData* status code, reason phrase and
+headers like:
+
+```java
+// Push redirect information, so the client will not need to make additional
+// request to get this information from the server
+
+PushData pushData = PushData.builder()
+    .statusCode(HttpStatus.MOVED_PERMANENTLY_301)
+    .header(Header.Location, "https://anotherhost:7070/imgs/1.png")
+    .outputResource(
+        OutputResource.factory(spdyStream)
+        .createStringOutputResource("The resource has been moved"))
+    .build();
+
+spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushData);
+```
+
+And finally to give you more idea how the complete code looks like, here is an
+*HttpHandler* example:
+
+```java
+public class SpdyPushHttpHandler extends HttpHandler {
+
+    @Override
+    public void service(Request request, Response response) throws Exception {
+
+        // Get SpdyStream information
+        final SpdyStream spdyStream =
+                (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+
+        // If spdyStream is null - it is not a SPDY based request
+        if (spdyStream != null) {
+            // Push the file resource (image)
+            spdyStream.addPushResource(
+                    "https://serverhost:serverport/imgs/1.png",
+                    PushData.builder()
+                    .contentType("image/png")
+                    .statusCode(HttpStatus.OK_200)
+                    .outputResource(OutputResource.factory(spdyStream)
+                        .createFileOutputResource(imgFile))
+                    .build());
+        }
+
+        // Send the main page here
+        response.setContentType("text/html");
+
+        final Writer w = response.getWriter();
+        StringBuilder sb = new StringBuilder(128);
+        sb.append("<html><head><title>SPDY Push Test</title></head><body>");
+
+        // Here we have the image reference on the main page
+        sb.append("<img src=\"/imgs/1.png\" />");
+
+        sb.append("</body></html>");
+
+        response.setContentLength(sb.length());
+        w.write(sb.toString());
+    }
+}
+```
+
 SPDY Configuration (Grizzly standalone)
 =======================================
 
