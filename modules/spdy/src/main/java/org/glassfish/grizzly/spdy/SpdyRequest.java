@@ -42,12 +42,16 @@ package org.glassfish.grizzly.spdy;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.ProcessingState;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  *
  * @author oleksiys
  */
-class SpdyRequest extends UnidirectionalSpdyRequest {
+class SpdyRequest extends HttpRequestPacket implements SpdyHeader {
     private static final Logger LOGGER = Grizzly.logger(SpdyRequest.class);
     
     private static final ThreadCache.CachedTypeIndex<SpdyRequest> CACHE_IDX =
@@ -63,18 +67,71 @@ class SpdyRequest extends UnidirectionalSpdyRequest {
         return spdyRequest.init();
     }
     
-    private final SpdyResponse spdyResponse = new SpdyResponse();
+    private final ProcessingState processingState = new ProcessingState();
+    
+    private final SpdyResponse spdyResponse;
+    
+    /**
+     * Char encoding parsed flag.
+     */
+    private boolean charEncodingParsed;
+    private boolean contentTypeParsed;
 
+    SpdyRequest() {
+        this.spdyResponse = new SpdyResponse();
+    }
+
+    SpdyRequest(SpdyResponse spdyResponse) {
+        this.spdyResponse = spdyResponse;
+    }
+    
     @Override
-    protected SpdyRequest init() {
-        super.init();
-        
+    public ProcessingState getProcessingState() {
+        return processingState;
+    }
+
+    private SpdyRequest init() {
         setResponse(spdyResponse);
         spdyResponse.setRequest(this);
         
+        setChunkingAllowed(true);
         spdyResponse.setChunkingAllowed(true);
         
         return this;
+    }
+
+    @Override
+    public SpdyStream getSpdyStream() {
+        return SpdyStream.getSpdyStream(this);
+    }
+    
+    @Override
+    public String getCharacterEncoding() {
+        if (characterEncoding != null || charEncodingParsed) {
+            return characterEncoding;
+        }
+
+        getContentType(); // charEncoding is set as a side-effect of this call
+        charEncodingParsed = true;
+
+        return characterEncoding;
+    }
+
+    @Override
+    public String getContentType() {
+        if (!contentTypeParsed) {
+            contentTypeParsed = true;
+
+            if (contentType == null) {
+                final DataChunk dc = headers.getValue(Header.ContentType);
+
+                if (dc != null && !dc.isNull()) {
+                    setContentType(dc.toString());
+                }
+            }
+        }
+
+        return super.getContentType();
     }
 
     @Override
@@ -87,10 +144,25 @@ class SpdyRequest extends UnidirectionalSpdyRequest {
     }
     
     @Override
+    protected void reset() {
+        charEncodingParsed = false;
+        contentTypeParsed = false;
+        
+        processingState.recycle();
+        
+        super.reset();
+    }
+
+    @Override
     public void recycle() {
         reset();
 
         ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    @Override
+    public void setExpectContent(final boolean isExpectContent) {
+        super.setExpectContent(isExpectContent);
     }
 
     @Override

@@ -64,8 +64,9 @@ import static org.glassfish.grizzly.http.util.DataChunk.Type.Bytes;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
- *
- * @author oleksiys
+ * HTTP Packet -> SpdyFrames encoder utils.
+ * 
+ * @author Grizzly team
  */
 class SpdyEncoderUtils {
     private static final byte[] SPACE_BYTES = {' '};
@@ -266,14 +267,14 @@ class SpdyEncoderUtils {
 
     @SuppressWarnings("unchecked")
     static Buffer encodeUnidirectionalSynStreamHeadersAndLock(final SpdyStream spdyStream,
-            final HttpRequestPacket request) throws IOException {
+            final SpdyResponse response) throws IOException {
 
         // ----------------- Parse URI scheme and path ----------------
         int schemeStart = -1;
         int schemeLen = -1;
 
-        final byte[] requestURI =
-                request.getRequestURI().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
+        final byte[] requestURI = response.getRequest().getRequestURI()
+                .getBytes(DEFAULT_HTTP_CHARACTER_ENCODING);
         final int len = requestURI.length;
 
         final int nonSpaceIdx = skipSpaces(requestURI, 0, len, len);
@@ -296,7 +297,7 @@ class SpdyEncoderUtils {
         }
         // ---------------------------------------------------------------
 
-        final MimeHeaders headers = request.getHeaders();
+        final MimeHeaders headers = response.getHeaders();
         
         final String hostHeader = headers.getHeader(Header.Host);
         final byte[] hostHeaderBytes;
@@ -372,28 +373,19 @@ class SpdyEncoderUtils {
                     requestURI, pathStart, pathLen);
 
             encodeHeaderValue(dataOutputStream, Constants.VERSION_HEADER_BYTES,
-                    request.getProtocol().getProtocolBytes());
+                    response.getProtocol().getProtocolBytes());
             
-            if (request instanceof UnidirectionalSpdyRequest) {
-                final UnidirectionalSpdyRequest unidirectionalRequest =
-                        (UnidirectionalSpdyRequest) request;
-                final HttpStatus unidirectionalHttpStatus =
-                        unidirectionalRequest.getUnidirectionalHttpStatus();
+            final HttpStatus httpStatus = response.getHttpStatus();
 
-                if (unidirectionalRequest.isUnidirectionalCustomReasonPhraseSet()) {
-                    encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
-                            unidirectionalHttpStatus.getStatusBytes(), SPACE_BYTES,
-                            unidirectionalRequest.getUnidirectionalReasonPhraseRawDC()
-                            .toString().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
-                } else {
-                    encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
-                            unidirectionalHttpStatus.getStatusBytes(), SPACE_BYTES,
-                            unidirectionalHttpStatus.getReasonPhraseBytes());
-                }
+            if (response.isCustomReasonPhraseSet()) {
+                encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
+                        httpStatus.getStatusBytes(), SPACE_BYTES,
+                        response.getReasonPhraseRawDC()
+                        .toString().getBytes(DEFAULT_HTTP_CHARACTER_ENCODING));
             } else {
                 encodeHeaderValue(dataOutputStream, Constants.STATUS_HEADER_BYTES,
-                        HttpStatus.OK_200.getStatusBytes(), SPACE_BYTES,
-                        HttpStatus.OK_200.getReasonPhraseBytes());
+                        httpStatus.getStatusBytes(), SPACE_BYTES,
+                        httpStatus.getReasonPhraseBytes());
             }
             
             dataOutputStream.flush();

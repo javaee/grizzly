@@ -262,11 +262,23 @@ final class SpdyOutputSink {
 
                 // encode HTTP packet header
                 if (!httpHeader.isRequest()) {
-                    final Buffer compressedHeaders =
-                            SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
-                            spdySession, (HttpResponsePacket) httpHeader);
-                    headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
-                            last(isNoContent).compressedHeaders(compressedHeaders).build();
+                    final Buffer compressedSynStreamHeaders;
+                    if (!spdyStream.isUnidirectional()) {
+                        final Buffer compressedHeaders =
+                                SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
+                                spdySession, (HttpResponsePacket) httpHeader);
+                        headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
+                                last(isNoContent).compressedHeaders(compressedHeaders).build();
+                    } else {
+                        compressedSynStreamHeaders =
+                                SpdyEncoderUtils.encodeUnidirectionalSynStreamHeadersAndLock(
+                                spdyStream, (SpdyResponse) httpHeader);
+
+                        headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                                associatedStreamId(spdyStream.getAssociatedToStreamId()).
+                                unidirectional(true).
+                                last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
+                    }
                 } else {
                     final Buffer compressedHeaders =
                             SpdyEncoderUtils.encodeSynStreamHeadersAndLock(spdyStream,
@@ -475,32 +487,30 @@ final class SpdyOutputSink {
 
             // encode HTTP packet header
             if (!httpHeader.isRequest()) {
-                final Buffer compressedHeaders =
-                        SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
-                        spdySession, (HttpResponsePacket) httpHeader);
-                headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
-                        last(isNoContent).compressedHeaders(compressedHeaders).build();
-            } else {
                 final Buffer compressedSynStreamHeaders;
                 if (!spdyStream.isUnidirectional()) {
-                    compressedSynStreamHeaders =
-                            SpdyEncoderUtils.encodeSynStreamHeadersAndLock(
-                            spdyStream, (HttpRequestPacket) httpHeader);
-
-                    headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                            associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                            unidirectional(spdyStream.isUnidirectional()).
-                            last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
+                    final Buffer compressedHeaders =
+                            SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
+                            spdySession, (HttpResponsePacket) httpHeader);
+                    headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
+                            last(isNoContent).compressedHeaders(compressedHeaders).build();
                 } else {
                     compressedSynStreamHeaders =
                             SpdyEncoderUtils.encodeUnidirectionalSynStreamHeadersAndLock(
-                            spdyStream, (HttpRequestPacket) httpHeader);
+                            spdyStream, (SpdyResponse) httpHeader);
 
                     headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
                             associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                            unidirectional(spdyStream.isUnidirectional()).
-                            last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
-                }
+                            unidirectional(true).
+                            last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();                }
+            } else {
+                final Buffer compressedSynStreamHeaders =
+                        SpdyEncoderUtils.encodeSynStreamHeadersAndLock(
+                        spdyStream, (HttpRequestPacket) httpHeader);
+
+                headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                        associatedStreamId(spdyStream.getAssociatedToStreamId()).
+                        last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
             }
 
             isDeflaterLocked = true;

@@ -120,6 +120,8 @@ final class SpdySession {
     private volatile int localMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
     private int peerMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
 
+    private final StreamBuilder streamBuilder = new StreamBuilder();
+    
     public static SpdySession get(final Connection connection) {
         return SPDY_SESSION_ATTR.get(connection);
     }
@@ -158,7 +160,7 @@ final class SpdySession {
     }
 
     public StreamBuilder getStreamBuilder() {
-        return new StreamBuilder();
+        return streamBuilder;
     }
     
     public int getPeerInitialWindowSize() {
@@ -350,7 +352,7 @@ final class SpdySession {
             }
             
             streamsMap.put(streamId, spdyStream);
-            lastPeerStreamId = streamId;
+            lastLocalStreamId = streamId;
         }
         
         return spdyStream;
@@ -490,34 +492,33 @@ final class SpdySession {
         ProcessorExecutor.execute(upstreamContext.getInternalContext());
     }
 
-    public final class StreamBuilder extends HttpHeader.Builder<StreamBuilder> {
+    public final class StreamBuilder {
+
+        private StreamBuilder() {
+        }
+        
+        public BidirectionalBuilder bidirectional() {
+            return new BidirectionalBuilder();
+        }
+        
+        public UnidirectionalBuilder unidirectional() {
+            return new UnidirectionalBuilder();
+        }
+    }
+    
+    public final class UnidirectionalBuilder extends HttpHeader.Builder<UnidirectionalBuilder> {
+        private final SpdyRequest request;
+        
         private int associatedToStreamId;
         private int priority;
         private int slot;
         private boolean isFin;
-        private boolean isUnidirectional;
         
-        protected StreamBuilder() {
-            packet = SpdyRequest.create();
+        protected UnidirectionalBuilder() {
+            request = SpdyRequest.create();
+            packet = request.getResponse();
+            
             packet.setSecure(true);
-        }
-
-        /**
-         * Set the HTTP request method.
-         * @param method the HTTP request method..
-         */
-        public StreamBuilder method(final Method method) {
-            ((HttpRequestPacket) packet).setMethod(method);
-            return this;
-        }
-
-        /**
-         * Set the HTTP request method.
-         * @param method the HTTP request method. Format is "GET|POST...".
-         */
-        public StreamBuilder method(final String method) {
-            ((HttpRequestPacket) packet).setMethod(method);
-            return this;
         }
 
         /**
@@ -525,8 +526,8 @@ final class SpdySession {
          *
          * @param uri the request URI.
          */
-        public StreamBuilder uri(final String uri) {
-            ((HttpRequestPacket) packet).setRequestURI(uri);
+        public UnidirectionalBuilder uri(final String uri) {
+            request.setRequestURI(uri);
             return this;
         }
 
@@ -537,8 +538,8 @@ final class SpdySession {
          *
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder query(final String query) {
-            ((HttpRequestPacket) packet).setQueryString(query);
+        public UnidirectionalBuilder query(final String query) {
+            request.setQueryString(query);
             return this;
         }
 
@@ -549,7 +550,7 @@ final class SpdySession {
          *
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder associatedToStreamId(final int associatedToStreamId) {
+        public UnidirectionalBuilder associatedToStreamId(final int associatedToStreamId) {
             this.associatedToStreamId = associatedToStreamId;
             return this;
         }
@@ -561,7 +562,7 @@ final class SpdySession {
          *
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder priority(final int priority) {
+        public UnidirectionalBuilder priority(final int priority) {
             this.priority = priority;
             return this;
         }
@@ -573,7 +574,7 @@ final class SpdySession {
          *
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder slot(final int slot) {
+        public UnidirectionalBuilder slot(final int slot) {
             this.slot = slot;
             return this;
         }
@@ -585,20 +586,120 @@ final class SpdySession {
          * 
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder fin(final boolean fin) {
+        public UnidirectionalBuilder fin(final boolean fin) {
             this.isFin = fin;
             return this;
         }
         
         /**
-         * Set the <code>unidirectional</code> parameter of a {@link SpdyStream}.
+         * Build the <tt>HttpRequestPacket</tt> message.
          *
-         * @param unidirectional the unidirectional
+         * @return <tt>HttpRequestPacket</tt>
+         */
+        @SuppressWarnings("unchecked")
+        public final SpdyStream open() throws SpdyStreamException {
+            newClientStreamLock.lock();
+
+            try {
+                final SpdyStream spdyStream = openStream(
+                        request,
+                        getNextLocalStreamId(),
+                        associatedToStreamId, priority,
+                        slot, true, isFin);
+                
+                
+                connection.write(packet);
+                
+                return spdyStream;
+            } finally {
+                newClientStreamLock.unlock();
+            }
+        }
+    }    
+    
+    public final class BidirectionalBuilder extends HttpHeader.Builder<BidirectionalBuilder> {
+        private int priority;
+        private int slot;
+        private boolean isFin;
+        
+        protected BidirectionalBuilder() {
+            packet = SpdyRequest.create();
+            packet.setSecure(true);
+        }
+
+        /**
+         * Set the HTTP request method.
+         * @param method the HTTP request method..
+         */
+        public BidirectionalBuilder method(final Method method) {
+            ((HttpRequestPacket) packet).setMethod(method);
+            return this;
+        }
+
+        /**
+         * Set the HTTP request method.
+         * @param method the HTTP request method. Format is "GET|POST...".
+         */
+        public BidirectionalBuilder method(final String method) {
+            ((HttpRequestPacket) packet).setMethod(method);
+            return this;
+        }
+
+        /**
+         * Set the request URI.
+         *
+         * @param uri the request URI.
+         */
+        public BidirectionalBuilder uri(final String uri) {
+            ((HttpRequestPacket) packet).setRequestURI(uri);
+            return this;
+        }
+
+        /**
+         * Set the <code>query</code> portion of the request URI.
+         *
+         * @param query the query String
          *
          * @return the current <code>Builder</code>
          */
-        public StreamBuilder unidirectional(final boolean isUnidirectional) {
-            this.isUnidirectional = isUnidirectional;
+        public BidirectionalBuilder query(final String query) {
+            ((HttpRequestPacket) packet).setQueryString(query);
+            return this;
+        }
+
+        /**
+         * Set the <code>priority</code> parameter of a {@link SpdyStream}.
+         *
+         * @param priority the priority
+         *
+         * @return the current <code>Builder</code>
+         */
+        public BidirectionalBuilder priority(final int priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        /**
+         * Set the <code>slot</code> parameter of a {@link SpdyStream}.
+         *
+         * @param slot the slot
+         *
+         * @return the current <code>Builder</code>
+         */
+        public BidirectionalBuilder slot(final int slot) {
+            this.slot = slot;
+            return this;
+        }
+        
+        /**
+         * Sets the <code>fin</code> flag of a {@link SpdyStream}.
+         * 
+         * @param fin
+         * 
+         * @return the current <code>Builder</code>
+         */
+        public BidirectionalBuilder fin(final boolean fin) {
+            this.isFin = fin;
             return this;
         }
         
@@ -615,8 +716,7 @@ final class SpdySession {
                 final SpdyStream spdyStream = openStream(
                         (HttpRequestPacket) packet,
                         getNextLocalStreamId(),
-                        associatedToStreamId, priority,
-                        slot, isUnidirectional, isFin);
+                        0, priority, slot, false, isFin);
                 
                 
                 connection.write(packet);
