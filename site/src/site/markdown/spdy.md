@@ -90,43 +90,43 @@ has them already cached because additional round-trips
 (especially for mobile networks) might be more time consuming than
 receiving extra data.
 
-Grizzly provides *PushData* builder in order to construct the descriptor for the
+Grizzly provides *PushResource* builder in order to construct the descriptor for the
 resource we want to push. For example:
 
 ```java
 File imageFile = new File("imgs/1.png");
 
-PushData pushData = PushData.builder()
+PushResource pushResource = PushResource.builder()
     .statusCode(HttpStatus.OK_200)
     .contentType("image/png")
-    .outputResource(
-            OutputResource.factory(spdyStream)
-            .createFileOutputResource(imageFile))
+    .source(
+            Source.factory(spdyStream)
+            .createFileSource(imageFile))
     .build();
 
-spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushData);
+spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushResource);
 ```
 
 In the sample above we instruct SPDY stream to initiate server push, and send
 image file represented by the [File](http://docs.oracle.com/javase/7/docs/api/java/io/File.html) object.
-Similarly it is possible to build *PushData* based on [Grizzly Buffer](https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/Buffer.html), byte[] or [String](http://docs.oracle.com/javase/7/docs/api/java/lang/String.html).
+Similarly it is possible to build *PushResource* based on [Grizzly Buffer](https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/Buffer.html), byte[] or [String](http://docs.oracle.com/javase/7/docs/api/java/lang/String.html).
 
-It is also prossible to customize *PushData* status code, reason phrase and
+It is also prossible to customize *PushResource* status code, reason phrase and
 headers like:
 
 ```java
 // Push redirect information, so the client will not need to make additional
 // request to get this information from the server
 
-PushData pushData = PushData.builder()
+PushResource pushResource = PushResource.builder()
     .statusCode(HttpStatus.MOVED_PERMANENTLY_301)
     .header(Header.Location, "https://anotherhost:7070/imgs/1.png")
-    .outputResource(
-        OutputResource.factory(spdyStream)
-        .createStringOutputResource("The resource has been moved"))
+    .source(
+        Source.factory(spdyStream)
+        .createStringSource("The resource has been moved"))
     .build();
 
-spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushData);
+spdyStream.addPushResource("https://thishost:7070/imgs/1.png", pushResource);
 ```
 
 And finally to give you more idea how the complete code looks like, here is an
@@ -147,11 +147,11 @@ public class SpdyPushHttpHandler extends HttpHandler {
             // Push the file resource (image)
             spdyStream.addPushResource(
                     "https://serverhost:serverport/imgs/1.png",
-                    PushData.builder()
+                    PushResource.builder()
                     .contentType("image/png")
                     .statusCode(HttpStatus.OK_200)
-                    .outputResource(OutputResource.factory(spdyStream)
-                        .createFileOutputResource(imgFile))
+                    .source(Source.factory(spdyStream)
+                        .createFileSource(imgFile))
                     .build());
         }
 
