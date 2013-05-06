@@ -80,8 +80,9 @@ import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 /**
- *
- * @author oleksiys
+ * The abstraction representing SPDY stream.
+ * 
+ * @author Grizzly team
  */
 public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public static final String SPDY_STREAM_ATTRIBUTE = SpdyStream.class.getName();
@@ -234,9 +235,12 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public boolean isLocallyInitiatedStream() {
         assert streamId > 0;
         
-        return spdySession.isServer() ?
-                (streamId % 2) == 0 :
-                (streamId % 2) == 1;
+        return spdySession.isServer() ^ ((streamId % 2) == 1);
+        
+//        Same as
+//        return spdySession.isServer() ?
+//                (streamId % 2) == 0 :
+//                (streamId % 2) == 1;        
     }
 
     public boolean isClosed() {
