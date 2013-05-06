@@ -75,6 +75,7 @@
                     <instructions>
                         <Import-Package>
                             org.glassfish.grizzly.npn*;version="[1.0,2)",
+                            org.glassfish.grizzly.http.server.*;version="[2.3,${project.version}]";resolution:=optional,
                             org.glassfish.grizzly.*;version="[2.3,${project.version}]",
                             org.glassfish.api.*;resolution:=optional,
                             org.glassfish.internal.*;resolution:=optional,
@@ -143,6 +144,11 @@
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
             <version>${project.version}</version>
+            <!-- These dependencies aren't needed in the client case.  Only
+                 if the project is using the SpdyAddon or the GlassFish
+                 integration code -->
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
