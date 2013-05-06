@@ -52,11 +52,11 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 
 /**
- * The class represents generic output resource to be sent on {@link SpdyStream}.
+ * The class represents generic source of data to be sent on {@link SpdyStream}.
  * 
  * @author Alexey Stashok
  */
-public abstract class OutputResource {
+public abstract class Source {
     /**
      * Returns the number of bytes remaining to be written.
      */
@@ -80,80 +80,80 @@ public abstract class OutputResource {
     public abstract boolean hasRemaining();
     
     /**
-     * The method is called, when the resource might be released/closed.
+     * The method is called, when the source might be released/closed.
      */
     public abstract void release();
     
     /**
-     * Returns the {@link OutputResourceFactory} associated with the {@link SpdyStream}.
+     * Returns the {@link SourceFactory} associated with the {@link SpdyStream}.
      */
-    public static OutputResourceFactory factory(final SpdyStream spdyStream) {
-        return new OutputResourceFactory(spdyStream);
+    public static SourceFactory factory(final SpdyStream spdyStream) {
+        return new SourceFactory(spdyStream);
     }
     
     /**
-     * The helper factory class to create {@link OutputResource}s based on
-     * {@link File}, {@link Buffer}, {@link String} and byte[] resources.
+     * The helper factory class to create {@link Source}s based on
+     * {@link File}, {@link Buffer}, {@link String} and byte[].
      */
-    public final static class OutputResourceFactory {
+    public final static class SourceFactory {
 
         private final SpdyStream spdyStream;
 
-        private OutputResourceFactory(final SpdyStream spdyStream) {
+        private SourceFactory(final SpdyStream spdyStream) {
             this.spdyStream = spdyStream;
         }
 
         /**
-         * Create {@link OutputResource} based on byte array.
+         * Create {@link Source} based on byte array.
          * @param array byte[] to be written.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createByteArrayOutputResource(final byte[] array) {
-            return createByteArrayOutputResource(array, 0, array.length);
+        public Source createByteArraySource(final byte[] array) {
+            return createByteArraySource(array, 0, array.length);
         }
         
         /**
-         * Create {@link OutputResource} based on byte array.
+         * Create {@link Source} based on byte array.
          * @param array byte[] to be written.
-         * @param offs the resource offset in the byte array.
-         * @param len the resource length.
+         * @param offs the source offset in the byte array.
+         * @param len the source length.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createByteArrayOutputResource(final byte[] array,
+        public Source createByteArraySource(final byte[] array,
                 final int offs, final int len) {
-            return new ByteArrayOutputResource(array, offs, len, spdyStream);
+            return new ByteArraySource(array, offs, len, spdyStream);
         }
 
         /**
-         * Create {@link OutputResource} based on {@link Buffer}.
+         * Create {@link Source} based on {@link Buffer}.
          * @param buffer {@link Buffer} to be written.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createBufferOutputResource(final Buffer buffer) {
-            return new BufferOutputResource(buffer, spdyStream);
+        public Source createBufferSource(final Buffer buffer) {
+            return new BufferSource(buffer, spdyStream);
         }
 
         /**
-         * Create {@link OutputResource} based on file.
+         * Create {@link Source} based on file.
          * @param filename the filename.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createFileOutputResource(final String filename)
+        public Source createFileSource(final String filename)
                 throws FileNotFoundException, IOException {
-            return createFileOutputResource(new File(filename));
+            return createFileSource(new File(filename));
         }
 
         /**
-         * Create {@link OutputResource} based on {@link File}.
+         * Create {@link Source} based on {@link File}.
          * @param file the {@link File}.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createFileOutputResource(final File file)
+        public Source createFileSource(final File file)
                 throws FileNotFoundException, IOException {
             if (!file.exists()) {
                 throw new IOException("File does not exist");
@@ -163,41 +163,41 @@ public abstract class OutputResource {
                 throw new IOException("File is not identified as a normal file. Is it a directory?");
             }
 
-            return new FileOutputResource(file, spdyStream);
+            return new FileSource(file, spdyStream);
         }
 
         /**
-         * Create {@link OutputResource} based on {@link String}.
+         * Create {@link Source} based on {@link String}.
          * The default "ISO-8859-1" encoding will be used.
          * 
          * @param string the {@link String}.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createStringOutputResource(final String string) {
-            return createStringOutputResource(string,
+        public Source createStringSource(final String string) {
+            return createStringSource(string,
                     org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET);
         }
         
         /**
-         * Create {@link OutputResource} based on {@link String}.
+         * Create {@link Source} based on {@link String}.
          * @param string the {@link String}.
          * @param charset the string character encoding {@link Charset}.
          * 
-         * @return {@link OutputResource}.
+         * @return {@link Source}.
          */
-        public OutputResource createStringOutputResource(final String string,
+        public Source createStringSource(final String string,
                 final Charset charset) {
-            return new BufferOutputResource(
+            return new BufferSource(
                     Buffers.wrap(spdyStream.getSpdySession().getMemoryManager(),
                     string, charset), spdyStream);
         }
     }
     
     /**
-     * {@link OutputResource} implementation based on {@link File}.
+     * {@link Source} implementation based on {@link File}.
      */
-    private static class FileOutputResource extends OutputResource {
+    private static class FileSource extends Source {
 
         private boolean isClosed;
         private final FileInputStream fis;
@@ -206,7 +206,7 @@ public abstract class OutputResource {
         
         private long fileLengthRemaining;
         
-        protected FileOutputResource(final File file,
+        protected FileSource(final File file,
                 final SpdyStream spdyStream)
                 throws FileNotFoundException {
             fileLengthRemaining = file.length();
@@ -228,7 +228,7 @@ public abstract class OutputResource {
         public Buffer read(int length) throws SpdyStreamException {
             if (isClosed) {
                 throw new SpdyStreamException(spdyStream.getStreamId(),
-                        RstStreamFrame.INTERNAL_ERROR, "The resource was closed");
+                        RstStreamFrame.INTERNAL_ERROR, "The source was closed");
             }
             
             if (fileLengthRemaining == 0) {
@@ -288,16 +288,16 @@ public abstract class OutputResource {
     }
     
     /**
-     * {@link OutputResource} implementation based on {@link Buffer}.
+     * {@link Source} implementation based on {@link Buffer}.
      */
-    private static class BufferOutputResource extends OutputResource {
+    private static class BufferSource extends Source {
         private boolean isClosed;
         
         private Buffer buffer;
 
         private final SpdyStream spdyStream;
         
-        protected BufferOutputResource(final Buffer buffer,
+        protected BufferSource(final Buffer buffer,
                 final SpdyStream spdyStream) {
             
             this.buffer = buffer;
@@ -313,7 +313,7 @@ public abstract class OutputResource {
         public Buffer read(final int length) throws SpdyStreamException {
             if (isClosed) {
                 throw new SpdyStreamException(spdyStream.getStreamId(),
-                        RstStreamFrame.INTERNAL_ERROR, "The resource was closed");
+                        RstStreamFrame.INTERNAL_ERROR, "The source was closed");
             }
             
             final int remaining = buffer.remaining();
@@ -344,9 +344,9 @@ public abstract class OutputResource {
     }
     
     /**
-     * {@link OutputResource} implementation based on byte array.
+     * {@link Source} implementation based on byte array.
      */
-    private static class ByteArrayOutputResource extends OutputResource {
+    private static class ByteArraySource extends Source {
         private boolean isClosed;
         
         private final byte[] array;
@@ -355,7 +355,7 @@ public abstract class OutputResource {
         
         private final SpdyStream spdyStream;
         
-        protected ByteArrayOutputResource(final byte[] array,
+        protected ByteArraySource(final byte[] array,
                 final int offs, final int len, final SpdyStream spdyStream) {
             
             this.array = array;
@@ -374,7 +374,7 @@ public abstract class OutputResource {
         public Buffer read(final int length) throws SpdyStreamException {
             if (isClosed) {
                 throw new SpdyStreamException(spdyStream.getStreamId(),
-                        RstStreamFrame.INTERNAL_ERROR, "The resource was closed");
+                        RstStreamFrame.INTERNAL_ERROR, "The source was closed");
             }
             
             if (length == 0 || remaining == 0) {

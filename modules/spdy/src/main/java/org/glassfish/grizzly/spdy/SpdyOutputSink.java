@@ -140,7 +140,7 @@ final class SpdyOutputSink {
             AggregatingLifeCycleHandler lifeCycleHandler =
                     outputQueueRecord.lifeCycleHandler;
             boolean isLast = outputQueueRecord.isLast;
-            final OutputResource resource = outputQueueRecord.resource;
+            final Source resource = outputQueueRecord.resource;
             
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
@@ -338,8 +338,8 @@ final class SpdyOutputSink {
                 }
 
                 outputQueueRecord = new OutputQueueRecord(
-                        OutputResource.factory(spdyStream)
-                            .createBufferOutputResource(data),
+                        Source.factory(spdyStream)
+                            .createBufferSource(data),
                         aggrCompletionHandler, aggrLifeCycleHandler, isLast);
                 // Should be called before flushing headerFrame, so
                 // AggregatingCompletionHanlder will not pass completed event to the parent
@@ -382,8 +382,8 @@ final class SpdyOutputSink {
                         data, fitWindowLen);
                 // Create output record for the chunk to be stored
                 outputQueueRecord = new OutputQueueRecord(
-                        OutputResource.factory(spdyStream)
-                            .createBufferOutputResource(dataChunkToStore),
+                        Source.factory(spdyStream)
+                            .createBufferSource(dataChunkToStore),
                         aggrCompletionHandler, aggrLifeCycleHandler, isLast);
                 outputQueueRecord.incCompletionCounter();
                 // reset completion handler and isLast for the current chunk
@@ -447,17 +447,17 @@ final class SpdyOutputSink {
     }
     
     /**
-     * Send an {@link OutputResource} to the {@link SpdyStream}.
+     * Send the data represented by the {@link Source} to the {@link SpdyStream}.
      * Unlike {@link #writeDownStream(org.glassfish.grizzly.http.HttpPacket)}, here
      * we assume the resource is going to be send on non-commited header and
      * it will be the only resource sent over this {@link SpdyStream} (isLast flag will be set).
      * 
      * The writeDownStream(...) methods have to be synchronized with shutdown().
      * 
-     * @param resource {@link OutputResource} to send
+     * @param source {@link Source} to send
      * @throws IOException 
      */
-    synchronized void writeDownStream(final OutputResource resource)
+    synchronized void writeDownStream(final Source source)
             throws IOException {
 
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
@@ -483,7 +483,7 @@ final class SpdyOutputSink {
             // do we expect any HTTP payload?
             final boolean isNoContent =
                     !httpHeader.isExpectContent() ||
-                    resource == null || !resource.hasRemaining();
+                    source == null || !source.hasRemaining();
 
             // encode HTTP packet header
             if (!httpHeader.isRequest()) {
@@ -523,7 +523,7 @@ final class SpdyOutputSink {
                 return;
             }
 
-            final int dataSize = resource.remaining();
+            final int dataSize = source.remaining();
 
             if (dataSize == 0) {
                 close();
@@ -542,12 +542,12 @@ final class SpdyOutputSink {
             // if there is a chunk to store
             if (fitWindowLen < dataSize) {
                 // Create output record for the chunk to be stored
-                outputQueueRecord = new OutputQueueRecord(resource,
+                outputQueueRecord = new OutputQueueRecord(source,
                         null, null, true);
                 isLast = false;
             }
 
-            final Buffer bufferToSend = resource.read(fitWindowLen);
+            final Buffer bufferToSend = source.read(fitWindowLen);
             
             spdyStream.onDataFrameSend();
 
@@ -759,7 +759,7 @@ final class SpdyOutputSink {
 
                 boolean isLast = outputQueueRecord.isLast;
                 
-                final OutputResource currentResource = outputQueueRecord.resource;
+                final Source currentResource = outputQueueRecord.resource;
                 
                 final int fitWindowLen = checkOutputWindow(currentResource.remaining());
                 final Buffer dataChunkToSend = currentResource.read(fitWindowLen);
@@ -803,13 +803,13 @@ final class SpdyOutputSink {
     }
 
     private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult>{
-        private OutputResource resource;
+        private Source resource;
         private AggregatingCompletionHandler aggrCompletionHandler;
         private AggregatingLifeCycleHandler lifeCycleHandler;
         
         private boolean isLast;
         
-        public OutputQueueRecord(final OutputResource resource,
+        public OutputQueueRecord(final Source resource,
                 final AggregatingCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean isLast) {
@@ -833,7 +833,7 @@ final class SpdyOutputSink {
             }
         }
 
-        private void reset(final OutputResource resource,
+        private void reset(final Source resource,
                 final AggregatingCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean last) {
