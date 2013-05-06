@@ -490,7 +490,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
 
         prepareIncomingRequest(spdyStream, spdyRequest);
-        spdyStream.onSynFrameCome();
+        spdyStream.onSynFrameRcv();
         
         if (!isUnidirectional) {
             // Bidirectional syn stream will be transformed to HTTP request packet
@@ -610,7 +610,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             frame.recycle();
         }
 
-        spdyStream.onSynFrameCome();
+        spdyStream.onSynFrameRcv();
         
         bind(spdyRequest, spdyResponse);
         sendUpstream(spdySession, spdyStream, spdyResponse, !isFin);

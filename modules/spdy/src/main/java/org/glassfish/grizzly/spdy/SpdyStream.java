@@ -360,8 +360,6 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     /**
      * Notify the SpdyStream that peer sent RST_FRAME.
-     * 
-     * @param termination the reason
      */
     void resetRemotely() {
         if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
@@ -453,7 +451,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         }
     }
 
-    void onSynFrameCome() throws SpdyStreamException {
+    void onSynFrameRcv() throws SpdyStreamException {
         if (!isSynFrameCame) {
             isSynFrameCame = true;
         } else {
