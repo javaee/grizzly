@@ -52,7 +52,6 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.spdy.Constants;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -74,7 +73,7 @@ public final class CompressedHeadersBuilder {
      */
     public static Deflater createSpdyDeflater() {
         final Deflater deflater = new Deflater();
-        deflater.setDictionary(Constants.SPDY_ZLIB_DICTIONARY);
+        org.glassfish.grizzly.spdy.compression.Utils.setSpdyCompressionDictionary(deflater);
         
         return deflater;
     }
@@ -257,15 +256,14 @@ public final class CompressedHeadersBuilder {
             }
             
             dataOutput.flush();
+            deflaterOutput.closeStreamOnly();
             
             return deflaterOutput.checkpoint();
-        } catch (IOException e) {
+        } finally {
             try {
                 dataOutput.close();
             } catch (IOException ignored) {
             }
-            
-            throw e;
         }
     }
 }

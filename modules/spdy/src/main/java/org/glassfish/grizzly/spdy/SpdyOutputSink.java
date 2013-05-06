@@ -619,12 +619,6 @@ final class SpdyOutputSink {
     
     private void writeDownStream(final SpdyFrame frame,
             final CompletionHandler<WriteResult> completionHandler,
-            final boolean isLast) {
-        writeDownStream(frame, completionHandler, null, isLast);
-    }
-
-    private void writeDownStream(final SpdyFrame frame,
-            final CompletionHandler<WriteResult> completionHandler,
             final LifeCycleHandler lifeCycleHandler,
             final boolean isLast) {
         writeDownStream0(frame, completionHandler, lifeCycleHandler);

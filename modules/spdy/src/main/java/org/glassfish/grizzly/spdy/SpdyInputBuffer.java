@@ -154,7 +154,10 @@ final class SpdyInputBuffer {
             passPayloadUpstream(inputElement, inputQueueSize.get());
         } else {
             // if "expect more input" switch is off - enqueue the element
-            inputQueue.offer(inputElement);
+            if (!inputQueue.offer(inputElement)) {
+                // Should never happen, but findbugs complains
+                throw new IllegalStateException("New element can't be added");
+            }
             inputQueueSize.incrementAndGet();
             
             final int readyBuffersCount = inputQueueSize.get();

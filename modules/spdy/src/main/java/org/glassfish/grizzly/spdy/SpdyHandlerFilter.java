@@ -301,7 +301,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             if (spdyStream == null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "DataFrame came for unexisting stream: connection={0}, frame={1}, stream={2}",
-                            new Object[]{context.getConnection(), frame, spdyStream});
+                            new Object[]{context.getConnection(), frame, frame.getHeader().getStreamId()});
                 }
                 
                 frame.recycle();
@@ -625,32 +625,28 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         final SpdySession spdySession = checkSpdySession(ctx, false);
 
-        if (spdySession != null) {
-            if (HttpPacket.isHttp(message)) {
+        if (HttpPacket.isHttp(message)) {
 
-                // Get HttpPacket
-                final HttpPacket httpPacket = ctx.getMessage();
-                final HttpHeader httpHeader = httpPacket.getHttpHeader();
+            // Get HttpPacket
+            final HttpPacket httpPacket = ctx.getMessage();
+            final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
-                if (httpHeader.isRequest()) {
-                    processOutgoingRequest(ctx, spdySession,
-                            (HttpRequestPacket) httpHeader, httpPacket);
-                } else {
-                    processOutgoingResponse(ctx, spdySession,
-                            (HttpResponsePacket) httpHeader, httpPacket);
-                }
-                
+            if (httpHeader.isRequest()) {
+                processOutgoingRequest(ctx, spdySession,
+                        (HttpRequestPacket) httpHeader, httpPacket);
             } else {
-                final TransportContext transportContext = ctx.getTransportContext();
-                spdySession.writeDownStream(message,
-                        transportContext.getCompletionHandler(),
-                        transportContext.getLifeCycleHandler());
+                processOutgoingResponse(ctx, spdySession,
+                        (HttpResponsePacket) httpHeader, httpPacket);
             }
-            
-            return ctx.getStopAction();
+
+        } else {
+            final TransportContext transportContext = ctx.getTransportContext();
+            spdySession.writeDownStream(message,
+                    transportContext.getCompletionHandler(),
+                    transportContext.getLifeCycleHandler());
         }
 
-        return ctx.getInvokeAction();
+        return ctx.getStopAction();
     }
 
     @SuppressWarnings("unchecked")
@@ -659,24 +655,40 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final HttpRequestPacket request,
             final HttpPacket entireHttpPacket) throws IOException {
 
-        final boolean isNewStream = !request.isCommitted();
         
-        if (isNewStream) {
+        if (!request.isCommitted()) {
             prepareOutgoingRequest(request);
-            spdySession.getNewClientStreamLock().lock();
         }
+
+        final SpdyStream spdyStream = SpdyStream.getSpdyStream(request);
+        
+        if (spdyStream == null) {
+            processOutgoingRequestForNewStream(ctx, spdySession, request,
+                    entireHttpPacket);
+        } else {
+            final TransportContext transportContext = ctx.getTransportContext();
+
+            spdyStream.writeDownStream(entireHttpPacket,
+                    transportContext.getCompletionHandler(),
+                    transportContext.getLifeCycleHandler());
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void processOutgoingRequestForNewStream(final FilterChainContext ctx,
+            final SpdySession spdySession,
+            final HttpRequestPacket request,
+            final HttpPacket entireHttpPacket) throws IOException {
+
+        
+        final ReentrantLock newStreamLock = spdySession.getNewClientStreamLock();
+        newStreamLock.lock();
         
         try {
-            SpdyStream spdyStream = SpdyStream.getSpdyStream(request);
-
-            if (spdyStream == null) {
-                spdyStream = spdySession.openStream(
-                        request,
-                        spdySession.getNextLocalStreamId(),
-                        0, 0, 0, false, !request.isExpectContent());
-            }
-
-            assert spdyStream != null;
+            final SpdyStream spdyStream = spdySession.openStream(
+                    request,
+                    spdySession.getNextLocalStreamId(),
+                    0, 0, 0, false, !request.isExpectContent());
 
             final TransportContext transportContext = ctx.getTransportContext();
 
@@ -685,9 +697,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     transportContext.getLifeCycleHandler());
 
         } finally {
-            if (isNewStream) {
-                spdySession.getNewClientStreamLock().unlock();
-            }
+            newStreamLock.unlock();
         }
     }
     
