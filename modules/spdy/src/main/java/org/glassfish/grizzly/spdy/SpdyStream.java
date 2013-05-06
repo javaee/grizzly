@@ -80,8 +80,9 @@ import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 /**
- *
- * @author oleksiys
+ * The abstraction representing SPDY stream.
+ * 
+ * @author Grizzly team
  */
 public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public static final String SPDY_STREAM_ATTRIBUTE = SpdyStream.class.getName();
