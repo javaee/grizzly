@@ -142,6 +142,11 @@
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
             <version>${project.version}</version>
             <!-- These dependencies aren't needed in the client case.  Only
