@@ -961,34 +961,34 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
     private void pushAssociatedResoureses(final SpdyStream spdyStream)
             throws IOException {
-        final Map<String, PushData> pushDataMap =
+        final Map<String, PushResource> pushResourceMap =
                 spdyStream.getAssociatedResourcesToPush();
         
-        if (pushDataMap != null) {           
+        if (pushResourceMap != null) {           
             final SpdySession spdySession = spdyStream.getSpdySession();
             final ReentrantLock lock = spdySession.getNewClientStreamLock();
             lock.lock();
             
             try {
-                for (Map.Entry<String, PushData> entry : pushDataMap.entrySet()) {
-                    final PushData pushData = entry.getValue();
-                    final OutputResource outputResource =
-                            pushData.getOutputResource();
+                for (Map.Entry<String, PushResource> entry : pushResourceMap.entrySet()) {
+                    final PushResource pushResource = entry.getValue();
+                    final Source source =
+                            pushResource.getSource();
                     
                     final SpdyRequest spdyRequest = SpdyRequest.create();
                     final HttpResponsePacket spdyResponse = spdyRequest.getResponse();
                     
                     spdyRequest.setRequestURI(entry.getKey());
-                    spdyResponse.setStatus(pushData.getStatusCode());
+                    spdyResponse.setStatus(pushResource.getStatusCode());
                     spdyResponse.setProtocol(Protocol.HTTP_1_1);
-                    spdyResponse.setContentType(pushData.getContentType());
+                    spdyResponse.setContentType(pushResource.getContentType());
                     
-                    if (outputResource != null) {
-                        spdyResponse.setContentLengthLong(outputResource.remaining());
+                    if (source != null) {
+                        spdyResponse.setContentLengthLong(source.remaining());
                     }
                     
                     // Add extra headers if any
-                    final Map<String, String> extraHeaders = pushData.getHeaders();
+                    final Map<String, String> extraHeaders = pushResource.getHeaders();
                     if (extraHeaders != null) {
                         for (Map.Entry<String, String> headerEntry : extraHeaders.entrySet()) {
                             spdyResponse.addHeader(headerEntry.getKey(), headerEntry.getValue());
@@ -1000,13 +1000,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                 spdyRequest,
                                 spdySession.getNextLocalStreamId(),
                                 spdyStream.getStreamId(),
-                                pushData.getPriority(),
+                                pushResource.getPriority(),
                                 0,
                                 true,
                                 false);
                         prepareOutgoingResponse(spdyResponse);
                         
-                        pushStream.writeDownStream(outputResource);
+                        pushStream.writeDownStream(source);
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE,
                                 "Can not push: " + entry.getKey(), e);

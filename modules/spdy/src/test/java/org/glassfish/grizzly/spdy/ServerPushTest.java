@@ -114,8 +114,8 @@ public class ServerPushTest extends AbstractSpdyTest {
         doTestPushResource(new TestResourceFactory() {
 
             @Override
-            public OutputResource create(final SpdyStream spdyStream) throws IOException {
-                return OutputResource.factory(spdyStream).createFileOutputResource(tmpFile);
+            public Source create(final SpdyStream spdyStream) throws IOException {
+                return Source.factory(spdyStream).createFileSource(tmpFile);
             }
         }, data);
     }
@@ -127,9 +127,8 @@ public class ServerPushTest extends AbstractSpdyTest {
         doTestPushResource(new TestResourceFactory() {
 
             @Override
-            public OutputResource create(final SpdyStream spdyStream) {
-                return OutputResource.factory(spdyStream).
-                        createByteArrayOutputResource(testPayload);
+            public Source create(final SpdyStream spdyStream) {
+                return Source.factory(spdyStream).createByteArraySource(testPayload);
             }
         }, testPayload);
     }
@@ -141,9 +140,8 @@ public class ServerPushTest extends AbstractSpdyTest {
         doTestPushResource(new TestResourceFactory() {
 
             @Override
-            public OutputResource create(final SpdyStream spdyStream) {
-                return OutputResource.factory(spdyStream).
-                        createBufferOutputResource(Buffers.wrap(
+            public Source create(final SpdyStream spdyStream) {
+                return Source.factory(spdyStream).createBufferSource(Buffers.wrap(
                         spdyStream.getSpdySession().getMemoryManager(), testPayload));
             }
         }, testPayload);
@@ -156,9 +154,8 @@ public class ServerPushTest extends AbstractSpdyTest {
         doTestPushResource(new TestResourceFactory() {
 
             @Override
-            public OutputResource create(final SpdyStream spdyStream) {
-                return OutputResource.factory(spdyStream).
-                        createStringOutputResource(new String(testPayload,
+            public Source create(final SpdyStream spdyStream) {
+                return Source.factory(spdyStream).createStringSource(new String(testPayload,
                         org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET));
             }
         }, testPayload);
@@ -190,18 +187,18 @@ public class ServerPushTest extends AbstractSpdyTest {
             public void service(final Request request, final Response response) throws Exception {
                 final SpdyStream spdyStream =
                         (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
-                final PushData.PushDataBuilder pushDataBuilder = PushData.builder()
+                final PushResource.PushResourceBuilder pushResourceBuilder = PushResource.builder()
                         .contentType("image/png")
                         .statusCode(200, "PUSH")
-                        .outputResource(resourceFactory.create(spdyStream));
+                        .source(resourceFactory.create(spdyStream));
 
                 if (hasExtraHeader) {
-                    pushDataBuilder.header(extraHeaderName, extraHeaderValue);
+                    pushResourceBuilder.header(extraHeaderName, extraHeaderValue);
                 }
 
                 spdyStream.addPushResource(
                         "https://localhost:7070/getimages/push",
-                        pushDataBuilder.build());
+                        pushResourceBuilder.build());
 
                 response.setStatus(200, "DONE");
             }
@@ -349,7 +346,7 @@ public class ServerPushTest extends AbstractSpdyTest {
         protected TestResourceFactory() {
         }
         
-        public abstract OutputResource create(final SpdyStream spdyStream)
+        public abstract Source create(final SpdyStream spdyStream)
                 throws IOException;
     }
 }

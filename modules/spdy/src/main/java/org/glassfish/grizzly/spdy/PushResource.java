@@ -49,12 +49,12 @@ import org.glassfish.grizzly.http.util.HttpStatus;
  * SPDY unidirectional stream will be used in order to push this data.
  * 
  * The {@link #builder()} has to be used in order to
- * create a <tt>PushData</tt> instance.
+ * create a <tt>PushResource</tt> instance.
  * 
  * @author Alexey Stashok.
  */
-public final class PushData {
-    private OutputResource resource;
+public final class PushResource {
+    private Source resource;
     
     private int priority;
     
@@ -64,17 +64,17 @@ public final class PushData {
 
     private Map<String, String> headers;
     
-    public static PushDataBuilder builder() {
-        return new PushDataBuilder();
+    public static PushResourceBuilder builder() {
+        return new PushResourceBuilder();
     }
     
-    private PushData() {
+    private PushResource() {
     }
 
     /**
-     * Returns the {@link OutputResource} to be pushed.
+     * Returns the {@link Source} to be pushed.
      */
-    public OutputResource getOutputResource() {
+    public Source getSource() {
         return resource;
     }
 
@@ -108,19 +108,19 @@ public final class PushData {
     }
     
     /**
-     * PushData builder to be used to create {@link PushData} instance.
+     * PushResource builder to be used to create {@link PushResource} instance.
      */
-    public static class PushDataBuilder {
-        private final PushData pushData = new PushData();
+    public static class PushResourceBuilder {
+        private final PushResource pushResource = new PushResource();
         
         /**
-         * Sets the {@link OutputResource} to be pushed.
-         * @param resource the {@link OutputResource} to be pushed.
+         * Sets the {@link Source} to be pushed.
+         * @param source the {@link Source} to be pushed.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder outputResource(final OutputResource resource) {
-            pushData.resource = resource;
+        public PushResourceBuilder source(final Source source) {
+            pushResource.resource = source;
             return this;
         }
         
@@ -128,10 +128,10 @@ public final class PushData {
          * Sets the SPDY stream priority to be used.
          * @param priority the SPDY stream priority to be used.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder priority(final int priority) {
-            pushData.priority = priority;
+        public PushResourceBuilder priority(final int priority) {
+            pushResource.priority = priority;
             return this;
         }
         
@@ -139,10 +139,10 @@ public final class PushData {
          * Sets the {@link HttpStatus} to be pushed along with the resource.
          * @param statusCode the {@link HttpStatus} to be pushed along with the resource.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder statusCode(final HttpStatus statusCode) {
-            pushData.statusCode = statusCode;
+        public PushResourceBuilder statusCode(final HttpStatus statusCode) {
+            pushResource.statusCode = statusCode;
             return this;
         }
         
@@ -150,10 +150,10 @@ public final class PushData {
          * Sets the HTTP status to be pushed along with the resource.
          * @param statusCode the HTTP status to be pushed along with the resource.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder statusCode(final int statusCode) {
-            pushData.statusCode = HttpStatus.getHttpStatus(statusCode);
+        public PushResourceBuilder statusCode(final int statusCode) {
+            pushResource.statusCode = HttpStatus.getHttpStatus(statusCode);
             return this;
         }
 
@@ -162,11 +162,11 @@ public final class PushData {
          * @param statusCode the HTTP status to be pushed along with the resource.
          * @param reasonPhrase the HTTP status reason phrase to be pushed along with the resource.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder statusCode(final int statusCode,
+        public PushResourceBuilder statusCode(final int statusCode,
                 final String reasonPhrase) {
-            pushData.statusCode =
+            pushResource.statusCode =
                     HttpStatus.newHttpStatus(statusCode, reasonPhrase);
             return this;
         }
@@ -175,10 +175,10 @@ public final class PushData {
          * Sets the push data content-type.
          * @param contentType the push data content-type.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder contentType(final String contentType) {
-            pushData.contentType = contentType;
+        public PushResourceBuilder contentType(final String contentType) {
+            pushResource.contentType = contentType;
             return this;
         }
 
@@ -187,14 +187,14 @@ public final class PushData {
          * @param name the header name.
          * @param value the header value.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder header(final String name, final String value) {
-            if (pushData.headers == null) {
-                pushData.headers = new HashMap<String, String>(4);
+        public PushResourceBuilder header(final String name, final String value) {
+            if (pushResource.headers == null) {
+                pushResource.headers = new HashMap<String, String>(4);
             }
             
-            pushData.headers.put(name, value);
+            pushResource.headers.put(name, value);
             return this;
         }
         
@@ -203,22 +203,22 @@ public final class PushData {
          * @param name the header name.
          * @param value the header value.
          * 
-         * @return {@link PushDataBuilder}.
+         * @return {@link PushResourceBuilder}.
          */
-        public PushDataBuilder header(final Header name, final String value) {
-            if (pushData.headers == null) {
-                pushData.headers = new HashMap<String, String>(4);
+        public PushResourceBuilder header(final Header name, final String value) {
+            if (pushResource.headers == null) {
+                pushResource.headers = new HashMap<String, String>(4);
             }
             
-            pushData.headers.put(name.toString(), value);
+            pushResource.headers.put(name.toString(), value);
             return this;
         }
         
         /**
-         * Returns the {@link PushData} instance.
+         * Returns the {@link PushResource} instance.
          */
-        public PushData build() {
-            return pushData;
+        public PushResource build() {
+            return pushResource;
         }
     }
 }

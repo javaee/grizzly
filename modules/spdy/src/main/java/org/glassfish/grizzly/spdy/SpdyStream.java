@@ -125,7 +125,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     // flag, which is indicating if SynStream or SynReply frames have already come for this SpdyStream
     private boolean isSynFrameCame;
     
-    private Map<String, PushData> associatedResourcesToPush;
+    private Map<String, PushResource> associatedResourcesToPush;
     private Set<SpdyStream> associatedSpdyStreams;
         
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
@@ -193,17 +193,17 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return spdyRequest.getResponse();
     }
     
-    public PushData addPushResource(final String url,
-            final PushData pushResource) {
+    public PushResource addPushResource(final String url,
+            final PushResource pushResource) {
         
         if (associatedResourcesToPush == null) {
-            associatedResourcesToPush = new HashMap<String, PushData>();
+            associatedResourcesToPush = new HashMap<String, PushResource>();
         }
         
         return associatedResourcesToPush.put(url, pushResource);
     }
 
-    public PushData removePushResource(final String url) {
+    public PushResource removePushResource(final String url) {
         
         if (associatedResourcesToPush == null) {
             return null;
@@ -294,7 +294,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         outputSink.writeDownStream(httpPacket);
     }
     
-    void writeDownStream(final OutputResource resource) throws IOException {
+    void writeDownStream(final Source resource) throws IOException {
         outputSink.writeDownStream(resource);
     }
 
@@ -533,7 +533,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 spdyRequest;
     }
     
-    final Map<String, PushData> getAssociatedResourcesToPush() {
+    final Map<String, PushResource> getAssociatedResourcesToPush() {
         return associatedResourcesToPush;
     }
     
