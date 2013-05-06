@@ -232,7 +232,7 @@ public class SpdyAddOn implements AddOn {
     } // END SpdyTransportProbe
 
 
-    protected final class ProtocolNegotiator implements ServerSideNegotiator {
+    protected static final class ProtocolNegotiator implements ServerSideNegotiator {
 
         private static final String HTTP11 = "http/1.1";
         private static final String SPDY3 = "spdy/3";

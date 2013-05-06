@@ -70,18 +70,21 @@ public class SpdyDeflaterOutputStream extends OutputStream {
     /** true if {@link #close()} has been called. */
     private boolean closed = false;
     
+    private boolean isUsingOwnDeflater;
+    
     public SpdyDeflaterOutputStream(final MemoryManager mm,
-            final int level,
-            final byte[] dictionary) {
+            final int level) {
         this.mm = mm;
         this.deflater = new Deflater(level);
-        deflater.setDictionary(dictionary);
+        Utils.setSpdyCompressionDictionary(deflater);
+        isUsingOwnDeflater = true;
     }
 
     public SpdyDeflaterOutputStream(final MemoryManager mm,
             final Deflater deflater) {
         this.mm = mm;
         this.deflater = deflater;
+        isUsingOwnDeflater = false;
     }
 
     /**
@@ -288,6 +291,13 @@ public class SpdyDeflaterOutputStream extends OutputStream {
     }
     
     /**
+     * Closes the stream, but doesn't finishes the internal {@link Deflater}.
+     */
+    public void closeStreamOnly() {
+        closed = true;
+    }
+    
+    /**
      * Writes any remaining uncompressed data to the output stream and closes
      * the underlying output stream.
      *
@@ -297,7 +307,9 @@ public class SpdyDeflaterOutputStream extends OutputStream {
     public void close() throws IOException {
         if (!closed) {
             finish();
-            deflater.end();
+            if (isUsingOwnDeflater) {
+                deflater.end();
+            }
             closed = true;
         }
     }

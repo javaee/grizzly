@@ -60,7 +60,7 @@ import org.glassfish.grizzly.utils.Charsets;
  * 
  * @author Grizzly team
  */
-public class SpdyDecoderUtils {
+class SpdyDecoderUtils {
     private final static Logger LOGGER = Grizzly.logger(SpdyDecoderUtils.class);
 
     static void processSynStreamHeadersArray(final SpdyRequest spdyRequest,

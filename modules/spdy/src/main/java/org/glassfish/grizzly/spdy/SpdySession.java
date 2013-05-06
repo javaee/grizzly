@@ -103,7 +103,7 @@ final class SpdySession {
 
     private final ReentrantLock newClientStreamLock = new ReentrantLock();
     
-    private FilterChain upstreamChain;
+    private volatile FilterChain upstreamChain;
     private volatile FilterChain downstreamChain;
     
     private Map<Integer, SpdyStream> streamsMap =
@@ -244,8 +244,7 @@ final class SpdySession {
     SpdyInflaterOutputStream getInflaterOutputStream() {
         if (inflaterOutputStream == null) {
             inflaterOutputStream = new SpdyInflaterOutputStream(
-                    getMemoryManager(),
-                    Constants.SPDY_ZLIB_DICTIONARY);
+                    getMemoryManager());
         }
         
         return inflaterOutputStream;
@@ -271,8 +270,7 @@ final class SpdySession {
         if (deflaterOutputStream == null) {
             deflaterOutputStream = new SpdyDeflaterOutputStream(
                     getMemoryManager(),
-                    deflaterCompressionLevel,
-                    Constants.SPDY_ZLIB_DICTIONARY);
+                    deflaterCompressionLevel);
         }
         
         return deflaterOutputStream;
@@ -493,8 +491,7 @@ final class SpdySession {
         upstreamContext.setMessage(message);
         upstreamContext.setAddressHolder(addressHolder);
 
-        HttpContext httpContext = HttpContext.newInstance(upstreamContext,
-                spdyStream, spdyStream, spdyStream);
+        HttpContext.newInstance(upstreamContext, spdyStream, spdyStream, spdyStream);
         ProcessorExecutor.execute(upstreamContext.getInternalContext());
     }
 

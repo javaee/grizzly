@@ -57,8 +57,6 @@ public class SpdyInflaterOutputStream extends OutputStream {
 
     private final Inflater inflater;
     private final MemoryManager mm;
-    private final byte[] dictionary;
-    
     private final byte[] tmpBA = new byte[1];
     
     private CompositeBuffer compositeBuffer;
@@ -73,11 +71,9 @@ public class SpdyInflaterOutputStream extends OutputStream {
     /** true if {@link #close()} has been called. */
     private boolean closed = false;
     
-    public SpdyInflaterOutputStream(final MemoryManager mm,
-            final byte[] dictionary) {
+    public SpdyInflaterOutputStream(final MemoryManager mm) {
         this.mm = mm;
         this.inflater = new Inflater();
-        this.dictionary = dictionary;
     }
 
     /**
@@ -171,11 +167,7 @@ public class SpdyInflaterOutputStream extends OutputStream {
                     break;
                 }
                 if (inflater.needsDictionary()) {
-                    if (dictionary != null) {
-                        inflater.setDictionary(dictionary);
-                    } else {
-                        throw new ZipException("ZLIB dictionary missing");
-                    }
+                    Utils.setSpdyCompressionDictionary(inflater);
                 }
             }
         } catch (DataFormatException ex) {

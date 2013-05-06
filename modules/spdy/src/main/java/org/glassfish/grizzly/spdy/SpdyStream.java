@@ -232,6 +232,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     public boolean isLocallyInitiatedStream() {
+        assert streamId > 0;
+        
         return spdySession.isServer() ?
                 (streamId % 2) == 0 :
                 (streamId % 2) == 1;
