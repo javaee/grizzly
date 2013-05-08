@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -364,37 +364,26 @@ public class HttpSemanticsTest extends TestCase {
         
         List<HttpContent> request = Arrays.asList(chunk1, chunk2);
         
-        final String testMsg = "0\r\nHello0\r\nWorld";
-        
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
-        result.addHeader("Connection", "close");
+        result.addHeader("!Connection", "close");
         result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("Content-Length", "0");
         result.setStatusMessage("ok");
-        result.appendContent(testMsg);
+        result.appendContent("");
         doTest(new ClientFilter(request, result, 1000), new BaseFilter() {
-            int counter = 0;
-            
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
                 final HttpContent requestContent = ctx.getMessage();
                 HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 
-                final Buffer payload = requestContent.getContent().duplicate();
-                counter += payload.remaining();
+                final Buffer payload = requestContent.getContent();
                 
                 HttpContent responseContent = response.httpContentBuilder().
-                        content(payload).build();
-                // Setting last flag to false to make sure HttpServerFilter will not
-                // add content-length header
+                        content(payload).last(requestContent.isLast()).build();
                 ctx.write(responseContent);
-
-                if (counter == testMsg.length()) {
-                    ctx.flush(new FlushAndCloseHandler());
-                }
-                
                 return ctx.getStopAction();
             }
         });

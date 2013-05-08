@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,6 +63,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.http.Method.PayloadExpectation;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk.Type;
 
@@ -645,10 +646,13 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         final Method method = request.getMethod();
-
-        if (Method.GET.equals(method)
-                || Method.HEAD.equals(method)) {
-            request.setExpectContent(false);
+        
+        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
+        if (payloadExpectation != Method.PayloadExpectation.NOT_ALLOWED) {
+            request.setExpectContent(
+                    request.getContentLength() != -1 || request.isChunked());
+        } else {
+            request.setExpectContent(method == Method.CONNECT);
         }
 
         if (request.getHeaderParsingState().contentLengthsDiffer) {

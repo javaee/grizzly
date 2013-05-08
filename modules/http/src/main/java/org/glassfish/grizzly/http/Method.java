@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,20 +49,36 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public final class Method {
-    public static final Method OPTIONS = new Method("OPTIONS");
-    public static final Method GET = new Method("GET");
-    public static final Method HEAD = new Method("HEAD");
-    public static final Method POST = new Method("POST");
-    public static final Method PUT = new Method("PUT");
-    public static final Method DELETE = new Method("DELETE");
-    public static final Method TRACE = new Method("TRACE");
-    public static final Method CONNECT = new Method("CONNECT");
-    public static final Method PATCH = new Method("PATCH");
+    public enum PayloadExpectation {ALLOWED, NOT_ALLOWED, UNDEFINED};
+
+    public static final Method OPTIONS =
+            new Method("OPTIONS", PayloadExpectation.ALLOWED);
+    public static final Method GET =
+            new Method("GET", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+    public static final Method HEAD =
+            new Method("HEAD", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+    public static final Method POST
+            = new Method("POST", PayloadExpectation.ALLOWED);
+    public static final Method PUT
+            = new Method("PUT", PayloadExpectation.ALLOWED);
+    public static final Method DELETE
+            = new Method("DELETE", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+    public static final Method TRACE
+            = new Method("TRACE", PayloadExpectation.NOT_ALLOWED);
+    public static final Method CONNECT
+            = new Method("CONNECT", PayloadExpectation.NOT_ALLOWED);
+    public static final Method PATCH
+            = new Method("PATCH", PayloadExpectation.ALLOWED);
 
     public static Method CUSTOM(final String methodName) {
-        return new Method(methodName);
+        return CUSTOM(methodName, PayloadExpectation.ALLOWED);
     }
 
+    public static Method CUSTOM(final String methodName,
+            final PayloadExpectation payloadExpectation) {
+        return new Method(methodName, payloadExpectation);
+    }
+    
     /**
      * @deprecated pls. use {@link #valueOf(org.glassfish.grizzly.http.util.DataChunk)}.
      */
@@ -119,15 +135,21 @@ public final class Method {
     }
 
     private final String methodString;
-    private byte[] methodBytes;
+    private final byte[] methodBytes;
 
-    private Method(final String methodString) {
+    private final PayloadExpectation payloadExpectation;
+    
+    private Method(final String methodString,
+            final PayloadExpectation payloadExpectation) {
         this.methodString = methodString;
         try {
             this.methodBytes = methodString.getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException ignored) {
-            this.methodBytes = methodString.getBytes();
+        } catch (UnsupportedEncodingException e) {
+            // Should never get here
+            throw new IllegalStateException(e);
         }
+        
+        this.payloadExpectation = payloadExpectation;
     }
 
     public String getMethodString() {
@@ -136,6 +158,10 @@ public final class Method {
 
     public byte[] getMethodBytes() {
         return methodBytes;
+    }
+
+    public PayloadExpectation getPayloadExpectation() {
+        return payloadExpectation;
     }
 
     @Override
