@@ -63,6 +63,7 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -132,15 +133,16 @@ final class SpdySession {
     }
     
     private final Holder<?> addressHolder;
-    
-    public SpdySession(final Connection connection) {
-        this(connection, true);
-    }
+
+    final SpdyHandlerFilter handlerFilter;
+
     
     public SpdySession(final Connection<?> connection,
-            final boolean isServer) {
+                       final boolean isServer,
+                       final SpdyHandlerFilter handlerFilter) {
         this.connection = connection;
         this.isServer = isServer;
+        this.handlerFilter = handlerFilter;
         
         if (isServer) {
             lastLocalStreamId = 0;
@@ -468,12 +470,34 @@ final class SpdySession {
     private boolean isClosed() {
         return closeFlag != null;
     }
-    
+
+    void sendMessageUpstreamWithParseNotify(final SpdyStream spdyStream,
+                                            final HttpContent httpContent) {
+        final FilterChainContext upstreamContext =
+                        upstreamChain.obtainFilterChainContext(connection);
+        handlerFilter.onHttpContentParsed(httpContent, upstreamContext);
+        final HttpHeader header = httpContent.getHttpHeader();
+        if (httpContent.isLast()) {
+            handlerFilter.onHttpPacketParsed(header, upstreamContext);
+        }
+
+        if (header.isSkipRemainder()) {
+            return;
+        }
+
+        sendMessageUpstream(spdyStream, httpContent, upstreamContext);
+    }
+
     void sendMessageUpstream(final SpdyStream spdyStream,
-            final HttpPacket message) {
-        
+                             final HttpPacket message) {
         final FilterChainContext upstreamContext =
                 upstreamChain.obtainFilterChainContext(connection);
+        sendMessageUpstream(spdyStream, message, upstreamContext);
+    }
+
+    private void sendMessageUpstream(final SpdyStream spdyStream,
+                                     final HttpPacket message,
+                                     final FilterChainContext upstreamContext) {
 
         upstreamContext.getInternalContext().setIoEvent(IOEvent.READ,
                 new IOEventProcessingHandler.Adapter() {

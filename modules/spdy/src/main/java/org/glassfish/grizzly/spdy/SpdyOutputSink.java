@@ -50,6 +50,7 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -199,9 +200,10 @@ final class SpdyOutputSink {
      * @param httpPacket {@link HttpPacket} to send
      * @throws IOException 
      */
-    public synchronized void writeDownStream(final HttpPacket httpPacket)
-            throws IOException {
-        writeDownStream(httpPacket, null);
+    public synchronized void writeDownStream(final HttpPacket httpPacket,
+                                             final FilterChainContext ctx)
+    throws IOException {
+        writeDownStream(httpPacket, ctx, null);
     }
     
     /**
@@ -215,9 +217,10 @@ final class SpdyOutputSink {
      * @throws IOException 
      */
     public synchronized void writeDownStream(final HttpPacket httpPacket,
-            final CompletionHandler<WriteResult> completionHandler)
-            throws IOException {
-        writeDownStream(httpPacket, completionHandler, null);
+                                             final FilterChainContext ctx,
+                                             final CompletionHandler<WriteResult> completionHandler)
+    throws IOException {
+        writeDownStream(httpPacket, ctx, completionHandler, null);
     }
 
     /**
@@ -234,9 +237,10 @@ final class SpdyOutputSink {
      * @throws IOException 
      */
     synchronized <E> void writeDownStream(final HttpPacket httpPacket,
-            CompletionHandler<WriteResult> completionHandler,
-            MessageCloner<WritableMessage> messageCloner)
-            throws IOException {
+                                          final FilterChainContext ctx,
+                                          CompletionHandler<WriteResult> completionHandler,
+                                          MessageCloner<WritableMessage> messageCloner)
+    throws IOException {
         
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated()) {
@@ -288,6 +292,9 @@ final class SpdyOutputSink {
                             associatedStreamId(spdyStream.getAssociatedToStreamId()).
                             unidirectional(spdyStream.isUnidirectional()).
                             last(isNoContent).compressedHeaders(compressedHeaders).build();
+                    if (ctx != null) {
+                        spdySession.handlerFilter.onHttpHeadersEncoded(httpHeader, ctx);
+                    }
                 }
 
                 isDeflaterLocked = true;
@@ -312,6 +319,10 @@ final class SpdyOutputSink {
             boolean isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
             final int dataSize = data.remaining();
+
+            if (ctx != null) {
+                spdySession.handlerFilter.onHttpContentEncoded(httpContent, ctx);
+            }
 
             if (isLast && dataSize == 0) {
                 close();
@@ -445,8 +456,8 @@ final class SpdyOutputSink {
     
     /**
      * Send the data represented by the {@link Source} to the {@link SpdyStream}.
-     * Unlike {@link #writeDownStream(org.glassfish.grizzly.http.HttpPacket)}, here
-     * we assume the resource is going to be send on non-commited header and
+     * Unlike {@link #writeDownStream(org.glassfish.grizzly.http.HttpPacket, org.glassfish.grizzly.filterchain.FilterChainContext)} ,
+     * here we assume the resource is going to be send on non-commited header and
      * it will be the only resource sent over this {@link SpdyStream} (isLast flag will be set).
      * 
      * The writeDownStream(...) methods have to be synchronized with shutdown().
@@ -581,7 +592,9 @@ final class SpdyOutputSink {
      * The returned integer value is the size of the data, which could be
      * sent now.
      * 
-     * @param data the output queue data.
+     * @param size check the provided size against the window size limit.
+     *
+     * @return the amount of data that may be written.
      */
     private int checkOutputWindow(final int size) {
         // take a snapshot of the current output window state

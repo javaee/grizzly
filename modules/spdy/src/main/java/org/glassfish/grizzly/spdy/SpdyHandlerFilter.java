@@ -285,11 +285,185 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         return ctx.getStopAction();
     }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    /**
+     * Callback method, called when {@link HttpPacket} parsing has been completed.
+     *
+     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
+     * @param ctx        processing context.
+     * @return <code>true</code> if an error has occurred while processing
+     *         the header portion of the HTTP request, otherwise returns
+     *         <code>false</code>.
+     *
+     * @since 2.3.3
+     */
+    protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+        return false;
+    }
+
+
+    /**
+     * Callback invoked when the HTTP message header parsing is complete.
+     *
+     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
+     * @param buffer     {@link Buffer} the header was parsed from
+     * @param ctx        processing context.
+     * @return <code>true</code> if an error has occurred while processing
+     *         the header portion of the HTTP request, otherwise returns
+     *         <code>false</code>.
+     *
+     * @since 2.3.3
+     */
+    protected boolean onHttpHeaderParsed(HttpHeader httpHeader,
+                                         Buffer buffer,
+                                         FilterChainContext ctx) {
+        return false;
+    }
+
+
+    /**
+     * <p>
+     * Invoked when either the request line or status line has been parsed.
+     * <p/>
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onInitialLineParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
+    }
+
+
+    /**
+     * <p>
+     * Invoked when the intial response line has been  encoded in preparation
+     * to being transmitted to the user-agent.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onInitialLineEncoded(final HttpHeader httpHeader,
+                                        final FilterChainContext ctx) {
+    }
+
+
+    /**
+     * <p>
+     * Invoked when all headers of the packet have been parsed.  Depending on the
+     * transfer encoding being used by the current request, this method may be
+     * invoked multiple times.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
+    }
+
+
+    /**
+     * <p>
+     * Invoked when HTTP headers have been encoded in preparation to being
+     * transmitted to the user-agent.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpHeadersEncoded(final HttpHeader httpHeader,
+                                        final FilterChainContext ctx) {
+    }
+
+
+    /**
+     * <p>
+     * Invoked as request/response body content has been processed by this
+     * {@link org.glassfish.grizzly.filterchain.Filter}.
+     * </p>
+     *
+     * @param content request/response body content
+     * @param ctx     processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpContentParsed(final HttpContent content,
+                                       final FilterChainContext ctx) {
+    }
+
+    /**
+     * <p>
+     * Invoked when a HTTP body chunk has been encoded in preparation to being
+     * transmitted to the user-agent.
+     * </p>
+     *
+     * @param content {@link HttpContent}, which represents HTTP packet header
+     * @param ctx     processing context.
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpContentEncoded(final HttpContent content,
+                                        final FilterChainContext ctx) {
+    }
+
+
+    /**
+     * <p>
+     * Callback which is invoked when parsing an HTTP message header fails.
+     * The processing logic has to take care about error handling and following
+     * connection closing.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        the {@link FilterChainContext} processing this request
+     * @param t          the cause of the error
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpHeaderError(final HttpHeader httpHeader,
+                                     final FilterChainContext ctx,
+                                     final Throwable t) throws IOException {
+    }
+
+    /**
+     * <p>
+     * Callback which is invoked when parsing an HTTP message payload fails.
+     * The processing logic has to take care about error handling and following
+     * connection closing.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx        the {@link FilterChainContext} processing this request
+     * @param t          the cause of the error
+     *
+     * @since 2.3.3
+     */
+    protected void onHttpContentError(HttpHeader httpHeader,
+                                      FilterChainContext ctx,
+                                      Throwable t) throws IOException {
+    }
+
+
+    // --------------------------------------------------------- Private Methods
     
     private void processInFrame(final SpdySession spdySession,
                                 final FilterChainContext context,
                                 final SpdyFrame frame)
-            throws SpdyStreamException, SpdySessionException, IOException {
+     throws SpdyStreamException, SpdySessionException, IOException {
 
         if (frame.isService()) {
             processServiceFrame(spdySession, (ServiceFrame) frame);
@@ -300,7 +474,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             
             if (spdyStream == null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "DataFrame came for unexisting stream: connection={0}, frame={1}, stream={2}",
+                    LOGGER.log(Level.FINE, "Data frame received for non-existent stream: connection={0}, frame={1}, stream={2}",
                             new Object[]{context.getConnection(), frame, frame.getHeader().getStreamId()});
                 }
                 
@@ -313,7 +487,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     spdyStream.isLocallyInitiatedStream()) {
                 throw new SpdyStreamException(spdyStream.getStreamId(),
                         RstStreamFrame.PROTOCOL_ERROR,
-                        "Data frame came on unidirectional stream");
+                        "Data frame received on unidirectional stream");
             }
             
             processDataFrame(spdyStream, frame);
@@ -322,8 +496,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void processControlFrame(final SpdySession spdySession,
-            final FilterChainContext context, final SpdyFrame frame)
-            throws SpdyStreamException, SpdySessionException, IOException {
+                                     final FilterChainContext context,
+                                     final SpdyFrame frame)
+     throws SpdyStreamException, SpdySessionException, IOException {
 
         switch (frame.getHeader().getType()) {
             case SynStreamFrame.TYPE: {
@@ -382,7 +557,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 final StringBuilder sb = new StringBuilder(64);
                 sb.append("\nStream id=")
                         .append(streamId)
-                        .append(" was not found. Ignoring the message");
+                        .append(" was not found. Ignoring the message.");
                 LOGGER.fine(sb.toString());
             }
         }
@@ -484,7 +659,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 spdyRequest.recycle();
                 return;
             }
-            decodeHeaders(spdyRequest, spdyStream, synStreamFrame);
+            decodeHeaders(spdyRequest, spdyStream, synStreamFrame, context);
         } finally {
             frame.recycle();
         }
@@ -520,9 +695,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
 
     private void decodeHeaders(final HttpHeader httpHeader,
-            final SpdyStream spdyStream,
-            final HeadersProviderFrame headersProviderFrame)
-            throws IOException {
+                               final SpdyStream spdyStream,
+                               final HeadersProviderFrame headersProviderFrame,
+                               final FilterChainContext ctx)
+    throws IOException {
         
         final SpdyInflaterOutputStream inflaterOutputStream =
                 spdyStream.getSpdySession().getInflaterOutputStream();
@@ -548,19 +724,29 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 }
             }
         } else {
-            if (decodedHeaders.hasArray()) {
-                processSynReplyHeadersArray((SpdyResponse) httpHeader,
-                        decodedHeaders);
-            } else {
-                processSynReplyHeadersBuffer((SpdyResponse) httpHeader,
-                        decodedHeaders);
+            try {
+                if (decodedHeaders.hasArray()) {
+                    processSynReplyHeadersArray((SpdyResponse) httpHeader,
+                            decodedHeaders,
+                            ctx,
+                            this);
+                } else {
+                    processSynReplyHeadersBuffer((SpdyResponse) httpHeader,
+                            decodedHeaders,
+                            ctx,
+                            this);
+                }
+            } catch (Exception e) {
+                onHttpHeaderError(httpHeader, ctx, e);
+                throw (RuntimeException) e;
             }
         }
     }
     
     private void processSynReply(final SpdySession spdySession,
-            final FilterChainContext context, final SpdyFrame frame)
-            throws SpdySessionException, IOException {
+                                 final FilterChainContext context,
+                                 final SpdyFrame frame)
+    throws SpdySessionException, IOException {
 
         SynReplyFrame synReplyFrame = (SynReplyFrame) frame;
 
@@ -580,7 +766,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         if (spdyStream.isUnidirectional()) {
             throw new SpdyStreamException(streamId, RstStreamFrame.PROTOCOL_ERROR,
-                    "SynReply came on unidirectional stream");
+                    "SynReply received on unidirectional stream");
         }
         
         final HttpRequestPacket spdyRequest = spdyStream.getSpdyRequest();
@@ -605,14 +791,18 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
         
         try {
-            decodeHeaders(spdyResponse, spdyStream, synReplyFrame);
+            decodeHeaders(spdyResponse, spdyStream, synReplyFrame, context);
         } finally {
             frame.recycle();
         }
 
         spdyStream.onSynFrameRcv();
-        
         bind(spdyRequest, spdyResponse);
+
+        if (isFin) {
+            onHttpPacketParsed(spdyResponse, context);
+        }
+
         sendUpstream(spdySession, spdyStream, spdyResponse, !isFin);
     }
 
@@ -669,8 +859,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final TransportContext transportContext = ctx.getTransportContext();
 
             spdyStream.writeDownStream(entireHttpPacket,
-                    transportContext.getCompletionHandler(),
-                    transportContext.getMessageCloner());
+                                       ctx,
+                                       transportContext.getCompletionHandler(),
+                                       transportContext.getMessageCloner());
         }
     }
     
@@ -693,8 +884,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             final TransportContext transportContext = ctx.getTransportContext();
 
             spdyStream.writeDownStream(entireHttpPacket,
-                    transportContext.getCompletionHandler(),
-                    transportContext.getMessageCloner());
+                                       ctx,
+                                       transportContext.getCompletionHandler(),
+                                       transportContext.getMessageCloner());
 
         } finally {
             newStreamLock.unlock();
@@ -718,8 +910,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final TransportContext transportContext = ctx.getTransportContext();
 
         spdyStream.writeDownStream(entireHttpPacket,
-                transportContext.getCompletionHandler(),
-                transportContext.getMessageCloner());
+                                   ctx,
+                                   transportContext.getCompletionHandler(),
+                                   transportContext.getMessageCloner());
     }
     
     private void processServiceFrame(
@@ -804,10 +997,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
      * @param connection
      * @return 
      */
-    private SpdySession createSpdySession(final Connection connection,
+    protected SpdySession createSpdySession(final Connection connection,
             final boolean isServer) {
         
-        final SpdySession spdySession = new SpdySession(connection, isServer);
+        final SpdySession spdySession = new SpdySession(connection, isServer, this);
         spdySession.setLocalInitialWindowSize(initialWindowSize);
         spdySession.setLocalMaxConcurrentStreams(maxConcurrentStreams);
         
@@ -1018,6 +1211,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
     }
 
+
+    // ---------------------------------------------------------- Nested Classes
+
+
     private static class ClientNpnNegotiator implements ClientSideNegotiator {
         
         private static final String SPDY3_PROTOCOL = "spdy/3";
@@ -1052,5 +1249,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         new Object[]{connection});
             }
         }
-    }    
+    }
+
 }
