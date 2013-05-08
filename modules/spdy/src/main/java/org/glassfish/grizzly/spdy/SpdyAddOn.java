@@ -220,10 +220,7 @@ public class SpdyAddOn implements AddOn {
         public void onBeforeStartEvent(Transport transport) {
             FilterChain transportFilterChain = transport.getFilterChain();
             FilterChainBuilder builder = FilterChainBuilder.stateless();
-            for (int i = 0, len = transportFilterChain.size(); i < len; i++) {
-                builder.add(transportFilterChain.get(i));
-            }
-            
+            builder.addAll(transportFilterChain);
             updateFilterChain(SpdyMode.NPN, builder);
             NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
                     new ProtocolNegotiator(builder.build()));

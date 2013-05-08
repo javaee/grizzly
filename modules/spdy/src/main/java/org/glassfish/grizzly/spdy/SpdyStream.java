@@ -66,6 +66,7 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -123,7 +124,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     volatile boolean isProcessingComplete;
     
     // flag, which is indicating if SynStream or SynReply frames have already come for this SpdyStream
-    private boolean isSynFrameCame;
+    private boolean isSynFrameRcv;
     
     private Map<String, PushResource> associatedResourcesToPush;
     private Set<SpdyStream> associatedSpdyStreams;
@@ -281,7 +282,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     void writeDownStream(final HttpPacket httpPacket) throws IOException {
-        outputSink.writeDownStream(httpPacket);
+        outputSink.writeDownStream(httpPacket, null);
     }
     
     void writeDownStream(final Source resource) throws IOException {
@@ -289,17 +290,19 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     void writeDownStream(final HttpPacket httpPacket,
-            final CompletionHandler<WriteResult> completionHandler)
-            throws IOException {
-        outputSink.writeDownStream(httpPacket, completionHandler);
+                         final FilterChainContext ctx,
+                         final CompletionHandler<WriteResult> completionHandler)
+    throws IOException {
+        outputSink.writeDownStream(httpPacket, ctx, completionHandler);
     }
     
     @SuppressWarnings("unchecked")
     void writeDownStream(final HttpPacket httpPacket,
+                         final FilterChainContext ctx,
             final CompletionHandler<WriteResult> completionHandler,
             final LifeCycleHandler lifeCycleHandler)
             throws IOException {
-        outputSink.writeDownStream(httpPacket, completionHandler,
+        outputSink.writeDownStream(httpPacket, ctx, completionHandler,
                 lifeCycleHandler);
     }
 
@@ -452,8 +455,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     void onSynFrameRcv() throws SpdyStreamException {
-        if (!isSynFrameCame) {
-            isSynFrameCame = true;
+        if (!isSynFrameRcv) {
+            isSynFrameRcv = true;
         } else {
             inputBuffer.close(UNEXPECTED_FRAME_TERMINATION);
             throw new SpdyStreamException(getStreamId(),
@@ -466,7 +469,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     void offerInputData(final Buffer data, final boolean isLast)
             throws SpdyStreamException {
-        if (!isSynFrameCame) {
+        if (!isSynFrameRcv) {
             close(null, true);
             
             throw new SpdyStreamException(getStreamId(),

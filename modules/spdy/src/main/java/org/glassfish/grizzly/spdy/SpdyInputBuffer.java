@@ -214,7 +214,7 @@ final class SpdyInputBuffer {
             // build HttpContent based on payload
             final HttpContent content = buildHttpContent(payload);
             // send it upstream
-            spdySession.sendMessageUpstream(spdyStream, content);
+            spdySession.sendMessageUpstreamWithParseNotify(spdyStream, content);
         } catch (IOException e) {
             // Should never be thrown
             LOGGER.log(Level.WARNING, "Unexpected IOException: {0}", e.getMessage());

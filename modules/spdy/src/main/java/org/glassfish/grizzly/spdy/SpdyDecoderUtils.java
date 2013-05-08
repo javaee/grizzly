@@ -42,7 +42,10 @@ package org.glassfish.grizzly.spdy;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Protocol;
@@ -152,7 +155,8 @@ class SpdyDecoderUtils {
     }
 
     private static int processServiceSynStreamHeader(final SpdyRequest spdyRequest,
-            final byte[] headersArray, final int position) {
+                                                     final byte[] headersArray,
+                                                     final int position) {
 
         final int nameSize = getInt(headersArray, position);
         final int valueSize = getInt(headersArray, position + nameSize + 4);
@@ -513,7 +517,9 @@ class SpdyDecoderUtils {
     }
     
     private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
-            final byte[] headersArray, final int position) {
+                                                    final byte[] headersArray,
+                                                    final int position,
+                                                    final InitialLineParsingState state) {
 
         final int nameSize = getInt(headersArray, position);
         final int valueSize = getInt(headersArray, position + nameSize + 4);
@@ -535,7 +541,8 @@ class SpdyDecoderUtils {
                     spdyResponse.setStatus(Ascii.parseInt(headersArray,
                                                           valueStart,
                                                           3));
-                    
+                    state.statusCodeParsed();
+
                     final int reasonPhraseIdx =
                             HttpCodecUtils.skipSpaces(headersArray,
                             valueStart + 3, valueEnd, valueEnd);
@@ -550,6 +557,7 @@ class SpdyDecoderUtils {
                         spdyResponse.getReasonPhraseRawDC().setBytes(
                                 headersArray, reasonPhraseIdx, reasonPhraseEnd);
                     }
+                    state.reasonPhraseParsed();
                     
                     return valueEnd;
                 }
@@ -562,6 +570,7 @@ class SpdyDecoderUtils {
                         Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyResponse.setProtocol(Protocol.valueOf(headersArray,
                             valueStart, valueEnd - valueStart));
+                    state.protocolParsed();
 
                     return valueEnd;
                 }
@@ -577,7 +586,8 @@ class SpdyDecoderUtils {
 
     private static int processServiceSynReplyHeader(final SpdyResponse spdyResponse,
                                                     final Buffer buffer,
-                                                    int position) {
+                                                    int position,
+                                                    final InitialLineParsingState state) {
 
         final int nameSize = buffer.getInt(position);
         final int valueSize = buffer.getInt(position + nameSize + 4);
@@ -596,6 +606,7 @@ class SpdyDecoderUtils {
                     }
 
                     spdyResponse.setStatus(Ascii.parseInt(buffer, valueStart, 3));
+                    state.statusCodeParsed();
 
                     final int reasonPhraseIdx =
                             HttpCodecUtils.skipSpaces(buffer, valueStart + 3, valueEnd);
@@ -610,6 +621,7 @@ class SpdyDecoderUtils {
                         spdyResponse.getReasonPhraseRawDC().setBuffer(
                                 buffer, reasonPhraseIdx, reasonPhraseEnd);
                     }
+                    state.reasonPhraseParsed();
 
                     return valueEnd;
                 }
@@ -622,7 +634,7 @@ class SpdyDecoderUtils {
                         Constants.VERSION_HEADER_BYTES, 1)) {
                     spdyResponse.setProtocol(Protocol.valueOf(buffer,
                             valueStart, valueEnd - valueStart));
-
+                    state.protocolParsed();
                     return valueEnd;
                 }
             }
@@ -635,39 +647,60 @@ class SpdyDecoderUtils {
         return valueEnd;
     }
     
-    static void processSynReplyHeadersArray(SpdyResponse spdyResponse, Buffer decoded) {
+    static void processSynReplyHeadersArray(final SpdyResponse spdyResponse,
+                                            final Buffer decoded,
+                                            final FilterChainContext ctx,
+                                            final SpdyHandlerFilter handlerFilter) {
         final byte[] headersArray = decoded.array();
         int position = decoded.arrayOffset() + decoded.position();
 
         final int headersCount = getInt(headersArray, position);
         position += 4;
 
-        for (int i = 0; i < headersCount; i++) {
+        InitialLineParsingState state = InitialLineParsingState.create();
+
+        for (int i = 0; i < headersCount && !spdyResponse.isSkipRemainder(); i++) {
             final boolean isServiceHeader = (headersArray[position + 4] == ':');
 
             if (isServiceHeader) {
-                position = processServiceSynReplyHeader(spdyResponse, headersArray, position);
+                position = processServiceSynReplyHeader(spdyResponse, headersArray, position, state);
+                if (state != null && state.isParseComplete()) {
+                    handlerFilter.onInitialLineParsed(spdyResponse, ctx);
+                    state.recycle();
+                    state = null;
+                }
             } else {
                 position = processNormalHeader(spdyResponse, headersArray, position);
             }
         }
+        handlerFilter.onHttpHeadersParsed(spdyResponse, ctx);
     }
 
-    static void processSynReplyHeadersBuffer(SpdyResponse spdyResponse, Buffer decoded) {
+    static void processSynReplyHeadersBuffer(final SpdyResponse spdyResponse,
+                                             final Buffer decoded,
+                                             final FilterChainContext ctx,
+                                             final SpdyHandlerFilter handlerFilter) {
         int position = decoded.position();
 
         final int headersCount = decoded.getInt(position);
         position += 4;
 
-        for (int i = 0; i < headersCount; i++) {
+        InitialLineParsingState state = InitialLineParsingState.create();
+
+        for (int i = 0; i < headersCount && !spdyResponse.isSkipRemainder(); i++) {
             final boolean isServiceHeader = (decoded.get(position + 4) == ':');
 
             if (isServiceHeader) {
-                position = processServiceSynReplyHeader(spdyResponse, decoded, position);
+                position = processServiceSynReplyHeader(spdyResponse, decoded, position, state);
+                if (state != null && state.isParseComplete()) {
+                    handlerFilter.onInitialLineParsed(spdyResponse, ctx);
+                    state = null;
+                }
             } else {
                 position = processNormalHeader(spdyResponse, decoded, position);
             }
         }
+        handlerFilter.onHttpHeadersParsed(spdyResponse, ctx);
     }
     
     
@@ -851,5 +884,57 @@ class SpdyDecoderUtils {
         }
 
         return -1;
-    }    
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static final class InitialLineParsingState implements Cacheable {
+
+        private static final ThreadCache.CachedTypeIndex<InitialLineParsingState> CACHE_IDX =
+                ThreadCache.obtainIndex(InitialLineParsingState.class, 8);
+
+        private byte parseState;
+
+
+        // --------------------------------------------- Package Private Methods
+
+
+        static InitialLineParsingState create() {
+            InitialLineParsingState state = ThreadCache.getFromCache(CACHE_IDX);
+            if (state == null) {
+                state = new InitialLineParsingState();
+            }
+            return state;
+        }
+
+
+        void protocolParsed() {
+            parseState |= (1 << 2);
+        }
+
+        void reasonPhraseParsed() {
+            parseState |= (1 << 1);
+        }
+
+        void statusCodeParsed() {
+            parseState |= 1;
+        }
+
+        boolean isParseComplete() {
+            return parseState == 0x7;
+        }
+
+
+        // ---------------------------------------------- Methods from Cacheable
+
+
+        @Override
+        public void recycle() {
+            parseState = 0;
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
+    }
+
 }
