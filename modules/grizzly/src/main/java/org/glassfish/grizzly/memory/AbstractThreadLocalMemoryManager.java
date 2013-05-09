@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,8 +41,7 @@ package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 
@@ -52,7 +51,8 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
  *
  * @since 2.0
  */
-public abstract class AbstractThreadLocalMemoryManager<E extends Buffer> implements MemoryManager<E>, ThreadLocalPoolProvider {
+public abstract class AbstractThreadLocalMemoryManager<E extends Buffer>
+        implements MemoryManager<E>, ThreadLocalPoolProvider {
 
 
     /**
@@ -67,11 +67,11 @@ public abstract class AbstractThreadLocalMemoryManager<E extends Buffer> impleme
      * only to implement the {@link #createJmxManagementObject()}  method
      * to plug into the Grizzly 2.0 JMX framework.
      */
-    protected final AbstractJmxMonitoringConfig<MemoryProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
+    protected final DefaultMonitoringConfig<MemoryProbe> monitoringConfig =
+            new DefaultMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
 
@@ -157,10 +157,10 @@ public abstract class AbstractThreadLocalMemoryManager<E extends Buffer> impleme
 
 
     /**
-     * @return the {@link JmxObject} used to register/deregister with the
+     * @return the JMX {@link Object} used to register/deregister with the
      *  JMX runtime.
      */
-    protected abstract JmxObject createJmxManagementObject();
+    protected abstract Object createJmxManagementObject();
 
 
     /**

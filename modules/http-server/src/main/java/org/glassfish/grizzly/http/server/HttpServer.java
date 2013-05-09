@@ -70,11 +70,11 @@ import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
+import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
 import org.glassfish.grizzly.memory.MemoryProbe;
+import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
@@ -123,7 +123,7 @@ public class HttpServer {
 
     protected volatile GrizzlyJmxManager jmxManager;
 
-    protected volatile JmxObject managementObject;
+    protected volatile Object managementObject;
 
 //    private volatile JmxObject serviceManagementObject;
 
@@ -328,11 +328,13 @@ public class HttpServer {
     }
 
 
-    public JmxObject getManagementObject(boolean clear) {
+    public Object getManagementObject(boolean clear) {
         if (!clear && managementObject == null) {
             synchronized (serverConfig) {
                 if (managementObject == null) {
-                    managementObject = new org.glassfish.grizzly.http.server.jmx.HttpServer(this);
+                    managementObject = MonitoringUtils.loadJmxObject(
+                            "org.glassfish.grizzly.http.server.jmx.HttpServer",
+                            this, HttpServer.class);
                 }
             }
         }

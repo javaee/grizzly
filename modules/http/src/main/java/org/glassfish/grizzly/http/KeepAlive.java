@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,25 +42,25 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.util.Constants;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * Web container configuration for keep-alive HTTP connections.
  * 
  * @author Alexey Stashok
  */
-public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
+public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
     /**
      * Keep alive probes
      */
-    protected final AbstractJmxMonitoringConfig<KeepAliveProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<KeepAliveProbe>(KeepAliveProbe.class) {
+    protected final DefaultMonitoringConfig<KeepAliveProbe> monitoringConfig =
+            new DefaultMonitoringConfig<KeepAliveProbe>(KeepAliveProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
 
@@ -130,12 +130,13 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<KeepAliveProbe> getMonitoringConfig() {
+    public MonitoringConfig<KeepAliveProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.http.jmx.KeepAlive(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.http.jmx.KeepAlive", this, KeepAlive.class);
     }
 
     /**

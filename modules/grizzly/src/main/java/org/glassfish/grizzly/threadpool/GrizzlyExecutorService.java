@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,21 +41,21 @@
 package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
 /**
  *
  * @author gustav trede
  */
 public class GrizzlyExecutorService extends AbstractExecutorService
-        implements JmxMonitoringAware<ThreadPoolProbe> {
+        implements MonitoringAware<ThreadPoolProbe> {
 
     private final Object statelock = new Object();
     private volatile AbstractThreadPool pool;
@@ -171,7 +171,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
+    public MonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
         return pool.getMonitoringConfig();
     }
 }

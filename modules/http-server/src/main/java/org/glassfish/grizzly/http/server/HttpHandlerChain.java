@@ -46,15 +46,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
-import org.glassfish.grizzly.http.server.jmx.Monitorable;
+import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
+import org.glassfish.grizzly.http.server.jmxbase.Monitorable;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -83,8 +82,8 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      */
     private final ConcurrentHashMap<HttpHandler, String[]> handlers =
             new ConcurrentHashMap<HttpHandler, String[]>();
-    private final ConcurrentHashMap<HttpHandler, JmxObject> monitors =
-            new ConcurrentHashMap<HttpHandler, JmxObject>();
+    private final ConcurrentHashMap<HttpHandler, Object> monitors =
+            new ConcurrentHashMap<HttpHandler, Object>();
     
     /**
      * Number of registered HttpHandlers
@@ -416,15 +415,14 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     private void registerJmxForHandler(final HttpHandler httpHandler) {
         final Monitorable monitorable = (Monitorable) httpHandler;
-        final JmxObject jmx = monitorable.createManagementObject();
+        final Object jmx = monitorable.createManagementObject();
         if (monitors.putIfAbsent(httpHandler, jmx) == null) {
-            httpServer.jmxManager.register(httpServer.managementObject, jmx,
-                    jmx.getJmxName());
+            httpServer.jmxManager.register(httpServer.managementObject, jmx);
         }
     }
 
     private void deregisterJmxForHandler(final HttpHandler httpHandler) {
-        final JmxObject jmx = monitors.remove(httpHandler);
+        final Object jmx = monitors.remove(httpHandler);
         if (jmx != null) {
             httpServer.jmxManager.deregister(jmx);
         }

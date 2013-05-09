@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,12 +42,12 @@ package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * The simple Buffer manager implementation, which works as wrapper above
@@ -330,7 +330,7 @@ public class ByteBufferManager extends AbstractThreadLocalMemoryManager<ByteBuff
     // ------- Monitoring section ----------------------
 
     @Override
-    public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
+    public MonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -340,8 +340,10 @@ public class ByteBufferManager extends AbstractThreadLocalMemoryManager<ByteBuff
      * @return the Memory Manager JMX management object.
      */
     @Override
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.memory.jmx.ByteBufferManager(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.memory.jmx.ByteBufferManager", this,
+                ByteBufferManager.class);
     }
 
     protected final ByteBuffer allocateByteBuffer0(final int size) {

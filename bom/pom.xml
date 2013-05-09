@@ -157,6 +157,22 @@
                 <artifactId>grizzly-httpservice</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- JMX monitoring modules -->
+            <dependency>
+                <groupId>org.glassfish.grizzly</groupId>
+                <artifactId>grizzly-framework-monitoring</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.grizzly</groupId>
+                <artifactId>grizzly-http-monitoring</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.grizzly</groupId>
+                <artifactId>grizzly-http-server-monitoring</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <!-- Bundles -->
             <dependency>
                 <groupId>org.glassfish.grizzly</groupId>

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,15 +41,15 @@ package org.glassfish.grizzly.memory;
 
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * TODO: Documentation
@@ -66,11 +66,11 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      * only to implement the {@link #createJmxManagementObject()}  method
      * to plug into the Grizzly 2.0 JMX framework.
      */
-    protected final AbstractJmxMonitoringConfig<MemoryProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
+    protected final DefaultMonitoringConfig<MemoryProbe> monitoringConfig =
+            new DefaultMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
 
                 @Override
-                public JmxObject createManagementObject() {
+                public Object createManagementObject() {
                     return createJmxManagementObject();
                 }
 
@@ -253,7 +253,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
+    public MonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -298,8 +298,11 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     // ------------------------------------------------------- Protected Methods
 
 
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.memory.jmx.PooledMemoryManager(this);
+    protected Object createJmxManagementObject() {
+        
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.memory.jmx.PooledMemoryManager", this,
+                PooledMemoryManager.class);
     }
 
 

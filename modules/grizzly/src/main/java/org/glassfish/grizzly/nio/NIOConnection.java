@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,7 +74,7 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
 
@@ -120,8 +120,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Connection probes
      */
-    protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
-        new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
+    protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
+        new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;

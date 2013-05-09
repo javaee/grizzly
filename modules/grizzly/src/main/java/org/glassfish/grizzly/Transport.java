@@ -48,9 +48,8 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
@@ -63,7 +62,7 @@ import org.glassfish.grizzly.utils.StateHolder;
  *
  * @author Alexey Stashok
  */
-public interface Transport extends JmxMonitoringAware<TransportProbe> {
+public interface Transport extends MonitoringAware<TransportProbe> {
 
     /**
      * The default read buffer size.  This value is used to determine
@@ -362,7 +361,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * Get the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    JmxMonitoringConfig<TransportProbe> getMonitoringConfig();
+    MonitoringConfig<TransportProbe> getMonitoringConfig();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.
