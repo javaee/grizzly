@@ -10,7 +10,7 @@
     and Distribution License("CDDL") (collectively, the "License").  You
     may not use this file except in compliance with the License.  You can
     obtain a copy of the License at
-    http://glassfish.java.net/public/CDDL+GPL_1_1.html
+    https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
     or packager/legal/LICENSE.txt.  See the License for the specific
     language governing permissions and limitations under the License.
 
@@ -40,6 +40,7 @@
     holder.
 
 -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -60,6 +61,20 @@
 
     <description>Grizzly Bill of Materials (BOM)</description>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.glassfish.copyright</groupId>
+                <artifactId>glassfish-copyright-maven-plugin</artifactId>
+                <version>1.39</version>
+                <configuration>
+                    <scm>git</scm>
+                    <scmOnly>true</scmOnly>
+                    <warn>false</warn>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <dependencyManagement>
         <dependencies>
             <dependency>
