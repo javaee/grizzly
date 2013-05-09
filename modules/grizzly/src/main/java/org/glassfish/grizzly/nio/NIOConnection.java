@@ -61,7 +61,7 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.Holder;
@@ -117,8 +117,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Connection probes
      */
-    protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
-        new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
+    protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
+        new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;

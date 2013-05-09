@@ -75,7 +75,7 @@ import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
@@ -84,7 +84,6 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.WorkerThread;
 
 /**
  * TCP Transport NIO implementation
@@ -1269,8 +1268,10 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.nio.transport.jmx.TCPNIOTransport(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.nio.transport.jmx.TCPNIOTransport", this,
+                TCPNIOTransport.class);
     }
 
     class RegisterChannelCompletionHandler

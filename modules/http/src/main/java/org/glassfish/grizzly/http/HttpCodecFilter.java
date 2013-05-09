@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,6 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
@@ -66,10 +65,10 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.ssl.SSLUtils;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -94,7 +93,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  * @author Alexey Stashok
  */
 public abstract class HttpCodecFilter extends HttpBaseFilter
-        implements JmxMonitoringAware<HttpProbe> {
+        implements MonitoringAware<HttpProbe> {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
@@ -125,11 +124,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     /**
      * File cache probes
      */
-    protected final AbstractJmxMonitoringConfig<HttpProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<HttpProbe>(HttpProbe.class) {
+    protected final DefaultMonitoringConfig<HttpProbe> monitoringConfig =
+            new DefaultMonitoringConfig<HttpProbe>(HttpProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
 
@@ -1825,12 +1824,14 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<HttpProbe> getMonitoringConfig() {
+    public MonitoringConfig<HttpProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.http.jmx.HttpCodecFilter(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.http.jmx.HttpCodecFilter", this,
+                HttpCodecFilter.class);
     }
 
     private boolean isResponseToHeadRequest(HttpHeader header) {

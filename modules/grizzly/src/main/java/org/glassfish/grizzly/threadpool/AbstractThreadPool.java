@@ -52,11 +52,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.threadpool.jmx.ThreadPool;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
@@ -65,7 +64,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
  * @author Alexey Stashok
  */
 public abstract class AbstractThreadPool extends AbstractExecutorService
-        implements Thread.UncaughtExceptionHandler, JmxMonitoringAware<ThreadPoolProbe> {
+        implements Thread.UncaughtExceptionHandler, MonitoringAware<ThreadPoolProbe> {
 
     private static final Logger logger = Grizzly.logger(AbstractThreadPool.class);
     // Min number of worker threads in a pool
@@ -127,11 +126,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     /**
      * ThreadPool probes
      */
-    protected final AbstractJmxMonitoringConfig<ThreadPoolProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class) {
+    protected final DefaultMonitoringConfig<ThreadPoolProbe> monitoringConfig =
+            new DefaultMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
 
@@ -471,7 +470,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
+    public MonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -485,8 +484,10 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     }
 
 
-    JmxObject createJmxManagementObject() {
-        return new ThreadPool(this);
+    Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.threadpool.jmx.ThreadPool", this, 
+                AbstractThreadPool.class);
     }
 
     protected final ThreadFactory getDefaultThreadFactory() {

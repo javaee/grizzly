@@ -528,6 +528,7 @@ public class StaticHttpHandler extends HttpHandler {
          */
         private boolean sendChunk() throws IOException {
             // allocate Buffer
+            // @TODO revisit this code and make it work w/ composite buffers
             final Buffer buffer = mm.allocate(chunkSize);
             // mark it available for disposal after content is written
             buffer.allowBufferDispose(true);

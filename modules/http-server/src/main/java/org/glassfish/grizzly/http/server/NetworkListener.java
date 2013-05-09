@@ -54,7 +54,7 @@ import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -741,8 +741,10 @@ public class NetworkListener {
             '}';
     }
 
-    public JmxObject createManagementObject() {
-        return new org.glassfish.grizzly.http.server.jmx.NetworkListener(this);
+    public Object createManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.http.server.jmx.NetworkListener",
+                this, NetworkListener.class);
     }
 
     public HttpServerFilter getHttpServerFilter() {

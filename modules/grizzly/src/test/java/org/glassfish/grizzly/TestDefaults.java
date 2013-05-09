@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.junit.BeforeClass;
@@ -51,6 +50,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -152,7 +152,7 @@ public class TestDefaults {
         }
 
         @Override
-        public JmxMonitoringConfig getMonitoringConfig() {
+        public MonitoringConfig getMonitoringConfig() {
             return null; 
         }
         

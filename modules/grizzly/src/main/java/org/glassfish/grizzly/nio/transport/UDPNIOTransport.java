@@ -59,7 +59,7 @@ import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
@@ -861,8 +861,10 @@ public final class UDPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.nio.transport.jmx.UDPNIOTransport(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.nio.transport.jmx.UDPNIOTransport", this,
+                UDPNIOTransport.class);
     }
 
     protected class RegisterChannelCompletionHandler

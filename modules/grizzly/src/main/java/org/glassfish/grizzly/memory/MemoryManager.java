@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
 
 /**
  * <tt>MemoryManager</tt>, responsible for allocating and releasing memory,
@@ -53,7 +53,7 @@ import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
  * @author Alexey Stashok
  */
 public interface MemoryManager<E extends Buffer>
-        extends JmxMonitoringAware<MemoryProbe> {
+        extends MonitoringAware<MemoryProbe> {
 
     /**
      * <p>

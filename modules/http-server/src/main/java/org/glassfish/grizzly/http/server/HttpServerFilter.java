@@ -47,7 +47,6 @@ import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -55,14 +54,9 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
-import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
@@ -73,12 +67,16 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.Header;
 
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * Filter implementation to provide high-level HTTP request/response processing.
  */
 public class HttpServerFilter extends BaseFilter
-        implements JmxMonitoringAware<HttpServerProbe> {
+        implements MonitoringAware<HttpServerProbe> {
 
 
 
@@ -95,11 +93,11 @@ public class HttpServerFilter extends BaseFilter
     /**
      * Web server probes
      */
-    protected final AbstractJmxMonitoringConfig<HttpServerProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<HttpServerProbe>(HttpServerProbe.class) {
+    protected final DefaultMonitoringConfig<HttpServerProbe> monitoringConfig =
+            new DefaultMonitoringConfig<HttpServerProbe>(HttpServerProbe.class) {
 
                 @Override
-                public JmxObject createManagementObject() {
+                public Object createManagementObject() {
                     return createJmxManagementObject();
                 }
 
@@ -278,7 +276,7 @@ public class HttpServerFilter extends BaseFilter
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<HttpServerProbe> getMonitoringConfig() {
+    public MonitoringConfig<HttpServerProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -286,8 +284,10 @@ public class HttpServerFilter extends BaseFilter
     // ------------------------------------------------------- Protected Methods
 
 
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.http.server.jmx.HttpServerFilter(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.http.server.jmx.HttpServerFilter",
+                this, HttpServerFilter.class);
     }
 
     protected void onTraceRequest(final Request request,

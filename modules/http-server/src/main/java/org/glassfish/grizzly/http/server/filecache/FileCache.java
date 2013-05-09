@@ -52,10 +52,6 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.File;
@@ -73,6 +69,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * This class implements a file caching mechanism used to cache static resources.
@@ -80,7 +80,7 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author Jeanfrancois Arcand
  * @author Scott Oaks
  */
-public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
+public class FileCache implements MonitoringAware<FileCacheProbe> {
     public enum CacheType {
         HEAP, MAPPED, TIMESTAMP
     }
@@ -160,11 +160,11 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     /**
      * File cache probes
      */
-    protected final AbstractJmxMonitoringConfig<FileCacheProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<FileCacheProbe>(FileCacheProbe.class) {
+    protected final DefaultMonitoringConfig<FileCacheProbe> monitoringConfig =
+            new DefaultMonitoringConfig<FileCacheProbe>(FileCacheProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
 
@@ -287,8 +287,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         notifyProbesEntryRemoved(this, entry);
     }
 
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.http.server.filecache.jmx.FileCache(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.http.server.filecache.jmx.FileCache",
+                this, FileCache.class);
     }
 
     /**
@@ -772,7 +774,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<FileCacheProbe> getMonitoringConfig() {
+    public MonitoringConfig<FileCacheProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 

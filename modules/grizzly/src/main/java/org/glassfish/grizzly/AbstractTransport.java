@@ -46,12 +46,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
@@ -138,11 +135,11 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport probes
      */
-    protected final AbstractJmxMonitoringConfig<TransportProbe> transportMonitoringConfig =
-            new AbstractJmxMonitoringConfig<TransportProbe>(TransportProbe.class) {
+    protected final DefaultMonitoringConfig<TransportProbe> transportMonitoringConfig =
+            new DefaultMonitoringConfig<TransportProbe>(TransportProbe.class) {
 
         @Override
-        public JmxObject createManagementObject() {
+        public Object createManagementObject() {
             return createJmxManagementObject();
         }
     };
@@ -150,14 +147,14 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Connection probes
      */
-    protected final MonitoringConfigImpl<ConnectionProbe> connectionMonitoringConfig =
-            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
+    protected final DefaultMonitoringConfig<ConnectionProbe> connectionMonitoringConfig =
+            new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
     
     /**
      * Thread pool probes
      */
-    protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig =
-            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+    protected final DefaultMonitoringConfig<ThreadPoolProbe> threadPoolMonitoringConfig =
+            new DefaultMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class);
 
     public AbstractTransport(String name) {
         this.name = name;
@@ -476,7 +473,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<TransportProbe> getMonitoringConfig() {
+    public MonitoringConfig<TransportProbe> getMonitoringConfig() {
         return transportMonitoringConfig;
     }
 
@@ -684,9 +681,9 @@ public abstract class AbstractTransport implements Transport {
     public abstract void resume() throws IOException;
 
     /**
-     * Create the Transport JMX managment object.
+     * Create the Transport JMX management object.
      *
-     * @return the Transport JMX managment object.
+     * @return the Transport JMX management object.
      */
-    protected abstract JmxObject createJmxManagementObject();
+    protected abstract Object createJmxManagementObject();
 }

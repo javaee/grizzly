@@ -44,7 +44,7 @@ import java.util.Queue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
@@ -101,7 +101,7 @@ public final class ThreadPoolConfig {
     /**
      * Thread pool probes
      */
-    protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
+    protected final DefaultMonitoringConfig<ThreadPoolProbe> threadPoolMonitoringConfig;
             
     
     private ThreadPoolConfig(
@@ -139,7 +139,7 @@ public final class ThreadPoolConfig {
         this.transactionTimeoutMillis = transactionTimeoutMillis;
         this.initialClassLoader = initialClassLoader;
         
-        threadPoolMonitoringConfig = new MonitoringConfigImpl<ThreadPoolProbe>(
+        threadPoolMonitoringConfig = new DefaultMonitoringConfig<ThreadPoolProbe>(
                 ThreadPoolProbe.class);
     }
 
@@ -157,7 +157,7 @@ public final class ThreadPoolConfig {
         this.initialClassLoader = cfg.initialClassLoader;
         
         this.threadPoolMonitoringConfig =
-                new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+                new DefaultMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class);
         
         final ThreadPoolProbe[] srcProbes = cfg.threadPoolMonitoringConfig.getProbesUnsafe();
         if (srcProbes != null) {
@@ -349,7 +349,7 @@ public final class ThreadPoolConfig {
         return this;
     }
 
-    public MonitoringConfigImpl<ThreadPoolProbe> getInitialMonitoringConfig() {
+    public DefaultMonitoringConfig<ThreadPoolProbe> getInitialMonitoringConfig() {
         return threadPoolMonitoringConfig;
     }
 

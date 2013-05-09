@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -50,6 +48,8 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
  * A {@link WrapperAware} {@link MemoryManager} implementation for
@@ -120,7 +120,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
+    public MonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -136,8 +136,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
      * {@inheritDoc}
      */
     @Override
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.memory.jmx.HeapMemoryManager(this);
+    protected Object createJmxManagementObject() {
+        return MonitoringUtils.loadJmxObject(
+                "org.glassfish.grizzly.memory.jmx.HeapMemoryManager", this,
+                HeapMemoryManager.class);
     }
 
 
