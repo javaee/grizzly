@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,8 +61,6 @@ package org.glassfish.grizzly.http.server.util;
 import org.glassfish.grizzly.http.util.Constants;
 import java.io.IOException;
 import java.util.logging.Level;
-import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
 
 import org.glassfish.grizzly.Grizzly;
 
@@ -71,6 +69,9 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.server.naming.DirContext;
+import org.glassfish.grizzly.http.server.naming.NamingContext;
+import org.glassfish.grizzly.http.server.naming.NamingException;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -292,7 +293,7 @@ public class Mapper {
      * @param resources Static resources of the context
      */
     public void setContext(String path, String[] welcomeResources,
-                           javax.naming.Context resources) {
+                           NamingContext resources) {
         context.name = path;
         context.welcomeResources = welcomeResources;
         context.resources = resources;
@@ -310,7 +311,7 @@ public class Mapper {
      */
     public void addContext
             (String hostName, String path, Object context,
-            String[] welcomeResources, javax.naming.Context resources) {
+            String[] welcomeResources, NamingContext resources) {
         addContext(hostName, path, context, welcomeResources, resources, null);
     }
 
@@ -327,7 +328,7 @@ public class Mapper {
      */
     public void addContext
             (String hostName, String path, Object context,
-            String[] welcomeResources, javax.naming.Context resources,
+            String[] welcomeResources, NamingContext resources,
             List<AlternateDocBase> alternateDocBases) {
 
         Host[] newHosts = hosts;
@@ -1894,7 +1895,7 @@ public class Mapper {
 
         public String path = null;
         public String[] welcomeResources = new String[0];
-        public javax.naming.Context resources = null;
+        public NamingContext resources = null;
         public List<AlternateDocBase> alternateDocBases = null;
         public Wrapper defaultWrapper = null;
         public Wrapper emptyPathWrapper = null;
