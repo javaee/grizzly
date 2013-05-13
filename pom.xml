@@ -61,14 +61,6 @@
         <system>JIRA</system>
         <url>http://java.net/jira/browse/GRIZZLY</url>
     </issueManagement>
-    <!--
-    <distributionManagement>
-        <site>
-          <id>www.yourcompany.com</id>
-          <url>scp://www.yourcompany.com/www/docs/project/</url>
-        </site>
-      </distributionManagement>
-    -->
     <mailingLists>
         <mailingList>
             <name>Grizzly Dev List</name>
