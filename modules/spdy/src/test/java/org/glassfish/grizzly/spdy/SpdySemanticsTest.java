@@ -129,20 +129,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
             
-            clientFilterChainBuilder.add(new BaseFilter() {
-                @Override
-                public NextAction handleRead(final FilterChainContext ctx)
-                        throws IOException {
-                    final Object msg = ctx.getMessage();
-                    if (msg instanceof List) {
-                        clientInQueue.addAll((List<SpdyFrame>) msg);
-                    } else {
-                        clientInQueue.offer((SpdyFrame) msg);
-                    }
-
-                    return ctx.getInvokeAction();
-                }
-            });
+            clientFilterChainBuilder.add(new RawClientFilter(clientInQueue));
             
             clientTransport.setProcessor(clientFilterChainBuilder.build());
 
@@ -221,21 +208,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
             
-            clientFilterChainBuilder.add(new BaseFilter() {
-                @Override
-                public NextAction handleRead(final FilterChainContext ctx) {
-                    final Object message = ctx.getMessage();
-                    if (message instanceof List) {
-                        final List<SpdyFrame> spdyFrames = (List<SpdyFrame>) message;
-                        clientInQueue.addAll(spdyFrames);
-                    } else {
-                        final SpdyFrame spdyFrame = (SpdyFrame) message;
-                        clientInQueue.offer(spdyFrame);
-                    }
-                    
-                    return ctx.getInvokeAction();
-                }
-            });
+            clientFilterChainBuilder.add(new RawClientFilter(clientInQueue));
             
             clientTransport.setProcessor(clientFilterChainBuilder.build());
 
@@ -867,15 +840,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             final FilterChainBuilder clientFilterChainBuilder =
                     createRawClientFilterChainAsBuilder();
             
-            clientFilterChainBuilder.add(new BaseFilter() {
-                @Override
-                public NextAction handleRead(final FilterChainContext ctx)
-                        throws IOException {
-                    final SpdyFrame packet = ctx.getMessage();
-                    clientQueue.add(packet);
-                    return ctx.getInvokeAction();
-                }
-            });
+            clientFilterChainBuilder.add(new RawClientFilter(clientQueue));
             
             clientTransport.setProcessor(clientFilterChainBuilder.build());
 
