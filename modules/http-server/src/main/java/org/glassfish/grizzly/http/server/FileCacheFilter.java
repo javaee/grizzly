@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,8 +49,9 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.Method;
 
 /**
@@ -81,8 +82,11 @@ public class FileCacheFilter extends BaseFilter {
             final HttpPacket response = fileCache.get(request);
             if (response != null) {
                 ctx.write(response);
-                final Connection connection = ctx.getConnection();
-                if (connection.canWrite()) {  // if connection write queue is not overloaded
+                final HttpContext httpContext = HttpContext.get(ctx);
+                assert httpContext != null;
+                final OutputSink output = httpContext.getOutputSink();
+                
+                if (output.canWrite()) {  // if connection write queue is not overloaded
                     return ctx.getStopAction();
                 } else { // if connection write queue is overloaded
 
@@ -91,7 +95,7 @@ public class FileCacheFilter extends BaseFilter {
                     ctx.suspend();
 
                     // notify when connection becomes writable, so we can resume it
-                    connection.notifyWritePossible(new WriteHandler() {
+                    output.notifyWritePossible(new WriteHandler() {
 
                         @Override
                         public void onWritePossible() throws Exception {

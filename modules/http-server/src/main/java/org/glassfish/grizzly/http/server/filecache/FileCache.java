@@ -401,11 +401,11 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
                     .last(true)
                     .build();
         } else {
-            response.setContentLength(0);
-            response.setChunked(false);
+            return HttpContent.builder(response)
+                    .content(Buffers.EMPTY_BUFFER)
+                    .last(true)
+                    .build();
         }
-
-        return response;
     }
 
     // ------------------------------------------------ Configuration Properties

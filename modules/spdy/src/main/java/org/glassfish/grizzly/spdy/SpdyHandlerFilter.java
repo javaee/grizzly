@@ -500,7 +500,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
             final boolean isExpectContent = spdyRequest.isExpectContent();
             if (!isExpectContent) {
-                spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
+                spdyStream.inputBuffer.terminate(IN_FIN_TERMINATION);
             }
 
             sendUpstream(spdySession, spdyStream, spdyRequest, isExpectContent);
@@ -601,7 +601,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final boolean isFin = synReplyFrame.isFlagSet(SynReplyFrame.FLAG_FIN);
         if (isFin) {
             spdyResponse.setExpectContent(false);
-            spdyStream.inputBuffer.close(IN_FIN_TERMINATION);
+            spdyStream.inputBuffer.terminate(IN_FIN_TERMINATION);
         }
         
         try {
@@ -895,6 +895,11 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     
     private void prepareOutgoingResponse(final HttpResponsePacket response) {
         response.setProtocol(Protocol.HTTP_1_1);
+
+        String contentType = response.getContentType();
+        if (contentType != null) {
+            response.getHeaders().setValue(Header.ContentType).setString(contentType);
+        }
 
         if (response.getContentLength() != -1) {
             // FixedLengthTransferEncoding will set proper Content-Length header

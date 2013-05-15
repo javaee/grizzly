@@ -97,11 +97,21 @@ public abstract class AbstractSpdyTest {
             final SpdyMode spdyMode,
             final boolean isSecure,
             final HttpHandlerRegistration... registrations) {
+        
+        return createServer(docRoot, port, spdyMode, isSecure, false,
+                registrations);
+    }
+    
+    protected HttpServer createServer(final String docRoot, final int port,
+            final SpdyMode spdyMode,
+            final boolean isSecure,
+            final boolean isFileCacheEnabled,
+            final HttpHandlerRegistration... registrations) {
         HttpServer server = HttpServer.createSimpleServer(docRoot, port);
         NetworkListener listener = server.getListener("grizzly");
         listener.setSendFileEnabled(false);
         
-        listener.getFileCache().setEnabled(false);
+        listener.getFileCache().setEnabled(isFileCacheEnabled);
 
         if (isSecure) {
             listener.setSecure(true);
