@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,14 +41,13 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.Writer;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
@@ -77,48 +76,42 @@ public class FileCacheFilter extends BaseFilter {
 
         final HttpContent requestContent = (HttpContent) ctx.getMessage();
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
-        
+
         if (fileCache.isEnabled() && Method.GET.equals(request.getMethod())) {
             final HttpPacket response = fileCache.get(request);
             if (response != null) {
                 ctx.write(response);
+                final HttpContext httpContext = HttpContext.get(ctx);
+                assert httpContext != null;
+                final OutputSink output = httpContext.getOutputSink();
 
-                
-                final Connection connection = ctx.getConnection();
-                final Writer writer = connection.getTransport().getWriter(connection);
-                if (writer instanceof AsyncQueueWriter) {
-                    final AsyncQueueWriter asyncQueueWriter =
-                            (AsyncQueueWriter) writer;
-                    
-                    if (!asyncQueueWriter.canWrite(connection)) {  // if connection write queue is overloaded
-                        // prepare context for suspend
-                        final NextAction suspendAction = ctx.getSuspendAction();
-                        ctx.suspend();
+                if (output.canWrite()) {  // if connection write queue is not overloaded
+                    return ctx.getStopAction();
+                } else { // if connection write queue is overloaded
 
-                        // notify when connection becomes writable, so we can resume it
-                        asyncQueueWriter.notifyWritePossible(connection,
-                                new WriteHandler() {
+                    // prepare context for suspend
+                    final NextAction suspendAction = ctx.getSuspendAction();
+                    ctx.suspend();
 
-                            @Override
-                            public void onWritePossible() throws Exception {
-                                finish();
-                            }
+                    // notify when connection becomes writable, so we can resume it
+                    output.notifyCanWrite(new WriteHandler() {
+                        @Override
+                        public void onWritePossible() throws Exception {
+                            finish();
+                        }
 
-                            @Override
-                            public void onError(Throwable t) {
-                                finish();
-                            }
+                        @Override
+                        public void onError(Throwable t) {
+                            finish();
+                        }
 
-                            private void finish() {
-                                ctx.completeAndRecycle();
-                            }
-                        });
+                        private void finish() {
+                            ctx.completeAndRecycle();
+                        }
+                    });
 
-                        return suspendAction;
-                    }
+                    return suspendAction;
                 }
-                
-                return ctx.getStopAction();
             }
         }
 
