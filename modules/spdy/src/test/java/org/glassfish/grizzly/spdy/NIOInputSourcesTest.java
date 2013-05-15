@@ -83,6 +83,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
@@ -382,7 +383,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1, encoding);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest(PORT, "POST", expected, encoding);
-        ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
+        ClientFilter filter = new ClientFilter(testResult, request, null);
         doTest(httpHandler, expected, testResult, filter, 60);
 
     }
@@ -628,7 +629,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
         doTest(httpHandler,
                 expectedResult,
                 testResult,
-                new ClientFilter(testResult, request, strategy, null),
+                new ClientFilter(testResult, request, strategy),
                 timeoutSeconds);
 
     }
@@ -646,7 +647,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 httpHandler,
                 expectedResult,
                 testResult,
-                new ClientFilter(testResult, request, strategy, null),
+                new ClientFilter(testResult, request, strategy),
                 timeoutSeconds);
 
     }
@@ -1126,21 +1127,17 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
         private final WriteStrategy strategy;
 
-        private final String encoding;
-
 
         // -------------------------------------------------------- Constructors
 
 
         public ClientFilter(FutureImpl<String> testFuture,
                             HttpPacket request,
-                            WriteStrategy strategy,
-                            String encoding) {
+                            WriteStrategy strategy) {
 
             this.testFuture = testFuture;
             this.request = request;
             this.strategy = strategy;
-            this.encoding = encoding;
 
         }
 
@@ -1208,6 +1205,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                         logger.log(Level.FINE, "Response complete: {0} bytes",
                                 bytesDownloaded);
                     }
+                    final String encoding = parseCharacterEncoding(
+                            httpContent.getHttpHeader().getHeader(Header.ContentType));
                     if (encoding != null) {
                         testFuture.result(buf.toStringContent(Charset.forName(encoding)));
                     } else {
@@ -1236,6 +1235,24 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 testFuture.failure(new IOException("Connection was closed"));
             }
 
+        }
+
+        private String parseCharacterEncoding(String contentType) {
+            if (contentType == null) {
+                return null;
+            }
+            
+            final int idx = contentType.indexOf("charset=");
+            if (idx == -1) {
+                return null;
+            }
+            
+            int endIdx = contentType.indexOf(';', idx + 8);
+            if (endIdx == -1) {
+                endIdx = contentType.length();
+            }
+            
+            return contentType.substring(idx + 8, endIdx);
         }
 
     } // END ClientFilter
