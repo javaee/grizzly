@@ -88,6 +88,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.spdy.frames.CompressedHeadersBuilder;
 import org.glassfish.grizzly.spdy.frames.DataFrame;
+import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
@@ -529,12 +530,13 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                         createSynStream(streamId, "/test", maxFrameLen, deflater));
                 
                 boolean hasRstCome = false;
+                boolean hasGoAwayCome = false;
                 
                 while (true) {
                     final SpdyFrame frame =
                             clientInQueue.poll(10, TimeUnit.SECONDS);
                     
-                    assertNotNull(frame);
+                    assertNotNull("Timeout waiting for more frames. isRstFrameReceived=" + hasRstCome, frame);
                     
                     if (frame instanceof SettingsFrame) {
                         // skip
@@ -545,6 +547,11 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                         assertEquals(RstStreamFrame.FRAME_TOO_LARGE, rst.getStatusCode());
                         hasRstCome = true;
                         
+                    } else if (frame instanceof GoAwayFrame) {
+                        final GoAwayFrame goAway = (GoAwayFrame) frame;
+                        assertEquals(GoAwayFrame.PROTOCOL_ERROR_STATUS, goAway.getStatusCode());
+                        hasGoAwayCome = true;
+                        
                     } else if (frame == CLOSE_FRAME) {
                         if (!hasRstCome) {
                             // closed w/o RST frame - also ok, if the server could no
@@ -552,6 +559,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                             // Print a warning just in case
                             LOGGER.warning("No RST frame");
                         }
+                        assertTrue("No GoAway frame", hasGoAwayCome);
+                        
                         break;
                     } else {
                         fail("Unexpected frame: " + frame);

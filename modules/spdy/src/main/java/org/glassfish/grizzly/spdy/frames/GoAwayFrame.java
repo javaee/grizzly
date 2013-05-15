@@ -45,7 +45,10 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.Constants;
 
 public class GoAwayFrame extends SpdyFrame {
-
+    public static final int OK_STATUS = 0;
+    public static final int PROTOCOL_ERROR_STATUS = 1;
+    public static final int INTERNAL_ERROR_STATUS = 11;
+    
     private static final ThreadCache.CachedTypeIndex<GoAwayFrame> CACHE_IDX =
                        ThreadCache.obtainIndex(GoAwayFrame.class, 8);
 

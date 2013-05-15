@@ -58,8 +58,8 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
 import org.glassfish.grizzly.spdy.frames.OversizedFrame;
-import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -185,20 +185,12 @@ public class SpdyFramingFilter extends BaseFilter {
         }
         
         // ------------ ERROR processing block -----------------------------
-        final int streamId = error.getStreamId();
-
         final Buffer sndBuffer;
-        if (streamId != -1) {
-            final RstStreamFrame rstStreamFrame = 
-                    RstStreamFrame.builder()
-                    .statusCode(error.getRstReason())
-                    .streamId(streamId)
-                    .build();
-            sndBuffer = rstStreamFrame.toBuffer(ctx.getMemoryManager());
-        } else {
-            // Only service frame may have -1 stream id
-            sndBuffer = Buffers.EMPTY_BUFFER;
-        }
+        final GoAwayFrame goAwayFrame =
+                GoAwayFrame.builder()
+                .statusCode(error.getGoAwayStatus())
+                .build();
+        sndBuffer = goAwayFrame.toBuffer(ctx.getMemoryManager());
 
         // send last message and close the connection
         final NextAction suspendAction = ctx.getSuspendAction();

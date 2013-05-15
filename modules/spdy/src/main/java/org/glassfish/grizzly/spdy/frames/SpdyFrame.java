@@ -81,8 +81,8 @@ public abstract class SpdyFrame implements Cacheable {
                 case CredentialFrame.TYPE:
                     return CredentialFrame.create(header);
                 default:
-                    throw new SpdySessionException(
-                            RstStreamFrame.PROTOCOL_ERROR, header.getStreamId());
+                    throw new SpdySessionException(header.getStreamId(),
+                            GoAwayFrame.PROTOCOL_ERROR_STATUS);
 
             }
         } else {

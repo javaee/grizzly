@@ -40,6 +40,8 @@
 package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
+import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
+import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 
 /**
  * SPDY Session exception.
@@ -52,9 +54,34 @@ import java.io.IOException;
 public final class SpdySessionException extends IOException {
     private final int streamId;
     private final int rstReason;
+    private final int goAwayStatus;
 
-    public SpdySessionException(final int streamId, final int rstReason) {
+    /**
+     * Construct <tt>SpdySessionException</tt>.
+     * 
+     * @param streamId
+     * @param goAwayStatus
+     */
+    public SpdySessionException(final int streamId, final int goAwayStatus) {
         this.streamId = streamId;
+        this.goAwayStatus = goAwayStatus;
+        rstReason = -1;
+    }
+
+    /**
+     * Construct <tt>SpdySessionException</tt>.
+     * If <tt>rstReason</tt> parameter is less than zero - the SPDY
+     * implementation has to send {@link RstStreamFrame} with the specified
+     * <tt>streamId</tt> and <tt>rstReason</tt> before sending {@link GoAwayFrame}.
+     * 
+     * @param streamId
+     * @param goAwayStatus
+     * @param rstReason 
+     */
+    public SpdySessionException(final int streamId, final int goAwayStatus,
+            final int rstReason) {
+        this.streamId = streamId;
+        this.goAwayStatus = goAwayStatus;
         this.rstReason = rstReason;
     }
 
@@ -62,6 +89,14 @@ public final class SpdySessionException extends IOException {
         return streamId;
     }
 
+    public int getGoAwayStatus() {
+        return goAwayStatus;
+    }
+
+    /**
+     * RstFrame reason, if not <tt>-1</tt> RstFrame frame will be sent before GoAway.
+     * @return RstFrame reason, if not <tt>-1</tt> RstFrame frame will be sent before GoAway.
+     */
     public int getRstReason() {
         return rstReason;
     }
@@ -71,7 +106,8 @@ public final class SpdySessionException extends IOException {
         final StringBuilder sb = new StringBuilder(128);
         sb.append(getClass().getName())
                 .append(" streamId=").append(streamId)
-                .append(" rstReason=").append(rstReason);
+                .append(" rstReason=").append(rstReason)
+                .append(" goAwayStatus=").append(goAwayStatus);
 
         String message = getLocalizedMessage();
         
