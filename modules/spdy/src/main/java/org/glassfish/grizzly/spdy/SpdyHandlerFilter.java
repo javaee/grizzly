@@ -49,10 +49,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
@@ -95,7 +93,6 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.spdy.frames.OversizedFrame;
 import org.glassfish.grizzly.spdy.frames.ServiceFrame;
 
@@ -123,7 +120,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
     private static final TransferEncoding FIXED_LENGTH_ENCODING =
             new FixedLengthTransferEncoding();
-    
+
     private final SpdyMode spdyMode;
     
     private final ExecutorService threadPool;
@@ -219,7 +216,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                 ctx.getConnection() + " during SpdyFrame processing", e);
                     }
                     
-                    sendRstStream(ctx, e.getStreamId(), e.getRstReason(), null);
+                    sendRstStream(ctx, e.getStreamId(), e.getRstReason());
                 }
             } else {
                 final ArrayList<SpdyFrame> framesList = (ArrayList<SpdyFrame>) message;
@@ -234,7 +231,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                         ctx.getConnection() + " during SpdyFrame processing", e);
                             }
                             
-                            sendRstStream(ctx, e.getStreamId(), e.getRstReason(), null);
+                            sendRstStream(ctx, e.getStreamId(), e.getRstReason());
                         }
                     }
                 } finally {
@@ -255,30 +252,17 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         ctx.getConnection() + " during SpdyFrame processing", e);
             }
             
-            final Connection connection = ctx.getConnection();
-            
-            sendRstStream(ctx, e.getStreamId(), e.getRstReason(),
-                    new EmptyCompletionHandler<WriteResult>() {
-                @Override
-                public void completed(WriteResult result) {
-                    connection.closeSilently();
-                }
-            });
-            
+            sendGoAwayAndClose(ctx, spdySession, e.getStreamId(),
+                    e.getGoAwayStatus(), e.getRstReason());            
             return ctx.getSuspendAction();
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "IOException occurred on connection=" +
                         ctx.getConnection() + " during SpdyFrame processing", e);
-            }            
-            final Connection connection = ctx.getConnection();
-            ctx.write(Buffers.EMPTY_BUFFER,
-                    new EmptyCompletionHandler<WriteResult>() {
-                @Override
-                public void completed(WriteResult result) {
-                    connection.closeSilently();
-                }
-            });
+            }
+            
+            sendGoAwayAndClose(ctx, spdySession, -1,
+                    GoAwayFrame.INTERNAL_ERROR_STATUS, -1);
             
             return ctx.getSuspendAction();
         }
@@ -567,7 +551,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                     final SpdyFrame frame) {
 
         GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
-        spdySession.setGoAway(goAwayFrame.getLastGoodStreamId());
+        spdySession.setGoAwayByPeer(goAwayFrame.getLastGoodStreamId());
     }
     
     private void processSettings(final SpdySession spdySession,
@@ -642,7 +626,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 SynStreamFrame.FLAG_UNIDIRECTIONAL);
 
         if (frame.getHeader().getVersion() != SPDY_VERSION) {
-            throw new SpdySessionException(streamId, RstStreamFrame.UNSUPPORTED_VERSION);
+            throw new SpdySessionException(streamId,
+                    GoAwayFrame.PROTOCOL_ERROR_STATUS,
+                    RstStreamFrame.UNSUPPORTED_VERSION);
         }
 
         final SpdyRequest spdyRequest = SpdyRequest.create();
@@ -753,7 +739,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final int streamId = synReplyFrame.getStreamId();
 
         if (frame.getHeader().getVersion() != SPDY_VERSION) {
-            throw new SpdySessionException(streamId, RstStreamFrame.UNSUPPORTED_VERSION);
+            throw new SpdySessionException(streamId,
+                    GoAwayFrame.PROTOCOL_ERROR_STATUS,
+                    RstStreamFrame.UNSUPPORTED_VERSION);
         }
 
         final SpdyStream spdyStream = spdySession.getStream(streamId);
@@ -932,7 +920,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     spdyStreamId = message.getInt(message.position()) & 0x7FFFFFFF;
                 }
                 
-                throw new SpdySessionException(spdyStreamId, RstStreamFrame.FRAME_TOO_LARGE);
+                throw new SpdySessionException(spdyStreamId,
+                        GoAwayFrame.PROTOCOL_ERROR_STATUS,
+                        RstStreamFrame.FRAME_TOO_LARGE);
             } else { // DataFrame
                 final int streamId = header.getStreamId();
                 final SpdyStream spdyStream = spdySession.getStream(streamId);
@@ -1101,13 +1091,55 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }    
 
     private static void sendRstStream(final FilterChainContext ctx,
-            final int streamId, final int statusCode,
-            final CompletionHandler<WriteResult> completionHandler) {
+            final int streamId, final int statusCode) {
 
-        RstStreamFrame rstStreamFrame = RstStreamFrame.builder().
-                statusCode(statusCode).streamId(streamId).build();
+        RstStreamFrame rstStreamFrame = RstStreamFrame.builder()
+                .statusCode(statusCode)
+                .streamId(streamId)
+                .build();
 
-        ctx.write(rstStreamFrame, completionHandler);
+        ctx.write(rstStreamFrame);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void sendGoAwayAndClose(final FilterChainContext ctx,
+            final SpdySession spdySession, final int streamId,
+            final int goAwayStatus, final int rstStatus) {
+
+        final SpdyFrame goAwayFrame = 
+                spdySession.setGoAwayLocally(goAwayStatus);
+
+        if (goAwayFrame != null) {
+            final Connection connection = ctx.getConnection();
+            final Object outputMessage;
+            
+            // if rstStatus >= 0 - prepend RstFrame
+            if (rstStatus >= 0) {
+                final SpdyFrame rstStreamFrame = RstStreamFrame.builder()
+                        .statusCode(rstStatus)
+                        .streamId(streamId)
+                        .build();
+                final List<SpdyFrame> frames = new ArrayList<SpdyFrame>(2);
+                frames.add(rstStreamFrame);
+                frames.add(goAwayFrame);
+                
+                outputMessage = frames;
+            } else {
+                outputMessage = goAwayFrame;
+            }
+            
+            ctx.write(outputMessage, new EmptyCompletionHandler() {
+                @Override
+                public void failed(Throwable throwable) {
+                    connection.closeSilently();
+                }
+
+                @Override
+                public void completed(Object result) {
+                    connection.closeSilently();
+                }
+            });
+        }
     }
 
     private SpdySession checkSpdySession(final FilterChainContext context,

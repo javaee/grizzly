@@ -232,15 +232,29 @@ final class SpdySession {
         return streamsMap.get(streamId);
     }
     
+    /**
+     * If the session is still open - closes it and sends GOAWAY frame to a peer,
+     * otherwise if the session was already closed - does nothing.
+     * 
+     * @param statusCode GOAWAY status code.
+     */
     public void goAway(final int statusCode) {
-        final int lastPeerStreamIdLocal = setGoAway();
-        if (lastPeerStreamIdLocal == -1) {
-            return; // SpdySession is already in go-away state
+        final SpdyFrame goAwayFrame = setGoAwayLocally(statusCode);
+        if (goAwayFrame != null) {
+            writeDownStream(goAwayFrame);
         }
-        GoAwayFrame goAwayFrame =
-                GoAwayFrame.builder().lastGoodStreamId(lastPeerStreamIdLocal).
-                        statusCode(statusCode).build();
-        writeDownStream(goAwayFrame);
+    }
+
+    GoAwayFrame setGoAwayLocally(final int statusCode) {
+        final int lastPeerStreamIdLocal = close();
+        if (lastPeerStreamIdLocal == -1) {
+            return null; // SpdySession is already in go-away state
+        }
+        
+        return GoAwayFrame.builder()
+                .lastGoodStreamId(lastPeerStreamIdLocal)
+                .statusCode(statusCode)
+                .build();
     }
     
     SpdyInflaterOutputStream getInflaterOutputStream() {
@@ -294,7 +308,7 @@ final class SpdySession {
     SpdyStream acceptStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
             final int priority, final int slot, final boolean isUnidirectional)
-            throws SpdyStreamException {
+            throws SpdySessionException {
         
         final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
                 streamId, associatedToStreamId,
@@ -306,7 +320,11 @@ final class SpdySession {
             }
             
             if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
-                throw new SpdyStreamException(streamId, RstStreamFrame.REFUSED_STREAM);
+                // throw Session level exception because headers were not decompressed,
+                // so compression context is lost
+                throw new SpdySessionException(streamId,
+                        GoAwayFrame.INTERNAL_ERROR_STATUS,
+                        RstStreamFrame.REFUSED_STREAM);
             }
             
             streamsMap.put(streamId, spdyStream);
@@ -416,23 +434,23 @@ final class SpdySession {
     }
     
     /**
-     * Method is called, when GOAWAY is initiated by us
+     * Method is called, when the session closing is initiated locally.
      */
-    private int setGoAway() {
+    private int close() {
         synchronized (sessionLock) {
             if (isClosed()) {
                 return -1;
             }
             
             closeFlag = CloseType.LOCALLY;
-            return lastPeerStreamId;
+            return lastPeerStreamId > 0 ? lastPeerStreamId : 0;
         }
     }
     
     /**
      * Method is called, when GOAWAY is initiated by peer
      */
-    void setGoAway(final int lastGoodStreamId) {
+    void setGoAwayByPeer(final int lastGoodStreamId) {
         synchronized (sessionLock) {
             // @TODO Notify pending SYNC_STREAMS if streams were aborted
             closeFlag = CloseType.REMOTELY;
