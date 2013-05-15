@@ -1041,6 +1041,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                 0,
                                 true,
                                 false);
+                        pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
                         prepareOutgoingResponse(spdyResponse);
                         
                         pushStream.writeDownStream(source);
