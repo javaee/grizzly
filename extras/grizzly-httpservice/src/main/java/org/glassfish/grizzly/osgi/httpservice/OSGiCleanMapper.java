@@ -129,7 +129,7 @@ class OSGiCleanMapper {
      * @param servlet Servlet instance to check.
      * @return <code>true</code> if alias has been registered, else <code>false</code>.
      */
-    public static boolean contaisServlet(Servlet servlet) {
+    public static boolean containsServlet(Servlet servlet) {
         return registeredServlets.contains(servlet);
     }
 
@@ -168,8 +168,6 @@ class OSGiCleanMapper {
 
             // local cleanup
             localAliases.remove(alias);
-        } else {
-            // already gone
         }
     }
 
@@ -181,10 +179,7 @@ class OSGiCleanMapper {
      * @param handler HttpHandler handling requests for <code>alias</code>.
      */
     public void addHttpHandler(String alias, HttpHandler handler) {
-        if (containsAlias(alias)) {
-            // should not happend, alias should be checked before.
-            // TODO: signal it some how
-        } else {
+        if (!containsAlias(alias)) {
             registerAliasHandler(alias, handler);
             if (handler instanceof OSGiServletHandler) {
                 registeredServlets.add(((OSGiServletHandler) handler).getServletInstance());
@@ -267,8 +262,6 @@ class OSGiCleanMapper {
         boolean wasNew = aliasTree.add(alias);
         if (wasNew) {
             registrations.put(alias, httpHandler);
-        } else {
-            // TODO already registered, wtf
         }
         return wasNew;
     }

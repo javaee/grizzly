@@ -91,8 +91,7 @@ public class HttpServiceImpl implements HttpService {
             throws ServletException, NamespaceException {
 
         logger.info(
-                new StringBuilder(128).append("Registering servlet: ").append(servlet).append(", under: ").append(alias)
-                        .append(", with: ").append(initparams).append(" and context: ").append(httpContext).toString());
+                "Registering servlet: " + servlet + ", under: " + alias + ", with: " + initparams + " and context: " + httpContext);
 
         mainHttpHandler.registerServletHandler(alias, servlet, initparams, httpContext, this);
     }
@@ -105,8 +104,7 @@ public class HttpServiceImpl implements HttpService {
             throws NamespaceException {
 
         logger.info(
-                new StringBuilder(128).append("Registering resource: alias: ").append(alias).append(", prefix: ")
-                        .append(prefix).append(" and context: ").append(httpContext).toString());
+                "Registering resource: alias: " + alias + ", prefix: " + prefix + " and context: " + httpContext);
 
         mainHttpHandler.registerResourceHandler(alias, httpContext, prefix, this);
     }
@@ -116,7 +114,7 @@ public class HttpServiceImpl implements HttpService {
      */
     @Override
     public void unregister(final String alias) {
-        logger.info(new StringBuilder(32).append("Unregistering alias: ").append(alias).toString());
+        logger.info("Unregistering alias: " + alias);
         mainHttpHandler.unregisterAlias(alias);
     }
 

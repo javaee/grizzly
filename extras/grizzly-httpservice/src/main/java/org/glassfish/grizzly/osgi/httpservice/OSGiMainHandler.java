@@ -242,12 +242,9 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
                 mapper.doUnregister(alias, true);
             } else {
                 logger.warn(
-                        new StringBuilder(128).append("Bundle: ").append(bundle)
-                                .append(" tried to unregister not owned alias '").append(alias)
-                                .append('\'').toString());
+                        "Bundle: " + bundle + " tried to unregister not owned alias '" + alias + '\'');
                 throw new IllegalArgumentException(
-                        new StringBuilder(64).append("Alias '").append(alias)
-                                .append("' was not registered by you.").toString());
+                        "Alias '" + alias + "' was not registered by you.");
             }
         } finally {
             lock.unlock();
@@ -264,7 +261,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
         lock.lock();
         try {
             for (String alias : mapper.getLocalAliases()) {
-                logger.debug(new StringBuilder().append("Unregistering '").append(alias).append("'").toString());
+                logger.debug("Unregistering '" + alias + "'");
                 // remember not to call Servlet.destroy() owning bundle might be stopped already.
                 mapper.doUnregister(alias, false);
             }
@@ -286,7 +283,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             Set<String> aliases = OSGiCleanMapper.getAllAliases();
             while (!aliases.isEmpty()) {
                 String alias = ((TreeSet<String>) aliases).first();
-                logger.debug(new StringBuilder().append("Unregistering '").append(alias).append("'").toString());
+                logger.debug("Unregistering '" + alias + "'");
                 // remember not to call Servlet.destroy() owning bundle might be stopped already.
                 mapper.doUnregister(alias, false);
             }
@@ -318,15 +315,15 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
     private void validateAlias4RegOk(String alias) throws NamespaceException {
         if (!alias.startsWith("/")) {
             // have to start with "/"
-            String msg = new StringBuilder(64).append("Invalid alias '").append(alias)
-                    .append("', have to start with '/'.").toString();
+            String msg =
+                    "Invalid alias '" + alias + "', have to start with '/'.";
             logger.warn(msg);
             throw new NamespaceException(msg);
         }
         if (alias.length() > 1 && alias.endsWith("/")) {
             // if longer than "/", should not end with "/"
-            String msg = new StringBuilder(64).append("Alias '").append(alias)
-                    .append("' can't and with '/' with exception to alias '/'.").toString();
+            String msg =
+                    "Alias '" + alias + "' can't and with '/' with exception to alias '/'.";
             logger.warn(msg);
             throw new NamespaceException(msg);
         }
@@ -340,16 +337,15 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
     /**
      * Check if <code>servlet</code> has been already registered.
      * <p/>
-     * An instance of {@link Servlet} can be registed only once, so in case of servlet been registered before will throw
-     * {@link ServletException} as specified in OSGI HttpService Spec.
+     * An instance of {@link Servlet} can be registered only once, so in case of servlet been registered before will throw
+     * {@link ServletException} as specified in OSGi HttpService Spec.
      *
      * @param servlet {@link Servlet} to check if can be registered.
      * @throws ServletException Iff <code>servlet</code> has been registered before.
      */
     private void validateServlet4RegOk(Servlet servlet) throws ServletException {
-        if (OSGiCleanMapper.contaisServlet(servlet)) {
-            String msg = new StringBuilder(64).append("Servlet: '").append(servlet).append("', already registered.")
-                    .toString();
+        if (OSGiCleanMapper.containsServlet(servlet)) {
+            String msg = "Servlet: '" + servlet + "', already registered.";
             logger.warn(msg);
             throw new ServletException(msg);
         }

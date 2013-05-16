@@ -117,9 +117,8 @@ public class Activator implements BundleActivator {
                     //noinspection unchecked,RedundantCast
                     return (T) (Integer) Integer.parseInt(value);
                 } catch (NumberFormatException e) {
-                    logger.info(new StringBuilder().append("Couldn't parse '").append(name)
-                            .append("' property, going to use default (").append(defValue).append("). ")
-                            .append(e.getMessage()).toString());
+                    logger.info("Couldn't parse '" + name + "' property, going to use default (" + defValue + "). " + e
+                                    .getMessage());
                 }
             } else if (defValue instanceof Boolean) {
                 //noinspection unchecked,RedundantCast
@@ -132,12 +131,12 @@ public class Activator implements BundleActivator {
     }
 
     /**
-     * Starts {@link GrizzlyWebServer}.
+     * Starts the {@link HttpServer}.
      *
      * @param port Port to listen on.
      * @param cometEnabled If comet should be enabled.
      * @param cometEnabled If websockets should be enabled.
-     * @throws IOException Couldn't start {@link GrizzlyWebServer}.
+     * @throws IOException Couldn't start the {@link HttpServer}.
      */
     private void startGrizzly(int port, boolean cometEnabled,
             boolean websocketsEnabled) throws IOException {
