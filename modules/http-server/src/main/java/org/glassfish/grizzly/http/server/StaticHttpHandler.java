@@ -60,6 +60,7 @@ import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -528,13 +529,14 @@ public class StaticHttpHandler extends HttpHandler {
          */
         private boolean sendChunk() throws IOException {
             // allocate Buffer
-            // @TODO revisit this code and make it work w/ composite buffers
             final Buffer buffer = mm.allocate(chunkSize);
             // mark it available for disposal after content is written
             buffer.allowBufferDispose(true);
 
             // read file to the Buffer
-            final int justReadBytes = fileChannel.read(buffer.toByteBuffer());
+            final int justReadBytes = (int) Buffers.readFromFileChannel(
+                    fileChannel, buffer);
+            
             if (justReadBytes <= 0) {
                 complete(false);
                 return false;

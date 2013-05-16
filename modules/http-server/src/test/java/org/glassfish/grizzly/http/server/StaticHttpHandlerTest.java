@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,6 @@ import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -60,6 +59,8 @@ import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.http.*;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.HeapMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
@@ -87,10 +88,10 @@ public class StaticHttpHandlerTest {
     @Parameterized.Parameters
     public static Collection<Object[]> getMode() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE, Boolean.FALSE},
-                    {Boolean.FALSE, Boolean.TRUE},
-                    {Boolean.TRUE, Boolean.FALSE},
-                    {Boolean.TRUE, Boolean.TRUE},
+                    {Boolean.FALSE, Boolean.FALSE, new HeapMemoryManager()},
+                    {Boolean.FALSE, Boolean.TRUE, new HeapMemoryManager()},
+                    {Boolean.TRUE, Boolean.FALSE, new HeapMemoryManager()},
+                    {Boolean.TRUE, Boolean.TRUE, new HeapMemoryManager()},
                 });
     }
 
@@ -98,16 +99,18 @@ public class StaticHttpHandlerTest {
     
     final boolean isSslEnabled;
     final boolean isFileSendEnabled;
+    final MemoryManager<?> memoryManager;
     
     public StaticHttpHandlerTest(boolean isFileSendEnabled,
-            boolean isSslEnabled) {
+            boolean isSslEnabled, MemoryManager<?> memoryManager) {
         this.isFileSendEnabled = isFileSendEnabled;
         this.isSslEnabled = isSslEnabled;
+        this.memoryManager = memoryManager;
     }
 
     @Before
     public void before() throws Exception {
-        httpServer = createServer(isFileSendEnabled, isSslEnabled);
+        httpServer = createServer(isFileSendEnabled, isSslEnabled, memoryManager);
         httpServer.start();
     }
 
@@ -268,12 +271,16 @@ public class StaticHttpHandlerTest {
     }
     
     private static HttpServer createServer(
-            boolean isFileSendEnabled, boolean isSslEnabled) throws Exception {
+            boolean isFileSendEnabled, boolean isSslEnabled,
+            MemoryManager<?> memoryManager) throws Exception {
+        
         final HttpServer server = new HttpServer();
         final NetworkListener listener = 
                 new NetworkListener("test", 
                                     NetworkListener.DEFAULT_NETWORK_HOST, 
                                     PORT);
+        
+        listener.getTransport().setMemoryManager(memoryManager);
         
         if (isSslEnabled) {
             listener.setSecure(true);
