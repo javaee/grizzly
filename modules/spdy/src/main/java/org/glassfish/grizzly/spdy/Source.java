@@ -43,12 +43,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 
 /**
@@ -237,22 +235,10 @@ public abstract class Source {
             
             final Buffer buffer = spdyStream.getSpdySession()
                     .getMemoryManager().allocate(length);
+            
             final int bytesRead;
-
             try {
-                if (!buffer.isComposite()) {
-                    final ByteBuffer bb = buffer.toByteBuffer();
-                    final int oldPos = bb.position();
-                    bytesRead = fileChannel.read(bb);
-                    bb.position(oldPos);
-                } else {
-                    final ByteBufferArray array = buffer.toByteBufferArray();
-                    bytesRead = (int) fileChannel.read(
-                            array.getArray(), 0, array.size());
-
-                    array.restore();
-                    array.recycle();
-                }
+                bytesRead = (int) Buffers.readFromFileChannel(fileChannel, buffer);
             } catch (IOException e) {
                 throw new SpdyStreamException(spdyStream.getStreamId(),
                         RstStreamFrame.INTERNAL_ERROR, e);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,10 +40,12 @@
 
 package org.glassfish.grizzly.memory;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -573,6 +575,68 @@ public class Buffers {
         return clone.flip();
     }
 
+    /**
+     * Reads data from the {@link FileChannel} into the {@link Buffer}.
+     * 
+     * @param fileChannel the {@link FileChannel} to read data from.
+     * @param buffer the destination {@link Buffer}.
+     * @return the number of bytes read, or <tt>-1</tt> if the end of file is reached.
+     * 
+     * @throws IOException 
+     */
+    public static long readFromFileChannel(final FileChannel fileChannel,
+            final Buffer buffer) throws IOException {
+
+        final long bytesRead;
+        
+        if (!buffer.isComposite()) {
+            final ByteBuffer bb = buffer.toByteBuffer();
+            final int oldPos = bb.position();
+            bytesRead = fileChannel.read(bb);
+            bb.position(oldPos);
+        } else {
+            final ByteBufferArray array = buffer.toByteBufferArray();
+            bytesRead = fileChannel.read(
+                    array.getArray(), 0, array.size());
+
+            array.restore();
+            array.recycle();
+        }
+        
+        return bytesRead;
+    }
+    
+    /**
+     * Writes data from the {@link Buffer} into the {@link FileChannel}.
+     * 
+     * @param fileChannel the {@link FileChannel} to write data to.
+     * @param buffer the source {@link Buffer}.
+     * @return the number of bytes written, possibly zero.
+     * 
+     * @throws IOException 
+     */
+    public static long writeToFileChannel(final FileChannel fileChannel,
+            final Buffer buffer) throws IOException {
+
+        final long bytesWritten;
+        
+        if (!buffer.isComposite()) {
+            final ByteBuffer bb = buffer.toByteBuffer();
+            final int oldPos = bb.position();
+            bytesWritten = fileChannel.write(bb);
+            bb.position(oldPos);
+        } else {
+            final ByteBufferArray array = buffer.toByteBufferArray();
+            bytesWritten = fileChannel.write(
+                    array.getArray(), 0, array.size());
+
+            array.restore();
+            array.recycle();
+        }
+        
+        return bytesWritten;
+    }
+    
     private static MemoryManager getDefaultMemoryManager() {
         return MemoryManager.DEFAULT_MEMORY_MANAGER;
     }

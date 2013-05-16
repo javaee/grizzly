@@ -76,6 +76,7 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_HOST;
 
+@SuppressWarnings("unchecked")
 public class ParametersTest {
 
     private static final int PORT = 8766;
