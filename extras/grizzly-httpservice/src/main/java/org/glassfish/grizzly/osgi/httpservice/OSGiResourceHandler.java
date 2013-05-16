@@ -94,7 +94,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
     @Override
     public void service(Request request, Response response) throws Exception {
         String requestURI = request.getDecodedRequestURI();
-        logger.debug(new StringBuilder(128).append("OSGiResourceHandler requestURI: ").append(requestURI).toString());
+        logger.debug("OSGiResourceHandler requestURI: " + requestURI);
         String path = requestURI.replaceFirst(alias, prefix);
         try {
             // authentication
@@ -109,8 +109,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
         // find resource
         URL resource = httpContext.getResource(path);
         if (resource == null) {
-            logger.debug(new StringBuilder(128).append("OSGiResourceHandler \'").append(alias).append("\' Haven't found '").append(path)
-                    .append("'.").toString());
+            logger.debug("OSGiResourceHandler \'" + alias + "\' Haven't found '" + path + "'.");
             response.setStatus(404);
             return;
         } else {

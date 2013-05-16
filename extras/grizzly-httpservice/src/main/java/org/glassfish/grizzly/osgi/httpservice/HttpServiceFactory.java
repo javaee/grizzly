@@ -66,9 +66,7 @@ public class HttpServiceFactory implements ServiceFactory {
     @Override
     public HttpService getService(
             Bundle bundle, ServiceRegistration serviceRegistration) {
-        logger.info(new StringBuilder().append("Bundle: ").append(bundle)
-                .append(", is getting HttpService with serviceRegistration: ")
-                    .append(serviceRegistration).toString());
+        logger.info("Bundle: " + bundle + ", is getting HttpService with serviceRegistration: " + serviceRegistration);
         return new HttpServiceImpl(bundle, logger);
     }
 
@@ -76,10 +74,7 @@ public class HttpServiceFactory implements ServiceFactory {
     public void ungetService(
             Bundle bundle, ServiceRegistration serviceRegistration,
             Object httpServiceObj) {
-        logger.info(
-                new StringBuilder().append("Bundle: ").append(bundle)
-                        .append(", is ungetting HttpService with serviceRegistration: ")
-                        .append(serviceRegistration).toString());
+        logger.info("Bundle: " + bundle + ", is ungetting HttpService with serviceRegistration: " + serviceRegistration);
         mainHttpHandler.uregisterAllLocal();
     }
 
