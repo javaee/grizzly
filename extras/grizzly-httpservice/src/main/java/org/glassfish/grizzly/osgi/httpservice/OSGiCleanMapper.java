@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.glassfish.grizzly.osgi.httpservice.util.Logger;
 import org.osgi.service.http.HttpContext;
 
 import javax.servlet.Servlet;
@@ -70,6 +72,22 @@ class OSGiCleanMapper {
     private Set<String> localAliases = new HashSet<String>(4);
     private HashMap<HttpContext, ArrayList<OSGiServletHandler>> contextServletHandlerMap =
             new HashMap<HttpContext, ArrayList<OSGiServletHandler>>(3);
+    private final Logger logger;
+
+    protected Map<HttpContext, OSGiServletContext> httpContextToServletContextMap =
+                new HashMap<HttpContext, OSGiServletContext>();
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    protected OSGiCleanMapper(final Logger logger) {
+        this.logger = logger;
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
 
     /**
      * Performs mapping of requested URI to registered alias if any.
@@ -256,6 +274,11 @@ class OSGiCleanMapper {
 
     public void addContext(HttpContext httpContext, ArrayList<OSGiServletHandler> servletHandlers) {
         contextServletHandlerMap.put(httpContext, servletHandlers);
+        httpContextToServletContextMap.put(httpContext, new OSGiServletContext(httpContext, logger));
+    }
+
+    public OSGiServletContext getServletContext(final HttpContext httpContext) {
+        return httpContextToServletContextMap.get(httpContext);
     }
 
     private static boolean registerAliasHandler(String alias, HttpHandler httpHandler) {

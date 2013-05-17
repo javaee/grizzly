@@ -95,6 +95,7 @@ import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -156,12 +157,12 @@ public class WebappContext implements ServletContext {
     private final List<String> securityRoles = new ArrayList<String>();
 
     /* Registrations */
-    private final Map<String, ServletRegistration> servletRegistrations =
+    protected final Map<String, ServletRegistration> servletRegistrations =
             new HashMap<String,ServletRegistration>(8, 1.0f);
     
-    private final Map<String, FilterRegistration> filterRegistrations =
+    protected final Map<String, FilterRegistration> filterRegistrations =
             new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
-    private final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
+    protected final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
             Collections.<String, FilterRegistration>unmodifiableMap(filterRegistrations);
             
 
@@ -177,7 +178,7 @@ public class WebappContext implements ServletContext {
     protected boolean deployed;
 
     /* Factory for creating FilterChainImpl instances */
-    private FilterChainFactory filterChainFactory;
+    final private FilterChainFactory filterChainFactory;
 
     /* Servlet context attributes */
     private final ConcurrentHashMap<String,Object> attributes =
@@ -226,6 +227,7 @@ public class WebappContext implements ServletContext {
         displayName = "";
         contextPath = "";
         basePath = "";
+        filterChainFactory = new FilterChainFactory(this);
     }
 
     /**
@@ -267,6 +269,7 @@ public class WebappContext implements ServletContext {
         this.displayName = displayName;
         this.contextPath = contextPath;
         this.basePath = basePath;
+        filterChainFactory = new FilterChainFactory(this);
         Mapper.setAllowReplacement(true);
 
     }
@@ -287,7 +290,6 @@ public class WebappContext implements ServletContext {
                                "Starting application [{0}] ...",
                             displayName);
                 }
-            filterChainFactory = new FilterChainFactory(this);
             boolean error = false;
             try {
                 initializeListeners();
@@ -1706,12 +1708,38 @@ public class WebappContext implements ServletContext {
         }
         return mappings;
     }
+
+    protected FilterChainFactory getFilterChainFactory() {
+        return filterChainFactory;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unregisterFilter(final Filter f) {
+        synchronized (filterRegistrations) {
+            for (Iterator<FilterRegistration> i = filterRegistrations.values().iterator(); i.hasNext();) {
+                final FilterRegistration registration = i.next();
+                if (registration.filter == f) {
+                    for (Iterator<FilterMap> fmi = filterMaps.iterator(); fmi.hasNext(); ) {
+                        FilterMap fm = fmi.next();
+                        if (fm.getFilterName().equals(registration.name)) {
+                            fmi.remove();
+                        }
+                    }
+                    f.destroy();
+                    i.remove();
+                }
+            }
+        }
+    }
+
+    protected void unregisterAllFilters() {
+        destroyFilters();
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
-    /**
-     *
-     */
-    private void destroyFilters() {
+    protected void destroyFilters() {
         for (final FilterRegistration registration : filterRegistrations.values()) {
             registration.filter.destroy();
         }
