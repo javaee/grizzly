@@ -64,5 +64,6 @@
         <module>comet</module>
         <module>http-ajp-samples</module>
         <module>http-jaxws-samples</module>
+        <module>spdy-samples</module>
     </modules>
 </project>
