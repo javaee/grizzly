@@ -64,7 +64,8 @@ import org.glassfish.grizzly.websockets.WebSocketAddOn;
 public class Activator implements BundleActivator {
 
     private ServiceTracker logTracker;
-    private ServiceRegistration registration;
+    private ServiceRegistration httpServiceRegistration;
+    private ServiceRegistration extServiceRegistration;
     private Logger logger;
     private HttpServer httpServer;
     private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port";
@@ -94,9 +95,17 @@ public class Activator implements BundleActivator {
         
         startGrizzly(port, cometEnabled, websocketsEnabled);
         serviceFactory = new HttpServiceFactory(httpServer, logger, bundleContext.getBundle());
-        registration = bundleContext.registerService(
+
+        // register our HttpService/HttpServiceExtension implementation so that
+        // it may be looked up by the OSGi runtime.  We do it once per interface
+        // type so it can be looked up by either.
+        httpServiceRegistration = bundleContext.registerService(
                 HttpService.class.getName(), serviceFactory,
                 new Properties());
+        extServiceRegistration =
+                bundleContext.registerService(HttpServiceExtension.class.getName(),
+                                              serviceFactory,
+                                              new Properties());
     }
 
     /**
@@ -166,8 +175,11 @@ public class Activator implements BundleActivator {
     public void stop(final BundleContext bundleContext) throws Exception {
         logger.info("Stopping Grizzly OSGi HttpService");
         serviceFactory.stop();
-        if (registration != null) {
-            registration.unregister();
+        if (httpServiceRegistration != null) {
+            httpServiceRegistration.unregister();
+        }
+        if (extServiceRegistration != null) {
+            extServiceRegistration.unregister();
         }
         httpServer.stop();
         logTracker.close();

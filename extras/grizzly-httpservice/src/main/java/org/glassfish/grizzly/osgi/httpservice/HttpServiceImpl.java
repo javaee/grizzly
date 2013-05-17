@@ -46,6 +46,7 @@ import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
 
+import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.util.Dictionary;
@@ -56,10 +57,16 @@ import java.util.Dictionary;
  * @author Hubert Iwaniuk
  * @since Jan 20, 2009
  */
-public class HttpServiceImpl implements HttpService {
+public class HttpServiceImpl implements HttpServiceExtension {
+
     private final Logger logger;
     private final Bundle bundle;
+
     final OSGiMainHandler mainHttpHandler;
+
+
+    // ------------------------------------------------------------ Constructors
+
 
     /**
      * {@link HttpService} constructor.
@@ -67,12 +74,15 @@ public class HttpServiceImpl implements HttpService {
      * @param bundle {@link org.osgi.framework.Bundle} that got this instance of {@link org.osgi.service.http.HttpService}.
      * @param logger {@link org.glassfish.grizzly.osgi.httpservice.util.Logger} utility to be used here.
      */
-    public HttpServiceImpl(
-            Bundle bundle, final Logger logger) {
+    public HttpServiceImpl(final Bundle bundle, final Logger logger) {
         this.bundle = bundle;
         this.logger = logger;
         mainHttpHandler = new OSGiMainHandler(logger, bundle);
     }
+
+
+    // ------------------------------------------------ Methods from HttpService
+
 
     /**
      * {@inheritDoc}
@@ -90,8 +100,9 @@ public class HttpServiceImpl implements HttpService {
             final String alias, final Servlet servlet, final Dictionary initparams, HttpContext httpContext)
             throws ServletException, NamespaceException {
 
-        logger.info(
-                "Registering servlet: " + servlet + ", under: " + alias + ", with: " + initparams + " and context: " + httpContext);
+        logger.info("Registering servlet: " + servlet + ", under: "
+                            + alias + ", with: " + initparams
+                            + " and context: " + httpContext);
 
         mainHttpHandler.registerServletHandler(alias, servlet, initparams, httpContext, this);
     }
@@ -103,8 +114,9 @@ public class HttpServiceImpl implements HttpService {
     public void registerResources(final String alias, String prefix, HttpContext httpContext)
             throws NamespaceException {
 
-        logger.info(
-                "Registering resource: alias: " + alias + ", prefix: " + prefix + " and context: " + httpContext);
+        logger.info("Registering resource: alias: "
+                            + alias + ", prefix: " + prefix
+                            + " and context: " + httpContext);
 
         mainHttpHandler.registerResourceHandler(alias, httpContext, prefix, this);
     }
@@ -116,6 +128,32 @@ public class HttpServiceImpl implements HttpService {
     public void unregister(final String alias) {
         logger.info("Unregistering alias: " + alias);
         mainHttpHandler.unregisterAlias(alias);
+    }
+
+
+    // --------------------------------------- Methods from HttpServiceExtension
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void registerFilter(Filter filter, String urlPattern, Dictionary initParams, HttpContext context)
+    throws ServletException {
+        logger.info("Registering servlet: "
+                            + filter + ", under url-pattern: "
+                            + urlPattern + ", with: "
+                            + initParams + " and context: " + context);
+        mainHttpHandler.registerFilter(filter, urlPattern, initParams, context, this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unregisterFilter(Filter filter) {
+        logger.info("Unregister filter: " + filter);
+        mainHttpHandler.unregisterFilter(filter);
     }
 
 }

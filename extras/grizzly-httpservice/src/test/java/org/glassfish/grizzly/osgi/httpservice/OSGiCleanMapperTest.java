@@ -51,26 +51,26 @@ import static org.junit.Assert.*;
 public class OSGiCleanMapperTest {
 
     @Test public void testMap_simpleContext() {
-        OSGiCleanMapper mapper = new OSGiCleanMapper();
+        OSGiCleanMapper mapper = new OSGiCleanMapper(null);
         mapper.addHttpHandler("/testAlias", null);
         assertEquals("Registered alias should be found.", "/testAlias", OSGiCleanMapper.map("/testAlias", false));
     }
 
     @Test public void testMap_simpleContextSub() {
-        OSGiCleanMapper mapper = new OSGiCleanMapper();
+        OSGiCleanMapper mapper = new OSGiCleanMapper(null);
         mapper.addHttpHandler("/a", null);
         assertEquals("Registered alias should be found.", "/a", OSGiCleanMapper.map("/a/index.html", true));
     }
 
     @Test public void testMap_notRegistered() {
-        OSGiCleanMapper mapper = new OSGiCleanMapper();
+        OSGiCleanMapper mapper = new OSGiCleanMapper(null);
         mapper.addHttpHandler("/testAlias", null);
         assertNull("Should not be able to map not registered resource.", OSGiCleanMapper.map("/notregistered", true));
         assertNull("Should not be able to map not registered resource.", OSGiCleanMapper.map("/notregistered", false));
     }
 
     @Test public void testMap_complexContext() {
-        OSGiCleanMapper mapper = new OSGiCleanMapper();
+        OSGiCleanMapper mapper = new OSGiCleanMapper(null);
         mapper.addHttpHandler("/a", null);
         mapper.addHttpHandler("/a/b", null);
         assertNull("Should not be able to map not registered resource.", OSGiCleanMapper.map("/a/b/c", false));

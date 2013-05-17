@@ -41,11 +41,13 @@
 package org.glassfish.grizzly.osgi.httpservice;
 
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;
+import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.osgi.framework.Bundle;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
 
+import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.util.*;
@@ -86,7 +88,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
     public OSGiMainHandler(Logger logger, Bundle bundle) {
         this.logger = logger;
         this.bundle = bundle;
-        this.mapper = new OSGiCleanMapper();
+        this.mapper = new OSGiCleanMapper(logger);
     }
 
     /**
@@ -163,8 +165,11 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
      *                                        If alias was invalid or already registered.
      * @throws javax.servlet.ServletException If {@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)} fails.
      */
-    public void registerServletHandler(String alias, Servlet servlet, Dictionary initparams, HttpContext context,
-                                       HttpService httpService)
+    public void registerServletHandler(final String alias,
+                                       final Servlet servlet,
+                                       final Dictionary initparams,
+                                       HttpContext context,
+                                       final HttpService httpService)
             throws NamespaceException, ServletException {
 
         ReentrantLock lock = OSGiCleanMapper.getLock();
@@ -186,6 +191,51 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             servletHandler.startServlet(); // this might throw ServletException, throw it to offending bundle.
 
             mapper.addHttpHandler(alias, servletHandler);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     *
+     * @param filter
+     * @param urlPattern
+     * @param initparams
+     * @param context
+     * @param httpService
+     * @throws NamespaceException
+     * @throws ServletException
+     */
+    public void registerFilter(final Filter filter,
+                               final String urlPattern,
+                               final Dictionary initparams,
+                               HttpContext context,
+                               final HttpService httpService)
+            throws ServletException {
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+
+
+            if (context == null) {
+                logger.debug("No HttpContext provided, creating default");
+                context = httpService.createDefaultHttpContext();
+            }
+
+            OSGiServletContext servletContext =
+                    mapper.getServletContext(context);
+            if (servletContext == null) {
+                mapper.addContext(context, null);
+                servletContext = mapper.getServletContext(context);
+            }
+
+            FilterRegistration registration =
+                    servletContext.addFilter(Integer.toString(filter.hashCode()), filter);
+            registration.addMappingForUrlPatterns(null, urlPattern);
+
+            filter.init(new OSGiFilterConfig(servletContext));
+
         } finally {
             lock.unlock();
         }
@@ -218,8 +268,14 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             if (internalPrefix == null) {
                 internalPrefix = "";
             }
+            OSGiServletContext servletContext = mapper.getServletContext(context);
 
-            mapper.addHttpHandler(alias, new OSGiResourceHandler(alias, internalPrefix, context, logger));
+            mapper.addHttpHandler(alias,
+                                  new OSGiResourceHandler(alias,
+                                                          internalPrefix,
+                                                          context,
+                                                          servletContext,
+                                                          logger));
         } finally {
             lock.unlock();
         }
@@ -251,6 +307,18 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
         }
     }
 
+    public void unregisterFilter(final Filter filter) {
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            for (OSGiServletContext servletContext : mapper.httpContextToServletContextMap.values()) {
+                servletContext.unregisterFilter(filter);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /**
      * Unregisters all <code>alias</code>es registered by owning bundle.
      */
@@ -264,6 +332,10 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
                 logger.debug("Unregistering '" + alias + "'");
                 // remember not to call Servlet.destroy() owning bundle might be stopped already.
                 mapper.doUnregister(alias, false);
+                for (OSGiServletContext servletContext : mapper.httpContextToServletContextMap.values()) {
+                    servletContext.unregisterAllFilters();
+                }
+                mapper.httpContextToServletContextMap.clear();
             }
         } finally {
             lock.unlock();
@@ -367,7 +439,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             Servlet servlet, HttpContext httpContext, Dictionary initparams) {
         OSGiServletHandler osgiServletHandler;
 
-        if (mapper.containsContext(httpContext)) {
+        if (mapper.containsContext(httpContext) && mapper.getContext(httpContext) != null) {
             logger.debug("Reusing ServletHandler");
             // new servlet handler for same configuration, different servlet and alias
             List<OSGiServletHandler> servletHandlers = mapper.getContext(httpContext);
@@ -386,14 +458,20 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             } else {
                 params = new HashMap<String, String>(0);
             }
-            osgiServletHandler = new OSGiServletHandler(servlet, httpContext, params, logger);
+            OSGiServletContext servletContext = mapper.getServletContext(httpContext);
+            osgiServletHandler =
+                    new OSGiServletHandler(servlet,
+                                           httpContext,
+                                           servletContext,
+                                           params,
+                                           logger);
             ArrayList<OSGiServletHandler> servletHandlers = new ArrayList<OSGiServletHandler>(1);
             servletHandlers.add(osgiServletHandler);
             mapper.addContext(httpContext, servletHandlers);
+            osgiServletHandler.setFilterChainFactory(servletContext.getFilterChainFactory());
+
         }
-        osgiServletHandler.addFilter(new OSGiAuthFilter(httpContext),
-                                     "AuthorisationFilter",
-                                     Collections.<String, String>emptyMap());
+
         return osgiServletHandler;
     }
 
@@ -402,7 +480,11 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
         
         final MappingData mappingData = request.obtainMappingData();
         mappingData.contextPath.setString("");
-        mappingData.wrapperPath.setString(alias);
+        if (alias.equals("/")) {
+            mappingData.wrapperPath.setString("");
+        } else {
+            mappingData.wrapperPath.setString(alias);
+        }
         
         if (alias.length() != originalAlias.length()) {
             String pathInfo = originalAlias.substring(alias.length());

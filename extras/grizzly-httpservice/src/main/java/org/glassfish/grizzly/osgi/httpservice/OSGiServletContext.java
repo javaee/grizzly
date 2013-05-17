@@ -41,15 +41,20 @@
 package org.glassfish.grizzly.osgi.httpservice;
 
 import org.glassfish.grizzly.http.util.MimeType;
+import org.glassfish.grizzly.servlet.FilterChainFactory;
+import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.osgi.service.http.HttpContext;
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;
 
+import javax.servlet.Filter;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.EventListener;
+import java.util.Iterator;
+import java.util.Map;
 
 import static java.text.MessageFormat.format;
 
@@ -65,6 +70,10 @@ public class OSGiServletContext extends WebappContext {
     private HttpContext httpContext;
     private Logger logger;
 
+
+    // ------------------------------------------------------------ Constructors
+
+
     /**
      * Default constructor.
      *
@@ -74,7 +83,12 @@ public class OSGiServletContext extends WebappContext {
     public OSGiServletContext(HttpContext httpContext, Logger logger) {
         this.httpContext = httpContext;
         this.logger = logger;
+        installAuthFilter(httpContext);
     }
+
+
+    // ---------------------------------------------------------- Public Methods
+
 
     /**
      * OSGi integration. Uses {@link HttpContext#getResource(String)}.
@@ -131,8 +145,43 @@ public class OSGiServletContext extends WebappContext {
         return mime;
     }
 
+
+    // ------------------------------------------------------- Protected Methods
+
+
     @Override
     protected EventListener[] getEventListeners() {
         return super.getEventListeners();
+    }
+
+    @Override
+    protected FilterChainFactory getFilterChainFactory() {
+        return super.getFilterChainFactory();
+    }
+
+    @Override
+    protected void unregisterFilter(final Filter f) {
+        super.unregisterFilter(f);
+    }
+
+    @Override
+    protected void unregisterAllFilters() {
+        super.unregisterAllFilters();
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private void installAuthFilter(HttpContext httpContext) {
+        final Filter f = new OSGiAuthFilter(httpContext);
+        try {
+            f.init(new OSGiFilterConfig(this));
+        } catch (Exception ignored) {
+            // won't happen
+        }
+        FilterRegistration registration =
+                addFilter(Integer.toString(f.hashCode()), f);
+        registration.addMappingForUrlPatterns(null, "/*");
     }
 }

@@ -68,6 +68,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
     private String alias;
     private String prefix;
     private HttpContext httpContext;
+    private OSGiServletContext servletContext;
     private Logger logger;
 
     /**
@@ -78,13 +79,18 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
      * @param httpContext Backing {@link org.osgi.service.http.HttpContext}.
      * @param logger      Logger utility.
      */
-    public OSGiResourceHandler(String alias, String prefix, HttpContext httpContext, Logger logger) {
+    public OSGiResourceHandler(String alias,
+                               String prefix,
+                               HttpContext httpContext,
+                               OSGiServletContext servletContext,
+                               Logger logger) {
         super();
         //noinspection AccessingNonPublicFieldOfAnotherObject
 //        super.commitErrorResponse = false;
         this.alias = alias;
         this.prefix = prefix;
         this.httpContext = httpContext;
+        this.servletContext = servletContext;
         this.logger = logger;
     }
 
@@ -98,7 +104,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
         String path = requestURI.replaceFirst(alias, prefix);
         try {
             // authentication
-            if (!authenticate(request, response, new OSGiServletContext(httpContext, logger))) {
+            if (!authenticate(request, response, servletContext)) {
                 logger.debug("OSGiResourceHandler Request not authenticated (" + requestURI + ").");
                 return;
             }

@@ -117,7 +117,7 @@ public class ServletHandler extends HttpHandler {
 
     protected ExpectationHandler expectationHandler;
 
-    private FilterChainFactory filterChainFactory;
+    protected FilterChainFactory filterChainFactory;
 
     // Listeners to be invoked when ServletHandler.destroy is called
     private List<Runnable> onDestroyListeners;
