@@ -58,7 +58,7 @@ public abstract class Source {
     /**
      * Returns the number of bytes remaining to be written.
      */
-    public abstract int remaining();
+    public abstract long remaining();
     
     /**
      * Returns the number of bytes to be written.
@@ -208,18 +208,14 @@ public abstract class Source {
                 final SpdyStream spdyStream)
                 throws FileNotFoundException {
             fileLengthRemaining = file.length();
-            if (fileLengthRemaining > Integer.MAX_VALUE) {
-                throw new IllegalStateException("Files larger than " + Integer.MAX_VALUE + " are not supported");
-            }
-            
             this.fis = new FileInputStream(file);
             this.fileChannel = fis.getChannel();
             this.spdyStream = spdyStream;
         }
 
         @Override
-        public int remaining() {
-            return (int) fileLengthRemaining;
+        public long remaining() {
+            return fileLengthRemaining;
         }
 
         @Override
@@ -291,7 +287,7 @@ public abstract class Source {
         }
         
         @Override
-        public int remaining() {
+        public long remaining() {
             return buffer.remaining();
         }
 
@@ -352,7 +348,7 @@ public abstract class Source {
         }
         
         @Override
-        public int remaining() {
+        public long remaining() {
             return remaining;
         }
 
