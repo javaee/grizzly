@@ -354,7 +354,6 @@
         <module>modules/</module>
         <module>samples/</module>
         <module>extras/</module>
-        <module>documentation/</module>
     </modules>    
     <reporting>
         <outputDirectory>target/site</outputDirectory>
