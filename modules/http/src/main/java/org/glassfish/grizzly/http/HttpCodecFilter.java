@@ -1252,6 +1252,12 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             }
 
             final HttpContent decodedContent = result.getHttpContent();
+
+            HttpProbeNotifier.notifyContentEncodingParseResult(this,
+                                                               connection,
+                                                               httpHeader,
+                                                               decodedContent.getContent(),
+                                                               encoding);
             
             result.recycle();
 
@@ -1565,10 +1571,17 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             
             final HttpContent encodedContent = encoding.encode(connection, httpContent);
 
+
             if (encodedContent == null) {
                 httpContent.recycle();
                 return null;
             }
+
+            HttpProbeNotifier.notifyContentEncodingSerializeResult(this,
+                                                                   connection,
+                                                                   httpHeader,
+                                                                   encodedContent.getContent(),
+                                                                   encoding);
 
             httpContent = encodedContent;
         }

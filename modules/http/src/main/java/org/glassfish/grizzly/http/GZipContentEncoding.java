@@ -59,7 +59,7 @@ public class GZipContentEncoding implements ContentEncoding {
 
     private static final String[] ALIASES = {"gzip", "deflate"};
 
-    private static final String name = "gzip";
+    public static final String NAME = "gzip";
     
     private final GZipDecoder decoder;
     private final GZipEncoder encoder;
@@ -114,7 +114,7 @@ public class GZipContentEncoding implements ContentEncoding {
 
     @Override
     public String getName() {
-        return name;
+        return NAME;
     }
 
     @Override
@@ -237,14 +237,14 @@ public class GZipContentEncoding implements ContentEncoding {
             return false;
         }
         final GZipContentEncoding other = (GZipContentEncoding) obj;
-        return this.name.equals(other.name);
+        return this.NAME.equals(other.NAME);
 
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 53 * hash + (this.name.hashCode());
+        hash = 53 * hash + (this.NAME.hashCode());
         return hash;
     }
 }

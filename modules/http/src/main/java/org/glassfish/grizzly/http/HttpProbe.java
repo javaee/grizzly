@@ -126,6 +126,24 @@ public interface HttpProbe {
             HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
 
     /**
+     * This method will be called after the {@link ContentEncoding} has been
+     * applied.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     * @param header HTTP {@link HttpHeader}, the event belongs to.
+     * @param result the result of the decode operation.
+     * @param contentEncoding the {@link ContentEncoding} that was applied.
+     *
+     * @since 2.3.3
+     */
+    public void onContentEncodingParseResultEvent(Connection connection,
+                                                  HttpHeader header,
+                                                  Buffer result,
+                                                  ContentEncoding contentEncoding);
+
+    /**
+
+    /**
      * Method will be called, when {@link ContentEncoding} will be applied
      * during the serialization/encoding of the certain HTTP message content chunk.
      *
@@ -136,6 +154,22 @@ public interface HttpProbe {
      */
     public void onContentEncodingSerializeEvent(Connection connection,
             HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
+
+    /**
+     * Method will be called, when {@link ContentEncoding} will be applied
+     * during the serialization/encoding of the certain HTTP message content chunk.
+     *
+     * @param connection      {@link Connection}, the event belongs to.
+     * @param header          HTTP {@link HttpHeader}, the event belongs to.
+     * @param result          The result of the encoding processes.
+     * @param contentEncoding {@link ContentEncoding} to be applied.
+     *
+     * @since 2.3.3
+     */
+    public void onContentEncodingSerializeResultEvent(Connection connection,
+                                                      HttpHeader header,
+                                                      Buffer result,
+                                                      ContentEncoding contentEncoding);
 
     /**
      * Method will be called, when {@link TransferEncoding} will be applied
@@ -229,10 +263,22 @@ public interface HttpProbe {
         public void onContentEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {}
 
         /**
+          * {@inheritDoc}
+          */
+        @Override
+        public void onContentEncodingParseResultEvent(Connection connection, HttpHeader header, Buffer result, ContentEncoding contentEncoding) {}
+
+        /**
          * {@inheritDoc}
          */
         @Override
         public void onContentEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onContentEncodingSerializeResultEvent(Connection connection, HttpHeader header, Buffer result, ContentEncoding contentEncoding) {}
 
         /**
          * {@inheritDoc}

@@ -49,7 +49,7 @@ public class LZMAContentEncoding implements ContentEncoding {
 
     private static final String[] ALIASES = { "lzma" };
 
-    private static final String NAME = "lzma";
+    public static final String NAME = "lzma";
 
     private final LZMADecoder decoder;
     private final LZMAEncoder encoder;
