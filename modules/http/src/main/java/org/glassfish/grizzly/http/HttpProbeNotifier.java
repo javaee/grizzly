@@ -188,6 +188,33 @@ final class HttpProbeNotifier {
             }
         }
     }
+
+    /**
+     * Notify registered {@link HttpProbe}s about the result of the "content encoding decode" event.
+     *
+     * @param httpFilter      the <tt>HttpCodecFilter</tt> event occurred on.
+     * @param connection      the <tt>Connection</tt> event occurred on.
+     * @param header          HTTP {@link HttpHeader}, the event belongs to.
+     * @param result          the result of the decoding process.
+     * @param contentEncoding the {@link ContentEncoding} which was applied.
+     * @since 2.3.3
+     */
+    static void notifyContentEncodingParseResult(final HttpCodecFilter httpFilter,
+                                                 final Connection connection,
+                                                 final HttpHeader header,
+                                                 final Buffer result,
+                                                 final ContentEncoding contentEncoding) {
+        final HttpProbe[] probes =
+                httpFilter.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (HttpProbe probe : probes) {
+                probe.onContentEncodingSerializeResultEvent(connection,
+                                                            header,
+                                                            result,
+                                                            contentEncoding);
+            }
+        }
+    }
     
     /**
      * Notify registered {@link HttpProbe}s about the "content encoding serialize" event.
@@ -207,6 +234,34 @@ final class HttpProbeNotifier {
             for (HttpProbe probe : probes) {
                 probe.onContentEncodingSerializeEvent(connection, header, buffer,
                         contentEncoding);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link HttpProbe}s about the result of the "content encoding serialize" event.
+     *
+     * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
+     * @param connection the <tt>Connection</tt> event occurred on.
+     * @param header HTTP {@link HttpHeader}, the event belongs to.
+     * @param result the result of the encoding process.
+     * @param contentEncoding the {@link ContentEncoding} which was applied.
+     *
+     * @since 2.3.3
+     */
+    static void notifyContentEncodingSerializeResult(final HttpCodecFilter httpFilter,
+                                                     final Connection connection,
+                                                     final HttpHeader header,
+                                                     final Buffer result,
+                                                     final ContentEncoding contentEncoding) {
+        final HttpProbe[] probes =
+                httpFilter.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (HttpProbe probe : probes) {
+                probe.onContentEncodingSerializeResultEvent(connection,
+                                                            header,
+                                                            result,
+                                                            contentEncoding);
             }
         }
     }
