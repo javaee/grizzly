@@ -1253,18 +1253,18 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
             final HttpContent decodedContent = result.getHttpContent();
 
-            HttpProbeNotifier.notifyContentEncodingParseResult(this,
-                                                               connection,
-                                                               httpHeader,
-                                                               decodedContent.getContent(),
-                                                               encoding);
-            
             result.recycle();
 
             if (decodedContent == null) {
                 httpContent.recycle();
                 return null;
             }
+
+            HttpProbeNotifier.notifyContentEncodingParseResult(this,
+                                                               connection,
+                                                               httpHeader,
+                                                               decodedContent.getContent(),
+                                                               encoding);
 
             httpContent = decodedContent;
         }
