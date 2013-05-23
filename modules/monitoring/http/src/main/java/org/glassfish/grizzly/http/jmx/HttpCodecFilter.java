@@ -56,8 +56,6 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
@@ -76,13 +74,10 @@ public class HttpCodecFilter extends JmxObject {
     private final AtomicLong httpContentReceived = new AtomicLong();
     private final AtomicLong httpContentWritten = new AtomicLong();
     private final AtomicLong httpCodecErrorCount = new AtomicLong();
-    private long contentCompressionTotalGzip;
-    private long contentBeforeCompressionTotalGzip;
-    private long contentCompressionTotalLzma;
-    private long contentBeforeCompressionTotalLzma;
-    private final ReentrantReadWriteLock gzipLock = new ReentrantReadWriteLock();
-    private final ReentrantReadWriteLock lzmaLock = new ReentrantReadWriteLock();
-
+    private final AtomicLong contentCompressionTotalGzip = new AtomicLong();
+    private final AtomicLong contentBeforeCompressionTotalGzip = new AtomicLong();
+    private final AtomicLong contentCompressionTotalLzma = new AtomicLong();
+    private final AtomicLong contentBeforeCompressionTotalLzma = new AtomicLong();
 
     private final HttpProbe probe = new JmxHttpProbe();
 
@@ -164,7 +159,7 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id="http-codec-before-gzip-compression-total")
     @Description("The total number of bytes before gzip compression has been applied.")
     public long getTotalBytesBeforeGzipEncoding() {
-        return contentBeforeCompressionTotalGzip;
+        return contentBeforeCompressionTotalGzip.get();
     }
 
     /**
@@ -173,7 +168,7 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id="http-codec-after-gzip-compression-total")
     @Description("The total number of bytes after gzip compression has been applied.")
     public long getTotalBytesAfterGzipEncoding() {
-        return contentCompressionTotalGzip;
+        return contentCompressionTotalGzip.get();
     }
 
     /**
@@ -182,16 +177,8 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id="http-codec-gzip-avg-compression-percent")
     @Description("The average gzip compression result.")
     public String getGzipCompressionRatio() {
-        final Lock lock = gzipLock.readLock();
-        lock.lock();
-        long l1;
-        long l2;
-        try {
-            l1 = contentBeforeCompressionTotalGzip;
-            l2 = contentCompressionTotalGzip;
-        } finally {
-            lock.unlock();
-        }
+        final long l1 = contentBeforeCompressionTotalGzip.get();
+        final long l2 = contentCompressionTotalGzip.get();
         return calculateAvgCompressionPercent(l1, l2);
     }
 
@@ -201,7 +188,7 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id = "http-codec-before-lzma-compression-total")
     @Description( "The total number of bytes before lzma compression has been applied.")
     public long getTotalBytesBeforeLzmaEncoding() {
-        return contentBeforeCompressionTotalLzma;
+        return contentBeforeCompressionTotalLzma.get();
     }
 
     /**
@@ -210,7 +197,7 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id = "http-codec-after-lzma-compression-total")
     @Description( "The total number of bytes after lzma compression has been applied.")
     public long getTotalBytesAfterLzmaEncoding() {
-        return contentCompressionTotalLzma;
+        return contentCompressionTotalLzma.get();
     }
 
     /**
@@ -219,16 +206,8 @@ public class HttpCodecFilter extends JmxObject {
     @ManagedAttribute(id = "http-codec-lzma-avg-compression-percent")
     @Description( "The average lzma compression result.")
     public String getLzmaAvgCompressionPercent() {
-        final Lock lock = lzmaLock.readLock();
-        lock.lock();
-        long l1;
-        long l2;
-        try {
-            l1 = contentBeforeCompressionTotalLzma;
-            l2 = contentCompressionTotalLzma;
-        } finally {
-            lock.unlock();
-        }
+        final long l1 = contentBeforeCompressionTotalLzma.get();
+        final long l2 = contentCompressionTotalLzma.get();
         return calculateAvgCompressionPercent(l1, l2);
     }
 
@@ -290,21 +269,9 @@ public class HttpCodecFilter extends JmxObject {
         public void onContentEncodingSerializeResultEvent(Connection connection, HttpHeader header, Buffer result, ContentEncoding contentEncoding) {
             final String name = contentEncoding.getName();
             if (GZipContentEncoding.NAME.equals(name)) {
-                final Lock lock = gzipLock.writeLock();
-                lock.lock();
-                try {
-                    contentCompressionTotalGzip += result.remaining();
-                } finally {
-                    lock.unlock();
-                }
+                contentCompressionTotalGzip.addAndGet(result.remaining());
             } else if (LZMAContentEncoding.NAME.equals(name)) {
-                final Lock lock = lzmaLock.writeLock();
-                lock.lock();
-                try {
-                    contentCompressionTotalLzma += result.remaining();
-                } finally {
-                    lock.unlock();
-                }
+                contentCompressionTotalLzma.addAndGet(result.remaining());
             }
         }
 
@@ -316,21 +283,9 @@ public class HttpCodecFilter extends JmxObject {
         public void onContentEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer result, ContentEncoding contentEncoding) {
             final String name = contentEncoding.getName();
             if (GZipContentEncoding.NAME.equals(name)) {
-                final Lock lock = gzipLock.writeLock();
-                lock.lock();
-                try {
-                    contentBeforeCompressionTotalGzip += result.remaining();
-                } finally {
-                    lock.unlock();
-                }
+                contentBeforeCompressionTotalGzip.addAndGet(result.remaining());
             } else if (LZMAContentEncoding.NAME.equals(name)) {
-                final Lock lock = lzmaLock.writeLock();
-                lock.lock();
-                try {
-                    contentBeforeCompressionTotalLzma += result.remaining();
-                } finally {
-                    lock.unlock();
-                }
+                contentBeforeCompressionTotalLzma.addAndGet(result.remaining());
             }
         }
 
