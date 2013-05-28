@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,77 +43,44 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.http.*;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.Futures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import static org.junit.Assert.*;
 
 /**
- * {@link StaticHttpHandler} test.
+ * {@link CLStaticHttpHandler} test.
  * 
  * @author Alexey Stashok
  */
-@RunWith(Parameterized.class)
-public class StaticHttpHandlerTest {
+public class CLStaticHttpHandlerTest {
     private static final int PORT = 18900;
-    private static final Logger LOGGER = Grizzly.logger(StaticHttpHandlerTest.class);
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> getMode() {
-        return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE, Boolean.FALSE, new HeapMemoryManager()},
-                    {Boolean.FALSE, Boolean.TRUE, new HeapMemoryManager()},
-                    {Boolean.TRUE, Boolean.FALSE, new HeapMemoryManager()},
-                    {Boolean.TRUE, Boolean.TRUE, new HeapMemoryManager()},
-                    {Boolean.FALSE, Boolean.FALSE, new PooledMemoryManager()},
-                });
-    }
+    private static final Logger LOGGER = Grizzly.logger(CLStaticHttpHandlerTest.class);
 
     private HttpServer httpServer;
     
-    final boolean isSslEnabled;
-    final boolean isFileSendEnabled;
-    final MemoryManager<?> memoryManager;
-    
-    public StaticHttpHandlerTest(boolean isFileSendEnabled,
-            boolean isSslEnabled, MemoryManager<?> memoryManager) {
-        this.isFileSendEnabled = isFileSendEnabled;
-        this.isSslEnabled = isSslEnabled;
-        this.memoryManager = memoryManager;
-    }
-
     @Before
     public void before() throws Exception {
-        httpServer = createServer(isFileSendEnabled, isSslEnabled, memoryManager);
+        httpServer = createServer();
         httpServer.start();
     }
 
@@ -126,28 +93,27 @@ public class StaticHttpHandlerTest {
     
     @Test
     @SuppressWarnings("unchecked")
-    public void testSlowClient() throws Exception {
-        final int fileSize = 16 * 1024 * 1024;
-        File control = generateTempFile(fileSize);
+    public void testNonJarResource() throws Exception {
+        final String fileName = "org/glassfish/grizzly/http/server/CLStaticHttpHandler.class";
+        final int fileSize = getResourceSize(fileName);
         
         final FutureImpl<File> result = Futures.<File>createSafeFuture();
 
-        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+        TCPNIOTransport client = createClient(result, new CLStaticHttpHandlerTest.ResponseValidator() {
             @Override
             public void validate(HttpResponsePacket response) {
                 assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
-                // static resource handler won't know how to handle .tmp extension,
-                // so it should punt.
-                assertEquals("text/plain", response.getHeader(Header.ContentType));
+                assertEquals("application/java", response.getHeader(Header.ContentType));
             }
-        }, isSslEnabled);
-        BigInteger controlSum = getMDSum(control);
+        });
+        
         try {
+            BigInteger controlSum = getMDSum(fileName);
             client.start();
             Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
             
             HttpRequestPacket request =
-                    HttpRequestPacket.builder().uri("/" + control.getName())
+                    HttpRequestPacket.builder().uri("/" + fileName)
                         .method(Method.GET)
                         .protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
@@ -163,91 +129,30 @@ public class StaticHttpHandlerTest {
         }        
     }
     
-    /**
-     * Check that HTTP POST method is not allowed
-     */
     @Test
     @SuppressWarnings("unchecked")
-    public void testPostMethod() throws Exception {
-        final int fileSize = 16 * 1024 * 1024;
-        File control = generateTempFile(fileSize);
+    public void testJarResource() throws Exception {
+        final String fileName = "java/lang/String.class";
         
         final FutureImpl<File> result = Futures.<File>createSafeFuture();
 
-        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+        TCPNIOTransport client = createClient(result, new CLStaticHttpHandlerTest.ResponseValidator() {
             @Override
             public void validate(HttpResponsePacket response) {
-                assertEquals(405, response.getStatus());
-                assertEquals("GET", response.getHeader(Header.Allow));
-            }
-        }, isSslEnabled);
-        try {
-            client.start();
-            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
-            
-            HttpRequestPacket request =
-                    HttpRequestPacket.builder().uri("/" + control.getName())
-                        .method(Method.POST)
-                        .protocol(Protocol.HTTP_1_1)
-                        .header("Host", "localhost:" + PORT).build();
-            c.write(request);
-            File fResult = result.get(20, TimeUnit.SECONDS);
-            assertEquals(0, fResult.length());
-            
-            c.close();
-        } finally {
-            client.stop();
-        }        
-    }
-    
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testStaticHttpHandlerFileSend() throws Exception {
-        
-        final int fileSize = 16 * 1024 * 1024;
-        final File file = generateTempFile(fileSize);
-        
-        final FutureImpl<Boolean> completionHandlerInvokedFuture =
-                Futures.<Boolean>createSafeFuture();
-        
-        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
-
-            @Override
-            public void service(final Request request, final Response response)
-                    throws Exception {
-                StaticHttpHandler.sendFile(response, file, new EmptyCompletionHandler<File>() {
-
-                    @Override
-                    public void completed(final File result) {
-                        if (!response.isSuspended()) {
-                            completionHandlerInvokedFuture.failure(
-                                    new IllegalStateException("Response is resumed"));
-                        } else {
-                            completionHandlerInvokedFuture.result(true);
-                        }
-                    }
-                });
-            }
-        }, "/custom");
-        
-        final FutureImpl<File> result = Futures.<File>createSafeFuture();
-
-        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
-            @Override
-            public void validate(HttpResponsePacket response) {
-                assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
+                assertTrue(response.isChunked());
                 // static resource handler won't know how to handle .tmp extension,
                 // so it should punt.
-                assertEquals("text/plain", response.getHeader(Header.ContentType));
+                assertEquals("application/java", response.getHeader(Header.ContentType));
             }
-        }, isSslEnabled);
-        BigInteger controlSum = getMDSum(file);
+        });
+        
         try {
+            BigInteger controlSum = getMDSum(fileName);
             client.start();
             Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
             
             HttpRequestPacket request =
-                    HttpRequestPacket.builder().uri("/custom/" + file.getName())
+                    HttpRequestPacket.builder().uri("/" + fileName)
                         .method(Method.GET)
                         .protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
@@ -256,7 +161,7 @@ public class StaticHttpHandlerTest {
             BigInteger resultSum = getMDSum(fResult);
             assertTrue("MD5Sum between control and test files differ.",
                         controlSum.equals(resultSum));
-            assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
+            
             c.close();
         } finally {
             client.stop();
@@ -264,20 +169,10 @@ public class StaticHttpHandlerTest {
     }
     
     private static TCPNIOTransport createClient(final FutureImpl<File> result,
-            final ResponseValidator validator,
-            final boolean isSslEnabled) throws Exception {
+            final ResponseValidator validator) throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
-        
-        // simulate slow read
-        builder.add(new DelayFilter(5, 0));
-        
-        if (isSslEnabled) {
-            final SSLFilter sslFilter = new SSLFilter(createSSLConfig(true),
-                    createSSLConfig(false));
-            builder.add(sslFilter);
-        }
         
         builder.add(new HttpClientFilter());
         builder.add(new BaseFilter() {
@@ -339,9 +234,7 @@ public class StaticHttpHandlerTest {
         return transport;
     }
     
-    private static HttpServer createServer(
-            boolean isFileSendEnabled, boolean isSslEnabled,
-            MemoryManager<?> memoryManager) throws Exception {
+    private static HttpServer createServer() throws Exception {
         
         final HttpServer server = new HttpServer();
         final NetworkListener listener = 
@@ -349,53 +242,72 @@ public class StaticHttpHandlerTest {
                                     NetworkListener.DEFAULT_NETWORK_HOST, 
                                     PORT);
         
-        listener.getTransport().setMemoryManager(memoryManager);
-        
-        if (isSslEnabled) {
-            listener.setSecure(true);
-            listener.setSSLEngineConfig(createSSLConfig(true));
-        }
-        
-        listener.setSendFileEnabled(isFileSendEnabled);
         server.addListener(listener);
         server.getServerConfiguration().addHttpHandler(
-                new StaticHttpHandler(System.getProperty("java.io.tmpdir")), "/");
+                new CLStaticHttpHandler(CLStaticHttpHandlerTest.class.getClassLoader()), "/");
         
         return server;
     }
 
-    private static BigInteger getMDSum(final File f) throws Exception {
+    private static BigInteger getMDSum(final InputStream in) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("MD5");
         byte[] b = new byte[8192];
-        FileInputStream in = new FileInputStream(f);
-        try {
-            int len;
-            while ((len = in.read(b)) != -1) {
-                digest.update(b, 0, len);
-            }
-        } finally {
-            in.close();
+        int len;
+        while ((len = in.read(b)) != -1) {
+            digest.update(b, 0, len);
         }
         return new BigInteger(digest.digest());
     }
-
-
-    private static File generateTempFile(final int size) throws IOException {
-        final File f = File.createTempFile("grizzly-temp-" + size, ".tmp2");
-        Random r = new Random();
-        byte[] data = new byte[8192];
-        r.nextBytes(data);
-        FileOutputStream out = new FileOutputStream(f);
-        int total = 0;
-        int remaining = size;
-        while (total < size) {
-            int len = ((remaining > 8192) ? 8192 : remaining);
-            out.write(data, 0, len);
-            total += len;
-            remaining -= len;
+    
+    private static BigInteger getMDSum(final String resource) throws Exception {
+        final URL url = StaticHttpHandlerTest.class.getClassLoader().getResource(resource);
+        if (url == null) {
+            throw new IOException("Resource " + resource + " was not found");
         }
-        f.deleteOnExit();
-        return f;
+        
+        final InputStream in = url.openStream();
+        
+        try {
+            return getMDSum(in);
+        } finally {
+            in.close();
+        }
+    }
+    
+    private static BigInteger getMDSum(final File f) throws Exception {
+        FileInputStream in = new FileInputStream(f);
+        try {
+            return getMDSum(in);
+        } finally {
+            in.close();
+        }
+    }
+    
+    private static int getResourceSize(String resource) throws IOException {
+        final URL url = StaticHttpHandlerTest.class.getClassLoader().getResource(resource);
+        if (url == null) {
+            throw new IOException("Resource " + resource + " was not found");
+        }
+        
+        final InputStream in = url.openStream();
+        final byte[] buf = new byte[2048];
+        
+        int size = 0;
+        
+        try {
+            do {
+                final int readNow = in.read(buf);
+                if (readNow < 0) {
+                    break;
+                }
+
+                size += readNow;
+            } while (true);
+        } finally {
+            in.close();
+        }
+        
+        return size;
     }
     
     private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
@@ -421,8 +333,7 @@ public class StaticHttpHandlerTest {
     }
     
     // ---------------------------------------------------------- Nested Classes
-    
-    
+
     private static interface ResponseValidator {
         
         void validate(HttpResponsePacket response);
