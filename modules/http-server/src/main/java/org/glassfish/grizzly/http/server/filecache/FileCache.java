@@ -181,10 +181,32 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     }
 
     /**
-     * Add a resource to the cache. Currently, only static resources served
-     * by the DefaultServlet can be cached.
+     * Add a resource to the cache.
+     * Unlike the {@link #add(org.glassfish.grizzly.http.HttpRequestPacket, java.io.File)}
+     * this method adds a resource to a cache but is not able to send the
+     * resource content to a client if client doesn't have the latest version
+     * of this resource.
      */
-    public CacheResult add(final HttpRequestPacket request, File cacheFile) {
+    public CacheResult add(final HttpRequestPacket request,
+            final long lastModified) {
+        return add(request, null, lastModified);
+    }
+    
+    /**
+     * Add a {@link File} resource to the cache.
+     * If a client comes with not the latest version of this resource - the
+     * {@link FileCache} will return it the latest resource version.
+     */
+    public CacheResult add(final HttpRequestPacket request,
+            final File cacheFile) {
+        return add(request, cacheFile, cacheFile.lastModified());
+    }
+    
+    /**
+     * Add a resource to the cache.
+     */
+    protected CacheResult add(final HttpRequestPacket request,
+            final File cacheFile, final long lastModified) {
 
         final String requestURI = request.getRequestURI();
 
@@ -208,7 +230,10 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
             return CacheResult.FAILED_CACHE_FULL;
         }
 
-        FileCacheEntry entry = mapFile(cacheFile);
+        FileCacheEntry entry = null;
+        if (cacheFile != null) { // If we have a file - try to create File-aware cache resource
+            entry = mapFile(cacheFile);
+        }
 
         if (entry == null) {
             entry = new FileCacheEntry(this);
@@ -221,7 +246,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         entry.key = key;
         entry.requestURI = requestURI;
 
-        entry.lastModified = cacheFile.lastModified();
+        entry.lastModified = lastModified;
         entry.contentType = response.getContentType();
         entry.xPoweredBy = headers.getHeader(Header.XPoweredBy);
         entry.date = headers.getHeader(Header.Date);
@@ -245,7 +270,6 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
                     : CacheResult.OK_CACHED);
     }
 
-
     /**
      * Send the cache.
      */
@@ -258,11 +282,14 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         key.recycle();
         try {
             if (entry != null && entry != NULL_CACHE_ENTRY) {
-                notifyProbesEntryHit(this, entry);
-                return makeResponse(entry, request);
-            } else {
-                notifyProbesEntryMissed(this, request);
+                final HttpPacket response = makeResponse(entry, request);
+                if (response != null) {
+                    notifyProbesEntryHit(this, entry);
+                    return response;
+                }
             }
+            
+            notifyProbesEntryMissed(this, request);
         } catch (Exception e) {
             notifyProbesError(this, e);
             // If an unexpected exception occurs, try to serve the page
@@ -297,7 +324,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
      * Map the file to a {@link ByteBuffer}
      * @return the preinitialized {@link FileCacheEntry}
      */
-    private FileCacheEntry mapFile(File file) {
+    private FileCacheEntry mapFile(final File file) {
         final CacheType type;
         final long size;
         final ByteBuffer bb;
