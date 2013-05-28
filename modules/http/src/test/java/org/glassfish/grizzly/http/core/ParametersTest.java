@@ -349,6 +349,48 @@ public class ParametersTest {
 
     }
 
+    @Test
+    public void testProcessParametersChar() {
+
+        Parameters params = new Parameters();
+        // first an invalid url encoded request
+        String request = "test=%c]";
+        params.setQueryStringEncoding(Charset.forName("UTF-8"));
+
+        try {
+            params.processParameters(request.toCharArray(), 0,
+                                     request.length());
+        } catch (IllegalStateException e) {
+
+        }
+        // now a valid request, which would have failed before the fix, due to
+        // the buffer not being recycled
+        request = "test=test";
+        params.setQueryStringEncoding(Charset.forName("UTF-8"));
+        params.processParameters(request.toCharArray(), 0,
+                                 request.length());
+    }
+
+    @Test
+    public void testProcessParametersString() {
+
+        Parameters params = new Parameters();
+        // first an invalid url encoded request
+        String request = "test=%c]";
+        params.setQueryStringEncoding(Charset.forName("UTF-8"));
+
+        try {
+            params.processParameters(request);
+        } catch (IllegalStateException e) {
+
+        }
+        // now a valid request, which would have failed before the fix, due to
+        // the buffer not being recycled
+        request = "test=test";
+        params.setQueryStringEncoding(Charset.forName("UTF-8"));
+        params.processParameters(request);
+    }
+
     private void validateParameters(Parameter[] parameters, Parameters p) {
         Iterator<String> names = p.getParameterNames().iterator();
 
