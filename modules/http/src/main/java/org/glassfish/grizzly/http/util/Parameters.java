@@ -646,20 +646,20 @@ public final class Parameters {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-//                if (urlDec == null) {
-//                    urlDec = new UDecoder();
-//                }
                 URLDecoder.decode(tmpNameC, tmpNameC, true, queryStringEncoding.name());
                 URLDecoder.decode(tmpValueC, tmpValueC, true, queryStringEncoding.name());
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            } catch (Exception ex) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, ex.toString(), ex);
+                }
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
 
         } while (pos < end);
     }
@@ -771,9 +771,6 @@ public final class Parameters {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-//                if (urlDec == null) {
-//                    urlDec = new UDecoder();
-//                }
                 URLDecoder.decode(tmpNameC, true);
                 URLDecoder.decode(tmpValueC, true);
                 if (debug > 0) {
@@ -782,11 +779,14 @@ public final class Parameters {
                 if (str.compareTo(tmpNameC.toString()) == 0) {
                     addParameter(tmpNameC.toString(), tmpValueC.toString());
                 }
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            } catch (Exception ex) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, ex.toString(), ex);
+                }
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
 
         } while (pos < end);
     }
@@ -841,21 +841,20 @@ public final class Parameters {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-//                if (urlDec == null) {
-//                    urlDec = new UDecoder();
-//                }
                 URLDecoder.decode(tmpNameC, true);
                 URLDecoder.decode(tmpValueC, true);
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            } catch (Exception ex) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, ex.toString(), ex);
+                }
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
-
         } while (pos < end);
     }
 
