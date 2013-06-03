@@ -48,7 +48,7 @@
     <parent>
         <groupId>net.java</groupId>
         <artifactId>jvnet-parent</artifactId>
-        <version>4</version>
+        <version>3</version>
         <relativePath/>
     </parent>
 
