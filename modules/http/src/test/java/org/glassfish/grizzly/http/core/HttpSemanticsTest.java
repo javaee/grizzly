@@ -399,7 +399,7 @@ public class HttpSemanticsTest extends TestCase {
                 .uri("/path")
                 .contentLength(1)
                 .header(Header.TransferEncoding, "chunked")
-                .header(Header.Server, "localhost:" + PORT)
+                .header(Header.Host, "localhost:" + PORT)
                 .header(Header.Upgrade, "test")
                 .protocol("HTTP/1.1")
                 .build();
