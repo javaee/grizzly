@@ -1149,7 +1149,7 @@ public final class FilterChainContext implements AttributeStorage {
          * is copied.
          * 
          * @param srcContext source Context
-         * @param dstContext copied Context
+         * @param copiedContext copied Context
          */
         public void onCopy(FilterChainContext srcContext,
                 FilterChainContext copiedContext);

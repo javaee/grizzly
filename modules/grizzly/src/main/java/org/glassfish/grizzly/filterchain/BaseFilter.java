@@ -43,7 +43,6 @@ package org.glassfish.grizzly.filterchain;
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import java.lang.ref.WeakReference;
 
 /**
  * Provides empty implementation for {@link Filter} processing methods.
@@ -54,23 +53,26 @@ import java.lang.ref.WeakReference;
  */
 public class BaseFilter implements Filter {
 
-    private volatile int index;
-    private volatile WeakReference<FilterChain> filterChain;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onAdded(FilterChain filterChain) {
-        index = filterChain.indexOf(this);
-        this.filterChain = new WeakReference<FilterChain>(filterChain);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onFilterChainChanged(FilterChain filterChain) {
-        index = filterChain.indexOf(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onRemoved(FilterChain filterChain) {
-        index = -1;
     }
 
     /**
@@ -131,34 +133,17 @@ public class BaseFilter implements Filter {
     @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
     }
-    
-    /**
-     * Returns the {@link FilterChain}, which is executing this {@link Filter}
-     * on the current thread.
-     * 
-     * @return the {@link FilterChain}, which is currently 
-     *         executing this {@link Filter}
-     */
-    public FilterChain getFilterChain() {
-        final WeakReference<FilterChain> localRef = filterChain;
-        return localRef != null ? localRef.get() : null;
-    }
 
-    /**
-     * @return the index of this filter within the {@link FilterChain}.
-     */
-    public int getIndex() {
-        return index;
-    }
 
     public FilterChainContext createContext(final Connection connection,
             final Operation operation) {
+        FilterChain filterChain = (FilterChain) connection.getProcessor();
         final FilterChainContext ctx =
-                getFilterChain().obtainFilterChainContext(connection);
-
+                filterChain.obtainFilterChainContext(connection);
+        final int idx = filterChain.indexOf(this);
         ctx.setOperation(operation);
-        ctx.setFilterIdx(index);
-        ctx.setStartIdx(index);
+        ctx.setFilterIdx(idx);
+        ctx.setStartIdx(idx);
 
         return ctx;
     }

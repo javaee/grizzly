@@ -1012,16 +1012,6 @@ public class SSLBaseFilter extends BaseFilter {
         }
 
         @Override
-        public FilterChain getFilterChain() {
-            return transportFilter.getFilterChain();
-        }
-
-        @Override
-        public int getIndex() {
-            return transportFilter.getIndex();
-        }
-
-        @Override
         public FilterChainContext createContext(Connection connection, Operation operation) {
             return transportFilter.createContext(connection, operation);
         }

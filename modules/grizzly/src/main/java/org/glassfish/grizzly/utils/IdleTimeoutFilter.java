@@ -47,7 +47,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -67,8 +66,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * @author Alexey Stashok
  */
 public class IdleTimeoutFilter extends BaseFilter {
-    private static final Logger LOGGER = Grizzly.logger(IdleTimeoutFilter.class);
-    
+
     public static final Long FOREVER = Long.MAX_VALUE;
     public static final Long FOREVER_SPECIAL = FOREVER - 1;
     
