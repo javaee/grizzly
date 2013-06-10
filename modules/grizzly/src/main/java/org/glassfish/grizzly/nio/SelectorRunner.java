@@ -45,8 +45,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport.State;
-import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
@@ -69,7 +67,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.threadpool.Threads;
-import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.StateHolder;
 
 /**
