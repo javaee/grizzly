@@ -144,16 +144,6 @@
         </testResources>
         <directory>target</directory>
         <finalName>${project.artifactId}-${project.version}</finalName>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <inherited>true</inherited>
-                    <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
-                    <artifactId>maven-antrun-extended-plugin</artifactId>
-                    <version>1.43</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -216,7 +206,6 @@
                 <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
