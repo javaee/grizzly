@@ -98,6 +98,22 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>create-empty-javadoc-jar</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <classesDirectory>${project.build.directory}/javadoc</classesDirectory>
+                                    <classifier>javadoc</classifier>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
                         <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
                         <artifactId>maven-antrun-extended-plugin</artifactId>
                         <configuration>
@@ -118,15 +134,15 @@
                                 </zip>
                             </tasks>
                         </configuration>
-                      <executions>
-                          <execution>
-                              <!-- executes after source:jar executes in the package phase -->
-                              <phase>install</phase>
-                              <goals>
-                                  <goal>run</goal>
-                              </goals>
-                          </execution>
-                      </executions>
+                        <executions>
+                            <execution>
+                                <!-- executes after source:jar executes in the package phase -->
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -136,17 +152,14 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-portunif</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-rcm</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>
