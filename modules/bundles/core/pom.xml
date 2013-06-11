@@ -106,14 +106,14 @@
                                     <fullGraph />
                                     <groupId value="org.glassfish.grizzly" />
                                 </resolveAll>
-                                <zip destfile="target/${pom.artifactId}-${project.version}-javadoc.jar">
+                                <zip destfile="target/${project.artifactId}-${project.version}-javadoc.jar">
                                     <zipgroupfileset dir="target/javadoc-jars" includes="*.jar" />
                                 </zip>
                                 <resolveAll todir="target/source-jars" classifier="sources">
                                     <fullGraph />
                                     <groupId value="org.glassfish.grizzly" />
                                 </resolveAll>
-                                <zip destfile="target/${pom.artifactId}-${project.version}-sources.jar">
+                                <zip destfile="target/${project.artifactId}-${project.version}-sources.jar">
                                     <zipgroupfileset dir="target/source-jars" includes="*.jar" />
                                 </zip>
                             </tasks>
