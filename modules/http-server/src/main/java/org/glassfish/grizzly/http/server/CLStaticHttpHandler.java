@@ -43,8 +43,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -58,6 +62,7 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * {@link HttpHandler}, which processes requests to a static resources resolved
@@ -67,21 +72,72 @@ import org.glassfish.grizzly.memory.MemoryManager;
  */
 public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     private static final Logger LOGGER = Grizzly.logger(CLStaticHttpHandler.class);
+    private static final String SLASH_STR = "/";
+    private static final String EMPTY_STR = "";
 
     private final ClassLoader classLoader;
+    // path prefixes to be used
+    private final ArraySet<String> docRoots = new ArraySet<String>(String.class);
     
     /**
      * Create <tt>HttpHandler</tt>, which will handle requests
      * to the static resources resolved by the given class loader.
+     * @param {@link ClassLoader} to be used to resolve the resources
+     * @param docRoots the doc roots (path prefixes), which will be used
+     *          to find resources. Effectively each docRoot will be prepended
+     *          to a resource path before passing it to {@link ClassLoader#getResource(java.lang.String)}.
+     *          If no <tt>docRoots</tt> are set - the resources will be searched starting
+     *          from {@link ClassLoader}'s root.
+     * @throws IllegalArgumentException if one of the docRoots doesn't end with slash ('/')
      */
-    public CLStaticHttpHandler(final ClassLoader classLoader) {
+    public CLStaticHttpHandler(final ClassLoader classLoader,
+            final String... docRoots) {
         if (classLoader == null) {
             throw new IllegalArgumentException("ClassLoader can not be null");
         }
         
         this.classLoader = classLoader;
+        if (docRoots.length > 0) {
+            for (String docRoot : docRoots) {
+                if (!docRoot.endsWith("/")) {
+                    throw new IllegalArgumentException("Doc root should end with slash ('/')");
+                }
+            }
+            
+            this.docRoots.addAll(docRoots);
+        } else {
+            this.docRoots.add("/");
+        }
     }
 
+    /**
+     * Adds doc root (path prefix), which will be used to look up resources.
+     * Effectively each registered docRoot will be prepended to a resource path
+     * before passing it to {@link ClassLoader#getResource(java.lang.String)}.
+     * 
+     * @param docRoot
+     * @return <tt>true</tt> if this docroot hasn't been registered before, or <tt>false</tt> otherwise.
+     * 
+     * @throws IllegalArgumentException if one of the docRoots doesn't end with slash ('/')
+     */
+    public boolean addDocRoot(final String docRoot) {
+        if (!docRoot.endsWith("/")) {
+            throw new IllegalArgumentException("Doc root should end with slash ('/')");
+        }
+        
+        return docRoots.add(docRoot);
+    }
+    
+    /**
+     * Removes docRoot from the doc root list.
+     * @param docRoot
+     * @return <tt>true</tt> if this docroot was found and removed from the list, or
+     *      or <tt>false</tt> if this docroot was not found in the list.
+     */
+    public boolean removeDocRoot(final String docRoot) {
+        return docRoots.remove(docRoot);
+    }
+    
     /**
      * Returns the {@link ClassLoader} used to resolve the requested HTTP resources.
      */
@@ -97,19 +153,49 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             final Request request,
             final Response response) throws Exception {
 
-        boolean found = false;
         File fileResource = null;
+        URLConnection urlConnection = null;
+        InputStream urlInputStream = null;
         
-        if (resourcePath.startsWith("/")) {
+        if (resourcePath.startsWith(SLASH_STR)) {
             resourcePath = resourcePath.substring(1);
         }
-        URL url = classLoader.getResource(resourcePath);
         
-        if (url == null) {
-            // try if resourcePath doesn't refer a folder in a jar
-            url = classLoader.getResource(resourcePath + "/index.html");
-            found = (url != null);
-        } else {
+        URL url = null;
+        
+        final String[] docRootsLocal = docRoots.getArray();
+        if (docRootsLocal == null || docRootsLocal.length == 0) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "No doc roots registered -> resource {0} is not found ", resourcePath);
+            }
+            return false;
+        }
+        
+        for (int i = 0; i < docRootsLocal.length; i++) {
+            String docRoot = docRootsLocal[i];
+
+            if (SLASH_STR.equals(docRoot)) {
+                docRoot = EMPTY_STR;
+            } else if (docRoot.startsWith(SLASH_STR)) {
+                docRoot = docRoot.substring(1);
+            }
+            
+            final String fullPath = docRoot + resourcePath;
+            url = classLoader.getResource(fullPath);
+            
+            if (url == null) {
+                // try if resourcePath doesn't refer a folder in a jar
+                url = classLoader.getResource(fullPath + "/index.html");
+            }
+            
+            if (url != null) {
+                break;
+            }
+        }
+        
+        boolean found = false;
+        
+        if (url != null) {
             if ("file".equals(url.getProtocol())) {
                 final File file = new File(url.toURI());
                 
@@ -126,7 +212,33 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                     }
                 }
             } else {
-                found = true;
+                urlConnection = url.openConnection();
+                if ("jar".equals(url.getProtocol())) {
+                    final JarURLConnection jarUrlConnection = (JarURLConnection) urlConnection;
+                    final JarEntry jarEntry = jarUrlConnection.getJarEntry();
+                    final JarFile jarFile = jarUrlConnection.getJarFile();
+                    // check if this is not a folder
+                    // we can't rely on jarEntry.isDirectory() because of http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6233323
+                    InputStream is = jarFile.getInputStream(jarEntry);
+                    
+                    if (is == null) { // it's probably a folder
+                        final JarEntry welcomeJarEntry = jarFile.getJarEntry(
+                                jarEntry.getName() + "/index.html");
+                        if (welcomeJarEntry != null) {
+                            is = jarFile.getInputStream(welcomeJarEntry);
+                        }
+                    }
+                    
+                    if (is != null) {
+                        urlInputStream = new JarURLInputStream(jarUrlConnection,
+                                jarFile, is);
+                        found = true;
+                    } else {
+                        closeJarFileIfNeeded(jarUrlConnection, jarFile);
+                    }
+                } else {
+                    found = true;
+                }
             }
         }
        
@@ -156,6 +268,8 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             addToFileCache(request, response, fileResource);
             sendFile(response, fileResource);
         } else {
+            assert urlConnection != null;
+            
             pickupContentType(response, url.getPath());
 
             // if it's not a jar file - we don't know what to do with that
@@ -165,7 +279,10 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                 addTimeStampEntryToFileCache(request, response, jarFile);
             }
             
-            sendResource(response, url.openStream());
+            sendResource(response,
+                    urlInputStream != null ?
+                    urlInputStream :
+                    urlConnection.getInputStream());
         }
 
         return true;
@@ -359,5 +476,36 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                 response.finish();
             }
         }
-    }    
+    }
+
+
+    class JarURLInputStream extends java.io.FilterInputStream {
+
+        private final JarURLConnection jarConnection;
+        private final JarFile jarFile;
+        
+        JarURLInputStream(final JarURLConnection jarConnection,
+                final JarFile jarFile,
+                final InputStream src) {
+            super(src);
+            this.jarConnection = jarConnection;
+            this.jarFile = jarFile;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                closeJarFileIfNeeded(jarConnection, jarFile);
+            }
+        }
+    }
+    
+    private static void closeJarFileIfNeeded(final JarURLConnection jarConnection,
+            final JarFile jarFile) throws IOException {
+        if (!jarConnection.getUseCaches()) {
+            jarFile.close();
+        }
+    }
 }
