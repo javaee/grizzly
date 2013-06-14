@@ -365,10 +365,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                         // response from the server after it has sent a
                         // 100-Continue.
                         parsingState.offset += 2;
-                        parsingState.start = 0;
-//                        input.position(parsingState.offset);
-//                        input.shrink();
-//                        parsingState.offset = 0;
+                        parsingState.start = parsingState.offset;
                         return false;
                     }
                     return true;
