@@ -145,7 +145,7 @@ public class HttpClientFilter extends HttpCodecFilter {
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        Buffer input = (Buffer) ctx.getMessage();
+        Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
         ClientHttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
