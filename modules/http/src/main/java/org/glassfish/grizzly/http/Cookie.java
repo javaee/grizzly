@@ -90,8 +90,8 @@ import org.glassfish.grizzly.utils.Charsets;
  * created using Version 0 to ensure the best interoperability.
  *
  *
- * @author	Various
- * @version	$Version$
+ * @author    Various
+ * @version    $Version$
  *
  */
 public class Cookie implements Cloneable, Cacheable {
@@ -100,20 +100,20 @@ public class Cookie implements Cloneable, Cacheable {
     // The value of the cookie itself.
     //
     
-    protected String name;	// NAME= ... "$Name" style is reserved
-    protected String value;	// value of NAME
+    protected String name;    // NAME= ... "$Name" style is reserved
+    protected String value;    // value of NAME
 
     //
     // Attributes encoded in the header's cookie fields.
     //
     
-    protected String comment;	// ;Comment=VALUE ... describes cookie's use
-				// ;Discard ... implied by maxAge < 0
-    protected String domain;	// ;Domain=VALUE ... domain that sees cookie
-    protected int maxAge = -1;	// ;Max-Age=VALUE ... cookies auto-expire
-    protected String path;	// ;Path=VALUE ... URLs that see the cookie
-    protected boolean secure;	// ;Secure ... e.g. use SSL
-    protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
+    protected String comment;    // ;Comment=VALUE ... describes cookie's use
+                // ;Discard ... implied by maxAge < 0
+    protected String domain;    // ;Domain=VALUE ... domain that sees cookie
+    protected int maxAge = -1;    // ;Max-Age=VALUE ... cookies auto-expire
+    protected String path;    // ;Path=VALUE ... URLs that see the cookie
+    protected boolean secure;    // ;Secure ... e.g. use SSL
+    protected int version = 0;    // ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
     protected LazyCookieState lazyCookieState;
@@ -138,14 +138,14 @@ public class Cookie implements Cloneable, Cacheable {
      * <code>setVersion</code> method.
      *
      *
-     * @param name 			a <code>String</code> specifying the name of the cookie
+     * @param name             a <code>String</code> specifying the name of the cookie
      *
-     * @param value			a <code>String</code> specifying the value of the cookie
+     * @param value            a <code>String</code> specifying the value of the cookie
      *
-     * @throws IllegalArgumentException	if the cookie name contains illegal characters
-     *					(for example, a comma, space, or semicolon)
-     *					or it is one of the tokens reserved for use
-     *					by the cookie protocol
+     * @throws IllegalArgumentException    if the cookie name contains illegal characters
+     *                    (for example, a comma, space, or semicolon)
+     *                    or it is one of the tokens reserved for use
+     *                    by the cookie protocol
      * @see #setValue
      * @see #setVersion
      *
@@ -163,8 +163,8 @@ public class Cookie implements Cloneable, Cacheable {
      * to the user. Comments
      * are not supported by Netscape Version 0 cookies.
      *
-     * @param purpose		a <code>String</code> specifying the comment 
-     *				to display to the user
+     * @param purpose        a <code>String</code> specifying the comment 
+     *                to display to the user
      *
      * @see #getComment
      *
@@ -181,8 +181,8 @@ public class Cookie implements Cloneable, Cacheable {
      * Returns the comment describing the purpose of this cookie, or
      * <code>null</code> if the cookie has no comment.
      *
-     * @return			a <code>String</code> containing the comment,
-     *				or <code>null</code> if none
+     * @return            a <code>String</code> containing the comment,
+     *                or <code>null</code> if none
      *
      * @see #setComment
      *
@@ -193,7 +193,7 @@ public class Cookie implements Cloneable, Cacheable {
             final String commentStr = lazyCookieState.getComment().toString(Charsets.ASCII_CHARSET);
             comment = (version == 1) ? unescape(commentStr) : null;
         }
-	    return comment;
+        return comment;
     }
     
     
@@ -212,9 +212,9 @@ public class Cookie implements Cloneable, Cacheable {
      * to the server that sent them.
      *
      *
-     * @param pattern		a <code>String</code> containing the domain name
-     *				within which this cookie is visible;
-     *				form is according to RFC 2109
+     * @param pattern        a <code>String</code> containing the domain name
+     *                within which this cookie is visible;
+     *                form is according to RFC 2109
      *
      * @see #getDomain
      *
@@ -222,7 +222,7 @@ public class Cookie implements Cloneable, Cacheable {
 
     public void setDomain(String pattern) {
         if (pattern != null) {
-            domain = pattern.toLowerCase();	// IE allegedly needs this
+            domain = pattern.toLowerCase();    // IE allegedly needs this
         }
     }
     
@@ -234,7 +234,7 @@ public class Cookie implements Cloneable, Cacheable {
      * Returns the domain name set for this cookie. The form of 
      * the domain name is set by RFC 2109.
      *
-     * @return			a <code>String</code> containing the domain name
+     * @return            a <code>String</code> containing the domain name
      *
      * @see #setDomain
      *
@@ -266,10 +266,10 @@ public class Cookie implements Cloneable, Cacheable {
      * when the Web browser exits. A zero value causes the cookie
      * to be deleted.
      *
-     * @param expiry		an integer specifying the maximum age of the
-     * 				cookie in seconds; if negative, means
-     *				the cookie is not stored; if zero, deletes
-     *				the cookie
+     * @param expiry        an integer specifying the maximum age of the
+     *                 cookie in seconds; if negative, means
+     *                the cookie is not stored; if zero, deletes
+     *                the cookie
      *
      *
      * @see #getMaxAge
@@ -289,9 +289,9 @@ public class Cookie implements Cloneable, Cacheable {
      * until browser shutdown.
      *
      *
-     * @return			an integer specifying the maximum age of the
-     *				cookie in seconds; if negative, means
-     *				the cookie persists until browser shutdown
+     * @return            an integer specifying the maximum age of the
+     *                cookie in seconds; if negative, means
+     *                the cookie persists until browser shutdown
      *
      *
      * @see #setMaxAge
@@ -319,7 +319,7 @@ public class Cookie implements Cloneable, Cacheable {
      * information on setting path names for cookies.
      *
      *
-     * @param uri		a <code>String</code> specifying a path
+     * @param uri        a <code>String</code> specifying a path
      *
      *
      * @see #getPath
@@ -339,8 +339,8 @@ public class Cookie implements Cloneable, Cacheable {
      * cookie is visible to all subpaths on the server.
      *
      *
-     * @return		a <code>String</code> specifying a path that contains
-     *			a servlet name, for example, <i>/catalog</i>
+     * @return        a <code>String</code> specifying a path that contains
+     *            a servlet name, for example, <i>/catalog</i>
      *
      * @see #setPath
      *
@@ -363,9 +363,9 @@ public class Cookie implements Cloneable, Cacheable {
      *
      * <p>The default value is <tt>false</tt>.
      *
-     * @param flag	if <tt>true</tt>, sends the cookie from the browser
-     *			to the server only when using a secure protocol;
-     *			if <tt>false</tt>, sent on any protocol
+     * @param flag    if <tt>true</tt>, sends the cookie from the browser
+     *            to the server only when using a secure protocol;
+     *            if <tt>false</tt>, sent on any protocol
      *
      * @see #isSecure
      *
@@ -383,8 +383,8 @@ public class Cookie implements Cloneable, Cacheable {
      * only over a secure protocol, or <tt>false</tt> if the
      * browser can send cookies using any protocol.
      *
-     * @return		<tt>true</tt> if the browser uses a secure protocol;
-     * 			 otherwise, <tt>true</tt>
+     * @return        <tt>true</tt> if the browser uses a secure protocol;
+     *              otherwise, <tt>true</tt>
      *
      * @see #setSecure
      *
@@ -402,7 +402,7 @@ public class Cookie implements Cloneable, Cacheable {
      * Returns the name of the cookie. The name cannot be changed after
      * creation.
      *
-     * @return		a <code>String</code> specifying the cookie's name
+     * @return        a <code>String</code> specifying the cookie's name
      *
      */
 
@@ -430,7 +430,7 @@ public class Cookie implements Cloneable, Cacheable {
      * and semicolons. Empty values may not behave the same way
      * on all browsers.
      *
-     * @param newValue		a <code>String</code> specifying the new value 
+     * @param newValue        a <code>String</code> specifying the new value 
      *
      *
      * @see #getValue
@@ -448,8 +448,8 @@ public class Cookie implements Cloneable, Cacheable {
     /**
      * Returns the value of the cookie.
      *
-     * @return			a <code>String</code> containing the cookie's
-     *				present value
+     * @return            a <code>String</code> containing the cookie's
+     *                present value
      *
      * @see #setValue
      * @see Cookie
@@ -474,9 +474,9 @@ public class Cookie implements Cloneable, Cacheable {
      * by a browser use and identify the browser's cookie version.
      * 
      *
-     * @return			0 if the cookie complies with the
-     *				original Netscape specification; 1
-     *				if the cookie complies with RFC 2109
+     * @return            0 if the cookie complies with the
+     *                original Netscape specification; 1
+     *                if the cookie complies with RFC 2109
      *
      * @see #setVersion
      *
@@ -498,9 +498,9 @@ public class Cookie implements Cloneable, Cacheable {
      * version 1 as experimental; do not use it yet on production sites.
      *
      *
-     * @param v			0 if the cookie should comply with 
-     *				the original Netscape specification;
-     *				1 if the cookie should comply with RFC 2109
+     * @param v            0 if the cookie should comply with 
+     *                the original Netscape specification;
+     *                1 if the cookie should comply with RFC 2109
      *
      * @see #getVersion
      *
@@ -651,23 +651,23 @@ public class Cookie implements Cloneable, Cacheable {
      * Tests a string and returns true if the string counts as a
      * reserved token in the Java language.
      *
-     * @param value		the <code>String</code> to be tested
+     * @param value        the <code>String</code> to be tested
      *
-     * @return			<tt>true</tt> if the <code>String</code> is
-     *				a reserved token; <tt>false</tt>
-     *				if it is not
+     * @return            <tt>true</tt> if the <code>String</code> is
+     *                a reserved token; <tt>false</tt>
+     *                if it is not
      */
 
     private static boolean isToken(String value) {
-	int len = value.length();
+    int len = value.length();
 
-	for (int i = 0; i < len; i++) {
-	    char c = value.charAt(i);
+    for (int i = 0; i < len; i++) {
+        char c = value.charAt(i);
 
-	    if (c < 0x20 || c >= 0x7f || tspecials.indexOf(c) != -1)
-		return false;
-	}
-	return true;
+        if (c < 0x20 || c >= 0x7f || tspecials.indexOf(c) != -1)
+        return false;
+    }
+    return true;
     }
 
     /**
