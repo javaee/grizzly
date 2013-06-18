@@ -63,8 +63,9 @@ import static org.junit.Assert.*;
  *
  * @author oleksiys
  */
-public class SingleEndPointPoolTest {
-    private static final int PORT = 18333;
+public class MultiEndPointPoolTest {
+    private static final int PORT = 18334;
+    private static final int NUMBER_OF_PORTS_TO_BIND = 3;
     
     private final Set<Connection> serverSideConnections =
             Collections.newSetFromMap(new ConcurrentHashMap<Connection, Boolean>());
@@ -93,7 +94,10 @@ public class SingleEndPointPoolTest {
         transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChain);
         
-        transport.bind(PORT);
+        for (int i = 0; i < NUMBER_OF_PORTS_TO_BIND; i++) {
+            transport.bind(PORT + i);
+        }
+        
         transport.start();
     }
     
@@ -108,111 +112,118 @@ public class SingleEndPointPoolTest {
     
     @Test
     public void testBasicPollRelease() throws Exception {
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 5, null,
-                -1, 1000, 1000);
+        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
+                transport, 3, 15, null, -1, 1000, 1000);
         
-        Connection c1 = pool.take();
-        assertNotNull(c1);
+        final MultiEndpointKey<SocketAddress> key1 =
+                new MultiEndpointKey<SocketAddress>("endpoint1",
+                new InetSocketAddress("localhost", PORT));
+        
+        final MultiEndpointKey<SocketAddress> key2 =
+                new MultiEndpointKey<SocketAddress>("endpoint2",
+                new InetSocketAddress("localhost", PORT + 1));
+        
+        Connection c11 = pool.take(key1);
+        assertNotNull(c11);
         assertEquals(1, pool.size());
-        Connection c2 = pool.take();
-        assertNotNull(c2);
+        Connection c12 = pool.take(key1);
+        assertNotNull(c12);
         assertEquals(2, pool.size());
         
-        pool.release(c1);
-        assertEquals(2, pool.size());
+        Connection c21 = pool.take(key2);
+        assertNotNull(c21);
+        assertEquals(3, pool.size());
+        Connection c22 = pool.take(key2);
+        assertNotNull(c22);
+        assertEquals(4, pool.size());
         
-        pool.release(c2);
-        assertEquals(2, pool.size());
+        pool.release(key1, c11);
+        assertEquals(4, pool.size());
         
-        c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(2, pool.size());
+        pool.release(key2, c21);
+        assertEquals(4, pool.size());
         
-        pool.detach(c1);
-        assertEquals(1, pool.size());
+        c11 = pool.take(key1);
+        assertNotNull(c11);
+        assertEquals(4, pool.size());
         
-        pool.release(c1);
-        assertEquals(1, pool.size());
+        pool.detach(key1, c11);
+        assertEquals(3, pool.size());
         
-        assertTrue(pool.attach(c1));
-        assertEquals(2, pool.size());
-        assertEquals(2, pool.getReadyConnectionsCount());
+        pool.release(key1, c11);
+        assertEquals(3, pool.size());
         
-        pool.release(c1);
-        assertEquals(2, pool.size());
-        assertEquals(2, pool.getReadyConnectionsCount());
+        assertTrue(pool.attach(key1, c11));
+        assertEquals(4, pool.size());
         
-        c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(1, pool.getReadyConnectionsCount());
+        pool.release(key1, c11);
+        assertEquals(4, pool.size());
+        
+        c11 = pool.take(key1);
+        assertNotNull(c11);
 
-        c2 = pool.take();
-        assertNotNull(c2);
-        assertEquals(0, pool.getReadyConnectionsCount());
+        c21 = pool.take(key2);
+        assertNotNull(c21);
 
-        c1.close().get(10, TimeUnit.SECONDS);
-        assertEquals(1, pool.size());
+        c11.close().get(10, TimeUnit.SECONDS);
+        assertEquals(3, pool.size());
         
-        c2.close().get(10, TimeUnit.SECONDS);
+        c12.close().get(10, TimeUnit.SECONDS);
+        assertEquals(2, pool.size());
+
+        c21.close().get(10, TimeUnit.SECONDS);
+        assertEquals(1, pool.size());
+
+        c22.close().get(10, TimeUnit.SECONDS);
         assertEquals(0, pool.size());
     }
     
     @Test
-    public void testPollTimeout() throws Exception {
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 2, null,
-                -1, 1000, 1000);
+    public void testTotalPoolSizeLimit() throws Exception {
+        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
+                transport, 2, 2, null, -1, 1000, 1000);
         
-        Connection c1 = pool.poll(0, TimeUnit.MILLISECONDS);
-        assertNull(c1);
+        final MultiEndpointKey<SocketAddress> key1 =
+                new MultiEndpointKey<SocketAddress>("endpoint1",
+                new InetSocketAddress("localhost", PORT));
+        
+        final MultiEndpointKey<SocketAddress> key2 =
+                new MultiEndpointKey<SocketAddress>("endpoint2",
+                new InetSocketAddress("localhost", PORT + 1));
+        
+        Connection c11 = pool.take(key1);
+        assertNotNull(c11);
+        assertEquals(1, pool.size());
+        final Connection c12 = pool.take(key1);
+        assertNotNull(c12);
+        assertEquals(2, pool.size());
+        
+        Connection c21 = pool.poll(key2, 2, TimeUnit.SECONDS);
+        assertNull(c21);
+        assertEquals(2, pool.size());
+        
+        final Thread t = new Thread() {
+
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                }
+                
+                c12.closeSilently();
+            }
+        };
+        t.start();
+        
+        c21 = pool.poll(key2, 10, TimeUnit.SECONDS);
+        assertNotNull(c12);
+        assertEquals(2, pool.size());
+        
+        c11.close().get(10, TimeUnit.SECONDS);
+        assertEquals(1, pool.size());
+
+        c21.close().get(10, TimeUnit.SECONDS);
         assertEquals(0, pool.size());
-        
-        c1 = pool.poll(-1, TimeUnit.MILLISECONDS);
-        assertNotNull(c1);
-        assertEquals(1, pool.size());
-        
-        Connection c2 = pool.poll(-1, TimeUnit.MILLISECONDS);
-        assertNotNull(c2);
-        assertEquals(2, pool.size());
-        
-        Connection c3 = pool.poll(2, TimeUnit.SECONDS);
-        assertNull(c3);
-        assertEquals(2, pool.size());
-        
-        pool.release(c2);
-
-        c3 = pool.poll(2, TimeUnit.SECONDS);
-        assertNotNull(c3);
-        assertEquals(2, pool.size());
     }
-    
-    @Test
-    public void testKeepAliveTimeout() throws Exception {
-        final long keepAliveTimeoutMillis = 5000;
-        final long keepAliveCheckIntervalMillis = 1000;
-        
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 5, null,
-                keepAliveTimeoutMillis, keepAliveCheckIntervalMillis, 1000);
-        
-        Connection c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(1, pool.size());
-        Connection c2 = pool.take();
-        assertNotNull(c2);
-        assertEquals(2, pool.size());
-        
-        Connection c3 = pool.take();
-        assertNotNull(c3);
-        assertEquals(3, pool.size());
-
-        pool.release(c1);
-        assertEquals(3, pool.size());
-        
-        Thread.sleep(keepAliveTimeoutMillis + keepAliveCheckIntervalMillis * 2);
-        
-        assertEquals(2, pool.size());
-        assertEquals(2, serverSideConnections.size());
-    }    
 }

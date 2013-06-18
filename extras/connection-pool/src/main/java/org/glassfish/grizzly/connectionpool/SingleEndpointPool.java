@@ -64,10 +64,10 @@ public class SingleEndpointPool<E> {
     private final PoolConnectionCloseListener closeListener =
             new PoolConnectionCloseListener();
     
-    private final Chain availableConnections = new Chain();
+    private final Chain<Connection> readyConnections = new Chain<Connection>();
     
-    private final Map<Connection, Link> connectionsMap =
-            new HashMap<Connection, Link>();
+    private final Map<Connection, Link<Connection>> connectionsMap =
+            new HashMap<Connection, Link<Connection>>();
     
     private final Object poolSync = new Object();
     
@@ -90,7 +90,7 @@ public class SingleEndpointPool<E> {
     private int poolSize;
     // Number of connections we're currently trying to establish
     // and waiting for the result
-    private int pendingConnections;
+    protected int pendingConnections;
     private int waitListSize;
 
     @SuppressWarnings("unchecked")
@@ -171,14 +171,35 @@ public class SingleEndpointPool<E> {
     
     public int size() {
         synchronized (poolSync) {
-            return poolSize;
+            return poolSize + pendingConnections;
         }
     }
+    
+    public int getOpenConnectionsCount() {
+        synchronized (poolSync) {
+            return poolSize + pendingConnections;
+        }
+    }
+
+    public int getReadyConnectionsCount() {
+        synchronized (poolSync) {
+            return readyConnections.size();
+        }
+    }
+
+    public boolean isMaxCapacityReached() {
+        synchronized (poolSync) {
+            return poolSize + pendingConnections >= maxPoolSize;
+        }
+    }
+    
     public Connection take() throws IOException, InterruptedException {
         synchronized (poolSync) {
-            if (!availableConnections.isEmpty()) {
+            checkNotClosed();
+            
+            if (!readyConnections.isEmpty()) {
                 final Connection connection =
-                        availableConnections.poll().getConnection();
+                        readyConnections.pollLast().getValue();
 
                 return connection;
             }
@@ -186,7 +207,7 @@ public class SingleEndpointPool<E> {
             try {
                 waitListSize++;
                 do {
-                    createConnectionIfPossible();
+                    createConnectionIfPossibleNoSync();
 
                     poolSync.wait();
 
@@ -194,8 +215,8 @@ public class SingleEndpointPool<E> {
                         break;
                     }
 
-                    if (!availableConnections.isEmpty()) {
-                        return availableConnections.poll().getConnection();
+                    if (!readyConnections.isEmpty()) {
+                        return readyConnections.pollLast().getValue();
                     }
                 } while (true);
 
@@ -210,9 +231,7 @@ public class SingleEndpointPool<E> {
      * Retrieves {@link Connection} from the pool with a given timeout values.
      * 
      * If the timeout less than zero (timeout &lt; 0) - the method call is equivalent to {@link #take()}.
-     * If the timeout is equal to zero (timeout == 0) - the method doesn't block and immediately
-     * returns a {@link Connection} from the pool, if the {@link Connection} is available, or
-     * <tt>null</tt> if there is no available {@link Connection} in the pool.
+     * If the timeout is equal to zero (timeout == 0) - the method call is equivalent to {@link #poll()}.
      * 
      * @param timeout the time given to the method to retrieve a {@link Connection} from the pool.
      * @param timeunit the {@link TimeUnit}.
@@ -220,7 +239,7 @@ public class SingleEndpointPool<E> {
      *              the given timeout interval.
      * @throws IOException thrown if this pool has been already closed.
      */
-    public Connection take(final long timeout, final TimeUnit timeunit)
+    public Connection poll(final long timeout, final TimeUnit timeunit)
             throws IOException, InterruptedException {
         final long timeoutMillis = timeout <= 0 ?
                 timeout :
@@ -231,9 +250,11 @@ public class SingleEndpointPool<E> {
         }
         
         synchronized (poolSync) {
-            if (!availableConnections.isEmpty()) {
+            checkNotClosed();
+            
+            if (!readyConnections.isEmpty()) {
                 final Connection connection =
-                        availableConnections.poll().getConnection();
+                        readyConnections.pollLast().getValue();
 
                 return connection;
             }
@@ -248,7 +269,7 @@ public class SingleEndpointPool<E> {
             try {
                 waitListSize++;
                 do {
-                    createConnectionIfPossible();
+                    createConnectionIfPossibleNoSync();
 
                     poolSync.wait(remainingMillis);
 
@@ -256,8 +277,8 @@ public class SingleEndpointPool<E> {
                         break;
                     }
 
-                    if (!availableConnections.isEmpty()) {
-                        return availableConnections.poll().getConnection();
+                    if (!readyConnections.isEmpty()) {
+                        return readyConnections.pollLast().getValue();
                     }
                     
                     final long endTime = System.currentTimeMillis();
@@ -277,11 +298,26 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    public Connection poll() throws IOException {
+        synchronized (poolSync) {
+            checkNotClosed();
+            
+            if (!readyConnections.isEmpty()) {
+                final Connection connection =
+                        readyConnections.pollLast().getValue();
+
+                return connection;
+            }
+
+            return null;
+        }
+    }
+    
     public void release(final Connection connection) {
         synchronized (poolSync) {
-            final Link connectionLink = connectionsMap.get(connection);
+            final Link<Connection> connectionLink = connectionsMap.get(connection);
             
-            if (connectionLink == null) {
+            if (connectionLink == null || connectionLink.isLinked()) {
                 return;
             }
 
@@ -290,12 +326,44 @@ public class SingleEndpointPool<E> {
                 return;
             }
             
-            if (availableConnections.size() < maxPoolSize) {
-                availableConnections.offer(connectionLink);
+            if (readyConnections.size() < maxPoolSize) {
+                readyConnections.offer(connectionLink);
             }
         }
     }
 
+    public boolean attach(final Connection connection) throws IOException {
+        synchronized (poolSync) {
+            checkNotClosed();
+            if (connectionsMap.containsKey(connection)) {
+                return true;
+            }
+            
+            if (checkBeforeOpeningConnection()) {
+                connectionCompletionHandler.completed(connection);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    
+    public void detach(final Connection connection) throws IOException {
+        synchronized (poolSync) {
+            checkNotClosed();
+            
+            final Link<Connection> link = connectionsMap.remove(connection);
+            if (link != null) {
+                connection.removeCloseListener(closeListener);
+                
+                readyConnections.remove(link);
+                poolSize--;
+
+                onCloseConnection(connection);
+            }            
+        }
+    }
+    
     public void close() {
         synchronized (poolSync) {
             if (isClosed) {
@@ -309,9 +377,9 @@ public class SingleEndpointPool<E> {
                     ownDelayedExecutor.destroy();
                 }
                 
-                final int size = availableConnections.size();
+                final int size = readyConnections.size();
                 for (int i = 0; i < size; i++) {
-                    final Connection c = availableConnections.poll().getConnection();
+                    final Connection c = readyConnections.pollLast().getValue();
                     c.closeSilently();
                 }
             } finally {
@@ -321,7 +389,12 @@ public class SingleEndpointPool<E> {
     }
     
     protected boolean checkBeforeOpeningConnection() {
-        return true;
+        if (!isMaxCapacityReached()) {
+            pendingConnections++;
+            return true;
+        }
+        
+        return false;
     }
     
     protected void onOpenConnection(final Connection connection) {
@@ -330,17 +403,11 @@ public class SingleEndpointPool<E> {
     protected void onFailedConnection() {
     }
 
-    protected void onCloseConnection(final Connection connection,
-            final CloseType type) {
-    }
-
-    void createConnectionIfPossible() {
-        if ((poolSize + pendingConnections < maxPoolSize) &&
-                checkBeforeOpeningConnection()) {
-            pendingConnections++;
-            
-            connectorHandler.connect(endpointAddress,
-                    connectionCompletionHandler);
+    protected void onCloseConnection(final Connection connection) {
+        // If someone is waiting for a connection
+        // try to create a new one
+        if (waitListSize > 0) {
+            createConnectionIfPossibleNoSync();
         }
     }
 
@@ -350,23 +417,21 @@ public class SingleEndpointPool<E> {
                 return true;
             }
 
-            if (!availableConnections.isEmpty() && poolSize > corePoolSize) {
+            if (!readyConnections.isEmpty() && poolSize > corePoolSize) {
                 final long now = System.currentTimeMillis();
 
                 try {
                     do {
-                        final Link link = availableConnections.getFirstLink();
+                        final Link<Connection> link = readyConnections.getFirstLink();
 
                         if ((now - link.getLinkTimeStamp()) >= keepAliveTimeoutMillis) {
-                            final Connection connection = link.getConnection();
-                            availableConnections.remove(link);
-                            connectionsMap.remove(connection);
-                            poolSize--;
+                            final Connection connection = link.getValue();
+                            // CloseListener will update the counters
                             connection.closeSilently();
                         } else { // the rest of links are ok
                             break;
                         }
-                    } while (!availableConnections.isEmpty());
+                    } while (!readyConnections.isEmpty());
                 } catch (Exception ignore) {
                 }
             }
@@ -375,7 +440,30 @@ public class SingleEndpointPool<E> {
         cleanerTask.timeoutMillis = System.currentTimeMillis() + keepAliveCheckIntervalMillis;
         return false;
     }
+
+    protected boolean createConnectionIfPossible() {
+        synchronized (poolSync) {
+            return createConnectionIfPossibleNoSync();
+        }
+    }
+    
+    private boolean createConnectionIfPossibleNoSync() {
+        if (checkBeforeOpeningConnection()) {
+            connectorHandler.connect(endpointAddress,
+                    connectionCompletionHandler);
+            
+            return true;
+        }
         
+        return false;
+    }
+    
+    private void checkNotClosed() throws IOException {
+        if (isClosed) {
+            throw new IOException("The pool is closed");
+        }
+    }
+
     private final class ConnectCompletionHandler
             extends EmptyCompletionHandler<Connection> {
         
@@ -395,9 +483,9 @@ public class SingleEndpointPool<E> {
         public void completed(final Connection connection) {
             synchronized (poolSync) {
                 if (!isClosed) {
-                    final Link link = new Link(connection);
+                    final Link<Connection> link = new Link<Connection>(connection);
                     connectionsMap.put(connection, link);
-                    availableConnections.offer(link);
+                    readyConnections.offer(link);
                     
                     poolSize++;
                     pendingConnections--;
@@ -423,18 +511,12 @@ public class SingleEndpointPool<E> {
         public void onClosed(final Connection connection, final CloseType type)
                 throws IOException {
             synchronized (poolSync) {
-                onCloseConnection(connection, type);
-                
-                final Link link = connectionsMap.remove(connection);
+                final Link<Connection> link = connectionsMap.remove(connection);
                 if (link != null) {
-                    availableConnections.remove(link);
+                    readyConnections.remove(link);
                     poolSize--;
                     
-                    // If someone is waiting for a connection
-                    // try to create a new one
-                    if (waitListSize > 0) {
-                        createConnectionIfPossible();
-                    }
+                    onCloseConnection(connection);
                 }
             }
         }
@@ -485,7 +567,7 @@ public class SingleEndpointPool<E> {
 
         @Override
         public boolean doWork(final ReconnectTask reconnectTask) {
-            reconnectTask.pool.createConnectionIfPossible();
+            reconnectTask.pool.createConnectionIfPossibleNoSync();
             return true;
         }
     }

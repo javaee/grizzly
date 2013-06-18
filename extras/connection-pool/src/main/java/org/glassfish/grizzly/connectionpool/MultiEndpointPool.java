@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
@@ -57,15 +56,18 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  * @author oleksiys
  */
 public class MultiEndpointPool<E> {
-    private final ConcurrentHashMap<E, SingleEndpointPool<E>> poolByEndpointMap =
-            new ConcurrentHashMap<E, SingleEndpointPool<E>>();
+    private final ConcurrentHashMap<MultiEndpointKey<E>, SingleEndpointPool<E>> poolByEndpointMap =
+            new ConcurrentHashMap<MultiEndpointKey<E>, SingleEndpointPool<E>>();
 
     private final Object poolSync = new Object();
-    private final Object maxConnectionCounterSync = new Object();
+    private final Object countersSync = new Object();
     
     private boolean isClosed;
     private int poolSize;
-    private int pendingConnections;
+    private int totalPendingConnections;
+    
+    private final Chain<EndpointPoolImpl> maxPoolSizeHitsChain =
+            new Chain<EndpointPoolImpl>();
     
     private final DelayedExecutor ownDelayedExecutor;
     private final DelayQueue<ReconnectTask> reconnectQueue;
@@ -121,38 +123,85 @@ public class MultiEndpointPool<E> {
         }        
     }
     
-    public Connection take(final E endpoint) throws IOException, InterruptedException {
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpoint);
+    public int size() {
+        synchronized (countersSync) {
+            return poolSize + totalPendingConnections;
+        }
+    }
+    
+    public int getOpenConnectionsCount() {
+        synchronized (poolSync) {
+            return poolSize;
+        }
+    }
+    
+    public boolean isMaxCapacityReached() {
+        synchronized (countersSync) {
+            return poolSize + totalPendingConnections >= maxConnectionsTotal;
+        }
+    }
+
+    public Connection take(final MultiEndpointKey<E> endpointKey)
+            throws IOException, InterruptedException {
+        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
         
         return sePool.take();
     }
     
-    public Connection take(final E endpoint, final long timeout,
-            final TimeUnit timeunit) throws IOException, InterruptedException {
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpoint);
-        return sePool.take(timeout, timeunit);
+    public Connection poll(final MultiEndpointKey<E> endpointKey,
+            final long timeout, final TimeUnit timeunit)
+            throws IOException, InterruptedException {
+        
+        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+        return sePool.poll(timeout, timeunit);
     }
     
-    public void release(final E endpoint) {
-        final SingleEndpointPool<E> sePool = poolByEndpointMap.remove(endpoint);
+    public Connection poll(final MultiEndpointKey<E> endpointKey)
+            throws IOException {
+        
+        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+        return sePool.poll();
+    }
+
+    public void release(final MultiEndpointKey<E> endpointKey) {
+        final SingleEndpointPool<E> sePool = poolByEndpointMap.remove(endpointKey);
         if (sePool != null) {
             sePool.close();
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public void release(final Connection connection) {
-        release((E) connection.getPeerAddress(), connection);
-    }
-
-    public void release(final E endpoint, final Connection connection) {
+    public void release(final MultiEndpointKey<E> endpointKey,
+            final Connection connection) {
+        
         final SingleEndpointPool<E> sePool =
-                poolByEndpointMap.get(endpoint);
+                poolByEndpointMap.get(endpointKey);
         if (sePool != null) {
             sePool.release(connection);
         }
     }
 
+    public boolean attach(final MultiEndpointKey<E> endpointKey,
+            final Connection connection)
+            throws IOException {
+        
+        final SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
+        if (sePool != null) {
+            return sePool.attach(connection);
+        }
+        
+        return false;
+    }
+    
+    public void detach(final MultiEndpointKey<E> endpointKey,
+            final Connection connection)
+            throws IOException {
+        
+        final SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
+        if (sePool != null) {
+            sePool.detach(connection);
+        }
+    }
+    
     public void close() {
         synchronized (poolSync) {
             if (isClosed) {
@@ -161,7 +210,8 @@ public class MultiEndpointPool<E> {
             
             isClosed = true;
 
-            for (Map.Entry<E, SingleEndpointPool<E>> entry : poolByEndpointMap.entrySet()) {
+            for (Map.Entry<MultiEndpointKey<E>, SingleEndpointPool<E>> entry :
+                    poolByEndpointMap.entrySet()) {
                 try {
                     entry.getValue().close();
                 } catch (Exception ignore) {
@@ -176,18 +226,17 @@ public class MultiEndpointPool<E> {
         }
     }
     
-    private SingleEndpointPool<E> obtainSingleEndpointPool(final E endpoint)
-            throws IOException {
-        SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpoint);
+    private SingleEndpointPool<E> obtainSingleEndpointPool(
+            final MultiEndpointKey<E> endpointKey) throws IOException {
+        SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
         if (sePool == null) {
             synchronized (poolSync) {
-                if (isClosed) {
-                    throw new IOException("The pool is closed");
-                }
-                sePool = poolByEndpointMap.get(endpoint);
+                checkNotClosed();
+                
+                sePool = poolByEndpointMap.get(endpointKey);
                 if (sePool == null) {
-                    sePool = createSingleEndpointPool(endpoint);
-                    poolByEndpointMap.put(endpoint, sePool);
+                    sePool = createSingleEndpointPool(endpointKey.getEndpoint());
+                    poolByEndpointMap.put(endpointKey, sePool);
                 }
             }
         }
@@ -199,8 +248,18 @@ public class MultiEndpointPool<E> {
         return new EndpointPoolImpl(endpoint);
     }
     
+    private void checkNotClosed() throws IOException {
+        if (isClosed) {
+            throw new IOException("The pool is closed");
+        }
+    }
+    
     private final class EndpointPoolImpl extends SingleEndpointPool<E> {
-
+        private final Link<EndpointPoolImpl> maxPoolSizeHitsLink =
+                new Link<EndpointPoolImpl>(this);
+        
+        private int maxPoolSizeHits;
+        
         public EndpointPoolImpl(final E endpoint) {
             super(connectorHandler,
                 endpoint, 0, maxConnectionsPerEndpoint,
@@ -208,41 +267,83 @@ public class MultiEndpointPool<E> {
                 keepAliveTimeoutMillis,
                 keepAliveCheckIntervalMillis, reconnectDelayMillis);
         }
-        
+
         @Override
         protected boolean checkBeforeOpeningConnection() {
-            synchronized (maxConnectionCounterSync) {
-                if (poolSize + pendingConnections < maxConnectionsTotal) {
-                    pendingConnections++;
-                    return true;
+            if (isMaxCapacityReached()) {
+                return false;
+            }
+            
+            synchronized (countersSync) {
+                if (MultiEndpointPool.this.isMaxCapacityReached()) {
+                    onMaxPoolSizeHit();
+                    return false;
                 }
                 
-                return false;
+                pendingConnections++;
+                totalPendingConnections++;
+                return true;
             }
         }
 
         @Override
         protected void onOpenConnection(Connection connection) {
-            synchronized (maxConnectionCounterSync) {
-                pendingConnections--;
+            synchronized (countersSync) {
+                totalPendingConnections--;
                 poolSize++;
             }
+            
+            super.onOpenConnection(connection);
         }
 
         @Override
         protected void onFailedConnection() {
-            synchronized (maxConnectionCounterSync) {
-                pendingConnections--;
+            synchronized (countersSync) {
+                totalPendingConnections--;
             }
+            
+            super.onFailedConnection();
         }
 
         
         @Override
-        protected void onCloseConnection(final Connection connection,
-                final CloseType type) {
-            synchronized (maxConnectionCounterSync) {
+        protected void onCloseConnection(final Connection connection) {
+            final EndpointPoolImpl prioritizedPool;
+            
+            synchronized (countersSync) {
                 poolSize--;
+                
+                final Link<EndpointPoolImpl> firstLink =
+                        maxPoolSizeHitsChain.pollFirst();
+                
+                if (firstLink != null) {
+                    prioritizedPool = firstLink.getValue();
+                    prioritizedPool.maxPoolSizeHits = 0;
+                } else {
+                    prioritizedPool = null;
+                }
             }
+            
+            if (prioritizedPool != null) {
+                prioritizedPool.createConnectionIfPossible();
+                
+                return;
+            } 
+            
+            
+            super.onCloseConnection(connection);
         }
+        
+        private void onMaxPoolSizeHit() {
+            if (maxPoolSizeHits++ == 0) {
+                maxPoolSizeHitsChain.offer(maxPoolSizeHitsLink);
+            } else {
+                final Link<EndpointPoolImpl> prev = maxPoolSizeHitsLink.prev;
+                if (prev != null &&
+                        maxPoolSizeHits > prev.getValue().maxPoolSizeHits) {
+                    maxPoolSizeHitsChain.moveTowardsHead(maxPoolSizeHitsLink);
+                }
+            }
+        }        
     }
 }

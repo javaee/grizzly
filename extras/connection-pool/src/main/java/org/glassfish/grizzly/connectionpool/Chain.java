@@ -43,11 +43,11 @@ package org.glassfish.grizzly.connectionpool;
  *
  * @author oleksiys
  */
-final class Chain {
+final class Chain<E> {
     private int size;
     
-    private Link firstLink;
-    private Link lastLink;
+    private Link<E> firstLink;
+    private Link<E> lastLink;
     
     public boolean isEmpty() {
         return size == 0;
@@ -57,21 +57,21 @@ final class Chain {
         return size;
     }
 
-    public Link getFirstLink() {
+    public Link<E> getFirstLink() {
         return firstLink;
     }
 
-    public Link getLastLink() {
+    public Link<E> getLastLink() {
         return lastLink;
     }
     
-    public void offer(final Link connectionLink) {
-        if (connectionLink.isLinked()) {
+    public void offer(final Link<E> link) {
+        if (link.isLinked()) {
             throw new IllegalStateException("Already linked");
         }
         
-        connectionLink.link(lastLink, null);
-        lastLink = connectionLink;
+        link.link(lastLink, null);
+        lastLink = link;
         
         if (firstLink == null) {
             firstLink = lastLink;
@@ -80,31 +80,49 @@ final class Chain {
         size++;
     }
     
-    public Link poll() {
+    public Link<E> pollLast() {
         if (lastLink == null) {
             return null;
         }
         
-        final Link connectionLink = lastLink;
-        lastLink = connectionLink.prev;
+        final Link<E> link = lastLink;
+        lastLink = link.prev;
         if (lastLink == null) {
             firstLink = null;
         }
         
-        connectionLink.unlink();
+        link.unlink();
         
         size--;
         
-        return connectionLink;
+        return link;
     }
 
-    public boolean remove(final Link link) {
+    public Link<E> pollFirst() {
+        if (firstLink == null) {
+            return null;
+        }
+        
+        final Link<E> link = firstLink;
+        firstLink = link.next;
+        if (firstLink == null) {
+            lastLink = null;
+        }
+        
+        link.unlink();
+        
+        size--;
+        
+        return link;
+    }
+    
+    public boolean remove(final Link<E> link) {
         if (!link.isLinked()) {
             return false;
         }
         
-        final Link prev = link.prev;
-        final Link next = link.next;
+        final Link<E> prev = link.prev;
+        final Link<E> next = link.next;
         if (prev != null) {
             prev.next = next;
         }
@@ -127,5 +145,31 @@ final class Chain {
         size--;
         
         return true;
+    }
+
+    public void moveTowardsHead(final Link<E> link) {
+        final Link<E> prev = link.prev;
+        
+        if (prev == null) {
+            return;
+        }
+        
+        final Link<E> next = link.next;
+        final Link<E> prevPrev = prev.prev;
+        
+        if (prevPrev != null) {
+            prevPrev.next = link;
+        }
+        
+        link.prev = prevPrev;
+        link.next = prev;
+        
+        prev.prev = link;
+        prev.next = next;
+        
+        if (next != null) {
+            next.prev = prev;
+        }
+        
     }
 }

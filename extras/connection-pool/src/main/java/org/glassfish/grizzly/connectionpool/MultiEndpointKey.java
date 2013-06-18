@@ -43,43 +43,34 @@ package org.glassfish.grizzly.connectionpool;
  *
  * @author oleksiys
  */
-final class Link<E> {
-    private final E value;
-    
-    Link<E> prev;
-    Link<E> next;
-    
-    private boolean isLinked;
-    private long linkTimeStamp = -1;
-    
+public class MultiEndpointKey<E> {
+    private final Object key;
+    private final E endpoint;
 
-    public Link(E value) {
-        this.value = value;
+    public MultiEndpointKey(final Object key, final E endpoint) {
+        this.key = key;
+        this.endpoint = endpoint;
     }
 
-    public E getValue() {
-        return value;
+    public Object getKey() {
+        return key;
     }
-    
-    public void link(final Link<E> prev, final Link<E> next) {
-        this.prev = prev;
-        this.next = next;
+
+    public E getEndpoint() {
+        return endpoint;
+    }
+
+    @Override
+    public int hashCode() {
+        return key.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj instanceof MultiEndpointKey) {
+            return key.equals(((MultiEndpointKey) obj).key);
+        }
         
-        linkTimeStamp = System.currentTimeMillis();
-        isLinked = true;
-    }
-    
-    public void unlink() {
-        isLinked = false;
-        linkTimeStamp = -1;
-        prev = next = null;
-    }
-
-    public long getLinkTimeStamp() {
-        return linkTimeStamp;
-    }
-    
-    public boolean isLinked() {
-        return isLinked;
+        return false;
     }
 }
