@@ -90,7 +90,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String URI_ENCODING = "UTF-8";
     String VERSION = "HTTP/1.1";
     String SCHEME_PATTERN = "http|https";
-    boolean BUFFER_RESPONSE_ENABLED = true;
+    boolean BUFFER_RESPONSE_ENABLED = false;
     
 
     @Attribute(defaultValue = DEFAULT_ADAPTER)

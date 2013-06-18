@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import junit.framework.TestCase;
+
+import static junit.framework.Assert.assertEquals;
 
 /**
  * Basic {@link SelectorThread} test.
@@ -234,6 +236,32 @@ public class BasicSelectorThreadTest extends TestCase {
 
     }
 
+    // https://java.net/jira/browse/GRIZZLY-1529
+    public void testResetWhenBufferResponseEnabled() throws Exception{
+        Utils.dumpOut("Test: testResetWhenBufferResponseEnabled");
+        final String testString = "HelloWorld";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(0);
+            st.setBufferResponse(true);
+            st.setAdapter(new HelloWorldAdapter() {
+
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                    response.reset();
+                    super.service(request, response);
+                }
+            });
+
+            st.listen();
+
+            sendRequest(testData, testString, st.getPort());
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+
+    }
+    
     public void testEphemeralPort() throws Exception {
         Utils.dumpOut("Test: testEphemeralPort");
         final String testString = "HelloWorld";
