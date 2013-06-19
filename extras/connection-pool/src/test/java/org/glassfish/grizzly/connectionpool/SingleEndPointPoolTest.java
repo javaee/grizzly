@@ -139,7 +139,12 @@ public class SingleEndPointPoolTest {
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
 
-            pool.release(c1);
+            try {
+                pool.release(c1);
+                fail("IllegalStateException is expected");
+            } catch (IllegalStateException e) {
+            }
+            
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
 

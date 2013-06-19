@@ -66,8 +66,8 @@ public class MultiEndpointPool<E> {
     private int poolSize;
     private int totalPendingConnections;
     
-    private final Map<Connection, SingleEndpointPool<E>> connectionToSubPoolMap =
-            new ConcurrentHashMap<Connection, SingleEndpointPool<E>>();
+    private final Map<Connection, ConnectionInfo<E>> connectionToSubPoolMap =
+            new ConcurrentHashMap<Connection, ConnectionInfo<E>>();
             
     private final Chain<EndpointPoolImpl> maxPoolSizeHitsChain =
             new Chain<EndpointPoolImpl>();
@@ -156,14 +156,7 @@ public class MultiEndpointPool<E> {
      * the {@link Connection} is not registered in the pool
      */
     public boolean isRegistered(final Connection connection) {
-        
-        final SingleEndpointPool<E> sePool =
-                connectionToSubPoolMap.get(connection);
-        if (sePool != null) {
-            return sePool.isRegistered(connection);
-        }
-        
-        return false;
+        return connectionToSubPoolMap.get(connection) != null;
     }
     
     /**
@@ -177,12 +170,11 @@ public class MultiEndpointPool<E> {
      * the pool and is currently in busy state (used by a user), otherwise
      * returns <tt>false</tt>
      */
-    public boolean isBusy(final EndpointKey<E> endpointKey,
-            final Connection connection) {
-        final SingleEndpointPool<E> sePool =
-                connectionToSubPoolMap.get(connection);
-        if (sePool != null) {
-            return sePool.isBusy(connection);
+    public boolean isBusy(final Connection connection) {
+        final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
+        if (info != null) {
+            // optimize isBusy call to avoid redundant map lookup
+            return info.endpointPool.isBusy0(info);
         }
         
         return false;
@@ -215,10 +207,10 @@ public class MultiEndpointPool<E> {
     }
 
     public void release(final Connection connection) {
-        final SingleEndpointPool<E> sePool =
-                connectionToSubPoolMap.get(connection);
-        if (sePool != null) {
-            sePool.release(connection);
+        final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
+        if (info != null) {
+            // optimize release() call to avoid redundant map lookup
+            info.endpointPool.release0(info);
         } else {
             connection.closeSilently();
         }
@@ -239,10 +231,9 @@ public class MultiEndpointPool<E> {
     public void detach(final Connection connection)
             throws IOException {
         
-        final SingleEndpointPool<E> sePool =
-                connectionToSubPoolMap.get(connection);
-        if (sePool != null) {
-            sePool.detach(connection);
+        final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
+        if (info != null) {
+            info.endpointPool.detach(connection);
         }
     }
     
@@ -338,19 +329,21 @@ public class MultiEndpointPool<E> {
         }
 
         @Override
-        protected void onOpenConnection(Connection connection) {
-            connectionToSubPoolMap.put(connection, this);
+        void onOpenConnection(final ConnectionInfo<E> info) {
+            final Connection connection = info.connection;
+            
+            connectionToSubPoolMap.put(connection, info);
             
             synchronized (countersSync) {
                 totalPendingConnections--;
                 poolSize++;
             }
             
-            super.onOpenConnection(connection);
+            super.onOpenConnection(info);
         }
 
         @Override
-        protected void onFailedConnection() {
+        void onFailedConnection() {
             synchronized (countersSync) {
                 totalPendingConnections--;
             }
@@ -360,7 +353,8 @@ public class MultiEndpointPool<E> {
 
         
         @Override
-        protected void onCloseConnection(final Connection connection) {
+        void onCloseConnection(final ConnectionInfo<E> info) {
+            final Connection connection = info.connection;
             connectionToSubPoolMap.remove(connection);
             
             final EndpointPoolImpl prioritizedPool;
@@ -386,7 +380,7 @@ public class MultiEndpointPool<E> {
             } 
             
             
-            super.onCloseConnection(connection);
+            super.onCloseConnection(info);
         }
         
         private void onMaxPoolSizeHit() {
