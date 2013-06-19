@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,7 +90,7 @@ public class CookieParserUtils {
      */
     public static void parseClientCookies(Cookies cookies,
             Buffer buffer, int off, int len) {
-        parseClientCookies(cookies, buffer, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+        parseClientCookies(cookies, buffer, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE, RFC_6265_SUPPORT_ENABLED);
     }
 
     /**
@@ -100,7 +100,11 @@ public class CookieParserUtils {
      * JVK
      */
     public static void parseClientCookies(Cookies cookies,
-            Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
+                                          Buffer buffer,
+                                          int off,
+                                          int len,
+                                          boolean versionOneStrictCompliance,
+                                          boolean rfc6265Enabled) {
 
         if (len <= 0 || buffer == null) {
             throw new IllegalArgumentException();
@@ -112,7 +116,8 @@ public class CookieParserUtils {
                                buffer.array(),
                                off + buffer.arrayOffset(),
                                len,
-                               versionOneStrictCompliance);
+                               versionOneStrictCompliance,
+                               rfc6265Enabled);
             return;
         }
 
@@ -264,6 +269,9 @@ public class CookieParserUtils {
                 // (sc must be null)
                 if (CookieUtils.equals("Version", buffer, nameStart, nameEnd)
                         && cookie == null) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (buffer.get(valueStart) == '1'
                             && valueEnd == (valueStart + 1)) {
@@ -307,8 +315,9 @@ public class CookieParserUtils {
             } else { // Normal Cookie
                 cookie = cookies.getNextUnusedCookie();
                 lazyCookie = cookie.getLazyCookieState();
-
-                cookie.setVersion(version);
+                if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                    cookie.setVersion(version);
+                }
                 lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
 
                 if (valueStart != -1) { // Normal AVPair
@@ -333,7 +342,7 @@ public class CookieParserUtils {
      */
     public static void parseClientCookies(Cookies cookies,
             byte[] bytes, int off, int len) {
-        parseClientCookies(cookies, bytes, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+        parseClientCookies(cookies, bytes, off, len, COOKIE_VERSION_ONE_STRICT_COMPLIANCE, false);
     }
 
     /**
@@ -343,11 +352,11 @@ public class CookieParserUtils {
      * JVK
      */
     public static void parseClientCookies(Cookies cookies,
-//                                           Buffer buffer,
                                            byte[] bytes,
                                            int off,
                                            int len,
-                                           boolean versionOneStrictCompliance) {
+                                           boolean versionOneStrictCompliance,
+                                           boolean rfc6265Enabled) {
 
         if (len <= 0 || bytes == null) {
             throw new IllegalArgumentException();
@@ -504,6 +513,9 @@ public class CookieParserUtils {
                 // (sc must be null)
                 if (CookieUtils.equals("Version", bytes, nameStart, nameEnd)
                         && cookie == null) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (bytes[valueStart] == '1'
                             && valueEnd == (valueStart + 1)) {
@@ -532,23 +544,15 @@ public class CookieParserUtils {
                     continue;
                 }
 
-
-//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
-//                    // sc.getPort is not currently implemented.
-//                    // sc.getPort().setBytes( bytes,
-//                    //                        valueStart,
-//                    //                        valueEnd-valueStart );
-//                    continue;
-//                }
-
                 // Unknown cookie, complain
                 LOGGER.fine("Unknown Special Cookie");
 
             } else { // Normal Cookie
                 cookie = cookies.getNextUnusedCookie();
                 lazyCookie = cookie.getLazyCookieState();
-
-                cookie.setVersion(version);
+                if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                    cookie.setVersion(version);
+                }
                 lazyCookie.getName().setBytes(bytes, nameStart, nameEnd);
 
                 if (valueStart != -1) { // Normal AVPair
@@ -572,7 +576,9 @@ public class CookieParserUtils {
      * JVK
      */
     public static void parseClientCookies(Cookies cookies,
-            String cookiesStr, boolean versionOneStrictCompliance) {
+                                          String cookiesStr,
+                                          boolean versionOneStrictCompliance,
+                                          boolean rfc6265Enabled) {
 
         if (cookiesStr == null) {
             throw new IllegalArgumentException();
@@ -724,6 +730,9 @@ public class CookieParserUtils {
                 // (sc must be null)
                 if (CookieUtils.equals("Version", cookiesStr, nameStart, nameEnd)
                         && cookie == null) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (cookiesStr.charAt(valueStart) == '1'
                             && valueEnd == (valueStart + 1)) {
@@ -750,15 +759,6 @@ public class CookieParserUtils {
                     continue;
                 }
 
-
-//                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
-//                    // sc.getPort is not currently implemented.
-//                    // sc.getPort().setBytes( bytes,
-//                    //                        valueStart,
-//                    //                        valueEnd-valueStart );
-//                    continue;
-//                }
-
                 // Unknown cookie, complain
                 LOGGER.fine("Unknown Special Cookie");
 
@@ -782,18 +782,19 @@ public class CookieParserUtils {
                 cookie = cookies.getNextUnusedCookie();
                 cookie.setName(name);
                 cookie.setValue(value);
-                cookie.setVersion(version);
-
+                if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                    cookie.setVersion(version);
+                }
             }
         }
     }
 
     public static void parseServerCookies(Cookies cookies,
-                                           /*Buffer buffer,*/
                                            byte[] bytes,
                                            int off,
                                            int len,
-                                           boolean versionOneStrictCompliance) {
+                                           boolean versionOneStrictCompliance,
+                                           boolean rfc6265Enabled) {
 
         if (len <= 0 || /*buffer == null ||*/ bytes == null) {
             throw new IllegalArgumentException();
@@ -954,8 +955,10 @@ public class CookieParserUtils {
                 }
 
                 // Version
-                if (cookie.getVersion() == 0 &&
-                        CookieUtils.equals("Version", bytes, nameStart, nameEnd)) {
+                if (CookieUtils.equals("Version", bytes, nameStart, nameEnd)) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (bytes[valueStart] == '1'
                             && valueEnd == (valueStart + 1)) {
@@ -984,7 +987,7 @@ public class CookieParserUtils {
                 }
 
                 // Expires
-                if (cookie.getVersion() == 0 && cookie.getMaxAge() == -1 &&
+                if ((cookie.getVersion() == 0 || !cookie.isVersionSet()) && cookie.getMaxAge() == -1 &&
                         equalsIgnoreCase("Expires", bytes, nameStart, nameEnd)) {
                     try {
                         valueEnd = getTokenEndPosition(bytes, valueEnd + 1, end, false);
@@ -993,7 +996,7 @@ public class CookieParserUtils {
                         final String expiresDate = new String(bytes,
                                 valueStart, valueEnd - valueStart,
                                 Charsets.ASCII_CHARSET);
-                        
+
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
                         cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
@@ -1016,14 +1019,6 @@ public class CookieParserUtils {
                     continue;
                 }
 
-//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
-//                    // sc.getPort is not currently implemented.
-//                    // sc.getPort().setBytes( bytes,
-//                    //                        valueStart,
-//                    //                        valueEnd-valueStart );
-//                    continue;
-//                }
-
                 if (CookieUtils.equals("Discard", bytes, nameStart, nameEnd)) {
                     continue;
                 }
@@ -1031,6 +1026,9 @@ public class CookieParserUtils {
 
             // Normal Cookie
             cookie = cookies.getNextUnusedCookie();
+            if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                cookie.setVersion(0);
+            }
             lazyCookie = cookie.getLazyCookieState();
 
             lazyCookie.getName().setBytes(bytes, nameStart, nameEnd);
@@ -1049,7 +1047,11 @@ public class CookieParserUtils {
     }
 
     public static void parseServerCookies(Cookies cookies,
-            Buffer buffer, int off, int len, boolean versionOneStrictCompliance) {
+                                          Buffer buffer,
+                                          int off,
+                                          int len,
+                                          boolean versionOneStrictCompliance,
+                                          boolean rfc6265Enabled) {
 
         if (len <= 0 || buffer == null) {
             throw new IllegalArgumentException();
@@ -1061,7 +1063,8 @@ public class CookieParserUtils {
                                buffer.array(),
                                off + buffer.arrayOffset(),
                                len,
-                               versionOneStrictCompliance);
+                               versionOneStrictCompliance,
+                               rfc6265Enabled);
             return;
         }
 
@@ -1216,8 +1219,10 @@ public class CookieParserUtils {
                 }
 
                 // Version
-                if (cookie.getVersion() == 0 &&
-                        CookieUtils.equals("Version", buffer, nameStart, nameEnd)) {
+                if (CookieUtils.equals("Version", buffer, nameStart, nameEnd)) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (buffer.get(valueStart) == '1'
                             && valueEnd == (valueStart + 1)) {
@@ -1246,7 +1251,7 @@ public class CookieParserUtils {
                 }
 
                 // Expires
-                if (cookie.getVersion() == 0 && cookie.getMaxAge() == -1 &&
+                if ((cookie.getVersion() == 0 || !cookie.isVersionSet()) && cookie.getMaxAge() == -1 &&
                         equalsIgnoreCase("Expires", buffer, nameStart, nameEnd)) {
                     try {
                         valueEnd = getTokenEndPosition(buffer, valueEnd + 1, end, false);
@@ -1278,13 +1283,6 @@ public class CookieParserUtils {
                     continue;
                 }
 
-//                if (CookieUtils.equals("Port", buffer, nameStart, nameEnd)) {
-//                    // sc.getPort is not currently implemented.
-//                    // sc.getPort().setBytes( bytes,
-//                    //                        valueStart,
-//                    //                        valueEnd-valueStart );
-//                    continue;
-//                }
                 if (CookieUtils.equals("Discard", buffer, nameStart, nameEnd)) {
                     continue;
                 }
@@ -1292,6 +1290,9 @@ public class CookieParserUtils {
 
             // Normal Cookie
             cookie = cookies.getNextUnusedCookie();
+            if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                cookie.setVersion(0);
+            }
             lazyCookie = cookie.getLazyCookieState();
 
             lazyCookie.getName().setBuffer(buffer, nameStart, nameEnd);
@@ -1310,7 +1311,9 @@ public class CookieParserUtils {
     }
 
     public static void parseServerCookies(Cookies cookies,
-            String cookiesStr, boolean versionOneStrictCompliance) {
+                                          String cookiesStr,
+                                          boolean versionOneStrictCompliance,
+                                          boolean rfc6265Enabled) {
 
         if (cookiesStr == null) {
             throw new IllegalArgumentException();
@@ -1463,14 +1466,18 @@ public class CookieParserUtils {
                 }
 
                 // Version
-                if (cookie.getVersion() == 0 &&
-                        CookieUtils.equals("Version", cookiesStr, nameStart, nameEnd)) {
+                if (CookieUtils.equals("Version", cookiesStr, nameStart, nameEnd)) {
+                    if (rfc6265Enabled) {
+                        continue;
+                    }
                     // Set version
                     if (cookiesStr.charAt(valueStart) == '1'
                             && valueEnd == (valueStart + 1)) {
                         cookie.setVersion(1);
                     } else {
-                        // unknown version (Versioning is not very strict)
+                        if (!rfc6265Enabled) {
+                            cookie.setVersion(0);
+                        }
                     }
                     continue;
                 }
@@ -1491,7 +1498,7 @@ public class CookieParserUtils {
                 }
 
                 // Expires
-                if (cookie.getVersion() == 0 && cookie.getMaxAge() == -1 &&
+                if ((cookie.getVersion() == 0 || cookie.isVersionSet()) && cookie.getMaxAge() == -1 &&
                         equalsIgnoreCase("Expires", cookiesStr, nameStart, nameEnd)) {
                     try {
                         valueEnd = getTokenEndPosition(cookiesStr, valueEnd + 1, end, false);
@@ -1520,14 +1527,6 @@ public class CookieParserUtils {
                     continue;
                 }
 
-//                if (CookieUtils.equals("Port", cookiesStr, nameStart, nameEnd)) {
-//                    // sc.getPort is not currently implemented.
-//                    // sc.getPort().setBytes( bytes,
-//                    //                        valueStart,
-//                    //                        valueEnd-valueStart );
-//                    continue;
-//                }
-//
                 if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
                     continue;
                 }
@@ -1551,6 +1550,9 @@ public class CookieParserUtils {
             }
 
             cookie = cookies.getNextUnusedCookie();
+            if (!rfc6265Enabled && !cookie.isVersionSet()) {
+                cookie.setVersion(0);
+            }
             cookie.setName(name);
             cookie.setValue(value);
         }
@@ -1579,7 +1581,7 @@ public class CookieParserUtils {
 
         }
     }
-    
+
     /**
      * Unescapes any double quotes in the given cookie value.
      *
@@ -1724,4 +1726,5 @@ public class CookieParserUtils {
 
         return sb.toString();
     }
+
 }

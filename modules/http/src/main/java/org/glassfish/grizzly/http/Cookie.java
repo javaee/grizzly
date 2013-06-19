@@ -96,6 +96,8 @@ import org.glassfish.grizzly.utils.Charsets;
  */
 public class Cookie implements Cloneable, Cacheable {
 
+    public static final int UNSET = Integer.MIN_VALUE;
+
     //
     // The value of the cookie itself.
     //
@@ -107,13 +109,13 @@ public class Cookie implements Cloneable, Cacheable {
     // Attributes encoded in the header's cookie fields.
     //
     
-    protected String comment;	// ;Comment=VALUE ... describes cookie's use
-				// ;Discard ... implied by maxAge < 0
-    protected String domain;	// ;Domain=VALUE ... domain that sees cookie
-    protected int maxAge = -1;	// ;Max-Age=VALUE ... cookies auto-expire
-    protected String path;	// ;Path=VALUE ... URLs that see the cookie
-    protected boolean secure;	// ;Secure ... e.g. use SSL
-    protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
+    protected String comment;   // ;Comment=VALUE ... describes cookie's use
+                                // ;Discard ... implied by maxAge < 0
+    protected String domain;    // ;Domain=VALUE ... domain that sees cookie
+    protected int maxAge = -1;  // ;Max-Age=VALUE ... cookies auto-expire
+    protected String path;      // ;Path=VALUE ... URLs that see the cookie
+    protected boolean secure;   // ;Secure ... e.g. use SSL
+    protected int version = UNSET;    // ;Version=1 ... means RFC 2109++ style
 
     protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
     protected LazyCookieState lazyCookieState;
@@ -507,7 +509,14 @@ public class Cookie implements Cloneable, Cacheable {
      */
 
     public void setVersion(int v) {
+        if (v < 0 || v > 1) {
+            throw new IllegalArgumentException("Illegal Cookie Version");
+        }
         version = v;
+    }
+
+    public boolean isVersionSet() {
+        return (version != UNSET);
     }
 
     /**
@@ -697,12 +706,29 @@ public class Cookie implements Cloneable, Cacheable {
         maxAge = -1;
         path = null;
         secure = false;
-        version = 0;
+        version = UNSET;
         isHttpOnly = false;
         if (usingLazyCookieState) {
             usingLazyCookieState = false;
             lazyCookieState.recycle();
         }
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Cookie{");
+        sb.append("name='").append(name).append('\'');
+        sb.append(", value='").append(value).append('\'');
+        sb.append(", comment='").append(comment).append('\'');
+        sb.append(", domain='").append(domain).append('\'');
+        sb.append(", maxAge=").append(maxAge);
+        sb.append(", path='").append(path).append('\'');
+        sb.append(", secure=").append(secure);
+        sb.append(", version=").append(version);
+        sb.append(", isHttpOnly=").append(isHttpOnly);
+        sb.append(", usingLazyCookieState=").append(usingLazyCookieState);
+        sb.append('}');
+        return sb.toString();
     }
 }
 

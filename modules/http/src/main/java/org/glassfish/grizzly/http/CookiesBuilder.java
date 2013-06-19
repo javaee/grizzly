@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public class CookiesBuilder {
      * @return the client-side cookies builder.
      */
     public static ClientCookiesBuilder client() {
-        return client(false);
+        return client(false, false);
     }
 
     /**
@@ -64,7 +64,18 @@ public class CookiesBuilder {
      * @return the client-side cookies builder with the specific "strict cookie version compliance".
      */
     public static ClientCookiesBuilder client(boolean strictVersionOneCompliant) {
-        return new ClientCookiesBuilder(strictVersionOneCompliant);
+        return new ClientCookiesBuilder(strictVersionOneCompliant, false);
+    }
+
+    /**
+     * Returns the client-side cookies builder with the specific "strict cookie version compliance".
+     *
+     * @return the client-side cookies builder with the specific "strict cookie version compliance".
+     */
+    public static ClientCookiesBuilder client(boolean strictVersionOneCompliant,
+                                              boolean rfc6265Enabled) {
+        return new ClientCookiesBuilder(strictVersionOneCompliant,
+                                        rfc6265Enabled);
     }
 
     /**
@@ -73,7 +84,7 @@ public class CookiesBuilder {
      * @return the server-side cookies builder with the specific "strict cookie version compliance".
      */
     public static ServerCookiesBuilder server() {
-        return server(false);
+        return server(false, false);
     }
 
     /**
@@ -82,14 +93,27 @@ public class CookiesBuilder {
      * @return the server-side cookies builder with the specific "strict cookie version compliance".
      */
     public static ServerCookiesBuilder server(boolean strictVersionOneCompliant) {
-        return new ServerCookiesBuilder(strictVersionOneCompliant);
+        return new ServerCookiesBuilder(strictVersionOneCompliant,
+                                        false);
+    }
+
+    /**
+     * Returns the server-side cookies builder with the specific "strict cookie version compliance".
+     *
+     * @return the server-side cookies builder with the specific "strict cookie version compliance".
+     */
+    public static ServerCookiesBuilder server(boolean strictVersionOneCompliant,
+                                              boolean rfc6265Enabled) {
+        return new ServerCookiesBuilder(strictVersionOneCompliant,
+                                        rfc6265Enabled);
     }
 
     public static class ClientCookiesBuilder
             extends AbstractCookiesBuilder<ClientCookiesBuilder> {
 
-        public ClientCookiesBuilder(boolean strictVersionOneCompliant) {
-            super(strictVersionOneCompliant);
+        public ClientCookiesBuilder(boolean strictVersionOneCompliant,
+                                    boolean rfc6265Enabled) {
+            super(strictVersionOneCompliant, rfc6265Enabled);
         }
 
         @Override
@@ -100,14 +124,14 @@ public class CookiesBuilder {
         @Override
         public ClientCookiesBuilder parse(Buffer cookiesHeader, int position, int limit) {
             CookieParserUtils.parseClientCookies(cookies, cookiesHeader, position,
-                    limit - position, strictVersionOneCompliant);
+                    limit - position, strictVersionOneCompliant, rfc6265Enabled);
             return this;
         }
 
         @Override
         public ClientCookiesBuilder parse(String cookiesHeader) {
             CookieParserUtils.parseClientCookies(cookies, cookiesHeader,
-                    strictVersionOneCompliant);
+                    strictVersionOneCompliant, rfc6265Enabled);
             return this;
         }
     }
@@ -115,8 +139,9 @@ public class CookiesBuilder {
     public static class ServerCookiesBuilder
             extends AbstractCookiesBuilder<ServerCookiesBuilder> {
 
-        public ServerCookiesBuilder(boolean strictVersionOneCompliant) {
-            super(strictVersionOneCompliant);
+        public ServerCookiesBuilder(boolean strictVersionOneCompliant,
+                                    boolean rfc6265Enabled) {
+            super(strictVersionOneCompliant, rfc6265Enabled);
         }
 
         @Override
@@ -127,23 +152,26 @@ public class CookiesBuilder {
         @Override
         public ServerCookiesBuilder parse(Buffer cookiesHeader, int position, int limit) {
             CookieParserUtils.parseServerCookies(cookies, cookiesHeader, position,
-                    limit - position, strictVersionOneCompliant);
+                    limit - position, strictVersionOneCompliant, rfc6265Enabled);
             return this;
         }
 
         @Override
         public ServerCookiesBuilder parse(String cookiesHeader) {
             CookieParserUtils.parseServerCookies(cookies, cookiesHeader,
-                    strictVersionOneCompliant);
+                    strictVersionOneCompliant, rfc6265Enabled);
             return this;
         }
     }
 
     public abstract static class AbstractCookiesBuilder<E extends AbstractCookiesBuilder> {
         protected final boolean strictVersionOneCompliant;
+        protected final boolean rfc6265Enabled;
 
-        public AbstractCookiesBuilder(boolean strictVersionOneCompliant) {
+        public AbstractCookiesBuilder(boolean strictVersionOneCompliant,
+                                      boolean rfc6265Enabled) {
             this.strictVersionOneCompliant = strictVersionOneCompliant;
+            this.rfc6265Enabled = rfc6265Enabled;
         }
 
         protected final Cookies cookies = new Cookies();

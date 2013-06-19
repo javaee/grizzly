@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -84,6 +84,9 @@ public final class CookieUtils {
      */
     public static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
             Boolean.getBoolean("org.glassfish.web.rfc2109_cookie_names_enforced");
+
+    public static final boolean RFC_6265_SUPPORT_ENABLED =
+            Boolean.getBoolean("org.glassfish.web.rfc_6265_support_enabled");
 
     /**
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
