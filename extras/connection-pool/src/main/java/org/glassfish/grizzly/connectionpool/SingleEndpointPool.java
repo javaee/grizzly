@@ -179,14 +179,14 @@ public class SingleEndpointPool<E> {
     /**
      * Constructs SingleEndpointPool instance.
      * 
-     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s.
-     * @param endpointAddress endpoint address.
-     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism.
-     * @param maxPoolSize the max number of {@link Connection}s kept by this pool.
-     * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms.
-     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool.
-     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check.
-     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed.
+     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
+     * @param endpointAddress endpoint address
+     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
+     * @param maxPoolSize the max number of {@link Connection}s kept by this pool
+     * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
+     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
+     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
+     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      */
     @SuppressWarnings("unchecked")
     public SingleEndpointPool(
@@ -243,15 +243,15 @@ public class SingleEndpointPool<E> {
     /**
      * Constructs SingleEndpointPool instance.
      * 
-     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s.
-     * @param endpointAddress endpoint address.
-     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism.
-     * @param maxPoolSize the max number of {@link Connection}s kept by this pool.
-     * @param reconnectQueue the {@link DelayQueue} used by reconnect mechanism.
-     * @param keepAliveCleanerQueue the {@link DelayQueue} used by keep-alive mechanism.
-     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool.
-     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check.
-     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed.
+     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
+     * @param endpointAddress endpoint address
+     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
+     * @param maxPoolSize the max number of {@link Connection}s kept by this pool
+     * @param reconnectQueue the {@link DelayQueue} used by reconnect mechanism
+     * @param keepAliveCleanerQueue the {@link DelayQueue} used by keep-alive mechanism
+     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
+     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
+     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      */    
     @SuppressWarnings("unchecked")
     protected SingleEndpointPool(
@@ -601,10 +601,11 @@ public class SingleEndpointPool<E> {
     }
     
     /**
-     * Closes the pool and closes all the ready {@link Connection}s in the pool.
+     * Closes the pool and release associated resources.
      * 
-     * The busy {@link Connection}, that are still in use - will be kept open and
-     * will be automatically closed when returned to the pool via {@link #release(org.glassfish.grizzly.Connection)}.
+     * The ready {@link Connection}s will be closed, the busy {@link Connection},
+     * that are still in use - will be kept open and will be automatically
+     * closed when returned to the pool by {@link #release(org.glassfish.grizzly.Connection)}.
      */
     public void close() {
         synchronized (poolSync) {
@@ -763,8 +764,9 @@ public class SingleEndpointPool<E> {
                 
                 onFailedConnection();
                 
-                // check if reconnect mechanism is enabled
-                if (reconnectQueue != null) {
+                // check if there is still a thread(s) waiting for a connection
+                // and reconnect mechanism is enabled
+                if (reconnectQueue != null && waitListSize > 0) {
                     reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
                             reconnectDelayMillis, TimeUnit.MILLISECONDS);
                 }

@@ -232,5 +232,54 @@ public class SingleEndPointPoolTest {
         } finally {
             pool.close();
         }
+    }
+    
+    @Test
+    public void testReconnect() throws Exception {
+        final long reconnectDelayMillis = 1000;
+        
+        final FilterChain filterChain = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .build();
+        
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance()
+                .setProcessor(filterChain)
+                .build();
+        
+        final Thread t = new Thread() {
+
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                }
+
+                try {
+                    init();
+                } catch (IOException e) {
+                }
+            }
+        };
+        
+        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
+                clientTransport, new InetSocketAddress("localhost", PORT), 4, 5, null,
+                -1, -1, reconnectDelayMillis);
+        
+        try {
+            clientTransport.start();
+            transport.stop();
+            
+            t.start();
+            
+            final Connection c1 = pool.poll(10, TimeUnit.SECONDS);
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+            
+        } finally {
+            t.join();
+            pool.close();
+            clientTransport.stop();
+        }
     }    
 }
