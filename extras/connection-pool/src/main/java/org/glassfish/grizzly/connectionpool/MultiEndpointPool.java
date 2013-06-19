@@ -56,8 +56,8 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  * @author oleksiys
  */
 public class MultiEndpointPool<E> {
-    private final ConcurrentHashMap<MultiEndpointKey<E>, SingleEndpointPool<E>> poolByEndpointMap =
-            new ConcurrentHashMap<MultiEndpointKey<E>, SingleEndpointPool<E>>();
+    private final ConcurrentHashMap<EndpointKey<E>, SingleEndpointPool<E>> poolByEndpointMap =
+            new ConcurrentHashMap<EndpointKey<E>, SingleEndpointPool<E>>();
 
     private final Object poolSync = new Object();
     private final Object countersSync = new Object();
@@ -141,14 +141,14 @@ public class MultiEndpointPool<E> {
         }
     }
 
-    public Connection take(final MultiEndpointKey<E> endpointKey)
+    public Connection take(final EndpointKey<E> endpointKey)
             throws IOException, InterruptedException {
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
         
         return sePool.take();
     }
     
-    public Connection poll(final MultiEndpointKey<E> endpointKey,
+    public Connection poll(final EndpointKey<E> endpointKey,
             final long timeout, final TimeUnit timeunit)
             throws IOException, InterruptedException {
         
@@ -156,21 +156,21 @@ public class MultiEndpointPool<E> {
         return sePool.poll(timeout, timeunit);
     }
     
-    public Connection poll(final MultiEndpointKey<E> endpointKey)
+    public Connection poll(final EndpointKey<E> endpointKey)
             throws IOException {
         
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
         return sePool.poll();
     }
 
-    public void release(final MultiEndpointKey<E> endpointKey) {
+    public void release(final EndpointKey<E> endpointKey) {
         final SingleEndpointPool<E> sePool = poolByEndpointMap.remove(endpointKey);
         if (sePool != null) {
             sePool.close();
         }
     }
 
-    public void release(final MultiEndpointKey<E> endpointKey,
+    public void release(final EndpointKey<E> endpointKey,
             final Connection connection) {
         
         final SingleEndpointPool<E> sePool =
@@ -180,7 +180,7 @@ public class MultiEndpointPool<E> {
         }
     }
 
-    public boolean attach(final MultiEndpointKey<E> endpointKey,
+    public boolean attach(final EndpointKey<E> endpointKey,
             final Connection connection)
             throws IOException {
         
@@ -192,7 +192,7 @@ public class MultiEndpointPool<E> {
         return false;
     }
     
-    public void detach(final MultiEndpointKey<E> endpointKey,
+    public void detach(final EndpointKey<E> endpointKey,
             final Connection connection)
             throws IOException {
         
@@ -210,7 +210,7 @@ public class MultiEndpointPool<E> {
             
             isClosed = true;
 
-            for (Map.Entry<MultiEndpointKey<E>, SingleEndpointPool<E>> entry :
+            for (Map.Entry<EndpointKey<E>, SingleEndpointPool<E>> entry :
                     poolByEndpointMap.entrySet()) {
                 try {
                     entry.getValue().close();
@@ -227,7 +227,7 @@ public class MultiEndpointPool<E> {
     }
     
     private SingleEndpointPool<E> obtainSingleEndpointPool(
-            final MultiEndpointKey<E> endpointKey) throws IOException {
+            final EndpointKey<E> endpointKey) throws IOException {
         SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
         if (sePool == null) {
             synchronized (poolSync) {

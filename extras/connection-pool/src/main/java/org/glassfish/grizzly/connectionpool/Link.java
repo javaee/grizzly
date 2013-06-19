@@ -40,46 +40,93 @@
 package org.glassfish.grizzly.connectionpool;
 
 /**
- *
- * @author oleksiys
+ * The object represents an element, from which a minimalistic {@link Chain} is built.
+ * 
+ * It is possible to attach or detach a <tt>Link</tt> from a {@link Chain}. When
+ * the <tt>Link</tt> is attached it contains a pointers to the previous and
+ * the next <tt>Link</tt>s in the {@link Chain}, otherwise, if the <tt>Link</tt>
+ * is detached - the pointers values are <tt>null</tt>.
+ * 
+ * If a <tt>Link</tt> is attached - it might be attached to only one {@link Chain}.
+ * 
+ * @author Alexey Stashok
  */
 final class Link<E> {
+    /**
+     * The Link payload/value
+     */
     private final E value;
     
+    /**
+     * The pointer to the previous link in the chain
+     */
     Link<E> prev;
+    /**
+     * The pointer to the next link in the chain
+     */
     Link<E> next;
     
-    private boolean isLinked;
+    /**
+     * attachment flag
+     */
+    private boolean isAttached;
+    /**
+     * The attachment timestamp, which shows the time when the link was attached.
+     */
     private long linkTimeStamp = -1;
     
 
-    public Link(E value) {
+    /**
+     * Construct the <tt>Link</tt> holding given value object.
+     * @param value an object the <tt>Link</tt> represents.
+     */
+    public Link(final E value) {
         this.value = value;
     }
 
+    /**
+     * Returns the value held by this {@link Link}.
+     */
     public E getValue() {
         return value;
     }
     
-    public void link(final Link<E> prev, final Link<E> next) {
+    /**
+     * Attaches the <tt>Link</tt> to a {@link Chain}.
+     * @param prev
+     * @param next 
+     */
+    void attach(final Link<E> prev, final Link<E> next) {
         this.prev = prev;
         this.next = next;
         
         linkTimeStamp = System.currentTimeMillis();
-        isLinked = true;
+        isAttached = true;
     }
     
-    public void unlink() {
-        isLinked = false;
+    /**
+     * Detaches the <tt>Link</tt> from a {@link Chain}.
+     */
+    void detach() {
+        isAttached = false;
         linkTimeStamp = -1;
         prev = next = null;
     }
 
-    public long getLinkTimeStamp() {
+    /**
+     * Returns the timestamp, that represents the time (in milliseconds) when
+     * the <tt>Link</tt> was attached to a {@link Chain}, or <tt>-1</tt> if the
+     * <tt>Link</tt> is not currently attached to a {@link Chain}.
+     */
+    public long getAttachmentTimeStamp() {
         return linkTimeStamp;
     }
     
-    public boolean isLinked() {
-        return isLinked;
+    /**
+     * Returns <tt>true</tt> if the <tt>Link</tt> is currently attached to a
+     * {@link Chain} or <tt>false</tt> otherwise.
+     */
+    public boolean isAttached() {
+        return isAttached;
     }
 }

@@ -39,36 +39,69 @@
  */
 package org.glassfish.grizzly.connectionpool;
 
+import org.glassfish.grizzly.ConnectorHandler;
+
 /**
- *
- * @author oleksiys
+ * The key object representing single endpoint in the {@link MultiEndpointPool}.
+ * 
+ * The <tt>EndpointKey</tt> contains the endpoint address, that will be used by
+ * a {@link ConnectorHandler} passed to {@link MultiEndpointPool} to establish
+ * new client-side {@link Connection}.
+ * Besides that the <tt>EndpointKey</tt> contains internal key object
+ * {@link #getInternalKey()}, that is used in {@link #equals(java.lang.Object)}
+ * and {@link #hashCode()} methods.
+ * 
+ * @author Alexey Stashok
  */
-public class MultiEndpointKey<E> {
-    private final Object key;
+public class EndpointKey<E> {
+    private final Object internalKey;
     private final E endpoint;
 
-    public MultiEndpointKey(final Object key, final E endpoint) {
-        this.key = key;
+    /**
+     * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
+     * 
+     * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
+     *          and {@link #hashCode()} methods
+     * @param endpoint the endpoint address, that will be used by
+     *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
+     *          to establish new client-side {@link Connection}
+     */
+    public EndpointKey(final Object internalKey, final E endpoint) {
+        this.internalKey = internalKey;
         this.endpoint = endpoint;
     }
 
-    public Object getKey() {
-        return key;
+    /**
+     * Returns the internal key used in {@link #equals(java.lang.Object)}
+     *          and {@link #hashCode()} methods
+     */
+    public Object getInternalKey() {
+        return internalKey;
     }
 
+    /**
+     * Returns the endpoint address, used by a {@link ConnectorHandler} passed
+     * to {@link MultiEndpointPool} to establish new client-side {@link Connection}
+     */
     public E getEndpoint() {
         return endpoint;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int hashCode() {
-        return key.hashCode();
+        return internalKey.hashCode();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean equals(final Object obj) {
-        if (obj instanceof MultiEndpointKey) {
-            return key.equals(((MultiEndpointKey) obj).key);
+        if (obj instanceof EndpointKey) {
+            return internalKey.equals(((EndpointKey) obj).internalKey);
         }
         
         return false;

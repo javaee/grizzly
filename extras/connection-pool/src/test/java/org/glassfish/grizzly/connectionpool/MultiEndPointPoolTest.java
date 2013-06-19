@@ -59,9 +59,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
+
 /**
- *
- * @author oleksiys
+ * The {@link MultiEndpointPool} tests.
+ * 
+ * @author Alexey Stashok
  */
 public class MultiEndPointPoolTest {
     private static final int PORT = 18334;
@@ -115,12 +117,12 @@ public class MultiEndPointPoolTest {
         final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
                 transport, 3, 15, null, -1, 1000, 1000);
         
-        final MultiEndpointKey<SocketAddress> key1 =
-                new MultiEndpointKey<SocketAddress>("endpoint1",
+        final EndpointKey<SocketAddress> key1 =
+                new EndpointKey<SocketAddress>("endpoint1",
                 new InetSocketAddress("localhost", PORT));
         
-        final MultiEndpointKey<SocketAddress> key2 =
-                new MultiEndpointKey<SocketAddress>("endpoint2",
+        final EndpointKey<SocketAddress> key2 =
+                new EndpointKey<SocketAddress>("endpoint2",
                 new InetSocketAddress("localhost", PORT + 1));
         
         Connection c11 = pool.take(key1);
@@ -183,12 +185,12 @@ public class MultiEndPointPoolTest {
         final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
                 transport, 2, 2, null, -1, 1000, 1000);
         
-        final MultiEndpointKey<SocketAddress> key1 =
-                new MultiEndpointKey<SocketAddress>("endpoint1",
+        final EndpointKey<SocketAddress> key1 =
+                new EndpointKey<SocketAddress>("endpoint1",
                 new InetSocketAddress("localhost", PORT));
         
-        final MultiEndpointKey<SocketAddress> key2 =
-                new MultiEndpointKey<SocketAddress>("endpoint2",
+        final EndpointKey<SocketAddress> key2 =
+                new EndpointKey<SocketAddress>("endpoint2",
                 new InetSocketAddress("localhost", PORT + 1));
         
         Connection c11 = pool.take(key1);

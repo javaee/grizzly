@@ -39,38 +39,70 @@
  */
 package org.glassfish.grizzly.connectionpool;
 
+import java.util.LinkedList;
+
 /**
- *
- * @author oleksiys
+ * Minimalistic linked list implementation.
+ * This implementation doesn't work directly with objects, but their {@link Link}s,
+ * so there is no performance penalty for locating object in the list.
+ * 
+ * The <tt>Chain</tt> implementation is not thread safe.
+ * 
+ * @author Alexey Stashok
  */
 final class Chain<E> {
+    /**
+     * The size of the chain (number of elements stored).
+     */
     private int size;
     
+    /**
+     * The first link in the chain
+     */
     private Link<E> firstLink;
+    /**
+     * The last link in the chain
+     */
     private Link<E> lastLink;
     
+    /**
+     * Returns <tt>true</tt> if this <tt>Chain</tt> doesn't have any element
+     * stored, or <tt>false</tt> otherwise.
+     */
     public boolean isEmpty() {
         return size == 0;
     }
     
+    /**
+     * Returns the number of elements stored in this <tt>Chain<tt>.
+     */
     public int size() {
         return size;
     }
 
+    /**
+     * Returns the first {@link Link} in this <tt>Chain</tt>.
+     */
     public Link<E> getFirstLink() {
         return firstLink;
     }
 
+    /**
+     * Returns the last {@link Link} in this <tt>Chain</tt>.
+     */
     public Link<E> getLastLink() {
         return lastLink;
     }
     
+    /**
+     * Adds a {@link Link} to the end of this <tt>Chain</tt>.
+     */
     public void offer(final Link<E> link) {
-        if (link.isLinked()) {
+        if (link.isAttached()) {
             throw new IllegalStateException("Already linked");
         }
         
-        link.link(lastLink, null);
+        link.attach(lastLink, null);
         lastLink = link;
         
         if (firstLink == null) {
@@ -80,6 +112,9 @@ final class Chain<E> {
         size++;
     }
     
+    /**
+     * Removes and returns the last {@link Link} of this <tt>Chain<tt>.
+     */
     public Link<E> pollLast() {
         if (lastLink == null) {
             return null;
@@ -91,13 +126,16 @@ final class Chain<E> {
             firstLink = null;
         }
         
-        link.unlink();
+        link.detach();
         
         size--;
         
         return link;
     }
 
+    /**
+     * Removes and returns the first {@link Link} of this <tt>Chain<tt>.
+     */
     public Link<E> pollFirst() {
         if (firstLink == null) {
             return null;
@@ -109,15 +147,23 @@ final class Chain<E> {
             lastLink = null;
         }
         
-        link.unlink();
+        link.detach();
         
         size--;
         
         return link;
     }
     
+    /**
+     * Removes the {@link Link} from this <tt>Chain<tt>.
+     * Unlike {@link LinkedList#remove(java.lang.Object)}, this operation is
+     * cheap, because the {@link Link} already has information about its location
+     * in the <tt>Chain<tt>, so no additional lookup needed.
+     * 
+     * @param link the {@link Link} to be removed.
+     */
     public boolean remove(final Link<E> link) {
-        if (!link.isLinked()) {
+        if (!link.isAttached()) {
             return false;
         }
         
@@ -131,7 +177,7 @@ final class Chain<E> {
             next.prev = prev;
         }
 
-        link.unlink();
+        link.detach();
         
         if (lastLink == link) {
             lastLink = prev;
@@ -147,9 +193,17 @@ final class Chain<E> {
         return true;
     }
 
+    /**
+     * Moves the {@link Link} towards the <tt>Chain</tt>'s head by 1 element.
+     * If the {@link Link} is already located at the <tt>Chain</tt>'s head -
+     * the method invocation will not have any effect.
+     * 
+     * @param link the {@link Link} to be moved.
+     */
     public void moveTowardsHead(final Link<E> link) {
         final Link<E> prev = link.prev;
         
+        // check if this is head
         if (prev == null) {
             return;
         }
@@ -170,6 +224,5 @@ final class Chain<E> {
         if (next != null) {
             next.prev = prev;
         }
-        
     }
 }

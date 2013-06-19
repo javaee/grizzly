@@ -40,59 +40,154 @@
 package org.glassfish.grizzly.connectionpool;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
 /**
- *
- * @author oleksiys
+ * The single endpoint {@link Connection} pool implementation, in other words
+ * this pool manages {@link Connection}s to one specific endpoint.
+ * 
+ * The endpoint address has to be represented by an objected understandable by
+ * a {@link ConnectorHandler} passed to the constructor. For example the
+ * endpoint address has to be represented by {@link SocketAddress} for
+ * {@link TCPNIOConnectorHandler} and {@link UDPNIOConnectorHandler}.
+ * 
+ * There are number of configuration options supported by the <tt>SingleEndpointPool</tt>:
+ *      - <tt>corePoolSize</tt>: the number of {@link Connection}s to be kept in the pool and never timed out
+ *                      because of keep-alive setting;
+ *      - <tt>maxPoolSize</tt>: the maximum number of {@link Connection}s to be kept by the pool;
+ *      - <tt>keepAliveTimeoutMillis</tt>: the maximum number of milliseconds an idle {@link Connection}
+ *                                         will be kept in the pool. The idle {@link Connection}s will be
+ *                                         closed till the pool size is greater than <tt>corePoolSize</tt>;
+ *      - <tt>keepAliveCheckIntervalMillis</tt>: the interval, which specifies how often the pool will
+ *                                               perform idle {@link Connection}s check;
+ *      - <tt>reconnectDelayMillis</tt>: the delay to be used before the pool will repeat the attempt to connect to
+ *                                       the endpoint after previous connect had failed.
+ * 
+ * @author Alexey Stashok
  */
 public class SingleEndpointPool<E> {
 
+    /**
+     * {@link CompletionHandler} to be notified once
+     * {@link ConnectorHandler#connect(java.lang.Object)} is complete
+     */
     private final ConnectCompletionHandler connectionCompletionHandler =
             new ConnectCompletionHandler();
+    /**
+     * {@link CloseListener} to be notified once pooled {@link Connection} is closed
+     */
     private final PoolConnectionCloseListener closeListener =
             new PoolConnectionCloseListener();
     
+    /**
+     * The {@link Chain} of ready connections
+     */
     private final Chain<Connection> readyConnections = new Chain<Connection>();
     
+    /**
+     * The {@link Map} contains *all* pooled {@link Connection}s
+     */
     private final Map<Connection, Link<Connection>> connectionsMap =
             new HashMap<Connection, Link<Connection>>();
     
+    /**
+     * Sync object
+     */
     private final Object poolSync = new Object();
     
+    /**
+     * close flag
+     */
     private boolean isClosed;
     
+    /**
+     * Own/internal {@link DelayedExecutor} to be used for keep-alive and reconnect
+     * mechanisms, if one (DelayedExecutor} was not specified by user
+     */
     private final DelayedExecutor ownDelayedExecutor;
     
+    /**
+     * DelayQueue for reconnect mechanism
+     */
     private final DelayQueue<ReconnectTask> reconnectQueue;
+    /**
+     * DelayQueue for keep-alive mechanism
+     */
     private final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue;
     
+    /**
+     * {@link ConnectorHandler} used to establish new {@link Connection}s
+     */
     private final ConnectorHandler<E> connectorHandler;
+    /**
+     * Endpoint address
+     */
     private final E endpointAddress;
 
-    private final int maxPoolSize;
+    /**
+     * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
+     */
     private final int corePoolSize;
+    /**
+     * The max number of {@link Connection}s kept by this pool
+     */
+    private final int maxPoolSize;
+    /**
+     * the delay to be used before the pool will repeat the attempt to connect to
+     * the endpoint after previous connect had failed
+     */
     private final long reconnectDelayMillis;
+    /**
+     * the maximum number of milliseconds an idle {@link Connection} will be kept
+     * in the pool. The idle {@link Connection}s will be closed till the pool
+     * size is greater than <tt>corePoolSize</tt>
+     */
     private final long keepAliveTimeoutMillis;
+    /**
+     * the interval, which specifies how often the pool will perform idle {@link Connection}s check
+     */
     private final long keepAliveCheckIntervalMillis;
     
+    /**
+     * current pool size
+     */
     private int poolSize;
-    // Number of connections we're currently trying to establish
-    // and waiting for the result
+    /**
+     * Number of connections we're currently trying to establish and waiting for the result
+     */
     protected int pendingConnections;
+    /**
+     * Number of threads currently polling for available {@link Connection}
+     */
     private int waitListSize;
 
+    /**
+     * Constructs SingleEndpointPool instance.
+     * 
+     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s.
+     * @param endpointAddress endpoint address.
+     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism.
+     * @param maxPoolSize the max number of {@link Connection}s kept by this pool.
+     * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms.
+     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool.
+     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check.
+     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed.
+     */
     @SuppressWarnings("unchecked")
     public SingleEndpointPool(
             final ConnectorHandler<E> connectorHandler,
@@ -112,6 +207,7 @@ public class SingleEndpointPool<E> {
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
         
         if (delayedExecutor == null) {
+            // if custom DelayedExecutor is null - create our own
             final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
                     .setPoolName("connection-pool-delays-thread-pool")
                     .setCorePoolSize(1)
@@ -140,6 +236,19 @@ public class SingleEndpointPool<E> {
         }
     }
 
+    /**
+     * Constructs SingleEndpointPool instance.
+     * 
+     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s.
+     * @param endpointAddress endpoint address.
+     * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism.
+     * @param maxPoolSize the max number of {@link Connection}s kept by this pool.
+     * @param reconnectQueue the {@link DelayQueue} used by reconnect mechanism.
+     * @param keepAliveCleanerQueue the {@link DelayQueue} used by keep-alive mechanism.
+     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool.
+     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check.
+     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed.
+     */    
     @SuppressWarnings("unchecked")
     protected SingleEndpointPool(
             final ConnectorHandler<E> connectorHandler,
@@ -169,30 +278,56 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    /**
+     * Returns the current pool size.
+     * This value includes connected and connecting (connect in progress)
+     * {@link Connection}s.
+     */
     public int size() {
         synchronized (poolSync) {
             return poolSize + pendingConnections;
         }
     }
     
+    /**
+     * Returns the number of connected {@link Connection}s in the pool.
+     * Unlike {@link #size()} the value doesn't include connecting
+     * (connect in progress) {@link Connection}s.
+     */
     public int getOpenConnectionsCount() {
         synchronized (poolSync) {
-            return poolSize + pendingConnections;
+            return poolSize;
         }
     }
 
+    /**
+     * Returns the number of {@link Connection}s ready to be retrieved and used.
+     */
     public int getReadyConnectionsCount() {
         synchronized (poolSync) {
             return readyConnections.size();
         }
     }
 
+    /**
+     * Returns <tt>true</tt> is maximum number of {@link Connection}s the pool
+     * can keep is reached and no new {@link Connection} can established, or
+     * <tt>false</tt> otherwise.
+     */
     public boolean isMaxCapacityReached() {
         synchronized (poolSync) {
             return poolSize + pendingConnections >= maxPoolSize;
         }
     }
     
+    /**
+     * Retrieves {@link Connection} from the pool, waiting if necessary
+     * until a {@link Connection} becomes available.
+     * 
+     * @return {@link Connection}
+     * @throws IOException thrown if this pool has been already closed
+     * @throws InterruptedException if interrupted while waiting
+     */
     public Connection take() throws IOException, InterruptedException {
         synchronized (poolSync) {
             checkNotClosed();
@@ -228,16 +363,20 @@ public class SingleEndpointPool<E> {
     }
 
     /**
-     * Retrieves {@link Connection} from the pool with a given timeout values.
+     * Retrieves {@link Connection} from the pool, waiting up to the
+     * specified wait time if necessary for a {@link Connection} to become available.
      * 
      * If the timeout less than zero (timeout &lt; 0) - the method call is equivalent to {@link #take()}.
      * If the timeout is equal to zero (timeout == 0) - the method call is equivalent to {@link #poll()}.
      * 
-     * @param timeout the time given to the method to retrieve a {@link Connection} from the pool.
-     * @param timeunit the {@link TimeUnit}.
-     * @return {@link Connection}, or <tt>null</tt> if no {@link Connection} has been retrieved during
-     *              the given timeout interval.
-     * @throws IOException thrown if this pool has been already closed.
+     * @param timeout how long to wait before giving up, in units of
+     *        <tt>unit</tt>
+     * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+     *        <tt>timeout</tt> parameter
+     * @return {@link Connection}, or <tt>null</tt> if the
+     *         specified waiting time elapses before a {@link Connection} is available
+     * @throws IOException thrown if this pool has been already closed
+     * @throws InterruptedException if interrupted while waiting
      */
     public Connection poll(final long timeout, final TimeUnit timeunit)
             throws IOException, InterruptedException {
@@ -298,6 +437,14 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    /**
+     * Retrieves {@link Connection} from the pool, or returns <tt>null</tt> if
+     * this pool doesn't have any ready {@link Connection} as the moment.
+     * 
+     * @return {@link Connection}, or <tt>null</tt> if the
+     *         this pool doesn't have any ready {@link Connection} as the moment
+     * @throws IOException thrown if this pool has been already closed
+     */
     public Connection poll() throws IOException {
         synchronized (poolSync) {
             checkNotClosed();
@@ -313,11 +460,23 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    /**
+     * Returns the {@link Connection} to the pool.
+     * 
+     * The {@link Connection} will be returned to the pool only in case it
+     * was created by this pool, or it was attached to it using {@link #attach(org.glassfish.grizzly.Connection)}
+     * method, otherwise this method call will not have any effect.
+     * 
+     * If the {@link Connection} was returned - it is illegal to use it until
+     * it is retrieved from the pool again.
+     * 
+     * @param connection the {@link Connection} to return
+     */
     public void release(final Connection connection) {
         synchronized (poolSync) {
             final Link<Connection> connectionLink = connectionsMap.get(connection);
             
-            if (connectionLink == null || connectionLink.isLinked()) {
+            if (connectionLink == null || connectionLink.isAttached()) {
                 return;
             }
 
@@ -424,7 +583,7 @@ public class SingleEndpointPool<E> {
                     do {
                         final Link<Connection> link = readyConnections.getFirstLink();
 
-                        if ((now - link.getLinkTimeStamp()) >= keepAliveTimeoutMillis) {
+                        if ((now - link.getAttachmentTimeStamp()) >= keepAliveTimeoutMillis) {
                             final Connection connection = link.getValue();
                             // CloseListener will update the counters
                             connection.closeSilently();

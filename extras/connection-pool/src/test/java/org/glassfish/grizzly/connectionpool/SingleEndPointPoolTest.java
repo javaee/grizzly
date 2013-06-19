@@ -59,9 +59,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
+
 /**
- *
- * @author oleksiys
+ * The {@link SingleEndpointPool} tests.
+ * 
+ * @author Alexey Stashok
  */
 public class SingleEndPointPoolTest {
     private static final int PORT = 18333;
