@@ -66,6 +66,9 @@ public class MultiEndpointPool<E> {
     private int poolSize;
     private int totalPendingConnections;
     
+    private final Map<Connection, SingleEndpointPool<E>> connectionToSubPoolMap =
+            new ConcurrentHashMap<Connection, SingleEndpointPool<E>>();
+            
     private final Chain<EndpointPoolImpl> maxPoolSizeHitsChain =
             new Chain<EndpointPoolImpl>();
     
@@ -141,6 +144,50 @@ public class MultiEndpointPool<E> {
         }
     }
 
+    /**
+     * Returns <tt>true</tt> if the {@link Connection} is registered in the pool
+     * no matter if it's currently in busy or ready state, or <tt>false</tt> if
+     * the {@link Connection} is not registered in the pool.
+     * 
+     * @param endpointKey the {@link EndpointKey} to identify the endpoint pool to check
+     * @param connection {@link Connection}
+     * @return <tt>true</tt> if the {@link Connection} is registered in the pool
+     * no matter if it's currently in busy or ready state, or <tt>false</tt> if
+     * the {@link Connection} is not registered in the pool
+     */
+    public boolean isRegistered(final Connection connection) {
+        
+        final SingleEndpointPool<E> sePool =
+                connectionToSubPoolMap.get(connection);
+        if (sePool != null) {
+            return sePool.isRegistered(connection);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Returns <tt>true</tt> only if the {@link Connection} is registered in
+     * the pool and is currently in busy state (used by a user), otherwise
+     * returns <tt>false</tt>.
+     * 
+     * @param endpointKey the {@link EndpointKey} to identify the endpoint pool to check
+     * @param connection {@link Connection}
+     * @return <tt>true</tt> only if the {@link Connection} is registered in
+     * the pool and is currently in busy state (used by a user), otherwise
+     * returns <tt>false</tt>
+     */
+    public boolean isBusy(final EndpointKey<E> endpointKey,
+            final Connection connection) {
+        final SingleEndpointPool<E> sePool =
+                connectionToSubPoolMap.get(connection);
+        if (sePool != null) {
+            return sePool.isBusy(connection);
+        }
+        
+        return false;
+    }
+    
     public Connection take(final EndpointKey<E> endpointKey)
             throws IOException, InterruptedException {
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
@@ -158,25 +205,22 @@ public class MultiEndpointPool<E> {
     
     public Connection poll(final EndpointKey<E> endpointKey)
             throws IOException {
-        
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
-        return sePool.poll();
-    }
 
-    public void release(final EndpointKey<E> endpointKey) {
-        final SingleEndpointPool<E> sePool = poolByEndpointMap.remove(endpointKey);
+        final SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
         if (sePool != null) {
-            sePool.close();
+            return sePool.poll();
         }
+        
+        return null;
     }
 
-    public void release(final EndpointKey<E> endpointKey,
-            final Connection connection) {
-        
+    public void release(final Connection connection) {
         final SingleEndpointPool<E> sePool =
-                poolByEndpointMap.get(endpointKey);
+                connectionToSubPoolMap.get(connection);
         if (sePool != null) {
             sePool.release(connection);
+        } else {
+            connection.closeSilently();
         }
     }
 
@@ -192,13 +236,20 @@ public class MultiEndpointPool<E> {
         return false;
     }
     
-    public void detach(final EndpointKey<E> endpointKey,
-            final Connection connection)
+    public void detach(final Connection connection)
             throws IOException {
         
-        final SingleEndpointPool<E> sePool = poolByEndpointMap.get(endpointKey);
+        final SingleEndpointPool<E> sePool =
+                connectionToSubPoolMap.get(connection);
         if (sePool != null) {
             sePool.detach(connection);
+        }
+    }
+    
+    public void close(final EndpointKey<E> endpointKey) {
+        final SingleEndpointPool<E> sePool = poolByEndpointMap.remove(endpointKey);
+        if (sePool != null) {
+            sePool.close();
         }
     }
     
@@ -288,6 +339,8 @@ public class MultiEndpointPool<E> {
 
         @Override
         protected void onOpenConnection(Connection connection) {
+            connectionToSubPoolMap.put(connection, this);
+            
             synchronized (countersSync) {
                 totalPendingConnections--;
                 poolSize++;
@@ -308,6 +361,8 @@ public class MultiEndpointPool<E> {
         
         @Override
         protected void onCloseConnection(final Connection connection) {
+            connectionToSubPoolMap.remove(connection);
+            
             final EndpointPoolImpl prioritizedPool;
             
             synchronized (countersSync) {

@@ -222,8 +222,12 @@ public class SingleEndpointPool<E> {
             ownDelayedExecutor = null;
         }
         
-        reconnectQueue = delayedExecutor.createDelayQueue(new Reconnector(),
-                new ReconnectTaskResolver());
+        if (reconnectDelayMillis >= 0) {
+            reconnectQueue = delayedExecutor.createDelayQueue(new Reconnector(),
+                    new ReconnectTaskResolver());
+        } else {
+            reconnectQueue = null;
+        }
         
         if (keepAliveTimeoutMillis >= 0) {
             keepAliveCleanerQueue = delayedExecutor.createDelayQueue(
@@ -317,6 +321,39 @@ public class SingleEndpointPool<E> {
     public boolean isMaxCapacityReached() {
         synchronized (poolSync) {
             return poolSize + pendingConnections >= maxPoolSize;
+        }
+    }
+    
+    /**
+     * Returns <tt>true</tt> if the {@link Connection} is registered in the pool
+     * no matter if it's currently in busy or ready state, or <tt>false</tt> if
+     * the {@link Connection} is not registered in the pool.
+     * 
+     * @param connection {@link Connection}
+     * @return <tt>true</tt> if the {@link Connection} is registered in the pool
+     * no matter if it's currently in busy or ready state, or <tt>false</tt> if
+     * the {@link Connection} is not registered in the pool
+     */
+    public boolean isRegistered(final Connection connection) {
+        synchronized (poolSync) {
+            return connectionsMap.containsKey(connection);
+        }
+    }
+    
+    /**
+     * Returns <tt>true</tt> only if the {@link Connection} is registered in
+     * the pool and is currently in busy state (used by a user), otherwise
+     * returns <tt>false</tt>.
+     * 
+     * @param connection {@link Connection}
+     * @return <tt>true</tt> only if the {@link Connection} is registered in
+     * the pool and is currently in busy state (used by a user), otherwise
+     * returns <tt>false</tt>
+     */
+    public boolean isBusy(final Connection connection) {
+        synchronized (poolSync) {
+            final Link<Connection> link = connectionsMap.get(connection);
+            return link != null && !link.isAttached();
         }
     }
     
@@ -465,7 +502,9 @@ public class SingleEndpointPool<E> {
      * 
      * The {@link Connection} will be returned to the pool only in case it
      * was created by this pool, or it was attached to it using {@link #attach(org.glassfish.grizzly.Connection)}
-     * method, otherwise this method call will not have any effect.
+     * method.
+     * If the {@link Connection} is not registered in the pool - it will be closed.
+     * If the {@link Connection} is registered in the pool and already marked as ready - this method call will not have any effect.
      * 
      * If the {@link Connection} was returned - it is illegal to use it until
      * it is retrieved from the pool again.
@@ -476,7 +515,12 @@ public class SingleEndpointPool<E> {
         synchronized (poolSync) {
             final Link<Connection> connectionLink = connectionsMap.get(connection);
             
-            if (connectionLink == null || connectionLink.isAttached()) {
+            if (connectionLink == null) {
+                connection.closeSilently();
+                return;
+            } 
+            
+            if (connectionLink.isAttached()) {
                 return;
             }
 
@@ -491,6 +535,18 @@ public class SingleEndpointPool<E> {
         }
     }
 
+    /**
+     * Attaches "foreign" {@link Connection} to the pool.
+     * This method might be used to add to the pool a {@link Connection}, that
+     * either has not been created by this pool or has been detached.
+     * 
+     * @param connection {@link Connection}
+     * @return <tt>true</tt> if the {@link Connection} has been successfully attached,
+     *              or <tt>false</tt> otherwise. If the {@link Connection} had
+     *              been already registered in the pool - the method call doesn't
+     *              have any effect and <tt>true</tt> will be returned.
+     * @throws IOException thrown if this pool has been already closed
+     */
     public boolean attach(final Connection connection) throws IOException {
         synchronized (poolSync) {
             checkNotClosed();
@@ -507,6 +563,18 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    /**
+     * Detaches a {@link Connection} from the pool.
+     * De-registers the {@link Connection} from the pool and decreases the pool
+     * size by 1. It is possible to re-attach the detached {@link Connection}
+     * later by calling {@link #attach(org.glassfish.grizzly.Connection)}.
+     * 
+     * If the {@link Connection} was not registered in the pool - the
+     * method call doesn't have any effect.
+     * 
+     * @param connection the {@link Connection} to detach
+     * @throws IOException thrown if this pool has been already closed
+     */
     public void detach(final Connection connection) throws IOException {
         synchronized (poolSync) {
             checkNotClosed();
@@ -514,15 +582,17 @@ public class SingleEndpointPool<E> {
             final Link<Connection> link = connectionsMap.remove(connection);
             if (link != null) {
                 connection.removeCloseListener(closeListener);
-                
-                readyConnections.remove(link);
-                poolSize--;
-
-                onCloseConnection(connection);
+                deregisterConnection(link);
             }            
         }
     }
-    
+
+    /**
+     * Closes the pool and closes all the ready {@link Connection}s in the pool.
+     * 
+     * The busy {@link Connection}, that are still in use - will be kept open and
+     * will be automatically closed when returned to the pool via {@link #release(org.glassfish.grizzly.Connection)}.
+     */
     public void close() {
         synchronized (poolSync) {
             if (isClosed) {
@@ -541,12 +611,22 @@ public class SingleEndpointPool<E> {
                     final Connection c = readyConnections.pollLast().getValue();
                     c.closeSilently();
                 }
+                
+                for (Map.Entry<Connection, Link<Connection>> entry : connectionsMap.entrySet()) {
+                    deregisterConnection(entry.getValue());
+                }
+                connectionsMap.clear();
+                
             } finally {
                 poolSync.notifyAll();
             }
         }
     }
     
+    /**
+     * The method is called before the pool will try to establish new client
+     * connection.
+     */
     protected boolean checkBeforeOpeningConnection() {
         if (!isMaxCapacityReached()) {
             pendingConnections++;
@@ -556,12 +636,22 @@ public class SingleEndpointPool<E> {
         return false;
     }
     
+    /**
+     * The method will be called to notify about newly open connection.
+     */
     protected void onOpenConnection(final Connection connection) {
     }
     
+    /**
+     * The method will be called to notify about error occurred during new
+     * connection opening.
+     */
     protected void onFailedConnection() {
     }
 
+    /**
+     * The method will be called to notify about connection termination.
+     */
     protected void onCloseConnection(final Connection connection) {
         // If someone is waiting for a connection
         // try to create a new one
@@ -570,6 +660,10 @@ public class SingleEndpointPool<E> {
         }
     }
 
+    /**
+     * Perform keep-alive check on the ready connections and close connections,
+     * that keep-alive timeout has been expired.
+     */
     boolean cleanupIdleConnections(final KeepAliveCleanerTask cleanerTask) {
         synchronized (poolSync) {
             if (isClosed) {
@@ -582,15 +676,16 @@ public class SingleEndpointPool<E> {
                 try {
                     do {
                         final Link<Connection> link = readyConnections.getFirstLink();
-
+                        
                         if ((now - link.getAttachmentTimeStamp()) >= keepAliveTimeoutMillis) {
                             final Connection connection = link.getValue();
-                            // CloseListener will update the counters
+                            // CloseListener will update the counters in this thread
                             connection.closeSilently();
                         } else { // the rest of links are ok
                             break;
                         }
-                    } while (!readyConnections.isEmpty());
+                        
+                    } while (!readyConnections.isEmpty() && poolSize > corePoolSize);
                 } catch (Exception ignore) {
                 }
             }
@@ -600,12 +695,22 @@ public class SingleEndpointPool<E> {
         return false;
     }
 
+    /**
+     * Checks if it's possible to create a new {@link Connection} by calling
+     * {@link #checkBeforeOpeningConnection()} and if it is possible - establish
+     * new connection.
+     */
     protected boolean createConnectionIfPossible() {
         synchronized (poolSync) {
             return createConnectionIfPossibleNoSync();
         }
     }
     
+    /**
+     * Checks if it's possible to create a new {@link Connection} by calling
+     * {@link #checkBeforeOpeningConnection()} and if it is possible - establish
+     * new connection.
+     */
     private boolean createConnectionIfPossibleNoSync() {
         if (checkBeforeOpeningConnection()) {
             connectorHandler.connect(endpointAddress,
@@ -623,6 +728,19 @@ public class SingleEndpointPool<E> {
         }
     }
 
+    private void deregisterConnection(final Link<Connection> link) {
+        final Connection connection = link.getValue();
+        
+        readyConnections.remove(link);
+        poolSize--;
+
+        onCloseConnection(connection);
+    }
+        
+    /**
+     * {@link CompletionHandler} to be notified once new {@link Connection} is
+     * connected or failed to connect.
+     */
     private final class ConnectCompletionHandler
             extends EmptyCompletionHandler<Connection> {
         
@@ -633,8 +751,12 @@ public class SingleEndpointPool<E> {
                 pendingConnections--;
                 
                 onFailedConnection();
-                reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
-                        reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                
+                // check if reconnect mechanism is enabled
+                if (reconnectQueue != null) {
+                    reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
+                            reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                }
             }
         }
 
@@ -663,6 +785,10 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    /**
+     * The {@link CloseListener} to be notified, when pool {@link Connection}
+     * either busy or ready has been closed, so the pool can adjust its counters.
+     */
     private final class PoolConnectionCloseListener
             implements CloseListener<Connection, CloseType> {
 
@@ -672,15 +798,15 @@ public class SingleEndpointPool<E> {
             synchronized (poolSync) {
                 final Link<Connection> link = connectionsMap.remove(connection);
                 if (link != null) {
-                    readyConnections.remove(link);
-                    poolSize--;
-                    
-                    onCloseConnection(connection);
+                    deregisterConnection(link);
                 }
             }
         }
     }
     
+    /**
+     * Keep-alive mechanism classes related to DelayedExecutor.
+     */
     protected final static class KeepAliveCleaner implements
             DelayedExecutor.Worker<KeepAliveCleanerTask> {
         
@@ -721,6 +847,9 @@ public class SingleEndpointPool<E> {
     }
     
     
+    /**
+     * Reconnect mechanism classes related to DelayedExecutor.
+     */
     protected static final class Reconnector
             implements DelayedExecutor.Worker<ReconnectTask> {
 

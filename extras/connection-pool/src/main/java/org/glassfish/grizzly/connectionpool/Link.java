@@ -93,13 +93,8 @@ final class Link<E> {
     
     /**
      * Attaches the <tt>Link</tt> to a {@link Chain}.
-     * @param prev
-     * @param next 
      */
-    void attach(final Link<E> prev, final Link<E> next) {
-        this.prev = prev;
-        this.next = next;
-        
+    void attach() {
         linkTimeStamp = System.currentTimeMillis();
         isAttached = true;
     }

@@ -102,12 +102,17 @@ final class Chain<E> {
             throw new IllegalStateException("Already linked");
         }
         
-        link.attach(lastLink, null);
-        lastLink = link;
+        link.prev = lastLink;
+        if (lastLink != null) {
+            lastLink.next = link;
+        }
         
+        lastLink = link;
         if (firstLink == null) {
             firstLink = lastLink;
         }
+        
+        link.attach();
         
         size++;
     }
@@ -124,6 +129,8 @@ final class Chain<E> {
         lastLink = link.prev;
         if (lastLink == null) {
             firstLink = null;
+        } else {
+            lastLink.next = null;
         }
         
         link.detach();
@@ -145,6 +152,8 @@ final class Chain<E> {
         firstLink = link.next;
         if (firstLink == null) {
             lastLink = null;
+        } else {
+            firstLink.prev = null;
         }
         
         link.detach();

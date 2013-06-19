@@ -114,50 +114,51 @@ public class SingleEndPointPoolTest {
                 transport, new InetSocketAddress("localhost", PORT), 2, 5, null,
                 -1, 1000, 1000);
         
-        Connection c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(1, pool.size());
-        Connection c2 = pool.take();
-        assertNotNull(c2);
-        assertEquals(2, pool.size());
-        
-        pool.release(c1);
-        assertEquals(2, pool.size());
-        
-        pool.release(c2);
-        assertEquals(2, pool.size());
-        
-        c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(2, pool.size());
-        
-        pool.detach(c1);
-        assertEquals(1, pool.size());
-        
-        pool.release(c1);
-        assertEquals(1, pool.size());
-        
-        assertTrue(pool.attach(c1));
-        assertEquals(2, pool.size());
-        assertEquals(2, pool.getReadyConnectionsCount());
-        
-        pool.release(c1);
-        assertEquals(2, pool.size());
-        assertEquals(2, pool.getReadyConnectionsCount());
-        
-        c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(1, pool.getReadyConnectionsCount());
+        try {
+            Connection c1 = pool.take();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+            Connection c2 = pool.take();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
 
-        c2 = pool.take();
-        assertNotNull(c2);
-        assertEquals(0, pool.getReadyConnectionsCount());
+            pool.release(c1);
+            assertEquals(2, pool.size());
 
-        c1.close().get(10, TimeUnit.SECONDS);
-        assertEquals(1, pool.size());
-        
-        c2.close().get(10, TimeUnit.SECONDS);
-        assertEquals(0, pool.size());
+            pool.release(c2);
+            assertEquals(2, pool.size());
+
+            c1 = pool.take();
+            assertNotNull(c1);
+            assertEquals(2, pool.size());
+
+            pool.detach(c1);
+            assertEquals(1, pool.size());
+
+            assertTrue(pool.attach(c1));
+            assertEquals(2, pool.size());
+            assertEquals(2, pool.getReadyConnectionsCount());
+
+            pool.release(c1);
+            assertEquals(2, pool.size());
+            assertEquals(2, pool.getReadyConnectionsCount());
+
+            c1 = pool.take();
+            assertNotNull(c1);
+            assertEquals(1, pool.getReadyConnectionsCount());
+
+            c2 = pool.take();
+            assertNotNull(c2);
+            assertEquals(0, pool.getReadyConnectionsCount());
+
+            c1.close().get(10, TimeUnit.SECONDS);
+            assertEquals(1, pool.size());
+
+            c2.close().get(10, TimeUnit.SECONDS);
+            assertEquals(0, pool.size());
+        } finally {
+            pool.close();
+        }
     }
     
     @Test
@@ -166,27 +167,31 @@ public class SingleEndPointPoolTest {
                 transport, new InetSocketAddress("localhost", PORT), 2, 2, null,
                 -1, 1000, 1000);
         
-        Connection c1 = pool.poll(0, TimeUnit.MILLISECONDS);
-        assertNull(c1);
-        assertEquals(0, pool.size());
-        
-        c1 = pool.poll(-1, TimeUnit.MILLISECONDS);
-        assertNotNull(c1);
-        assertEquals(1, pool.size());
-        
-        Connection c2 = pool.poll(-1, TimeUnit.MILLISECONDS);
-        assertNotNull(c2);
-        assertEquals(2, pool.size());
-        
-        Connection c3 = pool.poll(2, TimeUnit.SECONDS);
-        assertNull(c3);
-        assertEquals(2, pool.size());
-        
-        pool.release(c2);
+        try {
+            Connection c1 = pool.poll(0, TimeUnit.MILLISECONDS);
+            assertNull(c1);
+            assertEquals(0, pool.size());
 
-        c3 = pool.poll(2, TimeUnit.SECONDS);
-        assertNotNull(c3);
-        assertEquals(2, pool.size());
+            c1 = pool.poll(-1, TimeUnit.MILLISECONDS);
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+
+            Connection c2 = pool.poll(-1, TimeUnit.MILLISECONDS);
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+
+            Connection c3 = pool.poll(2, TimeUnit.SECONDS);
+            assertNull(c3);
+            assertEquals(2, pool.size());
+
+            pool.release(c2);
+
+            c3 = pool.poll(2, TimeUnit.SECONDS);
+            assertNotNull(c3);
+            assertEquals(2, pool.size());
+        } finally {
+            pool.close();
+        }
     }
     
     @Test
@@ -194,27 +199,33 @@ public class SingleEndPointPoolTest {
         final long keepAliveTimeoutMillis = 5000;
         final long keepAliveCheckIntervalMillis = 1000;
         
+        final int corePoolSize = 2;
+        final int maxPoolSize = 5;
+        
         final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 5, null,
+                transport, new InetSocketAddress("localhost", PORT), corePoolSize, maxPoolSize, null,
                 keepAliveTimeoutMillis, keepAliveCheckIntervalMillis, 1000);
         
-        Connection c1 = pool.take();
-        assertNotNull(c1);
-        assertEquals(1, pool.size());
-        Connection c2 = pool.take();
-        assertNotNull(c2);
-        assertEquals(2, pool.size());
-        
-        Connection c3 = pool.take();
-        assertNotNull(c3);
-        assertEquals(3, pool.size());
+        try {
+            final Connection[] connections = new Connection[maxPoolSize];
 
-        pool.release(c1);
-        assertEquals(3, pool.size());
-        
-        Thread.sleep(keepAliveTimeoutMillis + keepAliveCheckIntervalMillis * 2);
-        
-        assertEquals(2, pool.size());
-        assertEquals(2, serverSideConnections.size());
+            for (int i = 0; i < maxPoolSize; i++) {
+                connections[i] = pool.take();
+                assertNotNull(connections[i]);
+                assertEquals(i + 1, pool.size());
+            }
+
+            for (int i = 0; i < maxPoolSize; i++) {
+                pool.release(connections[i]);
+                assertEquals(i + 1, pool.getReadyConnectionsCount());
+            }
+
+            Thread.sleep(keepAliveTimeoutMillis + keepAliveCheckIntervalMillis * 2);
+
+            assertEquals(corePoolSize, pool.size());
+            assertEquals(corePoolSize, serverSideConnections.size());
+        } finally {
+            pool.close();
+        }
     }    
 }

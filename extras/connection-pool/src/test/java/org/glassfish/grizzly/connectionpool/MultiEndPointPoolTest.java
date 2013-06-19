@@ -117,67 +117,68 @@ public class MultiEndPointPoolTest {
         final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
                 transport, 3, 15, null, -1, 1000, 1000);
         
-        final EndpointKey<SocketAddress> key1 =
-                new EndpointKey<SocketAddress>("endpoint1",
-                new InetSocketAddress("localhost", PORT));
-        
-        final EndpointKey<SocketAddress> key2 =
-                new EndpointKey<SocketAddress>("endpoint2",
-                new InetSocketAddress("localhost", PORT + 1));
-        
-        Connection c11 = pool.take(key1);
-        assertNotNull(c11);
-        assertEquals(1, pool.size());
-        Connection c12 = pool.take(key1);
-        assertNotNull(c12);
-        assertEquals(2, pool.size());
-        
-        Connection c21 = pool.take(key2);
-        assertNotNull(c21);
-        assertEquals(3, pool.size());
-        Connection c22 = pool.take(key2);
-        assertNotNull(c22);
-        assertEquals(4, pool.size());
-        
-        pool.release(key1, c11);
-        assertEquals(4, pool.size());
-        
-        pool.release(key2, c21);
-        assertEquals(4, pool.size());
-        
-        c11 = pool.take(key1);
-        assertNotNull(c11);
-        assertEquals(4, pool.size());
-        
-        pool.detach(key1, c11);
-        assertEquals(3, pool.size());
-        
-        pool.release(key1, c11);
-        assertEquals(3, pool.size());
-        
-        assertTrue(pool.attach(key1, c11));
-        assertEquals(4, pool.size());
-        
-        pool.release(key1, c11);
-        assertEquals(4, pool.size());
-        
-        c11 = pool.take(key1);
-        assertNotNull(c11);
+        try {
+            final EndpointKey<SocketAddress> key1 =
+                    new EndpointKey<SocketAddress>("endpoint1",
+                    new InetSocketAddress("localhost", PORT));
 
-        c21 = pool.take(key2);
-        assertNotNull(c21);
+            final EndpointKey<SocketAddress> key2 =
+                    new EndpointKey<SocketAddress>("endpoint2",
+                    new InetSocketAddress("localhost", PORT + 1));
 
-        c11.close().get(10, TimeUnit.SECONDS);
-        assertEquals(3, pool.size());
-        
-        c12.close().get(10, TimeUnit.SECONDS);
-        assertEquals(2, pool.size());
+            Connection c11 = pool.take(key1);
+            assertNotNull(c11);
+            assertEquals(1, pool.size());
+            Connection c12 = pool.take(key1);
+            assertNotNull(c12);
+            assertEquals(2, pool.size());
 
-        c21.close().get(10, TimeUnit.SECONDS);
-        assertEquals(1, pool.size());
+            Connection c21 = pool.take(key2);
+            assertNotNull(c21);
+            assertEquals(3, pool.size());
+            Connection c22 = pool.take(key2);
+            assertNotNull(c22);
+            assertEquals(4, pool.size());
 
-        c22.close().get(10, TimeUnit.SECONDS);
-        assertEquals(0, pool.size());
+            pool.release(c11);
+            assertEquals(4, pool.size());
+
+            pool.release(c21);
+            assertEquals(4, pool.size());
+
+            c11 = pool.take(key1);
+            assertNotNull(c11);
+            assertEquals(4, pool.size());
+
+            pool.detach(c11);
+            assertEquals(3, pool.size());
+
+            assertTrue(pool.attach(key1, c11));
+            assertEquals(4, pool.size());
+
+            pool.release(c11);
+            assertEquals(4, pool.size());
+
+            c11 = pool.take(key1);
+            assertNotNull(c11);
+
+            c21 = pool.take(key2);
+            assertNotNull(c21);
+
+            c11.close().get(10, TimeUnit.SECONDS);
+            assertEquals(3, pool.size());
+
+            c12.close().get(10, TimeUnit.SECONDS);
+            assertEquals(2, pool.size());
+
+            c21.close().get(10, TimeUnit.SECONDS);
+            assertEquals(1, pool.size());
+
+            c22.close().get(10, TimeUnit.SECONDS);
+            assertEquals(0, pool.size());
+        } finally {
+            pool.close();
+        }
     }
     
     @Test
@@ -185,47 +186,110 @@ public class MultiEndPointPoolTest {
         final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
                 transport, 2, 2, null, -1, 1000, 1000);
         
-        final EndpointKey<SocketAddress> key1 =
-                new EndpointKey<SocketAddress>("endpoint1",
-                new InetSocketAddress("localhost", PORT));
-        
-        final EndpointKey<SocketAddress> key2 =
-                new EndpointKey<SocketAddress>("endpoint2",
-                new InetSocketAddress("localhost", PORT + 1));
-        
-        Connection c11 = pool.take(key1);
-        assertNotNull(c11);
-        assertEquals(1, pool.size());
-        final Connection c12 = pool.take(key1);
-        assertNotNull(c12);
-        assertEquals(2, pool.size());
-        
-        Connection c21 = pool.poll(key2, 2, TimeUnit.SECONDS);
-        assertNull(c21);
-        assertEquals(2, pool.size());
-        
-        final Thread t = new Thread() {
+        try {
+            final EndpointKey<SocketAddress> key1 =
+                    new EndpointKey<SocketAddress>("endpoint1",
+                    new InetSocketAddress("localhost", PORT));
 
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
+            final EndpointKey<SocketAddress> key2 =
+                    new EndpointKey<SocketAddress>("endpoint2",
+                    new InetSocketAddress("localhost", PORT + 1));
+
+            Connection c11 = pool.take(key1);
+            assertNotNull(c11);
+            assertEquals(1, pool.size());
+            final Connection c12 = pool.take(key1);
+            assertNotNull(c12);
+            assertEquals(2, pool.size());
+
+            Connection c21 = pool.poll(key2, 2, TimeUnit.SECONDS);
+            assertNull(c21);
+            assertEquals(2, pool.size());
+
+            final Thread t = new Thread() {
+
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                    }
+
+                    c12.closeSilently();
                 }
-                
-                c12.closeSilently();
-            }
-        };
-        t.start();
-        
-        c21 = pool.poll(key2, 10, TimeUnit.SECONDS);
-        assertNotNull(c12);
-        assertEquals(2, pool.size());
-        
-        c11.close().get(10, TimeUnit.SECONDS);
-        assertEquals(1, pool.size());
+            };
+            t.start();
 
-        c21.close().get(10, TimeUnit.SECONDS);
-        assertEquals(0, pool.size());
+            c21 = pool.poll(key2, 10, TimeUnit.SECONDS);
+            assertNotNull(c12);
+            assertEquals(2, pool.size());
+
+            c11.close().get(10, TimeUnit.SECONDS);
+            assertEquals(1, pool.size());
+
+            c21.close().get(10, TimeUnit.SECONDS);
+            assertEquals(0, pool.size());
+        } finally {
+            pool.close();
+        }
+    }
+    
+    @Test
+    public void testSingleEndpointClose() throws Exception {
+        final int maxConnectionsPerEndpoint = 4;
+        
+        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
+                transport, maxConnectionsPerEndpoint, maxConnectionsPerEndpoint * 2,
+                null, -1, 1000, 1000);
+        
+        try {
+            final EndpointKey<SocketAddress> key1 =
+                    new EndpointKey<SocketAddress>("endpoint1",
+                    new InetSocketAddress("localhost", PORT));
+
+            final EndpointKey<SocketAddress> key2 =
+                    new EndpointKey<SocketAddress>("endpoint2",
+                    new InetSocketAddress("localhost", PORT + 1));
+
+            final Connection[] e1Connections = new Connection[maxConnectionsPerEndpoint];
+            final Connection[] e2Connections = new Connection[maxConnectionsPerEndpoint];
+            
+            for (int i = 0; i < maxConnectionsPerEndpoint; i++) {
+                e1Connections[i] = pool.take(key1);
+                assertNotNull(e1Connections[i]);
+                assertEquals((i * 2) + 1, pool.size());
+                
+                e2Connections[i] = pool.take(key2);
+                assertNotNull(e2Connections[i]);
+                assertEquals((i * 2) + 2, pool.size());
+            }
+            
+            final int numberOfReleasedConnections = maxConnectionsPerEndpoint / 2;
+            for (int i = 0; i < numberOfReleasedConnections; i++) {
+                pool.release(e1Connections[i]);
+                assertNotNull(e1Connections[i]);
+            }
+            
+            pool.close(key1);
+            assertEquals(maxConnectionsPerEndpoint, pool.size());
+            
+            for (int i = 0; i < numberOfReleasedConnections; i++) {
+                assertFalse(e1Connections[i].isOpen());
+            }
+            
+            for (int i = numberOfReleasedConnections; i < maxConnectionsPerEndpoint; i++) {
+                assertTrue(e1Connections[i].isOpen());
+            }
+            
+            for (int i = numberOfReleasedConnections; i < maxConnectionsPerEndpoint; i++) {
+                pool.release(e1Connections[i]);
+            }
+            
+            for (int i = numberOfReleasedConnections; i < maxConnectionsPerEndpoint; i++) {
+                assertFalse(e1Connections[i].isOpen());
+            }
+        } finally {
+            pool.close();
+        }
     }
 }
