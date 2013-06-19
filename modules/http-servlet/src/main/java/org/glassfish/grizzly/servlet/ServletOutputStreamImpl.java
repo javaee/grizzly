@@ -206,16 +206,14 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
         }
 
         @Override
-        public void onWritePossible() {
+        public void onWritePossible() throws Exception {
             if (!Boolean.TRUE.equals(CAN_WRITE_SCOPE.get())) {
-                prevIsReady = true;
-                writeListener.onWritePossible();
+                invokeWriteCallback();
             } else {
                 AsyncContextImpl.pool.execute(new Runnable() {
                     @Override
                     public void run() {
-                        prevIsReady = true;
-                        writeListener.onWritePossible();
+                        invokeWriteCallback();
                     }
                 });
             }
@@ -234,5 +232,16 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
                 });
             }
         }
+
+
+        private void invokeWriteCallback() {
+            prevIsReady = true;
+            try {
+                writeListener.onWritePossible();
+            } catch (Throwable t) {
+                writeListener.onError(t);
+            }
+        }
+
     }    
 }

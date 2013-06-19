@@ -1327,6 +1327,11 @@ public class WebappContext implements ServletContext {
         return new File(basePath, path).getAbsolutePath();
     }
 
+    @Override
+    public String getVirtualServerName() {
+        return "server";
+    }
+
     /**
      * {@inheritDoc}
      */
