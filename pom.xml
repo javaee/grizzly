@@ -157,13 +157,9 @@
                 <version>2.0.6</version>
             </plugin>
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-maven-plugin</artifactId>
-                <version>2.0.6</version>
-            </plugin>
-            <plugin>
                 <inherited>true</inherited>
                 <artifactId>maven-compiler-plugin</artifactId>
+		<version>3.0</version>
                 <configuration>
                     <source>1.5</source>
                     <target>1.5</target>
@@ -174,6 +170,7 @@
                 <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -197,6 +194,7 @@
             <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
+                    <version>2.7</version>
                     <configuration>
                         <retryFailedDeploymentCount>10</retryFailedDeploymentCount>
                     </configuration>
@@ -205,6 +203,7 @@
                 <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -236,6 +235,17 @@
                     <scm>git</scm>
                     <scmOnly>true</scmOnly>
                     <warn>false</warn>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                    <arguments>
+                        <argument>-Xmx512m</argument>
+                    </arguments>
                 </configuration>
             </plugin>
         </plugins>
