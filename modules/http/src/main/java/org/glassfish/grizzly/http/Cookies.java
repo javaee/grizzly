@@ -236,7 +236,8 @@ public final class Cookies {
 
                 final String value = cookieValue.toString();
                 CookieParserUtils.parseClientCookies(this, value,
-                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE,
+                        CookieUtils.RFC_6265_SUPPORT_ENABLED);
             }
 
             pos++;// search from the next position
@@ -275,7 +276,8 @@ public final class Cookies {
                 CookieParserUtils.parseServerCookies(this, byteChunk.getBuffer(),
                         byteChunk.getStart(),
                         byteChunk.getLength(),
-                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE,
+                        CookieUtils.RFC_6265_SUPPORT_ENABLED);
             } else if (cookieValue.getType() == DataChunk.Type.Buffer) {
                 if (logger.isLoggable(Level.FINE)) {
                     log("Parsing b[]: " + cookieValue.toString());
@@ -285,7 +287,8 @@ public final class Cookies {
                 CookieParserUtils.parseServerCookies(this, bufferChunk.getBuffer(),
                         bufferChunk.getStart(),
                         bufferChunk.getLength(),
-                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE,
+                        CookieUtils.RFC_6265_SUPPORT_ENABLED);
             } else {
                 if (logger.isLoggable(Level.FINE)) {
                     log("Parsing string: " + cookieValue.toString());
@@ -293,7 +296,8 @@ public final class Cookies {
 
                 final String value = cookieValue.toString();
                 CookieParserUtils.parseServerCookies(this, value,
-                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
+                        CookieUtils.COOKIE_VERSION_ONE_STRICT_COMPLIANCE,
+                        CookieUtils.RFC_6265_SUPPORT_ENABLED);
             }
 
             pos++;// search from the next position
