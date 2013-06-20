@@ -110,9 +110,11 @@ public class SingleEndPointPoolTest {
     
     @Test
     public void testBasicPollRelease() throws Exception {
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 5, null,
-                -1, 1000, 1000);
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .build();
         
         try {
             Connection c1 = pool.take();
@@ -168,10 +170,14 @@ public class SingleEndPointPoolTest {
     
     @Test
     public void testPollTimeout() throws Exception {
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), 2, 2, null,
-                -1, 1000, 1000);
-        
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .corePoolSize(2)
+                .maxPoolSize(2)
+                .build();
+
         try {
             Connection c1 = pool.poll(0, TimeUnit.MILLISECONDS);
             assertNull(c1);
@@ -207,10 +213,16 @@ public class SingleEndPointPoolTest {
         final int corePoolSize = 2;
         final int maxPoolSize = 5;
         
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                transport, new InetSocketAddress("localhost", PORT), corePoolSize, maxPoolSize, null,
-                keepAliveTimeoutMillis, keepAliveCheckIntervalMillis, 1000);
-        
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .corePoolSize(corePoolSize)
+                .maxPoolSize(maxPoolSize)
+                .keepAliveTimeout(keepAliveTimeoutMillis, TimeUnit.MILLISECONDS)
+                .keepAliveCheckInterval(keepAliveCheckIntervalMillis, TimeUnit.MILLISECONDS)
+                .build();
+
         try {
             final Connection[] connections = new Connection[maxPoolSize];
 
@@ -262,9 +274,15 @@ public class SingleEndPointPoolTest {
             }
         };
         
-        final SingleEndpointPool<SocketAddress> pool = new SingleEndpointPool<SocketAddress>(
-                clientTransport, new InetSocketAddress("localhost", PORT), 4, 5, null,
-                -1, -1, reconnectDelayMillis);
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(clientTransport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .corePoolSize(4)
+                .maxPoolSize(5)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .reconnectDelay(reconnectDelayMillis, TimeUnit.MILLISECONDS)
+                .build();
         
         try {
             clientTransport.start();

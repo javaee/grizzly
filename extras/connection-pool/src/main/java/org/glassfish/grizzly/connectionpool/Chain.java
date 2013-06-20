@@ -95,9 +95,32 @@ final class Chain<E> {
     }
     
     /**
+     * Adds a {@link Link} to the beginning of this <tt>Chain</tt>.
+     */
+    public void offerFirst(final Link<E> link) {
+        if (link.isAttached()) {
+            throw new IllegalStateException("Already linked");
+        }
+        
+        link.next = firstLink;
+        if (firstLink != null) {
+            firstLink.prev = link;
+        }
+        
+        firstLink = link;
+        if (lastLink == null) {
+            lastLink = firstLink;
+        }
+        
+        link.attach();
+        
+        size++;
+    }
+    
+    /**
      * Adds a {@link Link} to the end of this <tt>Chain</tt>.
      */
-    public void offer(final Link<E> link) {
+    public void offerLast(final Link<E> link) {
         if (link.isAttached()) {
             throw new IllegalStateException("Already linked");
         }

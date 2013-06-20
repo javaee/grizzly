@@ -83,6 +83,17 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 public class SingleEndpointPool<E> {
 
     /**
+     * Returns single endpoint pool {@link Builder}.
+     * 
+     * @param endpointType endpoint address type, for example
+     *        {@link SocketAddress} for TCP and UDP transports
+     * @return {@link Builder} 
+     */
+    public static <T> Builder<T> builder(Class<T> endpointType) {
+        return new Builder<T>();
+    }
+    
+    /**
      * {@link CompletionHandler} to be notified once
      * {@link ConnectorHandler#connect(java.lang.Object)} is complete
      */
@@ -189,7 +200,7 @@ public class SingleEndpointPool<E> {
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      */
     @SuppressWarnings("unchecked")
-    public SingleEndpointPool(
+    protected SingleEndpointPool(
             final ConnectorHandler<E> connectorHandler,
             final E endpointAddress,
             final int corePoolSize, final int maxPoolSize,
@@ -540,7 +551,7 @@ public class SingleEndpointPool<E> {
             }
             
             if (readyConnections.size() < maxPoolSize) {
-                readyConnections.offer(info.readyStateLink);
+                readyConnections.offerLast(info.readyStateLink);
             }
         }
     }
@@ -781,7 +792,7 @@ public class SingleEndpointPool<E> {
                             new ConnectionInfo<E>(connection, SingleEndpointPool.this);
                     
                     connectionsMap.put(connection, info);
-                    readyConnections.offer(info.readyStateLink);
+                    readyConnections.offerLast(info.readyStateLink);
                     
                     poolSize++;
                     pendingConnections--;
@@ -919,6 +930,202 @@ public class SingleEndpointPool<E> {
 
         public ReconnectTask(SingleEndpointPool<E> singleEndpointPool) {
             this.pool = singleEndpointPool;
+        }
+    }
+    
+    /**
+     * The Builder class responsible for constructing {@link SingleEndpointPool}.
+     * 
+     * @param <E> endpoint address type, for example {@link SocketAddress} for TCP and UDP transports
+     */
+    public static class Builder<E> {
+        /**
+         * {@link ConnectorHandler} used to establish new {@link Connection}s
+         */
+        private ConnectorHandler<E> connectorHandler;
+        /**
+         * Endpoint address
+         */
+        private E endpointAddress;
+
+        /**
+         * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
+         */
+        private int corePoolSize = 4;
+        /**
+         * The max number of {@link Connection}s kept by this pool
+         */
+        private int maxPoolSize = 8;
+        /**
+         * the {@link DelayedExecutor} to be used for keep-alive and
+         * reconnect mechanisms
+         */
+        private DelayedExecutor delayedExecutor;
+        /**
+         * the delay to be used before the pool will repeat the attempt to connect to
+         * the endpoint after previous connect had failed
+         */
+        private long reconnectDelayMillis = -1;
+        /**
+         * the maximum number of milliseconds an idle {@link Connection} will be kept
+         * in the pool. The idle {@link Connection}s will be closed till the pool
+         * size is greater than <tt>corePoolSize</tt>
+         */
+        private long keepAliveTimeoutMillis = 30000;
+        /**
+         * the interval, which specifies how often the pool will perform idle {@link Connection}s check
+         */
+        private long keepAliveCheckIntervalMillis = 5000;
+        
+        /**
+         * Sets the {@link ConnectorHandler} used to establish new {@link Connection}s.
+         * 
+         * @param connectorHandler {@link ConnectorHandler}
+         * @return this {@link Builder}
+         */
+        public Builder<E> connectorHandler(final ConnectorHandler<E> connectorHandler) {
+            this.connectorHandler = connectorHandler;
+            return this;
+        }
+        
+        /**
+         * Sets the endpoint address.
+         * 
+         * @param endpointAddress
+         * @return this {@link Builder}
+         */
+        public Builder<E> endpointAddress(final E endpointAddress) {
+            this.endpointAddress = endpointAddress;
+            return this;
+        }
+        
+        /**
+         * Sets the number of {@link Connection}s, kept in the pool,
+         * that are immune to keep-alive mechanism.
+         * Default value is 4.
+         * 
+         * @param corePoolSize
+         * @return this {@link Builder}
+         */
+        public Builder<E> corePoolSize(final int corePoolSize) {
+            this.corePoolSize = corePoolSize;
+            return this;
+        }
+        
+        /**
+         * Sets the max number of {@link Connection}s kept by this pool.
+         * Default value is 8.
+         * 
+         * @param maxPoolSize
+         * @return this {@link Builder}
+         */        
+        public Builder<E> maxPoolSize(final int maxPoolSize) {
+            this.maxPoolSize = maxPoolSize;
+            return this;
+        }
+        
+        /**
+         * Sets the custom {@link DelayedExecutor} to be used for keep-alive and
+         * reconnect mechanisms.
+         * If none is set - the {@link SingleEndpointPool} will create its own {@link DelayedExecutor}.
+         * 
+         * @param delayedExecutor
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> delayExecutor(final DelayedExecutor delayedExecutor) {
+            this.delayedExecutor = delayedExecutor;
+            return this;
+        }
+        
+        /**
+         * Sets the delay to be used before the pool will repeat the attempt to
+         * connect to the endpoint after previous connect operation had failed.
+         * If reconnectDelay &lt; 0 - the reconnect mechanism will be disabled.
+         * By default the reconnect mechanism is disabled.
+         * 
+         * @param reconnectDelay the delay to be used before the pool will repeat
+         *        the attempt to connect to the endpoint after previous connect
+         *        operation had failed. The negative value disables the
+         *        reconnect mechanism.
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> reconnectDelay(final long reconnectDelay,
+                final TimeUnit timeunit) {
+
+            this.reconnectDelayMillis = reconnectDelay > 0 ?
+                    TimeUnit.MILLISECONDS.convert(reconnectDelay, timeunit) :
+                    reconnectDelay;
+            return this;
+        }
+
+        /**
+         * Sets the maximum number of milliseconds an idle {@link Connection}
+         * will be kept in the pool.
+         * The idle {@link Connection}s will be closed till the pool size is
+         * greater than <tt>corePoolSize</tt>.
+         * 
+         * If keepAliveTimeout &lt; 0 - the keep-alive mechanism will be disabled.
+         * By default the keep-alive timeout is set to 30 seconds.
+         * 
+         * @param keepAliveTimeout the maximum number of milliseconds an idle
+         *        {@link Connection} will be kept in the pool. The negative
+         *        value disables the keep-alive mechanism.
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */
+        public Builder<E> keepAliveTimeout(final long keepAliveTimeout,
+                final TimeUnit timeunit) {
+
+            this.keepAliveTimeoutMillis = keepAliveTimeout > 0 ?
+                    TimeUnit.MILLISECONDS.convert(keepAliveTimeout, timeunit) :
+                    keepAliveTimeout;
+            return this;
+        }
+
+        /**
+         * Sets the interval, which specifies how often the pool will perform
+         * idle {@link Connection}s check.
+         * 
+         * @param keepAliveTimeout the interval, which specifies how often the
+         *        pool will perform idle {@link Connection}s check
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */
+        public Builder<E> keepAliveCheckInterval(final long keepAliveCheckInterval,
+                final TimeUnit timeunit) {
+
+            this.keepAliveCheckIntervalMillis = keepAliveCheckInterval > 0 ?
+                    TimeUnit.MILLISECONDS.convert(keepAliveCheckInterval, timeunit) :
+                    keepAliveCheckInterval;
+            return this;
+        }
+        
+        /**
+         * Constructs {@link SingleEndpointPool}.
+         * @return {@link SingleEndpointPool}
+         */
+        
+        public SingleEndpointPool<E> build() {
+            if (connectorHandler == null) {
+                throw new IllegalStateException("ConnectorHandler is not set");
+            }
+            
+            if (endpointAddress == null) {
+                throw new IllegalStateException("Endpoint address is not set");
+            }
+
+            if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
+                throw new IllegalStateException("Keep-alive timeout is set, but keepAliveCheckInterval is invalid");
+            }
+            
+            return new SingleEndpointPool<E>(connectorHandler, endpointAddress,
+                    corePoolSize, maxPoolSize, delayedExecutor,
+                    keepAliveTimeoutMillis, keepAliveCheckIntervalMillis,
+                    reconnectDelayMillis);
         }
     }
 }

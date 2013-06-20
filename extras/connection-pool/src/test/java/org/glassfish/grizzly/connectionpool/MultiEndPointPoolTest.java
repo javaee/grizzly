@@ -114,8 +114,13 @@ public class MultiEndPointPoolTest {
     
     @Test
     public void testBasicPollRelease() throws Exception {
-        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
-                transport, 3, 15, null, -1, 1000, 1000);
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .maxConnectionsPerEndpoint(3)
+                .maxConnectionsTotal(15)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .build();
         
         try {
             final EndpointKey<SocketAddress> key1 =
@@ -187,8 +192,13 @@ public class MultiEndPointPoolTest {
     
     @Test
     public void testTotalPoolSizeLimit() throws Exception {
-        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
-                transport, 2, 2, null, -1, 1000, 1000);
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .maxConnectionsPerEndpoint(2)
+                .maxConnectionsTotal(2)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .build();
         
         try {
             final EndpointKey<SocketAddress> key1 =
@@ -242,9 +252,13 @@ public class MultiEndPointPoolTest {
     public void testSingleEndpointClose() throws Exception {
         final int maxConnectionsPerEndpoint = 4;
         
-        final MultiEndpointPool<SocketAddress> pool = new MultiEndpointPool<SocketAddress>(
-                transport, maxConnectionsPerEndpoint, maxConnectionsPerEndpoint * 2,
-                null, -1, 1000, 1000);
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .maxConnectionsPerEndpoint(maxConnectionsPerEndpoint)
+                .maxConnectionsTotal(maxConnectionsPerEndpoint * 2)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .build();
         
         try {
             final EndpointKey<SocketAddress> key1 =
