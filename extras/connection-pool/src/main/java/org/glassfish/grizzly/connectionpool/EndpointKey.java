@@ -45,10 +45,10 @@ import org.glassfish.grizzly.ConnectorHandler;
  * The key object representing single endpoint in the {@link MultiEndpointPool}.
  * 
  * The <tt>EndpointKey</tt> contains the endpoint address, that will be used by
- * a {@link ConnectorHandler} passed to {@link MultiEndpointPool} to establish
- * new client-side {@link Connection}.
- * Besides that the <tt>EndpointKey</tt> contains internal key object
- * {@link #getInternalKey()}, that is used in {@link #equals(java.lang.Object)}
+ * a {@link ConnectorHandler} passed to {@link MultiEndpointPool} to establish a
+ * new client-side {@link org.glassfish.grizzly.Connection}.
+ * Additionally, the <tt>EndpointKey</tt> contains an internal key object
+ * ({@link #getInternalKey()}) that is used in the {@link #equals(java.lang.Object)}
  * and {@link #hashCode()} methods.
  * 
  * @author Alexey Stashok

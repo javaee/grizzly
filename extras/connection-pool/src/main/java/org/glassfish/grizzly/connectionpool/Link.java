@@ -47,7 +47,7 @@ package org.glassfish.grizzly.connectionpool;
  * the next <tt>Link</tt>s in the {@link Chain}, otherwise, if the <tt>Link</tt>
  * is detached - the pointers values are <tt>null</tt>.
  * 
- * If a <tt>Link</tt> is attached - it might be attached to only one {@link Chain}.
+ * If a <tt>Link</tt> is attached - it can only be attached to one {@link Chain}.
  * 
  * @author Alexey Stashok
  */

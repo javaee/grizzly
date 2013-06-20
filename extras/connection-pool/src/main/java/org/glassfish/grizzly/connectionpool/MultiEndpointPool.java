@@ -52,7 +52,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
 
 /**
- * The multi endpoint {@link Connection} pool implementation, where each endpoint
+ * The multi endpoint {@link Connection} pool implementation where each endpoint
  * sub-pool is represented by {@link SingleEndpointPool} and referenced by an {@link EndpointKey}.
  * 
  * There are number of configuration options supported by the <tt>MultiEndpointPool</tt>:
@@ -61,7 +61,7 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  *      - <tt>maxConnectionsTotal</tt>: the total maximum number of {@link Connection}s to be kept by the pool;
  *      - <tt>keepAliveTimeoutMillis</tt>: the maximum number of milliseconds an idle {@link Connection}
  *                                         will be kept in the pool. The idle {@link Connection}s will be
- *                                         closed till the pool size is greater than <tt>corePoolSize</tt>;
+ *                                         closed until the pool size is greater than the <tt>corePoolSize</tt>;
  *      - <tt>keepAliveCheckIntervalMillis</tt>: the interval, which specifies how often the pool will
  *                                               perform idle {@link Connection}s check;
  *      - <tt>reconnectDelayMillis</tt>: the delay to be used before the pool will repeat the attempt to connect to
@@ -74,7 +74,7 @@ public class MultiEndpointPool<E> {
      * Returns single endpoint pool {@link Builder}.
      * 
      * @param endpointType endpoint address type, for example
-     *        {@link SocketAddress} for TCP and UDP transports
+     *        {@link java.net.SocketAddress} for TCP and UDP transports
      * @return {@link Builder} 
      */
     public static <T> Builder<T> builder(Class<T> endpointType) {
@@ -280,12 +280,7 @@ public class MultiEndpointPool<E> {
      */
     public boolean isBusy(final Connection connection) {
         final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
-        if (info != null) {
-            // optimize isBusy call to avoid redundant map lookup
-            return info.endpointPool.isBusy0(info);
-        }
-        
-        return false;
+        return info != null && info.endpointPool.isBusy0(info);
     }
     
     /**
@@ -355,7 +350,7 @@ public class MultiEndpointPool<E> {
      * Returns the {@link Connection} to the pool.
      * 
      * The {@link Connection} will be returned to the pool only in case it
-     * was created by this pool, or it was attached to it using {@link #attach(org.glassfish.grizzly.Connection)}
+     * was created by this pool, or it was attached to it using {@link #attach(EndpointKey, org.glassfish.grizzly.Connection)}
      * method.
      * If the {@link Connection} is not registered in the pool - it will be closed.
      * If the {@link Connection} is registered in the pool and already marked as ready - this method call will not have any effect.
@@ -496,7 +491,7 @@ public class MultiEndpointPool<E> {
     
     /**
      * Creates {@link SingleEndpointPool} instance.
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
+     * @param endpoint the endpoint
      * @return {@link SingleEndpointPool}
      */
     protected SingleEndpointPool<E> createSingleEndpointPool(final E endpoint) {
@@ -633,7 +628,7 @@ public class MultiEndpointPool<E> {
     /**
      * The Builder class responsible for constructing {@link SingleEndpointPool}.
      * 
-     * @param <E> endpoint address type, for example {@link SocketAddress} for TCP and UDP transports
+     * @param <E> endpoint address type, for example {@link java.net.SocketAddress} for TCP and UDP transports
      */
     public static class Builder<E> {
         /**
@@ -773,7 +768,7 @@ public class MultiEndpointPool<E> {
          * Sets the interval, which specifies how often the pool will perform
          * idle {@link Connection}s check.
          * 
-         * @param keepAliveTimeout the interval, which specifies how often the
+         * @param keepAliveCheckInterval the interval, which specifies how often the
          *        pool will perform idle {@link Connection}s check
          * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
          *        <tt>timeout</tt> parameter

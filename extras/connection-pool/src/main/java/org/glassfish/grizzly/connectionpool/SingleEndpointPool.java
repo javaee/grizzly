@@ -386,10 +386,8 @@ public class SingleEndpointPool<E> {
             checkNotClosed();
             
             if (!readyConnections.isEmpty()) {
-                final Connection connection =
-                        readyConnections.pollLast().getValue().connection;
 
-                return connection;
+                return readyConnections.pollLast().getValue().connection;
             }
 
             try {
@@ -445,10 +443,8 @@ public class SingleEndpointPool<E> {
             checkNotClosed();
             
             if (!readyConnections.isEmpty()) {
-                final Connection connection =
-                        readyConnections.pollLast().getValue().connection;
 
-                return connection;
+                return readyConnections.pollLast().getValue().connection;
             }
 
             if (timeoutMillis == 0) {
@@ -503,10 +499,8 @@ public class SingleEndpointPool<E> {
             checkNotClosed();
             
             if (!readyConnections.isEmpty()) {
-                final Connection connection =
-                        readyConnections.pollLast().getValue().connection;
 
-                return connection;
+                return readyConnections.pollLast().getValue().connection;
             }
 
             return null;
@@ -1089,7 +1083,7 @@ public class SingleEndpointPool<E> {
          * Sets the interval, which specifies how often the pool will perform
          * idle {@link Connection}s check.
          * 
-         * @param keepAliveTimeout the interval, which specifies how often the
+         * @param keepAliveCheckInterval the interval, which specifies how often the
          *        pool will perform idle {@link Connection}s check
          * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
          *        <tt>timeout</tt> parameter
