@@ -64,7 +64,7 @@ public class EndpointKey<E> {
      *          and {@link #hashCode()} methods
      * @param endpoint the endpoint address, that will be used by
      *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
-     *          to establish new client-side {@link Connection}
+     *          to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
     public EndpointKey(final Object internalKey, final E endpoint) {
         this.internalKey = internalKey;
@@ -81,7 +81,7 @@ public class EndpointKey<E> {
 
     /**
      * Returns the endpoint address, used by a {@link ConnectorHandler} passed
-     * to {@link MultiEndpointPool} to establish new client-side {@link Connection}
+     * to {@link MultiEndpointPool} to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
     public E getEndpoint() {
         return endpoint;
@@ -100,10 +100,8 @@ public class EndpointKey<E> {
      */
     @Override
     public boolean equals(final Object obj) {
-        if (obj instanceof EndpointKey) {
-            return internalKey.equals(((EndpointKey) obj).internalKey);
-        }
-        
-        return false;
+        return obj instanceof EndpointKey && internalKey.equals(
+                ((EndpointKey) obj).internalKey);
+
     }
 }
