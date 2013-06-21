@@ -105,9 +105,14 @@ public class CookieParserUtils {
                                           int len,
                                           boolean versionOneStrictCompliance,
                                           boolean rfc6265Enabled) {
-
-        if (len <= 0 || buffer == null) {
-            throw new IllegalArgumentException();
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
+        if (buffer == null) {
+            throw new IllegalArgumentException("buffer cannot be null.");
+        }
+        if (len <= 0) {
+            return;
         }
 
         if (buffer.hasArray()) {
@@ -358,8 +363,14 @@ public class CookieParserUtils {
                                            boolean versionOneStrictCompliance,
                                            boolean rfc6265Enabled) {
 
-        if (len <= 0 || bytes == null) {
-            throw new IllegalArgumentException();
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
+        if (bytes == null) {
+            throw new IllegalArgumentException("bytes cannot be null.");
+        }
+        if (len <= 0) {
+            return;
         }
         // keep note of the array offset - we need it for translation
         // into the byte[] but it's also needed when translating positions
@@ -579,9 +590,14 @@ public class CookieParserUtils {
                                           String cookiesStr,
                                           boolean versionOneStrictCompliance,
                                           boolean rfc6265Enabled) {
-
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
         if (cookiesStr == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("cookieStr cannot be null.");
+        }
+        if (cookiesStr.length() == 0) {
+            return;
         }
 
         int end = cookiesStr.length();
@@ -796,8 +812,14 @@ public class CookieParserUtils {
                                            boolean versionOneStrictCompliance,
                                            boolean rfc6265Enabled) {
 
-        if (len <= 0 || /*buffer == null ||*/ bytes == null) {
-            throw new IllegalArgumentException();
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
+        if (bytes == null) {
+            throw new IllegalArgumentException("bytes cannot be null.");
+        }
+        if (len <= 0) {
+            return;
         }
 
         // keep note of the array offset - we need it for translation
@@ -1053,8 +1075,14 @@ public class CookieParserUtils {
                                           boolean versionOneStrictCompliance,
                                           boolean rfc6265Enabled) {
 
-        if (len <= 0 || buffer == null) {
-            throw new IllegalArgumentException();
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
+        if (buffer == null) {
+            throw new IllegalArgumentException("buffer cannot be null.");
+        }
+        if (len <= 0) {
+            return;
         }
 
         if (buffer.hasArray()) {
@@ -1316,8 +1344,15 @@ public class CookieParserUtils {
                                           boolean versionOneStrictCompliance,
                                           boolean rfc6265Enabled) {
 
+        if (cookies == null) {
+            throw new IllegalArgumentException("cookies cannot be null.");
+        }
+
         if (cookiesStr == null) {
             throw new IllegalArgumentException();
+        }
+        if (cookiesStr.length() == 0) {
+            return;
         }
 
         int end = cookiesStr.length();
