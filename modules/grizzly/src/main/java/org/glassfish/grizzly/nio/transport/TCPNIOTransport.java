@@ -343,7 +343,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 kernelPool.shutdownNow();
                 kernelPool = null;
             }
-            state.setState(State.STOPPING);
+            state.setState(State.STOPPED);
             notifyProbesStop(this);
         } finally {
             lock.unlock();
