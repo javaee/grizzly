@@ -88,6 +88,8 @@ import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 
+import static junit.framework.Assert.assertTrue;
+
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -118,6 +120,33 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         }
     }
 
+    public void testStartStopStart() throws Exception {
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+            Future<Connection> future = transport.connect("localhost", PORT);
+            Connection connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.closeSilently();
+            
+            transport.stop();
+            assertTrue(transport.isStopped());
+            
+            transport.bind(PORT);
+            transport.start();
+            assertTrue(!transport.isStopped());
+            
+            future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.closeSilently();
+        } finally {
+            transport.stop();
+        }
+    }
+    
     public void testReadWriteTimeout() throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));

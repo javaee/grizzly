@@ -97,6 +97,33 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         }
     }
 
+    public void testStartStopStart() throws Exception {
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+            Future<Connection> future = transport.connect("localhost", PORT);
+            Connection connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.closeSilently();
+            
+            transport.stop();
+            assertTrue(transport.isStopped());
+            
+            transport.bind(PORT);
+            transport.start();
+            assertTrue(!transport.isStopped());
+            
+            future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.closeSilently();
+        } finally {
+            transport.stop();
+        }
+    }
+    
     public void testReadWriteTimeout() throws Exception {
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
         assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
