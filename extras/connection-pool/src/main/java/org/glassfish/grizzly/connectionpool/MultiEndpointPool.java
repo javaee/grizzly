@@ -43,8 +43,10 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
@@ -284,15 +286,37 @@ public class MultiEndpointPool<E> {
     }
     
     /**
-     * Retrieves {@link Connection} to the specified endpoint from the pool,
-     * waiting if necessary until a {@link Connection} becomes available.
+    /**
+     * Obtains a {@link Connection} to the specified endpoint from the pool in
+     * non-blocking/asynchronous fashion.
+     * 
+     * Returns a {@link GrizzlyFuture} representing the pending result of the
+     * non-blocking/asynchronous obtain task.
+     * Future's <tt>get</tt> method will return the {@link Connection} once it
+     * becomes available in the pool.
+     *
+     * <p>
+     * If you would like to immediately block waiting
+     * for a {@link Connection}, you can use constructions of the form
+     * <tt>connection = pool.take(endpointKey).get();</tt>
+     * 
+     * <p> Note: returned {@link GrizzlyFuture} must be checked and released
+     * properly. It must not be forgotten, because a {@link Connection}, that
+     * might be assigned as a result of {@link GrizzlyFuture} has to be returned
+     * to the pool. If you gave up on waiting for a {@link Connection} or you
+     * are not interested in the {@link Connection} anymore, the proper release
+     * code has to look like:
+     * <pre>
+     * if (!future.cancel(false)) {
+     *     // means Connection is ready
+     *     pool.release(future.get());
+     * }
+     * </pre>
      * 
      * @param endpointKey {@link EndpointKey}, that represents an endpoint
-     * @return {@link Connection}
-     * @throws IOException thrown if this pool has been already closed
-     * @throws InterruptedException if interrupted while waiting
+     * @return {@link GrizzlyFuture}
      */
-    public Connection take(final EndpointKey<E> endpointKey)
+    public GrizzlyFuture<Connection> take(final EndpointKey<E> endpointKey)
             throws IOException, InterruptedException {
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
         
@@ -300,50 +324,19 @@ public class MultiEndpointPool<E> {
     }
     
     /**
-     * Retrieves {@link Connection} to the specified endpoint from the pool,
-     * waiting up to the specified wait time if necessary for a {@link Connection}
-     * to become available.
-     * 
-     * If the timeout less than zero (timeout &lt; 0) - the method call is equivalent to {@link #take(org.glassfish.grizzly.connectionpool.EndpointKey)}.
-     * If the timeout is equal to zero (timeout == 0) - the method call is equivalent to {@link #poll(org.glassfish.grizzly.connectionpool.EndpointKey)}.
+     * Obtains a {@link Connection} to the specified endpoint from the pool
+     * in non-blocking/asynchronous fashion.
+     * The passed {@link CompletionHandler} will be notified about the result of the
+     * non-blocking/asynchronous obtain task.
      * 
      * @param endpointKey {@link EndpointKey}, that represents an endpoint
-     * @param timeout how long to wait before giving up, in units of
-     *        <tt>unit</tt>
-     * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
-     *        <tt>timeout</tt> parameter
-     * @return {@link Connection}, or <tt>null</tt> if the
-     *         specified waiting time elapses before a {@link Connection} is available
-     * @throws IOException thrown if this pool has been already closed
-     * @throws InterruptedException if interrupted while waiting
      */
-    public Connection poll(final EndpointKey<E> endpointKey,
-            final long timeout, final TimeUnit timeunit)
+    public void take(final EndpointKey<E> endpointKey,
+            final CompletionHandler<Connection> completionHandler)
             throws IOException, InterruptedException {
-        
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
-        return sePool.poll(timeout, timeunit);
-    }
-    
-    /**
-     * Retrieves {@link Connection} to the specified endpoint from the pool,
-     * or returns <tt>null</tt> if this pool doesn't have any ready
-     * {@link Connection} as the moment.
-     * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
-     * @return {@link Connection}, or <tt>null</tt> if the
-     *         this pool doesn't have any ready {@link Connection} as the moment
-     * @throws IOException thrown if this pool has been already closed
-     */
-    public Connection poll(final EndpointKey<E> endpointKey)
-            throws IOException {
-
-        final SingleEndpointPool<E> sePool = endpointToPoolMap.get(endpointKey);
-        if (sePool != null) {
-            return sePool.poll();
-        }
         
-        return null;
+        sePool.take(completionHandler);
     }
 
     /**

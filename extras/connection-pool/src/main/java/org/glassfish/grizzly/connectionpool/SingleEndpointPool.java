@@ -50,12 +50,16 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
+import org.glassfish.grizzly.utils.Futures;
 
 /**
  * The single endpoint {@link Connection} pool implementation, in other words
@@ -182,10 +186,8 @@ public class SingleEndpointPool<E> {
      * Number of connections we're currently trying to establish and waiting for the result
      */
     protected int pendingConnections;
-    /**
-     * Number of threads currently polling for available {@link Connection}
-     */
-    private int waitListSize;
+
+    private final Chain<AsyncPoll> asyncWaitingList = new Chain<AsyncPoll>();
 
     /**
      * Constructs SingleEndpointPool instance.
@@ -374,136 +376,111 @@ public class SingleEndpointPool<E> {
     }
     
     /**
-     * Retrieves {@link Connection} from the pool, waiting if necessary
-     * until a {@link Connection} becomes available.
+     * Obtains a {@link Connection} from the pool in non-blocking/asynchronous fashion.
+     * Returns a {@link GrizzlyFuture} representing the pending result of the
+     * non-blocking/asynchronous obtain task.
+     * Future's <tt>get</tt> method will return the {@link Connection} once it
+     * becomes available in the pool.
+     *
+     * <p>
+     * If you would like to immediately block waiting
+     * for a {@link Connection}, you can use constructions of the form
+     * <tt>connection = pool.take().get();</tt>
      * 
-     * @return {@link Connection}
-     * @throws IOException thrown if this pool has been already closed
-     * @throws InterruptedException if interrupted while waiting
+     * <p> Note: returned {@link GrizzlyFuture} must be checked and released
+     * properly. It must not be forgotten, because a {@link Connection}, that
+     * might be assigned as a result of {@link GrizzlyFuture} has to be returned
+     * to the pool. If you gave up on waiting for a {@link Connection} or you
+     * are not interested in the {@link Connection} anymore, the proper release
+     * code has to look like:
+     * <pre>
+     * if (!future.cancel(false)) {
+     *     // means Connection is ready
+     *     pool.release(future.get());
+     * }
+     * </pre>
+     * 
+     * @return {@link GrizzlyFuture}
      */
-    public Connection take() throws IOException, InterruptedException {
+    public GrizzlyFuture<Connection> take() {
         synchronized (poolSync) {
-            checkNotClosed();
-            
-            if (!readyConnections.isEmpty()) {
-
-                return readyConnections.pollLast().getValue().connection;
-            }
-
             try {
-                waitListSize++;
-                do {
-                    createConnectionIfPossibleNoSync();
+                if (isClosed) {
+                    return Futures.createReadyFuture(
+                            new IOException("The pool is closed"));
+                }
 
-                    poolSync.wait();
+                if (!readyConnections.isEmpty()) {
+                    return Futures.createReadyFuture(
+                            readyConnections.pollLast().getValue().connection);
+                }
 
-                    if (isClosed) {
-                        break;
-                    }
+                createConnectionIfPossibleNoSync();
+                
+                final AsyncPoll asyncPoll = new AsyncPoll();
+                final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
+                
+                final FutureImpl<Connection> cancellableFuture =
+                        new SafeFutureImpl<Connection>() {
+                    @Override
+                    protected void done() {
+                        try {
+                            if (!isCancelled()) {
+                                get();
+                                return;
+                            }
+                        } catch (Throwable ignored) {
+                        }
 
-                    if (!readyConnections.isEmpty()) {
-                        return readyConnections.pollLast().getValue().connection;
-                    }
-                } while (true);
+                        synchronized (poolSync) {
+                            asyncWaitingList.remove(pollLink);
+                        }
+                    }                    
+                };
+                
+                asyncPoll.future = cancellableFuture;
+                asyncWaitingList.offerLast(pollLink);
 
-                throw new IOException("The pool is closed");
-            } finally {
-                waitListSize--;
+                return cancellableFuture;
+            } catch (Exception e) {
+                return Futures.createReadyFuture(e);
             }
         }
     }
 
     /**
-     * Retrieves {@link Connection} from the pool, waiting up to the
-     * specified wait time if necessary for a {@link Connection} to become available.
-     * 
-     * If the timeout less than zero (timeout &lt; 0) - the method call is equivalent to {@link #take()}.
-     * If the timeout is equal to zero (timeout == 0) - the method call is equivalent to {@link #poll()}.
-     * 
-     * @param timeout how long to wait before giving up, in units of
-     *        <tt>unit</tt>
-     * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
-     *        <tt>timeout</tt> parameter
-     * @return {@link Connection}, or <tt>null</tt> if the
-     *         specified waiting time elapses before a {@link Connection} is available
-     * @throws IOException thrown if this pool has been already closed
-     * @throws InterruptedException if interrupted while waiting
+     * Obtains a {@link Connection} from the pool in non-blocking/asynchronous fashion.
+     * The passed {@link CompletionHandler} will be notified about the result of the
+     * non-blocking/asynchronous obtain task.
      */
-    public Connection poll(final long timeout, final TimeUnit timeunit)
-            throws IOException, InterruptedException {
-        final long timeoutMillis = timeout <= 0 ?
-                timeout :
-                TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-        
-        if (timeoutMillis < 0) {
-            return take();
+    public void take(final CompletionHandler<Connection> completionHandler) {
+        if (completionHandler == null) {
+            throw new IllegalArgumentException("The completionHandler argument can not be null");
         }
         
         synchronized (poolSync) {
-            checkNotClosed();
-            
-            if (!readyConnections.isEmpty()) {
-
-                return readyConnections.pollLast().getValue().connection;
-            }
-
-            if (timeoutMillis == 0) {
-                return null;
-            }
-            
-            long remainingMillis = timeoutMillis;
-            long startTime = System.currentTimeMillis();
-            
             try {
-                waitListSize++;
-                do {
-                    createConnectionIfPossibleNoSync();
+                if (isClosed) {
+                    completionHandler.failed(new IOException("The pool is closed"));
+                    return;
+                }
 
-                    poolSync.wait(remainingMillis);
+                if (!readyConnections.isEmpty()) {
+                    completionHandler.completed(
+                            readyConnections.pollLast().getValue().connection);
+                    return;
+                }
 
-                    if (isClosed) {
-                        break;
-                    }
-
-                    if (!readyConnections.isEmpty()) {
-                        return readyConnections.pollLast().getValue().connection;
-                    }
-                    
-                    final long endTime = System.currentTimeMillis();
-                    remainingMillis -= (endTime - startTime);
-                    
-                    if (remainingMillis <= 100) { // assume <= 100 means timeout expired
-                        return null;
-                    }
-                    
-                    startTime = endTime;
-                } while (true);
-
-                throw new IOException("The pool is closed");
-            } finally {
-                waitListSize--;
+                createConnectionIfPossibleNoSync();
+                
+                final AsyncPoll asyncPoll = new AsyncPoll();
+                final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
+                
+                asyncPoll.completionHandler = completionHandler;
+                asyncWaitingList.offerLast(pollLink);
+            } catch (Exception e) {
+                completionHandler.failed(e);
             }
-        }
-    }
-    
-    /**
-     * Retrieves {@link Connection} from the pool, or returns <tt>null</tt> if
-     * this pool doesn't have any ready {@link Connection} as the moment.
-     * 
-     * @return {@link Connection}, or <tt>null</tt> if the
-     *         this pool doesn't have any ready {@link Connection} as the moment
-     * @throws IOException thrown if this pool has been already closed
-     */
-    public Connection poll() throws IOException {
-        synchronized (poolSync) {
-            checkNotClosed();
-            
-            if (!readyConnections.isEmpty()) {
-
-                return readyConnections.pollLast().getValue().connection;
-            }
-
-            return null;
         }
     }
     
@@ -544,9 +521,8 @@ public class SingleEndpointPool<E> {
                 throw new IllegalStateException("The Connection is already returned to the pool");
             }
             
-            if (readyConnections.size() < maxPoolSize) {
-                readyConnections.offerLast(info.readyStateLink);
-            }
+            readyConnections.offerLast(info.readyStateLink);
+            notifyAsyncPoller();
         }
     }
     
@@ -564,7 +540,10 @@ public class SingleEndpointPool<E> {
      */
     public boolean attach(final Connection connection) throws IOException {
         synchronized (poolSync) {
-            checkNotClosed();
+            if (isClosed) {
+                throw new IOException("The pool is closed");
+            }
+            
             if (connectionsMap.containsKey(connection)) {
                 return true;
             }
@@ -631,6 +610,21 @@ public class SingleEndpointPool<E> {
                     c.closeSilently();
                 }
                 
+                final int asyncWaitingListSize = asyncWaitingList.size();
+                IOException exception = null;
+                for (int i = 0; i < asyncWaitingListSize; i++) {
+                    final AsyncPoll asyncPoll = asyncWaitingList.pollFirst().getValue();
+                    if (exception == null) {
+                        exception = new IOException("The pool is closed");
+                    }
+                    
+                    try {
+                        Futures.notifyFailure(asyncPoll.future,
+                                asyncPoll.completionHandler, exception);
+                    } catch (Exception ignored) {
+                    }
+                }
+                
                 for (Map.Entry<Connection, ConnectionInfo<E>> entry : connectionsMap.entrySet()) {
                     deregisterConnection(entry.getValue());
                 }
@@ -674,7 +668,7 @@ public class SingleEndpointPool<E> {
     void onCloseConnection(final ConnectionInfo<E> info) {
         // If someone is waiting for a connection
         // try to create a new one
-        if (waitListSize > 0) {
+        if (!asyncWaitingList.isEmpty()) {
             createConnectionIfPossibleNoSync();
         }
     }
@@ -741,12 +735,19 @@ public class SingleEndpointPool<E> {
         return false;
     }
     
-    private void checkNotClosed() throws IOException {
-        if (isClosed) {
-            throw new IOException("The pool is closed");
+    private void notifyAsyncPoller() {
+        if (!asyncWaitingList.isEmpty() && !readyConnections.isEmpty()) {
+            ConnectionInfo<E> info = readyConnections.pollLast().getValue();
+            
+            final Connection connection = info.connection;
+
+            final AsyncPoll asyncPoll =
+                    asyncWaitingList.pollFirst().getValue();
+            Futures.notifyResult(asyncPoll.future,
+                    asyncPoll.completionHandler, connection);
         }
     }
-
+        
     private void deregisterConnection(final ConnectionInfo<E> info) {
         readyConnections.remove(info.readyStateLink);
         poolSize--;
@@ -771,7 +772,7 @@ public class SingleEndpointPool<E> {
                 
                 // check if there is still a thread(s) waiting for a connection
                 // and reconnect mechanism is enabled
-                if (reconnectQueue != null && waitListSize > 0) {
+                if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
                     reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
                             reconnectDelayMillis, TimeUnit.MILLISECONDS);
                 }
@@ -794,10 +795,7 @@ public class SingleEndpointPool<E> {
                     onOpenConnection(info);
 
                     connection.addCloseListener(closeListener);
-                    
-                    if (waitListSize > 0) {
-                        poolSync.notify();
-                    }
+                    notifyAsyncPoller();
                 } else {
                     connection.closeSilently();
                 }
@@ -927,6 +925,11 @@ public class SingleEndpointPool<E> {
         }
     }
     
+    private final class AsyncPoll {
+        private CompletionHandler<Connection> completionHandler;
+        private FutureImpl<Connection> future;
+    }
+    
     /**
      * The Builder class responsible for constructing {@link SingleEndpointPool}.
      * 
@@ -945,11 +948,11 @@ public class SingleEndpointPool<E> {
         /**
          * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
          */
-        private int corePoolSize = 4;
+        private int corePoolSize = 0;
         /**
          * The max number of {@link Connection}s kept by this pool
          */
-        private int maxPoolSize = 8;
+        private int maxPoolSize = 4;
         /**
          * the {@link DelayedExecutor} to be used for keep-alive and
          * reconnect mechanisms
@@ -996,7 +999,7 @@ public class SingleEndpointPool<E> {
         /**
          * Sets the number of {@link Connection}s, kept in the pool,
          * that are immune to keep-alive mechanism.
-         * Default value is 4.
+         * Default value is 0.
          * 
          * @param corePoolSize
          * @return this {@link Builder}
@@ -1008,7 +1011,7 @@ public class SingleEndpointPool<E> {
         
         /**
          * Sets the max number of {@link Connection}s kept by this pool.
-         * Default value is 8.
+         * Default value is 4.
          * 
          * @param maxPoolSize
          * @return this {@link Builder}

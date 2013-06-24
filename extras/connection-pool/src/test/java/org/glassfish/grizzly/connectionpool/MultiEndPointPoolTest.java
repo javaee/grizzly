@@ -46,7 +46,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -131,17 +133,17 @@ public class MultiEndPointPoolTest {
                     new EndpointKey<SocketAddress>("endpoint2",
                     new InetSocketAddress("localhost", PORT + 1));
 
-            Connection c11 = pool.take(key1);
+            Connection c11 = pool.take(key1).get();
             assertNotNull(c11);
             assertEquals(1, pool.size());
-            Connection c12 = pool.take(key1);
+            Connection c12 = pool.take(key1).get();
             assertNotNull(c12);
             assertEquals(2, pool.size());
 
-            Connection c21 = pool.take(key2);
+            Connection c21 = pool.take(key2).get();
             assertNotNull(c21);
             assertEquals(3, pool.size());
-            Connection c22 = pool.take(key2);
+            Connection c22 = pool.take(key2).get();
             assertNotNull(c22);
             assertEquals(4, pool.size());
 
@@ -151,7 +153,7 @@ public class MultiEndPointPoolTest {
             pool.release(c21);
             assertEquals(4, pool.size());
 
-            c11 = pool.take(key1);
+            c11 = pool.take(key1).get();
             assertNotNull(c11);
             assertEquals(4, pool.size());
 
@@ -168,10 +170,10 @@ public class MultiEndPointPoolTest {
             }
             assertEquals(4, pool.size());
 
-            c11 = pool.take(key1);
+            c11 = pool.take(key1).get();
             assertNotNull(c11);
 
-            c21 = pool.take(key2);
+            c21 = pool.take(key2).get();
             assertNotNull(c21);
 
             c11.close().get(10, TimeUnit.SECONDS);
@@ -209,15 +211,22 @@ public class MultiEndPointPoolTest {
                     new EndpointKey<SocketAddress>("endpoint2",
                     new InetSocketAddress("localhost", PORT + 1));
 
-            Connection c11 = pool.take(key1);
+            Connection c11 = pool.take(key1).get();
             assertNotNull(c11);
             assertEquals(1, pool.size());
-            final Connection c12 = pool.take(key1);
+            final Connection c12 = pool.take(key1).get();
             assertNotNull(c12);
             assertEquals(2, pool.size());
-
-            Connection c21 = pool.poll(key2, 2, TimeUnit.SECONDS);
-            assertNull(c21);
+            
+            
+            final GrizzlyFuture<Connection> c21Future = pool.take(key2);
+            try {
+                c21Future.get(2, TimeUnit.SECONDS);
+                fail("TimeoutException had to be thrown");
+            } catch (TimeoutException e) {
+            }
+            
+            assertTrue(c21Future.cancel(false));
             assertEquals(2, pool.size());
 
             final Thread t = new Thread() {
@@ -234,7 +243,7 @@ public class MultiEndPointPoolTest {
             };
             t.start();
 
-            c21 = pool.poll(key2, 10, TimeUnit.SECONDS);
+            final Connection c21 = pool.take(key2).get(10, TimeUnit.SECONDS);
             assertNotNull(c12);
             assertEquals(2, pool.size());
 
@@ -273,11 +282,11 @@ public class MultiEndPointPoolTest {
             final Connection[] e2Connections = new Connection[maxConnectionsPerEndpoint];
             
             for (int i = 0; i < maxConnectionsPerEndpoint; i++) {
-                e1Connections[i] = pool.take(key1);
+                e1Connections[i] = pool.take(key1).get();
                 assertNotNull(e1Connections[i]);
                 assertEquals((i * 2) + 1, pool.size());
                 
-                e2Connections[i] = pool.take(key2);
+                e2Connections[i] = pool.take(key2).get();
                 assertNotNull(e2Connections[i]);
                 assertEquals((i * 2) + 2, pool.size());
             }

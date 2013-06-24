@@ -46,7 +46,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -117,10 +119,10 @@ public class SingleEndPointPoolTest {
                 .build();
         
         try {
-            Connection c1 = pool.take();
+            Connection c1 = pool.take().get();
             assertNotNull(c1);
             assertEquals(1, pool.size());
-            Connection c2 = pool.take();
+            Connection c2 = pool.take().get();
             assertNotNull(c2);
             assertEquals(2, pool.size());
 
@@ -130,7 +132,7 @@ public class SingleEndPointPoolTest {
             pool.release(c2);
             assertEquals(2, pool.size());
 
-            c1 = pool.take();
+            c1 = pool.take().get();
             assertNotNull(c1);
             assertEquals(2, pool.size());
 
@@ -150,11 +152,11 @@ public class SingleEndPointPoolTest {
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
 
-            c1 = pool.take();
+            c1 = pool.take().get();
             assertNotNull(c1);
             assertEquals(1, pool.getReadyConnectionsCount());
 
-            c2 = pool.take();
+            c2 = pool.take().get();
             assertNotNull(c2);
             assertEquals(0, pool.getReadyConnectionsCount());
 
@@ -163,6 +165,51 @@ public class SingleEndPointPoolTest {
 
             c2.close().get(10, TimeUnit.SECONDS);
             assertEquals(0, pool.size());
+        } finally {
+            pool.close();
+        }
+    }
+    
+    @Test
+    public void testPollWaitForRelease() throws Exception {
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .maxPoolSize(2)
+                .build();
+        
+        try {
+            final Connection c1 = pool.take().get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+            final Connection c2 = pool.take().get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+
+            final Thread t = new Thread() {
+
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                    }
+                    
+                    pool.release(c2);
+                }
+            };
+            t.start();
+            
+            final Connection c3 = pool.take().get(10, TimeUnit.SECONDS);
+            assertNotNull(c3);
+            assertEquals(2, pool.size());
+            
+            pool.release(c1);
+            assertEquals(2, pool.size());
+
+            pool.release(c3);
+            assertEquals(2, pool.size());
         } finally {
             pool.close();
         }
@@ -179,25 +226,28 @@ public class SingleEndPointPoolTest {
                 .build();
 
         try {
-            Connection c1 = pool.poll(0, TimeUnit.MILLISECONDS);
-            assertNull(c1);
-            assertEquals(0, pool.size());
-
-            c1 = pool.poll(-1, TimeUnit.MILLISECONDS);
+            Connection c1 = pool.take().get();
             assertNotNull(c1);
             assertEquals(1, pool.size());
 
-            Connection c2 = pool.poll(-1, TimeUnit.MILLISECONDS);
+            Connection c2 = pool.take().get();
             assertNotNull(c2);
             assertEquals(2, pool.size());
 
-            Connection c3 = pool.poll(2, TimeUnit.SECONDS);
-            assertNull(c3);
+            final GrizzlyFuture<Connection> c3Future = pool.take();
+            try {
+                c3Future.get(2, TimeUnit.SECONDS);
+                fail("TimeoutException had to be thrown");
+            } catch (TimeoutException e) {
+            }
+            
+            assertTrue(c3Future.cancel(false));
+            
             assertEquals(2, pool.size());
 
             pool.release(c2);
 
-            c3 = pool.poll(2, TimeUnit.SECONDS);
+            Connection c3 = pool.take().get(2, TimeUnit.SECONDS);
             assertNotNull(c3);
             assertEquals(2, pool.size());
         } finally {
@@ -227,7 +277,7 @@ public class SingleEndPointPoolTest {
             final Connection[] connections = new Connection[maxPoolSize];
 
             for (int i = 0; i < maxPoolSize; i++) {
-                connections[i] = pool.take();
+                connections[i] = pool.take().get();
                 assertNotNull(connections[i]);
                 assertEquals(i + 1, pool.size());
             }
@@ -290,7 +340,7 @@ public class SingleEndPointPoolTest {
             
             t.start();
             
-            final Connection c1 = pool.poll(10, TimeUnit.SECONDS);
+            final Connection c1 = pool.take().get(10, TimeUnit.SECONDS);
             assertNotNull(c1);
             assertEquals(1, pool.size());
             
