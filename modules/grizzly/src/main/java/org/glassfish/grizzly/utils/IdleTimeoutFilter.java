@@ -378,10 +378,12 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         @Override
         public boolean doWork(final Connection connection) {
-            if (handler != null) {
-                handler.onTimeout(connection);
+            if (connection.isOpen()) {
+                if (handler != null) {
+                    handler.onTimeout(connection);
+                }
+                connection.closeSilently();
             }
-            connection.closeSilently();
 
             return true;
         }
