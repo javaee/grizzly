@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,6 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 
 /**
  * Socket based client side connector.
@@ -59,10 +58,10 @@ public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> 
      *
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      */
-    public Future<Connection> connect(SocketAddress remoteAddress, SocketAddress localAddress);
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress, SocketAddress localAddress);
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
@@ -82,10 +81,10 @@ public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> 
      * 
      * @param host remote host to connect to.
      * @param port remote port to connect to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      * 
      * @throws java.io.IOException
      */
-    public Future<Connection> connect(String host, int port) throws IOException;
+    public GrizzlyFuture<Connection> connect(String host, int port) throws IOException;
 }

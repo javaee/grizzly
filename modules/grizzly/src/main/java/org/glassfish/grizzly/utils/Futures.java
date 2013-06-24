@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.utils;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -78,7 +79,7 @@ public class Futures {
      * @param result the result
      * @return a {@link Future}, which has a preset result.
      */
-    public static <R> Future<R> createReadyFuture(final R result) {
+    public static <R> GrizzlyFuture<R> createReadyFuture(final R result) {
         return ReadyFutureImpl.create(result);
     }
     
@@ -88,7 +89,7 @@ public class Futures {
      * @param error the failure
      * @return a {@link Future}, which has a preset failure.
      */
-    public static <R> Future<R> createReadyFuture(final Throwable error) {
+    public static <R> GrizzlyFuture<R> createReadyFuture(final Throwable error) {
         return ReadyFutureImpl.create(error);
     }
 

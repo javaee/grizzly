@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.util.concurrent.Future;
-
 /**
  * Client side connector handler API.
  * <tt>ConnectorHandler</tt> is responsible for creating and initializing
@@ -57,10 +55,10 @@ public interface ConnectorHandler<E> {
      * <code>remoteAddress</code>.
      *
      * @param remoteAddress remote address to connect to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      */
-    public Future<Connection> connect(E remoteAddress);
+    public GrizzlyFuture<Connection> connect(E remoteAddress);
 
     /**
      * Creates, initializes and establishes {@link Connection} to the specific
