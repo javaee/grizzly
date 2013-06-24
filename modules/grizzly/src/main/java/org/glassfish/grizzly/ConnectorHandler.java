@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,7 @@ public interface ConnectorHandler<E> {
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}.
      */
-    public Future<Connection> connect(E remoteAddress);
+    public GrizzlyFuture<Connection> connect(E remoteAddress);
 
     /**
      * Creates, initializes and connects socket to the specific
@@ -81,7 +81,7 @@ public interface ConnectorHandler<E> {
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}.
      */
-    public Future<Connection> connect(E remoteAddress, E localAddress);
+    public GrizzlyFuture<Connection> connect(E remoteAddress, E localAddress);
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
