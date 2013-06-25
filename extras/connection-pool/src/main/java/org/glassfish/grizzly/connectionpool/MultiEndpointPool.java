@@ -286,6 +286,19 @@ public class MultiEndpointPool<E> {
     }
     
     /**
+     * Returns pooled {@link ConnectionInfo}, that might be used for monitoring
+     * reasons, or <tt>null</tt> if the {@link Connection} does not belong to
+     * this pool.
+     * 
+     * @param connection {@link Connection}
+     * @return pooled {@link ConnectionInfo}, that might be used for monitoring
+     * reasons, or <tt>null</tt> if the {@link Connection} does not belong to
+     * this pool
+     */
+    public ConnectionInfo<E> getConnectionInfo(final Connection connection) {
+        return connectionToSubPoolMap.get(connection);
+    }
+    
     /**
      * Obtains a {@link Connection} to the specified endpoint from the pool in
      * non-blocking/asynchronous fashion.

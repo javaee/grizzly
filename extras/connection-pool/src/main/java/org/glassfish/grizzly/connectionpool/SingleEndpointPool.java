@@ -123,7 +123,7 @@ public class SingleEndpointPool<E> {
     /**
      * Sync object
      */
-    private final Object poolSync = new Object();
+    final Object poolSync = new Object();
     
     /**
      * close flag
@@ -375,6 +375,22 @@ public class SingleEndpointPool<E> {
     boolean isBusy0(final ConnectionInfo<E> connectionRecord) {
         synchronized (poolSync) {
             return connectionRecord != null && !connectionRecord.isReady();
+        }
+    }
+    
+    /**
+     * Returns pooled {@link ConnectionInfo}, that might be used for monitoring
+     * reasons, or <tt>null</tt> if the {@link Connection} does not belong to
+     * this pool.
+     * 
+     * @param connection {@link Connection}
+     * @return pooled {@link ConnectionInfo}, that might be used for monitoring
+     * reasons, or <tt>null</tt> if the {@link Connection} does not belong to
+     * this pool
+     */
+    public ConnectionInfo<E> getConnectionInfo(final Connection connection) {
+        synchronized (poolSync) {
+            return connectionsMap.get(connection);
         }
     }
     
@@ -822,23 +838,6 @@ public class SingleEndpointPool<E> {
                     deregisterConnection(info);
                 }
             }
-        }
-    }
-    
-    static final class ConnectionInfo<E> {
-        final Connection connection;
-        final Link<ConnectionInfo<E>> readyStateLink;
-        final SingleEndpointPool<E> endpointPool;
-
-        ConnectionInfo(final Connection connection,
-                final SingleEndpointPool<E> endpointPool) {
-            this.connection = connection;
-            this.endpointPool = endpointPool;
-            this.readyStateLink = new Link<ConnectionInfo<E>>(this);
-        }
-
-        public boolean isReady() {
-            return readyStateLink.isAttached();
         }
     }
     
