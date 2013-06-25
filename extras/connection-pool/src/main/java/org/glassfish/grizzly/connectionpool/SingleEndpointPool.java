@@ -418,8 +418,6 @@ public class SingleEndpointPool<E> {
                             readyConnections.pollLast().getValue().connection);
                 }
 
-                createConnectionIfPossibleNoSync();
-                
                 final AsyncPoll asyncPoll = new AsyncPoll();
                 final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
                 
@@ -444,6 +442,8 @@ public class SingleEndpointPool<E> {
                 asyncPoll.future = cancellableFuture;
                 asyncWaitingList.offerLast(pollLink);
 
+                createConnectionIfPossibleNoSync();
+                
                 return cancellableFuture;
             } catch (Exception e) {
                 return Futures.createReadyFuture(e);
@@ -474,13 +474,13 @@ public class SingleEndpointPool<E> {
                     return;
                 }
 
-                createConnectionIfPossibleNoSync();
-                
                 final AsyncPoll asyncPoll = new AsyncPoll();
                 final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
                 
                 asyncPoll.completionHandler = completionHandler;
                 asyncWaitingList.offerLast(pollLink);
+                
+                createConnectionIfPossibleNoSync();
             } catch (Exception e) {
                 completionHandler.failed(e);
             }
