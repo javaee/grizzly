@@ -479,7 +479,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 (NIOConnection) connection;
         final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
-        writeQueue.onClose();
+        writeQueue.onClose(nioConnection.closeStackTrace);
     }
     
     /**

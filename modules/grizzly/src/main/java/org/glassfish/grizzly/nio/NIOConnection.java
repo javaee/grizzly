@@ -88,7 +88,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected static final Object NOTIFICATION_CLOSED_COMPLETE = Boolean.FALSE;
     
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
-    private static final Logger logger = Grizzly.logger(NIOConnection.class);
+    private static final Logger LOGGER = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
     
     protected final NIOTransport transport;
@@ -123,6 +123,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
         new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
 
+    Exception closeStackTrace;
+    
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
         asyncWriteQueue = TaskQueue.createTaskQueue();
@@ -440,6 +442,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         if (closeTypeFlag.compareAndSet(null,
                 isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
             
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                closeStackTrace = new Exception("Close stack trace");
+            }
+            
             preClose();
             notifyCloseListeners();
             notifyProbesClose(this);
@@ -452,7 +458,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     try {
                         close0();
                     } catch (IOException e) {
-                        logger.log(Level.FINE, "Error during connection close", e);
+                        LOGGER.log(Level.FINE, "Error during connection close", e);
                     }
 
                     return true;

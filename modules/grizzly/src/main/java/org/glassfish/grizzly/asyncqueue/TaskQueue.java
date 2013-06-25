@@ -230,12 +230,16 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     }
 
     public void onClose() {
+        onClose(null);
+    }
+
+    public void onClose(final Throwable cause) {
         isClosed = true;
         
         IOException error = null;
         if (!isEmpty()) {
             if (error == null) {
-                error = new IOException("Connection closed");
+                error = new IOException("Connection closed", cause);
             }
             
             AsyncQueueRecord record;
@@ -247,11 +251,10 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
         WriteHandler writeHandler;
         while ((writeHandler = pollWriteHandler()) != null) {
             if (error == null) {
-                error = new IOException("Connection closed");
+                error = new IOException("Connection closed", cause);
             }
             writeHandler.onError(error);
         }
-        
     }
    
 
