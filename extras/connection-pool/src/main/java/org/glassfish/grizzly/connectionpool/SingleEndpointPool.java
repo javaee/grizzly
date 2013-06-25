@@ -187,6 +187,9 @@ public class SingleEndpointPool<E> {
      */
     protected int pendingConnections;
 
+    /**
+     * The waiting list of asynchronous polling clients
+     */
     private final Chain<AsyncPoll> asyncWaitingList = new Chain<AsyncPoll>();
 
     /**
