@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,13 +41,13 @@
 package org.glassfish.grizzly.impl;
 
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.ThreadCache;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * {@link Future} implementation with the specific unmodifiable result.
@@ -137,10 +137,25 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addCompletionHandler(final CompletionHandler<R> completionHandler) {
+        if (isCancelled) {
+            completionHandler.cancelled();
+        } else if (failure != null) {
+            completionHandler.failed(failure);
+        } else {
+            completionHandler.completed(result);
+        }
+    }
+
+    /**
      * Get current result value without any blocking.
      *
      * @return current result value without any blocking.
      */
+    @Override
     public R getResult() {
         return result;
     }

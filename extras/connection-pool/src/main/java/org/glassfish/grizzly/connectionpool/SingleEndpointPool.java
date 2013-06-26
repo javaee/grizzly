@@ -441,7 +441,7 @@ public class SingleEndpointPool<E> {
                 final FutureImpl<Connection> cancellableFuture =
                         new SafeFutureImpl<Connection>() {
                     @Override
-                    protected void done() {
+                    protected void onComplete() {
                         try {
                             if (!isCancelled()) {
                                 get();

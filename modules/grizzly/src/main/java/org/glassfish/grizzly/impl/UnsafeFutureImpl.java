@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,8 +40,14 @@
 
 package org.glassfish.grizzly.impl;
 
-import java.util.concurrent.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.ThreadCache;
 
 /**
@@ -74,12 +80,31 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
     protected boolean isCancelled;
     protected Throwable failure;
 
+    protected Set<CompletionHandler<R>> completionHandlers;
     protected R result;
 
     protected int recycleMark;
 
     private UnsafeFutureImpl() {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addCompletionHandler(final CompletionHandler<R> completionHandler) {
+        if (isDone) {
+            notifyCompletionHandler(completionHandler);
+        } else {
+            if (completionHandlers == null) {
+                completionHandlers = new HashSet<CompletionHandler<R>>(2);
+            }
+            
+            completionHandlers.add(completionHandler);
+        }
+        
+    }
+
 
     /**
      * Get current result value without any blocking.
@@ -172,11 +197,35 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
     protected void notifyHaveResult() {
         if (recycleMark == 0) {
             isDone = true;
+            notifyCompletionHandlers();
         } else {
             recycle(recycleMark == 2);
         }
     }
 
+    private void notifyCompletionHandlers() {
+        if (completionHandlers != null) {
+            for (CompletionHandler<R> completionHandler : completionHandlers) {
+                notifyCompletionHandler(completionHandler);
+            }
+            
+            completionHandlers = null;
+        }
+    }
+    
+    private void notifyCompletionHandler(final CompletionHandler<R> completionHandler) {
+        try {
+            if (isCancelled) {
+                completionHandler.cancelled();
+            } else if (failure != null) {
+                completionHandler.failed(failure);
+            } else if (result != null) {
+                completionHandler.completed(result);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+    
     @Override
     public void markForRecycle(boolean recycleResult) {
         if (isDone) {
@@ -187,6 +236,7 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
     }
 
     protected void reset() {
+        completionHandlers = null;
         result = null;
         failure = null;
         isCancelled = false;
