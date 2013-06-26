@@ -750,15 +750,6 @@ public class SingleEndpointPool<E> {
      * new connection.
      */
     private boolean createConnectionIfPossibleNoSync() {
-        return createConnectionIfPossibleNoSync(null);
-    }
-
-    /**
-     * Checks if it's possible to create a new {@link Connection} by calling
-     * {@link #checkBeforeOpeningConnection()} and if it is possible - establish
-     * new connection.
-     */
-    private boolean createConnectionIfPossibleNoSync(final CompletionHandler<Connection> delegate) {
         if (checkBeforeOpeningConnection()) {
             connectorHandler.connect(endpointAddress,
                                      connectionCompletionHandler);
