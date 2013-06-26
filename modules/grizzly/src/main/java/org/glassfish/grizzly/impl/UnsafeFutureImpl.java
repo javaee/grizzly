@@ -203,6 +203,9 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
         }
     }
 
+    /**
+     * Notify registered {@link CompletionHandler}s about the result.
+     */
     private void notifyCompletionHandlers() {
         if (completionHandlers != null) {
             for (CompletionHandler<R> completionHandler : completionHandlers) {
@@ -213,6 +216,9 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
         }
     }
     
+    /**
+     * Notify single {@link CompletionHandler} about the result.
+     */
     private void notifyCompletionHandler(final CompletionHandler<R> completionHandler) {
         try {
             if (isCancelled) {

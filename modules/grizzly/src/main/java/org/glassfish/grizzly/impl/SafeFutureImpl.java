@@ -154,6 +154,9 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
         return null;
     }
 
+    /**
+     * The method is called when {@link FutureTask} is marked as completed.
+     */    
     @Override
     protected final void done() {
         super.done();
@@ -161,9 +164,16 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
         onComplete();
     }
     
+    /**
+     * The method is called when this <tt>SafeFutureImpl</tt> is marked as completed.
+     * Subclasses can override this method.
+     */
     protected void onComplete() {
     }
     
+    /**
+     * Notify registered {@link CompletionHandler}s about the result.
+     */
     private void notifyCompletionHandlers() {
         if (completionHandlers == null) {
             return;
@@ -200,6 +210,9 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
         }
     }
     
+    /**
+     * Notify single {@link CompletionHandler} about the result.
+     */
     private void notifyCompletionHandler(final CompletionHandler<R> completionHandler) {
         if (isCancelled()) {
             completionHandler.cancelled();
