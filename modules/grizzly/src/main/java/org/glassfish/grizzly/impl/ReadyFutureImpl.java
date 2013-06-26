@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * {@link Future} implementation with the specific unmodifiable result.
@@ -136,10 +137,17 @@ public final class ReadyFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Should not be called for <tt>ReadyFutureImpl</tt>
+     * {@inheritDoc}
      */
-    public void setResult(R result) {
-        throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
+    @Override
+    public void addCompletionHandler(final CompletionHandler<R> completionHandler) {
+        if (isCancelled) {
+            completionHandler.cancelled();
+        } else if (failure != null) {
+            completionHandler.failed(failure);
+        } else {
+            completionHandler.completed(result);
+        }
     }
 
     /**

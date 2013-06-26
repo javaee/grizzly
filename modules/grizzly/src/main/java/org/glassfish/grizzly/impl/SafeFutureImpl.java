@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,11 @@
 
 package org.glassfish.grizzly.impl;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.*;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * Safe {@link FutureImpl} implementation.
@@ -61,6 +65,34 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
         }
     };
 
+    private final Object chSync = new Object();
+    private volatile Set<CompletionHandler<R>> completionHandlers;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addCompletionHandler(final CompletionHandler<R> completionHandler) {
+        if (isDone()) {
+            notifyCompletionHandler(completionHandler);
+        } else {
+            if (completionHandlers == null) {
+                synchronized(chSync) {
+                    if (completionHandlers == null) {
+                        completionHandlers = Collections.newSetFromMap(
+                                new ConcurrentHashMap<CompletionHandler<R>, Boolean>(2));
+                    }
+                }
+            }
+            
+            completionHandlers.add(completionHandler);
+            
+            if (isDone() && completionHandlers.remove(completionHandler)) {
+                notifyCompletionHandler(completionHandler);
+            }
+        }
+    }
+    
     /**
      * Construct {@link SafeFutureImpl}.
      */
@@ -103,5 +135,83 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
 
     @Override
     public void recycle() {
+    }
+
+    /**
+     * The method is called when {@link FutureTask} is marked as completed.
+     */
+    @Override
+    protected final void done() {
+        super.done();
+        notifyCompletionHandlers();
+        onComplete();
+    }
+    
+    /**
+     * The method is called when this <tt>SafeFutureImpl</tt> is marked as completed.
+     * Subclasses can override this method.
+     */
+    protected void onComplete() {
+    }
+    
+    /**
+     * Notify registered {@link CompletionHandler}s about the result.
+     */
+    private void notifyCompletionHandlers() {
+        if (completionHandlers == null) {
+            return;
+        }
+        
+        final boolean isCancelled = isCancelled();
+        R result = null;
+        Throwable error = null;
+        
+        if (!isCancelled) {
+            try {
+                result = get();
+            } catch (ExecutionException e) {
+                error = e.getCause();
+            } catch (Exception e) {
+                error = e;
+            }
+        }
+        
+        for (Iterator<CompletionHandler<R>> it = completionHandlers.iterator(); it.hasNext();) {
+            final CompletionHandler<R> completionHandler = it.next();
+            if (completionHandlers.remove(completionHandler)) {
+                try {
+                    if (isCancelled) {
+                        completionHandler.cancelled();
+                    } else if (error != null) {
+                        completionHandler.failed(error);
+                    } else {
+                        completionHandler.completed(result);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+    
+    /**
+     * Notify single {@link CompletionHandler} about the result.
+     */
+    private void notifyCompletionHandler(final CompletionHandler<R> completionHandler) {
+        if (isCancelled()) {
+            completionHandler.cancelled();
+        } else {
+            try {
+                final R result = get();
+                
+                try {
+                    completionHandler.completed(result);
+                } catch (Exception e) {
+                }
+            } catch (ExecutionException e) {
+                completionHandler.failed(e.getCause());
+            } catch (Exception e) {
+                completionHandler.failed(e);
+            }
+        }
     }
 }

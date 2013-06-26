@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,11 +43,27 @@ package org.glassfish.grizzly;
 import java.util.concurrent.Future;
 
 /**
- * Grizzly {@link Future} implementation, which might be recycled and reused.
+ * Grizzly {@link Future} implementation.
+ * Users can register additional {@link CompletionHandler}s using
+ * {@link #addCompletionHandler(org.glassfish.grizzly.CompletionHandler)}
+ * to be notified once the asynchronous computation, represented by
+ * this <tt>Future</tt>, is complete.
+ * 
+ * A <tt>GrizzlyFuture</tt> instance can be recycled and reused.
  * 
  * @author Alexey Stashok
  */
 public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
+    /**
+     * Adds a {@link CompletionHandler}, which will be notified once the
+     * asynchronous computation, represented by this <tt>Future</tt>,
+     * is complete.
+     * 
+     * @param completionHandler {@link CompletionHandler}
+     * @since 2.3.4
+     */
+    public void addCompletionHandler(CompletionHandler<R> completionHandler);
+    
     /**
      * Recycle <tt>GrizzlyFuture</tt> now.
      * This method could be used, if you're not interested in using this
@@ -55,7 +71,7 @@ public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
      * by any other application part.
      *
      * @param recycleResult if <tt>true</tt> - the <tt>GrizzlyFuture</tt> result,
-     * if it support recycleable mechanism, will be also recycled together
+     * if it support recyclable mechanism, will be also recycled together
      * with this <tt>GrizzlyFuture</tt> object.
      */
     public void recycle(boolean recycleResult);

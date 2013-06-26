@@ -178,7 +178,7 @@ public abstract class AbstractSocketConnectorHandler
         return new SafeFutureImpl<Connection>() {
 
             @Override
-            protected void done() {
+            protected void onComplete() {
                 try {
                     if (!isCancelled()) {
                         get();
