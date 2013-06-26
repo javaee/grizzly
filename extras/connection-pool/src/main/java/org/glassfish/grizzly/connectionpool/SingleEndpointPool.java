@@ -586,20 +586,22 @@ public class SingleEndpointPool<E> {
      * method call doesn't have any effect.
      * 
      * @param connection the {@link Connection} to detach
-     * @throws IllegalStateException the {@link IllegalStateException} is thrown
-     *          if the {@link Connection} is in ready state
+     * @returns <code>true</code> if the connection was successfully detached
+     *  from this pool, otherwise returns <code>false</code>
      */
-    public void detach(final Connection connection) {
+    public boolean detach(final Connection connection) {
         synchronized (poolSync) {
             final ConnectionInfo<E> info = connectionsMap.remove(connection);
             if (info != null) {
                 if (info.isReady()) {
-                    throw new IllegalStateException("Can not detach Connection in ready state");
+                    return false;
                 }
 
                 connection.removeCloseListener(closeListener);
                 deregisterConnection(info);
+                return true;
             }
+            return false;
         }
     }
     
