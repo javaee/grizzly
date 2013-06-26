@@ -423,12 +423,8 @@ public class MultiEndpointPool<E> {
      * @param connection the {@link Connection} to detach
      * @return <code>true</code> if the {@link Connection} was detached, otherwise
      *  returns <code>false</code>
-     * @throws IllegalStateException the {@link IllegalStateException} is thrown
-     *          if the {@link Connection} is in ready state
      */
-    public boolean detach(final Connection connection)
-            throws IOException {
-        
+    public boolean detach(final Connection connection) {
         final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
         return info != null && info.endpointPool.detach(connection);
     }
