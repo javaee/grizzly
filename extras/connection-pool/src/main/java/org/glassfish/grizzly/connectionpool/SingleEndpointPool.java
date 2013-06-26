@@ -336,7 +336,8 @@ public class SingleEndpointPool<E> {
      */
     public boolean isMaxCapacityReached() {
         synchronized (poolSync) {
-            return poolSize + pendingConnections >= maxPoolSize;
+            return maxPoolSize != -1
+                    && poolSize + pendingConnections >= maxPoolSize;
         }
     }
     

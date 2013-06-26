@@ -253,7 +253,8 @@ public class MultiEndpointPool<E> {
      */
     public boolean isMaxCapacityReached() {
         synchronized (countersSync) {
-            return poolSize + totalPendingConnections >= maxConnectionsTotal;
+            return maxConnectionsTotal != -1
+                    && poolSize + totalPendingConnections >= maxConnectionsTotal;
         }
     }
 
