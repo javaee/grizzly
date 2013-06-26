@@ -377,15 +377,18 @@ public class MultiEndpointPool<E> {
      * it is retrieved from the pool again.
      * 
      * @param connection the {@link Connection} to return
-     * @throws IllegalStateException if the {@link Connection} had been returned to the pool before
+     * @return <code>true</code> if the connection was successfully released.
+     *  If the connection cannot be released, the connection will be closed
+     *  and <code>false</code> will be returned.
      */
-    public void release(final Connection connection) {
+    public boolean release(final Connection connection) {
         final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
         if (info != null) {
             // optimize release() call to avoid redundant map lookup
-            info.endpointPool.release0(info);
+            return info.endpointPool.release0(info);
         } else {
             connection.closeSilently();
+            return false;
         }
     }
 

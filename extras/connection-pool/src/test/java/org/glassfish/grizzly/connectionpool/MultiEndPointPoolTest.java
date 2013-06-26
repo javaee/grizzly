@@ -147,27 +147,24 @@ public class MultiEndPointPoolTest {
             assertNotNull(c22);
             assertEquals(4, pool.size());
 
-            pool.release(c11);
+            assertTrue(pool.release(c11));
             assertEquals(4, pool.size());
 
-            pool.release(c21);
+            assertTrue(pool.release(c21));
             assertEquals(4, pool.size());
 
             c11 = pool.take(key1).get();
             assertNotNull(c11);
             assertEquals(4, pool.size());
 
-            pool.detach(c11);
+            assertTrue(pool.detach(c11));
             assertEquals(3, pool.size());
 
             assertTrue(pool.attach(key1, c11));
             assertEquals(4, pool.size());
 
-            try {
-                pool.release(c11);
-                fail("IllegalStateException is expected");
-            } catch (IllegalStateException e) {
-            }
+            assertFalse(pool.release(c11));
+
             assertEquals(4, pool.size());
 
             c11 = pool.take(key1).get();

@@ -516,17 +516,19 @@ public class SingleEndpointPool<E> {
      * it is retrieved from the pool again.
      * 
      * @param connection the {@link Connection} to return
-     * @throws IllegalStateException if the {@link Connection} had been returned to the pool before
+     * @return <code>true</code> if the connection was successfully released.
+     *  If the connection cannot be released, the connection will be closed
+     *  and <code>false</code> will be returned.
      */
-    public void release(final Connection connection) {
+    public boolean release(final Connection connection) {
         synchronized (poolSync) {
             final ConnectionInfo<E> info = connectionsMap.get(connection);
             if (info == null) {
                 connection.closeSilently();
-                return;
+                return false;
             } 
             
-            release0(info);
+            return release0(info);
         }
     }
 
@@ -534,14 +536,15 @@ public class SingleEndpointPool<E> {
      * Same as {@link #release(org.glassfish.grizzly.Connection)}, but is based
      * on connection {@link Link}.
      */
-    void release0(final ConnectionInfo<E> info) {
+    boolean release0(final ConnectionInfo<E> info) {
         synchronized (poolSync) {
             if (info.isReady()) {
-                throw new IllegalStateException("The Connection is already returned to the pool");
+                return false;
             }
             
             readyConnections.offerLast(info.readyStateLink);
             notifyAsyncPoller();
+            return true;
         }
     }
     

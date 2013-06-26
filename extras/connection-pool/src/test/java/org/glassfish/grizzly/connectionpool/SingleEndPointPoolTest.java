@@ -126,29 +126,25 @@ public class SingleEndPointPoolTest {
             assertNotNull(c2);
             assertEquals(2, pool.size());
 
-            pool.release(c1);
+            assertTrue(pool.release(c1));
             assertEquals(2, pool.size());
 
-            pool.release(c2);
+            assertTrue(pool.release(c2));
             assertEquals(2, pool.size());
 
             c1 = pool.take().get();
             assertNotNull(c1);
             assertEquals(2, pool.size());
 
-            pool.detach(c1);
+            assertTrue(pool.detach(c1));
             assertEquals(1, pool.size());
 
             assertTrue(pool.attach(c1));
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
 
-            try {
-                pool.release(c1);
-                fail("IllegalStateException is expected");
-            } catch (IllegalStateException e) {
-            }
-            
+            assertFalse(pool.release(c1));
+
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
 
