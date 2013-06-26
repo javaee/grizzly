@@ -752,11 +752,11 @@ public class SingleEndpointPool<E> {
     private boolean createConnectionIfPossibleNoSync() {
         if (checkBeforeOpeningConnection()) {
             connectorHandler.connect(endpointAddress,
-                                     connectionCompletionHandler);
-
+                    connectionCompletionHandler);
+            
             return true;
         }
-
+        
         return false;
     }
     
@@ -772,13 +772,6 @@ public class SingleEndpointPool<E> {
                     asyncPoll.completionHandler, connection);
         }
     }
-
-    private void notifyAsyncPollerFailure(final Throwable t) {
-        final AsyncPoll asyncPoll =
-                asyncWaitingList.pollFirst().getValue();
-        Futures.notifyFailure(asyncPoll.future,
-                             asyncPoll.completionHandler, t);
-    }
         
     private void deregisterConnection(final ConnectionInfo<E> info) {
         readyConnections.remove(info.readyStateLink);
@@ -793,7 +786,7 @@ public class SingleEndpointPool<E> {
      */
     private final class ConnectCompletionHandler
             extends EmptyCompletionHandler<Connection> {
-
+        
         @Override
         @SuppressWarnings("unchecked")
         public void failed(Throwable throwable) {
@@ -801,18 +794,10 @@ public class SingleEndpointPool<E> {
                 pendingConnections--;
                 
                 onFailedConnection();
-
-                boolean reconnectEnabled = reconnectQueue != null;
-
-                // if re-connections support isn't enabled, notify any
-                // CompletionHandlers of failure.
-                if (!reconnectEnabled) {
-                    notifyAsyncPollerFailure(throwable);
-                }
-
+                
                 // check if there is still a thread(s) waiting for a connection
                 // and reconnect mechanism is enabled
-                if (reconnectEnabled && !asyncWaitingList.isEmpty()) {
+                if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
                     reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
                             reconnectDelayMillis, TimeUnit.MILLISECONDS);
                 }
