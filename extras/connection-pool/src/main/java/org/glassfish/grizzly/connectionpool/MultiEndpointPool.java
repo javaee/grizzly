@@ -51,6 +51,7 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
+import org.glassfish.grizzly.utils.Futures;
 import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
 
 /**
@@ -329,11 +330,15 @@ public class MultiEndpointPool<E> {
      * @param endpointKey {@link EndpointKey}, that represents an endpoint
      * @return {@link GrizzlyFuture}
      */
-    public GrizzlyFuture<Connection> take(final EndpointKey<E> endpointKey)
-            throws IOException, InterruptedException {
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
-        
-        return sePool.take();
+    public GrizzlyFuture<Connection> take(final EndpointKey<E> endpointKey) {
+        try {
+            final SingleEndpointPool<E> sePool =
+                    obtainSingleEndpointPool(endpointKey);
+
+            return sePool.take();
+        } catch (IOException e) {
+            return Futures.createReadyFuture(e);
+        }
     }
     
     /**
@@ -345,11 +350,18 @@ public class MultiEndpointPool<E> {
      * @param endpointKey {@link EndpointKey}, that represents an endpoint
      */
     public void take(final EndpointKey<E> endpointKey,
-            final CompletionHandler<Connection> completionHandler)
-            throws IOException, InterruptedException {
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+            final CompletionHandler<Connection> completionHandler) {
+        if (completionHandler == null) {
+            throw new IllegalArgumentException("The completionHandler argument can not be null");
+        }
         
-        sePool.take(completionHandler);
+        try {
+            final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+
+            sePool.take(completionHandler);
+        } catch (IOException e) {
+            completionHandler.failed(e);
+        }
     }
 
     /**
