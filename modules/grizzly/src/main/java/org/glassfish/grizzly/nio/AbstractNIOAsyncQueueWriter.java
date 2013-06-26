@@ -185,7 +185,8 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         if (!connection.isOpen()) {
             onWriteFailure(connection, queueRecord,
-                    new IOException("Connection is closed"));
+                    new IOException("Connection is closed",
+                    ((NIOConnection) connection).closeStackTrace));
             return;
         }
         
