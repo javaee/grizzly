@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.impl;
 
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -66,7 +66,7 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
     };
 
     private final Object chSync = new Object();
-    private volatile Set<CompletionHandler<R>> completionHandlers;
+    private Set<CompletionHandler<R>> completionHandlers;
 
     /**
      * {@inheritDoc}
@@ -76,20 +76,19 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
         if (isDone()) {
             notifyCompletionHandler(completionHandler);
         } else {
-            if (completionHandlers == null) {
-                synchronized(chSync) {
+            synchronized(chSync) {
+                if (!isDone()) {
                     if (completionHandlers == null) {
-                        completionHandlers = Collections.newSetFromMap(
-                                new ConcurrentHashMap<CompletionHandler<R>, Boolean>(2));
+                        completionHandlers = new HashSet<CompletionHandler<R>>(2);
                     }
+
+                    completionHandlers.add(completionHandler);
+                    
+                    return;
                 }
             }
             
-            completionHandlers.add(completionHandler);
-            
-            if (isDone() && completionHandlers.remove(completionHandler)) {
-                notifyCompletionHandler(completionHandler);
-            }
+            notifyCompletionHandler(completionHandler);
         }
     }
     
@@ -158,14 +157,23 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
      * Notify registered {@link CompletionHandler}s about the result.
      */
     private void notifyCompletionHandlers() {
-        if (completionHandlers == null) {
-            return;
-        }
         
+        assert isDone();
+        
+        final Set<CompletionHandler<R>> localSet;
+        synchronized (chSync) {
+            if (completionHandlers == null) {
+                return;
+            }
+            
+            localSet = completionHandlers;
+            completionHandlers = null;
+        }
+
         final boolean isCancelled = isCancelled();
         R result = null;
         Throwable error = null;
-        
+
         if (!isCancelled) {
             try {
                 result = get();
@@ -175,20 +183,19 @@ public class SafeFutureImpl<R> extends FutureTask<R> implements FutureImpl<R> {
                 error = e;
             }
         }
-        
-        for (Iterator<CompletionHandler<R>> it = completionHandlers.iterator(); it.hasNext();) {
+
+        for (Iterator<CompletionHandler<R>> it = localSet.iterator(); it.hasNext();) {
             final CompletionHandler<R> completionHandler = it.next();
-            if (completionHandlers.remove(completionHandler)) {
-                try {
-                    if (isCancelled) {
-                        completionHandler.cancelled();
-                    } else if (error != null) {
-                        completionHandler.failed(error);
-                    } else {
-                        completionHandler.completed(result);
-                    }
-                } catch (Exception e) {
+            it.remove();
+            try {
+                if (isCancelled) {
+                    completionHandler.cancelled();
+                } else if (error != null) {
+                    completionHandler.failed(error);
+                } else {
+                    completionHandler.completed(result);
                 }
+            } catch (Exception e) {
             }
         }
     }
