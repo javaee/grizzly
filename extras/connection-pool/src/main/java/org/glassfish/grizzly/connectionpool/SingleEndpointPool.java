@@ -148,6 +148,12 @@ public class SingleEndpointPool<E> {
      * DelayQueue for reconnect mechanism
      */
     private final DelayQueue<ReconnectTask> reconnectQueue;
+
+    /**
+     * Maximum number of reconnect attempts.
+     */
+    private final int maxReconnectAttempts;
+
     /**
      * DelayQueue for keep-alive mechanism
      */
@@ -201,6 +207,11 @@ public class SingleEndpointPool<E> {
     protected int pendingConnections;
 
     /**
+     * Number of failed connect attempts.
+     */
+    private int failedConnectAttempts;
+
+    /**
      * The waiting list of asynchronous polling clients
      */
     private final Chain<AsyncPoll> asyncWaitingList = new Chain<AsyncPoll>();
@@ -217,6 +228,7 @@ public class SingleEndpointPool<E> {
      * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
+     * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
      */
     @SuppressWarnings("unchecked")
     protected SingleEndpointPool(
@@ -227,7 +239,8 @@ public class SingleEndpointPool<E> {
             final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
-            final long reconnectDelayMillis) {
+            final long reconnectDelayMillis,
+            final int maxReconnectAttempts) {
         this.connectorHandler = connectorHandler;
         this.endpointAddress = endpointAddress;
 
@@ -237,6 +250,7 @@ public class SingleEndpointPool<E> {
         this.reconnectDelayMillis = reconnectDelayMillis;
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
+        this.maxReconnectAttempts = maxReconnectAttempts;
         
         if (delayedExecutor == null) {
             // if custom DelayedExecutor is null - create our own
@@ -294,6 +308,7 @@ public class SingleEndpointPool<E> {
      * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
+     * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
      */    
     @SuppressWarnings("unchecked")
     protected SingleEndpointPool(
@@ -306,7 +321,8 @@ public class SingleEndpointPool<E> {
             final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
-            final long reconnectDelayMillis) {
+            final long reconnectDelayMillis,
+            final int maxReconnectAttempts) {
         this.connectorHandler = connectorHandler;
         this.endpointAddress = endpointAddress;
 
@@ -316,7 +332,7 @@ public class SingleEndpointPool<E> {
         this.reconnectDelayMillis = reconnectDelayMillis;
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
-
+        this.maxReconnectAttempts = maxReconnectAttempts;
         ownDelayedExecutor = null;
         
         this.connectTimeoutQueue = connectTimeoutQueue;
@@ -813,7 +829,18 @@ public class SingleEndpointPool<E> {
                     asyncPoll.completionHandler, connection);
         }
     }
-        
+
+    private void notifyAsyncPollersOfFailure(final Throwable t) {
+        failedConnectAttempts = 0;
+        while (!asyncWaitingList.isEmpty()) {
+            final AsyncPoll asyncPoll =
+                    asyncWaitingList.pollFirst().getValue();
+            Futures.notifyFailure(asyncPoll.future,
+                                  asyncPoll.completionHandler,
+                                  t);
+        }
+    }
+
     private void deregisterConnection(final ConnectionInfo<E> info) {
         readyConnections.remove(info.readyStateLink);
         poolSize--;
@@ -858,6 +885,7 @@ public class SingleEndpointPool<E> {
                     
                     poolSize++;
                     pendingConnections--;
+                    failedConnectAttempts = 0;
 
                     onOpenConnection(info);
 
@@ -868,39 +896,49 @@ public class SingleEndpointPool<E> {
                 }
             }
         }
-        
+
         @Override
         public void cancelled() {
-            onFailedToConnect();
+            onFailedToConnect(null);
         }
-       
+
         @Override
         public void failed(final Throwable throwable) {
-            onFailedToConnect();
+            onFailedToConnect(throwable);
         }
 
         @SuppressWarnings("unchecked")
-        private void onFailedToConnect() {
+        private void onFailedToConnect(final Throwable t) {
             if (connectTimeoutTask != null) {
                 connectTimeoutQueue.remove(connectTimeoutTask);
             }
-            
+
             synchronized (poolSync) {
                 pendingConnections--;
-                
+
                 onFailedConnection();
-                
+
                 // check if there is still a thread(s) waiting for a connection
                 // and reconnect mechanism is enabled
                 if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
                         LOGGER.log(Level.FINE, "Pool connect operation failed, schedule reconnect");
                     }
-                    reconnectQueue.add(new ReconnectTask(SingleEndpointPool.this),
-                            reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                    if (t != null && ++failedConnectAttempts > maxReconnectAttempts) {
+                        notifyAsyncPollersOfFailure(t);
+                    } else {
+                        reconnectQueue.add(
+                                new ReconnectTask(SingleEndpointPool.this),
+                                reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                    }
+                } else {
+                    if (t != null) {
+                        notifyAsyncPollersOfFailure(t);
+                    }
                 }
             }
-        }        
+        }
+
     }
     
     /**
@@ -1101,6 +1139,12 @@ public class SingleEndpointPool<E> {
          * the endpoint after previous connect had failed
          */
         private long reconnectDelayMillis = -1;
+
+        /**
+         * Maximum number of attempts that will be made to reconnect before
+         * notification of failure occurs.
+         */
+        private int maxReconnectAttempts = 5;
         /**
          * the maximum number of milliseconds an idle {@link Connection} will be kept
          * in the pool. The idle {@link Connection}s will be closed till the pool
@@ -1219,6 +1263,21 @@ public class SingleEndpointPool<E> {
         }
 
         /**
+         * If the reconnect mechanism is enabled, then this property will affect
+         * how many times a reconnection attempt can be made consecutively before
+         * a failure is flagged.
+         *
+         * @param maxReconnectAttempts the maximum number of reconnect attempts.
+         *  If the reconnect mechanism isn't enabled, this property is ignored.
+         *
+         * @return this {@link Builder}
+         */
+        public Builder<E> maxReconnectAttempts(final int maxReconnectAttempts) {
+            this.maxReconnectAttempts = maxReconnectAttempts;
+            return this;
+        }
+
+        /**
          * Sets the maximum number of milliseconds an idle {@link Connection}
          * will be kept in the pool.
          * The idle {@link Connection}s will be closed till the pool size is
@@ -1279,11 +1338,16 @@ public class SingleEndpointPool<E> {
             if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
                 throw new IllegalStateException("Keep-alive timeout is set, but keepAliveCheckInterval is invalid");
             }
+
+            if (maxReconnectAttempts < 0) {
+                throw new IllegalStateException("Max reconnect attempts must not be a negative value");
+            }
             
             return new SingleEndpointPool<E>(connectorHandler, endpointAddress,
                     corePoolSize, maxPoolSize, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
-                    keepAliveCheckIntervalMillis, reconnectDelayMillis);
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis,
+                    maxReconnectAttempts);
         }
     }
 }

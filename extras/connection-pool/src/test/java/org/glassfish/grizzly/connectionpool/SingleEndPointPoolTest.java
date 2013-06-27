@@ -45,9 +45,14 @@ import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -345,5 +350,64 @@ public class SingleEndPointPoolTest {
             pool.close();
             clientTransport.stop();
         }
-    }    
+    }
+
+
+    @Test
+    public void testReconnectFailureNotification() throws Exception {
+        final long reconnectDelayMillis = 1000;
+
+        final FilterChain filterChain = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .build();
+
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance()
+                        .setProcessor(filterChain)
+                        .build();
+
+
+
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(clientTransport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .corePoolSize(4)
+                .maxPoolSize(5)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .reconnectDelay(reconnectDelayMillis, TimeUnit.MILLISECONDS)
+                .build();
+
+        try {
+            clientTransport.start();
+            transport.stop();
+            final AtomicBoolean notified = new AtomicBoolean();
+            final AtomicReference<Connection> connection =
+                    new AtomicReference<Connection>();
+            final CountDownLatch latch = new CountDownLatch(1);
+            pool.take(
+                    new EmptyCompletionHandler<Connection>() {
+                        @Override
+                        public void failed(Throwable throwable) {
+                            notified.set(true);
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void completed(Connection result) {
+                            connection.set(result);
+                            latch.countDown();
+                        }
+                    });
+            latch.await(15, TimeUnit.SECONDS);
+            assertNull(connection.get());
+            assertTrue(notified.get());
+            assertEquals(0, pool.size());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            pool.close();
+            clientTransport.stop();
+        }
+    }
 }

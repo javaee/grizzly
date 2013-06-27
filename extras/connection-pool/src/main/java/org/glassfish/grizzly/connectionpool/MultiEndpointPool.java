@@ -177,6 +177,11 @@ public class MultiEndpointPool<E> {
      * the interval, which specifies how often the pool will perform idle {@link Connection}s check
      */
     private final long keepAliveCheckIntervalMillis;
+
+    /**
+     * Maximum number of reconnect attempts.
+     */
+    private final int maxReconnectAttempts;
     
     /**
      * Constructs MultiEndpointPool instance.
@@ -189,6 +194,7 @@ public class MultiEndpointPool<E> {
      * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
+     * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
      */
     protected MultiEndpointPool(
             final ConnectorHandler<E> defaultConnectorHandler,
@@ -198,7 +204,8 @@ public class MultiEndpointPool<E> {
             final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
-            final long reconnectDelayMillis) {
+            final long reconnectDelayMillis,
+            final int maxReconnectAttempts) {
         this.defaultConnectorHandler = defaultConnectorHandler;
         this.maxConnectionsPerEndpoint = maxConnectionsPerEndpoint;
         this.maxConnectionsTotal = maxConnectionsTotal;
@@ -207,6 +214,7 @@ public class MultiEndpointPool<E> {
         this.reconnectDelayMillis = reconnectDelayMillis;
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
+        this.maxReconnectAttempts = maxReconnectAttempts;
         
         if (delayedExecutor == null) {
             final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
@@ -530,7 +538,7 @@ public class MultiEndpointPool<E> {
     
     /**
      * Creates {@link SingleEndpointPool} instance.
-     * @param endpoint the endpoint
+     * @param endpointKey the endpoint key
      * @return {@link SingleEndpointPool}
      */
     protected SingleEndpointPool<E> createSingleEndpointPool(
@@ -564,7 +572,7 @@ public class MultiEndpointPool<E> {
                 endpoint, 0, maxConnectionsPerEndpoint,
                 connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
                 connectTimeoutMillis, keepAliveTimeoutMillis,
-                keepAliveCheckIntervalMillis, reconnectDelayMillis);
+                keepAliveCheckIntervalMillis, reconnectDelayMillis, maxReconnectAttempts);
         }
 
         @Override
@@ -704,6 +712,11 @@ public class MultiEndpointPool<E> {
          */
         private long reconnectDelayMillis = -1;
         /**
+         * Maximum number of attempts that will be made to reconnect before
+         * notification of failure occurs.
+         */
+        private int maxReconnectAttempts = 5;
+        /**
          * the maximum number of milliseconds an idle {@link Connection} will be kept
          * in the pool. The idle {@link Connection}s will be closed till the pool
          * size is greater than <tt>corePoolSize</tt>
@@ -813,6 +826,20 @@ public class MultiEndpointPool<E> {
         }
 
         /**
+         * If the reconnect mechanism is enabled, then this property will affect
+         * how many times a reconnection attempt can be made consecutively before
+         * a failure is flagged.
+         *
+         * @param maxReconnectAttempts the maximum number of reconnect attempts.
+         *                             If the reconnect mechanism isn't enabled, this property is ignored.
+         * @return this {@link Builder}
+         */
+        public Builder<E> maxReconnectAttempts(final int maxReconnectAttempts) {
+            this.maxReconnectAttempts = maxReconnectAttempts;
+            return this;
+        }
+
+        /**
          * Sets the maximum number of milliseconds an idle {@link Connection}
          * will be kept in the pool.
          * The idle {@link Connection}s will be closed till the pool size is
@@ -869,11 +896,15 @@ public class MultiEndpointPool<E> {
             if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
                 throw new IllegalStateException("Keep-alive timeout is set, but keepAliveCheckInterval is invalid");
             }
+
+            if (maxReconnectAttempts < 0) {
+                throw new IllegalStateException("Max reconnect attempts must not be a negative value");
+            }
             
             return new MultiEndpointPool<E>(defaultConnectorHandler,
                     maxConnectionsPerEndpoint, maxConnectionsTotal, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
-                    keepAliveCheckIntervalMillis, reconnectDelayMillis);
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis, maxReconnectAttempts);
         }
     }    
 }
