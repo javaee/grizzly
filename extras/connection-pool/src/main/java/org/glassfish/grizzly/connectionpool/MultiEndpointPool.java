@@ -130,6 +130,10 @@ public class MultiEndpointPool<E> {
      */
     private final DelayedExecutor ownDelayedExecutor;
     /**
+     * DelayQueue for connect timeout mechanism
+     */
+    private final DelayQueue<ConnectTimeoutTask> connectTimeoutQueue;
+    /**
      * DelayQueue for reconnect mechanism
      */
     private final DelayQueue<ReconnectTask> reconnectQueue;
@@ -153,6 +157,11 @@ public class MultiEndpointPool<E> {
     private final int maxConnectionsTotal;
     
     /**
+     * Connect timeout, after which, if a connection is not established, it is
+     * considered failed
+     */
+    private final long connectTimeoutMillis;
+    /**
      * the delay to be used before the pool will repeat the attempt to connect to
      * the endpoint after previous connect had failed
      */
@@ -175,6 +184,7 @@ public class MultiEndpointPool<E> {
      * @param maxConnectionsPerEndpoint the maximum number of {@link Connection}s single endpoint sub-pool is allowed to have
      * @param maxConnectionsTotal the total maximum number of {@link Connection}s the pool is allowed to have
      * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
+     * @param connectTimeoutMillis timeout, after which, if a connection is not established, it is considered failed
      * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
@@ -184,6 +194,7 @@ public class MultiEndpointPool<E> {
             final int maxConnectionsPerEndpoint,
             final int maxConnectionsTotal,
             DelayedExecutor delayedExecutor,
+            final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
             final long reconnectDelayMillis) {
@@ -191,6 +202,7 @@ public class MultiEndpointPool<E> {
         this.maxConnectionsPerEndpoint = maxConnectionsPerEndpoint;
         this.maxConnectionsTotal = maxConnectionsTotal;
         
+        this.connectTimeoutMillis = connectTimeoutMillis;
         this.reconnectDelayMillis = reconnectDelayMillis;
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
@@ -207,6 +219,14 @@ public class MultiEndpointPool<E> {
             delayedExecutor = ownDelayedExecutor;
         } else {
             ownDelayedExecutor = null;
+        }
+        
+        if (connectTimeoutMillis >= 0) {
+            connectTimeoutQueue = delayedExecutor.createDelayQueue(
+                    new ConnectTimeoutWorker(),
+                    new ConnectTimeoutTaskResolver());
+        } else {
+            connectTimeoutQueue = null;
         }
         
         if (reconnectDelayMillis >= 0) {
@@ -537,8 +557,8 @@ public class MultiEndpointPool<E> {
         public EndpointPoolImpl(final E endpoint) {
             super(connectorHandler,
                 endpoint, 0, maxConnectionsPerEndpoint,
-                reconnectQueue, keepAliveCleanerQueue,
-                keepAliveTimeoutMillis,
+                connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
+                connectTimeoutMillis, keepAliveTimeoutMillis,
                 keepAliveCheckIntervalMillis, reconnectDelayMillis);
         }
 
@@ -669,6 +689,11 @@ public class MultiEndpointPool<E> {
          */
         private DelayedExecutor delayedExecutor;
         /**
+         * Connect timeout, after which, if a connection is not established, it is
+         * considered failed
+         */
+        private long connectTimeoutMillis = -1;
+        /**
          * the delay to be used before the pool will repeat the attempt to connect to
          * the endpoint after previous connect had failed
          */
@@ -731,6 +756,29 @@ public class MultiEndpointPool<E> {
          */ 
         public Builder<E> delayExecutor(final DelayedExecutor delayedExecutor) {
             this.delayedExecutor = delayedExecutor;
+            return this;
+        }
+        
+        /**
+         * Sets the max time {@link Connection} connect operation may take.
+         * If timeout expires - the connect operation is considered failed.
+         * If connectTimeout &lt; 0 - the connect timeout mechanism will be disabled.
+         * By default the connect timeout mechanism is disabled.
+         * 
+         * @param connectTimeout the max time {@link Connection} connect
+         *        operation may take. If timeout expires - the connect operation
+         *        is considered failed. The negative value disables the
+         *        connect timeout mechanism.
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> connectTimeout(final long connectTimeout,
+                final TimeUnit timeunit) {
+
+            this.connectTimeoutMillis = connectTimeout > 0 ?
+                    TimeUnit.MILLISECONDS.convert(connectTimeout, timeunit) :
+                    connectTimeout;
             return this;
         }
         
@@ -817,8 +865,8 @@ public class MultiEndpointPool<E> {
             
             return new MultiEndpointPool<E>(connectorHandler,
                     maxConnectionsPerEndpoint, maxConnectionsTotal, delayedExecutor,
-                    keepAliveTimeoutMillis, keepAliveCheckIntervalMillis,
-                    reconnectDelayMillis);
+                    connectTimeoutMillis, keepAliveTimeoutMillis,
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis);
         }
     }    
 }
