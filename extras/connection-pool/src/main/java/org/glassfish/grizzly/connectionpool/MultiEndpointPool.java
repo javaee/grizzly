@@ -143,9 +143,10 @@ public class MultiEndpointPool<E> {
     private final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue;
 
     /**
-     * {@link ConnectorHandler} used to establish new {@link Connection}s
+     * The default {@link ConnectorHandler} used to establish new
+     * {@link Connection}s is none is specified by {@link EndpointKey}
      */
-    private final ConnectorHandler<E> connectorHandler;
+    private final ConnectorHandler<E> defaultConnectorHandler;
     /**
      * the maximum number of {@link Connection}s each
      * {@link SingleEndpointPool} sub-pool is allowed to have
@@ -180,7 +181,7 @@ public class MultiEndpointPool<E> {
     /**
      * Constructs MultiEndpointPool instance.
      * 
-     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
+     * @param defaultConnectorHandler the default {@link ConnectorHandler} to be used to establish new {@link Connection}s
      * @param maxConnectionsPerEndpoint the maximum number of {@link Connection}s single endpoint sub-pool is allowed to have
      * @param maxConnectionsTotal the total maximum number of {@link Connection}s the pool is allowed to have
      * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
@@ -190,7 +191,7 @@ public class MultiEndpointPool<E> {
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      */
     protected MultiEndpointPool(
-            final ConnectorHandler<E> connectorHandler,
+            final ConnectorHandler<E> defaultConnectorHandler,
             final int maxConnectionsPerEndpoint,
             final int maxConnectionsTotal,
             DelayedExecutor delayedExecutor,
@@ -198,7 +199,7 @@ public class MultiEndpointPool<E> {
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
             final long reconnectDelayMillis) {
-        this.connectorHandler = connectorHandler;
+        this.defaultConnectorHandler = defaultConnectorHandler;
         this.maxConnectionsPerEndpoint = maxConnectionsPerEndpoint;
         this.maxConnectionsTotal = maxConnectionsTotal;
         
@@ -518,7 +519,7 @@ public class MultiEndpointPool<E> {
                 
                 sePool = endpointToPoolMap.get(endpointKey);
                 if (sePool == null) {
-                    sePool = createSingleEndpointPool(endpointKey.getEndpoint());
+                    sePool = createSingleEndpointPool(endpointKey);
                     endpointToPoolMap.put(endpointKey, sePool);
                 }
             }
@@ -532,8 +533,11 @@ public class MultiEndpointPool<E> {
      * @param endpoint the endpoint
      * @return {@link SingleEndpointPool}
      */
-    protected SingleEndpointPool<E> createSingleEndpointPool(final E endpoint) {
-        return new EndpointPoolImpl(endpoint);
+    protected SingleEndpointPool<E> createSingleEndpointPool(
+            final EndpointKey<E> endpointKey) {
+        return new EndpointPoolImpl(endpointKey.getEndpoint(),
+                endpointKey.getConnectorHandler() == null ?
+                defaultConnectorHandler : endpointKey.getConnectorHandler());
     }
     
     /**
@@ -554,7 +558,8 @@ public class MultiEndpointPool<E> {
         
         private int maxPoolSizeHits;
         
-        public EndpointPoolImpl(final E endpoint) {
+        public EndpointPoolImpl(final E endpoint,
+                final ConnectorHandler<E> connectorHandler) {
             super(connectorHandler,
                 endpoint, 0, maxConnectionsPerEndpoint,
                 connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
@@ -672,7 +677,7 @@ public class MultiEndpointPool<E> {
         /**
          * {@link ConnectorHandler} used to establish new {@link Connection}s
          */
-        private ConnectorHandler<E> connectorHandler;
+        private ConnectorHandler<E> defaultConnectorHandler;
 
         /**
          * the maximum number of {@link Connection}s each
@@ -710,13 +715,15 @@ public class MultiEndpointPool<E> {
         private long keepAliveCheckIntervalMillis = 5000;
         
         /**
-         * Sets the {@link ConnectorHandler} used to establish new {@link Connection}s.
+         * Sets the default {@link ConnectorHandler} to be used to establish new
+         * {@link Connection}s if none is specified by {@link EndpointKey}.
          * 
-         * @param connectorHandler {@link ConnectorHandler}
+         * @param defaultConnectorHandler {@link ConnectorHandler}
          * @return this {@link Builder}
          */
-        public Builder<E> connectorHandler(final ConnectorHandler<E> connectorHandler) {
-            this.connectorHandler = connectorHandler;
+        public Builder<E> connectorHandler(
+                final ConnectorHandler<E> defaultConnectorHandler) {
+            this.defaultConnectorHandler = defaultConnectorHandler;
             return this;
         }
         
@@ -855,15 +862,15 @@ public class MultiEndpointPool<E> {
          */
         
         public MultiEndpointPool<E> build() {
-            if (connectorHandler == null) {
-                throw new IllegalStateException("ConnectorHandler is not set");
+            if (defaultConnectorHandler == null) {
+                throw new IllegalStateException("The default ConnectorHandler is not set");
             }
             
             if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
                 throw new IllegalStateException("Keep-alive timeout is set, but keepAliveCheckInterval is invalid");
             }
             
-            return new MultiEndpointPool<E>(connectorHandler,
+            return new MultiEndpointPool<E>(defaultConnectorHandler,
                     maxConnectionsPerEndpoint, maxConnectionsTotal, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
                     keepAliveCheckIntervalMillis, reconnectDelayMillis);

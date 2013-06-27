@@ -56,7 +56,8 @@ import org.glassfish.grizzly.ConnectorHandler;
 public class EndpointKey<E> {
     private final Object internalKey;
     private final E endpoint;
-
+    
+    private final ConnectorHandler<E> connectorHandler;
     /**
      * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
      * 
@@ -67,8 +68,24 @@ public class EndpointKey<E> {
      *          to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
     public EndpointKey(final Object internalKey, final E endpoint) {
+        this(internalKey, endpoint, null);
+    }
+
+    /**
+     * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
+     * 
+     * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
+     *          and {@link #hashCode()} methods
+     * @param endpoint the endpoint address, that will be used by
+     *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
+     *          to establish new client-side {@link org.glassfish.grizzly.Connection}
+     * @param connectorHandler customized {@link ConnectorHandler} this this endpoint
+     */
+    public EndpointKey(final Object internalKey, final E endpoint,
+            final ConnectorHandler<E> connectorHandler) {
         this.internalKey = internalKey;
         this.endpoint = endpoint;
+        this.connectorHandler = connectorHandler;
     }
 
     /**
@@ -87,6 +104,14 @@ public class EndpointKey<E> {
         return endpoint;
     }
 
+    /**
+     * Returns a customized {@link ConnectorHandler}, which will be used to
+     * create {@link Connection}s to this endpoint.
+     */
+    public ConnectorHandler<E> getConnectorHandler() {
+        return connectorHandler;
+    }
+    
     /**
      * {@inheritDoc}
      */
