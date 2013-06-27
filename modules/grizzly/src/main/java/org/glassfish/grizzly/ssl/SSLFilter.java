@@ -47,7 +47,6 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;

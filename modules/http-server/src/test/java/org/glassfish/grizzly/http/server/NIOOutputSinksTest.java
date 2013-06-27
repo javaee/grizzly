@@ -490,8 +490,13 @@ public class NIOOutputSinksTest extends TestCase {
                     try {
                         out.write(c);
                         out.flush();
-                    } catch (CustomException e) {
-                        parseResult.result(Boolean.TRUE);
+                    } catch (IOException e) {
+                        if (e.getCause() instanceof CustomException) {
+                            parseResult.result(Boolean.TRUE);
+                        } else {
+                            System.out.println("NOT CUSTOM");
+                            parseResult.failure(e);
+                        }
                         break;
                     } catch (Exception e) {
                         System.out.println("NOT CUSTOM");

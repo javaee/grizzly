@@ -914,7 +914,7 @@ public class OutputBuffer {
     private void handleAsyncErrors() throws IOException {
         final Throwable t = asyncError.get();
         if (t != null) {
-            throw Exceptions.makeIOException(t);
+           throw new IOException("I/O error occurred", t);
         }
     }
 
@@ -953,9 +953,9 @@ public class OutputBuffer {
                 future.get();
             }
         } catch (ExecutionException e) {
-            throw Exceptions.makeIOException(e.getCause());
+            throw new IOException(e.getCause());
         } catch (Exception e) {
-            throw Exceptions.makeIOException(e);
+            throw new IOException(e);
         }
     }
 
