@@ -114,16 +114,14 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 }
                 // Check if sufficient len to trig the compression
                 final long contentLength = responsePacket.getContentLength();
-                final String contentType = responsePacket.getContentType();
-                if ((contentLength == -1
-                        || contentLength >= compressionMinSize)
-                            && contentType != null) {
+                if (contentLength == -1
+                        || contentLength >= compressionMinSize) {
 
                     boolean found = true;
                     // Check for compatible MIME-TYPE
                     if (compressableMimeTypes.length > 0) {
                         found = indexOfStartsWith(compressableMimeTypes,
-                                contentType) != -1;
+                                responsePacket.getContentType()) != -1;
                     }
 
                     if (found) {
