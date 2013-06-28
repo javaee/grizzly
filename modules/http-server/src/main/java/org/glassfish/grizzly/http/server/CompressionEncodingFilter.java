@@ -114,14 +114,16 @@ public class CompressionEncodingFilter implements EncodingFilter {
                 }
                 // Check if sufficient len to trig the compression
                 final long contentLength = responsePacket.getContentLength();
-                if (contentLength == -1
-                        || contentLength >= compressionMinSize) {
+                final String contentType = responsePacket.getContentType();
+                if ((contentLength == -1
+                        || contentLength >= compressionMinSize)
+                            && contentType != null) {
 
                     boolean found = true;
                     // Check for compatible MIME-TYPE
                     if (compressableMimeTypes.length > 0) {
                         found = indexOfStartsWith(compressableMimeTypes,
-                                responsePacket.getContentType()) != -1;
+                                contentType) != -1;
                     }
 
                     if (found) {
@@ -181,6 +183,9 @@ public class CompressionEncodingFilter implements EncodingFilter {
     }
 
     private static int indexOf(String[] aliases, DataChunk dc) {
+        if (dc == null || dc.isNull()) {
+            return -1;
+        }
         for (int i = 0; i < aliases.length; i++) {
             final String alias = aliases[i];
             if (dc.indexOf(alias, 0) != -1) {
@@ -191,6 +196,9 @@ public class CompressionEncodingFilter implements EncodingFilter {
     }
 
     private static int indexOfStartsWith(String[] aliases, String s) {
+        if (s == null || s.length() == 0) {
+            return -1;
+        }
         for (int i = 0; i < aliases.length; i++) {
             final String alias = aliases[i];
             if (s.startsWith(alias)) {
