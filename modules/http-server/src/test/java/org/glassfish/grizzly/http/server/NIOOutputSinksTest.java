@@ -48,6 +48,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
@@ -55,7 +56,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -77,6 +77,8 @@ import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.Writer.Reentrant;
 
@@ -1099,7 +1101,7 @@ public class NIOOutputSinksTest extends TestCase {
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 final int responseContentLength =
-                        parseResult.get(10000, TimeUnit.SECONDS);
+                        parseResult.get(10, TimeUnit.SECONDS);
                 
                 assertEquals(sentBytesCount.get(), responseContentLength);
             } finally {
@@ -1119,6 +1121,142 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
 
+    /**
+     * Make sure postponed async write failure from one request will not impact
+     * other request, that reuses the same OutputBuffer.
+     * 
+     * https://java.net/jira/browse/GRIZZLY-1536
+     */
+    public void testPostponedAsyncFailure() throws Exception {
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        final TCPNIOTransport transport = listener.getTransport();
+        transport.setIOStrategy(WorkerThreadIOStrategy.getInstance());
+        transport.setWorkerThreadPoolConfig(ThreadPoolConfig
+                .defaultConfig().copy().setCorePoolSize(1).setMaxPoolSize(1));
+        server.addListener(listener);
+        
+        final AtomicReference<Connection> connectionToClose =
+                new AtomicReference<Connection>();
+        final FutureImpl<Boolean> floodReached = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<HttpContent> result = Futures.<HttpContent>createSafeFuture();
+        
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+            final AtomicBoolean isFirstConnectionInputBlocked = new AtomicBoolean();
+            @Override
+            public NextAction handleRead(final FilterChainContext ctx)
+                    throws IOException {
+                
+                if (isFirstConnectionInputBlocked.compareAndSet(false, true)) {
+                    return ctx.getSuspendAction();
+                }
+                
+                final HttpContent httpContent = ctx.getMessage();
+                if (httpContent.isLast()) {
+                    result.result(httpContent);
+                    return ctx.getStopAction();
+                }
+                
+                return ctx.getStopAction(httpContent);
+            }
+        });
+        
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final HttpHandler floodHttpHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                connectionToClose.set(request.getContext().getConnection());
+                floodReached.result(Boolean.TRUE);
+                
+                final NIOOutputStream outputStream = response.getNIOOutputStream();
+                
+                try {
+                    while (outputStream.canWrite()) {
+                        byte[] b = new byte[4096];
+                        outputStream.write(b);
+                        outputStream.flush();
+                        Thread.sleep(20);
+                    }
+                } catch (Exception e) {
+                    result.failure(e);
+                }
+            }
+        };
+
+        final String checkString = "Check#";
+        String checkPattern = "";
+        for (int i = 0; i < 10; i++) {
+            checkPattern += (checkString + i);
+        }
+        
+        final HttpHandler controlHttpHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                connectionToClose.get().closeSilently();
+                Thread.sleep(20); // give some time to close the connection
+                try {
+                    final NIOWriter writer = response.getNIOWriter();
+                    for (int i = 0; i < 10; i++) {
+                        writer.write(checkString + i);
+                        writer.flush();
+                        Thread.sleep(20);
+                    }
+                } catch (Exception e) {
+                    result.failure(e);
+                }
+            }
+        };
+
+        server.getServerConfiguration().addHttpHandler(floodHttpHandler, "/flood");
+        server.getServerConfiguration().addHttpHandler(controlHttpHandler, "/control");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            final Future<Connection> connect1Future = clientTransport.connect(
+                    "localhost", PORT);
+            final Connection connection1 = connect1Future.get(10, TimeUnit.SECONDS);
+            // Build the HttpRequestPacket, which will be sent to a server
+            // We construct HTTP request version 1.1 and specifying the URL
+            final HttpRequestPacket httpRequest1 = HttpRequestPacket.builder().method("GET")
+                    .uri("/flood").protocol(Protocol.HTTP_1_1)
+                    .header("Host", "localhost:" + PORT).build();
+
+            // Write the request asynchronously
+            connection1.write(httpRequest1);
+
+            assertTrue(floodReached.get(10, TimeUnit.SECONDS));
+            
+            final Future<Connection> connect2Future = clientTransport.connect(
+                    "localhost", PORT);
+            final Connection connection2 = connect2Future.get(10, TimeUnit.SECONDS);
+            // Build the HttpRequestPacket, which will be sent to a server
+            // We construct HTTP request version 1.1 and specifying the URL
+            final HttpRequestPacket httpRequest2 = HttpRequestPacket.builder().method("GET")
+                    .uri("/control").protocol(Protocol.HTTP_1_1)
+                    .header("Host", "localhost:" + PORT).build();
+
+            // Write the request asynchronously
+            connection2.write(httpRequest2);
+            
+            final HttpContent httpContent = result.get(30, TimeUnit.SECONDS);
+            
+            assertEquals(checkPattern, httpContent.getContent().toStringContent());
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
     
     private static void fill(byte[] array) {
         for (int i=0; i<array.length; i++) {
