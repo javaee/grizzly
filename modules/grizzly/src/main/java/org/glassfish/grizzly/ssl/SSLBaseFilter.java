@@ -46,6 +46,8 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -59,15 +61,18 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -79,6 +84,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLConnectionContext.Allocator;
+import org.glassfish.grizzly.utils.Exceptions;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -90,7 +96,9 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
 public class SSLBaseFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLBaseFilter.class);
     protected static final MessageCloner<Buffer> COPY_CLONER = new OnWriteCopyCloner();
-
+    protected final Attribute<SSLHandshakeContext> handshakeContextAttr;
+    // Max bytes SSLFilter may enqueue
+    protected volatile int maxPendingBytes = Integer.MAX_VALUE;
     private static final Allocator MM_ALLOCATOR = new Allocator() {
         @Override
         @SuppressWarnings("unchecked")
@@ -159,6 +167,9 @@ public class SSLBaseFilter extends BaseFilter {
         } else {
             this.serverSSLEngineConfigurator = serverSSLEngineConfigurator;
         }
+        handshakeContextAttr =
+                        Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                        "SSLFilter-SSLHandshakeContextAttr");
     }
 
     public void addHandshakeListener(final HandshakeListener listener) {
@@ -330,6 +341,21 @@ public class SSLBaseFilter extends BaseFilter {
 
             return ctx.getStopAction();
         }
+    }
+
+
+    /**
+     * Configures the maximum number of bytes that may be queued to be written
+     * for a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     *
+     * @param maxPendingBytes maximum number of bytes that may be queued to be
+     *                        written for a particular {@link Connection}
+     */
+    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
+        this.maxPendingBytes = maxPendingBytes;
     }
 
     // ------------------------------------------------------- Protected Methods
@@ -645,7 +671,12 @@ public class SSLBaseFilter extends BaseFilter {
             }
         } catch (IOException ioe) {
             notifyHandshakeFailed(connection, ioe);
-            throw ioe;
+            SSLHandshakeContext context = handshakeContextAttr.get(ctx.getConnection());
+            if (context != null) {
+                context.failed(ioe);
+            } else {
+                throw ioe;
+            }
         } finally {
             if (tmpAppBuffer0 == null && tmpAppBuffer != null) {
                 tmpAppBuffer.dispose();
@@ -1052,6 +1083,115 @@ public class SSLBaseFilter extends BaseFilter {
 
 
             return originalMessage;
+        }
+    }
+
+    protected final class SSLHandshakeContext {
+
+        private CompletionHandler<SSLEngine> completionHandler;
+
+        private final Connection connection;
+        private List<FilterChainContext> pendingWriteContexts;
+        private int sizeInBytes = 0;
+
+        private IOException error;
+        private boolean isComplete;
+
+        public SSLHandshakeContext(final Connection connection,
+                                   final CompletionHandler<SSLEngine> completionHandler) {
+            this.connection = connection;
+            this.completionHandler = completionHandler;
+        }
+
+        /**
+         * Has to be called in synchronized(connection) {...} scope.
+         */
+        public boolean add(FilterChainContext context) throws IOException {
+            if (error != null) {
+                throw error;
+            }
+            if (isComplete) {
+                return false;
+            }
+
+            final Buffer buffer = context.getMessage();
+
+            final int newSize = sizeInBytes + buffer.remaining();
+            if (newSize > maxPendingBytes) {
+                throw new PendingWriteQueueLimitExceededException(
+                        "Max queued data limit exceeded: "
+                                + newSize + '>' + maxPendingBytes);
+            }
+
+            sizeInBytes = newSize;
+
+            if (pendingWriteContexts == null) {
+                pendingWriteContexts = new LinkedList<FilterChainContext>();
+            }
+
+            pendingWriteContexts.add(context);
+
+            return true;
+        }
+
+        public void completed(SSLEngine result) {
+            try {
+                synchronized (connection) {
+                    isComplete = true;
+
+                    final CompletionHandler<SSLEngine> completionHandlerLocal =
+                            completionHandler;
+                    completionHandler = null;
+
+                    if (completionHandlerLocal != null) {
+                        completionHandlerLocal.completed(result);
+                    }
+
+                    final List<FilterChainContext> pendingWriteContextsLocal =
+                            pendingWriteContexts;
+                    pendingWriteContexts = null;
+
+                    if (pendingWriteContextsLocal != null) {
+                        for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                            ctx.resume();
+                        }
+
+                        pendingWriteContextsLocal.clear();
+                        sizeInBytes = 0;
+                    }
+                }
+            } catch (Exception e) {
+                failed(e);
+            }
+        }
+
+        public void failed(Throwable throwable) {
+            synchronized (connection) {
+                error = Exceptions.makeIOException(throwable);
+
+                final CompletionHandler<SSLEngine> completionHandlerLocal =
+                        completionHandler;
+                completionHandler = null;
+
+                if (completionHandlerLocal != null) {
+                    completionHandlerLocal.failed(throwable);
+                }
+
+                final List<FilterChainContext> pendingWriteContextsLocal =
+                        pendingWriteContexts;
+                pendingWriteContexts = null;
+
+                if (pendingWriteContextsLocal != null) {
+                    for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                        ctx.resume();
+                    }
+
+                    pendingWriteContextsLocal.clear();
+                    sizeInBytes = 0;
+                }
+            }
+
+            connection.closeSilently();
         }
     }
 }
