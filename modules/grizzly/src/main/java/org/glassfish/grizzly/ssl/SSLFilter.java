@@ -41,7 +41,10 @@
 package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Filter;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Closeable;
@@ -50,9 +53,13 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.GenericCloseListener;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.utils.Exceptions;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -62,12 +69,17 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  * @author Alexey Stashok
  */
 public class SSLFilter extends SSLBaseFilter {
+    private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
+    private final Attribute<SSLHandshakeContext> handshakeContextAttr;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
     private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
     
+    // Max bytes SSLFilter may enqueue
+    protected volatile int maxPendingBytes = Integer.MAX_VALUE;
 
+    
     // ------------------------------------------------------------ Constructors
 
 
@@ -107,6 +119,9 @@ public class SSLFilter extends SSLBaseFilter {
             this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;
         }
 
+        handshakeContextAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                "SSLFilter-SSLHandshakeContextAttr");
     }
 
     // ----------------------------------------------------- Methods from Filter
@@ -143,6 +158,30 @@ public class SSLFilter extends SSLBaseFilter {
 
     // ---------------------------------------------------------- Public Methods
 
+    /**
+     * @return the maximum number of bytes that may be queued to be written
+     *  to a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     */
+    public int getMaxPendingBytesPerConnection() {
+        return maxPendingBytes;
+    }
+
+    /**
+     * Configures the maximum number of bytes that may be queued to be written
+     * for a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     *
+     * @param maxPendingBytes maximum number of bytes that may be queued to be
+     *  written for a particular {@link Connection}
+     */
+    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
+        this.maxPendingBytes = maxPendingBytes;
+    }
 
     public void handshake(final Connection connection,
                           final CompletionHandler<SSLEngine> completionHandler)
@@ -156,7 +195,7 @@ public class SSLFilter extends SSLBaseFilter {
                           final Object dstAddress)
     throws IOException {
         handshake(connection, completionHandler, dstAddress,
-                clientSSLEngineConfigurator);
+                  clientSSLEngineConfigurator);
     }
 
     public void handshake(final Connection connection,
@@ -165,7 +204,8 @@ public class SSLFilter extends SSLBaseFilter {
                           final SSLEngineConfigurator sslEngineConfigurator)
     throws IOException {
         handshake(connection, completionHandler, dstAddress,
-                sslEngineConfigurator, createContext(connection, Operation.WRITE));
+                  sslEngineConfigurator,
+                  createContext(connection, Operation.WRITE));
     }
 
     protected void handshake(final Connection<?> connection,
@@ -252,11 +292,135 @@ public class SSLFilter extends SSLBaseFilter {
         
         super.notifyHandshakeFailed(connection, t);
     }
-    
+
+    @Override
+    protected Buffer doHandshakeStep(final SSLConnectionContext sslCtx,
+                                     final FilterChainContext ctx,
+                                     final Buffer inputBuffer,
+                                     final Buffer tmpAppBuffer0)
+    throws IOException {
+        try {
+            return super.doHandshakeStep(sslCtx, ctx, inputBuffer, tmpAppBuffer0);
+        } catch (IOException ioe) {
+            SSLHandshakeContext context =
+                    handshakeContextAttr.get(ctx.getConnection());
+            if (context != null) {
+                context.failed(ioe);
+            }
+            throw ioe;
+        }
+    }
+
+
+
+
     // ----------------------------------------------------------- Inner Classes
 
 
+    private final class SSLHandshakeContext {
 
+        private CompletionHandler<SSLEngine> completionHandler;
+        
+        private final Connection connection;
+        private List<FilterChainContext> pendingWriteContexts;
+        private int sizeInBytes = 0;
+        
+        private IOException error;
+        private boolean isComplete;
+        
+        public SSLHandshakeContext(final Connection connection,
+                final CompletionHandler<SSLEngine> completionHandler) {
+            this.connection = connection;
+            this.completionHandler = completionHandler;            
+        }
+
+        /**
+         * Has to be called in synchronized(connection) {...} scope.
+         */
+        public boolean add(FilterChainContext context) throws IOException {
+            if (error != null) throw error;
+            if (isComplete) return false;
+
+            final Buffer buffer = context.getMessage();
+
+            final int newSize = sizeInBytes + buffer.remaining();
+            if (newSize > maxPendingBytes) {
+                throw new PendingWriteQueueLimitExceededException(
+                        "Max queued data limit exceeded: "
+                        + newSize + '>' + maxPendingBytes);
+            }
+
+            sizeInBytes = newSize;
+
+            if (pendingWriteContexts == null) {
+                pendingWriteContexts = new LinkedList<FilterChainContext>();
+            }
+
+            pendingWriteContexts.add(context);
+
+            return true;
+        }
+        
+        public void completed(SSLEngine result) {
+            try {
+                synchronized (connection) {
+                    isComplete = true;
+                    
+                    final CompletionHandler<SSLEngine> completionHandlerLocal =
+                            completionHandler;
+                    completionHandler = null;
+                    
+                    if (completionHandlerLocal != null) {
+                        completionHandlerLocal.completed(result);
+                    }
+                    
+                    final List<FilterChainContext> pendingWriteContextsLocal =
+                            pendingWriteContexts;
+                    pendingWriteContexts = null;
+                    
+                    if (pendingWriteContextsLocal != null) {
+                        for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                            ctx.resume();
+                        }
+
+                        pendingWriteContextsLocal.clear();
+                        sizeInBytes = 0;
+                    }
+                }
+            } catch (Exception e) {
+                failed(e);
+            }
+        }
+
+        public void failed(Throwable throwable) {
+            synchronized(connection) {
+                error = Exceptions.makeIOException(throwable);
+                
+                final CompletionHandler<SSLEngine> completionHandlerLocal =
+                        completionHandler;
+                completionHandler = null;
+                    
+                if (completionHandlerLocal != null) {
+                    completionHandlerLocal.failed(throwable);
+                }
+                
+                final List<FilterChainContext> pendingWriteContextsLocal =
+                        pendingWriteContexts;
+                pendingWriteContexts = null;
+                
+                if (pendingWriteContextsLocal != null) {
+                    for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                        ctx.resume();
+                    }
+                    
+                    pendingWriteContextsLocal.clear();
+                    sizeInBytes = 0;
+                }
+            }
+
+            connection.closeSilently();
+        }        
+    }
 
     /**
      * Close listener, which is used to notify handshake completion handler about
