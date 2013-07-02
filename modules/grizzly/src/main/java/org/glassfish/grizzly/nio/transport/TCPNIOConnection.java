@@ -72,8 +72,7 @@ public class TCPNIOConnection extends NIOConnection {
     private int readBufferSize = -1;
     private int writeBufferSize = -1;
 
-    private final AtomicReference<CompletionHandler<Connection>> connectHandlerRef =
-            new AtomicReference<CompletionHandler<Connection>>();
+    private AtomicReference<ConnectResultHandler> connectHandlerRef;
 
     public TCPNIOConnection(TCPNIOTransport transport,
             SelectableChannel channel) {
@@ -240,9 +239,10 @@ public class TCPNIOConnection extends NIOConnection {
         }
     }
     
-    protected final void setConnectCompletionHandler(
-            final CompletionHandler<Connection> connectHandler) {
-        this.connectHandlerRef.set(connectHandler);
+    protected final void setConnectResultHandler(
+            final ConnectResultHandler connectHandler) {
+        connectHandlerRef =
+                new AtomicReference<ConnectResultHandler>(connectHandler);
     }
 
     /**
@@ -250,17 +250,15 @@ public class TCPNIOConnection extends NIOConnection {
      * @throws IOException
      */
     protected final void onConnect() throws IOException {
-        final CompletionHandler<Connection> localConnectHandler =
-                connectHandlerRef.getAndSet(null);
+        final AtomicReference<ConnectResultHandler> localRef = connectHandlerRef;
+        final ConnectResultHandler localConnectHandler;
         
-        if (localConnectHandler != null) {
-            try {
-                localConnectHandler.completed(this);
-            } catch (Exception e) {
-                throw new IOException("Connect exception", e);
-            }
+        if (localRef != null &&
+                (localConnectHandler = localRef.getAndSet(null)) != null) {
+            localConnectHandler.connected();
+            connectHandlerRef = null;
         }
-
+        
         notifyProbesConnect(this);
     }
 
@@ -270,15 +268,17 @@ public class TCPNIOConnection extends NIOConnection {
      * @throws IOException
      */
     protected final void checkConnectFailed(Throwable failure) {
-        final CompletionHandler<Connection> localConnectHandler =
-                connectHandlerRef.getAndSet(null);
-
-        if (localConnectHandler != null) {
+        final AtomicReference<ConnectResultHandler> localRef = connectHandlerRef;
+        final ConnectResultHandler localConnectHandler;
+        
+        if (localRef != null &&
+                (localConnectHandler = localRef.getAndSet(null)) != null) {
             if (failure == null) {
                 failure = new IOException("closed");
             }
             
             localConnectHandler.failed(failure);
+            connectHandlerRef = null;
         }
     }
 
@@ -361,5 +361,14 @@ public class TCPNIOConnection extends NIOConnection {
         sb.append('}');
         return sb.toString();
     }
+    
+    /**
+     * This interface implementations can be used to be notified about the
+     * <tt>TCPNIOConnection</tt> connect state. 
+     */
+    protected interface ConnectResultHandler {
+        void connected() throws IOException;
+        void failed(final Throwable t);
+    }    
 }
     

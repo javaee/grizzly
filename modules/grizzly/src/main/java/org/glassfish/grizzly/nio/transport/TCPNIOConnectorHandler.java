@@ -54,6 +54,7 @@ import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
+import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -146,20 +147,19 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 futureToReturn = null;
             }
             
-            newConnection.setConnectCompletionHandler(
-                    new EmptyCompletionHandler<Connection>() {
+            newConnection.setConnectResultHandler(
+                    new TCPNIOConnection.ConnectResultHandler() {
+                @Override
+                public void connected() throws IOException {
+                    onConnectedAsync(finalConnection, completionHandlerToPass);
+                }
 
-                        @Override
-                        public void completed(Connection result) {
-                            onConnectedAsync(finalConnection, completionHandlerToPass);
-                        }
-
-                        @Override
-                        public void failed(Throwable throwable) {
-                            abortConnection(finalConnection,
-                                    completionHandlerToPass, throwable);
-                        }
-                    });
+                @Override
+                public void failed(Throwable throwable) {
+                    abortConnection(finalConnection,
+                            completionHandlerToPass, throwable);
+                }
+            });
 
             final NIOChannelDistributor nioChannelDistributor =
                     nioTransport.getNIOChannelDistributor();
@@ -194,7 +194,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     }
 
     protected static void onConnectedAsync(final TCPNIOConnection connection,
-            final CompletionHandler<Connection> completionHandler) {
+            final CompletionHandler<Connection> completionHandler)
+            throws IOException {
 
         final TCPNIOTransport tcpTransport =
                 (TCPNIOTransport) connection.getTransport();
@@ -213,7 +214,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             tcpTransport.configureChannel(channel);
         } catch (Exception e) {
             abortConnection(connection, completionHandler, e);
-            throw new IllegalStateException(e);
+            throw Exceptions.makeIOException(e);
         }
         
         if (connection.notifyReady()) {
@@ -262,7 +263,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             completionHandler.failed(failure);
         }
     }
-
+    
     private class InstantConnectHandler extends
             EmptyCompletionHandler<RegisterChannelResult> {
         @Override
