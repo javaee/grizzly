@@ -194,7 +194,6 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
 
     /**
      * Add a {@link File} resource to the cache.
-     * 
      * If a client comes with not the latest version of this resource - the
      * {@link FileCache} will return it the latest resource version.
      */
