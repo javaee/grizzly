@@ -87,7 +87,7 @@ public class MultiEndpointPool<E> {
     /**
      * Maps endpoint -to- SingleEndpointPool
      */
-    private final Map<EndpointKey<E>, SingleEndpointPool<E>> endpointToPoolMap =
+    protected final Map<EndpointKey<E>, SingleEndpointPool<E>> endpointToPoolMap =
             new ConcurrentHashMap<EndpointKey<E>, SingleEndpointPool<E>>();
     /**
      * Maps Connection -to- ConnectionInfo
@@ -98,7 +98,7 @@ public class MultiEndpointPool<E> {
     /**
      * Sync for endpointToPoolMap updates
      */
-    private final Object poolSync = new Object();
+    protected final Object poolSync = new Object();
     /**
      * The pool's counters sync (poolSize, totalPendingConnections etc)
      */
@@ -518,7 +518,7 @@ public class MultiEndpointPool<E> {
      * @return {@link SingleEndpointPool}
      * @throws IOException if the pool is already closed
      */
-    private SingleEndpointPool<E> obtainSingleEndpointPool(
+    protected SingleEndpointPool<E> obtainSingleEndpointPool(
             final EndpointKey<E> endpointKey) throws IOException {
         SingleEndpointPool<E> sePool = endpointToPoolMap.get(endpointKey);
         if (sePool == null) {
@@ -551,7 +551,7 @@ public class MultiEndpointPool<E> {
     /**
      * Method throws {@link IOException} if the pool has been closed.
      */
-    private void checkNotClosed() throws IOException {
+    protected void checkNotClosed() throws IOException {
         if (isClosed) {
             throw new IOException("The pool is closed");
         }
