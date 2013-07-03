@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.connectionpool;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -899,7 +900,7 @@ public class SingleEndpointPool<E> {
 
         @Override
         public void cancelled() {
-            onFailedToConnect(null);
+            onFailedToConnect(new ConnectException("Connect timeout"));
         }
 
         @Override
@@ -924,7 +925,7 @@ public class SingleEndpointPool<E> {
                     if (LOGGER.isLoggable(Level.FINEST)) {
                         LOGGER.log(Level.FINE, "Pool connect operation failed, schedule reconnect");
                     }
-                    if (t != null && ++failedConnectAttempts > maxReconnectAttempts) {
+                    if (++failedConnectAttempts > maxReconnectAttempts) {
                         notifyAsyncPollersOfFailure(t);
                     } else {
                         reconnectQueue.add(
@@ -932,9 +933,7 @@ public class SingleEndpointPool<E> {
                                 reconnectDelayMillis, TimeUnit.MILLISECONDS);
                     }
                 } else {
-                    if (t != null) {
-                        notifyAsyncPollersOfFailure(t);
-                    }
+                    notifyAsyncPollersOfFailure(t);
                 }
             }
         }
@@ -973,7 +972,7 @@ public class SingleEndpointPool<E> {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINE, "Pool connect timed out");
             }
-            connectTimeoutTask.future.cancel(false);
+            connectTimeoutTask.connectFuture.cancel(false);
             return true;
         }
     }
@@ -1001,10 +1000,10 @@ public class SingleEndpointPool<E> {
     
     protected final static class ConnectTimeoutTask {
         public long timeout;
-        public final GrizzlyFuture<Connection> future;
+        public final GrizzlyFuture<Connection> connectFuture;
 
         public ConnectTimeoutTask(GrizzlyFuture<Connection> future) {
-            this.future = future;
+            this.connectFuture = future;
         }
     }
     
