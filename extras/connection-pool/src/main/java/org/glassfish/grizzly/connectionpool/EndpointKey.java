@@ -56,8 +56,11 @@ import org.glassfish.grizzly.ConnectorHandler;
 public class EndpointKey<E> {
     private final Object internalKey;
     private final E endpoint;
+    private final E localEndpoint;
     
     private final ConnectorHandler<E> connectorHandler;
+
+
     /**
      * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
      * 
@@ -68,23 +71,59 @@ public class EndpointKey<E> {
      *          to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
     public EndpointKey(final Object internalKey, final E endpoint) {
-        this(internalKey, endpoint, null);
+        this(internalKey, endpoint, null, null);
     }
 
     /**
-     * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
+     * Construct <tt>EndpointKey<tt> based on the given internalKey, endpoint,
+     * and local endpoint.
+     *
+     * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
+     *                    and {@link #hashCode()} methods
+     * @param endpoint the endpoint address, that will be used by
+     *                 a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
+     *                 to establish new client-side {@link org.glassfish.grizzly.Connection}
+     * @param localEndpoint the local address that will be used by the
+     *                      {@link ConnectorHandler} to bind the local side of
+     *                      the outgoing connection.
+     */
+    public EndpointKey(final Object internalKey, final E endpoint, final E localEndpoint) {
+        this(internalKey, endpoint, localEndpoint, null);
+    }
+
+    /**
+     * Construct <tt>EndpointKey<tt> based on the given internalKey, endpoint, and
+     * {@link ConnectorHandler}.
      * 
      * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
      *          and {@link #hashCode()} methods
      * @param endpoint the endpoint address, that will be used by
      *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
      *          to establish new client-side {@link org.glassfish.grizzly.Connection}
-     * @param connectorHandler customized {@link ConnectorHandler} this this endpoint
+     * @param connectorHandler customized {@link ConnectorHandler} for this endpoint
      */
     public EndpointKey(final Object internalKey, final E endpoint,
             final ConnectorHandler<E> connectorHandler) {
+        this(internalKey, endpoint, null, connectorHandler);
+    }
+
+    /**
+     *
+     * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
+     *                    and {@link #hashCode()} methods
+     * @param endpoint the endpoint address, that will be used by
+     *                 a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
+     *                 to establish new client-side {@link org.glassfish.grizzly.Connection}
+     * @param localEndpoint the local address that will be used by the
+     *                      {@link ConnectorHandler} to bind the local side of
+     *                      the outgoing connection.
+     * @param connectorHandler customized {@link ConnectorHandler} for this endpoint
+     */
+    public EndpointKey(final Object internalKey, final E endpoint,
+                       final E localEndpoint, final ConnectorHandler<E> connectorHandler) {
         this.internalKey = internalKey;
         this.endpoint = endpoint;
+        this.localEndpoint = localEndpoint;
         this.connectorHandler = connectorHandler;
     }
 
@@ -105,28 +144,54 @@ public class EndpointKey<E> {
     }
 
     /**
+     * @return the local endpoint address that be bound to when making the
+     *  outgoing connection.
+     */
+    public E getLocalEndpoint() {
+        return localEndpoint;
+    }
+
+    /**
      * Returns a customized {@link ConnectorHandler}, which will be used to
      * create {@link org.glassfish.grizzly.Connection}s to this endpoint.
      */
     public ConnectorHandler<E> getConnectorHandler() {
         return connectorHandler;
     }
-    
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
-    public int hashCode() {
-        return internalKey.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        EndpointKey that = (EndpointKey) o;
+
+        if (!endpoint.equals(that.endpoint)) {
+            return false;
+        }
+        if (!internalKey.equals(that.internalKey)) {
+            return false;
+        }
+        if (localEndpoint != null
+                ? !localEndpoint.equals(that.localEndpoint)
+                : that.localEndpoint != null) {
+            return false;
+        }
+
+        return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean equals(final Object obj) {
-        return obj instanceof EndpointKey && internalKey.equals(
-                ((EndpointKey) obj).internalKey);
-
+    public int hashCode() {
+        int result = internalKey.hashCode();
+        result = 31 * result + endpoint.hashCode();
+        result = 31 * result + (localEndpoint != null
+                ? localEndpoint.hashCode()
+                : 0);
+        return result;
     }
 }

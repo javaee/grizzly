@@ -114,6 +114,24 @@ public class SingleEndPointPoolTest {
             transport.stop();
         }
     }
+
+    @Test
+    public void testLocalAddress() throws Exception {
+        InetSocketAddress localAddress = new InetSocketAddress("localhost", 60000);
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                        .builder(SocketAddress.class)
+                        .connectorHandler(transport)
+                        .endpointAddress(new InetSocketAddress("localhost", PORT))
+                        .localEndpointAddress(localAddress)
+                        .build();
+
+        try {
+            Connection c1 = pool.take().get();
+            assertEquals(localAddress, c1.getLocalAddress());
+        } finally {
+            pool.close();
+        }
+    }
     
     @Test
     public void testBasicPollRelease() throws Exception {

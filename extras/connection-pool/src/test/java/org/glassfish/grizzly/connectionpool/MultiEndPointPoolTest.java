@@ -113,6 +113,29 @@ public class MultiEndPointPoolTest {
             transport.stop();
         }
     }
+
+    @Test
+    public void testLocalAddress() throws Exception {
+        InetSocketAddress localAddress =
+                new InetSocketAddress("localhost", 60000);
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                        .builder(SocketAddress.class)
+                        .connectorHandler(transport)
+                        .maxConnectionsPerEndpoint(3)
+                        .maxConnectionsTotal(15)
+                        .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                        .build();
+        final EndpointKey<SocketAddress> key1 =
+                            new EndpointKey<SocketAddress>("endpoint1",
+                                                           new InetSocketAddress("localhost", PORT),
+                                                           localAddress);
+        try {
+            Connection c1 = pool.take(key1).get();
+            assertEquals(localAddress, c1.getLocalAddress());
+        } finally {
+            pool.close();
+        }
+    }
     
     @Test
     public void testBasicPollRelease() throws Exception {

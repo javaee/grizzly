@@ -168,7 +168,10 @@ public class SingleEndpointPool<E> {
      * Endpoint address
      */
     private final E endpointAddress;
-
+    /**
+     * Local bind address.
+     */
+    private final E localEndpointAddress;
     /**
      * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      */
@@ -222,6 +225,7 @@ public class SingleEndpointPool<E> {
      * 
      * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
      * @param endpointAddress endpoint address
+     * @param localEndpointAddress local bind address.  May be <code>null</code>.
      * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      * @param maxPoolSize the max number of {@link Connection}s kept by this pool
      * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
@@ -235,6 +239,7 @@ public class SingleEndpointPool<E> {
     protected SingleEndpointPool(
             final ConnectorHandler<E> connectorHandler,
             final E endpointAddress,
+            final E localEndpointAddress,
             final int corePoolSize, final int maxPoolSize,
             DelayedExecutor delayedExecutor,
             final long connectTimeoutMillis,
@@ -244,6 +249,7 @@ public class SingleEndpointPool<E> {
             final int maxReconnectAttempts) {
         this.connectorHandler = connectorHandler;
         this.endpointAddress = endpointAddress;
+        this.localEndpointAddress = localEndpointAddress;
 
         this.corePoolSize = corePoolSize;
         this.maxPoolSize = maxPoolSize;
@@ -300,6 +306,7 @@ public class SingleEndpointPool<E> {
      * 
      * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
      * @param endpointAddress endpoint address
+     * @param localEndpointAddress local bind address.  May be <code>null</code>.
      * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      * @param maxPoolSize the max number of {@link Connection}s kept by this pool
      * @param connectTimeoutQueue the {@link DelayQueue} used by connect timeout mechanism
@@ -315,6 +322,7 @@ public class SingleEndpointPool<E> {
     protected SingleEndpointPool(
             final ConnectorHandler<E> connectorHandler,
             final E endpointAddress,
+            final E localEndpointAddress,
             final int corePoolSize, final int maxPoolSize,
             final DelayQueue<ConnectTimeoutTask> connectTimeoutQueue,
             final DelayQueue<ReconnectTask> reconnectQueue,
@@ -326,6 +334,7 @@ public class SingleEndpointPool<E> {
             final int maxReconnectAttempts) {
         this.connectorHandler = connectorHandler;
         this.endpointAddress = endpointAddress;
+        this.localEndpointAddress = localEndpointAddress;
 
         this.corePoolSize = corePoolSize;
         this.maxPoolSize = maxPoolSize;
@@ -799,11 +808,11 @@ public class SingleEndpointPool<E> {
     private boolean createConnectionIfPossibleNoSync() {
         if (checkBeforeOpeningConnection()) {
             if (connectTimeoutMillis < 0) {
-                connectorHandler.connect(endpointAddress,
+                connectorHandler.connect(endpointAddress, localEndpointAddress,
                         defaultConnectionCompletionHandler);
             } else {
                 final GrizzlyFuture<Connection> future =
-                        connectorHandler.connect(endpointAddress);
+                        connectorHandler.connect(endpointAddress, localEndpointAddress);
                 final ConnectTimeoutTask connectTimeoutTask =
                         new ConnectTimeoutTask(future);
                 
@@ -1116,6 +1125,11 @@ public class SingleEndpointPool<E> {
         private E endpointAddress;
 
         /**
+         * Local bind address.
+         */
+        private E localEndpointAddress;
+
+        /**
          * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
          */
         private int corePoolSize = 0;
@@ -1174,6 +1188,16 @@ public class SingleEndpointPool<E> {
          */
         public Builder<E> endpointAddress(final E endpointAddress) {
             this.endpointAddress = endpointAddress;
+            return this;
+        }
+
+        /**
+         * Sets the local endpoint address.
+         *
+         * @return this {@link Builder}
+         */
+        public Builder<E> localEndpointAddress(final E localEndpointAddress) {
+            this.localEndpointAddress = localEndpointAddress;
             return this;
         }
         
@@ -1343,7 +1367,7 @@ public class SingleEndpointPool<E> {
             }
             
             return new SingleEndpointPool<E>(connectorHandler, endpointAddress,
-                    corePoolSize, maxPoolSize, delayedExecutor,
+                    localEndpointAddress, corePoolSize, maxPoolSize, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
                     keepAliveCheckIntervalMillis, reconnectDelayMillis,
                     maxReconnectAttempts);

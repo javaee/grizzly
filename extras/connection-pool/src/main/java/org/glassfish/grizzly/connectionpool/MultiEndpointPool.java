@@ -544,8 +544,10 @@ public class MultiEndpointPool<E> {
     protected SingleEndpointPool<E> createSingleEndpointPool(
             final EndpointKey<E> endpointKey) {
         return new EndpointPoolImpl(endpointKey.getEndpoint(),
-                endpointKey.getConnectorHandler() == null ?
-                defaultConnectorHandler : endpointKey.getConnectorHandler());
+                                    endpointKey.getLocalEndpoint(),
+                                    endpointKey.getConnectorHandler() == null
+                                            ? defaultConnectorHandler
+                                            : endpointKey.getConnectorHandler());
     }
     
     /**
@@ -567,9 +569,10 @@ public class MultiEndpointPool<E> {
         private int maxPoolSizeHits;
         
         public EndpointPoolImpl(final E endpoint,
+                                final E localEndpoint,
                 final ConnectorHandler<E> connectorHandler) {
             super(connectorHandler,
-                endpoint, 0, maxConnectionsPerEndpoint,
+                endpoint, localEndpoint, 0, maxConnectionsPerEndpoint,
                 connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
                 connectTimeoutMillis, keepAliveTimeoutMillis,
                 keepAliveCheckIntervalMillis, reconnectDelayMillis, maxReconnectAttempts);
