@@ -106,7 +106,7 @@ public class EndpointKey<E> {
 
     /**
      * Returns a customized {@link ConnectorHandler}, which will be used to
-     * create {@link Connection}s to this endpoint.
+     * create {@link org.glassfish.grizzly.Connection}s to this endpoint.
      */
     public ConnectorHandler<E> getConnectorHandler() {
         return connectorHandler;
