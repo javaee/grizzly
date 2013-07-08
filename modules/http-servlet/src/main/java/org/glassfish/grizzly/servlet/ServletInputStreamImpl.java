@@ -214,32 +214,28 @@ public class ServletInputStreamImpl extends ServletInputStream {
         }
 
         @Override
-        public void onDataAvailable() {
+        public void onDataAvailable() throws Exception {
             if (!Boolean.TRUE.equals(IS_READY_SCOPE.get())) {
-                prevIsReady = true;
-                readListener.onDataAvailable();
+                invokeReadPossibleCallback();
             } else {
                 AsyncContextImpl.pool.execute(new Runnable() {
                     @Override
                     public void run() {
-                        prevIsReady = true;
-                        readListener.onDataAvailable();
+                        invokeReadPossibleCallback();
                     }
                 });
             }
         }
 
         @Override
-        public void onAllDataRead() {
+        public void onAllDataRead() throws Exception {
             if (!Boolean.TRUE.equals(IS_READY_SCOPE.get())) {
-                prevIsReady = true;
-                readListener.onAllDataRead();
+                invokeAllDataReadCallback();
             } else {
                 AsyncContextImpl.pool.execute(new Runnable() {
                     @Override
                     public void run() {
-                        prevIsReady = true;
-                        readListener.onAllDataRead();
+                        invokeAllDataReadCallback();
                     }
                 });
             }
@@ -256,6 +252,24 @@ public class ServletInputStreamImpl extends ServletInputStream {
                         readListener.onError(t);
                     }
                 });
+            }
+        }
+
+        private void invokeReadPossibleCallback() {
+            prevIsReady = true;
+            try {
+                readListener.onDataAvailable();
+            } catch (Throwable t) {
+                readListener.onError(t);
+            }
+        }
+
+        private void invokeAllDataReadCallback() {
+            prevIsReady = true;
+            try {
+                readListener.onAllDataRead();
+            } catch (Throwable t) {
+                readListener.onError(t);
             }
         }
     }    
