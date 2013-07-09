@@ -43,9 +43,13 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -73,6 +77,8 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  * @author Alexey Stashok
  */
 public class MultiEndpointPool<E> {
+
+    private static final Logger LOGGER = Grizzly.logger(MultiEndpointPool.class);
     /**
      * Returns single endpoint pool {@link Builder}.
      * 
@@ -414,9 +420,19 @@ public class MultiEndpointPool<E> {
     public boolean release(final Connection connection) {
         final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
         if (info != null) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,
+                           "Returning {0} to endpoint pool {1}",
+                           new Object[] {connection, info.endpointPool});
+            }
             // optimize release() call to avoid redundant map lookup
             return info.endpointPool.release0(info);
         } else {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,
+                           "No ConnectionInfo available for {0}.  Closing connection.",
+                           connection);
+            }
             connection.closeSilently();
             return false;
         }
@@ -439,8 +455,13 @@ public class MultiEndpointPool<E> {
     public boolean attach(final EndpointKey<E> endpointKey,
             final Connection connection)
             throws IOException {
-        
+
         final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE,
+                       "Associating foreign connection with pool {0} using endpoint key {1}.",
+                       new Object[] {sePool, endpointKey});
+        }
         return sePool.attach(connection);
     }
     
@@ -459,6 +480,11 @@ public class MultiEndpointPool<E> {
      */
     public boolean detach(final Connection connection) {
         final ConnectionInfo<E> info = connectionToSubPoolMap.get(connection);
+        if (info != null && LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE,
+                       "Detaching {0} from endpoint pool {1}.",
+                       new Object[] { connection, info.endpointPool});
+        }
         return info != null && info.endpointPool.detach(connection);
     }
     
@@ -474,6 +500,11 @@ public class MultiEndpointPool<E> {
     public void close(final EndpointKey<E> endpointKey) {
         final SingleEndpointPool<E> sePool = endpointToPoolMap.remove(endpointKey);
         if (sePool != null) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,
+                           "Closing pool associated with endpoint key {0}",
+                           endpointKey);
+            }
             sePool.close();
         }
     }
@@ -490,7 +521,9 @@ public class MultiEndpointPool<E> {
             if (isClosed) {
                 return;
             }
-            
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Shutting down. Closing all pools; shutting down executors as needed.");
+            }
             isClosed = true;
 
             for (Map.Entry<EndpointKey<E>, SingleEndpointPool<E>> entry :
@@ -536,8 +569,17 @@ public class MultiEndpointPool<E> {
                 
                 sePool = endpointToPoolMap.get(endpointKey);
                 if (sePool == null) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE,
+                                   "Creating new endpoint pool for key {0}",
+                                   endpointKey);
+                    }
                     sePool = createSingleEndpointPool(endpointKey);
                     endpointToPoolMap.put(endpointKey, sePool);
+                } else if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE,
+                               "Returning existing pool {0} for key {1}",
+                               new Object[]{sePool, endpointKey});
                 }
             }
         }
