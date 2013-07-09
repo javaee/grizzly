@@ -124,4 +124,15 @@ final class Link<E> {
     public boolean isAttached() {
         return isAttached;
     }
+
+    @Override
+    public String toString() {
+        return "Link{"
+                + "value=" + value
+                + ", prev=" + prev
+                + ", next=" + next
+                + ", isAttached=" + isAttached
+                + ", linkTimeStamp=" + linkTimeStamp
+                + "} " + super.toString();
+    }
 }

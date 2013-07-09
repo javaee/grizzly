@@ -428,7 +428,19 @@ public class SingleEndpointPool<E> {
             return isBusy0(connectionsMap.get(connection));
         }
     }
-    
+
+    @Override
+    public String toString() {
+        return "SingleEndpointPool{" +
+                "endpointAddress=" + endpointAddress +
+                ", localEndpointAddress=" + localEndpointAddress +
+                ", corePoolSize=" + corePoolSize +
+                ", maxPoolSize=" + maxPoolSize +
+                ", poolSize=" + poolSize +
+                ", isClosed=" + isClosed +
+                "} " + super.toString();
+    }
+
     boolean isBusy0(final ConnectionInfo<E> connectionRecord) {
         synchronized (poolSync) {
             return connectionRecord != null && !connectionRecord.isReady();
@@ -1373,4 +1385,5 @@ public class SingleEndpointPool<E> {
                     maxReconnectAttempts);
         }
     }
+
 }

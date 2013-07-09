@@ -89,4 +89,14 @@ public final class ConnectionInfo<E> {
     public long getPooledTimeStamp() {
         return pooledTimeStamp;
     }
+
+    @Override
+    public String toString() {
+        return "ConnectionInfo{"
+                    + "connection=" + connection
+                    + ", readyStateLink=" + readyStateLink
+                    + ", endpointPool=" + endpointPool
+                    + ", pooledTimeStamp=" + pooledTimeStamp
+                    + "} " + super.toString();
+    }
 }

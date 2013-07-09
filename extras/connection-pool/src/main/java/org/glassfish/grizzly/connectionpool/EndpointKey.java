@@ -194,4 +194,14 @@ public class EndpointKey<E> {
                 : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "EndpointKey{"
+                    + "internalKey=" + internalKey
+                    + ", endpoint=" + endpoint
+                    + ", localEndpoint=" + localEndpoint
+                    + ", connectorHandler=" + connectorHandler
+                    + "} " + super.toString();
+    }
 }

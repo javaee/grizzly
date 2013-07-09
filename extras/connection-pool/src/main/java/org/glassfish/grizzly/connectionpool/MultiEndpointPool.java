@@ -508,7 +508,16 @@ public class MultiEndpointPool<E> {
             }
         }
     }
-    
+
+    @Override
+    public String toString() {
+        return "MultiEndpointPool{"
+                + "endpoint count=" + endpointToPoolMap.size()
+                + "poolSize=" + poolSize
+                + ", isClosed=" + isClosed
+                + "} " + super.toString();
+    }
+
     /**
      * Obtains {@link SingleEndpointPool} associated with the specific endpoint
      * represented by {@link EndpointKey}. If there is no {@link SingleEndpointPool}
