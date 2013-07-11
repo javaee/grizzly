@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.GenericCloseListener;
@@ -155,7 +154,7 @@ public class MultipartBasicTest {
             final HttpContent responseContent = (HttpContent) responsePacket;
             assertEquals("TRUE", responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET));
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
 //            httpClient.close();
         }
     }
@@ -226,7 +225,7 @@ public class MultipartBasicTest {
             final HttpContent responseContent = (HttpContent) responsePacket;
             assertEquals("TRUE", responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET));
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
 //            httpClient.close();
         }
     }
@@ -293,7 +292,7 @@ public class MultipartBasicTest {
             assertTrue(responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET),
                     responseContent.getContent().toStringContent(Charsets.ASCII_CHARSET).startsWith("FALSE"));
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
 //            httpClient.close();
         }
     }

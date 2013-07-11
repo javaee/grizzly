@@ -1281,7 +1281,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            server.stop();
+            server.shutdownNow();
             ctransport.stop();
         }
     }

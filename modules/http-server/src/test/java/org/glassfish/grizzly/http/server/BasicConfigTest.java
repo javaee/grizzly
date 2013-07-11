@@ -105,7 +105,7 @@ public class BasicConfigTest {
             assertNotNull(scheme);
             assertEquals("https", scheme);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -153,7 +153,7 @@ public class BasicConfigTest {
             assertNotNull(value);
             assertEquals(paramValue, value);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
     

@@ -121,7 +121,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -160,7 +160,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -198,7 +198,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -240,7 +240,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -279,7 +279,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -321,7 +321,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
             e.shutdownNow();
         }
     }
@@ -358,7 +358,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -403,7 +403,7 @@ public class SendFileTest extends TestCase {
             c.close();
         } finally {
             client.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 

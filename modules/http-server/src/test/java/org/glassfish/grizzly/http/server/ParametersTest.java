@@ -143,7 +143,7 @@ public class ParametersTest {
             latch.await(10, TimeUnit.SECONDS);
             assertNull(error.get());
         } finally {
-            server.stop();
+            server.shutdownNow();
             clientTransport.stop();
         }
 

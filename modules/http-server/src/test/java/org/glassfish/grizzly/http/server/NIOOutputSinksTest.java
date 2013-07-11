@@ -242,7 +242,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -407,7 +407,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
 
     }
@@ -535,7 +535,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -648,7 +648,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -788,7 +788,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -930,7 +930,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -1116,7 +1116,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
             ses.shutdown();
         }
     }
@@ -1127,6 +1127,7 @@ public class NIOOutputSinksTest extends TestCase {
      * 
      * https://java.net/jira/browse/GRIZZLY-1536
      */
+    @SuppressWarnings("unchecked")
     public void testPostponedAsyncFailure() throws Exception {
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
@@ -1254,7 +1255,7 @@ public class NIOOutputSinksTest extends TestCase {
             assertEquals(checkPattern, httpContent.getContent().toStringContent());
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     

@@ -1150,7 +1150,7 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
             assertEquals(expectedResult, res);
 
         } finally {
-            server.stop();
+            server.shutdownNow();
             ctransport.stop();
         }
     }

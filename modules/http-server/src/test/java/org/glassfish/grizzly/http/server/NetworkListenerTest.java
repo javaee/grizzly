@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,12 +40,17 @@
 
 package org.glassfish.grizzly.http.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import static org.junit.Assert.*;
 /**
@@ -67,7 +72,7 @@ public class NetworkListenerTest {
             httpServer.start();
             assertEquals(PORT, listener.getPort());
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -82,7 +87,7 @@ public class NetworkListenerTest {
             httpServer.start();
             assertNotSame(0, listener.getPort());
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -101,7 +106,7 @@ public class NetworkListenerTest {
             assertTrue(listener.getPort() >= PORT);
             assertTrue(listener.getPort() <= PORT + RANGE);
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -143,7 +148,49 @@ public class NetworkListenerTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
+    
+    @Test
+    public void testGracefulShutdown() throws IOException {
+        final String msg = "Hello World";
+        final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
+        
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding(Charsets.UTF8_CHARSET.name());
+                        response.setContentLength(msgBytes.length);
+                        response.flush();
+                        Thread.sleep(2000);
+                        response.getOutputStream().write(msgBytes);
+                    }
+                }, "/test"
+        );
+        try {
+            server.start();
+            URL url = new URL("http://localhost:" + PORT + "/test");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            
+            assertEquals(200, c.getResponseCode());
+            assertEquals(msgBytes.length, c.getContentLength());
+            
+            Future<HttpServer> gracefulFuture = server.shutdown();
+            
+            final BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(c.getInputStream()));
+            final String content = reader.readLine();
+            assertEquals(msg, content);
+
+            assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.shutdownNow();
+        }
+    }    
 }

@@ -1159,8 +1159,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 if (isLast) {
                     onHttpPacketParsed(httpHeader, ctx);
                     if (!httpHeader.getProcessingState().isStayAlive()) {
-                        flushAndClose(ctx);
-                        return suspendAndFinishContext(ctx);
+                        return gracefullyCloseConnection(ctx);
                     }
                 }
                 if (remainderBuffer != null) {
@@ -1743,19 +1742,21 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     /**
      * Flush the {@link FilterChainContext} and close the associated {@link Connection}.
      */
-    protected static void flushAndClose(final FilterChainContext ctx)
-            throws IOException {
+    protected static void flushAndClose(final FilterChainContext ctx) {
         // no matter it's keep-alive or not - we close the connection
         ctx.flush(FLUSH_AND_CLOSE_HANDLER);
     }
         
-    private static NextAction suspendAndFinishContext(final FilterChainContext ctx) {
+    protected static NextAction gracefullyCloseConnection(
+            final FilterChainContext ctx) {
+        flushAndClose(ctx);
+        
         // we skip the processing and let connection to be closed
         final NextAction suspendAction = ctx.getSuspendAction();
         ctx.completeAndRecycle();
         return suspendAction;
     }
-
+    
     // ---------------------------------------------------------- Nested Classes
 
     private static class FlushAndCloseHandler
@@ -1847,6 +1848,13 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 HttpCodecFilter.class);
     }
 
+    /**
+     * Method, which might be optionally called to prepare the filter for
+     * shutdown.
+     */
+    public void prepareForShutdown() {
+    }
+    
     private boolean isResponseToHeadRequest(HttpHeader header) {
         if (header.isRequest()) {
             return false;

@@ -270,7 +270,7 @@ public class HttpSessionTest extends TestCase {
             assertTrue(!cookies1[0].getValue().equals(cookies2[0].getValue()));
 
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -319,7 +319,7 @@ public class HttpSessionTest extends TestCase {
             String encodeRedirectURL3 = props.get("encodeRedirectURL3");
             assertEquals("", encodeRedirectURL3);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -347,7 +347,7 @@ public class HttpSessionTest extends TestCase {
             server.start();
             return sendRequest(request, timeout);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
 

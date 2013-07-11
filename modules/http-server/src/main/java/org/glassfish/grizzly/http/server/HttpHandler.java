@@ -133,6 +133,8 @@ public abstract class HttpHandler {
      * @param request the {@link Request}
      * @param response the {@link Response}
      *
+     * @return <tt>true</tt> if the {@link Request} has already been processed in
+     *         the current {@link Thread}, or <tt>false</tt> otherwise
      * @throws Exception if an error occurs serving a static resource or
      *  from the invocation of {@link #service(Request, Response)}
      */

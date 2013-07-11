@@ -61,8 +61,14 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 import org.glassfish.grizzly.http.util.Header;
 
@@ -72,23 +78,56 @@ import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
+import static org.glassfish.grizzly.http.HttpServerFilter.RESPONSE_COMPLETE_EVENT;
+
 /**
  * Filter implementation to provide high-level HTTP request/response processing.
  */
 public class HttpServerFilter extends BaseFilter
         implements MonitoringAware<HttpServerProbe> {
 
-
-
     private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
-    private final Attribute<Request> httpRequestInProgress;
-    final Attribute<Boolean> reregisterForReadAttr;
+    /**
+     * The {@link CompletionHandler} to be used to make sure the response data
+     * have been flushed
+     */
+    private final FlushResponseHandler flushResponseHandler =
+            new FlushResponseHandler();
     
+    /**
+     * Attribute, which holds the current HTTP Request in progress associated
+     * with an HttpContext
+     */
+    private final Attribute<Request> httpRequestInProgress;
+    
+    /**
+     * Delay queue to control suspended request/response processing timeouts
+     */
     private final DelayedExecutor.DelayQueue<Response.SuspendTimeout> suspendedResponseQueue;
 
+    /**
+     * Root {@link HttpHandler}
+     */
     private volatile HttpHandler httpHandler;
 
+    /**
+     * Server configuration
+     */
     private final ServerFilterConfiguration config;
+    
+    /**
+     * The flag, which indicates if the server is currently in the shutdown phase
+     */
+    private volatile boolean isShuttingDown;
+    /**
+     * CompletionHandler to be notified, when shutdown could be gracefully completed
+     */
+    private AtomicReference<CompletionHandler<HttpServerFilter>> shutdownCompletionHandlerRef;
+    
+    /**
+     * The number of requests, which are currently in process.
+     */
+    private final AtomicInteger activeRequestsCounter = new AtomicInteger();
     
     /**
      * Web server probes
@@ -113,8 +152,6 @@ public class HttpServerFilter extends BaseFilter
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProgress = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                         createAttribute("HttpServerFilter.Request");
-        reregisterForReadAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("HttpServerFilter.reregisterForReadAttr");
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
@@ -131,17 +168,6 @@ public class HttpServerFilter extends BaseFilter
     }
     
     // ----------------------------------------------------- Methods from Filter
-
-
-//    @Override
-//    public NextAction handleEvent(FilterChainContext ctx, Event event) throws IOException {
-//        if (event.type() == InputBuffer.REREGISTER_FOR_READ_EVENT.type()) {
-//            final Request request = httpRequestInProgress.get(HttpContext.get(ctx));
-//            request.initiateAsyncronousDataReceiving();
-//            return ctx.getStopAction();
-//        }
-//        return super.handleEvent(ctx, event);
-//    }
 
     @SuppressWarnings({"unchecked", "ReturnInsideFinallyBlock"})
     @Override
@@ -160,7 +186,16 @@ public class HttpServerFilter extends BaseFilter
             if (handlerRequest == null) {
                 // It's a new HTTP request
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-                final HttpResponsePacket response = request.getResponse();                
+                final HttpResponsePacket response = request.getResponse();
+                
+                activeRequestsCounter.incrementAndGet();
+                
+                if (isShuttingDown) { // if we're in the shutting down phase - serve shutdown page and exit
+                    onRequestCompleteAndResponseFlushed();
+                    serveShutDownPage(ctx, request, response);
+                    return ctx.getStopAction();
+                }
+                
                 handlerRequest = Request.create();
                 handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
                 httpRequestInProgress.set(context, handlerRequest);
@@ -170,6 +205,8 @@ public class HttpServerFilter extends BaseFilter
                 handlerResponse.initialize(handlerRequest, response,
                         ctx, suspendedResponseQueue, this);
 
+                handlerRequest.addAfterServiceListener(flushResponseHandler);
+                
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
 
@@ -194,14 +231,7 @@ public class HttpServerFilter extends BaseFilter
                     request.getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
-                        final ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
-                        handlerResponse.reset();
-                        handlerResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                        handlerResponse.setContentType("text/html");
-                        handlerResponse.setCharacterEncoding("UTF-8");
-                        final MemoryManager mm = ctx.getMemoryManager();
-                        final Buffer buf = Buffers.wrap(mm, b);
-                        handlerResponse.getOutputBuffer().writeBuffer(buf);
+                        serveInternalServerErrorPage(ctx, handlerResponse, t);
                     }
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Unexpected error", t);
@@ -231,21 +261,28 @@ public class HttpServerFilter extends BaseFilter
                 }
             }
         } else { // this code will be run, when we resume the context
-            if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
-                // Do we want to reregister OP_READ to get more data async?
-                ctx.suspend();
-                return ctx.getForkAction();
-            } else {
-                // We're finishing the request processing
-                final Response response = (Response) message;
-                final Request request = response.getRequest();
-                return afterService(ctx, connection,
-                        request, response);
-            }
+            // We're finishing the request processing
+            final Response response = (Response) message;
+            final Request request = response.getRequest();
+            return afterService(ctx, connection, request, response);
         }
 
         return ctx.getStopAction();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+        if (event.type() == RESPONSE_COMPLETE_EVENT) {
+            ctx.flush(flushResponseHandler);
+        }
+        
+        return ctx.getInvokeAction();
+    }
+
 
 
     /**
@@ -280,7 +317,24 @@ public class HttpServerFilter extends BaseFilter
         return monitoringConfig;
     }
 
-
+    /**
+     * Method, which might be optionally called to prepare the filter for
+     * shutdown.
+     * @param shutdownCompletionHandler {@link CompletionHandler} to be notified,
+     *        when shutdown could be gracefully completed
+     */
+    public void prepareForShutdown(
+            final CompletionHandler<HttpServerFilter> shutdownCompletionHandler) {
+        this.shutdownCompletionHandlerRef =
+                new AtomicReference<CompletionHandler<HttpServerFilter>>(shutdownCompletionHandler);
+        isShuttingDown = true;
+        
+        if (activeRequestsCounter.get() == 0 &&
+                shutdownCompletionHandlerRef.getAndSet(null) != null) {
+            shutdownCompletionHandler.completed(this);
+        }
+    }
+    
     // ------------------------------------------------------- Protected Methods
 
 
@@ -341,5 +395,94 @@ public class HttpServerFilter extends BaseFilter
         }
         
         return ctx.getStopAction();
+    }
+
+    /**
+     * Serve the shutdown page.
+     */
+    private static void serveShutDownPage(final FilterChainContext ctx,
+            final HttpRequestPacket request,
+            final HttpResponsePacket response) throws IOException {
+        request.getProcessingState().setError(true);
+
+        final ByteBuffer b = HtmlHelper.getErrorPage(
+                "The server is being shutting down...",
+                "The server is being shutting down...",
+                "Grizzly/2.0");
+        
+        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE_503);
+        response.setContentType("text/html");
+        response.setCharacterEncoding("UTF-8");
+        
+        final MemoryManager mm = ctx.getMemoryManager();
+        final Buffer buf = Buffers.wrap(mm, b);
+        final HttpContent httpContent = HttpContent.builder(response)
+                .last(true)
+                .content(buf)
+                .build();
+        
+        ctx.write(httpContent);
+    }
+
+    private static void serveInternalServerErrorPage(
+            final FilterChainContext ctx, final Response response,
+            final Exception error) throws IOException {
+        
+        final ByteBuffer b = HtmlHelper.getExceptionErrorPage(
+                "Internal Server Error", "Grizzly/2.0", error);
+        response.reset();
+        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+        response.setContentType("text/html");
+        response.setCharacterEncoding("UTF-8");
+        final MemoryManager mm = ctx.getMemoryManager();
+        final Buffer buf = Buffers.wrap(mm, b);
+        response.getOutputBuffer().writeBuffer(buf);
+    }
+
+    /**
+     * Will be called, once HTTP request processing is complete and response is
+     * flushed.
+     */
+    private void onRequestCompleteAndResponseFlushed() {
+        final int count = activeRequestsCounter.decrementAndGet();
+        if (count == 0 && isShuttingDown) {
+            final CompletionHandler<HttpServerFilter> shutdownHandler =
+                    shutdownCompletionHandlerRef != null
+                    ? shutdownCompletionHandlerRef.getAndSet(null)
+                    : null;
+            
+            if (shutdownHandler != null) {
+                shutdownHandler.completed(this);
+            }
+        }
+    }
+    
+    /**
+     * The {@link CompletionHandler} to be used to make sure the response data
+     * have been flushed.
+     */
+    private class FlushResponseHandler
+            extends EmptyCompletionHandler<WriteResult>
+            implements AfterServiceListener{
+
+        @Override
+        public void cancelled() {
+            onRequestCompleteAndResponseFlushed();
+        }
+
+        @Override
+        public void failed(Throwable throwable) {
+            onRequestCompleteAndResponseFlushed();
+        }
+
+        @Override
+        public void completed(WriteResult result) {
+            onRequestCompleteAndResponseFlushed();
+        }
+
+        @Override
+        public void onAfterService(Request request) {
+            request.getContext().flush(this);
+        }
     }
 }

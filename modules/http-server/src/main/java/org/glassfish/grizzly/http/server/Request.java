@@ -202,9 +202,6 @@ public class Request {
     private static final String match =
         ';' + Globals.SESSION_PARAMETER_NAME + '=';
 
-    private static final String CHUNKED = "chunked";
-
-
     // -------------------------------------------------------------------- //
 
 

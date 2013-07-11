@@ -129,7 +129,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             if (client != null) {
                 client.close();
             }
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -190,7 +190,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, is.read(bytes)));
         } finally {
             is.close();
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -218,7 +218,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, content.read(bytes)));
         } finally {
             content.close();
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -249,12 +249,12 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             server.start();
             client.connect();
             
-            server.stop();
+            server.shutdownNow();
             
             Assert.assertFalse(isConnectedStateWhenClosed.get(10, TimeUnit.SECONDS));
         } finally {
             client.close();
-            server.stop();
+            server.shutdownNow();
         }
     }
     

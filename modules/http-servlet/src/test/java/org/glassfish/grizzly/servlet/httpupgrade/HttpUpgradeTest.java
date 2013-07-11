@@ -174,7 +174,7 @@ public class HttpUpgradeTest extends TestCase {
             }
             
             if (httpServer != null) {
-                httpServer.stop();
+                httpServer.shutdownNow();
             }
         }
     }

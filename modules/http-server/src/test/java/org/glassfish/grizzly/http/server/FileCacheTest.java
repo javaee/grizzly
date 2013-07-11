@@ -130,7 +130,7 @@ public class FileCacheTest {
     @After
     public void after() throws Exception {
         if (httpServer != null) {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 

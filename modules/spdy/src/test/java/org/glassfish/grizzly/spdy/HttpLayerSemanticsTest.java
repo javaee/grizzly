@@ -207,7 +207,7 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
             }
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
         

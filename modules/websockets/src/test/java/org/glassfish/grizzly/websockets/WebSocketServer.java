@@ -183,7 +183,7 @@ public class WebSocketServer {
 
     public void stop() {
         synchronized (SYNC) {
-            httpServer.stop();
+            httpServer.shutdownNow();
             WebSocketEngine.getEngine().unregisterAll();
         }
     }

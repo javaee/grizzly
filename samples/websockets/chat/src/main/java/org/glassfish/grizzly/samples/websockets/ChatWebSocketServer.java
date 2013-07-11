@@ -80,7 +80,7 @@ public class ChatWebSocketServer {
             System.in.read();
         } finally {
             // stop the server
-            server.stop();
+            server.shutdownNow();
         }
     }
 }

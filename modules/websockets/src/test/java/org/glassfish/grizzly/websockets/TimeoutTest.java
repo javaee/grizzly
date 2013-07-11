@@ -77,7 +77,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
             if (socket != null) {
                 socket.close();
             }
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -112,7 +112,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
             if (socket != null) {
                 socket.close();
             }
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 

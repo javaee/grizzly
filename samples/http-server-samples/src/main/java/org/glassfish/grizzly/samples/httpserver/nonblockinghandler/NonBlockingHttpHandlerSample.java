@@ -127,7 +127,7 @@ public class NonBlockingHttpHandlerSample {
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
 

@@ -271,7 +271,7 @@ public class ServerPushTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
