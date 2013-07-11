@@ -140,7 +140,7 @@ public class ChunkedTransferEncodingTest {
 
         if (httpServer != null) {
             try {
-                httpServer.stop();
+                httpServer.shutdownNow();
             } catch (Exception ignored) {
             }
         }

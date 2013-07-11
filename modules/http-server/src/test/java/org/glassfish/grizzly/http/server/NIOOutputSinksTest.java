@@ -236,7 +236,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -357,7 +357,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -518,7 +518,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
 
     }
@@ -636,7 +636,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -761,7 +761,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -874,7 +874,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -1014,7 +1014,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -1153,7 +1153,7 @@ public class NIOOutputSinksTest extends TestCase {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -1291,7 +1291,7 @@ public class NIOOutputSinksTest extends TestCase {
             assertEquals(checkPattern, httpContent.getContent().toStringContent());
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     

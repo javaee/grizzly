@@ -87,7 +87,7 @@ public class CLStaticHttpHandlerTest {
     @After
     public void after() throws Exception {
         if (httpServer != null) {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
     

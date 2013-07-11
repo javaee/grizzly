@@ -137,7 +137,7 @@ public class Server {
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
         } finally {
-            server.stop();
+            server.shutdownNow();
             // !!! Don't forget to shutdown the custom threads
             lowPriorityExecutorService.shutdownNow();
             highPriorityExecutorService.shutdownNow();

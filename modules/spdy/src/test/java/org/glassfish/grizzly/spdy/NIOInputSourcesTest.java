@@ -599,7 +599,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -701,7 +701,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             }
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 

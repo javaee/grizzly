@@ -196,7 +196,7 @@ public class SplitTest extends AbstractSpdyTest {
             }
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 

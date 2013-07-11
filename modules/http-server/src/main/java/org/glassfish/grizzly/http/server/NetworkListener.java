@@ -44,16 +44,19 @@ import java.net.InetSocketAddress;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.CompletionHandler;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
-import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -62,6 +65,7 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ArraySet;
+import org.glassfish.grizzly.utils.Futures;
 
 public class NetworkListener {
     private static final Logger LOGGER = Grizzly.logger(NetworkListener.class);
@@ -123,6 +127,10 @@ public class NetworkListener {
      * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
     private TCPNIOTransport transport;
+    /**
+     * TCP Server {@link Connection} responsible for accepting client connections
+     */
+    private TCPNIOServerConnection serverConnection;    
     
     {
         final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
@@ -170,9 +178,13 @@ public class NetworkListener {
      */
     private volatile int maxPendingBytes = -1;
     /**
-     * Flag indicating the paused state of this listener.
+     * Flag indicating the state of this listener.
      */
-    private boolean paused;
+    private State state = State.STOPPED;
+    /**
+     * Future to control graceful shutdown status
+     */
+    private FutureImpl<NetworkListener> shutdownFuture;
     /**
      * {@link HttpServerFilter} associated with this listener.
      */
@@ -435,7 +447,7 @@ public class NetworkListener {
      * @param secure if <code>true</code> this listener will be secure.
      */
     public void setSecure(final boolean secure) {
-        if (!transport.isStopped()) {
+        if (!isStopped()) {
             return;
         }
         this.secure = secure;
@@ -519,7 +531,7 @@ public class NetworkListener {
      * @param sslEngineConfig custom SSL configuration.
      */
     public void setSSLEngineConfig(final SSLEngineConfigurator sslEngineConfig) {
-        if (!transport.isStopped()) {
+        if (!isStopped()) {
             return;
         }
         this.sslEngineConfig = sslEngineConfig;
@@ -550,7 +562,7 @@ public class NetworkListener {
      * @param maxHttpHeaderSize the maximum header size for an HTTP request.
      */
     public void setMaxHttpHeaderSize(final int maxHttpHeaderSize) {
-        if (!transport.isStopped()) {
+        if (!isStopped()) {
             return;
         }
         this.maxHttpHeaderSize = maxHttpHeaderSize;
@@ -574,7 +586,7 @@ public class NetworkListener {
      * @param filterChain the {@link FilterChain}.
      */
     void setFilterChain(final FilterChain filterChain) {
-        if (!transport.isStopped()) {
+        if (!isStopped()) {
             return;
         }
         if (filterChain != null) {
@@ -618,14 +630,14 @@ public class NetworkListener {
      * @return <code>true</code> if this listener has been paused, otherwise <code>false</code>
      */
     public boolean isPaused() {
-        return paused;
+        return state == State.PAUSED;
     }
 
     /**
      * @return <code>true</code> if the listener has been started, otherwise <code>false</code>.
      */
     public boolean isStarted() {
-        return !transport.isStopped();
+        return state != State.STOPPED;
 
     }
 
@@ -635,15 +647,17 @@ public class NetworkListener {
      * @throws IOException if an error occurs when attempting to start the listener.
      */
     public synchronized void start() throws IOException {
-        if (!transport.isStopped()) {
+        if (isStarted()) {
             return;
         }
+        
+        state = State.RUNNING;
+        shutdownFuture = null;
         if (filterChain == null) {
             throw new IllegalStateException("No FilterChain available."); // i18n
         }
         transport.setFilterChain(filterChain);
 
-        final TCPNIOServerConnection serverConnection;
         if (isBindToInherited) {
             serverConnection = transport.bindToInherited();
         } else {
@@ -663,23 +677,81 @@ public class NetworkListener {
 
 
     }
+    
+    /**
+     * <p> Gracefully shuts down the listener. </p>
+     *
+     * @throws IOException if an error occurs when attempting to shut down the listener
+     */
+    public synchronized GrizzlyFuture<NetworkListener> shutdown() {
+        if (state == State.STOPPING ||
+                state == State.STOPPED) {
+            return shutdownFuture != null ? shutdownFuture :
+                    Futures.createReadyFuture(this);
+        } else if (state == State.PAUSED) {
+            try {
+                shutdownNow();
+            } catch (IOException e) {
+                return Futures.createReadyFuture(e);
+            }
+            
+            return Futures.createReadyFuture(this);
+        }
+        
+        state = State.STOPPING;
+        serverConnection.closeSilently();
+
+        shutdownFuture = Futures.createSafeFuture();
+        final FutureImpl<NetworkListener> shutdownFutureLocal = shutdownFuture;
+        
+        final HttpCodecFilter codecFilter = getHttpCodecFilter();
+        if (codecFilter != null) {
+            codecFilter.prepareForShutdown();
+        }
+        
+        final CompletionHandler<HttpServerFilter> shutdownCompletionHandler =
+                new EmptyCompletionHandler<HttpServerFilter>() {
+            @Override
+            public void completed(final HttpServerFilter filter) {
+                try {
+                    shutdownNow();
+                    shutdownFutureLocal.result(NetworkListener.this);
+                } catch (Throwable e) {
+                    shutdownFutureLocal.failure(e);
+                }
+            }
+        };
+        
+        getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
+        
+        return shutdownFuture;
+    }
 
     /**
-     * <p> Stops the listener. </p>
+     * <p> Immediately shuts down the listener. </p>
      *
-     * @throws IOException if an error occurs when attempting to stop the listener.
+     * @throws IOException if an error occurs when attempting to shut down the listener
      */
-    public synchronized void stop() throws IOException {
-        if (transport.isStopped()) {
+    public synchronized void shutdownNow() throws IOException {
+        if (state == State.STOPPED) {
             return;
         }
-        transport.stop();
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.log(Level.INFO,
-                "Stopped listener bound to [{0}]",
-                host + ':' + port);
+        
+        try {
+            state = State.STOPPED;
+            
+            serverConnection = null;
+            transport.stop();
+            if (LOGGER.isLoggable(Level.INFO)) {
+                LOGGER.log(Level.INFO,
+                    "Stopped listener bound to [{0}]",
+                    host + ':' + port);
+            }
+        } finally {
+            if (shutdownFuture != null) {
+                shutdownFuture.result(this);
+            }
         }
-
     }
 
     /**
@@ -688,11 +760,11 @@ public class NetworkListener {
      * @throws IOException if an error occurs when attempting to pause the listener.
      */
     public synchronized void pause() throws IOException {
-        if (transport.isStopped() || transport.isPaused()) {
+        if (state != State.RUNNING) {
             return;
         }
+        state = State.PAUSED;
         transport.pause();
-        paused = true;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Paused listener bound to [{0}]",
@@ -707,11 +779,11 @@ public class NetworkListener {
      * @throws IOException if an error occurs when attempting to resume the listener.
      */
     public synchronized void resume() throws IOException {
-        if (transport.isStopped() || !transport.isPaused()) {
+        if (state != State.PAUSED) {
             return;
         }
+        state = State.RUNNING;
         transport.resume();
-        paused = false;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Resumed listener bound to [{0}]",
@@ -730,6 +802,7 @@ public class NetworkListener {
             ", host='" + host + '\'' +
             ", port=" + port +
             ", secure=" + secure +
+            ", state=" + state +
             '}';
     }
 
@@ -741,12 +814,12 @@ public class NetworkListener {
 
     public HttpServerFilter getHttpServerFilter() {
         if (httpServerFilter == null) {
-            for (Filter f : filterChain) {
-                if (f instanceof HttpServerFilter) {
-                    httpServerFilter = (HttpServerFilter) f;
-                    break;
-                }
+            final int idx = filterChain.indexOfType(HttpServerFilter.class);
+            if (idx == -1) {
+                return null;
             }
+            
+            httpServerFilter = (HttpServerFilter) filterChain.get(idx);
         }
         return httpServerFilter;
 
@@ -754,12 +827,12 @@ public class NetworkListener {
 
     public HttpCodecFilter getHttpCodecFilter() {
         if (httpCodecFilter == null) {
-            for (Filter f : filterChain) {
-                if (f instanceof HttpCodecFilter) {
-                    httpCodecFilter = (HttpCodecFilter) f;
-                    break;
-                }
+            final int idx = filterChain.indexOfType(HttpCodecFilter.class);
+            if (idx == -1) {
+                return null;
             }
+            
+            httpCodecFilter = (HttpCodecFilter) filterChain.get(idx);
         }
         return httpCodecFilter;
 
@@ -942,6 +1015,8 @@ public class NetworkListener {
         return (sendFileEnabled != null);
     }
 
-
+    private boolean isStopped() {
+        return state == State.STOPPED || state == State.STOPPING;
+    }
 
 }

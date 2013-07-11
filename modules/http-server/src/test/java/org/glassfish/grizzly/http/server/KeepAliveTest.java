@@ -127,7 +127,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -191,7 +191,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -257,7 +257,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -322,7 +322,7 @@ public class KeepAliveTest extends TestCase {
             } finally {
                 client.close();
                 clientTransport.stop();
-                server.stop();
+                server.shutdownNow();
             }
         }
     
@@ -363,7 +363,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -419,7 +419,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -460,7 +460,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }    
 
@@ -516,7 +516,7 @@ public class KeepAliveTest extends TestCase {
         } finally {
             client.close();
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     

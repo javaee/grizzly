@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,9 +40,7 @@
 
 package filter;
 
-import com.sun.jersey.server.impl.application.WebApplicationContext;
 import org.glassfish.grizzly.servlet.FilterRegistration;
-import org.glassfish.grizzly.servlet.ServletHandler;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -52,9 +50,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.Filter;
 import javax.ws.rs.core.UriBuilder;
-import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.servlet.WebappContext;
 
 public class Main {
@@ -76,7 +72,7 @@ public class Main {
 //        Utils.dumpOut(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
 //                BASE_URI));
         System.in.read();
-        httpServer.stop();
+        httpServer.shutdownNow();
     }
 
     private static HttpServer create(URI u,

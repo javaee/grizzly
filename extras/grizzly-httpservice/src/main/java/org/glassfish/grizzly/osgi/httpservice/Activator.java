@@ -181,7 +181,7 @@ public class Activator implements BundleActivator {
         if (extServiceRegistration != null) {
             extServiceRegistration.unregister();
         }
-        httpServer.stop();
+        httpServer.shutdownNow();
         logTracker.close();
     }
 }

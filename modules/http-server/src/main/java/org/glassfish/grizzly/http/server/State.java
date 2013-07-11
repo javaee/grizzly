@@ -37,54 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.samples.spdy;
-
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.spdy.SpdyAddOn;
-import org.glassfish.grizzly.spdy.SpdyMode;
+package org.glassfish.grizzly.http.server;
 
 /**
- * The SPDY/HTTPS server initialization code.
- * 
- * The class initializes and start SPDY/HTTPS server on port 8080.
- * The {@link SmileysHandler}, registered to process incoming requests,
- * can operate in 3 modes: SPDY, SPDY with Server-Push and HTTPS.
- * 
- * See {@link SmileysHandler} documentation to learn how to switch SPDY and
- * SPDY with Server-Push modes.
- * 
- * @see SmileysHandler
- * @see HttpsOnlyServer
- * 
- * @author Alexey Stashok
+ * Network component (like {@link HttpServer} or {@link NetworkListener}) state.
  */
-public class SpdyServer {
-    private static final Logger LOGGER = Grizzly.logger(SpdyServer.class);
-    private static final String HOST = "0.0.0.0";
-    private static final int PORT = 8080;
-    
-    public static void main(String[] args) throws IOException {
-        // Initialize SpdyAddOn to work in NPN mode
-        final SpdyAddOn spdyAddOn = new SpdyAddOn(SpdyMode.NPN);
-        
-        // Configure HttpServer
-        final HttpServer server = ServerUtils.configureServer(
-                "spdy-listener", HOST, PORT, true, spdyAddOn);
-        try {
-            // Start the server
-            server.start();
-            
-            System.out.println("Press enter to exit...");
-            System.in.read();
-        } catch (IOException ioe) {
-            LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
-        } finally {
-            // Stop the server
-            server.shutdownNow();
-        }
-    }
+enum State {
+    RUNNING, PAUSED, STOPPING, STOPPED
 }

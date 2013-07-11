@@ -143,7 +143,7 @@ public class MultipartUploadFilterTest extends TestCase {
             Assert.assertNotNull(f);
             Assert.assertFalse(f.exists());
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -199,7 +199,7 @@ public class MultipartUploadFilterTest extends TestCase {
             Assert.assertTrue(f.exists());
             f.deleteOnExit();
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 

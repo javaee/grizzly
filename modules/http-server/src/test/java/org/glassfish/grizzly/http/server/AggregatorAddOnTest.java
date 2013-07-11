@@ -116,7 +116,7 @@ public class AggregatorAddOnTest {
     @After
     public void after() throws Exception {
         if (httpServer != null) {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
     

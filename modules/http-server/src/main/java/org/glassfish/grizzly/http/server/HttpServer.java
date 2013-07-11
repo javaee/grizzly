@@ -56,9 +56,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportProbe;
@@ -71,6 +73,7 @@ import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -84,6 +87,7 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
+import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 
 
@@ -91,7 +95,6 @@ import org.glassfish.grizzly.utils.IdleTimeoutFilter;
  *
  */
 public class HttpServer {
-
     private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
 
     /**
@@ -103,8 +106,13 @@ public class HttpServer {
     /**
      * Flag indicating whether or not this server instance has been started.
      */
-    private boolean started;
+    private State state = State.STOPPED;
 
+    /**
+     * Future to control graceful shutdown status
+     */
+    private FutureImpl<HttpServer> shutdownFuture;
+    
     /**
      * HttpHandler, which processes HTTP requests
      */
@@ -153,9 +161,9 @@ public class HttpServer {
      * @param listener the {@link NetworkListener} to associate with this
      *  server instance.
      */
-    public void addListener(final NetworkListener listener) {
+    public synchronized void addListener(final NetworkListener listener) {
 
-        if (!started) {
+        if (state != State.RUNNING) {
             listeners.put(listener.getName(), listener);
         } else {
             configureListener(listener);
@@ -181,7 +189,7 @@ public class HttpServer {
      * @return the {@link NetworkListener}, if any, associated with the
      *  specified <code>name</code>.
      */
-    public NetworkListener getListener(final String name) {
+    public synchronized NetworkListener getListener(final String name) {
 
         return listeners.get(name);
 
@@ -192,8 +200,8 @@ public class HttpServer {
      * @return a <code>read only</code> {@link Collection} over the listeners
      *  associated with this <code>HttpServer</code> instance.
      */
-    public Collection<NetworkListener> getListeners() {
-        return Collections.unmodifiableMap(listeners).values();
+    public synchronized Collection<NetworkListener> getListeners() {
+        return Collections.unmodifiableCollection(listeners.values());
     }
 
 
@@ -210,13 +218,13 @@ public class HttpServer {
      *
      * @param name the name of the {@link NetworkListener} to remove.
      */
-    public NetworkListener removeListener(final String name) {
+    public synchronized NetworkListener removeListener(final String name) {
 
         final NetworkListener listener = listeners.remove(name);
         if (listener != null) {
             if (listener.isStarted()) {
                 try {
-                    listener.stop();
+                    listener.shutdownNow();
                 } catch (IOException ioe) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
                         LOGGER.log(Level.SEVERE,
@@ -241,11 +249,16 @@ public class HttpServer {
      */
     public synchronized void start() throws IOException{
 
-        if (started) {
+        if (state == State.RUNNING) {
             return;
+        } else if (state == State.STOPPING) {
+            throw new IllegalStateException("The server is currently in pending"
+                    + " shutdown state. You have to either wait for shutdown to"
+                    + " complete or force it by calling shutdownNow()");
         }
-        started = true;
-
+        state = State.RUNNING;
+        shutdownFuture = null;
+        
         configureAuxThreadPool();
 
         delayedExecutor = new DelayedExecutor(auxExecutorService);
@@ -324,7 +337,7 @@ public class HttpServer {
      *  been started.
      */
     public boolean isStarted() {
-        return started;
+        return state != State.STOPPED;
     }
 
 
@@ -347,20 +360,58 @@ public class HttpServer {
         }
     }
 
-
     /**
      * <p>
-     * Stops the <code>HttpServer</code> instance.
+     * Gracefully shuts down the <code>HttpServer</code> instance.
      * </p>
      */
-    public synchronized void stop() {
+    public synchronized GrizzlyFuture<HttpServer> shutdown() {
+        if (state != State.RUNNING) {
+            return shutdownFuture != null ? shutdownFuture :
+                    Futures.createReadyFuture(this);
+        }
+        
+        shutdownFuture = Futures.createSafeFuture();
+        state = State.STOPPING;
+        
+        final int listenersCount = listeners.size();
+        final FutureImpl<HttpServer> shutdownFutureLocal = shutdownFuture;
+        
+        final CompletionHandler<NetworkListener> shutdownCompletionHandler =
+                new EmptyCompletionHandler<NetworkListener>() {
+            final AtomicInteger counter = new AtomicInteger(listenersCount);
+            @Override
+            public void completed(final NetworkListener networkListener) {
+                if (counter.decrementAndGet() == 0) {
+                    try {
+                        shutdownNow();
+                        shutdownFutureLocal.result(HttpServer.this);
+                    } catch (Throwable e) {
+                        shutdownFutureLocal.failure(e);
+                    }
+                }
+            }
+        };
+        
+        for (NetworkListener listener : listeners.values()) {
+            listener.shutdown().addCompletionHandler(shutdownCompletionHandler);
+        }
+        
+        
+        return shutdownFuture;
+    }
+    
+    /**
+     * <p>
+     * Immediately shuts down the <code>HttpServer</code> instance.
+     * </p>
+     */
+    public synchronized void shutdownNow() {
 
-        if (!started) {
+        if (state == State.STOPPED) {
             return;
         }
-        started = false;
-
-
+        state = State.STOPPED;
 
         try {
 
@@ -395,11 +446,14 @@ public class HttpServer {
                         listener.getTransport().getFilterChain();
                 filterChain.clear();
             }
+            
+            if (shutdownFuture != null) {
+                shutdownFuture.result(this);
+            }
         }
 
     }
     
-
     /**
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:{@link NetworkListener#DEFAULT_NETWORK_PORT},

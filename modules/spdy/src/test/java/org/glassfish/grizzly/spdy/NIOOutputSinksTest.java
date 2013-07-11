@@ -258,7 +258,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -375,7 +375,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -535,7 +535,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
 
     }
@@ -649,7 +649,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -771,7 +771,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 
@@ -882,7 +882,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -1015,7 +1015,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -1148,7 +1148,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             fail();
         } finally {
             clientTransport.stop();
-            server.stop();
+            server.shutdownNow();
         }
     }
 

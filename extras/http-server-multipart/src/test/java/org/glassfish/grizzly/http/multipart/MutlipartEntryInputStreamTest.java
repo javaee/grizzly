@@ -235,7 +235,7 @@ public class MutlipartEntryInputStreamTest {
                 task.checker.check(responseContent);
             }
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
 //            httpClient.close();
         }
     }

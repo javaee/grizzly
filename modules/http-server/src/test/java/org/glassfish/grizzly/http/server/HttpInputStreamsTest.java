@@ -1272,7 +1272,7 @@ public class HttpInputStreamsTest extends TestCase {
                 }
             }
         } finally {
-            server.stop();
+            server.shutdownNow();
             ctransport.stop();
         }
     }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,9 +43,7 @@ package org.glassfish.grizzly.servlet;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -282,7 +280,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals(encMsg, readResponse(conn));
         } finally {
-            httpServer.stop();
+            httpServer.shutdownNow();
         }
     }
 
@@ -331,7 +329,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                     (HttpURLConnection) new URL("http", "localhost", port, "/foo").openConnection();
             assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
         ctx.undeploy();
-        httpServer.stop();
+        httpServer.shutdownNow();
         assertTrue(init[0]);
         assertTrue(filter[0]);
         assertTrue(destroy[0]);
@@ -376,7 +374,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                 (HttpURLConnection) new URL("http", "localhost", port, "/test").openConnection();
         assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
         ctx.undeploy();
-        httpServer.stop();
+        httpServer.shutdownNow();
         assertTrue(init[0]);
         assertTrue(filter[0]);
         assertTrue(destroy[0]);

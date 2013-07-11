@@ -220,7 +220,7 @@ public class RequestURITest extends TestCase {
             assertNotNull(value);
             assertEquals(paramValue, value);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
     
@@ -249,7 +249,7 @@ public class RequestURITest extends TestCase {
             
             return doTest0(request, timeout);
         } finally {
-            server.stop();
+            server.shutdownNow();
         }
     }
 

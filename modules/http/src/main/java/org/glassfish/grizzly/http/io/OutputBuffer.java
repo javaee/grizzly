@@ -137,7 +137,7 @@ public class OutputBuffer implements OutputSink {
 
     private MemoryManager memoryManager;
 
-    private volatile AsyncStateHolder asyncStateHolder;
+    private AsyncStateHolder asyncStateHolder;
 
     private boolean fileTransferRequested;
 
@@ -766,18 +766,6 @@ public class OutputBuffer implements OutputSink {
             handler.onError(Exceptions.makeIOException(asyncException));
             return;
         }
-
-//        final int maxBytes = getMaxAsyncWriteQueueSize();
-//        if (maxBytes > 0 && length > maxBytes) {
-//            throw new IllegalArgumentException("Illegal request to write "
-//                                                  + length
-//                                                  + " bytes.  Max allowable write is "
-//                                                  + maxBytes + '.');
-//        }
-        
-        final Connection c = ctx.getConnection();
-        
-//        final int totalLength = length + getBufferedDataSize();
         
         asyncStateHolder.writeHandler = handler;
         

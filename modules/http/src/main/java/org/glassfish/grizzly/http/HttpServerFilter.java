@@ -124,6 +124,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     private String defaultResponseContentType;
     private int maxRequestHeaders;
     private int maxResponseHeaders;
+    
+    private boolean isShuttingDown;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -255,12 +257,15 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         ServerHttpRequestImpl httpRequest = httpRequestInProcessAttr.get(context);
         if (httpRequest == null) {
+            if (isShuttingDown) {
+                return gracefullyCloseConnection(ctx);
+            }
+            
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = ServerHttpRequestImpl.create();
             httpRequest.initialize(connection, this, input.position(), maxHeadersSize, maxRequestHeaders);
             httpRequest.setSecure(isSecureLocal);
             final HttpResponsePacket response = httpRequest.getResponse();
-//            response.setUpgrade(httpRequest.getUpgrade());
             response.setSecure(isSecureLocal);
             response.getHeaders().setMaxNumHeaders(maxResponseHeaders);
             httpRequest.setResponse(response);
@@ -905,10 +910,6 @@ public class HttpServerFilter extends HttpCodecFilter {
                             response.getCharacterEncoding()));
                 }
             }
-            
-//            if (!response.isContentTypeSet() && defaultResponseContentType != null) {
-//                response.setDefaultContentType(defaultResponseContentType);
-//            }
         }
 
         if (!response.containsHeader(Header.Date)) {
@@ -999,7 +1000,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
 
-            if (processKeepAlive) {
+            if (processKeepAlive && !isShuttingDown) {
                 final HttpContext context = HttpContext.get(ctx);
                 final KeepAliveContext keepAliveContext =
                         keepAliveContextAttr.get(context);
@@ -1065,6 +1066,15 @@ public class HttpServerFilter extends HttpCodecFilter {
         return HttpContent.builder(response).last(true).build();
     }
 
+    /**
+     * Method, which might be optionally called to prepare the filter for
+     * shutdown.
+     */
+    @Override
+    public void prepareForShutdown() {
+        isShuttingDown = true;
+    }
+    
     /**
      * Determine if we must drop the connection because of the HTTP status
      * code. Use the same list of codes as Apache/httpd.
