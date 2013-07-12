@@ -68,7 +68,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 import org.glassfish.grizzly.http.util.Header;
 
@@ -78,7 +77,6 @@ import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
-import static org.glassfish.grizzly.http.HttpServerFilter.RESPONSE_COMPLETE_EVENT;
 
 /**
  * Filter implementation to provide high-level HTTP request/response processing.
@@ -269,21 +267,6 @@ public class HttpServerFilter extends BaseFilter
 
         return ctx.getStopAction();
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleEvent(final FilterChainContext ctx,
-            final FilterChainEvent event) throws IOException {
-        if (event.type() == RESPONSE_COMPLETE_EVENT) {
-            ctx.flush(flushResponseHandler);
-        }
-        
-        return ctx.getInvokeAction();
-    }
-
-
 
     /**
      * Override the default implementation to notify the {@link ReadHandler},
