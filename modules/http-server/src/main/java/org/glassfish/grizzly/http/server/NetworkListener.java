@@ -687,9 +687,9 @@ public class NetworkListener {
     }
     
     /**
-     * <p> Gracefully shuts down the listener. </p>
-     *
-     * @throws IOException if an error occurs when attempting to shut down the listener
+     * <p> Gracefully shuts down the listener. </p>   Any exceptions
+     * thrown during the shutdown process will be propagated to the returned
+     * {@link GrizzlyFuture}.
      */
     public synchronized GrizzlyFuture<NetworkListener> shutdown() {
         if (state == State.STOPPING ||
