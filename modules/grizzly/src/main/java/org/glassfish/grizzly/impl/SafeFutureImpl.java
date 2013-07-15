@@ -44,7 +44,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 import org.glassfish.grizzly.CompletionHandler;
@@ -54,7 +53,6 @@ import org.glassfish.grizzly.CompletionHandler;
  * <p/>
  * (Based on the JDK {@link java.util.concurrent.FutureTask})
  *
- * @author Alexey Stashok
  * @see Future
  */
 @SuppressWarnings("deprecation")
@@ -62,7 +60,6 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 
     private final Object chSync = new Object();
     private Set<CompletionHandler<R>> completionHandlers;
-    private final AtomicReference<Object> ref = new AtomicReference<Object>();
 
     /**
      * {@inheritDoc}
@@ -102,16 +99,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      */
     @SuppressWarnings("unchecked")
     public SafeFutureImpl() {
-        sync = new Sync(new Callable<R>() {
-            @Override
-            public R call() throws Exception {
-                Object val = ref.get();
-                if (val instanceof Exception) {
-                    throw (Exception) val;
-                }
-                return (R) val;
-            }
-        });
+        sync = new Sync();
     }
 
     /**
@@ -121,8 +109,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      */
     @Override
     public void result(R result) {
-        ref.compareAndSet(null, result);
-        sync.innerRun();
+        sync.innerSet(result);
     }
 
     /**
@@ -132,8 +119,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      */
     @Override
     public void failure(Throwable failure) {
-        ref.compareAndSet(null, failure);
-        sync.innerRun();
+        sync.innerSetException(failure);
     }
 
     @Override
@@ -229,16 +215,26 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      */
     private final Sync sync;
 
-
-
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean isCancelled() {
         return sync.innerIsCancelled();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean isDone() {
         return sync.innerIsDone();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return sync.innerCancel(mayInterruptIfRunning);
     }
@@ -246,6 +242,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
     /**
      * @throws CancellationException {@inheritDoc}
      */
+    @Override
     public R get() throws InterruptedException, ExecutionException {
         return sync.innerGet();
     }
@@ -253,6 +250,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
     /**
      * @throws CancellationException {@inheritDoc}
      */
+    @Override
     public R get(long timeout, TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
         return sync.innerGet(unit.toNanos(timeout));
@@ -273,31 +271,6 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Sets the result of this Future to the given value unless
-     * this future has already been set or has been cancelled.
-     * This method is invoked internally by the <tt>run</tt> method
-     * upon successful completion of the computation.
-     *
-     * @param v the value
-     */
-    protected void set(R v) {
-        sync.innerSet(v);
-    }
-
-    /**
-     * Causes this future to report an <tt>ExecutionException</tt>
-     * with the given throwable as its cause, unless this Future has
-     * already been set or has been cancelled.
-     * This method is invoked internally by the <tt>run</tt> method
-     * upon failure of the computation.
-     *
-     * @param t the cause of failure
-     */
-    protected void setException(Throwable t) {
-        sync.innerSetException(t);
-    }
-
-    /**
      * Synchronization control for FutureTask. Note that this must be
      * a non-static inner class in order to invoke the protected
      * <tt>done</tt> method. For clarity, all inner class support
@@ -313,22 +286,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          */
         private static final int READY = 0;
         /**
-         * State value representing that task is running
-         */
-        private static final int RUNNING = 1;
-        /**
          * State value representing that task ran
          */
-        private static final int RAN = 2;
+        private static final int RAN = 1;
         /**
          * State value representing that task was cancelled
          */
-        private static final int CANCELLED = 4;
+        private static final int CANCELLED = 2;
 
-        /**
-         * The underlying callable
-         */
-        private final Callable<R> callable;
         /**
          * The result to return from get()
          */
@@ -343,11 +308,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          * indicates that the results are accessible.  Must be
          * volatile, to ensure visibility upon completion.
          */
-        private volatile Thread runner;
-
-        Sync(Callable<R> callable) {
-            this.callable = callable;
-        }
+        private volatile boolean hasRunnerSimulation = true;
 
         private boolean ranOrCancelled(int state) {
             return (state & (RAN | CANCELLED)) != 0;
@@ -356,6 +317,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         /**
          * Implements AQS base acquire to succeed if ran or cancelled
          */
+        @Override
         protected int tryAcquireShared(int ignore) {
             return innerIsDone() ? 1 : -1;
         }
@@ -364,8 +326,9 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          * Implements AQS base release to always signal after setting
          * final done status by nulling runner thread.
          */
+        @Override
         protected boolean tryReleaseShared(int ignore) {
-            runner = null;
+            hasRunnerSimulation = false;
             return true;
         }
 
@@ -374,7 +337,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         }
 
         boolean innerIsDone() {
-            return ranOrCancelled(getState()) && runner == null;
+            return ranOrCancelled(getState()) && !hasRunnerSimulation;
         }
 
         R innerGet() throws InterruptedException, ExecutionException {
@@ -403,89 +366,29 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         }
 
         void innerSet(R v) {
-            for (; ; ) {
-                int s = getState();
-                if (s == RAN) {
-                    return;
-                }
-                if (s == CANCELLED) {
-                    // aggressively release to set runner to null,
-                    // in case we are racing with a cancel request
-                    // that will try to interrupt runner
-                    releaseShared(0);
-                    return;
-                }
-                if (compareAndSetState(s, RAN)) {
-                    result = v;
-                    releaseShared(0);
-                    done();
-                    return;
-                }
+            if (compareAndSetState(READY, RAN)) {
+                result = v;
+                releaseShared(0);
+                done();
             }
         }
 
         void innerSetException(Throwable t) {
-            for (; ; ) {
-                int s = getState();
-                if (s == RAN) {
-                    return;
-                }
-                if (s == CANCELLED) {
-                    // aggressively release to set runner to null,
-                    // in case we are racing with a cancel request
-                    // that will try to interrupt runner
-                    releaseShared(0);
-                    return;
-                }
-                if (compareAndSetState(s, RAN)) {
-                    exception = t;
-                    releaseShared(0);
-                    done();
-                    return;
-                }
+            if (compareAndSetState(READY, RAN)) {
+                exception = t;
+                releaseShared(0);
+                done();
             }
         }
 
         boolean innerCancel(boolean mayInterruptIfRunning) {
-            for (; ; ) {
-                int s = getState();
-                if (ranOrCancelled(s)) {
-                    return false;
-                }
-                if (compareAndSetState(s, CANCELLED)) {
-                    break;
-                }
+            if (compareAndSetState(READY, CANCELLED)) {
+                releaseShared(0);
+                done();
+                return true;
             }
-            if (mayInterruptIfRunning) {
-                Thread r = runner;
-                if (r != null) {
-                    r.interrupt();
-                }
-            }
-            releaseShared(0);
-            done();
-            return true;
+            
+            return false;
         }
-
-        void innerRun() {
-            if (!compareAndSetState(READY, RUNNING)) {
-                return;
-            }
-
-            runner = Thread.currentThread();
-            if (getState() == RUNNING) { // recheck after setting thread
-                R result;
-                try {
-                    result = callable.call();
-                } catch (Throwable ex) {
-                    setException(ex);
-                    return;
-                }
-                set(result);
-            } else {
-                releaseShared(0); // cancel
-            }
-        }
-
     }
 }
