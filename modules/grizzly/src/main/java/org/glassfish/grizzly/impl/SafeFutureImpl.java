@@ -228,7 +228,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      */
     @Override
     public boolean isDone() {
-        return sync.innerIsDone();
+        return sync.ranOrCancelled();
     }
 
     /**
@@ -286,13 +286,17 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          */
         private static final int READY = 0;
         /**
+         * State value representing that result/exception is being set
+         */
+        private static final int RESULT = 1;
+        /**
          * State value representing that task ran
          */
-        private static final int RAN = 1;
+        private static final int RAN = 2;
         /**
          * State value representing that task was cancelled
          */
-        private static final int CANCELLED = 2;
+        private static final int CANCELLED = 3;
 
         /**
          * The result to return from get()
@@ -303,15 +307,8 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          */
         private Throwable exception;
 
-        /**
-         * The thread running task. When nulled after set/cancel, this
-         * indicates that the results are accessible.  Must be
-         * volatile, to ensure visibility upon completion.
-         */
-        private volatile boolean hasRunnerSimulation = true;
-
-        private boolean ranOrCancelled(int state) {
-            return (state & (RAN | CANCELLED)) != 0;
+        private boolean ranOrCancelled() {
+            return (getState() & (RAN | CANCELLED)) != 0;
         }
 
         /**
@@ -319,7 +316,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          */
         @Override
         protected int tryAcquireShared(int ignore) {
-            return innerIsDone() ? 1 : -1;
+            return ranOrCancelled() ? 1 : -1;
         }
 
         /**
@@ -328,16 +325,11 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
          */
         @Override
         protected boolean tryReleaseShared(int ignore) {
-            hasRunnerSimulation = false;
             return true;
         }
 
         boolean innerIsCancelled() {
             return getState() == CANCELLED;
-        }
-
-        boolean innerIsDone() {
-            return ranOrCancelled(getState()) && !hasRunnerSimulation;
         }
 
         R innerGet() throws InterruptedException, ExecutionException {
@@ -366,16 +358,18 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         }
 
         void innerSet(R v) {
-            if (compareAndSetState(READY, RAN)) {
+            if (compareAndSetState(READY, RESULT)) {
                 result = v;
+                setState(RAN);
                 releaseShared(0);
                 done();
             }
         }
 
         void innerSetException(Throwable t) {
-            if (compareAndSetState(READY, RAN)) {
+            if (compareAndSetState(READY, RESULT)) {
                 exception = t;
+                setState(RAN);
                 releaseShared(0);
                 done();
             }
