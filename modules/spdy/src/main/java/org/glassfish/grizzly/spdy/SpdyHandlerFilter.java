@@ -870,6 +870,9 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                     spdySession.getNextLocalStreamId(),
                     0, 0, 0, false, !request.isExpectContent());
 
+            if (spdyStream == null) {
+                throw new IOException("SpdySession is closed");
+            }
             final TransportContext transportContext = ctx.getTransportContext();
 
             spdyStream.writeDownStream(entireHttpPacket,
