@@ -93,6 +93,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.spdy.frames.OversizedFrame;
 import org.glassfish.grizzly.spdy.frames.ServiceFrame;
 
@@ -668,7 +669,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         } else {
             // Unidirectional syn stream will be transformed to HTTP response packet
             spdyRequest.setExpectContent(false);
-            spdyStream.outputSink.terminate(IN_FIN_TERMINATION);
+            spdyStream.outputSink.terminate(OUT_FIN_TERMINATION);
             
             final HttpResponsePacket spdyResponse = spdyRequest.getResponse();
             
@@ -961,15 +962,29 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     }
     
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
-        if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
+    @SuppressWarnings("unchecked")
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+        final Object type = event.type();
+        
+        if (type == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()) {
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
             spdyStream.onProcessingComplete();
             
             return ctx.getStopAction();
+        } else if (type == TransportFilter.FlushEvent.TYPE) {
+            final HttpContext httpContext = HttpContext.get(ctx);
+            final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
+            
+            final TransportFilter.FlushEvent flushEvent =
+                    (TransportFilter.FlushEvent) event;
+            
+            spdyStream.outputSink.flush(flushEvent.getCompletionHandler());
+            
+            return ctx.getStopAction();
         }
-
+        
         return ctx.getInvokeAction();
     }
 
