@@ -67,18 +67,10 @@
                             org.glassfish.grizzly.npn*;version="[1.0,2)",
                             org.glassfish.grizzly.http.server.*;version="[2.3,${project.version}]";resolution:=optional,
                             org.glassfish.grizzly.*;version="[2.3,${project.version}]",
-                            org.glassfish.api.*;resolution:=optional,
-                            org.glassfish.internal.*;resolution:=optional,
-                            org.glassfish.config.*;resolution:=optional,
-                            org.glassfish.hk2.*;resolution:=optional,
-                            org.jvnet.hk2.*;resolution:=optional,
-                            javax.inject.*;resolution:=optional,
-                            com.sun.enterprise.config.serverbeans.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Export-Package>
                             org.glassfish.grizzly.spdy.*;version=${project.version},
-                            org.glassfish.grizzly.npn.*;version=${project.version}
                         </Export-Package>
                     </instructions>
                 </configuration>

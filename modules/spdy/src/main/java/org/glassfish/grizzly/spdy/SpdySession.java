@@ -83,7 +83,7 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  *
  * @author oleksiys
  */
-final class SpdySession {
+public final class SpdySession {
     private static final Attribute<SpdySession> SPDY_SESSION_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             SpdySession.class.getName());

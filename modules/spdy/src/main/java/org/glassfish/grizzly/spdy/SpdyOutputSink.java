@@ -98,6 +98,13 @@ final class SpdyOutputSink {
     // associated spdy stream
     private final SpdyStream spdyStream;
 
+    // counter for unflushed writes
+    private final AtomicInteger unflushedWritesCounter = new AtomicInteger();
+    // sync object to count/notify flush handlers
+    private final Object flushHandlersSync = new Object();
+    // flush handlers queue
+    private BundleQueue<CompletionHandler<SpdyStream>> flushHandlersQueue;
+    
     private List<SpdyFrame> tmpOutputList;
     
     SpdyOutputSink(final SpdyStream spdyStream) {
@@ -137,7 +144,7 @@ final class SpdyOutputSink {
                 return;
             }
             
-            AggregatingCompletionHandler completionHandler =
+            final FlushCompletionHandler completionHandler =
                     outputQueueRecord.aggrCompletionHandler;
             AggregatingLifeCycleHandler lifeCycleHandler =
                     outputQueueRecord.lifeCycleHandler;
@@ -250,6 +257,8 @@ final class SpdyOutputSink {
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated()) {
             throw new IOException(terminationFlag.getDescription());
+        } else if (isLastFrameQueued) {
+            throw new IOException("Write beyond end of stream");
         }
         
         final HttpHeader httpHeader = spdyStream.getOutputHttpHeader();
@@ -309,7 +318,9 @@ final class SpdyOutputSink {
                 if (isNoContent || httpContent == null) {
                     // if we don't expect any HTTP payload, mark this frame as
                     // last and return
-                    writeDownStream(headerFrame, completionHandler,
+                    unflushedWritesCounter.incrementAndGet();
+                    writeDownStream(headerFrame,
+                            new FlushCompletionHandler(completionHandler),
                             lifeCycleHandler, isNoContent);
                     return;
                 }
@@ -334,11 +345,11 @@ final class SpdyOutputSink {
                 return;
             }
 
-            AggregatingCompletionHandler aggrCompletionHandler = null;
+            unflushedWritesCounter.incrementAndGet();
+            final FlushCompletionHandler flushCompletionHandler =
+                    new FlushCompletionHandler(completionHandler);
             AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
-
-
-            boolean isDataCloned = false;
+            
 
             final boolean isAtomic = (dataSize == 0);
             final int spaceToReserve = isAtomic ? ATOMIC_QUEUE_RECORD_SIZE : dataSize;
@@ -347,23 +358,21 @@ final class SpdyOutputSink {
             if (reserveWriteQueueSpace(spaceToReserve) > spaceToReserve) {
                 // if the queue is not empty - the headers should have been sent
                 assert headerFrame == null;
-            
-                aggrCompletionHandler = AggregatingCompletionHandler.create(completionHandler);
+
                 aggrLifeCycleHandler = AggregatingLifeCycleHandler.create(lifeCycleHandler);
 
                 if (aggrLifeCycleHandler != null) {
                     data = (Buffer) aggrLifeCycleHandler.onThreadContextSwitch(
                             spdySession.getConnection(), data);
-                    isDataCloned = true;
                 }
 
                 outputQueueRecord = new OutputQueueRecord(
                         Source.factory(spdyStream)
                             .createBufferSource(data),
-                        aggrCompletionHandler, aggrLifeCycleHandler,
+                        flushCompletionHandler, aggrLifeCycleHandler,
                         isLast, isAtomic);
                 // Should be called before flushing headerFrame, so
-                // AggregatingCompletionHanlder will not pass completed event to the parent
+                // FlushCompletionHanlder will not pass completed event to the parent
                 outputQueueRecord.incCompletionCounter();
 
                 outputQueue.offer(outputQueueRecord);
@@ -388,15 +397,12 @@ final class SpdyOutputSink {
             final int fitWindowLen = checkOutputWindow(remaining);
             // if there is a chunk to store
             if (fitWindowLen < remaining) {
-                aggrCompletionHandler = AggregatingCompletionHandler.create(
-                        completionHandler, aggrCompletionHandler);
                 aggrLifeCycleHandler = AggregatingLifeCycleHandler.create(
                         lifeCycleHandler, aggrLifeCycleHandler);
 
                 if (aggrLifeCycleHandler != null) {
                     data = (Buffer) aggrLifeCycleHandler.onThreadContextSwitch(
                             spdySession.getConnection(), data);
-                    isDataCloned = true;
                 }
                 
                 final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
@@ -405,7 +411,7 @@ final class SpdyOutputSink {
                 outputQueueRecord = new OutputQueueRecord(
                         Source.factory(spdyStream)
                             .createBufferSource(dataChunkToStore),
-                        aggrCompletionHandler, aggrLifeCycleHandler,
+                        flushCompletionHandler, aggrLifeCycleHandler,
                         isLast, isAtomic);
                 outputQueueRecord.incCompletionCounter();
                 // reset completion handler and isLast for the current chunk
@@ -432,9 +438,6 @@ final class SpdyOutputSink {
                 framesAvailFlag |= 2;
             }
 
-            completionHandler = aggrCompletionHandler == null
-                    ? completionHandler
-                    : aggrCompletionHandler;
             lifeCycleHandler = aggrLifeCycleHandler == null
                     ? lifeCycleHandler
                     : aggrLifeCycleHandler;
@@ -442,15 +445,19 @@ final class SpdyOutputSink {
             switch (framesAvailFlag) {
                 case 0: break;  // buffer is full, can't write any byte
                     
+//                case 1: means there are only headers to be commited.
+//                    We process this situation in the beginning on the method
+//                    and return. So "1"-case should never reach this point.
+                    
                 case 2: {
-                    writeDownStream(dataFrame, completionHandler,
+                    writeDownStream(dataFrame, flushCompletionHandler,
                             lifeCycleHandler, isLast);
                     break;
                 }
 
                 case 3: {
                     writeDownStream(asList(headerFrame, dataFrame),
-                            completionHandler, lifeCycleHandler, isLast);
+                            flushCompletionHandler, lifeCycleHandler, isLast);
                     break;
                 }
 
@@ -487,8 +494,12 @@ final class SpdyOutputSink {
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated()) {
             throw new IOException(terminationFlag.getDescription());
+        } else if (isLastFrameQueued) {
+            throw new IOException("Write beyond end of stream");
         }
 
+        isLastFrameQueued = true;
+        
         final HttpHeader httpHeader = spdyStream.getOutputHttpHeader();
         
         if (httpHeader.isCommitted()) {
@@ -541,9 +552,11 @@ final class SpdyOutputSink {
             httpHeader.setCommitted(true);
 
             if (isNoContent) {
+                unflushedWritesCounter.incrementAndGet();
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerFrame, null, null, isNoContent);
+                writeDownStream(headerFrame, new FlushCompletionHandler(null),
+                        null, isNoContent);
                 return;
             }
 
@@ -588,7 +601,9 @@ final class SpdyOutputSink {
                     .data(bufferToSend).last(isLast)
                     .build();
 
-            writeDownStream(asList(headerFrame, dataFrame), null, null, isLast);
+            unflushedWritesCounter.incrementAndGet();
+            writeDownStream(asList(headerFrame, dataFrame),
+                    new FlushCompletionHandler(null), null, isLast);
         
         } finally {
             if (isDeflaterLocked) {
@@ -601,6 +616,41 @@ final class SpdyOutputSink {
         }
         
         addOutputQueueRecord(outputQueueRecord);
+    }
+    
+    /**
+     * Flush {@link SpdyStream} output and notify {@link CompletionHandler} once
+     * all output data has been flushed.
+     * 
+     * @param completionHandler {@link CompletionHandler} to be notified
+     */
+    public void flush(
+            final CompletionHandler<SpdyStream> completionHandler) {
+        
+        // check if there are pending unflushed data
+        if (unflushedWritesCounter.get() > 0) {
+            // if yes - synchronize do disallow descrease counter from other thread (increasing is ok)
+            synchronized (flushHandlersSync) {
+                // double check the pending flushes counter
+                final int counterNow = unflushedWritesCounter.get();
+                if (counterNow > 0) {
+                    // if there are pending flushes
+                    if (flushHandlersQueue == null) {
+                        // create a flush handlers queue
+                        flushHandlersQueue =
+                                new BundleQueue<CompletionHandler<SpdyStream>>();
+                    }
+                    
+                    // add the handler to the queue
+                    flushHandlersQueue.add(counterNow, completionHandler);
+                    
+                    return;
+                }
+            }
+        }
+        
+        // if there are no pending flushes - notify the handler
+        completionHandler.completed(spdyStream);
     }
     
     /**
@@ -744,10 +794,12 @@ final class SpdyOutputSink {
     private void writeEmptyFin() {
         if (!isTerminated()) {
             // SEND LAST
-            DataFrame dataFrame =
+            final DataFrame dataFrame =
                     DataFrame.builder().streamId(spdyStream.getStreamId()).
                             data(Buffers.EMPTY_BUFFER).last(true).build();
-            writeDownStream0(dataFrame, null);
+            
+            unflushedWritesCounter.incrementAndGet();
+            writeDownStream0(dataFrame, new FlushCompletionHandler(null));
 
             terminate(OUT_FIN_TERMINATION);
         }
@@ -779,7 +831,7 @@ final class SpdyOutputSink {
                 
                 // if we can send the output record now - do that
                 
-                final AggregatingCompletionHandler aggrCompletionHandler =
+                final FlushCompletionHandler aggrCompletionHandler =
                         outputQueueRecord.aggrCompletionHandler;
                 final AggregatingLifeCycleHandler aggrLifeCycleHandler =
                         outputQueueRecord.lifeCycleHandler;
@@ -850,7 +902,7 @@ final class SpdyOutputSink {
 
     private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult>{
         private Source resource;
-        private AggregatingCompletionHandler aggrCompletionHandler;
+        private FlushCompletionHandler aggrCompletionHandler;
         private AggregatingLifeCycleHandler lifeCycleHandler;
         
         private boolean isLast;
@@ -858,7 +910,7 @@ final class SpdyOutputSink {
         private final boolean isAtomic;
         
         public OutputQueueRecord(final Source resource,
-                final AggregatingCompletionHandler completionHandler,
+                final FlushCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean isLast, final boolean isAtomic) {
             super(null, null, null, null);
@@ -883,7 +935,7 @@ final class SpdyOutputSink {
         }
 
         private void reset(final Source resource,
-                final AggregatingCompletionHandler completionHandler,
+                final FlushCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean last) {
             this.resource = resource;
@@ -916,49 +968,43 @@ final class SpdyOutputSink {
         public void recycle() {
         }
     }    
-
-    private static class AggregatingCompletionHandler
+    
+    /**
+     * Flush {@link CompletionHandler}, which will be passed on each
+     * {@link SpdyStream} write to make sure the data reached the wires.
+     * 
+     * Usually <tt>FlushCompletionHandler</tt> is also used as a wrapper for
+     * custom {@link CompletionHandler} provided by users.
+     */
+    private class FlushCompletionHandler
             implements CompletionHandler<WriteResult> {
 
-        private static AggregatingCompletionHandler create(
-                final CompletionHandler<WriteResult> parentCompletionHandler) {
-            return parentCompletionHandler == null
-                    ? null
-                    : new AggregatingCompletionHandler(parentCompletionHandler);
-        }
-
-        private static AggregatingCompletionHandler create(
-                final CompletionHandler<WriteResult> parentCompletionHandler,
-                final AggregatingCompletionHandler aggrCompletionHandler) {
-            return aggrCompletionHandler != null
-                    ? aggrCompletionHandler
-                    : create(parentCompletionHandler);
-        }
-        
         private final CompletionHandler<WriteResult> parentCompletionHandler;
         
         private boolean isDone;
-        private int counter;
+        private int counter = 1;
         private long writtenSize;
         
-        public AggregatingCompletionHandler(
+        public FlushCompletionHandler(
                 final CompletionHandler<WriteResult> parentCompletionHandler) {
             this.parentCompletionHandler = parentCompletionHandler;
         }
 
         @Override
         public void cancelled() {
-            if (!isDone) {
-                isDone = true;
-                parentCompletionHandler.cancelled();
+            if (done()) {
+                if (parentCompletionHandler != null) {
+                    parentCompletionHandler.cancelled();
+                }
             }
         }
 
         @Override
         public void failed(Throwable throwable) {
-            if (!isDone) {
-                isDone = true;
-                parentCompletionHandler.failed(throwable);
+            if (done()) {
+                if (parentCompletionHandler != null) {
+                    parentCompletionHandler.failed(throwable);
+                }
             }
         }
 
@@ -969,15 +1015,18 @@ final class SpdyOutputSink {
             }
             
             if (--counter == 0) {
-                isDone = true;
+                done();
+                
                 final long initialWrittenSize = result.getWrittenSize();
                 writtenSize += initialWrittenSize;
                 
-                try {
-                    result.setWrittenSize(writtenSize);
-                    parentCompletionHandler.completed(result);
-                } finally {
-                    result.setWrittenSize(initialWrittenSize);
+                if (parentCompletionHandler != null) {
+                    try {
+                        result.setWrittenSize(writtenSize);
+                        parentCompletionHandler.completed(result);
+                    } finally {
+                        result.setWrittenSize(initialWrittenSize);
+                    }
                 }
             } else {
                 updated(result);
@@ -987,14 +1036,46 @@ final class SpdyOutputSink {
 
         @Override
         public void updated(final WriteResult result) {
-            final long initialWrittenSize = result.getWrittenSize();
-            
-            try {
-                result.setWrittenSize(writtenSize + initialWrittenSize);
-                parentCompletionHandler.updated(result);
-            } finally {
-                result.setWrittenSize(initialWrittenSize);
+            if (parentCompletionHandler != null) {
+                final long initialWrittenSize = result.getWrittenSize();
+
+                try {
+                    result.setWrittenSize(writtenSize + initialWrittenSize);
+                    parentCompletionHandler.updated(result);
+                } finally {
+                    result.setWrittenSize(initialWrittenSize);
+                }
             }
+        }
+        
+        private boolean done() {
+            if (isDone) {
+                return false;
+            }
+            
+            synchronized (flushHandlersSync) { // synchronize with flush()
+                unflushedWritesCounter.decrementAndGet();
+                if (flushHandlersQueue == null ||
+                        !flushHandlersQueue.nextBundle()) {
+                        return true;
+                }
+            }
+            
+            boolean hasNext;
+            CompletionHandler<SpdyStream> handler;
+            
+            do {
+                synchronized (flushHandlersSync) {
+                    handler = flushHandlersQueue.next();
+                    hasNext = flushHandlersQueue.hasNext();
+                }
+                
+                try {
+                    handler.completed(spdyStream);
+                } catch (Exception ignored) {
+                }
+            } while (hasNext);
+            return true;
         }
     }
 
