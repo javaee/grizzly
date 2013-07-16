@@ -67,7 +67,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.WriteResult;
 
 import org.glassfish.grizzly.http.util.Header;
 
@@ -445,7 +444,7 @@ public class HttpServerFilter extends BaseFilter
      * have been flushed.
      */
     private class FlushResponseHandler
-            extends EmptyCompletionHandler<WriteResult>
+            extends EmptyCompletionHandler<Object>
             implements AfterServiceListener{
 
         @Override
@@ -459,7 +458,7 @@ public class HttpServerFilter extends BaseFilter
         }
 
         @Override
-        public void completed(WriteResult result) {
+        public void completed(Object result) {
             onRequestCompleteAndResponseFlushed();
         }
 

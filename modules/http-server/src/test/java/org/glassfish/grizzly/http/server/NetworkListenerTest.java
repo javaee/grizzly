@@ -182,7 +182,8 @@ public class NetworkListenerTest {
             Future<HttpServer> gracefulFuture = server.shutdown();
             
             final BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(c.getInputStream()));
+                    new InputStreamReader(c.getInputStream(),
+                    Charsets.UTF8_CHARSET));
             final String content = reader.readLine();
             assertEquals(msg, content);
 
@@ -192,5 +193,5 @@ public class NetworkListenerTest {
         } finally {
             server.shutdownNow();
         }
-    }    
+    }
 }
