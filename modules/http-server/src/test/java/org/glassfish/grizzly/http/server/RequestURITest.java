@@ -220,7 +220,7 @@ public class RequestURITest extends TestCase {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

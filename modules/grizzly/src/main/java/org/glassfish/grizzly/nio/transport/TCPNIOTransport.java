@@ -66,24 +66,16 @@ import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
-import org.glassfish.grizzly.SocketBinder;
-import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
-import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.AbstractThreadPool;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * TCP Transport NIO implementation
@@ -92,8 +84,8 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
  * @author Jean-Francois Arcand
  */
 public final class TCPNIOTransport extends NIOTransport implements
-        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
+        AsyncQueueEnabledTransport, FilterChainEnabledTransport,
+        TemporarySelectorsEnabledTransport {
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
@@ -109,48 +101,16 @@ public final class TCPNIOTransport extends NIOTransport implements
      * Transport AsyncQueueIO
      */
     final AsyncQueueIO<SocketAddress> asyncQueueIO;
-    /**
-     * Transport TemporarySelectorIO, used for blocking I/O simulation
-     */
-    final TemporarySelectorIO temporarySelectorIO;
-    /**
-     * The server socket time out
-     */
-    int serverSocketSoTimeout = 0;
-    /**
-     * The socket tcpDelay.
-     * 
-     * Default value for tcpNoDelay is disabled (set to true).
-     */
-    boolean tcpNoDelay = true;
-    /**
-     * The socket reuseAddress
-     */
-    boolean reuseAddress = true;
+
     /**
      * The socket linger.
      */
     int linger = -1;
     /**
-     * The socket keepAlive mode.
-     */
-    boolean isKeepAlive = false;
-    /**
-     * The socket time out
-     */
-    int clientSocketSoTimeout = -1;
-    /**
      * The default server connection backlog size
      */
     int serverConnectionBackLog = 4096;
-    /**
-     * Default channel connection timeout
-     */
-    int connectionTimeout =
-            TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
-    private static final int MAX_READ_ATTEMPTS = 3;
-    
     private boolean isOptimizedForMultiplexing;
     
     private final Filter defaultTransportFilter;
@@ -164,7 +124,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private final TCPNIOBindingHandler bindingHandler =
             new TCPNIOBindingHandler(this);
-    
+
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
     }
@@ -180,104 +140,20 @@ public final class TCPNIOTransport extends NIOTransport implements
         asyncQueueIO = AsyncQueueIO.Factory.createImmutable(
                 new TCPNIOAsyncQueueReader(this), new TCPNIOAsyncQueueWriter(this));
 
-        temporarySelectorIO = new TemporarySelectorIO(
-                new TCPNIOTemporarySelectorReader(this),
-                new TCPNIOTemporarySelectorWriter(this));
-
         attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }
 
-    /**
-     * Start TCPNIOTransport.
-     * 
-     * The transport will be started only if its current state is {@link State#STOPPED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
     @Override
-    public void start() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            State currentState = state.getState();
-            if (currentState != State.STOPPED) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
-                return;
-            }
+    public TemporarySelectorIO createTemporarySelectorIO() {
+        return new TemporarySelectorIO(new TCPNIOTemporarySelectorReader(this),
+                                       new TCPNIOTemporarySelectorWriter(this));
+    }
 
-            state.setState(State.STARTING);
-            notifyProbesBeforeStart(this);
-
-            super.start();
-            
-            if (selectorHandler == null) {
-                selectorHandler = new DefaultSelectorHandler();
-            }
-
-            if (selectionKeyHandler == null) {
-                selectionKeyHandler = new DefaultSelectionKeyHandler();
-            }
-
-            if (processor == null && processorSelector == null) {
-                processor = new StandaloneProcessor();
-            }
-
-            final int selectorRunnersCount = getSelectorRunnersCount();
-
-            if (nioChannelDistributor == null) {
-                nioChannelDistributor = new RoundRobinConnectionDistributor(this);
-            }
-
-            if (kernelPool == null) {
-                kernelPoolConfig.setMemoryManager(memoryManager);
-                setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
-            }
-
-            if (workerThreadPool == null) {
-                if (workerPoolConfig != null) {
-                    if (getThreadPoolMonitoringConfig().hasProbes()) {
-                        workerPoolConfig.getInitialMonitoringConfig().addProbes(
-                            getThreadPoolMonitoringConfig().getProbes());
-                    }
-                    workerPoolConfig.setMemoryManager(memoryManager);
-                    setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
-                }
-            }
-
-            /* By default TemporarySelector pool size should be equal
-            to the number of processing threads */
-            int selectorPoolSize =
-                    TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (workerThreadPool instanceof AbstractThreadPool) {
-                if (strategy instanceof SameThreadIOStrategy) {
-                    selectorPoolSize = selectorRunnersCount;
-                } else {
-                    selectorPoolSize = Math.min(
-                           ((AbstractThreadPool) workerThreadPool).getConfig().getMaxPoolSize(),
-                           selectorPoolSize);
-                }
-            }
-
-            if (strategy == null) {
-                strategy = WorkerThreadIOStrategy.getInstance();
-            }
-
-            temporarySelectorIO.setSelectorPool(
-                    new TemporarySelectorPool(selectorProvider, selectorPoolSize));
-
-            startSelectorRunners();
-
-            listenServerConnections();
-
-            state.setState(State.STARTED);
-
-            notifyProbesStart(this);
-        } finally {
-            lock.unlock();
-        }
+    @Override
+    public void listen() {
+        listenServerConnections();
     }
 
     @Override
@@ -303,104 +179,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     void listenServerConnection(TCPNIOServerConnection serverConnection)
             throws IOException {
         serverConnection.listen();
-    }
-
-    /**
-     * Stop TCPNIOTransport.
-     * 
-     * If the current transport state is {@link State#STOPPED} - the call will be
-     * ignored and no exception thrown.
-     */
-    @Override
-    public void stop() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final State stateNow = state.getState();
-            
-            if (stateNow == State.STOPPED) {
-                return;
-            }
-            
-            if (stateNow == State.PAUSED) {
-                // if Transport is paused - first we need to resume it
-                // so selectorrunners can perform the close phase
-                resume();
-            }
-            
-            unbindAll();
-            state.setState(State.STOPPING);
-            notifyProbesBeforeStop(this);
-
-            stopSelectorRunners();
-
-            if (workerThreadPool != null && managedWorkerPool) {
-                workerThreadPool.shutdown();
-                workerThreadPool = null;
-            }
-
-            if (kernelPool != null) {
-                kernelPool.shutdownNow();
-                kernelPool = null;
-            }
-            state.setState(State.STOPPED);
-            notifyProbesStop(this);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Pause TCPNIOTransport, so I/O events coming on its {@link TCPNIOConnection}s
-     * will not be processed. Use {@link #resume()} in order to resume TCPNIOTransport processing.
-     * 
-     * The transport will be paused only if its current state is {@link State#STARTED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
-    @Override
-    public void pause() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            if (state.getState() != State.STARTED) {
-                LOGGER.log(Level.WARNING,
-                        "Transport is not in START state!");
-                return;
-            }
-            state.setState(State.PAUSING);
-            notifyProbesBeforePause(this);
-            state.setState(State.PAUSED);
-            notifyProbesPause(this);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Resume TCPNIOTransport, which has been paused before using {@link #pause()}.
-     * 
-     * The transport will be resumed only if its current state is {@link State#PAUSED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
-    @Override
-    public void resume() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            if (state.getState() != State.PAUSED) {
-                LOGGER.log(Level.WARNING,
-                        "Transport is not in PAUSE state!");
-                return;
-            }
-            state.setState(State.STARTING);
-            notifyProbesBeforeResume(this);
-            state.setState(State.STARTED);
-            notifyProbesResume(this);
-        } finally {
-            lock.unlock();
-        }
     }
 
     /**
@@ -475,10 +253,11 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public void unbind(Connection connection) throws IOException {
+    public void unbind(Connection connection) {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            //noinspection SuspiciousMethodCalls
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final GrizzlyFuture future = connection.close();
@@ -495,7 +274,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public void unbindAll() throws IOException {
+    public void unbindAll() {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
@@ -627,18 +406,6 @@ public final class TCPNIOTransport extends NIOTransport implements
         return connection;
     }
 
-    void configureNIOConnection(final TCPNIOConnection connection) {
-        connection.configureBlocking(isBlocking);
-        connection.configureStandalone(isStandalone);
-        connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
-        connection.setReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
-        connection.setWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-        if (connectionMonitoringConfig.hasProbes()) {
-            connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
-        }
-    }
-    
     /**
      * Configuring <code>SocketChannel</code> according the transport settings
      * @param channel <code>SocketChannel</code> to configure
@@ -658,17 +425,17 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
 
         try {
-            socket.setKeepAlive(isKeepAlive);
+            socket.setKeepAlive(isKeepAlive());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive, e);
+            LOGGER.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive(), e);
         }
         
         try {
-            socket.setTcpNoDelay(tcpNoDelay);
+            socket.setTcpNoDelay(isTcpNoDelay());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay, e);
+            LOGGER.log(Level.WARNING, "Can not set TcpNoDelay to " + isTcpNoDelay(), e);
         }
-        socket.setReuseAddress(reuseAddress);
+        socket.setReuseAddress(isReuseAddress());
     }
 
     @Override
@@ -713,64 +480,6 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     public void setServerConnectionBackLog(final int serverConnectionBackLog) {
         this.serverConnectionBackLog = serverConnectionBackLog;
-    }
-
-    public boolean isKeepAlive() {
-        return isKeepAlive;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setKeepAlive(final boolean isKeepAlive) {
-        this.isKeepAlive = isKeepAlive;
-        notifyProbesConfigChanged(this);
-    }
-
-    public boolean isReuseAddress() {
-        return reuseAddress;
-    }
-
-    public void setReuseAddress(final boolean reuseAddress) {
-        this.reuseAddress = reuseAddress;
-        notifyProbesConfigChanged(this);
-    }
-
-    public int getClientSocketSoTimeout() {
-        return clientSocketSoTimeout;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setClientSocketSoTimeout(final int socketTimeout) {
-        this.clientSocketSoTimeout = socketTimeout;
-        notifyProbesConfigChanged(this);
-    }
-
-    public int getConnectionTimeout() {
-        return connectionTimeout;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setConnectionTimeout(final int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        notifyProbesConfigChanged(this);
-    }
-
-    public boolean isTcpNoDelay() {
-        return tcpNoDelay;
-    }
-
-    public void setTcpNoDelay(final boolean tcpNoDelay) {
-        this.tcpNoDelay = tcpNoDelay;
-        notifyProbesConfigChanged(this);
-    }
-
-    public int getServerSocketSoTimeout() {
-        return serverSocketSoTimeout;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setServerSocketSoTimeout(final int serverSocketSoTimeout) {
-        this.serverSocketSoTimeout = serverSocketSoTimeout;
-        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -1022,52 +731,6 @@ public final class TCPNIOTransport extends NIOTransport implements
         return read;
     }
     
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer byteBuffer) throws IOException {
-//        int read = 0;
-//        int readAttempt = 0;
-//        int readNow;
-//        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
-//            read += readNow;
-//            if (!byteBuffer.hasRemaining()
-//                    || ++readAttempt >= MAX_READ_ATTEMPTS) {
-//                return read;
-//            }
-//        }
-//
-//        if (read == 0) {
-//            // Assign last readNow (may be -1)
-//            read = readNow;
-//        }
-//
-//        return read;
-        return socketChannel.read(byteBuffer);
-    }
-    
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer[] byteBuffers, final int offset, final int length) throws IOException {
-        
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
-        
-        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) > 0) {
-            read += readNow;
-            if (!lastByteBuffer.hasRemaining()
-                    || ++readAttempt >= MAX_READ_ATTEMPTS) {
-                return read;
-            }
-        }
-
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
-        
-        return read;
-    }
-
     public int write(final TCPNIOConnection connection, final WritableMessage message)
             throws IOException {
         return write(connection, message, null);

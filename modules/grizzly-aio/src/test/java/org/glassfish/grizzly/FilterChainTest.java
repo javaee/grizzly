@@ -233,7 +233,7 @@ public class FilterChainTest extends TestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

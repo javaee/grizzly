@@ -264,7 +264,7 @@ public class SSLTest {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
 
     }
@@ -393,7 +393,7 @@ public class SSLTest {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -477,7 +477,7 @@ public class SSLTest {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     

@@ -1091,7 +1091,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
         } finally {
             server.shutdownNow();
-            ctransport.stop();
+            ctransport.shutdownNow();
         }
     }
 

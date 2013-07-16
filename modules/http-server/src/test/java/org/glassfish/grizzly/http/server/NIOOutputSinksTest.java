@@ -179,11 +179,7 @@ public class NIOOutputSinksTest extends TestCase {
                     public void onWritePossible() {
                         System.out.println("onWritePossible");
                         callbackInvoked.compareAndSet(false, true);
-                        try {
-                            clientTransport.pause();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.pause();
 
                         assertTrue(tqueue.spaceInBytes() < MAX_LENGTH);
 
@@ -241,7 +237,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -347,17 +343,9 @@ public class NIOOutputSinksTest extends TestCase {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
-                        try {
-                            clientTransport.pause();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.pause();
                         assertTrue(tqueue.spaceInBytes() < MAX_LENGTH);
-                        try {
-                            clientTransport.resume();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.resume();
                         try {
                             char[] c = new char[LENGTH];
                             fill(c);
@@ -406,7 +394,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
 
@@ -534,7 +522,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -647,7 +635,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -787,7 +775,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -929,7 +917,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -1034,12 +1022,8 @@ public class NIOOutputSinksTest extends TestCase {
 
                     @Override
                     public void run() {
-                        try {
-                            System.out.println("resuming " + clientTransport.getState().getState());
-                            clientTransport.resume();
-                        } catch (IOException ex) {
-                            Logger.getLogger(NIOOutputSinksTest.class.getName()).log(Level.SEVERE, null, ex);
-                        }
+                        System.out.println("resuming " + clientTransport.getState().getState());
+                        clientTransport.resume();
                     }
                 }, 2, TimeUnit.SECONDS);
                 
@@ -1115,7 +1099,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
             ses.shutdown();
         }
@@ -1254,7 +1238,7 @@ public class NIOOutputSinksTest extends TestCase {
             
             assertEquals(checkPattern, httpContent.getContent().toStringContent());
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

@@ -146,7 +146,7 @@ public class AggregatorAddOnTest {
             assertEquals(0, Integer.parseInt(response.getHeader("In-Length")));
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     
@@ -183,7 +183,7 @@ public class AggregatorAddOnTest {
             assertEquals(15, Integer.parseInt(response.getHeader("In-Length")));
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     
@@ -220,7 +220,7 @@ public class AggregatorAddOnTest {
             assertEquals(15, Integer.parseInt(response.getHeader("In-Length")));
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     

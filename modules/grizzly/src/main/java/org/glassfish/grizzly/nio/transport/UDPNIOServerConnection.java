@@ -122,13 +122,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
 
     @Override
     protected void preClose() {
-        try {
-            ((UDPNIOTransport) transport).unbind(this);
-        } catch (IOException e) {
-            LOGGER.log(Level.FINE,
-                    "Exception occurred, when unbind connection: " + this, e);
-        }
-
+        ((UDPNIOTransport) transport).unbind(this);
         super.preClose();
     }
 

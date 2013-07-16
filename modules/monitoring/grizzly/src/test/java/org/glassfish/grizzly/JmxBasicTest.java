@@ -80,8 +80,8 @@ public class JmxBasicTest {
 
             assertTrue(true);
         } finally {
-            transport1.stop();
-            transport2.stop();
+            transport1.shutdownNow();
+            transport2.shutdownNow();
         }
     }
 }

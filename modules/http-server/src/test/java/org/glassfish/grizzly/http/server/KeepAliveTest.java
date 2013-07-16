@@ -126,7 +126,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -188,7 +188,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -254,7 +254,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -319,7 +319,7 @@ public class KeepAliveTest extends TestCase {
                 fail();
             } finally {
                 client.close();
-                clientTransport.stop();
+                clientTransport.shutdownNow();
                 server.shutdownNow();
             }
         }
@@ -360,7 +360,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -416,7 +416,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -457,7 +457,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }    
@@ -513,7 +513,7 @@ public class KeepAliveTest extends TestCase {
             fail();
         } finally {
             client.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

@@ -291,7 +291,7 @@ public class HttpRequestParseTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

@@ -413,8 +413,65 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * Stops the transport and closes all the connections
      * 
      * @throws IOException
+     *
+     * @deprecated Use {@link #shutdownNow()}.
      */
+    @Deprecated
     void stop() throws IOException;
+
+    /**
+     * Gracefully stops the transport accepting new connections and allows
+     * existing work to complete before finalizing the shutdown.  This method
+     * will wait indefinitely for all interested parties to signal it is safe
+     * to terminate the transport.
+     *
+     * @return a {@link GrizzlyFuture} which will return the stopped transport.
+     *
+     * @since 2.3.5
+     *
+     * @see ShutdownListener
+     */
+    GrizzlyFuture<Transport> shutdown();
+
+    /**
+     * Gracefully stops the transport accepting new connections and allows
+     * existing work to complete before finalizing the shutdown.  This method
+     * will wait for the specified time for all interested parties to signal it
+     * is safe to terminate the transport.  If the timeout is exceeded, the
+     * transport will be terminated forcefully.
+     *
+     * @param gracePeriod the grace period for a graceful shutdown before the
+     *                    transport is forcibly terminated.  A grace period
+     *                    of zero or less effectively means no timeout.
+     * @param timeUnit the {@link TimeUnit} of the specified grace period.
+     * @return
+     */
+    GrizzlyFuture<Transport> shutdown(final long gracePeriod,
+                                      final TimeUnit timeUnit);
+
+    /**
+     * Forcibly stops the transport and closes all connections.
+     *
+     * @throws IOException
+     *
+     * @since 2.3.5
+     */
+    void shutdownNow() throws IOException;
+
+    /**
+     * Adds a {@link ShutdownListener} which will be called when {@link #shutdown()}
+     * is called to enable graceful shutdown of transports.  This allows the
+     * owner of the listener to signal that all shutdown tasks are complete and
+     * that it's safe to finalize the termination of the transport
+     *
+     * @param shutdownListener the {@link ShutdownListener}
+     *
+     * @return <code>true</code> if the listener was successfully registered,
+     *  otherwise <code>false</code>.
+     *
+     * @since 2.3.5
+     */
+    boolean addShutdownListener(final ShutdownListener shutdownListener);
     
     /**
      * Pauses the transport

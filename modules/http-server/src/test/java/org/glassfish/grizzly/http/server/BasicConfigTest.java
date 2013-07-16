@@ -190,7 +190,7 @@ public class BasicConfigTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
 
