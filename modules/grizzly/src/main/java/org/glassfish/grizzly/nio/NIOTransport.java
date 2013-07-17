@@ -467,13 +467,13 @@ public abstract class NIOTransport extends AbstractTransport
 
             if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
                 final int listenerCount = shutdownListeners.size();
-                final String transportIdentifier =
+                final String baseThreadIdentifier =
                         this.getName()
                                 + " ["
                                 + Integer.toHexString(this.hashCode())
-                                + ']';
+                                + "]-Shutdown-Thread";
                 final Thread t =
-                        new Thread(transportIdentifier + "-Shutdown-Thread") {
+                        new Thread(baseThreadIdentifier) {
                             @Override
                             public void run() {
 
@@ -491,8 +491,8 @@ public abstract class NIOTransport extends AbstractTransport
                                                         System.out.println("Creating new thread");
                                                         Thread t =
                                                                 new Thread(r,
-                                                                           transportIdentifier
-                                                                                   + "-Shutdown-Thread-Sub(" + counter++ + ')');
+                                                                           baseThreadIdentifier
+                                                                                   + "-Sub(" + counter++ + ')');
                                                         t.setDaemon(true);
                                                         return t;
                                                     }
