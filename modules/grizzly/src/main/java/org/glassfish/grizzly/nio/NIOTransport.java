@@ -488,7 +488,6 @@ public abstract class NIOTransport extends AbstractTransport
 
                                                     @Override
                                                     public Thread newThread(Runnable r) {
-                                                        System.out.println("Creating new thread");
                                                         Thread t =
                                                                 new Thread(r,
                                                                            baseThreadIdentifier
