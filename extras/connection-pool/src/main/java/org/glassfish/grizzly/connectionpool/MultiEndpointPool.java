@@ -631,7 +631,7 @@ public class MultiEndpointPool<E> {
 
         @Override
         protected boolean checkBeforeOpeningConnection() {
-            if (isMaxCapacityReached()) {
+            if (this.isMaxCapacityReached()) {
                 return false;
             }
             
@@ -695,7 +695,7 @@ public class MultiEndpointPool<E> {
         
         private void onMaxPoolSizeHit() {
             if (maxPoolSizeHits++ == 0) {
-                if (size() > 0) {
+                if (this.size() > 0) {
                     maxPoolSizeHitsChain.offerLast(maxPoolSizeHitsLink);
                 } else { // if max pool size hit on empty pool - raise its priority
                     final Link<EndpointPoolImpl> head =
