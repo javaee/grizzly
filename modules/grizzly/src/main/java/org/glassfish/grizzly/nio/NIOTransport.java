@@ -467,13 +467,19 @@ public abstract class NIOTransport extends AbstractTransport
 
             if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
                 final int listenerCount = shutdownListeners.size();
+                final String transportIdentifier =
+                        this.getName()
+                                + " ["
+                                + Integer.toHexString(this.hashCode())
+                                + ']';
                 final Thread t =
-                        new Thread("Grizzly-Graceful-Shutdown-Thread") {
+                        new Thread(transportIdentifier + "-Shutdown-Thread") {
                             @Override
                             public void run() {
 
                                 final CountDownLatch shutdownLatch =
                                         new CountDownLatch(listenerCount);
+
                                 final ExecutorService executorService =
                                         Executors.newFixedThreadPool(
                                                 listenerCount,
@@ -483,8 +489,10 @@ public abstract class NIOTransport extends AbstractTransport
                                                     @Override
                                                     public Thread newThread(Runnable r) {
                                                         System.out.println("Creating new thread");
-                                                        Thread t = new Thread(r,
-                                                                "Grizzly-Graceful-Shutdown-Thread-Sub(" + counter++ + ')');
+                                                        Thread t =
+                                                                new Thread(r,
+                                                                           transportIdentifier
+                                                                                   + "-Shutdown-Thread-Sub(" + counter++ + ')');
                                                         t.setDaemon(true);
                                                         return t;
                                                     }
@@ -547,23 +555,6 @@ public abstract class NIOTransport extends AbstractTransport
         return shutdownFuture;
     }
 
-    protected void finalizeShutdown() {
-        notifyProbesBeforeStop(this);
-        stopSelectorRunners();
-
-        if (workerThreadPool != null && managedWorkerPool) {
-            workerThreadPool.shutdown();
-            workerThreadPool = null;
-        }
-
-        if (kernelPool != null) {
-            kernelPool.shutdownNow();
-            kernelPool = null;
-        }
-        state.setState(State.STOPPED);
-        notifyProbesStop(this);
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -598,6 +589,23 @@ public abstract class NIOTransport extends AbstractTransport
 
     protected int getDefaultSelectorRunnersCount() {
         return Runtime.getRuntime().availableProcessors();
+    }
+
+    protected void finalizeShutdown() {
+        notifyProbesBeforeStop(this);
+        stopSelectorRunners();
+
+        if (workerThreadPool != null && managedWorkerPool) {
+            workerThreadPool.shutdown();
+            workerThreadPool = null;
+        }
+
+        if (kernelPool != null) {
+            kernelPool.shutdownNow();
+            kernelPool = null;
+        }
+        state.setState(State.STOPPED);
+        notifyProbesStop(this);
     }
 
     /**
