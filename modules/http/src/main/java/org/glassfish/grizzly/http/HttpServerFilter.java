@@ -639,7 +639,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             request.getProcessingState().error = true;
             return;
         }
-
+        
         final MimeHeaders headers = request.getHeaders();
         
         DataChunk hostDC = null;
