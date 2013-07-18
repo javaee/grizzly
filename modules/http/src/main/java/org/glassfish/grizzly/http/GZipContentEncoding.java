@@ -200,11 +200,12 @@ public class GZipContentEncoding implements ContentEncoding {
                 case COMPLETE:
                 case INCOMPLETE: {
                     Buffer encodedBuffer = result.getMessage();
-                    final Buffer finishBuffer = encoder.finish(httpHeader);
-                    encodedBuffer = Buffers.appendBuffers(
-                            connection.getTransport().getMemoryManager(),
-                            encodedBuffer, finishBuffer);
-
+                    if (httpContent.isLast()) {
+                        final Buffer finishBuffer = encoder.finish(httpHeader);
+                        encodedBuffer = Buffers.appendBuffers(
+                                connection.getTransport().getMemoryManager(),
+                                encodedBuffer, finishBuffer);
+                    }
                     if (encodedBuffer != null) {
                         httpContent.setContent(encodedBuffer);
                         return httpContent;
