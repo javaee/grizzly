@@ -130,9 +130,15 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private Set<SpdyStream> associatedSpdyStreams;
         
     public static SpdyStream getSpdyStream(final HttpHeader httpHeader) {
-        final HttpRequestPacket request = httpHeader.isRequest() ?
-                (HttpRequestPacket) httpHeader :
-                ((HttpResponsePacket) httpHeader).getRequest();
+        final HttpRequestPacket request;
+        
+        if (httpHeader.isRequest()) {
+            assert httpHeader instanceof HttpRequestPacket;
+            request = (HttpRequestPacket) httpHeader;
+        } else {
+            assert httpHeader instanceof HttpResponsePacket;
+            request = ((HttpResponsePacket) httpHeader).getRequest();
+        }
         
         
         if (request != null) {
