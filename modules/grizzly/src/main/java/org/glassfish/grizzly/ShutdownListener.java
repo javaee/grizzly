@@ -83,10 +83,20 @@ package org.glassfish.grizzly;/*
  * Interface to notify interested parties that a {@link Transport} is being
  * shutdown.
  *
- * @since 2.3.5
+ * Keep in mind that there is no guarantee that all listeners will be invoked
+ * before the transport is terminated (e.g., timed graceful shutdown or a graceful
+ * shutdown() that was initiated and then shutdownNow() is later invoked.
+ *
+ * @since 2.3.4.
  */
 public interface ShutdownListener {
 
+    /**
+     * Invoked when an attempt is made to shutdown the transport gracefully.
+     *
+     * @param shutdownContext the {@link ShutdownContext} for this shutdown
+     *                        request.
+     */
     void shutdownRequested(final ShutdownContext shutdownContext);
 
 }

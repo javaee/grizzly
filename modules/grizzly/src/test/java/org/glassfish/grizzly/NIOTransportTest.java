@@ -46,7 +46,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -65,7 +64,6 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -636,36 +634,41 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdown() throws Exception {
-        final AtomicBoolean listener1 = new AtomicBoolean();
-        final AtomicBoolean listener2 = new AtomicBoolean();
+        final CountDownLatch latch = new CountDownLatch(2);
         transport.addShutdownListener(new ShutdownListener() {
             @Override
-            public void shutdownRequested(ShutdownContext shutdownContext) {
-                System.out
-                        .println("Shutdown requested: " + Thread.currentThread()
-                                .getName());
-                listener1.set(true);
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                shutdownContext.ready();
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                        latch.countDown();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
             }
         });
         transport.addShutdownListener(new ShutdownListener() {
             @Override
-            public void shutdownRequested(ShutdownContext shutdownContext) {
-                System.out
-                        .println("Shutdown requested: " + Thread.currentThread()
-                                .getName());
-                listener2.set(true);
-                try {
-                    Thread.sleep(7000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                shutdownContext.ready();
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(7000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                        latch.countDown();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
             }
         });
         transport.start();
@@ -674,59 +677,167 @@ public class NIOTransportTest {
         Transport tt = future.get(10, TimeUnit.SECONDS);
         long stop = System.currentTimeMillis();
         assertTrue((stop - start) >= 7000);
-        assertTrue(listener1.get());
-        assertTrue(listener2.get());
         assertEquals(transport, tt);
         assertTrue(transport.isStopped());
     }
 
     @Test
     public void testGracefulShutdownWithGracePeriod() throws Exception {
-        final AtomicBoolean listener1 = new AtomicBoolean();
-        final AtomicBoolean listener2 = new AtomicBoolean();
-        final AtomicBoolean interrupted1 = new AtomicBoolean();
-        final AtomicBoolean interrupted2 = new AtomicBoolean();
         transport.addShutdownListener(new ShutdownListener() {
             @Override
-            public void shutdownRequested(ShutdownContext shutdownContext) {
-                System.out.println(
-                        "Shutdown requested: " + Thread.currentThread()
-                                .getName());
-                listener1.set(true);
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    interrupted1.set(true);
-                    return;
-                }
-                shutdownContext.ready();
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(4000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
             }
         });
         transport.addShutdownListener(new ShutdownListener() {
             @Override
-            public void shutdownRequested(ShutdownContext shutdownContext) {
-                System.out.println(
-                        "Shutdown requested: " + Thread.currentThread()
-                                .getName());
-                listener2.set(true);
-                try {
-                    Thread.sleep(11000);
-                } catch (InterruptedException e) {
-                    interrupted2.set(true);
-                    return;
-                }
-                shutdownContext.ready();
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(3000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
             }
         });
         transport.start();
         GrizzlyFuture<Transport> future =
                 transport.shutdown(5, TimeUnit.SECONDS);
-        Transport tt = future.get();
+        Transport tt = future.get(5100, TimeUnit.MILLISECONDS);
+        assertTrue(transport.isStopped());
+        assertEquals(transport, tt);
 
+    }
+
+    @Test
+    public void testGracefulShutdownWithGracePeriodTimeout() throws Exception {
+        transport.addShutdownListener(new ShutdownListener() {
+            @Override
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(10000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
+            }
+        });
+        transport.addShutdownListener(new ShutdownListener() {
+            @Override
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
+            }
+        });
+        transport.start();
+        GrizzlyFuture<Transport> future = transport.shutdown(5, TimeUnit.SECONDS);
+        Transport tt = future.get(5100, TimeUnit.MILLISECONDS);
+        assertTrue(transport.isStopped());
+        assertEquals(transport, tt);
+    }
+
+    @Test
+    public void testGracefulShutdownAndThenForced() throws Exception {
+        final AtomicBoolean listener1 = new AtomicBoolean();
+        final AtomicBoolean listener2 = new AtomicBoolean();
+        transport.addShutdownListener(new ShutdownListener() {
+            @Override
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                listener1.compareAndSet(false, true);
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(20000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
+            }
+        });
+        transport.addShutdownListener(new ShutdownListener() {
+            @Override
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                listener2.compareAndSet(false, true);
+                Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(20000);
+                        } catch (InterruptedException ignored) {
+                        }
+                        shutdownContext.ready();
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
+            }
+        });
+        transport.start();
+        GrizzlyFuture<Transport> future = transport.shutdown();
+        Thread.sleep(3000);
+        transport.shutdownNow();
+        Transport tt = future.get(1, TimeUnit.SECONDS);
+        assertEquals(transport, tt);
+        assertTrue(transport.isStopped());
         assertTrue(listener1.get());
         assertTrue(listener2.get());
-        assertTrue(interrupted1.get());
-        assertTrue(interrupted2.get());
+    }
+
+    @Test
+    public void testTimedGracefulShutdownAndThenForced() throws Exception {
+        transport.addShutdownListener(new ShutdownListener() {
+            @Override
+            public void shutdownRequested(ShutdownContext shutdownContext) {
+                try {
+                    Thread.sleep(20000);
+                } catch (InterruptedException ignored) {
+                }
+                shutdownContext.ready();
+            }
+        });
+
+        transport.start();
+        GrizzlyFuture<Transport> future = transport.shutdown(5, TimeUnit.MINUTES);
+        Thread.sleep(3000);
+        transport.shutdownNow();
+        final Transport tt = future.get(1, TimeUnit.SECONDS);
         assertEquals(transport, tt);
         assertTrue(transport.isStopped());
     }

@@ -83,6 +83,7 @@ import org.glassfish.grizzly.utils.Futures;
 public abstract class NIOTransport extends AbstractTransport
         implements SocketBinder, SocketConnectorHandler,
         TemporarySelectorsEnabledTransport, AsyncQueueEnabledTransport {
+
     private static final Logger LOGGER = Grizzly.logger(NIOTransport.class);
 
     protected SelectorHandler selectorHandler;
@@ -130,8 +131,13 @@ public abstract class NIOTransport extends AbstractTransport
     /**
      * Future to control graceful shutdown status
      */
-    private FutureImpl<Transport> shutdownFuture;
-    
+    protected FutureImpl<Transport> shutdownFuture;
+
+    /**
+     * ExecutorService hosting shutdown listener threads.
+     */
+    protected ExecutorService shutdownService;
+
     public NIOTransport(final String name) {
         super(name);
         temporarySelectorIO = createTemporarySelectorIO();
@@ -144,15 +150,21 @@ public abstract class NIOTransport extends AbstractTransport
     public abstract void unbindAll();
 
     @Override
-    public synchronized boolean addShutdownListener(ShutdownListener shutdownListener) {
-        final State state = getState().getState();
-        if (state != State.STOPPING || state != State.STOPPED) {
-            if (shutdownListeners == null) {
-                shutdownListeners = new HashSet<ShutdownListener>();
+    public boolean addShutdownListener(ShutdownListener shutdownListener) {
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
+        try {
+            final State stateNow = state.getState();
+            if (stateNow != State.STOPPING || stateNow != State.STOPPED) {
+                if (shutdownListeners == null) {
+                    shutdownListeners = new HashSet<ShutdownListener>();
+                }
+                return shutdownListeners.add(shutdownListener);
             }
-            return shutdownListeners.add(shutdownListener);
+            return false;
+        } finally {
+            lock.unlock();
         }
-        return false;
     }
 
     public SelectionKeyHandler getSelectionKeyHandler() {
@@ -465,93 +477,26 @@ public abstract class NIOTransport extends AbstractTransport
             unbindAll();
             shutdownFuture = Futures.createSafeFuture();
 
+            state.setState(State.STOPPING);
+
+            unbindAll();
+            shutdownFuture = Futures.createSafeFuture();
+
             if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
                 final int listenerCount = shutdownListeners.size();
-                final String baseThreadIdentifier =
-                        this.getName()
-                                + " ["
-                                + Integer.toHexString(this.hashCode())
-                                + "]-Shutdown-Thread";
-                final Thread t =
-                        new Thread(baseThreadIdentifier) {
-                            @Override
-                            public void run() {
-
-                                final CountDownLatch shutdownLatch =
-                                        new CountDownLatch(listenerCount);
-
-                                final ExecutorService executorService =
-                                        Executors.newFixedThreadPool(
-                                                listenerCount,
-                                                new ThreadFactory() {
-                                                    private int counter;
-
-                                                    @Override
-                                                    public Thread newThread(Runnable r) {
-                                                        Thread t =
-                                                                new Thread(r,
-                                                                           baseThreadIdentifier
-                                                                                   + "-Sub(" + counter++ + ')');
-                                                        t.setDaemon(true);
-                                                        return t;
-                                                    }
-                                                });
-
-                                for (final ShutdownListener l : shutdownListeners) {
-                                    executorService.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            l.shutdownRequested(
-                                                    new ShutdownContext() {
-                                                        @Override
-                                                        public Transport getTransport() {
-                                                            return NIOTransport.this;
-                                                        }
-
-                                                        @Override
-                                                        public void ready() {
-                                                            shutdownLatch.countDown();
-                                                        }
-                                                    });
-                                        }
-                                    });
-                                }
-
-                                try {
-                                    if (gracePeriod <= 0) {
-                                        shutdownLatch.await();
-                                    } else {
-                                        Boolean result =
-                                                shutdownLatch.await(gracePeriod,
-                                                                    timeUnit);
-                                        if (!result) {
-                                            if (LOGGER.isLoggable(Level.WARNING)) {
-                                                LOGGER.warning("Shutdown grace period exceeded.  Terminating transport.");
-                                            }
-                                        }
-                                    }
-                                } catch (InterruptedException ie) {
-                                    if (LOGGER.isLoggable(Level.WARNING)) {
-                                        LOGGER.warning("Primary shutdown thread interrupted.  Forcing transport termination.");
-                                    }
-                                } finally {
-                                    executorService.shutdownNow();
-                                }
-                                finalizeShutdown();
-                                shutdownFuture.result(NIOTransport.this);
-                            }
-                        };
-                t.setDaemon(true);
-                t.start();
+                shutdownService = createShutdownExecutorService();
+                shutdownService.execute(
+                        new GracefulShutdownRunner(gracePeriod,
+                                                   timeUnit,
+                                                   listenerCount));
             } else {
                 finalizeShutdown();
                 shutdownFuture.result(NIOTransport.this);
             }
+            return shutdownFuture;
         } finally {
             lock.unlock();
         }
-
-        return shutdownFuture;
     }
 
     /**
@@ -576,7 +521,14 @@ public abstract class NIOTransport extends AbstractTransport
 
             unbindAll();
             state.setState(State.STOPPING);
+            if (shutdownService != null && !shutdownService.isShutdown()) {
+                shutdownService.shutdownNow();
+                shutdownService = null;
+            }
             finalizeShutdown();
+            if (shutdownFuture != null) {
+                shutdownFuture.result(this);
+            }
         } finally {
             lock.unlock();
         }
@@ -729,4 +681,130 @@ public abstract class NIOTransport extends AbstractTransport
         this.serverSocketSoTimeout = serverSocketSoTimeout;
         notifyProbesConfigChanged(this);
     }
+
+    protected ExecutorService createShutdownExecutorService() {
+        final String baseThreadIdentifier =
+                this.getName()
+                        + '['
+                        + Integer.toHexString(this.hashCode())
+                        + "]-Shutdown-Thread";
+        final ThreadFactory factory =
+                new ThreadFactory() {
+                    private int counter;
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t =
+                                new Thread(r, baseThreadIdentifier
+                                                 + "(" + counter++ + ')');
+                        t.setDaemon(true);
+                        return t;
+                    }
+                };
+
+        return Executors.newFixedThreadPool(2, factory);
+    }
+
+
+    // ----------------------------------------------------------- Inner Classes
+
+
+    class GracefulShutdownRunner implements Runnable {
+
+        private final long gracePeriod;
+        private final TimeUnit timeUnit;
+        private final int listenerCount;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        GracefulShutdownRunner(final long gracePeriod,
+                               final TimeUnit timeUnit,
+                               final int listenerCount) {
+            this.listenerCount = listenerCount;
+            this.gracePeriod = gracePeriod;
+            this.timeUnit = timeUnit;
+        }
+
+
+        // ----------------------------------------------- Methods from Runnable
+
+
+        public void run() {
+            final CountDownLatch shutdownLatch =
+                                new CountDownLatch(listenerCount);
+
+            final ShutdownContext shutdownContext =
+                    new ShutdownContext() {
+                        @Override
+                        public Transport getTransport() {
+                            return NIOTransport.this;
+                        }
+
+                        @Override
+                        public void ready() {
+                            shutdownLatch.countDown();
+                        }
+                    };
+
+            // If there there is no timeout, invoke the listeners in the
+            // same thread otherwise use one additional thread to invoke them.
+            if (gracePeriod <= 0) {
+                for (final ShutdownListener l : shutdownListeners) {
+                    l.shutdownRequested(shutdownContext);
+                }
+            }  else {
+                shutdownService.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (final ShutdownListener l : shutdownListeners) {
+                            l.shutdownRequested(shutdownContext);
+                        }
+                    }
+                });
+            }
+
+            try {
+                if (gracePeriod <= 0) {
+                    shutdownLatch.await();
+                } else {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   "Shutting down transport {0} in {1} {2}.",
+                                   new Object[] {
+                                           getName() + '[' + Integer.toHexString(hashCode()) + ']',
+                                           gracePeriod,
+                                           timeUnit
+                                   });
+                    }
+                    Boolean result =
+                            shutdownLatch.await(gracePeriod,
+                                                timeUnit);
+                    if (!result) {
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.log(Level.WARNING,
+                                       "Shutdown grace period exceeded.  Terminating transport {0}.",
+                                       getName() + '[' + Integer.toHexString(hashCode()) + ']'
+                            );
+                        }
+                    }
+                }
+            } catch (InterruptedException ie) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning(
+                            "Primary shutdown thread interrupted.  Forcing transport termination.");
+                }
+            } finally {
+                if (shutdownService != null && !shutdownService.isShutdown()) {
+                    shutdownService.shutdownNow();
+                    shutdownService = null;
+                }
+            }
+            finalizeShutdown();
+            shutdownFuture.result(NIOTransport.this);
+        }
+
+    } // END GracefulShutdownRunner
+
 }

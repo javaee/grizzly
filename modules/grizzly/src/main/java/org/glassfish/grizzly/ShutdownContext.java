@@ -40,8 +40,10 @@
 package org.glassfish.grizzly;
 
 /**
+ * This class will be passed to {@link ShutdownListener} instances
+ * registered against a {@link Transport}.
  *
- * @since 2.3.5
+ * @since 2.3.4
  */
 public interface ShutdownContext {
 

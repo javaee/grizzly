@@ -423,11 +423,12 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * Gracefully stops the transport accepting new connections and allows
      * existing work to complete before finalizing the shutdown.  This method
      * will wait indefinitely for all interested parties to signal it is safe
-     * to terminate the transport.
+     * to terminate the transport.   Invoke {@link #shutdownNow()} to terminate
+     * the transport if the graceful shutdown is taking too long.
      *
      * @return a {@link GrizzlyFuture} which will return the stopped transport.
      *
-     * @since 2.3.5
+     * @since 2.3.4
      *
      * @see ShutdownListener
      */
@@ -441,10 +442,14 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * transport will be terminated forcefully.
      *
      * @param gracePeriod the grace period for a graceful shutdown before the
-     *                    transport is forcibly terminated.  A grace period
-     *                    of zero or less effectively means no timeout.
+     *                    transport is forcibly terminated.  If gracePeriod
+     *                    is zero or less, then there is no time limit for
+     *                    the shutdown.
      * @param timeUnit the {@link TimeUnit} of the specified grace period.
-     * @return
+     *
+     * @return a {@link GrizzlyFuture} which will return the stopped transport.
+     *
+     * @since 2.3.4
      */
     GrizzlyFuture<Transport> shutdown(final long gracePeriod,
                                       final TimeUnit timeUnit);
@@ -454,7 +459,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @throws IOException
      *
-     * @since 2.3.5
+     * @since 2.3.4
      */
     void shutdownNow() throws IOException;
 
@@ -467,9 +472,11 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * @param shutdownListener the {@link ShutdownListener}
      *
      * @return <code>true</code> if the listener was successfully registered,
-     *  otherwise <code>false</code>.
+     *  otherwise <code>false</code>.  When this method returns <code>false</code>
+     *  it means one of two things: the transport is stopping or is stopped, or
+     *  the listener has already been registered.
      *
-     * @since 2.3.5
+     * @since 2.3.4
      */
     boolean addShutdownListener(final ShutdownListener shutdownListener);
     
