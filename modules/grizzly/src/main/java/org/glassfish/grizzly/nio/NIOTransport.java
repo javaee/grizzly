@@ -477,11 +477,6 @@ public abstract class NIOTransport extends AbstractTransport
             unbindAll();
             shutdownFuture = Futures.createSafeFuture();
 
-            state.setState(State.STOPPING);
-
-            unbindAll();
-            shutdownFuture = Futures.createSafeFuture();
-
             if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
                 final int listenerCount = shutdownListeners.size();
                 shutdownService = createShutdownExecutorService();
