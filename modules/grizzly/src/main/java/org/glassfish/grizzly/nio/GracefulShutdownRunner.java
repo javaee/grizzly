@@ -136,7 +136,7 @@ class GracefulShutdownRunner implements Runnable {
 
     private ShutdownContext createContext(final CountDownLatch shutdownLatch) {
         return new ShutdownContext() {
-            final AtomicBoolean isNotified = new AtomicBoolean();
+            boolean isNotified;
 
             @Override
             public Transport getTransport() {
@@ -144,8 +144,9 @@ class GracefulShutdownRunner implements Runnable {
             }
 
             @Override
-            public void ready() {
-                if (isNotified.compareAndSet(false, true)) {
+            public synchronized void ready() {
+                if (!isNotified) {
+                    isNotified = true;
                     shutdownLatch.countDown();
                 }
             }
