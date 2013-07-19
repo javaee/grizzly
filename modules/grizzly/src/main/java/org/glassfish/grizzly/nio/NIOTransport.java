@@ -480,7 +480,6 @@ public abstract class NIOTransport extends AbstractTransport
             final GrizzlyFuture<Transport> resultFuture;
             
             if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
-                
                 shutdownFuture = Futures.createSafeFuture();
                 shutdownService = createShutdownExecutorService();
                 shutdownService.execute(
@@ -489,6 +488,7 @@ public abstract class NIOTransport extends AbstractTransport
                                                    shutdownService,
                                                    gracePeriod,
                                                    timeUnit));
+                shutdownListeners = null;
                 resultFuture = shutdownFuture;
             } else {
                 finalizeShutdown();
