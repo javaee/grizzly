@@ -191,11 +191,19 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
-                        clientTransport.pause();
+                        try {
+                            clientTransport.pause();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
 
                         assertTrue(out.canWrite());
 
-                        clientTransport.resume();
+                        try {
+                            clientTransport.resume();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
                         try {
                             byte[] b = new byte[singleMessageSize];
                             fill(b);
@@ -249,7 +257,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -366,7 +374,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -466,9 +474,17 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
-                        clientTransport.pause();
+                        try {
+                            clientTransport.pause();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
                         assertTrue(out.canWrite());
-                        clientTransport.resume();
+                        try {
+                            clientTransport.resume();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
                         try {
                             char[] c = new char[singleMessageSize];
                             fill(c);
@@ -518,7 +534,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
 
@@ -632,7 +648,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -754,7 +770,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -865,7 +881,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -998,7 +1014,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -1131,7 +1147,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }

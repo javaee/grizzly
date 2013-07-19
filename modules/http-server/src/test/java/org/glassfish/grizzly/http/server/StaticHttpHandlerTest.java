@@ -156,7 +156,7 @@ public class StaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.shutdownNow();
+            client.stop();
         }        
     }
     
@@ -190,7 +190,7 @@ public class StaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.shutdownNow();
+            client.stop();
         }        
     }
     

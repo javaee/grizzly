@@ -564,7 +564,7 @@ public class NIOInputSourcesTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -671,7 +671,7 @@ public class NIOInputSourcesTest extends TestCase {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }

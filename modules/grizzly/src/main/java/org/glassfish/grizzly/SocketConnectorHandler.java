@@ -52,10 +52,6 @@ import java.net.SocketAddress;
  * @author Alexey Stashok
  */
 public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> {
-
-
-    int DEFAULT_CONNECTION_TIMEOUT = 30000;
-
     /**
      * Creates, initializes and connects socket to the specific remote host
      * and port and returns {@link Connection}, representing socket.
@@ -67,5 +63,5 @@ public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> 
      * 
      * @throws java.io.IOException
      */
-    GrizzlyFuture<Connection> connect(String host, int port) throws IOException;
+    public GrizzlyFuture<Connection> connect(String host, int port) throws IOException;
 }

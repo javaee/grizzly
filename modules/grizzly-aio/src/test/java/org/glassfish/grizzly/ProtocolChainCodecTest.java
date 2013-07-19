@@ -208,7 +208,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 }

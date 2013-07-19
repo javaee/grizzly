@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
@@ -63,6 +62,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnectorHandler.class);
 
+    protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     protected boolean isReuseAddress;
     protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 

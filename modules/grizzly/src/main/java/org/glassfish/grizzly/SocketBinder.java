@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -132,13 +132,13 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public void unbind(Connection connection);
+    public void unbind(Connection connection) throws IOException;
 
     /**
      * Unbinds all bound {@link Transport} connections.
      *
      * @throws java.io.IOException
      */
-    public void unbindAll();
+    public void unbindAll() throws IOException;
 
 }

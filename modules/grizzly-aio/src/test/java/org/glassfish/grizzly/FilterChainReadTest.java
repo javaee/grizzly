@@ -172,7 +172,7 @@ public class FilterChainReadTest extends TestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -287,7 +287,7 @@ public class FilterChainReadTest extends TestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -364,7 +364,7 @@ public class FilterChainReadTest extends TestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 }

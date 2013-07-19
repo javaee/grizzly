@@ -169,7 +169,7 @@ public class SplitTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }

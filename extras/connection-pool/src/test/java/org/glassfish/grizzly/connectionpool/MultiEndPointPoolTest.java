@@ -110,7 +110,7 @@ public class MultiEndPointPoolTest {
         serverSideConnections.clear();
         
         if (transport != null) {
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 

@@ -173,7 +173,7 @@ public class TestClient {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            transport.shutdownNow();
+            transport.stop();
             threadPool.shutdown();
         }
     }

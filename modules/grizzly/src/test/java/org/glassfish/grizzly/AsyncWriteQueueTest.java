@@ -245,7 +245,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
     
@@ -380,7 +380,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -455,7 +455,7 @@ public class AsyncWriteQueueTest {
             if (transport.isPaused()) {
                 transport.resume();
             }
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -569,7 +569,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
     

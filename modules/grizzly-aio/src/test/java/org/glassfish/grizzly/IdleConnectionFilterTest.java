@@ -109,7 +109,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -162,7 +162,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 

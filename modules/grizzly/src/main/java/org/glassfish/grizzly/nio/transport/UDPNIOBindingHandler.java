@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.AbstractBindingHandler;
@@ -100,7 +99,7 @@ public class UDPNIOBindingHandler extends AbstractBindingHandler {
     }
 
     @Override
-    public void unbind(Connection connection) {
+    public void unbind(Connection connection) throws IOException {
         udpTransport.unbind(connection);
     }
 
@@ -122,17 +121,17 @@ public class UDPNIOBindingHandler extends AbstractBindingHandler {
         try {
             final DatagramSocket socket = serverDatagramChannel.socket();
             try {
-                socket.setReuseAddress(udpTransport.isReuseAddress());
+                socket.setReuseAddress(udpTransport.reuseAddress);
             } catch (IOException e) {
                 UDPNIOTransport.LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(udpTransport.isReuseAddress()), e);
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(udpTransport.reuseAddress), e);
             }
 
             try {
-                socket.setSoTimeout(udpTransport.getServerSocketSoTimeout());
+                socket.setSoTimeout(udpTransport.serverSocketSoTimeout);
             } catch (IOException e) {
                 UDPNIOTransport.LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(udpTransport.getServerSocketSoTimeout()), e);
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(udpTransport.serverSocketSoTimeout), e);
             }
 
             if (socketAddress != null) {

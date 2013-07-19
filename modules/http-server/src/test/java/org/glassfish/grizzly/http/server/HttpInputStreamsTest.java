@@ -1281,7 +1281,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         } finally {
             server.shutdownNow();
-            ctransport.shutdownNow();
+            ctransport.stop();
         }
     }
 

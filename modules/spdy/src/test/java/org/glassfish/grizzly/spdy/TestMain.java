@@ -202,7 +202,7 @@ public class TestMain {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            server.shutdownNow();
+            server.stop();
         }
     }
     

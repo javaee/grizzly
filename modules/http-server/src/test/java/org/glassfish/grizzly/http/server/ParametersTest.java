@@ -144,7 +144,7 @@ public class ParametersTest {
             assertNull(error.get());
         } finally {
             server.shutdownNow();
-            clientTransport.shutdownNow();
+            clientTransport.stop();
         }
 
     }

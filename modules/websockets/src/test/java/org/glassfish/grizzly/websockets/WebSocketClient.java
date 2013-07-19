@@ -161,7 +161,7 @@ public class WebSocketClient extends SimpleWebSocket {
             super.onClose(socket, frame);
             if (transport != null) {
                 try {
-                    transport.shutdownNow();
+                    transport.stop();
                 } catch (IOException e) {
                     logger.log(Level.INFO, e.getMessage(), e);
                 }

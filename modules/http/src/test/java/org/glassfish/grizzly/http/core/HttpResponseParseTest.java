@@ -237,7 +237,7 @@ public class HttpResponseParseTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 

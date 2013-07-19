@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.AbstractBindingHandler;
@@ -100,7 +99,7 @@ public class TCPNIOBindingHandler extends AbstractBindingHandler {
     }
 
     @Override
-    public void unbind(Connection connection) {
+    public void unbind(Connection connection) throws IOException {
         tcpTransport.unbind(connection);
     }
 
@@ -124,9 +123,9 @@ public class TCPNIOBindingHandler extends AbstractBindingHandler {
 
             final ServerSocket serverSocket = serverSocketChannel.socket();
 
-            serverSocket.setReuseAddress(tcpTransport.isReuseAddress());
+            serverSocket.setReuseAddress(tcpTransport.reuseAddress);
 
-            serverSocket.setSoTimeout(tcpTransport.getServerSocketSoTimeout());
+            serverSocket.setSoTimeout(tcpTransport.serverSocketSoTimeout);
 
             if (socketAddress != null) {
                 serverSocket.bind(socketAddress, backlog);

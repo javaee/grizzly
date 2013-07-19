@@ -211,7 +211,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -312,7 +312,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             if (transport.isPaused()) {
                 transport.resume();
             }
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 
@@ -393,7 +393,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             if (transport.isPaused()) {
                 transport.resume();
             }
-            transport.shutdownNow();
+            transport.stop();
         }
     }
 

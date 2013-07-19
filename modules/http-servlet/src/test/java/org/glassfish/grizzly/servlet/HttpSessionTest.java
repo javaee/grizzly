@@ -269,7 +269,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
         }
     }
     

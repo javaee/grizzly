@@ -194,7 +194,7 @@ public class NonBlockingHttpHandlerSample {
                 }
             } finally {
                 // stop the transport
-                transport.shutdownNow();
+                transport.stop();
             }
         }
 

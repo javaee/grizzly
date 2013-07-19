@@ -792,15 +792,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         } catch (IOException ignored) {
         }
     }
-
-    /**
-     * Set the monitoringProbes array directly.
-     * @param monitoringProbes
-     */
-    void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
-        this.monitoringConfig.addProbes(monitoringProbes);
-    }
-
+    
     /**
      * Map, which contains {@link Processor}s and their states related to this {@link Connection}.
      */

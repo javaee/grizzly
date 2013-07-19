@@ -180,7 +180,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -267,7 +267,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -338,7 +338,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -474,7 +474,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -572,7 +572,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -715,7 +715,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -804,7 +804,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -906,7 +906,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
@@ -1015,7 +1015,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.shutdownNow();
+            clientTransport.stop();
             server.shutdownNow();
         }
     }
