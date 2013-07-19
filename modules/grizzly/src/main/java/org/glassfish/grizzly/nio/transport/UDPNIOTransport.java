@@ -129,11 +129,11 @@ public final class UDPNIOTransport extends NIOTransport
     }
 
     @Override
-    public synchronized boolean addShutdownListener(ShutdownListener shutdownListener) {
+    public synchronized boolean addShutdownListener(GracefulShutdownListener shutdownListener) {
         final State state = getState().getState();
         if (state != State.STOPPING || state != State.STOPPED) {
             if (shutdownListeners == null) {
-                shutdownListeners = new HashSet<ShutdownListener>();
+                shutdownListeners = new HashSet<GracefulShutdownListener>();
             }
             return shutdownListeners.add(shutdownListener);
         }

@@ -40,7 +40,7 @@
 package org.glassfish.grizzly;
 
 /**
- * This class will be passed to {@link ShutdownListener} instances
+ * This class will be passed to {@link GracefulShutdownListener} instances
  * registered against a {@link Transport}.
  *
  * @since 2.3.4
@@ -53,7 +53,7 @@ public interface ShutdownContext {
     Transport getTransport();
 
     /**
-     * Invoked by called {@link ShutdownListener} to notify the graceful
+     * Invoked by called {@link GracefulShutdownListener} to notify the graceful
      * termination process that it's safe to terminate the transport.
      */
     void ready();

@@ -430,7 +430,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @since 2.3.4
      *
-     * @see ShutdownListener
+     * @see GracefulShutdownListener
      */
     GrizzlyFuture<Transport> shutdown();
 
@@ -464,12 +464,12 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     void shutdownNow() throws IOException;
 
     /**
-     * Adds a {@link ShutdownListener} which will be called when {@link #shutdown()}
+     * Adds a {@link GracefulShutdownListener} which will be called when {@link #shutdown()}
      * is called to enable graceful shutdown of transports.  This allows the
      * owner of the listener to signal that all shutdown tasks are complete and
      * that it's safe to finalize the termination of the transport
      *
-     * @param shutdownListener the {@link ShutdownListener}
+     * @param shutdownListener the {@link GracefulShutdownListener}
      *
      * @return <code>true</code> if the listener was successfully registered,
      *  otherwise <code>false</code>.  When this method returns <code>false</code>
@@ -478,7 +478,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @since 2.3.4
      */
-    boolean addShutdownListener(final ShutdownListener shutdownListener);
+    boolean addShutdownListener(final GracefulShutdownListener shutdownListener);
     
     /**
      * Pauses the transport

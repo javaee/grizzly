@@ -54,9 +54,9 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GracefulShutdownListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.ShutdownListener;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.StandaloneProcessor;
@@ -124,7 +124,7 @@ public abstract class NIOTransport extends AbstractTransport
 
     protected final TemporarySelectorIO temporarySelectorIO;
 
-    protected Set<ShutdownListener> shutdownListeners;
+    protected Set<GracefulShutdownListener> shutdownListeners;
 
     /**
      * Future to control graceful shutdown status
@@ -149,14 +149,14 @@ public abstract class NIOTransport extends AbstractTransport
     public abstract void unbindAll();
 
     @Override
-    public boolean addShutdownListener(final ShutdownListener shutdownListener) {
+    public boolean addShutdownListener(final GracefulShutdownListener shutdownListener) {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
             final State stateNow = state.getState();
             if (stateNow != State.STOPPING || stateNow != State.STOPPED) {
                 if (shutdownListeners == null) {
-                    shutdownListeners = new HashSet<ShutdownListener>();
+                    shutdownListeners = new HashSet<GracefulShutdownListener>();
                 }
                 return shutdownListeners.add(shutdownListener);
             }

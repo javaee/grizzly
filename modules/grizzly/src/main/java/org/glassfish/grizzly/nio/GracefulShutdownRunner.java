@@ -47,23 +47,24 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.GracefulShutdownListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ShutdownContext;
-import org.glassfish.grizzly.ShutdownListener;
 import org.glassfish.grizzly.Transport;
 
 class GracefulShutdownRunner implements Runnable {
     private static final Logger LOGGER = Grizzly.logger(GracefulShutdownRunner.class);
 
     private final NIOTransport transport;
-    private final Set<ShutdownListener> shutdownListeners;
+    private final Set<GracefulShutdownListener> shutdownListeners;
     private final ExecutorService shutdownService;
     private final long gracePeriod;
     private final TimeUnit timeUnit;
 
     // -------------------------------------------------------- Constructors
     GracefulShutdownRunner(final NIOTransport transport,
-            final Set<ShutdownListener> shutdownListeners,
+            final Set<GracefulShutdownListener> shutdownListeners,
             final ExecutorService shutdownService,
             final long gracePeriod, final TimeUnit timeUnit) {
         this.transport = transport;
@@ -82,14 +83,14 @@ class GracefulShutdownRunner implements Runnable {
         // If there there is no timeout, invoke the listeners in the
         // same thread otherwise use one additional thread to invoke them.
         if (gracePeriod <= 0) {
-            for (final ShutdownListener l : shutdownListeners) {
+            for (final GracefulShutdownListener l : shutdownListeners) {
                 l.shutdownRequested(createContext(shutdownLatch));
             }
         } else {
             shutdownService.execute(new Runnable() {
                 @Override
                 public void run() {
-                    for (final ShutdownListener l : shutdownListeners) {
+                    for (final GracefulShutdownListener l : shutdownListeners) {
                         l.shutdownRequested(createContext(shutdownLatch));
                     }
                 }

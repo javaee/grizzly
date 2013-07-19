@@ -89,7 +89,7 @@ package org.glassfish.grizzly;/*
  *
  * @since 2.3.4.
  */
-public interface ShutdownListener {
+public interface GracefulShutdownListener {
 
     /**
      * Invoked when an attempt is made to shutdown the transport gracefully.

@@ -635,7 +635,7 @@ public class NIOTransportTest {
     @Test
     public void testGracefulShutdown() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -653,7 +653,7 @@ public class NIOTransportTest {
                 t.start();
             }
         });
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -683,7 +683,7 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdownWithGracePeriod() throws Exception {
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -700,7 +700,7 @@ public class NIOTransportTest {
                 t.start();
             }
         });
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -728,7 +728,7 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdownWithGracePeriodTimeout() throws Exception {
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -745,7 +745,7 @@ public class NIOTransportTest {
                 t.start();
             }
         });
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 Thread t = new Thread() {
@@ -773,7 +773,7 @@ public class NIOTransportTest {
     public void testGracefulShutdownAndThenForced() throws Exception {
         final AtomicBoolean listener1 = new AtomicBoolean();
         final AtomicBoolean listener2 = new AtomicBoolean();
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 listener1.compareAndSet(false, true);
@@ -791,7 +791,7 @@ public class NIOTransportTest {
                 t.start();
             }
         });
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 listener2.compareAndSet(false, true);
@@ -822,7 +822,7 @@ public class NIOTransportTest {
 
     @Test
     public void testTimedGracefulShutdownAndThenForced() throws Exception {
-        transport.addShutdownListener(new ShutdownListener() {
+        transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(ShutdownContext shutdownContext) {
                 try {
