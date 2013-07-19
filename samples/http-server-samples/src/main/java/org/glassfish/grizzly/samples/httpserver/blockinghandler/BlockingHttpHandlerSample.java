@@ -188,7 +188,7 @@ public class BlockingHttpHandlerSample {
                 }
             } finally {
                 // stop the transport
-                transport.stop();
+                transport.shutdownNow();
             }
         }
 

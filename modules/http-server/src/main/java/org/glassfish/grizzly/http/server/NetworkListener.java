@@ -749,7 +749,7 @@ public class NetworkListener {
             state = State.STOPPED;
             
             serverConnection = null;
-            transport.stop();
+            transport.shutdownNow();
             if (LOGGER.isLoggable(Level.INFO)) {
                 LOGGER.log(Level.INFO,
                     "Stopped listener bound to [{0}]",

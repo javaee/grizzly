@@ -413,8 +413,72 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * Stops the transport and closes all the connections
      * 
      * @throws IOException
+     *
+     * @deprecated Use {@link #shutdownNow()}.
      */
+    @Deprecated
     void stop() throws IOException;
+
+    /**
+     * Gracefully stops the transport accepting new connections and allows
+     * existing work to complete before finalizing the shutdown.  This method
+     * will wait indefinitely for all interested parties to signal it is safe
+     * to terminate the transport.   Invoke {@link #shutdownNow()} to terminate
+     * the transport if the graceful shutdown is taking too long.
+     *
+     * @return a {@link GrizzlyFuture} which will return the stopped transport.
+     *
+     * @since 2.3.4
+     *
+     * @see GracefulShutdownListener
+     */
+    GrizzlyFuture<Transport> shutdown();
+
+    /**
+     * Gracefully stops the transport accepting new connections and allows
+     * existing work to complete before finalizing the shutdown.  This method
+     * will wait for the specified time for all interested parties to signal it
+     * is safe to terminate the transport.  If the timeout is exceeded, the
+     * transport will be terminated forcefully.
+     *
+     * @param gracePeriod the grace period for a graceful shutdown before the
+     *                    transport is forcibly terminated.  If gracePeriod
+     *                    is zero or less, then there is no time limit for
+     *                    the shutdown.
+     * @param timeUnit the {@link TimeUnit} of the specified grace period.
+     *
+     * @return a {@link GrizzlyFuture} which will return the stopped transport.
+     *
+     * @since 2.3.4
+     */
+    GrizzlyFuture<Transport> shutdown(final long gracePeriod,
+                                      final TimeUnit timeUnit);
+
+    /**
+     * Forcibly stops the transport and closes all connections.
+     *
+     * @throws IOException
+     *
+     * @since 2.3.4
+     */
+    void shutdownNow() throws IOException;
+
+    /**
+     * Adds a {@link GracefulShutdownListener} which will be called when {@link #shutdown()}
+     * is called to enable graceful shutdown of transports.  This allows the
+     * owner of the listener to signal that all shutdown tasks are complete and
+     * that it's safe to finalize the termination of the transport
+     *
+     * @param shutdownListener the {@link GracefulShutdownListener}
+     *
+     * @return <code>true</code> if the listener was successfully registered,
+     *  otherwise <code>false</code>.  When this method returns <code>false</code>
+     *  it means one of two things: the transport is stopping or is stopped, or
+     *  the listener has already been registered.
+     *
+     * @since 2.3.4
+     */
+    boolean addShutdownListener(final GracefulShutdownListener shutdownListener);
     
     /**
      * Pauses the transport

@@ -670,7 +670,7 @@ public abstract class AbstractTransport implements Transport {
      * @throws IOException
      */
     @Override
-    public abstract void pause() throws IOException;
+    public abstract void pause();
     
     /**
      * Resumes the transport after a pause
@@ -678,7 +678,7 @@ public abstract class AbstractTransport implements Transport {
      * @throws IOException
      */
     @Override
-    public abstract void resume() throws IOException;
+    public abstract void resume();
 
     /**
      * Create the Transport JMX management object.

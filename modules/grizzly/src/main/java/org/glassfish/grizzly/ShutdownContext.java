@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,47 +37,25 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.samples.filterchain;
-
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.samples.echo.EchoFilter;
+package org.glassfish.grizzly;
 
 /**
- * Simple GIOP echo server
- * 
- * @author Alexey Stashok
+ * This class will be passed to {@link GracefulShutdownListener} instances
+ * registered against a {@link Transport}.
+ *
+ * @since 2.3.4
  */
-public class GIOPServer {
-    public static final String HOST = "localhost";
-    public static final int PORT = 9098;
-    
-    public static void main(String[] args) throws Exception {
-        // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        // Add filters to the chain
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new GIOPFilter());
-        filterChainBuilder.add(new EchoFilter());
+public interface ShutdownContext {
 
+    /**
+     * @return the Transport that is being shutdown.
+     */
+    Transport getTransport();
 
-        // Create TCP NIO transport
-        final TCPNIOTransport transport =
-                TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChainBuilder.build());
+    /**
+     * Invoked by called {@link GracefulShutdownListener} to notify the graceful
+     * termination process that it's safe to terminate the transport.
+     */
+    void ready();
 
-        try {
-            // Bind server socket and start transport
-            transport.bind(PORT);
-            transport.start();
-
-            System.out.println("Press <enter> to exit...");
-            System.in.read();
-        } finally {
-            transport.shutdownNow();
-        }
-    }
 }

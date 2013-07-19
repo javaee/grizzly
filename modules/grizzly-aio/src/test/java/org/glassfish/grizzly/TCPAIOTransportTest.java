@@ -88,7 +88,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -108,7 +108,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -145,7 +145,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -193,7 +193,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -236,7 +236,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -291,7 +291,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -351,7 +351,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -404,7 +404,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -497,7 +497,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -595,7 +595,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 }

@@ -681,8 +681,8 @@ public class HttpSemanticsTest extends TestCase {
                 }
             }
         } finally {
-            transport.stop();
-            ctransport.stop();
+            transport.shutdownNow();
+            ctransport.shutdownNow();
         }
     }
 

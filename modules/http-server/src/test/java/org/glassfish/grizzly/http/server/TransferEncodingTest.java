@@ -255,7 +255,7 @@ public class TransferEncodingTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -294,7 +294,7 @@ public class TransferEncodingTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

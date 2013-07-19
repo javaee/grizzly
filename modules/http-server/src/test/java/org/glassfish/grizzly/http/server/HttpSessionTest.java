@@ -405,7 +405,7 @@ public class HttpSessionTest extends TestCase {
             }
             
             try {
-                clientTransport.stop();
+                clientTransport.shutdownNow();
             } catch (IOException ee) {
             }
             
@@ -444,7 +444,7 @@ public class HttpSessionTest extends TestCase {
         
         public void close() throws IOException {
             connection.close();
-            transport.stop();
+            transport.shutdownNow();
         }
 
         private Future<HttpContent> send(HttpPacket request) {

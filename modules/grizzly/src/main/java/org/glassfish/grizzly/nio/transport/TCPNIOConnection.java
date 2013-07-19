@@ -311,14 +311,6 @@ public class TCPNIOConnection extends NIOConnection {
     }
 
     /**
-     * Set the monitoringProbes array directly.
-     * @param monitoringProbes
-     */
-    void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
-        this.monitoringConfig.addProbes(monitoringProbes);
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override

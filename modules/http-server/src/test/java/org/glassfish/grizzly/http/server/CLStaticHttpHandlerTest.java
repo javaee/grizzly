@@ -125,7 +125,7 @@ public class CLStaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     
@@ -164,7 +164,7 @@ public class CLStaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     

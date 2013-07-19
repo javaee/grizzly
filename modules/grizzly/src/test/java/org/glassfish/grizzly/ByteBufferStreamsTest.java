@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1182,8 +1182,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
             poisonFuture.get(20, TimeUnit.SECONDS);
             clientWriter.close();
             clientconnection.closeSilently();
-            servertransport.stop();
-            clienttransport.stop();
+            servertransport.shutdownNow();
+            clienttransport.shutdownNow();
 
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, "Close", ex);

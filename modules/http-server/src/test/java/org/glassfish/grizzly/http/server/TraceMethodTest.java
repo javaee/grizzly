@@ -166,7 +166,7 @@ public class TraceMethodTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
 

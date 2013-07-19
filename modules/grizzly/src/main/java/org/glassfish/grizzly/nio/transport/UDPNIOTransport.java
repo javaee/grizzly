@@ -47,6 +47,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -62,12 +63,6 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.*;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.AbstractThreadPool;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -75,25 +70,11 @@ import org.glassfish.grizzly.utils.Futures;
  * 
  * @author Alexey Stashok
  */
-public final class UDPNIOTransport extends NIOTransport implements
-        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
+public final class UDPNIOTransport extends NIOTransport
+        implements FilterChainEnabledTransport {
 
     static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
-    /**
-     * The server socket time out
-     */
-    protected final int serverSocketSoTimeout = 0;
-    /**
-     * The socket reuseAddress
-     */
-    protected boolean reuseAddress = true;
-    /**
-     * Default channel connection timeout
-     */
-    protected int connectionTimeout =
-            UDPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
     /**
      * The Server connections.
      */
@@ -105,7 +86,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Server socket backlog.
      */
-    protected final TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
     /**
@@ -133,12 +113,31 @@ public final class UDPNIOTransport extends NIOTransport implements
                 new UDPNIOAsyncQueueReader(this),
                 new UDPNIOAsyncQueueWriter(this));
 
-        temporarySelectorIO = new TemporarySelectorIO(
-                new UDPNIOTemporarySelectorReader(this),
-                new UDPNIOTemporarySelectorWriter(this));
-
         transportFilter = new UDPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
+    }
+
+    @Override
+    public TemporarySelectorIO createTemporarySelectorIO() {
+        return new TemporarySelectorIO(new UDPNIOTemporarySelectorReader(this),
+                                       new UDPNIOTemporarySelectorWriter(this));
+    }
+
+    @Override
+    public void listen() {
+        registerServerConnections();
+    }
+
+    @Override
+    public synchronized boolean addShutdownListener(GracefulShutdownListener shutdownListener) {
+        final State state = getState().getState();
+        if (state != State.STOPPING || state != State.STOPPED) {
+            if (shutdownListeners == null) {
+                shutdownListeners = new HashSet<GracefulShutdownListener>();
+            }
+            return shutdownListeners.add(shutdownListener);
+        }
+        return false;
     }
 
     /**
@@ -205,10 +204,11 @@ public final class UDPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public void unbind(final Connection connection) throws IOException {
+    public void unbind(final Connection connection) {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            //noinspection SuspiciousMethodCalls
             if (connection != null
                     && serverConnections.remove(connection)) {
                 final FutureImpl<Closeable> future =
@@ -230,7 +230,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public void unbindAll() throws IOException {
+    public void unbindAll() {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
@@ -367,96 +367,6 @@ public final class UDPNIOTransport extends NIOTransport implements
         }
     }
 
-    /**
-     * Start UDPNIOTransport.
-     * 
-     * The transport will be started only if its current state is {@link State#STOPPED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
-    @Override
-    public void start() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            State currentState = state.getState();
-            if (currentState != State.STOPPED) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_STOP_STATE_EXCEPTION());
-                return;
-            }
-
-            state.setState(State.STARTING);
-            notifyProbesBeforeStart(this);
-            super.start();
-
-            if (selectorHandler == null) {
-                selectorHandler = new DefaultSelectorHandler();
-            }
-
-            if (selectionKeyHandler == null) {
-                selectionKeyHandler = new DefaultSelectionKeyHandler();
-            }
-
-            if (processor == null && processorSelector == null) {
-                processor = new StandaloneProcessor();
-            }
-
-            final int selectorRunnersCount = getSelectorRunnersCount();
-
-            if (nioChannelDistributor == null) {
-                nioChannelDistributor = new RoundRobinConnectionDistributor(this);
-            }
-
-            if (kernelPool == null) {
-                kernelPoolConfig.setMemoryManager(memoryManager);
-                setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
-            }
-
-            if (workerThreadPool == null) {
-                if (workerPoolConfig != null) {
-                    if (getThreadPoolMonitoringConfig().hasProbes()) {
-                        workerPoolConfig.getInitialMonitoringConfig().addProbes(
-                                getThreadPoolMonitoringConfig().getProbes());
-                    }
-                    workerPoolConfig.setMemoryManager(memoryManager);
-                    setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
-                }
-            }
-
-            /* By default TemporarySelector pool size should be equal
-            to the number of processing threads */
-            int selectorPoolSize =
-                    TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (workerThreadPool instanceof AbstractThreadPool) {
-                if (strategy instanceof SameThreadIOStrategy) {
-                    selectorPoolSize = selectorRunnersCount;
-                } else {
-                    selectorPoolSize = Math.min(
-                           ((AbstractThreadPool) workerThreadPool).getConfig().getMaxPoolSize(),
-                           selectorPoolSize);
-                }
-            }
-
-            if (strategy == null) {
-                strategy =  WorkerThreadIOStrategy.getInstance();
-            }
-
-            temporarySelectorIO.setSelectorPool(
-                    new TemporarySelectorPool(selectorProvider, selectorPoolSize));
-
-            startSelectorRunners();
-
-            registerServerConnections();
-
-            state.setState(State.STARTED);
-
-            notifyProbesStart(this);
-        } finally {
-            lock.unlock();
-        }
-    }
-
     private void registerServerConnections() {
         for (UDPNIOServerConnection serverConnection : serverConnections) {
             try {
@@ -466,104 +376,6 @@ public final class UDPNIOTransport extends NIOTransport implements
                         LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(serverConnection),
                         e);
             }
-        }
-    }
-
-    /**
-     * Stop UDPNIOTransport.
-     * 
-     * If the current transport state is {@link State#STOPPED} - the call will be
-     * ignored and no exception thrown.
-     */
-    @Override
-    public void stop() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            final State stateNow = state.getState();
-            
-            if (stateNow == State.STOPPED) {
-                return;
-            }
-            
-            if (stateNow == State.PAUSED) {
-                // if Transport is paused - first we need to resume it
-                // so selectorrunners can perform the close phase
-                resume();
-            }
-            
-            unbindAll();
-
-            state.setState(State.STOPPING);
-            notifyProbesBeforeStop(this);
-            stopSelectorRunners();
-
-            if (workerThreadPool != null && managedWorkerPool) {
-                workerThreadPool.shutdown();
-                workerThreadPool = null;
-            }
-
-            if (kernelPool != null) {
-                kernelPool.shutdownNow();
-                kernelPool = null;
-            }
-            state.setState(State.STOPPED);
-            notifyProbesStop(this);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Pause UDPNIOTransport, so I/O events coming on its {@link UDPNIOConnection}s
-     * will not be processed. Use {@link #resume()} in order to resume UDPNIOTransport processing.
-     * 
-     * The transport will be paused only if its current state is {@link State#STARTED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
-    @Override
-    public void pause() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            if (state.getState() != State.STARTED) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_START_STATE_EXCEPTION());
-                return;
-            }
-            state.setState(State.PAUSING);
-            notifyProbesBeforePause(this);
-            state.setState(State.PAUSED);
-            notifyProbesPause(this);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Resume UDPNIOTransport, which has been paused before using {@link #pause()}.
-     * 
-     * The transport will be resumed only if its current state is {@link State#PAUSED},
-     * otherwise the call will be ignored without exception thrown and the transport
-     * state will remain the same as it was before the method call.
-     */
-    @Override
-    public void resume() throws IOException {
-        final Lock lock = state.getStateLocker().writeLock();
-        lock.lock();
-        try {
-            if (state.getState() != State.PAUSED) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_NOT_PAUSE_STATE_EXCEPTION());
-                return;
-            }
-            state.setState(State.STARTING);
-            notifyProbesBeforeResume(this);
-            state.setState(State.STARTED);
-            notifyProbesResume(this);
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -594,24 +406,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
-    }
-
-    public int getConnectionTimeout() {
-        return connectionTimeout;
-    }
-
-    public void setConnectionTimeout(int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        notifyProbesConfigChanged(this);
-    }
-
-    public boolean isReuseAddress() {
-        return reuseAddress;
-    }
-
-    public void setReuseAddress(boolean reuseAddress) {
-        this.reuseAddress = reuseAddress;
-        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -845,17 +639,6 @@ public final class UDPNIOTransport extends NIOTransport implements
         return connection;
     }
 
-    protected void configureNIOConnection(UDPNIOConnection connection) {
-        connection.configureBlocking(isBlocking);
-        connection.configureStandalone(isStandalone);
-        connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
-        connection.setReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
-        connection.setWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-        if (connectionMonitoringConfig.hasProbes()) {
-            connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
-        }
-    }
 
     /**
      * {@inheritDoc}

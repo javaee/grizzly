@@ -213,7 +213,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         }
 
         void killConnection() throws IOException {
-            transport.stop();
+            transport.shutdownNow();
         }
 
         @Override

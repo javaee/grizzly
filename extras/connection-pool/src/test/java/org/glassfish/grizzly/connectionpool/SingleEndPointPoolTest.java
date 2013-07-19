@@ -111,7 +111,7 @@ public class SingleEndPointPoolTest {
         serverSideConnections.clear();
         
         if (transport != null) {
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -355,7 +355,7 @@ public class SingleEndPointPoolTest {
         
         try {
             clientTransport.start();
-            transport.stop();
+            transport.shutdownNow();
             
             t.start();
             
@@ -366,7 +366,7 @@ public class SingleEndPointPoolTest {
         } finally {
             t.join();
             pool.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
 
@@ -398,7 +398,7 @@ public class SingleEndPointPoolTest {
 
         try {
             clientTransport.start();
-            transport.stop();
+            transport.shutdownNow();
             final AtomicBoolean notified = new AtomicBoolean();
             final AtomicReference<Connection> connection =
                     new AtomicReference<Connection>();
@@ -425,7 +425,7 @@ public class SingleEndPointPoolTest {
             e.printStackTrace();
         } finally {
             pool.close();
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
 }
