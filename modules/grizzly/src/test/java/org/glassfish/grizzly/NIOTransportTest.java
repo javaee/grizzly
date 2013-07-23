@@ -635,6 +635,8 @@ public class NIOTransportTest {
     @Test
     public void testGracefulShutdown() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
+        final AtomicBoolean forcedNotCalled1 = new AtomicBoolean();
+        final AtomicBoolean forcedNotCalled2 = new AtomicBoolean();
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
@@ -651,6 +653,11 @@ public class NIOTransportTest {
                 };
                 t.setDaemon(true);
                 t.start();
+            }
+
+            @Override
+            public void shutdownForced() {
+                forcedNotCalled1.set(true);
             }
         });
         transport.addShutdownListener(new GracefulShutdownListener() {
@@ -670,6 +677,11 @@ public class NIOTransportTest {
                 t.setDaemon(true);
                 t.start();
             }
+
+            @Override
+            public void shutdownForced() {
+                forcedNotCalled2.set(true);
+            }
         });
         transport.start();
         long start = System.currentTimeMillis();
@@ -679,10 +691,14 @@ public class NIOTransportTest {
         assertTrue((stop - start) >= 7000);
         assertEquals(transport, tt);
         assertTrue(transport.isStopped());
+        assertFalse(forcedNotCalled1.get());
+        assertFalse(forcedNotCalled2.get());
     }
 
     @Test
     public void testGracefulShutdownWithGracePeriod() throws Exception {
+        final AtomicBoolean forcedNotCalled1 = new AtomicBoolean();
+        final AtomicBoolean forcedNotCalled2 = new AtomicBoolean();
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
@@ -698,6 +714,11 @@ public class NIOTransportTest {
                 };
                 t.setDaemon(true);
                 t.start();
+            }
+
+            @Override
+            public void shutdownForced() {
+                forcedNotCalled1.set(true);
             }
         });
         transport.addShutdownListener(new GracefulShutdownListener() {
@@ -716,6 +737,11 @@ public class NIOTransportTest {
                 t.setDaemon(true);
                 t.start();
             }
+
+            @Override
+            public void shutdownForced() {
+                forcedNotCalled2.set(true);
+            }
         });
         transport.start();
         GrizzlyFuture<Transport> future =
@@ -723,11 +749,14 @@ public class NIOTransportTest {
         Transport tt = future.get(5100, TimeUnit.MILLISECONDS);
         assertTrue(transport.isStopped());
         assertEquals(transport, tt);
-
+        assertFalse(forcedNotCalled1.get());
+        assertFalse(forcedNotCalled2.get());
     }
 
     @Test
     public void testGracefulShutdownWithGracePeriodTimeout() throws Exception {
+        final AtomicBoolean forcedCalled1 = new AtomicBoolean();
+        final AtomicBoolean forcedCalled2 = new AtomicBoolean();
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
@@ -744,6 +773,11 @@ public class NIOTransportTest {
                 t.setDaemon(true);
                 t.start();
             }
+
+            @Override
+            public void shutdownForced() {
+                forcedCalled1.set(true);
+            }
         });
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
@@ -752,7 +786,7 @@ public class NIOTransportTest {
                     @Override
                     public void run() {
                         try {
-                            Thread.sleep(5000);
+                            Thread.sleep(7000);
                         } catch (InterruptedException ignored) {
                         }
                         shutdownContext.ready();
@@ -761,18 +795,26 @@ public class NIOTransportTest {
                 t.setDaemon(true);
                 t.start();
             }
+
+            @Override
+            public void shutdownForced() {
+                forcedCalled2.set(true);
+            }
         });
         transport.start();
         GrizzlyFuture<Transport> future = transport.shutdown(5, TimeUnit.SECONDS);
         Transport tt = future.get(5100, TimeUnit.MILLISECONDS);
         assertTrue(transport.isStopped());
         assertEquals(transport, tt);
+        assertTrue(forcedCalled1.get());
+        assertTrue(forcedCalled2.get());
     }
 
     @Test
     public void testGracefulShutdownAndThenForced() throws Exception {
         final AtomicBoolean listener1 = new AtomicBoolean();
         final AtomicBoolean listener2 = new AtomicBoolean();
+        final CountDownLatch latch = new CountDownLatch(2);
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
@@ -789,6 +831,11 @@ public class NIOTransportTest {
                 };
                 t.setDaemon(true);
                 t.start();
+            }
+
+            @Override
+            public void shutdownForced() {
+                latch.countDown();
             }
         });
         transport.addShutdownListener(new GracefulShutdownListener() {
@@ -808,12 +855,18 @@ public class NIOTransportTest {
                 t.setDaemon(true);
                 t.start();
             }
+
+            @Override
+            public void shutdownForced() {
+                latch.countDown();
+            }
         });
         transport.start();
         GrizzlyFuture<Transport> future = transport.shutdown();
         Thread.sleep(3000);
         transport.shutdownNow();
-        Transport tt = future.get(1, TimeUnit.SECONDS);
+        Transport tt = future.get(10, TimeUnit.SECONDS);
+        latch.await(5, TimeUnit.SECONDS);
         assertEquals(transport, tt);
         assertTrue(transport.isStopped());
         assertTrue(listener1.get());
@@ -822,6 +875,7 @@ public class NIOTransportTest {
 
     @Test
     public void testTimedGracefulShutdownAndThenForced() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(ShutdownContext shutdownContext) {
@@ -831,12 +885,18 @@ public class NIOTransportTest {
                 }
                 shutdownContext.ready();
             }
+
+            @Override
+            public void shutdownForced() {
+                latch.countDown();
+            }
         });
 
         transport.start();
         GrizzlyFuture<Transport> future = transport.shutdown(5, TimeUnit.MINUTES);
         Thread.sleep(3000);
         transport.shutdownNow();
+        latch.await(5, TimeUnit.SECONDS);
         final Transport tt = future.get(1, TimeUnit.SECONDS);
         assertEquals(transport, tt);
         assertTrue(transport.isStopped());
