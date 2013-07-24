@@ -772,8 +772,7 @@ public class MultiEndpointPool<E> {
         private int maxReconnectAttempts = 5;
         /**
          * the maximum number of milliseconds an idle {@link Connection} will be kept
-         * in the pool. The idle {@link Connection}s will be closed till the pool
-         * size is greater than <tt>corePoolSize</tt>
+         * in the pool.
          */
         private long keepAliveTimeoutMillis = 30000;
         /**
