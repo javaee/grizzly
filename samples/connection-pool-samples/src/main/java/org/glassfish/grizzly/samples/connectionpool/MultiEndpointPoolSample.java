@@ -70,8 +70,20 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
- *
- * @author oleksiys
+ * The sample to demonstrate how Grizzly client-side connection pool could be
+ * used in multi-threaded application in asynchronous/non-blocking fashion.
+ * 
+ * To simulate real-world usecase we initialize 2 TCP-based echo servers,
+ * listening on two different TCP ports. On the client-side we initialize
+ * {@link MultiEndpointPool}, which caches TCP {@link Connection}s to the
+ * servers.
+ * To test the connection pool - we run 100000 requests simultaneously
+ * using custom {@link ExecutorService} (we randomly chose the
+ * target server for each request). After we got responses from the
+ * servers - we print out statistics: number of requests sent
+ * (expected value is 100000), number of responses missed (expected value is 0),
+ * the total number of client-side {@link Connection}s been established
+ * (expected value is &lt;= 4).
  */
 public class MultiEndpointPoolSample implements ClientCallback {
     private static final Logger LOGGER =
@@ -83,31 +95,45 @@ public class MultiEndpointPoolSample implements ClientCallback {
         new MultiEndpointPoolSample().exec();
     }
 
+    // EchoServer #1
     private EchoServer server1;
+    // EchoServer #2
     private EchoServer server2;
     
+    // Client Transport
     private Transport clientTransport;
+    // ConnectorHandler to be used to create client connections
     private ConnectorHandler<SocketAddress> connectorHandler;
+    // connection pool
     private MultiEndpointPool<SocketAddress> connectionPool;
     
+    // counter to track the total number of established connections
     private final AtomicInteger clientConnectionsCounter = new AtomicInteger();
+    // the message tracker set, where we add the message before sending a request
+    // to a server and remove the message when getting a response
     private final Set<String> messageTracker = Collections.newSetFromMap(
             new ConcurrentHashMap<String, Boolean>());
     
+    // countdown latch used to wait for all responses to come
     private CountDownLatch responsesCountDownLatch;
     
     public void exec() throws Exception {
         try {
+            // starting demo servers
             startServers();
+            // initialize the client transport
             initializeClientTransport();
             
+            // create a connection-pool EndpointKey for the server #1
             final EndpointKey<SocketAddress> server1EndpointKey =
                     new EndpointKey<SocketAddress>("server1",
                     server1.getEndpointAddress());
+            // create a connection-pool EndpointKey for the server #2
             final EndpointKey<SocketAddress> server2EndpointKey =
                     new EndpointKey<SocketAddress>("server2",
                     server2.getEndpointAddress());
 
+            // create a connection pool
             connectionPool = MultiEndpointPool
                             .builder(SocketAddress.class)
                             .connectorHandler(connectorHandler)
@@ -116,25 +142,33 @@ public class MultiEndpointPoolSample implements ClientCallback {
                             .build();
 
             
+            // create an aux. thread-pool, which will be used to asynchronously
+            // send requests
             final ExecutorService testingThreadPool =
                     Executors.newFixedThreadPool(256);
             
             try {
                 final int requestsCount = 100000;
                 
+                // initialize count down latch
                 responsesCountDownLatch = new CountDownLatch(requestsCount);
                 
                 LOGGER.log(Level.INFO, "Making {0} requests...", requestsCount);
                 
                 final long startTime = System.currentTimeMillis();
+                
+                // send 100000 requests
                 for (int i = 0; i < requestsCount; i++) {
+                    // randomly pick up a target server
                     final EndpointKey<SocketAddress> serverEndpoint =
                             RANDOM.nextBoolean() ?
                             server1EndpointKey :
                             server2EndpointKey;
                     final String testMessage = "Message #" + (i + 1);
+                    // add the message to the tracking set
                     messageTracker.add(testMessage);
                     
+                    // make the request asynchronously
                     testingThreadPool.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -164,6 +198,8 @@ public class MultiEndpointPoolSample implements ClientCallback {
                                 @Override
                                 @SuppressWarnings("unchecked")
                                 public void completed(final Connection connection) {
+                                    // once a Connection is obtained from the
+                                    // pool - send the request
                                     connection.write(testMessage);
                                 }
                             });
@@ -176,10 +212,12 @@ public class MultiEndpointPoolSample implements ClientCallback {
                     });
                 }
                 
+                // waiting for all responses to come
                 responsesCountDownLatch.await(30, TimeUnit.SECONDS);
                 
                 final long runTime = (System.currentTimeMillis() - startTime) / 1000;
                 
+                // print out stats
                 LOGGER.log(Level.INFO, "Completed in {0} seconds\nRequests sent: "
                         + "{1}\nResponses missed: {2}\nConnections created: {3}",
                         new Object[]{runTime, requestsCount,
@@ -187,11 +225,15 @@ public class MultiEndpointPoolSample implements ClientCallback {
                             clientConnectionsCounter.get()});
                 
             } finally {
+                // shutdown the aux. thread-pool
                 testingThreadPool.shutdownNow();
+                // shutdown the connection-pool
                 connectionPool.close();
             }
         } finally {
+            // stop the client transport
             stopClientTransport();
+            // stop the demo servers
             stopServers();
         }
     }
@@ -201,6 +243,7 @@ public class MultiEndpointPoolSample implements ClientCallback {
      */
     @Override
     public void onConnectionEstablished(final Connection connection) {
+        // new connection has been established - increment the counter
         clientConnectionsCounter.incrementAndGet();
     }
     
@@ -210,16 +253,22 @@ public class MultiEndpointPoolSample implements ClientCallback {
     @Override
     public void onResponseReceived(final Connection connection,
             final String responseMessage) {
+        // response has been received
+        // remove the message from the tracker
         if (messageTracker.remove(responseMessage)) {
+            // decrease the counter
             responsesCountDownLatch.countDown();
         } else {
+            // if message is not tracked - it's a bug
             LOGGER.log(Level.WARNING, "Received unexpected response: {0}",
                     responseMessage);
         }
         
+        // return the connection back to the pool
         connectionPool.release(connection);
     }
     
+    // initializes client Transport
     private void initializeClientTransport() throws IOException {
         final TCPNIOTransport tcpTransport =
                 TCPNIOTransportBuilder.newInstance().build();

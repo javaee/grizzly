@@ -52,23 +52,34 @@ import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
- *
- * @author oleksiys
+ * The simple echo server implementation,
+ * which is used to test client-side connection pool.
  */
 public class EchoServer {
+    // the address to bind the server to
     private final SocketAddress endpointAddress;
     
+    // internal transport
     private Transport transport;
+    // true, if the server is running, or false otherwise
     private boolean isRunning;
 
     public EchoServer(SocketAddress endpointAddress) {
         this.endpointAddress = endpointAddress;
     }
 
+    /**
+     * Returns the {@link SocketAddress} the server is bound to.
+     */
     public SocketAddress getEndpointAddress() {
         return endpointAddress;
     }
     
+    /**
+     * Starts the server.
+     * 
+     * @throws IOException 
+     */
     public void start() throws IOException {
         if (isRunning) {
             return;
@@ -92,6 +103,11 @@ public class EchoServer {
         tcpTransport.start();
     }
     
+    /**
+     * Stops the server.
+     * 
+     * @throws IOException 
+     */
     public void stop() throws IOException {
         if (!isRunning) {
             return;
