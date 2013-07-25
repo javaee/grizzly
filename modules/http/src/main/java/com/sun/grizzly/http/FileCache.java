@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.util.Queue;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
 
 
 /**
@@ -497,12 +498,11 @@ public class FileCache{
                 sendCache(req,entry);
                 return true;
             }
-        } catch (Throwable t){
-            t.printStackTrace();    
+        } catch (Throwable t) {
             // If an unexpected exception occurs, try to serve the page
             // as if it wasn't in a cache.
-            SelectorThread.logger()
-                .fine("File Cache exception:" + t.getMessage());
+            SelectorThread.logger().log(Level.FINE,
+                    "File Cache exception", t);
         }
         return false;
     }    
