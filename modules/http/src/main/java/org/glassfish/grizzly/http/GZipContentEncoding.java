@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@ public class GZipContentEncoding implements ContentEncoding {
 
     private static final String[] ALIASES = {"gzip", "deflate"};
 
-    private static final String name = "gzip";
+    private static final String NAME = "gzip";
     
     private final GZipDecoder decoder;
     private final GZipEncoder encoder;
@@ -114,7 +114,7 @@ public class GZipContentEncoding implements ContentEncoding {
 
     @Override
     public String getName() {
-        return name;
+        return NAME;
     }
 
     @Override
@@ -186,7 +186,9 @@ public class GZipContentEncoding implements ContentEncoding {
         
         final Buffer input = httpContent.getContent();
 
-        if (httpContent.isLast() && !input.hasRemaining()) {
+        final boolean isLast = httpContent.isLast();
+        if (!(isLast || input.hasRemaining())) {
+            // the content is empty and is not last
             return httpContent;
         }
 
@@ -200,7 +202,7 @@ public class GZipContentEncoding implements ContentEncoding {
                 case COMPLETE:
                 case INCOMPLETE: {
                     Buffer encodedBuffer = result.getMessage();
-                    if (httpContent.isLast()) {
+                    if (isLast) {
                         final Buffer finishBuffer = encoder.finish(httpHeader);
                         encodedBuffer = Buffers.appendBuffers(
                                 connection.getTransport().getMemoryManager(),
@@ -238,14 +240,13 @@ public class GZipContentEncoding implements ContentEncoding {
             return false;
         }
         final GZipContentEncoding other = (GZipContentEncoding) obj;
-        return this.name.equals(other.name);
-
+        return getName().equals(other.getName());
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 53 * hash + (this.name.hashCode());
+        hash = 53 * hash + (getName().hashCode());
         return hash;
     }
 }

@@ -241,7 +241,7 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
-        String reqString = generateBigString(16384);
+        String reqString = generateBigString(19865);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPOutputStream go = new GZIPOutputStream(baos);
         go.write(reqString.getBytes());
@@ -308,7 +308,7 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
-        String reqString = generateBigString(16384);
+        String reqString = generateBigString(17231);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPOutputStream go = new GZIPOutputStream(baos);
         go.write(reqString.getBytes());
