@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -129,9 +129,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         final MemoryManager memoryManager = obtainMemoryManager(storage);
         final GZipOutputState state = (GZipOutputState) obtainStateObject(storage);
 
-        Buffer headerToWrite = null;
-        if (!state.isInitialized()) {
-            headerToWrite = initializeOutput(state);
+        if (!state.isInitialized) {
+            state.initialize();
         }
 
         Buffer encodedBuffer = null;
@@ -139,12 +138,17 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
             encodedBuffer = encodeBuffer(input, state, memoryManager);
         }
 
-        if (headerToWrite == null && encodedBuffer == null) {
+        if (encodedBuffer == null) {
             return TransformationResult.createIncompletedResult(null);
         }
 
-        encodedBuffer = Buffers.appendBuffers(memoryManager,
-                headerToWrite, encodedBuffer);
+        // Put GZIP header if needed
+        if (!state.isHeaderWritten) {
+            state.isHeaderWritten = true;
+            
+            encodedBuffer = Buffers.appendBuffers(memoryManager,
+                    getHeader(), encodedBuffer);
+        }
 
         return TransformationResult.createCompletedResult(encodedBuffer, null);
     }
@@ -162,8 +166,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
 
         Buffer resultBuffer = null;
 
-        if (state.isInitialized()) {
-            final Deflater deflater = state.getDeflater();
+        if (state.isInitialized) {
+            final Deflater deflater = state.deflater;
             if (!deflater.finished()) {
                 deflater.finish();
 
@@ -173,9 +177,17 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                             deflate(deflater, memoryManager));
                 }
 
+                // Put GZIP header if needed
+                if (!state.isHeaderWritten) {
+                    state.isHeaderWritten = true;
+
+                    resultBuffer = Buffers.appendBuffers(memoryManager,
+                            getHeader(), resultBuffer);
+                }
+                
                 // Put GZIP member trailer
                 final Buffer trailer = memoryManager.allocate(TRAILER_SIZE);
-                final CRC32 crc32 = state.getCrc32();
+                final CRC32 crc32 = state.crc32;
                 putUInt(trailer, (int) crc32.getValue());
                 putUInt(trailer, deflater.getTotalIn());
                 trailer.flip();
@@ -184,19 +196,13 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                         resultBuffer, trailer);
             }
 
-            state.setInitialized(false);
+            state.reset();
         }
 
         return resultBuffer;
     }
     
-    private Buffer initializeOutput(final GZipOutputState state) {
-        final Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
-        final CRC32 crc32 = new CRC32();
-        crc32.reset();
-        state.setDeflater(deflater);
-        state.setCrc32(crc32);
-        state.setInitialized(true);
+    private Buffer getHeader() {
         final Buffer headerToWrite = header.duplicate();
         headerToWrite.allowBufferDispose(false);
         return headerToWrite;
@@ -204,8 +210,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
 
     private Buffer encodeBuffer(Buffer buffer,
             GZipOutputState state, MemoryManager memoryManager) {
-        final CRC32 crc32 = state.getCrc32();
-        final Deflater deflater = state.getDeflater();
+        final CRC32 crc32 = state.crc32;
+        final Deflater deflater = state.deflater;
 
 	if (deflater.finished()) {
 	    throw new IllegalStateException("write beyond end of stream");
@@ -301,7 +307,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
     protected static final class GZipOutputState
             extends LastResultAwareState<Buffer, Buffer> {
         private boolean isInitialized;
-
+        private boolean isHeaderWritten;
+        
         /**
          * CRC-32 of uncompressed data.
          */
@@ -312,28 +319,21 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
          */
         private Deflater deflater;
 
-        public boolean isInitialized() {
-            return isInitialized;
+        private void initialize() {
+            final Deflater newDeflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
+            final CRC32 newCrc32 = new CRC32();
+            newCrc32.reset();
+            deflater = newDeflater;
+            crc32 = newCrc32;
+            isInitialized = true;
         }
-
-        public void setInitialized(boolean isInitialized) {
-            this.isInitialized = isInitialized;
-        }
-
-        public Deflater getDeflater() {
-            return deflater;
-        }
-
-        public void setDeflater(Deflater deflater) {
-            this.deflater = deflater;
-        }
-
-        public CRC32 getCrc32() {
-            return crc32;
-        }
-
-        public void setCrc32(CRC32 crc32) {
-            this.crc32 = crc32;
+        
+        private void reset() {
+            isInitialized = false;
+            isHeaderWritten = false;
+            
+            crc32 = null;
+            deflater = null;
         }
     }
 }
