@@ -283,7 +283,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequest.initialize(connection, this, input.position(), maxHeadersSize, maxRequestHeaders);
             httpRequest.setSecure(isSecureLocal);
             final HttpResponsePacket response = httpRequest.getResponse();
-//            response.setUpgrade(httpRequest.getUpgrade());
             response.setSecure(isSecureLocal);
             response.getHeaders().setMaxNumHeaders(maxResponseHeaders);
             httpRequest.setResponse(response);
@@ -636,22 +635,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         // set the default chunking mode
         request.getResponse().setChunkingAllowed(isUpgraded || isChunkingEnabled());
         
-        // If it's upgraded HTTP - don't check semantics
-        if (isUpgraded) {
-            return;
-        }
-
-        final Method method = request.getMethod();
-        
-        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
-        if (payloadExpectation != PayloadExpectation.NOT_ALLOWED) {
-            request.setExpectContent(
-                    request.getContentLength() != -1 || request.isChunked());
-        } else {
-            request.setExpectContent(method == Method.CONNECT);
-        }
-        
-        
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
             return;
@@ -688,8 +671,42 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         }
 
-        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+        // --------------------------
 
+        if (hostDC == null) {
+            hostDC = headers.getValue(Header.Host);
+        }
+
+        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+        
+        // Check host header
+        if (hostDC == null && isHttp11) {
+            state.error = true;
+            return;
+        }
+
+        parseHost(hostDC, request, response, state);
+
+        if (isHttp11 && request.serverName().getLength() == 0) {
+            state.error = true;
+            return;
+        }
+        
+        // If it's upgraded HTTP - don't check semantics
+        if (isUpgraded) {
+            return;
+        }
+
+        final Method method = request.getMethod();
+        
+        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
+        if (payloadExpectation != PayloadExpectation.NOT_ALLOWED) {
+            request.setExpectContent(
+                    request.getContentLength() != -1 || request.isChunked());
+        } else {
+            request.setExpectContent(method == Method.CONNECT);
+        }
+        
         // ------ Set keep-alive flag
         if (method == Method.CONNECT) {
             state.keepAlive = false;
@@ -703,24 +720,6 @@ public class HttpServerFilter extends HttpCodecFilter {
                         (connectionValueDC != null &&
                         connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
             }
-        }
-        // --------------------------
-
-        if (hostDC == null) {
-            hostDC = headers.getValue(Header.Host);
-        }
-
-        // Check host header
-        if (hostDC == null && isHttp11) {
-            state.error = true;
-            return;
-        }
-
-        parseHost(hostDC, request, response, state);
-
-        if (isHttp11 && request.serverName().getLength() == 0) {
-            state.error = true;
-            return;
         }
         
         if (request.requiresAcknowledgement()) {
@@ -928,10 +927,6 @@ public class HttpServerFilter extends HttpCodecFilter {
                             response.getCharacterEncoding()));
                 }
             }
-            
-//            if (!response.isContentTypeSet() && defaultResponseContentType != null) {
-//                response.setDefaultContentType(defaultResponseContentType);
-//            }
         }
 
         if (!response.containsHeader(Header.Date)) {

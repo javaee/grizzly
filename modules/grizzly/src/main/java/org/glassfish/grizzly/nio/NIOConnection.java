@@ -77,7 +77,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected static final Object NOTIFICATION_CLOSED_COMPLETE = Boolean.FALSE;
     
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
-    private static final Logger logger = Grizzly.logger(NIOConnection.class);
+    private static final Logger LOGGER = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
     
     protected final NIOTransport transport;
@@ -120,6 +120,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
         new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
 
+    Exception closeStackTrace;
+    Exception lastOpReadEnableStackTrace;
+    
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
         asyncReadQueue = TaskQueue.createTaskQueue(null);
@@ -419,6 +422,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                         ? org.glassfish.grizzly.CloseType.LOCALLY
                         : org.glassfish.grizzly.CloseType.REMOTELY)) {
             
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                closeStackTrace = new Exception(
+                        "Close stack trace [" + Thread.currentThread() + "]",
+                        lastOpReadEnableStackTrace);
+            }
+            
             preClose();
             notifyCloseListeners();
             notifyProbesClose(this);
@@ -431,7 +440,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     try {
                         transport.closeConnection(NIOConnection.this);
                     } catch (IOException e) {
-                        logger.log(Level.FINE, "Error during connection close", e);
+                        LOGGER.log(Level.FINE, "Error during connection close", e);
                     }
 
                     return true;
@@ -708,6 +717,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
+        if (LOGGER.isLoggable(Level.FINEST) && IOEvent.READ.equals(ioEvent)) {
+            lastOpReadEnableStackTrace = new Exception("Last OP_READ enabled stack trace [" + Thread.currentThread() + "]");
+        }
+        
         final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0) {
             return;

@@ -399,7 +399,7 @@ public class HttpSemanticsTest extends TestCase {
                 .uri("/path")
                 .contentLength(1)
                 .header(Header.TransferEncoding, "chunked")
-                .header(Header.Server, "localhost:" + PORT)
+                .header(Header.Host, "somehost:" + PORT)
                 .header(Header.Upgrade, "test")
                 .protocol("HTTP/1.1")
                 .build();
@@ -421,6 +421,7 @@ public class HttpSemanticsTest extends TestCase {
         result.setStatusMessage("Switching Protocols");
         result.addHeader("Connection", "Upgrade");
         result.addHeader("Upgrade", "test");
+        result.addHeader("X-Request-Server-Name", "somehost");
         result.addHeader("!Transfer-Encoding", "");
         result.addHeader("!ContentLength", "");
         result.appendContent(testMsg);
@@ -439,6 +440,7 @@ public class HttpSemanticsTest extends TestCase {
                 if (packetCounter++ == 0) {
                     response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
                     response.setHeader(Header.Connection, "Upgrade");
+                    response.setHeader("X-Request-Server-Name", request.serverName().toString());
                     response.setHeader(Header.Upgrade, request.getHeader(Header.Upgrade));
                 }
                 

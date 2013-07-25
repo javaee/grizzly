@@ -100,8 +100,8 @@ public class RequestUtils {
                     request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
                 }
             } catch (Exception ioe) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING,
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE,
                             "Unable to populate SSL attributes",
                             ioe);
                 }

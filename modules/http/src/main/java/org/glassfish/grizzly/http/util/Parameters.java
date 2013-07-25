@@ -657,6 +657,9 @@ public final class Parameters {
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
+            } catch (IllegalStateException e) {
+                throw new IllegalStateException("Error parsing parameters: "
+                        + new String(chars, start, len), e);
             }
             tmpNameC.recycle();
             tmpValueC.recycle();
