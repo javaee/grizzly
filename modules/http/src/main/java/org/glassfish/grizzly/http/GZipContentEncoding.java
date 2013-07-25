@@ -186,7 +186,9 @@ public class GZipContentEncoding implements ContentEncoding {
         
         final Buffer input = httpContent.getContent();
 
-        if (httpContent.isLast() && !input.hasRemaining()) {
+        final boolean isLast = httpContent.isLast();
+        if (!(isLast || input.hasRemaining())) {
+            // the content is empty and is not last
             return httpContent;
         }
 
@@ -200,7 +202,7 @@ public class GZipContentEncoding implements ContentEncoding {
                 case COMPLETE:
                 case INCOMPLETE: {
                     Buffer encodedBuffer = result.getMessage();
-                    if (httpContent.isLast()) {
+                    if (isLast) {
                         final Buffer finishBuffer = encoder.finish(httpHeader);
                         encodedBuffer = Buffers.appendBuffers(
                                 connection.getTransport().getMemoryManager(),
@@ -238,14 +240,14 @@ public class GZipContentEncoding implements ContentEncoding {
             return false;
         }
         final GZipContentEncoding other = (GZipContentEncoding) obj;
-        return this.NAME.equals(other.NAME);
+        return getName().equals(other.getName());
 
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 53 * hash + (this.NAME.hashCode());
+        hash = 53 * hash + (getName().hashCode());
         return hash;
     }
 }
