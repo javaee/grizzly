@@ -163,7 +163,7 @@ public class WebappContext implements ServletContext {
     protected final Map<String, FilterRegistration> filterRegistrations =
             new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
     protected final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
-            Collections.<String, FilterRegistration>unmodifiableMap(filterRegistrations);
+            Collections.unmodifiableMap(filterRegistrations);
             
 
     /* ServletHandlers backing the registrations */
@@ -194,6 +194,8 @@ public class WebappContext implements ServletContext {
 
     /* Request dispatcher helper class */
     private DispatcherHelper dispatcherHelper;
+
+    private ClassLoader webappClassLoader;
 
     /**
      * Session cookie config
@@ -292,6 +294,9 @@ public class WebappContext implements ServletContext {
                 }
             boolean error = false;
             try {
+                webappClassLoader =
+                        ClassLoaderUtil.createURLClassLoader(
+                                new File(getBasePath()).getCanonicalPath());
                 initializeListeners();
                 contextInitialized();
                 initServlets(targetServer);
@@ -1816,6 +1821,7 @@ public class WebappContext implements ServletContext {
                 servletHandler.setFilterChainFactory(filterChainFactory);
                 servletHandler.setExpectationHandler(registration.expectationHandler);
                 servletHandler.addOnDestroyListener(onDestroyListener);
+                servletHandler.setClassLoader(webappClassLoader);
 
                 final String[] patterns = registration.urlPatterns.getArray();
                 if (patterns != null && patterns.length > 0) {
@@ -1990,6 +1996,8 @@ public class WebappContext implements ServletContext {
      */
     private void contextInitialized() {
         ServletContextEvent event = null;
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(webappClassLoader);
         for (int i = 0, len = eventListeners.length; i < len; i++) {
             if (!(eventListeners[i] instanceof ServletContextListener)) {
                 continue;
@@ -2009,6 +2017,7 @@ public class WebappContext implements ServletContext {
                 }
             }
         }
+        Thread.currentThread().setContextClassLoader(loader);
     }
 
     /**

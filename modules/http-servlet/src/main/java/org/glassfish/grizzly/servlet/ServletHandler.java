@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.servlet;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -139,29 +138,11 @@ public class ServletHandler extends HttpHandler {
     public void start() {
         try {
             configureServletEnv();
-            
-            if (initialize) {
-                configureClassLoader(new File(servletCtx.getBasePath()).getCanonicalPath());
-            }
-
         } catch (Throwable t) {
             LOGGER.log(Level.SEVERE, "start", t);
         }
     }
 
-    /**
-     * Create a {@link java.net.URLClassLoader} which has the capability of
-     * loading classes jar under an exploded war application.
-     *
-     * @param applicationPath Application class path.
-     * @throws java.io.IOException I/O error.
-     */
-    protected void configureClassLoader(String applicationPath) throws IOException {
-        if (classLoader == null) {
-            classLoader = ClassLoaderUtil.createURLClassLoader(applicationPath);
-        }
-    }
-    
     /**
      * Override parent's {@link HttpHandler#sendAcknowledgment(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
      * to let {@link ExpectationHandler} (if one is registered) process the expectation.
@@ -169,14 +150,12 @@ public class ServletHandler extends HttpHandler {
     @Override
     protected boolean sendAcknowledgment(Request request, Response response)
             throws IOException {
-        if (expectationHandler == null) {
-            return super.sendAcknowledgment(request, response);
-        }
-        
-        return true;
+        return expectationHandler != null
+                || super.sendAcknowledgment(request, response);
+
     }
 
-    
+
     /**
      * {@inheritDoc}
      */
