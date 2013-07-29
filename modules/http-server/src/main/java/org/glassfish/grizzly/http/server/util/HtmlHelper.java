@@ -175,6 +175,10 @@ public class HtmlHelper{
         if (rootCause != null) {
             formatStackElements(rootCauseElements, rootBuilder);
         }
+        String exMessage = t.getMessage();
+        if (exMessage == null) {
+            exMessage = t.toString();
+        }
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head><title>");
         sb.append(serverName);
@@ -187,7 +191,7 @@ public class HtmlHelper{
         sb.append(message);
         sb.append("</div>");
         sb.append("<div class=\"body\">");
-        sb.append("<b>").append(t.getMessage()).append("</b>");
+        sb.append("<b>").append(exMessage).append("</b>");
         sb.append("<pre>");
         sb.append(tBuilder.toString());
         sb.append("</pre>");
