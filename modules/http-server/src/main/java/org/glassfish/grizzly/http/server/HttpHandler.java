@@ -212,8 +212,26 @@ public abstract class HttpHandler {
                         wasSuspended = suspendStatus.getAndInvalidate();
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE, "service exception", e);
-                        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                        response.setDetailMessage("Internal Error");
+                        if (!response.isCommitted()) {
+                            response.reset();
+                            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                            final ServerFilterConfiguration config =
+                                    httpServerFilter.getConfiguration();
+                            final String name = config.getHttpServerName() + ' '
+                                    + config.getHttpServerVersion();
+                            response.setDetailMessage("Internal Error");
+                            try {
+                                ByteBuffer bb =
+                                        HtmlHelper.getExceptionErrorPage(
+                                                "Internal Error",
+                                                name,
+                                                e);
+                                response.getOutputBuffer().writeByteBuffer(bb);
+                                response.flush();
+                            } catch (IOException ignored) {
+
+                            }
+                        }
                         wasSuspended = false;
                     }
                     

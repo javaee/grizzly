@@ -349,7 +349,17 @@ public class HttpServerFilter extends BaseFilter
 
         final HttpContext context = HttpContext.get(ctx);
         httpRequestInProgress.remove(context);
-
+        if (!response.isCommitted()
+                && response.getStatus() >= 400
+                && response.getOutputBuffer().getBufferedDataSize() == 0) {
+            final String name = getConfiguration().getHttpServerName() +
+                    + ' ' + getConfiguration().getHttpServerVersion();
+            final ByteBuffer bb = HtmlHelper.getErrorPage(response.getStatus() + ' ' + response.getMessage(),
+                                                          response.getMessage(),
+                                                          name);
+            response.getOutputBuffer().writeByteBuffer(bb);
+            response.flush();
+        }
         response.finish();
         request.onAfterService();
         

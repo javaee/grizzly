@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +64,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.Header;
@@ -180,7 +182,7 @@ public class ServletHandler extends HttpHandler {
 
             // The request is not for us.
             if (contextPath.length() > 0 && !uri.startsWith(contextPath)) {
-                customizeErrorPage(response, "Resource Not Found", 404);
+                customizeErrorPage(response, "Resource Not Found", 404, null);
                 return;
             }
 
@@ -226,7 +228,7 @@ public class ServletHandler extends HttpHandler {
             servletRequest.onAfterService();
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
-            customizeErrorPage(response, "Internal Error", 500);
+            customizeErrorPage(response, "Internal Error", 500, ex);
         }
     }
 
@@ -298,15 +300,30 @@ public class ServletHandler extends HttpHandler {
      * @param message   the HTTP error message
      * @param errorCode the error code.
      */
-    public void customizeErrorPage(Response response, String message, int errorCode) {
-        response.setStatus(errorCode, message);
-        response.setContentType("text/html");
-        try {
-            response.getWriter().write("<html><body><h1>" + message
-                    + "</h1></body></html>");
-            response.getWriter().flush();
-        } catch (IOException ex) {
-            // We are in a very bad shape. Ignore.
+    public void customizeErrorPage(final Response response,
+                                   final String message,
+                                   final int errorCode,
+                                   final Throwable t) {
+        if (!response.isCommitted()) {
+            response.reset();
+            response.setStatus(errorCode, message);
+            response.setContentType("text/html");
+            try {
+                final ByteBuffer buffer;
+                if (t != null) {
+                    buffer = HtmlHelper.getExceptionErrorPage(message,
+                                                              getServletCtx().getServerInfo(),
+                                                              t);
+                } else {
+                    buffer = HtmlHelper.getErrorPage(response.getStatus() + ' ' + message,
+                                                     message,
+                                                     getServletCtx().getServerInfo());
+                }
+                response.getOutputBuffer().writeByteBuffer(buffer);
+                response.getWriter().flush();
+            } catch (IOException ex) {
+                // We are in a very bad shape. Ignore.
+            }
         }
     }
 
