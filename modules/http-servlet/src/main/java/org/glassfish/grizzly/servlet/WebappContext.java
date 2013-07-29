@@ -270,7 +270,11 @@ public class WebappContext implements ServletContext {
         }
         this.displayName = displayName;
         this.contextPath = contextPath;
-        this.basePath = basePath;
+        try {
+            this.basePath = new File(basePath).getCanonicalPath();
+        } catch (IOException ioe) {
+            throw new IllegalArgumentException("Unable to resolve path: " + basePath);
+        }
         filterChainFactory = new FilterChainFactory(this);
         Mapper.setAllowReplacement(true);
 
