@@ -744,11 +744,11 @@ public class HttpServer {
             }
             
             if (compressionLevel != CompressionLevel.OFF) {
-                final String compressableMimeTypesString = listener.getCompressableMimeTypes();
+                final String compressibleMimeTypesString = listener.getCompressibleMimeTypes();
                 final String noCompressionUserAgentsString = listener.getNoCompressionUserAgents();
-                final String[] compressableMimeTypes =
-                        ((compressableMimeTypesString != null)
-                                ? compressableMimeTypesString.split(",")
+                final String[] compressibleMimeTypes =
+                        ((compressibleMimeTypesString != null)
+                                ? compressibleMimeTypesString.split(",")
                                 : new String[0]);
                 final String[] noCompressionUserAgents =
                         ((noCompressionUserAgentsString != null)
@@ -758,11 +758,11 @@ public class HttpServer {
                     GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
                     GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
                     new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                        compressableMimeTypes,
+                        compressibleMimeTypes,
                         noCompressionUserAgents,
                         GZipContentEncoding.getGzipAliases()));
                 final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                        compressableMimeTypes,
+                        compressibleMimeTypes,
                         noCompressionUserAgents,
                         LZMAContentEncoding.getLzmaAliases()));
                 final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);

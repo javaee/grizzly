@@ -194,10 +194,10 @@ public class NetworkListener {
      */
     private HttpCodecFilter httpCodecFilter;
     private boolean rcmSupportEnabled;
-    private boolean authPassthroughEnabled;
+    private boolean authPassThroughEnabled;
     private int maxFormPostSize = 2 * 1024 * 1024;
     private int maxBufferedPostSize = 2 * 1024 * 1024;
-    private String compressableMimeTypes;
+    private String compressibleMimeTypes;
     private String noCompressionUserAgents;
     private int compressionMinSize;
     private String restrictedUserAgents;
@@ -877,20 +877,20 @@ public class NetworkListener {
         rcmSupportEnabled = enabled;
     }
 
-    public boolean isAuthPassthroughEnabled() {
-        return authPassthroughEnabled;
+    public boolean isAuthPassThroughEnabled() {
+        return authPassThroughEnabled;
     }
 
-    public void setAuthPassthroughEnabled(final boolean authPassthroughEnabled) {
-        this.authPassthroughEnabled = authPassthroughEnabled;
+    public void setAuthPassThroughEnabled(final boolean authPassthroughEnabled) {
+        this.authPassThroughEnabled = authPassthroughEnabled;
     }
 
-    public String getCompressableMimeTypes() {
-        return compressableMimeTypes;
+    public String getCompressibleMimeTypes() {
+        return compressibleMimeTypes;
     }
 
-    public void setCompressableMimeTypes(final String compressableMimeTypes) {
-        this.compressableMimeTypes = compressableMimeTypes;
+    public void setCompressibleMimeTypes(final String compressibleMimeTypes) {
+        this.compressibleMimeTypes = compressibleMimeTypes;
     }
 
     public int getCompressionMinSize() {
@@ -991,7 +991,7 @@ public class NetworkListener {
 
     /**
      * @return The timeout, in seconds, within which a request must complete
-     *  its processing. If not explicitly set, no trasaction timeout will
+     *  its processing. If not explicitly set, no transaction timeout will
      *  be enforced.
      */
     public int getTransactionTimeout() {
