@@ -361,45 +361,52 @@ public class HttpServer {
         }
     }
 
+    public synchronized GrizzlyFuture<HttpServer> shutdown(final long gracePeriod,
+                                                           final TimeUnit timeUnit) {
+        if (state != State.RUNNING) {
+            return shutdownFuture != null ? shutdownFuture :
+                    Futures.createReadyFuture(this);
+        }
+
+        shutdownFuture = Futures.createSafeFuture();
+        state = State.STOPPING;
+
+        final int listenersCount = listeners.size();
+        final FutureImpl<HttpServer> shutdownFutureLocal = shutdownFuture;
+
+        final CompletionHandler<NetworkListener> shutdownCompletionHandler =
+                new EmptyCompletionHandler<NetworkListener>() {
+                    final AtomicInteger counter =
+                            new AtomicInteger(listenersCount);
+
+                    @Override
+                    public void completed(final NetworkListener networkListener) {
+                        if (counter.decrementAndGet() == 0) {
+                            try {
+                                shutdownNow();
+                                shutdownFutureLocal.result(HttpServer.this);
+                            } catch (Throwable e) {
+                                shutdownFutureLocal.failure(e);
+                            }
+                        }
+                    }
+                };
+
+        for (NetworkListener listener : listeners.values()) {
+            listener.shutdown(gracePeriod, timeUnit).addCompletionHandler(shutdownCompletionHandler);
+        }
+
+
+        return shutdownFuture;
+    }
+
     /**
      * <p>
      * Gracefully shuts down the <code>HttpServer</code> instance.
      * </p>
      */
     public synchronized GrizzlyFuture<HttpServer> shutdown() {
-        if (state != State.RUNNING) {
-            return shutdownFuture != null ? shutdownFuture :
-                    Futures.createReadyFuture(this);
-        }
-        
-        shutdownFuture = Futures.createSafeFuture();
-        state = State.STOPPING;
-        
-        final int listenersCount = listeners.size();
-        final FutureImpl<HttpServer> shutdownFutureLocal = shutdownFuture;
-        
-        final CompletionHandler<NetworkListener> shutdownCompletionHandler =
-                new EmptyCompletionHandler<NetworkListener>() {
-            final AtomicInteger counter = new AtomicInteger(listenersCount);
-            @Override
-            public void completed(final NetworkListener networkListener) {
-                if (counter.decrementAndGet() == 0) {
-                    try {
-                        shutdownNow();
-                        shutdownFutureLocal.result(HttpServer.this);
-                    } catch (Throwable e) {
-                        shutdownFutureLocal.failure(e);
-                    }
-                }
-            }
-        };
-        
-        for (NetworkListener listener : listeners.values()) {
-            listener.shutdown().addCompletionHandler(shutdownCompletionHandler);
-        }
-        
-        
-        return shutdownFuture;
+        return shutdown(-1, TimeUnit.MILLISECONDS);
     }
     
     /**

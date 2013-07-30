@@ -194,4 +194,95 @@ public class NetworkListenerTest {
             server.shutdownNow();
         }
     }
+
+    @Test
+    public void testGracefulShutdownGracePeriod() throws IOException {
+        final String msg = "Hello World";
+        final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
+
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response)
+                    throws Exception {
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding(
+                                Charsets.UTF8_CHARSET.name());
+                        response.setContentLength(msgBytes.length);
+                        response.flush();
+                        Thread.sleep(2000);
+                        response.getOutputStream().write(msgBytes);
+                    }
+                }, "/test"
+        );
+        try {
+            server.start();
+            URL url = new URL("http://localhost:" + PORT + "/test");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+
+            assertEquals(200, c.getResponseCode());
+            assertEquals(msgBytes.length, c.getContentLength());
+
+            Future<HttpServer> gracefulFuture = server.shutdown(3, TimeUnit.SECONDS);
+
+            final BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(c.getInputStream(),
+                                          Charsets.UTF8_CHARSET));
+            final String content = reader.readLine();
+            assertEquals(msg, content);
+
+            assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testGracefulShutdownGracePeriodExpired() throws IOException {
+        final String msg = "Hello World";
+        final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
+
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response)
+                    throws Exception {
+                        response.setContentType("text/plain");
+                        response.setCharacterEncoding(
+                                Charsets.UTF8_CHARSET.name());
+                        response.setContentLength(msgBytes.length);
+                        response.flush();
+                        Thread.sleep(2000);
+                        response.getOutputStream().write(msgBytes);
+                    }
+                }, "/test"
+        );
+        try {
+            server.start();
+            URL url = new URL("http://localhost:" + PORT + "/test");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+
+            assertEquals(200, c.getResponseCode());
+            assertEquals(msgBytes.length, c.getContentLength());
+
+            Future<HttpServer> gracefulFuture =
+                    server.shutdown(1, TimeUnit.SECONDS);
+
+            final BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(c.getInputStream(),
+                                          Charsets.UTF8_CHARSET));
+            final String content = reader.readLine();
+            assertNull(content);
+
+            assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.shutdownNow();
+        }
+    }
 }
