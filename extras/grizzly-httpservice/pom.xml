@@ -86,11 +86,6 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-rcm</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-portunif</artifactId>
             <version>${project.version}</version>
         </dependency>
