@@ -110,7 +110,6 @@
     <modules>
         <module>grizzly</module>
         <module>compression</module>
-        <module>rcm</module>
         <module>http</module>
         <module>http-server</module>
         <module>http-servlet</module>
