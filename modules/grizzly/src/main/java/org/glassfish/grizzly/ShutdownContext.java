@@ -43,7 +43,7 @@ package org.glassfish.grizzly;
  * This class will be passed to {@link GracefulShutdownListener} instances
  * registered against a {@link Transport}.
  *
- * @since 2.3.4
+ * @since 2.3.5
  */
 public interface ShutdownContext {
 

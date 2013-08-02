@@ -428,7 +428,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @return a {@link GrizzlyFuture} which will return the stopped transport.
      *
-     * @since 2.3.4
+     * @since 2.3.5
      *
      * @see GracefulShutdownListener
      */
@@ -449,7 +449,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @return a {@link GrizzlyFuture} which will return the stopped transport.
      *
-     * @since 2.3.4
+     * @since 2.3.5
      */
     GrizzlyFuture<Transport> shutdown(final long gracePeriod,
                                       final TimeUnit timeUnit);
@@ -459,7 +459,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @throws IOException
      *
-     * @since 2.3.4
+     * @since 2.3.5
      */
     void shutdownNow() throws IOException;
 
