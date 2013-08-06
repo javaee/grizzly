@@ -100,64 +100,70 @@
                     <target>1.6</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <sourcepath>
+                        ${basedir}/../http/src/main/java;
+                        ${basedir}/../../comet/src/main/java;
+                        ${basedir}/../../websockets/src/main/java;
+                        ${basedir}/../../servlet/src/main/java;
+                    </sourcepath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>fudge-source</id>
+                        <phase>install</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <filesets>
+                        <!-- Make sure we remove the fake source directory. -->
+                        <fileset>
+                            <directory>src</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.8</version>
+                <executions>
+                    <execution>
+                        <id>src-dependencies</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <!-- use copy-dependencies instead if you don't want to explode the sources -->
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>sources</classifier>
+                            <excludeArtifactIds>junit</excludeArtifactIds>
+                            <!-- fudge an actual source hierarchy so that the source
+                                 plugin can actually do something useful.  Otherwise,
+                                 you'll end up with an empty source jar -->
+                            <outputDirectory>${basedir}/src/main/java
+                            </outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>release-profile</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>create-empty-javadoc-jar</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <classesDirectory>${project.build.directory}/javadoc</classesDirectory>
-                                    <classifier>javadoc</classifier>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
-                        <artifactId>maven-antrun-extended-plugin</artifactId>
-                        <configuration>
-                            <tasks>
-                                <resolveAll todir="target/javadoc-jars" classifier="javadoc">
-                                    <fullGraph />
-                                    <groupId value="org.glassfish.grizzly" />
-                                </resolveAll>
-                                <zip destfile="target/${project.artifactId}-${project.version}-javadoc.jar">
-                                    <zipgroupfileset dir="target/javadoc-jars" includes="*.jar" />
-                                </zip>
-                                <resolveAll todir="target/source-jars" classifier="sources">
-                                    <fullGraph />
-                                    <groupId value="org.glassfish.grizzly" />
-                                </resolveAll>
-                                <zip destfile="target/${project.artifactId}-${project.version}-sources.jar">
-                                    <zipgroupfileset dir="target/source-jars" includes="*.jar" />
-                                </zip>
-                            </tasks>
-                        </configuration>
-                      <executions>
-                          <execution>
-                              <!-- executes after source:jar executes in the package phase -->
-                              <phase>install</phase>
-                              <goals>
-                                  <goal>run</goal>
-                              </goals>
-                          </execution>
-                      </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
