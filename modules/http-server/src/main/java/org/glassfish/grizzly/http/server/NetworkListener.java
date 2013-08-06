@@ -52,6 +52,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.http.Compression;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
@@ -168,7 +169,6 @@ public class NetworkListener {
      * The maximum size of an incoming <code>HTTP</code> message.
      */
     private int maxHttpHeaderSize = -1;
-    private String compression;
     /**
      * {@link FileCache} to be used by this <code>NetworkListener</code>.
      */
@@ -193,13 +193,14 @@ public class NetworkListener {
      * {@link HttpCodecFilter} associated with this listener.
      */
     private HttpCodecFilter httpCodecFilter;
-    private boolean rcmSupportEnabled;
+    /**
+     * {@link Compression} configuration
+     */
+    private final Compression compressionConfig = new Compression();
+    
     private boolean authPassThroughEnabled;
     private int maxFormPostSize = 2 * 1024 * 1024;
     private int maxBufferedPostSize = 2 * 1024 * 1024;
-    private String compressibleMimeTypes;
-    private String noCompressionUserAgents;
-    private int compressionMinSize;
     private String restrictedUserAgents;
     private int uploadTimeout;
     private boolean disableUploadTimeout;
@@ -538,14 +539,6 @@ public class NetworkListener {
 
     }
 
-    public String getCompression() {
-        return compression;
-    }
-
-    public void setCompression(final String compression) {
-        this.compression = compression;
-    }
-
     /**
      * @return the maximum header size for an HTTP request.
      */
@@ -859,20 +852,13 @@ public class NetworkListener {
         this.authPassThroughEnabled = authPassthroughEnabled;
     }
 
-    public String getCompressibleMimeTypes() {
-        return compressibleMimeTypes;
-    }
-
-    public void setCompressibleMimeTypes(final String compressibleMimeTypes) {
-        this.compressibleMimeTypes = compressibleMimeTypes;
-    }
-
-    public int getCompressionMinSize() {
-        return compressionMinSize;
-    }
-
-    public void setCompressionMinSize(final int compressionMinSize) {
-        this.compressionMinSize = compressionMinSize;
+    /**
+     * Returns {@link Compression} configuration.
+     * 
+     * @since 2.3.5
+     */
+    public Compression getCompressionConfig() {
+        return compressionConfig;
     }
 
     public boolean isDisableUploadTimeout() {
@@ -921,14 +907,6 @@ public class NetworkListener {
      */
     public void setMaxBufferedPostSize(final int maxBufferedPostSize) {
         this.maxBufferedPostSize = maxBufferedPostSize < 0 ? -1 : maxBufferedPostSize;
-    }
-    
-    public String getNoCompressionUserAgents() {
-        return noCompressionUserAgents;
-    }
-
-    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
-        this.noCompressionUserAgents = noCompressionUserAgents;
     }
 
     public String getRestrictedUserAgents() {

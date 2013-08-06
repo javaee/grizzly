@@ -74,6 +74,7 @@ import java.security.MessageDigest;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
 
 public class SendFileTest extends TestCase {
     
@@ -439,6 +440,7 @@ public class SendFileTest extends TestCase {
         @Override
         public void service(final Request request, Response response) throws Exception {
             final Runnable r = new Runnable() {
+                @Override
                 public void run() {
                     final String requestURI = request.getRequestURI();
                     assertTrue((Boolean) request.getAttribute(Request.SEND_FILE_ENABLED_ATTR));
@@ -604,7 +606,7 @@ public class SendFileTest extends TestCase {
                                     NetworkListener.DEFAULT_NETWORK_HOST, 
                                     PORT);
         if (enableCompression) {
-            listener.setCompression("FORCE");
+            listener.getCompressionConfig().setCompressionMode(CompressionMode.FORCE);
         }
         listener.setSendFileEnabled(true);
         listener.getFileCache().setEnabled(enableFileCache);

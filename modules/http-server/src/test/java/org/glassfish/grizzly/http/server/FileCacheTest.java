@@ -84,6 +84,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.util.MimeType;
@@ -303,6 +304,7 @@ public class FileCacheTest {
 
         final StatsCacheProbe probe = new StatsCacheProbe();
         httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+        httpServer.getListener("grizzly").getCompressionConfig().setCompressionMode(CompressionMode.FORCE);
 
         startHttpServer(new StaticHttpHandler() {
 
@@ -375,6 +377,99 @@ public class FileCacheTest {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testPreCompressedCache() throws Exception {
+        final File file = createTempFile();
+
+        final StatsCacheProbe probe = new StatsCacheProbe();
+        httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+        httpServer.getListener("grizzly").getFileCache().getCompressionConfig().setCompressionMode(CompressionMode.FORCE);
+
+        startHttpServer(new StaticHttpHandler() {
+
+            @Override
+            public void onMissingResource(final Request req, final Response res) {
+                try {
+                    String error = null;
+                    try {
+                        addToFileCache(req, null, file);
+                    } catch (Exception exception) {
+                        error = exception.getMessage();
+                    }
+
+                    final NIOWriter writer = res.getWriter();
+                    writer.write(error == null
+                            ? "Hello not cached data"
+                            : "Error happened: " + error);
+                    writer.close();
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("Accept-Encoding", "gzip")
+                .build();
+
+        final HttpRequestPacket request3 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        boolean isOk = false;
+        try {
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
+            final Connection c = getConnection("localhost", PORT, responseFuture);
+            c.write(request1);
+            final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertNull(response1.getHttpHeader().getHeader("Content-Encoding"));
+            assertEquals("Not cached data mismatch\n" + probe, "Hello not cached data", response1.getContent().toStringContent());
+
+
+            InputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
+
+            final String pattern = new String(data);
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertEquals(probe.toString(), "gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
+            assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
+            
+            responseFuture.reset();
+            c.write(request3);
+            final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertNull(response3.getHttpHeader().getHeader("Content-Encoding"));
+            assertEquals("Cached data mismatch\n" + probe, pattern, response3.getContent().toStringContent());
+            
+            isOk = true;
+        } finally {
+            if (!isOk) {
+                System.err.println(probe);
+            }
+        }
+    }
+    
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testIfModifiedSince() throws Exception {
@@ -874,7 +969,6 @@ public class FileCacheTest {
             listener.setSSLEngineConfig(createSSLConfig(true));
         }
         listener.getFileCache().setEnabled(true);
-        listener.setCompression("FORCE");
         httpServer.addListener(listener);
     }
 
