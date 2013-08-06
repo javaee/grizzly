@@ -91,14 +91,15 @@ public class HttpCommTest extends TestCase {
 
     @SuppressWarnings("unchecked")
     public void testSinglePacket() throws Exception {
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
-        serverFilterChainBuilder.add(new TransportFilter());
-        serverFilterChainBuilder.add(new ChunkingFilter(2));
-        serverFilterChainBuilder.add(new HttpServerFilter());
-        serverFilterChainBuilder.add(new DummyServerFilter());
+        final FilterChain serverFilterChain = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new ChunkingFilter(2))
+                .add(new HttpServerFilter())
+                .add(new DummyServerFilter())
+                .build();
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverFilterChainBuilder.build());
+        transport.setProcessor(serverFilterChain);
 
         Connection connection = null;
         try {
@@ -107,21 +108,19 @@ public class HttpCommTest extends TestCase {
             
             final BlockingQueue<HttpPacket> resultQueue = DataStructures.getLTQInstance(HttpPacket.class);
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(2));
-            clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new BaseFilter() {
-
+            final FilterChain clientFilterChain = FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new ChunkingFilter(2))
+                    .add(new HttpClientFilter())
+                    .add(new BaseFilter() {
                 @Override
                 public NextAction handleRead(FilterChainContext ctx) throws IOException {
                     resultQueue.add((HttpPacket) ctx.getMessage());
                     return ctx.getStopAction();
                 }
-
-            });
-            FilterChain clientFilterChain = clientFilterChainBuilder.build();
-            SocketConnectorHandler connectorHandler =
+            }).build();
+            
+            final SocketConnectorHandler connectorHandler =
                     TCPNIOConnectorHandler.builder(transport)
                     .processor(clientFilterChain)
                     .build();
