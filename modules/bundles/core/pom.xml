@@ -147,7 +147,7 @@
                         <configuration>
                             <classifier>sources</classifier>
                             <excludeArtifactIds>junit</excludeArtifactIds>
-                            <!-- fudge an actual source hierachy so that the source
+                            <!-- fudge an actual source hierarchy so that the source
                                  plugin can actually do something useful.  Otherwise,
                                  you'll end up with an empty source jar -->
                             <outputDirectory>${basedir}/src/main/java</outputDirectory>
