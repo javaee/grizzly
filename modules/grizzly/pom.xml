@@ -66,9 +66,6 @@
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
-                <excludes>
-                    <exclude>maskedclasses/*</exclude>
-                </excludes>
             </resource>
         </resources>
         <testResources>
