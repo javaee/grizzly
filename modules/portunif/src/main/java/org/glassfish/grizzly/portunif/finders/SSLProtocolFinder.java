@@ -82,22 +82,6 @@ public class SSLProtocolFinder implements ProtocolFinder {
             return Result.NOT_FOUND;
         }
 
-        final Connection connection = ctx.getConnection();
-        final SSLEngine sslEngine = sslEngineConfigurator.createSSLEngine();
-
-        try {
-            SSLConnectionContext sslCtx =
-                    new SSLConnectionContext(connection);
-            sslCtx.configure(sslEngine);
-            
-            handshakeUnwrap(sslCtx, buffer, null);
-
-            sslCtx.attach();
-            return Result.FOUND;
-        } catch (SSLException e) {
-            LOGGER.log(Level.FINE, "SSL handshake attempt failed", e);
-        }
-
-        return Result.NOT_FOUND;
+        return Result.FOUND;
     }
 }
