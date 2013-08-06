@@ -851,14 +851,6 @@ public class NetworkListener {
 
     }
 
-    public boolean isRcmSupportEnabled() {
-        return rcmSupportEnabled;
-    }
-
-    public void setRcmSupportEnabled(final boolean enabled) {
-        rcmSupportEnabled = enabled;
-    }
-
     public boolean isAuthPassThroughEnabled() {
         return authPassThroughEnabled;
     }
