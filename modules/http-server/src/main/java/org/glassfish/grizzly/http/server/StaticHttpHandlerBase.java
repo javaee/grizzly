@@ -418,7 +418,6 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
             }
 
             // prepare buffer to be written
-            buffer.position(justReadBytes);
             buffer.trim();
 
             // write the Buffer

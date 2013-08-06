@@ -246,7 +246,6 @@ public abstract class Source {
             }
 
             fileLengthRemaining -= bytesRead;
-            buffer.position(buffer.position() + bytesRead);
             buffer.trim();
 
             return buffer;

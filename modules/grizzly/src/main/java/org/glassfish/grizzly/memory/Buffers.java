@@ -603,6 +603,10 @@ public class Buffers {
             array.recycle();
         }
         
+        if (bytesRead > 0) {
+            buffer.position(buffer.position() + (int) bytesRead);
+        }
+        
         return bytesRead;
     }
     
@@ -632,6 +636,10 @@ public class Buffers {
 
             array.restore();
             array.recycle();
+        }
+
+        if (bytesWritten > 0) {
+            buffer.position(buffer.position() + (int) bytesWritten);
         }
         
         return bytesWritten;
