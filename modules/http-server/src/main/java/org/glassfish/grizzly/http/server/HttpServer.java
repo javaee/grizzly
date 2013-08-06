@@ -80,7 +80,6 @@ import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -659,9 +658,6 @@ public class HttpServer {
                     configureCompressionEncodings(listener);
             for (ContentEncoding contentEncoding : contentEncodings) {
                 httpServerCodecFilter.addContentEncoding(contentEncoding);
-            }
-            if (listener.isRcmSupportEnabled()) {
-                builder.add(new ResourceAllocationFilter());
             }
 
             httpServerCodecFilter.getMonitoringConfig().addProbes(
