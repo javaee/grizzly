@@ -355,11 +355,7 @@ public abstract class HttpHandler {
          * With Grizzly, we just return a 404 with a simple error message.
          */
         res.setStatus(HttpStatus.NOT_FOUND_404);
-        // TODO re-implement
-        final ServerFilterConfiguration config = req.getServerFilter().getConfiguration();
-        
-        final String serverName = config.getHttpServerName() + '/' +
-                config.getHttpServerVersion();
+        final String serverName = req.getServerFilter().getFullServerName();
         
         final ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
                 "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
