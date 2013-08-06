@@ -41,6 +41,9 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,6 +58,8 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ShutdownContext;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
@@ -171,7 +176,6 @@ public class NetworkListener {
      * The maximum size of an incoming <code>HTTP</code> message.
      */
     private int maxHttpHeaderSize = -1;
-    private String compression;
     /**
      * {@link FileCache} to be used by this <code>NetworkListener</code>.
      */
@@ -200,13 +204,14 @@ public class NetworkListener {
      * {@link HttpCodecFilter} associated with this listener.
      */
     private HttpCodecFilter httpCodecFilter;
-    private boolean rcmSupportEnabled;
+    /**
+     * {@link Compression} configuration
+     */
+    private final Compression compressionConfig = new Compression();
+    
     private boolean authPassThroughEnabled;
     private int maxFormPostSize = 2 * 1024 * 1024;
     private int maxBufferedPostSize = 2 * 1024 * 1024;
-    private String compressibleMimeTypes;
-    private String noCompressionUserAgents;
-    private int compressionMinSize;
     private String restrictedUserAgents;
     private int uploadTimeout;
     private boolean disableUploadTimeout;
@@ -553,14 +558,6 @@ public class NetworkListener {
 
     }
 
-    public String getCompression() {
-        return compression;
-    }
-
-    public void setCompression(final String compression) {
-        this.compression = compression;
-    }
-
     /**
      * @return the maximum header size for an HTTP request.
      */
@@ -898,22 +895,69 @@ public class NetworkListener {
         this.authPassThroughEnabled = authPassthroughEnabled;
     }
 
-    public String getCompressibleMimeTypes() {
-        return compressibleMimeTypes;
+    /**
+     * Returns {@link Compression} configuration.
+     */
+    public Compression getCompressionConfig() {
+        return compressionConfig;
     }
 
-    public void setCompressibleMimeTypes(final String compressibleMimeTypes) {
-        this.compressibleMimeTypes = compressibleMimeTypes;
+    /**
+     * @deprecated use <tt>getCompressionConfig().getCompressionMode().name()</tt>
+     */
+    public String getCompression() {
+        return compressionConfig.getCompressionMode().name();
     }
 
+    /**
+     * @deprecated use <tt>getCompressionConfig().setCompressionMode(mode)</tt>
+     */
+    public void setCompression(final String compression) {
+        compressionConfig.setCompressionMode(CompressionMode.fromString(compression));
+    }
+    
+    /**
+     * @deprecated use <tt>getCompressionConfig().getCompressionMinSize()</tt>
+     */
     public int getCompressionMinSize() {
-        return compressionMinSize;
+        return compressionConfig.getCompressionMinSize();
     }
 
+    /**
+     * @deprecated use <tt>getCompressionConfig().setCompressionMinSize(int)</tt>
+     */
     public void setCompressionMinSize(final int compressionMinSize) {
-        this.compressionMinSize = compressionMinSize;
+        compressionConfig.setCompressionMinSize(compressionMinSize);
     }
 
+    /**
+     * @deprecated use <tt>getCompressionConfig().getCompressableMimeTypes()</tt>
+     */
+    public String getCompressibleMimeTypes() {
+        return setToString(compressionConfig.getCompressableMimeTypes());
+    }
+
+    /**
+     * @deprecated use <tt>getCompressionConfig().setCompressableMimeTypes(Set&lt;String&gt;)</tt>
+     */
+    public void setCompressibleMimeTypes(final String compressibleMimeTypes) {
+        compressionConfig.setCompressableMimeTypes(stringToSet(compressibleMimeTypes));
+    }
+    
+    /**
+     * @deprecated use <tt>getCompressionConfig().getNoCompressionUserAgents()</tt>
+     */
+    public String getNoCompressionUserAgents() {
+        return setToString(compressionConfig.getNoCompressionUserAgents());
+    }
+
+    /**
+     * @deprecated use <tt>getCompressionConfig().setNoCompressionUserAgents(Set&lt;String&gt;)</tt>
+     */
+    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
+        compressionConfig.setNoCompressionUserAgents(stringToSet(noCompressionUserAgents));
+    }
+    
     public boolean isDisableUploadTimeout() {
         return disableUploadTimeout;
     }
@@ -960,14 +1004,6 @@ public class NetworkListener {
      */
     public void setMaxBufferedPostSize(final int maxBufferedPostSize) {
         this.maxBufferedPostSize = maxBufferedPostSize < 0 ? -1 : maxBufferedPostSize;
-    }
-    
-    public String getNoCompressionUserAgents() {
-        return noCompressionUserAgents;
-    }
-
-    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
-        this.noCompressionUserAgents = noCompressionUserAgents;
     }
 
     public String getRestrictedUserAgents() {
@@ -1050,4 +1086,25 @@ public class NetworkListener {
         return state == State.STOPPED || state == State.STOPPING;
     }
 
+    private static String setToString(final Set<String> set) {
+        final StringBuilder sb = new StringBuilder(set.size() * 10);
+        for (String elem : set) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            
+            sb.append(elem);
+        }
+        
+        return sb.toString();
+    }
+    
+    private static Set<String> stringToSet(final String s) {
+        if (s == null) {
+            return null;
+        }
+        
+        return new HashSet<String>(Arrays.asList(s.split(",")));
+    }    
+    
 }

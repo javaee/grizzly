@@ -39,170 +39,125 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.Compression.CompressionModeI;
 import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
+
 public class CompressionEncodingFilter implements EncodingFilter {
-    private final CompressionLevel compressionLevel;
-    private final int compressionMinSize;
-    private final String[] compressableMimeTypes;
-    private final String[] noCompressionUserAgents;
+    private final Compression compressionConfig;
     private final String[] aliases;
 
-    public CompressionEncodingFilter(CompressionLevel compressionLevel,
+    public CompressionEncodingFilter(final Compression compressionConfig,
+            final String[] aliases) {
+        this.compressionConfig = new Compression(compressionConfig);
+        this.aliases = aliases;
+    }
+    
+    /**
+     * 
+     * @param compressionMode
+     * @param compressionMinSize
+     * @param compressableMimeTypes
+     * @param noCompressionUserAgents
+     * @param aliases 
+     */
+    public CompressionEncodingFilter(CompressionModeI compressionMode,
             int compressionMinSize,
             String[] compressableMimeTypes,
             String[] noCompressionUserAgents,
             String[] aliases) {
-        this.compressionLevel = compressionLevel;
-        this.compressionMinSize = compressionMinSize;
-        this.compressableMimeTypes = compressableMimeTypes;
-        this.noCompressionUserAgents = noCompressionUserAgents;
+        
+        final CompressionMode mode;
+        if (compressionMode instanceof CompressionMode) {
+            mode = (CompressionMode) compressionMode;
+        } else {
+            // backwards compatibility
+            assert (compressionMode instanceof CompressionLevel);
+            mode = ((CompressionLevel) compressionMode).normalize();
+        }
+
+        compressionConfig = new Compression(mode, compressionMinSize,
+                null, null);
+        compressionConfig.setCompressableMimeTypes(compressableMimeTypes);
+        compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
+        
         this.aliases = aliases;
     }
 
     @Override
-    public boolean applyEncoding(HttpHeader httpPacket) {
-        switch (compressionLevel) {
-            case OFF:
-                return false;
-            default:
-                // Compress only since HTTP 1.1
-                if (org.glassfish.grizzly.http.Protocol.HTTP_1_1 != httpPacket.getProtocol()) {
-                    return false;
-                }
-
-                // If at least one encoding has been already selected
-                // skip this one
-                if (!httpPacket.getContentEncodings().isEmpty()) {
-                    return false;
-                }
-
-                final HttpResponsePacket responsePacket = (HttpResponsePacket) httpPacket;
-
-                final MimeHeaders responseHeaders = responsePacket.getHeaders();
-                // Check if content is already encoded (no matter which encoding)
-                final DataChunk contentEncodingMB =
-                        responseHeaders.getValue(Header.ContentEncoding);
-                if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
-                    return false;
-                }
-
-                final MimeHeaders requestHeaders = responsePacket.getRequest().getHeaders();
-
-                if (!userAgentRequestsCompression(requestHeaders)) return false;
-
-                // If force mode, always compress (test purposes only)
-                if (compressionLevel == CompressionLevel.FORCE) {
-                    responsePacket.setChunked(true);
-                    responsePacket.setContentLength(-1);
-                    return true;
-                }
-                // Check for incompatible Browser
-                if (noCompressionUserAgents.length > 0) {
-                    final DataChunk userAgentValueDC =
-                            requestHeaders.getValue(Header.UserAgent);
-                    if (userAgentValueDC != null &&
-                            indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
-                        return false;
-                    }
-                }
-                // Check if sufficient len to trig the compression
-                final long contentLength = responsePacket.getContentLength();
-                if (contentLength == -1
-                        || contentLength >= compressionMinSize) {
-
-                    boolean found = true;
-                    // Check for compatible MIME-TYPE
-                    if (compressableMimeTypes.length > 0) {
-                        found = indexOfStartsWith(compressableMimeTypes,
-                                responsePacket.getContentType()) != -1;
-                    }
-
-                    if (found) {
-                        responsePacket.setChunked(true);
-                        responsePacket.setContentLength(-1);
-                        return true;
-                    }
-                }
-
-                return false;
-        }
-    }
-
-    private boolean userAgentRequestsCompression(MimeHeaders requestHeaders) {
-        // Check if browser support gzip encoding
-        final DataChunk acceptEncodingDC =
-                requestHeaders.getValue(Header.AcceptEncoding);
-        if (acceptEncodingDC == null) {
+    public boolean applyEncoding(final HttpHeader httpPacket) {
+        if (httpPacket.isRequest()) {
+            assert httpPacket instanceof HttpRequestPacket;
             return false;
         }
-        String alias = null;
-        int idx = -1;
-        for (int i = 0, len = aliases.length; i < len; i++) {
-            alias = aliases[i];
-            idx = acceptEncodingDC.indexOf(alias, 0);
-            if (idx != -1) {
-                break;
-            }
-        }
-
-        if (idx == -1) {
-            return false;
-        }
-
-        assert alias != null;
         
-        // we only care about q=0/q=0.0.  If present, the user-agent
-        // doesn't support this particular compression.
-        int qvalueStart = acceptEncodingDC.indexOf(';', idx + alias.length());
-        if (qvalueStart != -1) {
-            qvalueStart = acceptEncodingDC.indexOf('=', qvalueStart);
-            final int commaIdx = acceptEncodingDC.indexOf(',', qvalueStart);
-            final int qvalueEnd = commaIdx != -1 ? commaIdx : acceptEncodingDC.getLength();
-            if (HttpUtils.convertQValueToFloat(acceptEncodingDC,
-                    qvalueStart + 1,
-                    qvalueEnd) == 0.0f) {
-                return false;
-            }
-        }
-
-        return true;
+        assert httpPacket instanceof HttpResponsePacket;
+        return canCompressHttpResponse((HttpResponsePacket) httpPacket,
+                compressionConfig, aliases);
     }
 
     @Override
-    public boolean applyDecoding(HttpHeader httpPacket) {
+    public boolean applyDecoding(final HttpHeader httpPacket) {
         return false;
     }
-
-    private static int indexOf(String[] aliases, DataChunk dc) {
-        if (dc == null || dc.isNull()) {
-            return -1;
+    
+    /**
+     * Returns <tt>true</tt> if the {@link HttpResponsePacket} could be
+     * compressed, or <tt>false</tt> otherwise.
+     * The method checks if client supports compression and if the resource,
+     * that we are about to send matches {@link Compression} configuration.
+     */
+    protected static boolean canCompressHttpResponse(
+            final HttpResponsePacket response,
+            final Compression compressionConfig,
+            final String[] aliases) {
+        
+        // If at least one encoding has been already selected
+        // skip this one
+        if (!response.getContentEncodings().isEmpty()) {
+            return false;
         }
-        for (int i = 0; i < aliases.length; i++) {
-            final String alias = aliases[i];
-            if (dc.indexOf(alias, 0) != -1) {
-                return i;
+
+        final MimeHeaders responseHeaders = response.getHeaders();
+        // Check if content is already encoded (no matter which encoding)
+        final DataChunk contentEncodingMB =
+                responseHeaders.getValue(Header.ContentEncoding);
+        if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
+            return false;
+        }
+
+        if (!Compression.isClientSupportCompression(compressionConfig,
+                response.getRequest(), aliases)) {
+            return false;
+        }
+        
+        // If force mode, always compress (test purposes only)
+        if (compressionConfig.getCompressionMode() == CompressionMode.FORCE) {
+            response.setChunked(true);
+            response.setContentLength(-1);
+            return true;
+        }
+                
+        // Check if sufficient len to trig the compression
+        final long contentLength = response.getContentLength();
+        if (contentLength == -1
+                || contentLength >= compressionConfig.getCompressionMinSize()) {
+
+            if (compressionConfig.checkMimeType(response.getContentType())) {
+                response.setChunked(true);
+                response.setContentLength(-1);
+                return true;
             }
         }
-        return -1;
-    }
 
-    private static int indexOfStartsWith(String[] aliases, String s) {
-        if (s == null || s.length() == 0) {
-            return -1;
-        }
-        for (int i = 0; i < aliases.length; i++) {
-            final String alias = aliases[i];
-            if (s.startsWith(alias)) {
-                return i;
-            }
-        }
-        return -1;
-    }
+        return false;
+    }    
 }

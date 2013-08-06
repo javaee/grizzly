@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,28 @@
 
 package org.glassfish.grizzly.http.server;
 
-public enum CompressionLevel {
-    OFF,
-    ON,
-    FORCE;
+import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.Compression.CompressionModeI;
 
+/**
+ * @deprecated pls. use {@link org.glassfish.grizzly.http.Compression#CompressionLevel}.
+ */
+public enum CompressionLevel implements CompressionModeI {
+    OFF (CompressionMode.OFF),
+    ON (CompressionMode.ON),
+    FORCE (CompressionMode.FORCE);
+
+    private final CompressionMode normalizedLevel;
+
+    private CompressionLevel(final CompressionMode normalizedLevel) {
+        this.normalizedLevel = normalizedLevel;
+    }
+    
+    public CompressionMode normalize() {
+        return normalizedLevel;
+    }
+    
     /**
      * Set compression level.
      */

@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
@@ -85,7 +86,7 @@ public class CompressionEncodingFilterTest {
     public void testAcceptEncodingProcessing() throws Exception {
 
         final CompressionEncodingFilter filter =
-                new CompressionEncodingFilter(CompressionLevel.ON,
+                new CompressionEncodingFilter(CompressionMode.ON,
                                               1,
                                               new String[0],
                                               new String[0],
@@ -138,7 +139,7 @@ public class CompressionEncodingFilterTest {
     public void testMinSizeSetting() throws Exception {
 
         final CompressionEncodingFilter filter =
-                new CompressionEncodingFilter(CompressionLevel.ON,
+                new CompressionEncodingFilter(CompressionMode.ON,
                                               1024,
                                               new String[0],
                                               new String[0],

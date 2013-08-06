@@ -69,6 +69,8 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.Compression.CompressionMode;
 import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
@@ -670,7 +672,7 @@ public class HttpServer {
             
             final Transport transport = listener.getTransport();
             final FileCache fileCache = listener.getFileCache();
-            fileCache.initialize(transport.getMemoryManager(), delayedExecutor);
+            fileCache.initialize(delayedExecutor);
             final FileCacheFilter fileCacheFilter = new FileCacheFilter(fileCache);
             fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
@@ -729,53 +731,28 @@ public class HttpServer {
         configureMonitoring(listener);
     }
 
-    protected Set<ContentEncoding> configureCompressionEncodings(final NetworkListener listener) {
-            final String mode = listener.getCompression();
-            int compressionMinSize = listener.getCompressionMinSize();
-            CompressionLevel compressionLevel;
-            try {
-                compressionLevel = CompressionLevel.getCompressionLevel(mode);
-            } catch (IllegalArgumentException e) {
-                try {
-                    // Try to parse compression as an int, which would give the
-                    // minimum compression size
-                    compressionLevel = CompressionLevel.ON;
-                    compressionMinSize = Integer.parseInt(mode);
-                } catch (Exception ignore) {
-                    compressionLevel = CompressionLevel.OFF;
-                }
-            }
-            
-            if (compressionLevel != CompressionLevel.OFF) {
-                final String compressibleMimeTypesString = listener.getCompressibleMimeTypes();
-                final String noCompressionUserAgentsString = listener.getNoCompressionUserAgents();
-                final String[] compressibleMimeTypes =
-                        ((compressibleMimeTypesString != null)
-                                ? compressibleMimeTypesString.split(",")
-                                : new String[0]);
-                final String[] noCompressionUserAgents =
-                        ((noCompressionUserAgentsString != null)
-                                ? noCompressionUserAgentsString.split(",")
-                                : new String[0]);
-                final ContentEncoding gzipContentEncoding = new GZipContentEncoding(
-                    GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                    GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
-                    new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                        compressibleMimeTypes,
-                        noCompressionUserAgents,
-                        GZipContentEncoding.getGzipAliases()));
-                final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
-                        compressibleMimeTypes,
-                        noCompressionUserAgents,
-                        LZMAContentEncoding.getLzmaAliases()));
-                final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
-                set.add(gzipContentEncoding);
-                set.add(lzmaEncoding);
-                return set;
-            } else {
-                return Collections.emptySet();
-            }
+    protected Set<ContentEncoding> configureCompressionEncodings(
+            final NetworkListener listener) {
+        
+        final Compression compressionConfig = listener.getCompressionConfig();
+        
+        if (compressionConfig.getCompressionMode() != CompressionMode.OFF) {
+            final ContentEncoding gzipContentEncoding = new GZipContentEncoding(
+                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
+                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
+                new CompressionEncodingFilter(compressionConfig,
+                    GZipContentEncoding.getGzipAliases()));
+            final ContentEncoding lzmaEncoding = new LZMAContentEncoding(
+                    new CompressionEncodingFilter(compressionConfig,
+                    LZMAContentEncoding.getLzmaAliases()));
+            final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
+            set.add(gzipContentEncoding);
+            set.add(lzmaEncoding);
+            return set;
+        } else {
+            return Collections.emptySet();
         }
+    }
 
     @SuppressWarnings("unchecked")
     private void configureMonitoring(final NetworkListener listener) {
