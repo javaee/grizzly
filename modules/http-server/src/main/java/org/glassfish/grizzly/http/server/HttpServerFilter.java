@@ -336,7 +336,10 @@ public class HttpServerFilter extends BaseFilter
         }
     }
 
-    
+    protected String getFullServerName() {
+        return config.getHttpServerName() + " " + config.getHttpServerVersion();
+    }
+        
     // --------------------------------------------------------- Private Methods
 
 
@@ -352,8 +355,7 @@ public class HttpServerFilter extends BaseFilter
         if (!response.isCommitted()
                 && response.getStatus() >= 400
                 && response.getOutputBuffer().getBufferedDataSize() == 0) {
-            final String name = getConfiguration().getHttpServerName() +
-                    + ' ' + getConfiguration().getHttpServerVersion();
+            final String name = getFullServerName();
             final ByteBuffer bb = HtmlHelper.getErrorPage(response.getStatus() + ' ' + response.getMessage(),
                                                           response.getMessage(),
                                                           name);
@@ -392,7 +394,7 @@ public class HttpServerFilter extends BaseFilter
     /**
      * Serve the shutdown page.
      */
-    private static void serveShutDownPage(final FilterChainContext ctx,
+    private void serveShutDownPage(final FilterChainContext ctx,
             final HttpRequestPacket request,
             final HttpResponsePacket response) throws IOException {
         request.getProcessingState().setError(true);
@@ -400,7 +402,7 @@ public class HttpServerFilter extends BaseFilter
         final ByteBuffer b = HtmlHelper.getErrorPage(
                 "The server is being shutting down...",
                 "The server is being shutting down...",
-                "Grizzly/2.0");
+                getFullServerName());
         
         response.setStatus(HttpStatus.SERVICE_UNAVAILABLE_503);
         response.setContentType("text/html");
@@ -448,7 +450,7 @@ public class HttpServerFilter extends BaseFilter
             }
         }
     }
-    
+
     /**
      * The {@link CompletionHandler} to be used to make sure the response data
      * have been flushed.
