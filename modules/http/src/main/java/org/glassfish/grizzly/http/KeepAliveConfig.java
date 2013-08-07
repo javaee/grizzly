@@ -52,7 +52,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  * 
  * @author Alexey Stashok
  */
-public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
+public final class KeepAliveConfig implements MonitoringAware<KeepAliveProbe> {
     /**
      * Keep alive probes
      */
@@ -136,7 +136,7 @@ public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
 
     protected Object createJmxManagementObject() {
         return MonitoringUtils.loadJmxObject(
-                "org.glassfish.grizzly.http.jmx.KeepAlive", this, KeepAlive.class);
+                "org.glassfish.grizzly.http.jmx.KeepAlive", this, KeepAliveConfig.class);
     }
 
     /**
@@ -146,7 +146,7 @@ public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
      * @param connection {@link Connection} been accepted.
      */
     protected static void notifyProbesConnectionAccepted(
-            final KeepAlive keepAlive, final Connection connection) {
+            final KeepAliveConfig keepAlive, final Connection connection) {
         final KeepAliveProbe[] probes =
                 keepAlive.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -164,7 +164,7 @@ public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
      * @param requestNumber the request number being processed on the given {@link Connection}.
      */
     protected static void notifyProbesHit(
-            final KeepAlive keepAlive, final Connection connection,
+            final KeepAliveConfig keepAlive, final Connection connection,
             final int requestNumber) {
         
         final KeepAliveProbe[] probes =
@@ -183,7 +183,7 @@ public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
      * @param connection {@link Connection} been refused.
      */
     protected static void notifyProbesRefused(
-            final KeepAlive keepAlive, final Connection connection) {
+            final KeepAliveConfig keepAlive, final Connection connection) {
 
         final KeepAliveProbe[] probes =
                 keepAlive.monitoringConfig.getProbesUnsafe();
@@ -201,7 +201,7 @@ public final class KeepAlive implements MonitoringAware<KeepAliveProbe> {
      * @param connection {@link Connection} been timeout.
      */
     protected static void notifyProbesTimeout(
-            final KeepAlive keepAlive, final Connection connection) {
+            final KeepAliveConfig keepAlive, final Connection connection) {
 
         final KeepAliveProbe[] probes =
                 keepAlive.monitoringConfig.getProbesUnsafe();

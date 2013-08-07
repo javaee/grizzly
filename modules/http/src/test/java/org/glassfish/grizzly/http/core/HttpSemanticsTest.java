@@ -56,7 +56,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.KeepAlive;
+import org.glassfish.grizzly.http.KeepAliveConfig;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.HttpStatus;
@@ -94,7 +94,7 @@ public class HttpSemanticsTest extends TestCase {
     private static final int MAX_HEADERS_SIZE = 8192;
     
     private HttpServerFilter httpServerFilter =
-            new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAlive(), null);
+            new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAliveConfig(), null);
 
     // ------------------------------------------------------------ Test Methods
 

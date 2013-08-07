@@ -63,9 +63,9 @@ import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 @Description("The configuration for HTTP keep-alive connections.")
 public class KeepAlive extends JmxObject {
     /**
-     * The {@link org.glassfish.grizzly.http.KeepAlive} being managed.
+     * The {@link org.glassfish.grizzly.http.KeepAliveConfig} being managed.
      */
-    private final org.glassfish.grizzly.http.KeepAlive keepAlive;
+    private final org.glassfish.grizzly.http.KeepAliveConfig keepAliveConfig;
 
     /**
      * The number of live keep-alive connections.
@@ -97,13 +97,13 @@ public class KeepAlive extends JmxObject {
 
     /**
      * Constructs a new JMX managed KeepAlive for the specified
-     * {@link org.glassfish.grizzly.http.KeepAlive} instance.
+     * {@link org.glassfish.grizzly.http.KeepAliveConfig} instance.
      *
-     * @param keepAlive the {@link org.glassfish.grizzly.http.KeepAlive}
+     * @param keepAliveConfig the {@link org.glassfish.grizzly.http.KeepAliveConfig}
      *  to manage.
      */
-    public KeepAlive(org.glassfish.grizzly.http.KeepAlive keepAlive) {
-        this.keepAlive = keepAlive;
+    public KeepAlive(org.glassfish.grizzly.http.KeepAliveConfig keepAliveConfig) {
+        this.keepAliveConfig = keepAliveConfig;
     }
 
     // -------------------------------------------------- Methods from JmxObject
@@ -129,7 +129,7 @@ public class KeepAlive extends JmxObject {
      */
     @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
-        keepAlive.getMonitoringConfig().addProbes(keepAliveProbe);
+        keepAliveConfig.getMonitoringConfig().addProbes(keepAliveProbe);
     }
 
     /**
@@ -145,7 +145,7 @@ public class KeepAlive extends JmxObject {
      */
     @Override
     protected void onDeregister(GrizzlyJmxManager mom) {
-        keepAlive.getMonitoringConfig().removeProbes(keepAliveProbe);
+        keepAliveConfig.getMonitoringConfig().removeProbes(keepAliveProbe);
     }
 
     // --------------------------------------------------- Keep Alive Properties
@@ -157,7 +157,7 @@ public class KeepAlive extends JmxObject {
     @ManagedAttribute(id="idle-timeout-seconds")
     @Description("The time period keep-alive connection may stay idle")
     public int getIdleTimeoutInSeconds() {
-        return keepAlive.getIdleTimeoutInSeconds();
+        return keepAliveConfig.getIdleTimeoutInSeconds();
     }
 
     /**
@@ -166,7 +166,7 @@ public class KeepAlive extends JmxObject {
     @ManagedAttribute(id="max-requests-count")
     @Description("the max number of HTTP requests allowed to be processed on one keep-alive connection")
     public int getMaxRequestsCount() {
-        return keepAlive.getMaxRequestsCount();
+        return keepAliveConfig.getMaxRequestsCount();
     }
 
     /**

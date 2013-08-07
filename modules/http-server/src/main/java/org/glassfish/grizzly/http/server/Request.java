@@ -497,7 +497,7 @@ public class Request {
 
             sendFileEnabled = configuration.isSendFileEnabled();
             
-            final BackendConfiguration backendConfiguration =
+            final BackendConfig backendConfiguration =
                     configuration.getBackendConfiguration();
             
             if (backendConfiguration != null) {

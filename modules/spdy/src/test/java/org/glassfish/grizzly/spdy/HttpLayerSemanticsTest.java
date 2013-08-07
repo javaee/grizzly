@@ -165,7 +165,7 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
                 AbstractSpdyTest.HttpHandlerRegistration.of(httpHandler, "/path/*"));
         
         final NetworkListener listener = httpServer.getListener("grizzly");
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
 
         return httpServer;
 

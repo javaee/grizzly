@@ -72,7 +72,7 @@ public class BackendConfigTest {
 
     @Test
     public void testSchemeOverriding() throws Exception {
-        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        final BackendConfig backendConfiguration = new BackendConfig();
         backendConfiguration.setScheme("https");
 
         final HttpPacket request = createRequest("/test", null);
@@ -92,7 +92,7 @@ public class BackendConfigTest {
     
     @Test
     public void testMappedSchemeNull() throws Exception {
-        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        final BackendConfig backendConfiguration = new BackendConfig();
         backendConfiguration.setSchemeMapping("my-scheme");
 
         final HttpPacket request = createRequest("/test", null);
@@ -113,7 +113,7 @@ public class BackendConfigTest {
 
     @Test
     public void testMappedScheme() throws Exception {
-        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        final BackendConfig backendConfiguration = new BackendConfig();
         backendConfiguration.setSchemeMapping("my-scheme");
 
         final HttpPacket request = createRequest("/test",
@@ -135,7 +135,7 @@ public class BackendConfigTest {
 
     @Test
     public void testMappedRemoteUserNull() throws Exception {
-        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        final BackendConfig backendConfiguration = new BackendConfig();
         backendConfiguration.setRemoteUserMapping("my-user");
 
         final HttpPacket request = createRequest("/test", null);
@@ -157,7 +157,7 @@ public class BackendConfigTest {
 
     @Test
     public void testMappedRemoteUser() throws Exception {
-        final BackendConfiguration backendConfiguration = new BackendConfiguration();
+        final BackendConfig backendConfiguration = new BackendConfig();
         backendConfiguration.setRemoteUserMapping("my-user");
 
         final HttpPacket request = createRequest("/test",
@@ -180,13 +180,13 @@ public class BackendConfigTest {
     }
 
     private Map<String, String> doTest(final HttpHandler httpHandler,
-            final BackendConfiguration backendConfiguration,
+            final BackendConfig backendConfig,
             final HttpPacket request
             ) throws Exception {
         final HttpServer server = createWebServer(httpHandler);
 
         // Override the scheme
-        server.getListeners().iterator().next().setBackendConfiguration(backendConfiguration);
+        server.getListeners().iterator().next().getBackendConfig().set(backendConfig);
         
         try {
             server.start();
@@ -266,7 +266,7 @@ public class BackendConfigTest {
                 new NetworkListener("grizzly",
                         NetworkListener.DEFAULT_NETWORK_HOST,
                         PORT);
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
         server.getServerConfiguration().addHttpHandler(httpHandlers[0], "/");
 

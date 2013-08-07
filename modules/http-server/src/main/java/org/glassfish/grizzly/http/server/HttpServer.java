@@ -632,7 +632,7 @@ public class HttpServer {
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),
                                          maxHeaderSize,
                                          null,
-                                         listener.getKeepAlive(),
+                                         listener.getKeepAliveConfig(),
                                          null,
                                          listener.getMaxRequestHeaders(),
                                          listener.getMaxResponseHeaders());
@@ -647,7 +647,7 @@ public class HttpServer {
             builder.add(httpServerCodecFilter);
             
             builder.add(new IdleTimeoutFilter(delayedExecutor,
-                    listener.getKeepAlive().getIdleTimeoutInSeconds(),
+                    listener.getKeepAliveConfig().getIdleTimeoutInSeconds(),
                     TimeUnit.SECONDS));
             
             final Transport transport = listener.getTransport();
@@ -668,8 +668,8 @@ public class HttpServer {
                 config.setSendFileEnabled(listener.isSendFileEnabled());
             }
             
-            if (listener.getBackendConfiguration() != null) {
-                config.setBackendConfiguration(listener.getBackendConfiguration());
+            if (listener.getBackendConfig() != null) {
+                config.setBackendConfiguration(listener.getBackendConfig());
             }
             
             config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());

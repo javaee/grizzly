@@ -71,7 +71,7 @@ public class ServerFilterConfiguration {
      * The auxiliary configuration, which might be used, when Grizzly HttpServer
      * is running behind some HTTP gateway like reverse proxy or load balancer.
      */
-    private BackendConfiguration backendConfiguration;
+    private BackendConfig backendConfiguration;
 
     /**
      * Default query string encoding (query part of request URI).
@@ -190,7 +190,7 @@ public class ServerFilterConfiguration {
      *
      * @since 2.2.10
      */    
-    public BackendConfiguration getBackendConfiguration() {
+    public BackendConfig getBackendConfiguration() {
         return backendConfiguration;
     }
 
@@ -200,7 +200,7 @@ public class ServerFilterConfiguration {
      *
      * @since 2.2.10
      */
-    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
+    public void setBackendConfiguration(BackendConfig backendConfiguration) {
         this.backendConfiguration = backendConfiguration;
     }
     

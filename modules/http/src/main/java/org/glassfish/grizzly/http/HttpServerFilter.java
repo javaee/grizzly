@@ -118,7 +118,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private final DelayedExecutor.DelayQueue<KeepAliveContext> keepAliveQueue;
 
-    private final KeepAlive keepAlive;
+    private final KeepAliveConfig keepAlive;
 
     private final boolean processKeepAlive;
     private String defaultResponseContentType;
@@ -147,7 +147,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      */
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
-                            KeepAlive keepAlive,
+                            KeepAliveConfig keepAlive,
                             DelayedExecutor executor) {
         this(chunkingEnabled,
              maxHeadersSize,
@@ -173,7 +173,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
-                            KeepAlive keepAlive,
+                            KeepAliveConfig keepAlive,
                             DelayedExecutor executor) {
         this(chunkingEnabled,
              maxHeadersSize,
@@ -204,7 +204,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
-                            KeepAlive keepAlive,
+                            KeepAliveConfig keepAlive,
                             DelayedExecutor executor,
                             int maxRequestHeaders,
                             int maxResponseHeaders) {
@@ -279,7 +279,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                 keepAliveContext.request = httpRequest;
                 final int requestsProcessed = keepAliveContext.requestsProcessed;
                 if (requestsProcessed > 0) {
-                    KeepAlive.notifyProbesHit(keepAlive,
+                    KeepAliveConfig.notifyProbesHit(keepAlive,
                                               connection,
                                               requestsProcessed);
                 }
@@ -1100,10 +1100,10 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (isKeepAlive && keepAliveContext != null) {
             if (keepAliveContext.requestsProcessed == 1) {
                 if (isKeepAlive) { // New keep-alive connection
-                    KeepAlive.notifyProbesConnectionAccepted(keepAlive,
+                    KeepAliveConfig.notifyProbesConnectionAccepted(keepAlive,
                             keepAliveContext.connection);
                 } else { // Refused keep-alive connection
-                    KeepAlive.notifyProbesRefused(keepAlive, keepAliveContext.connection);
+                    KeepAliveConfig.notifyProbesRefused(keepAlive, keepAliveContext.connection);
                 }
             }
         }
@@ -1162,15 +1162,15 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private static class KeepAliveWorker implements DelayedExecutor.Worker<KeepAliveContext> {
 
-        private final KeepAlive keepAlive;
+        private final KeepAliveConfig keepAlive;
 
-        public KeepAliveWorker(final KeepAlive keepAlive) {
+        public KeepAliveWorker(final KeepAliveConfig keepAlive) {
             this.keepAlive = keepAlive;
         }
 
         @Override
         public boolean doWork(final KeepAliveContext context) {
-            KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
+            KeepAliveConfig.notifyProbesTimeout(keepAlive, context.connection);
             context.connection.closeSilently();
 
             return true;

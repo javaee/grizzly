@@ -413,7 +413,7 @@ public class FileCacheTest extends AbstractSpdyTest {
 
     private void configureHttpServer() throws Exception {
         httpServer = createServer(null, PORT, spdyMode, isSecure, true);
-        httpServer.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(-1);
+        httpServer.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
     }
 
     private void startHttpServer(final HttpHandler httpHandler) throws Exception {

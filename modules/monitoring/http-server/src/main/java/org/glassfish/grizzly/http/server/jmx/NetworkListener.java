@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http.server.jmx;
 
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.http.HttpCodecFilter;
-import org.glassfish.grizzly.http.KeepAlive;
+import org.glassfish.grizzly.http.KeepAliveConfig;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -65,7 +65,7 @@ public class NetworkListener extends JmxObject {
 
     private FileCache currentFileCache;
     private Transport currentTransport;
-    private KeepAlive currentKeepAlive;
+    private KeepAliveConfig currentKeepAliveConfig;
 
     private Object fileCacheJmx;
     private Object transportJmx;
@@ -158,7 +158,7 @@ public class NetworkListener extends JmxObject {
     @ManagedAttribute(id="idle-timeout-in-seconds")
     @Description("The time, in seconds, to keep an inactive request alive.")
     public int getIdleTimeoutInSeconds() {
-        return listener.getKeepAlive().getIdleTimeoutInSeconds();
+        return listener.getKeepAliveConfig().getIdleTimeoutInSeconds();
     }
 
 
@@ -263,12 +263,12 @@ public class NetworkListener extends JmxObject {
             }
         }
 
-        final KeepAlive keepAlive = listener.getKeepAlive();
-        if (currentKeepAlive != keepAlive) {
-            if (currentKeepAlive != null) {
+        final KeepAliveConfig keepAlive = listener.getKeepAliveConfig();
+        if (currentKeepAliveConfig != keepAlive) {
+            if (currentKeepAliveConfig != null) {
                 mom.deregister(keepAliveJmx);
 
-                currentKeepAlive = null;
+                currentKeepAliveConfig = null;
                 keepAliveJmx = null;
             }
 
@@ -276,7 +276,7 @@ public class NetworkListener extends JmxObject {
                 final Object jmx = keepAlive
                         .getMonitoringConfig().createManagementObject();
                 mom.register(this, jmx);
-                currentKeepAlive = keepAlive;
+                currentKeepAliveConfig = keepAlive;
                 keepAliveJmx = jmx;
             }
         }

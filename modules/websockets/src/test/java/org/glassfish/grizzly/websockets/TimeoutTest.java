@@ -60,7 +60,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
         httpServer.getServerConfiguration().setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
             networkListener.registerAddOn(new WebSocketAddOn());
-            networkListener.getKeepAlive().setIdleTimeoutInSeconds(5);
+            networkListener.getKeepAliveConfig().setIdleTimeoutInSeconds(5);
         }
         WebSocketEngine.getEngine().register("", "/echo", new EchoApplication());
 

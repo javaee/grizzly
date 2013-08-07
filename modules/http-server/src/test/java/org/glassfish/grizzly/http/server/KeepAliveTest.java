@@ -211,7 +211,7 @@ public class KeepAliveTest extends TestCase {
             }
 
         }, "/path");
-        server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
+        server.getListener("grizzly").getKeepAliveConfig().setMaxRequestsCount(maxKeepAliveRequests);
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
@@ -277,7 +277,7 @@ public class KeepAliveTest extends TestCase {
                 }
 
             }, "/path");
-            server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(-1);
+            server.getListener("grizzly").getKeepAliveConfig().setMaxRequestsCount(-1);
 
             final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
             final HttpClient client = new HttpClient(clientTransport);
@@ -336,7 +336,7 @@ public class KeepAliveTest extends TestCase {
             }
         }, "/path");
 
-        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        server.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(idleTimeoutSeconds);
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
 
@@ -382,7 +382,7 @@ public class KeepAliveTest extends TestCase {
             }
 
         }, "/path");
-        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        server.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(idleTimeoutSeconds);
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
@@ -433,7 +433,7 @@ public class KeepAliveTest extends TestCase {
             }
         }, "/path");
 
-        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        server.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(idleTimeoutSeconds);
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
 
@@ -479,7 +479,7 @@ public class KeepAliveTest extends TestCase {
             }
 
         }, "/path");
-        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        server.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(idleTimeoutSeconds);
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);

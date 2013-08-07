@@ -306,7 +306,7 @@ public class TransferEncodingTest {
                 new NetworkListener("grizzly",
                         NetworkListener.DEFAULT_NETWORK_HOST,
                         PORT);
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
         server.getServerConfiguration().addHttpHandler(httpHandler, "/");
 

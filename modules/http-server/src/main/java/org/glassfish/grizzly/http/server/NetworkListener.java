@@ -54,7 +54,7 @@ import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpCodecFilter;
-import org.glassfish.grizzly.http.KeepAlive;
+import org.glassfish.grizzly.http.KeepAliveConfig;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -119,7 +119,7 @@ public class NetworkListener {
     /**
      * The configuration for HTTP keep-alive connections
      */
-    private final KeepAlive keepAliveConfig = new KeepAlive();
+    private final KeepAliveConfig keepAliveConfig = new KeepAliveConfig();
     /**
      * The Grizzly {@link FilterChain} used to process incoming and outgoing network I/O.
      */
@@ -208,7 +208,7 @@ public class NetworkListener {
     private String uriEncoding;
     private Boolean sendFileEnabled;
     
-    private BackendConfiguration backendConfiguration;
+    private final BackendConfig backendConfig = new BackendConfig();
     private int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     private int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     
@@ -337,7 +337,7 @@ public class NetworkListener {
     /**
      * @return the configuration for the keep-alive HTTP connections.
      */
-    public KeepAlive getKeepAlive() {
+    public KeepAliveConfig getKeepAliveConfig() {
         return keepAliveConfig;
 
     }
@@ -461,18 +461,8 @@ public class NetworkListener {
      *
      * @since 2.2.10
      */    
-    public BackendConfiguration getBackendConfiguration() {
-        return backendConfiguration;
-    }
-
-    /**
-     * Sets the auxiliary configuration, which might be used, when Grizzly HttpServer
-     * is running behind HTTP gateway like reverse proxy or load balancer.
-     *
-     * @since 2.2.10
-     */
-    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
-        this.backendConfiguration = backendConfiguration;
+    public BackendConfig getBackendConfig() {
+        return backendConfig;
     }
 
     /**

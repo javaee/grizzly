@@ -56,7 +56,7 @@ package org.glassfish.grizzly.http.server;
  * 
  * @author Alexey Stashok
  */
-public class BackendConfiguration {
+public class BackendConfig {
     /**
      * The HTTP request scheme, which if non-null overrides default one picked
      * up by framework during runtime.
@@ -127,5 +127,17 @@ public class BackendConfiguration {
      */
     public void setRemoteUserMapping(String remoteUserMapping) {
         this.remoteUserMapping = remoteUserMapping;
+    }
+
+    /**
+     * Copies the source BackendConfig object value into this object.
+     * As the result this BackendConfig object will have the same settings as
+     * the source one, but actual values will be independent, so changes to one
+     * BackendConfig object will not affect the other one.
+     */
+    public void set(final BackendConfig backendConfig) {
+        this.remoteUserMapping = backendConfig.remoteUserMapping;
+        this.scheme = backendConfig.scheme;
+        this.schemeMapping = backendConfig.schemeMapping;
     }
 }

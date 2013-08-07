@@ -389,7 +389,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         }, "/read"));
         
         final NetworkListener listener = server.getListener("grizzly");
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
         listener.getTransport().setBlockingWriteTimeout(-1, TimeUnit.MILLISECONDS);
         
         try {
@@ -501,7 +501,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         spdyAddon.setMaxFrameLength(maxFrameLen);
         
         final NetworkListener listener = server.getListener("grizzly");
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
         listener.getTransport().setBlockingWriteTimeout(-1, TimeUnit.MILLISECONDS);
         
         try {
@@ -603,7 +603,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         spdyAddon.setMaxFrameLength(maxFrameLen);
         
         final NetworkListener listener = server.getListener("grizzly");
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
         listener.getTransport().setBlockingWriteTimeout(-1, TimeUnit.MILLISECONDS);
         
         try {

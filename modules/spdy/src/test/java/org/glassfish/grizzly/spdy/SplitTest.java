@@ -204,7 +204,7 @@ public class SplitTest extends AbstractSpdyTest {
 
         final HttpServer server = createServer(null, PORT, spdyMode, isSecure);
         final NetworkListener listener = server.getListener("grizzly");
-        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
+        listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
 
         server.getServerConfiguration().addHttpHandler(httpHandlers[0], "/");
 
