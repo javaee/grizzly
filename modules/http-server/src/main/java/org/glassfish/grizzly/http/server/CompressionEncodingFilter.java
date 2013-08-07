@@ -50,6 +50,8 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
+import java.util.Arrays;
+
 
 public class CompressionEncodingFilter implements EncodingFilter {
     private final Compression compressionConfig;
@@ -58,7 +60,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
     public CompressionEncodingFilter(final Compression compressionConfig,
             final String[] aliases) {
         this.compressionConfig = new Compression(compressionConfig);
-        this.aliases = aliases;
+        this.aliases = Arrays.copyOf(aliases, aliases.length);
     }
     
     /**
@@ -89,7 +91,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
         compressionConfig.setCompressableMimeTypes(compressableMimeTypes);
         compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
         
-        this.aliases = aliases;
+        this.aliases = Arrays.copyOf(aliases, aliases.length);
     }
 
     @Override

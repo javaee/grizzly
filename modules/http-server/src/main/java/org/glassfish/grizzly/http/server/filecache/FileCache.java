@@ -609,7 +609,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected void compressFile(final FileCacheEntry entry) {
         try {
             final File tmpCompressedFile = File.createTempFile(
-                    String.valueOf(Math.abs(entry.plainFile.hashCode())),
+                    String.valueOf(entry.plainFile.hashCode()),
                     ".tmpzip", compressedFilesFolder);
             tmpCompressedFile.deleteOnExit();
 
