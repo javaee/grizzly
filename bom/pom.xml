@@ -236,12 +236,6 @@
                 <artifactId>grizzly-httpservice-bundle</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!-- Documentation -->
-            <dependency>
-                <groupId>org.glassfish.grizzly</groupId>
-                <artifactId>documentation</artifactId>
-                <version>${project.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
