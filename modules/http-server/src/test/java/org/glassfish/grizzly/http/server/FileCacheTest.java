@@ -84,7 +84,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.util.MimeType;

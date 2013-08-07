@@ -40,9 +40,8 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.Compression;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
-import org.glassfish.grizzly.http.Compression.CompressionModeI;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionModeI;
 
 /**
  * @deprecated pls. use {@link org.glassfish.grizzly.http.Compression#CompressionLevel}.

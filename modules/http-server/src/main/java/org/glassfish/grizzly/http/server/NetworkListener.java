@@ -58,8 +58,8 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ShutdownContext;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.http.Compression;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
@@ -205,9 +205,9 @@ public class NetworkListener {
      */
     private HttpCodecFilter httpCodecFilter;
     /**
-     * {@link Compression} configuration
+     * {@link CompressionConfig}
      */
-    private final Compression compressionConfig = new Compression();
+    private final CompressionConfig compressionConfig = new CompressionConfig();
     
     private boolean authPassThroughEnabled;
     private int maxFormPostSize = 2 * 1024 * 1024;
@@ -896,9 +896,11 @@ public class NetworkListener {
     }
 
     /**
-     * Returns {@link Compression} configuration.
+     * Returns {@link CompressionConfig} configuration.
+     * 
+     * @since 2.3.5
      */
-    public Compression getCompressionConfig() {
+    public CompressionConfig getCompressionConfig() {
         return compressionConfig;
     }
 

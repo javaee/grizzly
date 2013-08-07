@@ -50,7 +50,7 @@ import org.glassfish.grizzly.utils.ArraySet;
 /**
  * Compression configuration class.
  */
-public final class Compression {
+public final class CompressionConfig {
 
     /**
      * Common CompressionMode interface.
@@ -101,21 +101,21 @@ public final class Compression {
     private final ArraySet<String> noCompressionUserAgents =
             new ArraySet<String>(String.class);
 
-    public Compression() {
+    public CompressionConfig() {
         compressionMode = CompressionMode.OFF;
     }
 
     /**
      * The copy constructor.
-     * The newly constructed Compression object will have the same settings as
+     * The newly constructed CompressionConfig object will have the same settings as
      * the source one, but actual values will be independent, so changes to one
-     * Compression object will not affect the other one.
+     * CompressionConfig object will not affect the other one.
      */
-    public Compression(final Compression compression) {
+    public CompressionConfig(final CompressionConfig compression) {
         set(compression);
     }
 
-    public Compression(final CompressionMode compressionMode,
+    public CompressionConfig(final CompressionMode compressionMode,
             final int compressionMinSize,
             final Set<String> compressableMimeTypes,
             final Set<String> noCompressionUserAgents) {
@@ -126,12 +126,12 @@ public final class Compression {
     }
 
     /**
-     * Copies the source Compression object value into this object.
-     * As the result this Compression object will have the same settings as
+     * Copies the source CompressionConfig object value into this object.
+     * As the result this CompressionConfig object will have the same settings as
      * the source one, but actual values will be independent, so changes to one
-     * Compression object will not affect the other one.
+     * CompressionConfig object will not affect the other one.
      */
-    public void set(final Compression compression) {
+    public void set(final CompressionConfig compression) {
         compressionMode = compression.compressionMode;
         compressionMinSize = compression.compressionMinSize;
         setCompressableMimeTypes(compression.compressableMimeTypes);
@@ -180,8 +180,8 @@ public final class Compression {
      * Sets the set of the mime-types, which are allowed to be compressed.
      * Empty set means *all* mime-types are allowed to be compressed.
      * 
-     * Please note that Compression object will copy the source Set content,
-     * so further changes made on the source Set will not affect Compression
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
      * object state.
      */
     public void setCompressableMimeTypes(final Set<String> compressableMimeTypes) {
@@ -196,8 +196,8 @@ public final class Compression {
      * Sets the set of the mime-types, which are allowed to be compressed.
      * Empty set means *all* mime-types are allowed to be compressed.
      * 
-     * Please note that Compression object will copy the source Set content,
-     * so further changes made on the source Set will not affect Compression
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
      * object state.
      */    
     public void setCompressableMimeTypes(final String... compressableMimeTypes) {
@@ -223,8 +223,8 @@ public final class Compression {
      * uncompressed data.
      * Empty set means that compressed data could be sent to *all* user-agents.
      * 
-     * Please note that Compression object will copy the source Set content,
-     * so further changes made on the source Set will not affect Compression
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
      * object state.
      */
     public void setNoCompressionUserAgents(final Set<String> noCompressionUserAgents) {
@@ -240,8 +240,8 @@ public final class Compression {
      * uncompressed data.
      * Empty set means that compressed data could be sent to *all* user-agents.
      * 
-     * Please note that Compression object will copy the source Set content,
-     * so further changes made on the source Set will not affect Compression
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
      * object state.
      */    
     public void setNoCompressionUserAgents(final String... noCompressionUserAgents) {
@@ -256,14 +256,14 @@ public final class Compression {
      * Returns <tt>true</tt> if a client, based on its {@link HttpRequestPacket},
      * could be responded with compressed data, or <tt>false</tt> otherwise.
      * 
-     * @param compressionConfig {@link Compression}
+     * @param compressionConfig {@link CompressionConfig}
      * @param request client-side {@link HttpRequestPacket}
      * @param aliases compression algorithm aliases (to match with Accept-Encoding header)
      * @return <tt>true</tt> if a client, based on its {@link HttpRequestPacket},
      *         could be responded with compressed data, or <tt>false</tt> otherwise
      */
     public static boolean isClientSupportCompression(
-            final Compression compressionConfig,
+            final CompressionConfig compressionConfig,
             final HttpRequestPacket request,
             final String[] aliases) {
         final CompressionMode mode = compressionConfig.getCompressionMode();

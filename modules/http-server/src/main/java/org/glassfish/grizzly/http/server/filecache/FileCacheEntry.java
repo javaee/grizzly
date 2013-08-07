@@ -47,7 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 
 /**
@@ -110,7 +110,7 @@ public final class FileCacheEntry implements Runnable {
      */
     public boolean canServeCompressed(final HttpRequestPacket request) {
         if (!canBeCompressed ||
-                !Compression.isClientSupportCompression(
+                !CompressionConfig.isClientSupportCompression(
                 fileCache.getCompressionConfig(), request,
                 FileCache.COMPRESSION_ALIASES)) {
             return false;
