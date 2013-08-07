@@ -44,9 +44,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -66,7 +72,8 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author oleksiys
  */
 public class FileCacheFilter extends BaseFilter {
-
+    private static final Logger LOGGER = Grizzly.logger(FileCacheFilter.class);
+    
     private final FileCache fileCache;
 
     public FileCacheFilter(FileCache fileCache) {
@@ -124,7 +131,13 @@ public class FileCacheFilter extends BaseFilter {
                     return flush(ctx);
                 }
                 
-                return sendFile(ctx, response, cacheEntry, isServeCompressed);
+                if (fileCache.isFileSendEnabled() && !request.isSecure()) {
+                    return sendFileZeroCopy(ctx, response, cacheEntry,
+                            isServeCompressed);
+                } else {
+                    return sendFileUsingBuffers(ctx, response, cacheEntry,
+                            isServeCompressed);
+                }
             }
         }
 
@@ -165,7 +178,7 @@ public class FileCacheFilter extends BaseFilter {
         }
     }
 
-    private NextAction sendFile(final FilterChainContext ctx,
+    private NextAction sendFileUsingBuffers(final FilterChainContext ctx,
             final HttpResponsePacket response, final FileCacheEntry cacheEntry,
             final boolean isServeCompressed) {
         try {
@@ -181,6 +194,33 @@ public class FileCacheFilter extends BaseFilter {
 
         // FAILURE
         return ctx.getInvokeAction();
+    }
+    
+    private NextAction sendFileZeroCopy(final FilterChainContext ctx,
+            final HttpResponsePacket response, final FileCacheEntry cacheEntry,
+            final boolean isServeCompressed) {
+        
+        // flush response
+        ctx.write(response);
+
+        // send-file
+        final FileTransfer f = new FileTransfer(
+                cacheEntry.getFile(isServeCompressed),
+                0, cacheEntry.getFileSize(isServeCompressed));
+        ctx.write(f, new EmptyCompletionHandler<WriteResult>() {
+            // keep strong ref to FileCacheEntry to save it from GC,
+            // because GC may remove the actual file (the compressed one)
+            final FileCacheEntry strongRef = cacheEntry;
+            
+            @Override
+            public void failed(Throwable throwable) {
+                LOGGER.log(Level.FINE, "Error reported during file-send entry: " +
+                        cacheEntry, throwable);
+            }
+        });
+
+        
+        return flush(ctx);
     }
     
     private NextAction flush(final FilterChainContext ctx) {

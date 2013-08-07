@@ -686,6 +686,7 @@ public class HttpServer {
             
             if (listener.isSendFileExplicitlyConfigured()) {
                 config.setSendFileEnabled(listener.isSendFileEnabled());
+                fileCache.setFileSendEnabled(listener.isSendFileEnabled());
             }
             
             if (listener.getScheme() != null) {
