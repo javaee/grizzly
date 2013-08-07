@@ -61,7 +61,6 @@ public class SecKey {
      * Security key string representation, which includes chars and spaces.
      */
     private final String secKey;
-    private String nonce;
 
     private byte[] bytes;
 
@@ -75,7 +74,7 @@ public class SecKey {
         return Base64Utils.encodeToString(bytes, false);
     }
 
-    SecKey(String base64) {
+    public SecKey(String base64) {
         if(base64 == null) {
             throw new HandshakeException("Null keys are not allowed.");
         }
@@ -126,13 +125,6 @@ public class SecKey {
             bytes = Base64Utils.decode(secKey);
         }
         return bytes;
-    }
-
-    public String getNonce() {
-        if(nonce == null) {
-            nonce = create();
-        }
-        return nonce;
     }
 
     public void validateServerKey(String serverKey) {

@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.websockets.frametypes;
 
 import org.glassfish.grizzly.websockets.BaseFrameType;
-import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
+import org.glassfish.grizzly.websockets.ClosingFrame;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.WebSocket;
 

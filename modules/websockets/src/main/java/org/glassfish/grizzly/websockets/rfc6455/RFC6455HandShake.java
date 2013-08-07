@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.websockets.draft06;
+package org.glassfish.grizzly.websockets.rfc6455;
 
 import java.net.URI;
 import java.util.Collections;
@@ -51,18 +51,25 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.HandshakeException;
+import org.glassfish.grizzly.websockets.SecKey;
 
-public class HandShake06 extends HandShake {
-    private final SecKey secKey;
+import static org.glassfish.grizzly.websockets.Constants.*;
+
+public class RFC6455HandShake extends HandShake {
+
+    private SecKey secKey;
     private List<String> enabledExtensions = Collections.emptyList();
     private List<String> enabledProtocols = Collections.emptyList();
 
-    public HandShake06(URI url) {
-        super(url);
+    // ------------------------------------------------------------ Constructors
+
+
+    public RFC6455HandShake(URI uri) {
+        super(uri);
         secKey = new SecKey();
     }
 
-    public HandShake06(HttpRequestPacket request) {
+    public RFC6455HandShake(HttpRequestPacket request) {
         super(request);
         final MimeHeaders mimeHeaders = request.getHeaders();
         String header = mimeHeaders.getHeader(Constants.SEC_WS_EXTENSIONS_HEADER);
@@ -72,33 +79,46 @@ public class HandShake06 extends HandShake {
         secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(Constants.SEC_WS_KEY_HEADER)));
     }
 
+
+    // -------------------------------------------------- Methods from HandShake
+
+    @Override
+    protected int getVersion() {
+        return 13;
+    }
+
+    @Override
     public void setHeaders(HttpResponsePacket response) {
         response.setReasonPhrase(Constants.RESPONSE_CODE_MESSAGE);
         response.setHeader(Constants.SEC_WS_ACCEPT, secKey.getSecKey());
         if (!getEnabledExtensions().isEmpty()) {
-            response.setHeader(Constants.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
+            response.setHeader(Constants.SEC_WS_EXTENSIONS_HEADER,
+                               join(getSubProtocol()));
         }
     }
 
     @Override
     public HttpContent composeHeaders() {
-        final HttpContent httpContent = super.composeHeaders();
-        final HttpHeader header = httpContent.getHttpHeader();
+        HttpContent content = super.composeHeaders();
+        final HttpHeader header = content.getHttpHeader();
         header.addHeader(Constants.SEC_WS_KEY_HEADER, secKey.toString());
         header.addHeader(Constants.SEC_WS_ORIGIN_HEADER, getOrigin());
         header.addHeader(Constants.SEC_WS_VERSION, getVersion() + "");
         if (!getExtensions().isEmpty()) {
-            header.addHeader(Constants.SEC_WS_EXTENSIONS_HEADER, joinExtensions(getExtensions()));
+            header.addHeader(Constants.SEC_WS_EXTENSIONS_HEADER,
+                             joinExtensions(getExtensions()));
         }
-        return httpContent;
-    }
 
-    protected int getVersion() {
-        return 6;
+        final String headerValue =
+                header.getHeaders().getHeader(SEC_WS_ORIGIN_HEADER);
+        header.getHeaders().removeHeader(SEC_WS_ORIGIN_HEADER);
+        header.addHeader(ORIGIN_HEADER, headerValue);
+        return content;
     }
 
     @Override
-    public void validateServerResponse(final HttpResponsePacket headers) throws HandshakeException {
+    public void validateServerResponse(final HttpResponsePacket headers)
+    throws HandshakeException {
         super.validateServerResponse(headers);
         secKey.validateServerKey(headers.getHeader(Constants.SEC_WS_ACCEPT));
     }
@@ -110,4 +130,5 @@ public class HandShake06 extends HandShake {
     public List<String> getEnabledProtocols() {
         return enabledProtocols;
     }
+
 }

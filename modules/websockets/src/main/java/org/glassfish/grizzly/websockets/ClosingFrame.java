@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.websockets.draft06;
+package org.glassfish.grizzly.websockets;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
