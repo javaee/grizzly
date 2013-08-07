@@ -67,7 +67,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
-import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
@@ -168,7 +168,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
      * Compression configuration, used to decide if cached resource
      * has to be compressed or not
      */
-    private final Compression compressionConfig = new Compression();
+    private final CompressionConfig compressionConfig = new CompressionConfig();
     
     /**
      * File cache probes
@@ -583,7 +583,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * Returns the <tt>FileCache</tt> compression configuration settings.
      */
-    public Compression getCompressionConfig() {
+    public CompressionConfig getCompressionConfig() {
         return compressionConfig;
     }
 

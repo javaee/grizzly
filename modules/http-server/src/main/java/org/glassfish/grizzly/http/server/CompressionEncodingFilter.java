@@ -39,8 +39,8 @@
  */
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.Compression;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -51,12 +51,12 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 
 
 public class CompressionEncodingFilter implements EncodingFilter {
-    private final Compression compressionConfig;
+    private final CompressionConfig compressionConfig;
     private final String[] aliases;
 
-    public CompressionEncodingFilter(final Compression compressionConfig,
+    public CompressionEncodingFilter(final CompressionConfig compressionConfig,
             final String[] aliases) {
-        this.compressionConfig = new Compression(compressionConfig);
+        this.compressionConfig = new CompressionConfig(compressionConfig);
         this.aliases = aliases;
     }
     
@@ -74,7 +74,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
             String[] noCompressionUserAgents,
             String[] aliases) {
         
-        compressionConfig = new Compression(compressionMode, compressionMinSize,
+        compressionConfig = new CompressionConfig(compressionMode, compressionMinSize,
                 null, null);
         compressionConfig.setCompressableMimeTypes(compressableMimeTypes);
         compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
@@ -103,11 +103,11 @@ public class CompressionEncodingFilter implements EncodingFilter {
      * Returns <tt>true</tt> if the {@link HttpResponsePacket} could be
      * compressed, or <tt>false</tt> otherwise.
      * The method checks if client supports compression and if the resource,
-     * that we are about to send matches {@link Compression} configuration.
+     * that we are about to send matches {@link CompressionConfig} configuration.
      */
     protected static boolean canCompressHttpResponse(
             final HttpResponsePacket response,
-            final Compression compressionConfig,
+            final CompressionConfig compressionConfig,
             final String[] aliases) {
         
         // If at least one encoding has been already selected
@@ -124,7 +124,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
             return false;
         }
 
-        if (!Compression.isClientSupportCompression(compressionConfig,
+        if (!CompressionConfig.isClientSupportCompression(compressionConfig,
                 response.getRequest(), aliases)) {
             return false;
         }

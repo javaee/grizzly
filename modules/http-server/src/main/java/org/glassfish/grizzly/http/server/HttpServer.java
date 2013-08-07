@@ -68,8 +68,8 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.Compression;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
@@ -714,7 +714,7 @@ public class HttpServer {
     protected Set<ContentEncoding> configureCompressionEncodings(
             final NetworkListener listener) {
         
-        final Compression compressionConfig = listener.getCompressionConfig();
+        final CompressionConfig compressionConfig = listener.getCompressionConfig();
         
         if (compressionConfig.getCompressionMode() != CompressionMode.OFF) {
             final ContentEncoding gzipContentEncoding = new GZipContentEncoding(

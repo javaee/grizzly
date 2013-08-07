@@ -43,7 +43,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;

@@ -74,7 +74,7 @@ import java.security.MessageDigest;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.http.Compression.CompressionMode;
+import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 
 public class SendFileTest extends TestCase {
     

@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http.server.filecache;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.glassfish.grizzly.http.Compression;
+import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 
 /**
@@ -104,7 +104,7 @@ public final class FileCacheEntry implements Runnable {
      */
     public boolean canServeCompressed(final HttpRequestPacket request) {
         if (!canBeCompressed ||
-                !Compression.isClientSupportCompression(
+                !CompressionConfig.isClientSupportCompression(
                 fileCache.getCompressionConfig(), request,
                 FileCache.COMPRESSION_ALIASES)) {
             return false;
