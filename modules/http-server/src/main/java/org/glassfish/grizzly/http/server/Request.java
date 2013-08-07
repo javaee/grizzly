@@ -67,7 +67,6 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -316,12 +315,6 @@ public class Request {
 
 
     /**
-     * List of read only attributes for this Request.
-     */
-    private final Map<String,Object> readOnlyAttributes = new HashMap<String,Object>();
-
-
-    /**
      * The preferred Locales associated with this Request.
      */
     protected final ArrayList<Locale> locales = new ArrayList<Locale>();
@@ -459,9 +452,6 @@ public class Request {
     private String jrouteId;
     // END SJSAS 6346226
 
-    private boolean sendFileEnabled;
-    private boolean sendFileAttributeInitialized;
-
     /**
      * The response with which this request is associated.
      */
@@ -498,13 +488,11 @@ public class Request {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
             parameters.setQueryStringEncoding(configuration.getDefaultQueryEncoding());
-            sendFileEnabled = configuration.isSendFileEnabled();
             final String overridingScheme = configuration.getScheme();
 
             scheme = overridingScheme != null ? overridingScheme
                     : request.isSecure() ? "https" : "http";
         } else {
-            sendFileEnabled = false;
             scheme = request.isSecure() ? "https" : "http";
         }
     }
@@ -840,11 +828,7 @@ public class Request {
         if (name.charAt(0) == 'o'
                 && name.charAt(name.length() - 1) == 'D'
                 && SEND_FILE_ENABLED_ATTR.equals(name)) {
-            if (!sendFileAttributeInitialized) {
-                sendFileAttributeInitialized = true;
-                readOnlyAttributes.put(SEND_FILE_ENABLED_ATTR, sendFileEnabled);
-            }
-            return sendFileEnabled;
+            return response.isSendFileEnabled();
         }
         Object attribute = request.getAttribute(name);
 
@@ -1246,14 +1230,6 @@ public class Request {
      * @param name Name of the request attribute to remove
      */
     public void removeAttribute(String name) {
-
-        // Remove the specified attribute
-        // Check for read only attribute
-        // requests are per thread so synchronization unnecessary
-        if (readOnlyAttributes.containsKey(name)) {
-            return;
-        }
-
         request.removeAttribute(name);
     }
 
@@ -1284,16 +1260,9 @@ public class Request {
             return;
         }
 
-        // Add or replace the specified attribute
-        // Check for read only attribute
-        // requests are per thread so synchronization unnecessary
-        if (readOnlyAttributes.containsKey(name)) {
-            return;
-        }
-
         request.setAttribute(name, value);
 
-        if (sendFileEnabled
+        if (response.isSendFileEnabled()
                 && name.charAt(0) == 'o'
                 && name.charAt(name.length() - 1) == 'E'
                 && SEND_FILE_ATTR.equals(name)) {
