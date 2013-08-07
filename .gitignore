@@ -7,3 +7,9 @@
 atlassian-ide-plugin.xml
 target
 .idea
+modules/bundles/comet/src
+modules/bundles/core/src
+modules/bundles/http/src
+modules/bundles/http-all/src
+modules/bundles/http-servlet/src
+modules/bundles/websockets/src
