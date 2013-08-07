@@ -58,7 +58,6 @@ import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 
 /**
  * WebSockets engine implementation (singleton), which handles {@link WebSocketApplication}s registration, responsible
@@ -70,8 +69,7 @@ import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
  */
 public class WebSocketEngine {
 
-    public static final Version DEFAULT_VERSION = Version.DRAFT17;
-    public static final int INITIAL_BUFFER_SIZE = 8192;
+    public static final Version DEFAULT_VERSION = Version.RFC6455;
     public static final int DEFAULT_TIMEOUT = 30;
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(Constants.WEBSOCKET);

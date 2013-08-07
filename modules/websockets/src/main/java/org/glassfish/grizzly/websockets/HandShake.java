@@ -67,7 +67,7 @@ public abstract class HandShake {
     private String resourcePath;
     private String location;
     //private final Map<String, String[]> queryParams = new TreeMap<String, String[]>();
-    private List<String> subProtocol = new ArrayList<String>();
+    public List<String> subProtocol = new ArrayList<String>();
     private List<Extension> extensions = new ArrayList<Extension>(); // client extensions
 
     public HandShake(URI url) {
@@ -113,6 +113,8 @@ public abstract class HandShake {
         }
         buildLocation();
     }
+
+    protected abstract int getVersion();
 
     protected final void buildLocation() {
         StringBuilder builder = new StringBuilder((isSecure() ? "wss" : "ws") + "://" + serverHostName);

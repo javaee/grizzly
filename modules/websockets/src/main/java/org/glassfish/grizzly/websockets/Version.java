@@ -40,55 +40,18 @@
 package org.glassfish.grizzly.websockets;
 
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.websockets.draft06.Draft06Handler;
-import org.glassfish.grizzly.websockets.draft07.Draft07Handler;
-import org.glassfish.grizzly.websockets.draft08.Draft08Handler;
-import org.glassfish.grizzly.websockets.draft17.Draft17Handler;
+import org.glassfish.grizzly.websockets.rfc6455.RFC6455Handler;
 
 public enum Version {
-    DRAFT17("13") {
+    RFC6455("13") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
-            return new Draft17Handler(mask);
+            return new RFC6455Handler(mask);
         }
 
         @Override
         public boolean validate(MimeHeaders headers) {
             return this.wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
-        }
-    },
-    DRAFT08("8") {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft08Handler(mask);
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
-        }
-    },
-
-    DRAFT07("7") {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft07Handler(mask);
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
-        }
-    },
-    DRAFT06("6") {
-        @Override
-        public ProtocolHandler createHandler(boolean mask) {
-            return new Draft06Handler(mask);
-        }
-
-        @Override
-        public boolean validate(MimeHeaders headers) {
-            return wireProtocolVersion.equals(headers.getHeader(Constants.SEC_WS_VERSION));
         }
     };
 
@@ -105,10 +68,6 @@ public enum Version {
     @Override
     public String toString() {
         return name();
-    }
-
-    public boolean isFragmentationSupported() {
-        return true;
     }
 
     public static String getSupportedWireProtocolVersions() {
