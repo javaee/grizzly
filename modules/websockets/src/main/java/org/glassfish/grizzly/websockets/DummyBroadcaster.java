@@ -57,14 +57,10 @@ public class DummyBroadcaster implements Broadcaster {
             final String text) {
         
         for (WebSocket websocket : recipients) {
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
-                
+            if (websocket.isConnected()) {
                 try {
                     websocket.send(text);
-                } catch (WebSocketException e) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -78,14 +74,10 @@ public class DummyBroadcaster implements Broadcaster {
             final byte[] binary) {
         
         for (WebSocket websocket : recipients) {
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
-                
+            if (websocket.isConnected()) {
                 try {
                     websocket.send(binary);
-                } catch (WebSocketException e) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -98,14 +90,10 @@ public class DummyBroadcaster implements Broadcaster {
     public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
             final String text, final boolean last) {
         for (WebSocket websocket : recipients) {
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
-                
+            if (websocket.isConnected()) {
                 try {
                     websocket.stream(last, text);
-                } catch (WebSocketException e) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -119,14 +107,10 @@ public class DummyBroadcaster implements Broadcaster {
             final byte[] binary, final boolean last) {
         
         for (WebSocket websocket : recipients) {
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
-                
+            if (websocket.isConnected()) {
                 try {
                     websocket.stream(last, binary, 0, binary.length);
-                } catch (WebSocketException e) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }

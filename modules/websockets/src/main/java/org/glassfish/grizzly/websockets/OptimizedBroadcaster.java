@@ -60,17 +60,14 @@ public class OptimizedBroadcaster implements Broadcaster {
         for (WebSocket websocket : recipients) {
             final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
             
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
+            if (websocket.isConnected()) {
                 if (rawDataToSend == null) {
                     rawDataToSend = defaultWebSocket.toRawData(text);
                 }
                 
                 try {
                     defaultWebSocket.sendRaw(rawDataToSend);
-                } catch (WebSocketException wse) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -88,17 +85,14 @@ public class OptimizedBroadcaster implements Broadcaster {
         for (WebSocket websocket : recipients) {
             final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
             
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
+            if (websocket.isConnected()) {
                 if (rawDataToSend == null) {
                     rawDataToSend = defaultWebSocket.toRawData(binary);
                 }
                 
                 try {
                     defaultWebSocket.sendRaw(rawDataToSend);
-                } catch (WebSocketException e) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -112,17 +106,14 @@ public class OptimizedBroadcaster implements Broadcaster {
         for (WebSocket websocket : recipients) {
             final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
             
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
+            if (websocket.isConnected()) {
                 if (rawDataToSend == null) {
                     rawDataToSend = defaultWebSocket.toRawData(text, last);
                 }
                 
                 try {
                     defaultWebSocket.sendRaw(rawDataToSend);
-                } catch (WebSocketException wse) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
@@ -135,17 +126,14 @@ public class OptimizedBroadcaster implements Broadcaster {
         for (WebSocket websocket : recipients) {
             final DefaultWebSocket defaultWebSocket = (DefaultWebSocket) websocket;
             
-            if (!websocket.isConnected()) {
-                continue;
-            } else {
-                
+            if (websocket.isConnected()) {
                 if (rawDataToSend == null) {
                     rawDataToSend = defaultWebSocket.toRawData(binary, last);
                 }
                 
                 try {
                     defaultWebSocket.sendRaw(rawDataToSend);
-                } catch (WebSocketException wse) {
+                } catch (WebSocketException ignored) {
                 }
             }
         }
