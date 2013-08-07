@@ -171,6 +171,12 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     private final CompressionConfig compressionConfig = new CompressionConfig();
     
     /**
+     * <tt>true</tt>, if zero-copy file-send feature could be used, or
+     * <tt>false</tt> otherwise.
+     */
+    private boolean isFileSendEnabled;
+    
+    /**
      * File cache probes
      */
     protected final DefaultMonitoringConfig<FileCacheProbe> monitoringConfig =
@@ -601,6 +607,48 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         this.compressedFilesFolder = compressedFilesFolder != null ?
                 compressedFilesFolder :
                 TMP_DIR;
+    }
+
+    /**
+     * <p>
+     * Returns <code>true</code> if File resources may be be sent using
+     * {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * </p>
+     * <p/>
+     * <p>
+     * By default, this property will be true, except in the following cases:
+     * </p>
+     * <p/>
+     * <ul>
+     * <li>JVM OS is HP-UX</li>
+     * <li>JVM OS is Linux, and the Oracle JVM in use is 1.6.0_17 or older</li>
+     * </ul>
+     * <p/>
+     * <p/>
+     * <p>
+     * Finally, if the connection between endpoints is secure, send file functionality
+     * will be disabled regardless of configuration.
+     * </p>
+     *
+     * @return <code>true</code> if resources will be sent using
+     *         {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * @since 2.3.5
+     */
+    public boolean isFileSendEnabled() {
+        return isFileSendEnabled;
+    }
+
+    /**
+     * Configure whether or send-file support will enabled which allows sending
+     * {@link java.io.File} resources via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
+     * If disabled, the more traditional byte[] copy will be used to send content.
+     *
+     * @param sendFileEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     *                        support.
+     * @since 2.3.5
+     */
+    public void setFileSendEnabled(boolean isFileSendEnabled) {
+        this.isFileSendEnabled = isFileSendEnabled;
     }
     
     /**
