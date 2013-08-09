@@ -105,6 +105,7 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.JdkVersion;
 
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 
@@ -124,6 +125,25 @@ public class Request {
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
+
+    private static LocaleParser localeParser;
+    static {
+        JdkVersion version = JdkVersion.getJdkVersion();
+        if (version.compareTo("1.7.0") >= 0) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<? extends LocaleParser> localeParserClazz =
+                        (Class<? extends LocaleParser>)
+                                Class.forName("org.glassfish.grizzly.http.server.TagLocaleParser");
+                localeParser = localeParserClazz.newInstance();
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, e.toString(), e);
+                }
+                localeParser = new LegacyLocaleParser();
+            }
+        }
+    }
 
     public static Request create() {
         final Request request =
@@ -2092,35 +2112,12 @@ public class Request {
             if ("*".equals(entry))
                 continue;       // FIXME - "*" entries are not handled
 
-            // Extract the language and country for this entry
-            String language;
-            String country;
-            String variant;
-            int dash = entry.indexOf('-');
-            if (dash < 0) {
-                language = entry;
-                country = "";
-                variant = "";
-            } else {
-                language = entry.substring(0, dash);
-                country = entry.substring(dash + 1);
-                int vDash = country.indexOf('-');
-                if (vDash > 0) {
-                    String cTemp = country.substring(0, vDash);
-                    variant = country.substring(vDash + 1);
-                    country = cTemp;
-                } else {
-                    variant = "";
-                }
+            Locale locale = localeParser.parseLocale(entry);
+            if (locale == null) {
+                continue;
             }
-
-            if (!isAlpha(language) || !isAlpha(country) || !isAlpha(variant)) {
-                 continue;
-            }
-
 
             // Add a new Locale to the list of Locales for this quality level
-            Locale locale = new Locale(language, country, variant);
             Double key = -quality;  // Reverse the order
             List<Locale> values = localLocalesMap.get(key);
             if (values == null) {
