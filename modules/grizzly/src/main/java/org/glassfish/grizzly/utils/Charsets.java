@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,7 +46,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.ThreadCache.CachedTypeIndex;
 
@@ -68,8 +68,8 @@ public final class Charsets {
     public static final String DEFAULT_CHARACTER_ENCODING =
             Charset.defaultCharset().name();
 
-    private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
-            new ConcurrentHashMap<String, Charset>();
+    private static final ConcurrentMap<String, Charset> charsetAliasMap =
+            DataStructures.<String, Charset>getConcurrentMap(8);
 
     public static final Charset ASCII_CHARSET = lookupCharset("ASCII");
     public static final Charset UTF8_CHARSET = lookupCharset("UTF-8");

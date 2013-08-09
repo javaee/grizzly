@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,8 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Client authentication filter, which intercepts client<->server communication,
@@ -61,8 +62,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClientAuthFilter extends BaseFilter {
 
     // Map of authenticated connections
-    private ConcurrentHashMap<Connection, ConnectionAuthInfo> authenticatedConnections =
-            new ConcurrentHashMap<Connection, ConnectionAuthInfo>();
+    private ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =
+            DataStructures.<Connection, ConnectionAuthInfo>getConcurrentMap();
 
     // Authentication packet (authentication request). The packet is the same for all connections.
     private static final MultiLinePacket authPacket;

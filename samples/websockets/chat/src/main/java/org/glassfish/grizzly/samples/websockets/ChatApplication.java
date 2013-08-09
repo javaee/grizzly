@@ -44,12 +44,12 @@ import java.awt.Frame;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.websockets.Broadcaster;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.OptimizedBroadcaster;
@@ -72,7 +72,7 @@ public class ChatApplication extends WebSocketApplication {
 
     // Logged in members
     private Set<WebSocket> members = Collections.newSetFromMap(
-            new ConcurrentHashMap<WebSocket, Boolean>());
+            DataStructures.<WebSocket, Boolean>getConcurrentMap());
 
     // initialize optimized broadcaster
     private final Broadcaster broadcaster = new OptimizedBroadcaster();

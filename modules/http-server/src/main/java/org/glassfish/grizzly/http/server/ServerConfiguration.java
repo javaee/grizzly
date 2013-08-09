@@ -49,9 +49,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -65,7 +65,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
     // Non-exposed
 
     final Map<HttpHandler, String[]> handlers =
-            new ConcurrentHashMap<HttpHandler, String[]>();
+            DataStructures.<HttpHandler, String[]>getConcurrentMap();
     private final Map<HttpHandler, String[]> unmodifiableHandlers =
             Collections.unmodifiableMap(handlers);
     final List<HttpHandler> orderedHandlers =

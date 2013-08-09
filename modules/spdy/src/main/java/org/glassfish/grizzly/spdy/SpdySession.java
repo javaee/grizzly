@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.CloseListener;
@@ -74,6 +73,7 @@ import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
 import org.glassfish.grizzly.spdy.frames.GoAwayFrame;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -107,7 +107,7 @@ public final class SpdySession {
     private volatile FilterChain downstreamChain;
     
     private Map<Integer, SpdyStream> streamsMap =
-            new ConcurrentHashMap<Integer, SpdyStream>();
+            DataStructures.<Integer, SpdyStream>getConcurrentMap();
     
     final List<SpdyStream> streamsToFlushInput = new ArrayList<SpdyStream>();
     

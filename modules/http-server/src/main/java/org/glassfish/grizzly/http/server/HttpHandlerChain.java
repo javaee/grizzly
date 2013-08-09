@@ -41,7 +41,7 @@ package org.glassfish.grizzly.http.server;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,6 +54,7 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -71,8 +72,8 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     /**
      * The name -> {@link HttpHandler} map.
      */
-    private final ConcurrentHashMap<String, HttpHandler> handlersByName =
-            new ConcurrentHashMap<String, HttpHandler>();
+    private final ConcurrentMap<String, HttpHandler> handlersByName =
+            DataStructures.<String, HttpHandler>getConcurrentMap();
 
     private final ReentrantReadWriteLock mapperUpdateLock =
             new ReentrantReadWriteLock();
@@ -80,10 +81,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     /**
      * The list of {@link HttpHandler} instance.
      */
-    private final ConcurrentHashMap<HttpHandler, String[]> handlers =
-            new ConcurrentHashMap<HttpHandler, String[]>();
-    private final ConcurrentHashMap<HttpHandler, Object> monitors =
-            new ConcurrentHashMap<HttpHandler, Object>();
+    private final ConcurrentMap<HttpHandler, String[]> handlers =
+            DataStructures.<HttpHandler, String[]>getConcurrentMap();
+    private final ConcurrentMap<HttpHandler, Object> monitors =
+            DataStructures.<HttpHandler, Object>getConcurrentMap();
     
     /**
      * Number of registered HttpHandlers

@@ -40,7 +40,8 @@
 
 package org.glassfish.grizzly.http.server;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Simple session object.
@@ -52,8 +53,8 @@ public class Session {
     /**
      * Cache attribute (thread safe)
      */
-    private final ConcurrentHashMap<String,Object> attributes =
-            new ConcurrentHashMap<String,Object>();
+    private final ConcurrentMap<String,Object> attributes =
+            DataStructures.<String, Object>getConcurrentMap();
 
     /**
      * A session identifier
@@ -162,10 +163,10 @@ public class Session {
 
 
     /**
-     * Return a {@link ConcurrentHashMap} of attributes.
+     * Return a {@link ConcurrentMap} of attributes.
      * @return the attributes associated with this session.
      */
-    public ConcurrentHashMap<String,Object> attributes() {
+    public ConcurrentMap<String,Object> attributes() {
         return attributes;
     }
 

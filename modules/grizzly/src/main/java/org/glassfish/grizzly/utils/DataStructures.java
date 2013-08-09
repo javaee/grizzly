@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,7 +39,10 @@
  */
 package org.glassfish.grizzly.utils;
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Grizzly;
@@ -51,7 +54,8 @@ import org.glassfish.grizzly.Grizzly;
  * @author gustav trede
  */
 public class DataStructures {
-
+    private static final boolean IS_UNSAFE_SUPPORTED;
+    
     private final static Class<?> LTQclass;
 
     static {
@@ -77,6 +81,16 @@ public class DataStructures {
         }
         
         LTQclass = c;
+
+        boolean isUnsafeFound;
+        
+        try {
+            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
+        } catch (Throwable t) {
+            isUnsafeFound = false;
+        }
+        
+        IS_UNSAFE_SUPPORTED = isUnsafeFound;
     }
 
     private static Class<?> getAndVerify(String cname) throws Throwable {
@@ -99,5 +113,78 @@ public class DataStructures {
         } catch (Exception ea) {
             throw new RuntimeException(ea);
         }
+    }
+    
+    /**
+     * Creates a new, empty map with a default initial capacity (16),
+     * load factor (0.75) and concurrencyLevel (16).
+     * 
+     * @since 2.3.5
+     */
+    public static <K, V> ConcurrentMap<K, V> getConcurrentMap() {
+        return IS_UNSAFE_SUPPORTED ?
+                new ConcurrentHashMapV8<K, V>() :
+                new ConcurrentHashMap<K, V>();
+    }
+    
+    /**
+     * Creates a new map with the same mappings as the given map.
+     *
+     * @param m the map
+     * 
+     * @since 2.3.5
+     */
+    public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
+            final Map<? extends K, ? extends V> map) {
+        return IS_UNSAFE_SUPPORTED ?
+                new ConcurrentHashMapV8<K, V>(map) :
+                new ConcurrentHashMap<K, V>(map);
+    }
+    
+    /**
+     * Creates a new, empty map with an initial table size
+     * accommodating the specified number of elements without the need
+     * to dynamically resize.
+     *
+     * @param initialCapacity The implementation performs internal
+     * sizing to accommodate this many elements.
+     * @throws IllegalArgumentException if the initial capacity of
+     * elements is negative
+     * 
+     * @since 2.3.5
+     */
+    public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
+            final int initialCapacity) {
+        return IS_UNSAFE_SUPPORTED ?
+                new ConcurrentHashMapV8<K, V>(initialCapacity) :
+                new ConcurrentHashMap<K, V>(initialCapacity);
+    }
+    
+    /**
+     * Creates a new, empty map with an initial table size based on
+     * the given number of elements ({@code initialCapacity}), table
+     * density ({@code loadFactor}), and number of concurrently
+     * updating threads ({@code concurrencyLevel}).
+     *
+     * @param initialCapacity the initial capacity. The implementation
+     * performs internal sizing to accommodate this many elements,
+     * given the specified load factor.
+     * @param loadFactor the load factor (table density) for
+     * establishing the initial table size
+     * @param concurrencyLevel the estimated number of concurrently
+     * updating threads. The implementation may use this value as
+     * a sizing hint.
+     * @throws IllegalArgumentException if the initial capacity is
+     * negative or the load factor or concurrencyLevel are
+     * nonpositive
+     * 
+     * @since 2.3.5
+     */
+    public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
+            final int initialCapacity, final float loadFactor,
+            final int concurrencyLevel) {
+        return IS_UNSAFE_SUPPORTED ?
+                new ConcurrentHashMapV8<K, V>(initialCapacity, loadFactor, concurrencyLevel) :
+                new ConcurrentHashMap<K, V>(initialCapacity, loadFactor, concurrencyLevel);
     }
 }

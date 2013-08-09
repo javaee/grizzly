@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,7 @@ package org.glassfish.grizzly.attributes;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * {@link AttributeHolder} implementation, which doesn't support indexed access
@@ -60,7 +60,7 @@ public class NamedAttributeHolder implements AttributeHolder {
 
     public NamedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributesMap = new ConcurrentHashMap<String, Object>();
+        attributesMap = DataStructures.<String, Object>getConcurrentMap();
     }
     
     /**
