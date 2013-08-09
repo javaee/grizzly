@@ -254,7 +254,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  */
-public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
+class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
     implements ConcurrentMap<K,V>, Serializable {
     private static final long serialVersionUID = 7249069246763182397L;
 
@@ -791,7 +791,7 @@ public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
     /**
      * Creates a new, empty map with the default initial table size (16).
      */
-    public ConcurrentHashMapV8() {
+    ConcurrentHashMapV8() {
     }
 
     /**
@@ -804,7 +804,7 @@ public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      * @throws IllegalArgumentException if the initial capacity of
      * elements is negative
      */
-    public ConcurrentHashMapV8(int initialCapacity) {
+    ConcurrentHashMapV8(int initialCapacity) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException();
         int cap = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ?
@@ -818,7 +818,7 @@ public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      *
      * @param m the map
      */
-    public ConcurrentHashMapV8(Map<? extends K, ? extends V> m) {
+    ConcurrentHashMapV8(Map<? extends K, ? extends V> m) {
         this.sizeCtl = DEFAULT_CAPACITY;
         putAll(m);
     }
@@ -838,7 +838,7 @@ public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      *
      * @since 1.6
      */
-    public ConcurrentHashMapV8(int initialCapacity, float loadFactor) {
+    ConcurrentHashMapV8(int initialCapacity, float loadFactor) {
         this(initialCapacity, loadFactor, 1);
     }
 
@@ -860,7 +860,7 @@ public class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      * negative or the load factor or concurrencyLevel are
      * nonpositive
      */
-    public ConcurrentHashMapV8(int initialCapacity,
+    ConcurrentHashMapV8(int initialCapacity,
                              float loadFactor, int concurrencyLevel) {
         if (!(loadFactor > 0.0f) || initialCapacity < 0 || concurrencyLevel <= 0)
             throw new IllegalArgumentException();
