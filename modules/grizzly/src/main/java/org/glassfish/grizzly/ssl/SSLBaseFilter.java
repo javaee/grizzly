@@ -47,7 +47,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Filter;
 import java.util.logging.Level;
@@ -79,6 +78,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLConnectionContext.Allocator;
+import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -122,7 +122,8 @@ public class SSLBaseFilter extends BaseFilter {
     private final boolean renegotiateOnClientAuthWant;
 
     protected final Set<HandshakeListener> handshakeListeners =
-            Collections.newSetFromMap(new ConcurrentHashMap<HandshakeListener, Boolean>());
+            Collections.newSetFromMap(
+            DataStructures.<HandshakeListener, Boolean>getConcurrentMap(2));
     
     private long handshakeTimeoutMillis = -1;
     

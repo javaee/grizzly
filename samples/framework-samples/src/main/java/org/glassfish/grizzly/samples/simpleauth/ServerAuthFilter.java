@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Server authentication filter, which intercepts client<->server communication.
@@ -65,7 +65,7 @@ public class ServerAuthFilter extends BaseFilter {
 
     // Authenticated clients connection map
     private Map<Connection, String> authenticatedConnections =
-            new ConcurrentHashMap<Connection, String>();
+            DataStructures.<Connection, String>getConcurrentMap();
 
     // Random, to generate client ids.
     private final Random random = new Random();

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.servlet;
 
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.logging.Level;
@@ -199,7 +200,7 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public Enumeration<String> getAttributeNames() {
-        return session.attributes().keys();
+        return Collections.enumeration(session.attributes().keySet());
     }
 
     /**

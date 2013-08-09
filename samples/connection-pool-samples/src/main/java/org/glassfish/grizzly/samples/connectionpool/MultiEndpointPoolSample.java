@@ -45,7 +45,6 @@ import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,6 +66,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
@@ -112,7 +112,7 @@ public class MultiEndpointPoolSample implements ClientCallback {
     // the message tracker set, where we add the message before sending a request
     // to a server and remove the message when getting a response
     private final Set<String> messageTracker = Collections.newSetFromMap(
-            new ConcurrentHashMap<String, Boolean>());
+            DataStructures.<String, Boolean>getConcurrentMap());
     
     // countdown latch used to wait for all responses to come
     private CountDownLatch responsesCountDownLatch;

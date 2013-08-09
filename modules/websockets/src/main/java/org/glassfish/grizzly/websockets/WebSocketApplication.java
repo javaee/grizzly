@@ -43,9 +43,10 @@ package org.glassfish.grizzly.websockets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
@@ -58,8 +59,8 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     /*
      * WebSockets registered with this application.
      */
-    private final ConcurrentHashMap<WebSocket, Boolean> sockets =
-            new ConcurrentHashMap<WebSocket, Boolean>();
+    private final ConcurrentMap<WebSocket, Boolean> sockets =
+            DataStructures.<WebSocket, Boolean>getConcurrentMap();
 
     private List<Extension> supportedExtensions = new ArrayList<Extension>();
     private List<String> supportedProtocols = new ArrayList<String>();

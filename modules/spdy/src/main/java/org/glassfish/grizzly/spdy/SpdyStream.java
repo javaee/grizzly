@@ -46,7 +46,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,6 +76,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.spdy.frames.RstStreamFrame;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
@@ -555,7 +555,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             throws SpdyStreamException {
         if (associatedSpdyStreams == null) {
             associatedSpdyStreams = Collections.newSetFromMap(
-                    new ConcurrentHashMap<SpdyStream, Boolean>(8));
+                    DataStructures.<SpdyStream, Boolean>getConcurrentMap(8));
         }
         
         associatedSpdyStreams.add(spdyStream);

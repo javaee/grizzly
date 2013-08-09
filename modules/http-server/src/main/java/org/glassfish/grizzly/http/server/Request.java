@@ -74,7 +74,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -108,6 +107,7 @@ import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Wrapper object for the Coyote request.
@@ -208,8 +208,8 @@ public class Request {
      * Not Good. We need a better mechanism.
      * TODO: Move Session Management out of here
      */
-    private static Map<String, Session> sessions = new
-            ConcurrentHashMap<String, Session>();
+    private static final Map<String, Session> SESSIONS =
+            DataStructures.<String, Session>getConcurrentMap();
 
 
     /**
@@ -232,7 +232,7 @@ public class Request {
             @Override
             public void run() {
                 long currentTime = System.currentTimeMillis();
-                Iterator<Map.Entry<String, Session>> iterator = sessions.entrySet().iterator();
+                Iterator<Map.Entry<String, Session>> iterator = SESSIONS.entrySet().iterator();
                 Map.Entry<String, Session> entry;
                 while (iterator.hasNext()) {
                     entry = iterator.next();
@@ -2317,7 +2317,7 @@ public class Request {
         }
         
         if (requestedSessionId != null) {
-            session = sessions.get(requestedSessionId);
+            session = SESSIONS.get(requestedSessionId);
             if ((session != null) && !session.isValid()) {
                 session = null;
             }
@@ -2338,7 +2338,7 @@ public class Request {
             requestedSessionId = String.valueOf(generateRandomLong());
             session = new Session(requestedSessionId);
         }
-        sessions.put(requestedSessionId, session);
+        SESSIONS.put(requestedSessionId, session);
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
@@ -2392,7 +2392,7 @@ public class Request {
             return session.isValid();
         }
 
-        Session localSession = sessions.get(requestedSessionId);
+        Session localSession = SESSIONS.get(requestedSessionId);
         return ((localSession != null) && localSession.isValid());
 
     }

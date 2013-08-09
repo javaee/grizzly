@@ -60,7 +60,7 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,6 +73,7 @@ import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * This class implements a file caching mechanism used to cache static resources.
@@ -108,8 +109,8 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * A {@link ByteBuffer} cache of static pages.
      */
-    private final ConcurrentHashMap<FileCacheKey, FileCacheEntry> fileCacheMap =
-            new ConcurrentHashMap<FileCacheKey, FileCacheEntry>();
+    private final ConcurrentMap<FileCacheKey, FileCacheEntry> fileCacheMap =
+            DataStructures.<FileCacheKey, FileCacheEntry>getConcurrentMap();
     
     private final FileCacheEntry NULL_CACHE_ENTRY = new FileCacheEntry(this);
 

@@ -44,7 +44,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
@@ -57,6 +56,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +72,8 @@ public class MultiEndPointPoolTest {
     private static final int NUMBER_OF_PORTS_TO_BIND = 3;
     
     private final Set<Connection> serverSideConnections =
-            Collections.newSetFromMap(new ConcurrentHashMap<Connection, Boolean>());
+            Collections.newSetFromMap(
+            DataStructures.<Connection, Boolean>getConcurrentMap());
     
     private TCPNIOTransport transport;
     

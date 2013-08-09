@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,7 +64,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Utility class to generate HTTP dates.
@@ -142,15 +143,15 @@ public final class FastHttpDateFormat {
     /**
      * Formatter cache.
      */
-    protected static final ConcurrentHashMap<Long, String> formatCache = 
-        new ConcurrentHashMap<Long, String>(CACHE_SIZE,0.75f,64);
+    protected static final ConcurrentMap<Long, String> formatCache = 
+        DataStructures.<Long, String>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
 
 
     /**
      * Parser cache.
      */
-    protected static final ConcurrentHashMap<String, Long> parseCache = 
-        new ConcurrentHashMap<String, Long>(CACHE_SIZE,0.75f,64);
+    protected static final ConcurrentMap<String, Long> parseCache = 
+        DataStructures.<String, Long>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
 
 
     // --------------------------------------------------------- Public Methods

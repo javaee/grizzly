@@ -45,8 +45,8 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -63,6 +63,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -807,7 +808,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private final static class ProcessorStatesMap {
         private volatile int volatileFlag;
         private ProcessorState singleProcessorState;
-        private ConcurrentHashMap<Processor, Object> processorStatesMap;
+        private ConcurrentMap<Processor, Object> processorStatesMap;
         
         @SuppressWarnings("unchecked")
         public <E> E getState(final Processor processor,
@@ -893,7 +894,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     final Processor processor,
                     final NullaryFunction<E> stateFactory) {
                 
-                ConcurrentHashMap<Processor, Object> localStatesMap =
+                ConcurrentMap<Processor, Object> localStatesMap =
                         storage.processorStatesMap;
 
 
@@ -907,7 +908,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     return state;
                 }
 
-                localStatesMap = new ConcurrentHashMap<Processor, Object>();
+                localStatesMap = DataStructures.<Processor, Object>getConcurrentMap(4);
                 final Object state = stateFactory.evaluate();
                 localStatesMap.put(processor, state);
                 storage.processorStatesMap = localStatesMap;

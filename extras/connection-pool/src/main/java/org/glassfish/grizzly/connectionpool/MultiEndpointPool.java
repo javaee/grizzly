@@ -41,7 +41,6 @@ package org.glassfish.grizzly.connectionpool;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,6 +52,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 import org.glassfish.grizzly.utils.Futures;
@@ -94,12 +94,12 @@ public class MultiEndpointPool<E> {
      * Maps endpoint -to- SingleEndpointPool
      */
     protected final Map<EndpointKey<E>, SingleEndpointPool<E>> endpointToPoolMap =
-            new ConcurrentHashMap<EndpointKey<E>, SingleEndpointPool<E>>();
+            DataStructures.<EndpointKey<E>, SingleEndpointPool<E>>getConcurrentMap();
     /**
      * Maps Connection -to- ConnectionInfo
      */
     private final Map<Connection, ConnectionInfo<E>> connectionToSubPoolMap =
-            new ConcurrentHashMap<Connection, ConnectionInfo<E>>();
+            DataStructures.<Connection, ConnectionInfo<E>>getConcurrentMap();
 
     /**
      * Sync for endpointToPoolMap updates
