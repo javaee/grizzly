@@ -149,6 +149,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     // Do not allow any more writing.
     protected boolean discardBytes = false;
     
+    // true, if one of the writes threw an IOException
+    private boolean isOutputErrorOcurred;
+    
     // ----------------------------------------------------------- Constructors
     
 
@@ -405,11 +408,15 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */   
     public void flushChannel(ByteBuffer bb) throws IOException {
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("flushChannel isAsyncHttpWriteEnabled=" +
-                    isAsyncHttpWriteEnabled + " bb=" + bb);
+            logger.log(Level.FINEST, "flushChannel isAsyncHttpWriteEnabled={0} bb={1}",
+                    new Object[]{isAsyncHttpWriteEnabled, bb});
         }
         
         if (discardBytes) return;
+        
+        if (isOutputErrorOcurred) {
+            throw new IOException("The output channel is closed");
+        }
         
         if (SelectorThread.isEnableNioLogging()){
             ByteBuffer dd = bb.duplicate();
@@ -422,24 +429,29 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             logger.info(new String(dump));         
         }
 
-        if (!isAsyncHttpWriteEnabled) {
-            OutputWriter.flushChannel(((SocketChannel) channel), bb);
-            bb.clear();
-        } else if (asyncQueueWriter != null) {
-            Future future = asyncQueueWriter.write(selectionKey, bb,
-                    asyncHttpWriteCallbackHandler, null,
-                    asyncHttpByteBufferCloner);
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("async flushChannel isDone=" + future.isDone());
-            }
-
-            if (!bb.hasRemaining()) {
+        try {
+            if (!isAsyncHttpWriteEnabled) {
+                OutputWriter.flushChannel(((SocketChannel) channel), bb);
                 bb.clear();
+            } else if (asyncQueueWriter != null) {
+                Future future = asyncQueueWriter.write(selectionKey, bb,
+                        asyncHttpWriteCallbackHandler, null,
+                        asyncHttpByteBufferCloner);
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest("async flushChannel isDone=" + future.isDone());
+                }
+
+                if (!bb.hasRemaining()) {
+                    bb.clear();
+                }
+            } else {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SCOB_FLUSH_CHANNEL_ERROR());
+                }
             }
-        } else {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SCOB_FLUSH_CHANNEL_ERROR());
-            }
+        } catch (IOException e) {
+            isOutputErrorOcurred = true;
+            throw e;
         }
     }
 
@@ -506,7 +518,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * connection.
      */
     @Override
-    public void recycle() {        
+    public void recycle() {
+        isOutputErrorOcurred = false;
         discardBytes = false;
         response.recycle();
         if (useSocketBuffer) {
