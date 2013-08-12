@@ -141,7 +141,6 @@ final class SpdyInputBuffer {
         
         // create InputElement and add it to the input queue
         // we double check if this is the last frame (considering content-length header if any)
-        System.out.println("DATA: " + data.toStringContent());
         offer0(new InputElement(data,
                 isLast | checkContentLength(data.remaining()), false));
     }
