@@ -875,8 +875,12 @@ public class OutputBuffer implements OutputSink {
                 future.get();
             }
         } catch (ExecutionException e) {
+            // close http I/O so that the response will not be broken
+            httpContext.close();
             throw new IOException(e.getCause());
         } catch (Exception e) {
+            // close http I/O so that the response will not be broken
+            httpContext.close();
             throw new IOException(e);
         }
     }

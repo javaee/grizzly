@@ -89,6 +89,10 @@ public class HttpContext implements AttributeStorage {
         return closeable;
     }
 
+    public void close() {
+        closeable.close(null);
+    }
+    
     public static HttpContext newInstance(FilterChainContext ctx,
             final AttributeStorage attributeStorage,
             final OutputSink outputSink,
