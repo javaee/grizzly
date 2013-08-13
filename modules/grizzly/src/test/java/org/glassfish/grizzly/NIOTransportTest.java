@@ -82,15 +82,15 @@ public class NIOTransportTest {
     @Parameterized.Parameters
     public static Collection<Object[]> getTransport() {
         return Arrays.asList(new Object[][]{
-                {TCPNIOTransportBuilder.newInstance().build()},
-                {UDPNIOTransportBuilder.newInstance().build()}
+                {TCPNIOTransportBuilder.newInstance()},
+                {UDPNIOTransportBuilder.newInstance()}
         });
     }
 
     private final NIOTransport transport;
 
-    public NIOTransportTest(final NIOTransport transport) {
-        this.transport = transport;
+    public NIOTransportTest(final NIOTransportBuilder<?> transportBuilder) {
+        this.transport = transportBuilder.build();
     }
 
 
