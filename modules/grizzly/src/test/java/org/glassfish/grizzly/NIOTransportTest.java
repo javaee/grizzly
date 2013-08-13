@@ -71,7 +71,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
@@ -99,7 +98,8 @@ public class NIOTransportTest {
 
     @Test
     public void testStartStop() throws IOException {
-
+        LOGGER.log(Level.INFO, "Running: testStartStop ({0})", transport.getName());
+        
         try {
             transport.bind(PORT);
             transport.start();
@@ -110,6 +110,7 @@ public class NIOTransportTest {
 
     @Test
     public void testStartStopStart() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testStartStopStart ({0})", transport.getName());
 
         try {
             transport.bind(PORT);
@@ -137,6 +138,8 @@ public class NIOTransportTest {
 
     @Test
     public void testReadWriteTimeout() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testReadWriteTimeout ({0})", transport.getName());
+
         assertEquals(30, transport.getWriteTimeout(TimeUnit.SECONDS));
         assertEquals(30, transport.getReadTimeout(TimeUnit.SECONDS));
         transport.setReadTimeout(45, TimeUnit.MINUTES);
@@ -151,6 +154,8 @@ public class NIOTransportTest {
 
     @Test
     public void testConnectorHandlerConnect() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testConnectorHandlerConnect ({0})", transport.getName());
+
         Connection connection = null;
 
         try {
@@ -171,6 +176,8 @@ public class NIOTransportTest {
 
     @Test
     public void testPortRangeBind() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testPortRangeBind ({0})", transport.getName());
+
         final int portsTest = 10;
         final int startPort = PORT + 1234;
         final PortRange portRange =
@@ -201,12 +208,14 @@ public class NIOTransportTest {
                 connection.closeSilently();
             }
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
     @Test
     public void testConnectorHandlerConnectAndWrite() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testConnectorHandlerConnectAndWrite ({0})", transport.getName());
+
         Connection connection = null;
         StreamWriter writer = null;
 
@@ -254,6 +263,8 @@ public class NIOTransportTest {
 
     @Test
     public void testSimpleEcho() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testSimpleEcho ({0})", transport.getName());
+
         Connection connection = null;
         StreamReader reader;
         StreamWriter writer;
@@ -315,6 +326,8 @@ public class NIOTransportTest {
 
     @Test
     public void testSeveralPacketsEcho() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testSeveralPacketsEcho ({0})", transport.getName());
+
         Connection connection = null;
         StreamReader reader;
         StreamWriter writer;
@@ -377,6 +390,8 @@ public class NIOTransportTest {
 
     @Test
     public void testAsyncReadWriteEcho() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testAsyncReadWriteEcho ({0})", transport.getName());
+
         Connection connection = null;
         StreamReader reader;
         StreamWriter writer;
@@ -436,73 +451,76 @@ public class NIOTransportTest {
 
     @Test
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
-            int packetsNumber = 100;
-            final int packetSize = 32;
+        LOGGER.log(Level.INFO, "Running: testSeveralPacketsAsyncReadWriteEcho ({0})", transport.getName());
 
-            Connection connection = null;
-            StreamReader reader;
-            StreamWriter writer;
+        int packetsNumber = 100;
+        final int packetSize = 32;
 
-            FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-            filterChainBuilder.add(new TransportFilter());
-            filterChainBuilder.add(new EchoFilter());
+        Connection connection = null;
+        StreamReader reader;
+        StreamWriter writer;
 
-            transport.setProcessor(filterChainBuilder.build());
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
 
-            try {
-                transport.setReadBufferSize(2048);
-                transport.setWriteBufferSize(2048);
+        transport.setProcessor(filterChainBuilder.build());
 
-                transport.bind(PORT);
+        try {
+            transport.setReadBufferSize(2048);
+            transport.setWriteBufferSize(2048);
 
-                transport.start();
+            transport.bind(PORT);
 
-                final FutureImpl<Connection> connectFuture =
-                        Futures.createSafeFuture();
-                transport.connect(
-                        new InetSocketAddress("localhost", PORT),
-                        Futures.<Connection>toCompletionHandler(
-                        connectFuture, new EmptyCompletionHandler<Connection>()  {
+            transport.start();
 
-                            @Override
-                            public void completed(final Connection connection) {
-                                connection.configureStandalone(true);
-                            }
-                        }));
-                connection = connectFuture.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
-
-                reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-                writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-
-                for (int i = 0; i < packetsNumber; i++) {
-                    final byte[] message = new byte[packetSize];
-                    Arrays.fill(message, (byte) i);
-
-                    writer.writeByteArray(message);
-                    writer.flush();
-
-                    final byte[] rcvMessage = new byte[packetSize];
-                    Future future = reader.notifyAvailable(packetSize);
-                    future.get(10, TimeUnit.SECONDS);
-                    assertTrue(future.isDone());
-                    reader.readByteArray(rcvMessage);
-
-                    assertTrue("Message is corrupted!",
-                            Arrays.equals(rcvMessage, message));
-
+            final FutureImpl<Connection> connectFuture =
+                    Futures.createSafeFuture();
+            transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    Futures.<Connection>toCompletionHandler(
+                    connectFuture, new EmptyCompletionHandler<Connection>() {
+                @Override
+                public void completed(final Connection connection) {
+                    connection.configureStandalone(true);
                 }
-            } finally {
-                if (connection != null) {
-                    connection.closeSilently();
-                }
+            }));
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
-                transport.stop();
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
+
+            for (int i = 0; i < packetsNumber; i++) {
+                final byte[] message = new byte[packetSize];
+                Arrays.fill(message, (byte) i);
+
+                writer.writeByteArray(message);
+                writer.flush();
+
+                final byte[] rcvMessage = new byte[packetSize];
+                Future future = reader.notifyAvailable(packetSize);
+                future.get(10, TimeUnit.SECONDS);
+                assertTrue(future.isDone());
+                reader.readByteArray(rcvMessage);
+
+                assertTrue("Message is corrupted!",
+                        Arrays.equals(rcvMessage, message));
+
             }
+        } finally {
+            if (connection != null) {
+                connection.closeSilently();
+            }
+
+            transport.shutdownNow();
         }
+    }
 
     @Test
     public void testFeeder() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testFeeder ({0})", transport.getName());
+
         class CheckSizeFilter extends BaseFilter {
             private int size;
             private CountDownLatch latch;
@@ -608,6 +626,8 @@ public class NIOTransportTest {
 
     @Test
     public void testWorkerThreadPoolConfiguration() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testWorkerThreadPoolConfiguration ({0})", transport.getName());
+
         ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
@@ -622,6 +642,8 @@ public class NIOTransportTest {
 
     @Test
     public void testWorkerThreadPoolConfiguration2() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testWorkerThreadPoolConfiguration2 ({0})", transport.getName());
+
         ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
         config.setCorePoolSize(1);
         config.setMaxPoolSize(1);
@@ -634,6 +656,8 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdown() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testGracefulShutdown ({0})", transport.getName());
+
         final CountDownLatch latch = new CountDownLatch(2);
         final AtomicBoolean forcedNotCalled1 = new AtomicBoolean();
         final AtomicBoolean forcedNotCalled2 = new AtomicBoolean();
@@ -697,6 +721,8 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdownWithGracePeriod() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testGracefulShutdownWithGracePeriod ({0})", transport.getName());
+
         final AtomicBoolean forcedNotCalled1 = new AtomicBoolean();
         final AtomicBoolean forcedNotCalled2 = new AtomicBoolean();
         transport.addShutdownListener(new GracefulShutdownListener() {
@@ -755,6 +781,8 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdownWithGracePeriodTimeout() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testGracefulShutdownWithGracePeriodTimeout ({0})", transport.getName());
+
         final AtomicBoolean forcedCalled1 = new AtomicBoolean();
         final AtomicBoolean forcedCalled2 = new AtomicBoolean();
         transport.addShutdownListener(new GracefulShutdownListener() {
@@ -812,6 +840,8 @@ public class NIOTransportTest {
 
     @Test
     public void testGracefulShutdownAndThenForced() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testGracefulShutdownAndThenForced ({0})", transport.getName());
+
         final AtomicBoolean listener1 = new AtomicBoolean();
         final AtomicBoolean listener2 = new AtomicBoolean();
         final CountDownLatch latch = new CountDownLatch(2);
@@ -875,6 +905,8 @@ public class NIOTransportTest {
 
     @Test
     public void testTimedGracefulShutdownAndThenForced() throws Exception {
+        LOGGER.log(Level.INFO, "Running: testTimedGracefulShutdownAndThenForced ({0})", transport.getName());
+
         final CountDownLatch latch = new CountDownLatch(1);
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
