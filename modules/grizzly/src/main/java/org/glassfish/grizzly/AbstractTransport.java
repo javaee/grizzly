@@ -649,37 +649,14 @@ public abstract class AbstractTransport implements Transport {
     }
     
     /**
-     * Starts the transport
-     * 
-     * @throws IOException
+     * {@inheritDoc}
      */
+    @Deprecated
     @Override
-    public abstract void start() throws IOException;
+    public void stop() throws IOException {
+        shutdownNow();
+    }
     
-    /**
-     * Stops the transport and closes all the connections
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void stop() throws IOException;
-    
-    /**
-     * Pauses the transport
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void pause();
-    
-    /**
-     * Resumes the transport after a pause
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void resume();
-
     /**
      * Create the Transport JMX management object.
      *

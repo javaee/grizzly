@@ -441,14 +441,6 @@ public abstract class NIOTransport extends AbstractTransport
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void stop() throws IOException {
-        shutdownNow();
-    }
-
     @Override
     public GrizzlyFuture<Transport> shutdown() {
         return shutdown(-1, TimeUnit.MILLISECONDS);
