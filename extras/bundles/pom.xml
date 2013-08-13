@@ -55,19 +55,12 @@
     <packaging>pom</packaging>
     <version>2.3.6-SNAPSHOT</version>
     <name>grizzly-extra-bundles</name>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.4.0</version>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
+
     <modules>
         <module>grizzly-httpservice-bundle</module>
     </modules>
+
+    <properties>
+        <findbugs.skip>true</findbugs.skip>
+    </properties>
 </project>
