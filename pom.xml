@@ -387,7 +387,10 @@
                 <version>2.5.2</version>
                 <configuration>
                     <excludeFilterFile>exclude-common.xml</excludeFilterFile>
-                    <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
+                    <xmlOutputDirectory>
+                        ${project.reporting.outputDirectory}
+                    </xmlOutputDirectory>
+                    <skip>${findbugs.skip}</skip>
                 </configuration>
             </plugin>
         </plugins>
@@ -487,5 +490,6 @@
         <gmbal.version>3.2.0-b003</gmbal.version>
         <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides
         </maven.compiler.argument>
+        <findbugs.skip>false</findbugs.skip>
     </properties>
 </project>

@@ -174,18 +174,7 @@
             </plugin>
         </plugins>
     </build>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.4.0</version>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
+
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
@@ -208,4 +197,8 @@
             <artifactId>grizzly-http-server-multipart</artifactId>
         </dependency>
     </dependencies>
+
+    <properties>
+        <findbugs.skip>true</findbugs.skip>
+    </properties>
 </project>
