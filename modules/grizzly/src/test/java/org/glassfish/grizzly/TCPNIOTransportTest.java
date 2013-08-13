@@ -139,7 +139,7 @@ public class TCPNIOTransportTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -190,7 +190,7 @@ public class TCPNIOTransportTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -261,7 +261,7 @@ public class TCPNIOTransportTest {
                 connectedConnection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }        
     }
 
@@ -338,7 +338,7 @@ public class TCPNIOTransportTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -397,7 +397,7 @@ public class TCPNIOTransportTest {
             
             assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -475,7 +475,7 @@ public class TCPNIOTransportTest {
             }
 
             try {
-                transport.stop();
+                transport.shutdownNow();
             } catch (Exception e) {
             }
 

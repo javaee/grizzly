@@ -44,12 +44,10 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.filterchain.*;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.UDPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.junit.Before;
@@ -125,7 +123,7 @@ public class UDPNIOTransportTest {
             
             assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }    
 }
