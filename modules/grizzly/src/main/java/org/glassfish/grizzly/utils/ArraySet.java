@@ -119,14 +119,19 @@ public class ArraySet<T> implements Set<T> {
         }
 
         synchronized (sync) {
-            if (array == null) {
+            boolean initArray = array == null;
+            if (initArray) {
                 array = (T[]) Array.newInstance(clazz, 1);
             }
 
             boolean result = false;
 
             for (T element : collection) {
-
+                if (initArray) {
+                    initArray = false;
+                    array[0] = element;
+                    continue;
+                }
                 final T[] oldArray = array;
                 array = ArrayUtils.addUnique(array, element, replaceElementIfEquals);
 
