@@ -386,7 +386,7 @@
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <version>2.5.2</version>
                 <configuration>
-                    <excludeFilterFile>exclude-common.xml</excludeFilterFile>
+                    <excludeFilterFile>${findbugs.common}</excludeFilterFile>
                     <xmlOutputDirectory>
                         ${project.reporting.outputDirectory}
                     </xmlOutputDirectory>
@@ -491,5 +491,6 @@
         <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides
         </maven.compiler.argument>
         <findbugs.skip>false</findbugs.skip>
+        <findbugs.common>exclude-common.xml</findbugs.common>
     </properties>
 </project>
