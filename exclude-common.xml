@@ -102,5 +102,32 @@
         <Bug pattern="SE_NO_SERIALVERSIONID"/>
     </Match>
 
+    <!-- Synchronization has been reviewed and is okay. -->
+    <Match>
+        <Bug pattern="UG_SYNC_SET_UNSYNC_GET"/>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyHolder"/>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
+        </Or>
+    </Match>
+
+    <!-- Synchronization has been reviewed and is okay. -->
+    <Match>
+        <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyHolder"/>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
+        </Or>
+    </Match>
+
+    <!-- This class is copied from OpenJDK.  Ignore the issues. -->
+    <Match>
+        <Class name="org.glassfish.grizzly.utils.LinkedTransferQueue"/>
+    </Match>
+
+    <!-- We're not worried about this. -->
+    <Match>
+        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+    </Match>
 
 </FindBugsFilter>
