@@ -741,7 +741,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 //    }
 //    
     public final void registerKeyInterest(final int interest) throws IOException {
-        if (interest == 0) {
+        if (interest == 0 || !isOpen()) {
             return;
         }
         
