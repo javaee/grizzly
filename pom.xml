@@ -400,7 +400,6 @@
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <version>2.5.2</version>
             </plugin>
-            -->
         </plugins>
     </reporting>
     <dependencyManagement>
