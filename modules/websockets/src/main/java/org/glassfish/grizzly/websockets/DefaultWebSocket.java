@@ -151,13 +151,13 @@ public class DefaultWebSocket extends SimpleWebSocket {
         }
     } // END WSRequestImpl    
     
-    private class WSResponseImpl extends Response {
+    private static class WSResponseImpl extends Response {
 
         public WSResponseImpl() {
         }
     } // END WSResponseImpl 
     
-    private class WSServletRequestImpl extends HttpServletRequestImpl {
+    private static class WSServletRequestImpl extends HttpServletRequestImpl {
 
         private GlassfishSupport glassfishSupport;
         private String pathInfo;

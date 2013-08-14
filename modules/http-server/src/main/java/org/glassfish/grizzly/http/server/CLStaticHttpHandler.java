@@ -479,7 +479,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     }
 
 
-    class JarURLInputStream extends java.io.FilterInputStream {
+    static class JarURLInputStream extends java.io.FilterInputStream {
 
         private final JarURLConnection jarConnection;
         private final JarFile jarFile;

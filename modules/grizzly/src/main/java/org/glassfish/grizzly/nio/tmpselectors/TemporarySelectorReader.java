@@ -59,8 +59,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
 public abstract class TemporarySelectorReader
         extends AbstractReader<SocketAddress> {
 
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
-    protected final int defaultBufferSize = DEFAULT_BUFFER_SIZE;
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
     protected final TemporarySelectorsEnabledTransport transport;
 
     public TemporarySelectorReader(
@@ -210,7 +209,7 @@ public abstract class TemporarySelectorReader
     protected Buffer acquireBuffer(Connection connection) {
         Transport connectionTransport = connection.getTransport();
         return connectionTransport.getMemoryManager().
-                allocate(defaultBufferSize);
+                allocate(DEFAULT_BUFFER_SIZE);
     }
 
     public TemporarySelectorsEnabledTransport getTransport() {

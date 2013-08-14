@@ -695,7 +695,7 @@ public class SSLBaseFilter extends BaseFilter {
         if (!authConfigured) {
             sslEngine.setNeedClientAuth(true);
         }
-        final Connection c = context.getConnection();
+
         sslEngine.getSession().invalidate();
 
         try {

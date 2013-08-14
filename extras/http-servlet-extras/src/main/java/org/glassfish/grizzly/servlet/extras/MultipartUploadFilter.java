@@ -329,7 +329,7 @@ public class MultipartUploadFilter implements Filter {
      * content (uploading file) in non-blocking mode and saves the content into
      * the specific file.
      */
-    private class UploadReadHandler implements ReadHandler {
+    private static class UploadReadHandler implements ReadHandler {
 
         // Non-blocking multipart entry input stream
         private final NIOInputStream inputStream;

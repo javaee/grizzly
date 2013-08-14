@@ -351,7 +351,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 if (handlersCount == 1) {
                     final Map.Entry<HttpHandler, String[]> entry =
                             handlers.entrySet().iterator().next();
-                    final HttpHandler lastHttpHandler = entry.getKey();
                     final String[] lastHttpHandlerMappings = entry.getValue();
                     if (lastHttpHandlerMappings.length == 1
                             && ("".equals(lastHttpHandlerMappings[0]) ||

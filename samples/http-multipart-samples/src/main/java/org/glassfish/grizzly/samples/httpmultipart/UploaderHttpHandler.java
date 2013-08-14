@@ -208,7 +208,7 @@ public class UploaderHttpHandler extends HttpHandler {
      * content (uploading file) in non-blocking mode and saves the content into
      * the specific file.
      */
-    private class UploadReadHandler implements ReadHandler {
+    private static class UploadReadHandler implements ReadHandler {
 
         // the upload number
         private final int uploadNumber;

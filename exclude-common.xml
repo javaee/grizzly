@@ -117,17 +117,48 @@
         <Or>
             <Class name="org.glassfish.grizzly.utils.Holder$LazyHolder"/>
             <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
+            <Class name="org.glassfish.grizzly.websockets.WebSocketEngine" />
+            <Class name="org.glassfish.grizzly.http.server.NetworkListener" />
         </Or>
     </Match>
 
-    <!-- This class is copied from OpenJDK.  Ignore the issues. -->
+    <!-- These classes are copied from OpenJDK.  Ignore the issues. -->
     <Match>
-        <Class name="org.glassfish.grizzly.utils.LinkedTransferQueue"/>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.LinkedTransferQueue$QNode"/>
+            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8"/>
+            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8$TreeBin"/>
+        </Or>
     </Match>
 
     <!-- We're not worried about this. -->
     <Match>
-        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+        <Or>
+            <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+            <Bug pattern="NM_FIELD_NAMING_CONVENTION"/>
+        </Or>
+    </Match>
+
+    <Match>
+        <Bug pattern="DM_EXIT" />
+        <Or>
+            <Class name="org.glassfish.grizzly.samples.udpmulticast.MulticastChat" />
+        </Or>
+    </Match>
+
+    <Match>
+        <Bug pattern="SE_BAD_FIELD" />
+        <Or>
+            <Class name="org.glassfish.grizzly.samples.websockets.WebSocketsServlet" />
+        </Or>
+    </Match>
+
+    <!-- Not worried about atomicity - only visibility -->
+    <Match>
+        <Bug pattern="VO_VOLATILE_INCREMENT" />
+        <Or>
+            <Class name="org.glassfish.grizzly.nio.SelectorRunner" />
+        </Or>
     </Match>
 
 </FindBugsFilter>

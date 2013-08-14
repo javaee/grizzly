@@ -85,23 +85,6 @@ public interface SSLSupport {
      * This one is a Tomcat extension to the Servlet spec.
      */
     public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session_id";
-    /**
-     * A mapping table to determine the number of effective bits in the key
-     * when using a cipher suite containing the specified cipher name.  The
-     * underlying data came from the TLS Specification (RFC 2246), Appendix C.
-     */
-    static final CipherData ciphers[] = {
-        new CipherData("_WITH_NULL_", 0),
-        new CipherData("_WITH_IDEA_CBC_", 128),
-        new CipherData("_WITH_RC2_CBC_40_", 40),
-        new CipherData("_WITH_RC4_40_", 40),
-        new CipherData("_WITH_RC4_128_", 128),
-        new CipherData("_WITH_DES40_CBC_", 40),
-        new CipherData("_WITH_DES_CBC_", 56),
-        new CipherData("_WITH_3DES_EDE_CBC_", 168),
-        new CipherData("_WITH_AES_128_", 128),
-        new CipherData("_WITH_AES_256_", 256)
-    };
 
     /**
      * The cipher suite being used on this connection.
