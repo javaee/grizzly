@@ -497,16 +497,18 @@ public final class SelectorRunner implements Runnable {
                 transport.getSelectionKeyHandler();
         
         for (final SelectionKey selectionKey : keys) {
-            try {
-                final NIOConnection nioConnection =
-                        selectionKeyHandler.getConnectionForKey(selectionKey);
-                final SelectionKey newSelectionKey =
-                        selectionKey.channel().register(newSelector,
-                        selectionKey.interestOps(), selectionKey.attachment());
-                
-                nioConnection.onSelectionKeyUpdated(newSelectionKey);
-            } catch (Exception e) {
-                logger.log(Level.FINE, "Error switching channel to a new selector", e);
+            if (selectionKey.isValid()) {
+                try {
+                    final NIOConnection nioConnection =
+                            selectionKeyHandler.getConnectionForKey(selectionKey);
+                    final SelectionKey newSelectionKey =
+                            selectionKey.channel().register(newSelector,
+                            selectionKey.interestOps(), selectionKey.attachment());
+
+                    nioConnection.onSelectionKeyUpdated(newSelectionKey);
+                } catch (Exception e) {
+                    logger.log(Level.FINE, "Error switching channel to a new selector", e);
+                }
             }
         }
 

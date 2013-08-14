@@ -716,7 +716,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
         final int interest = ioEvent.getSelectionKeyInterest();
-        if (interest == 0) {
+        if (interest == 0 || !isOpen()) {
             return;
         }
         
