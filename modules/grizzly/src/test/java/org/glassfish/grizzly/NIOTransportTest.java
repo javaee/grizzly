@@ -48,6 +48,7 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
+import org.glassfish.grizzly.utils.Holder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -72,15 +73,24 @@ public class NIOTransportTest {
     @Parameterized.Parameters
     public static Collection<Object[]> getTransport() {
         return Arrays.asList(new Object[][]{
-                {TCPNIOTransportBuilder.newInstance()},
-                {UDPNIOTransportBuilder.newInstance()}
-        });
+            {new Holder<NIOTransport>() {
+                    @Override
+                    public NIOTransport get() {
+                        return TCPNIOTransportBuilder.newInstance().build();
+                    }
+                }},
+            {new Holder<NIOTransport>() {
+                    @Override
+                    public NIOTransport get() {
+                        return UDPNIOTransportBuilder.newInstance().build();
+                    }
+                }}});
     }
 
     private final NIOTransport transport;
 
-    public NIOTransportTest(final NIOTransportBuilder<?> transportBuilder) {
-        this.transport = transportBuilder.build();
+    public NIOTransportTest(final Holder<NIOTransport> transportHolder) {
+        this.transport = transportHolder.get();
     }
 
 
