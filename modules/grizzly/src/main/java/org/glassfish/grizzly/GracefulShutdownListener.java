@@ -48,7 +48,7 @@ package org.glassfish.grizzly;
  * before the transport is terminated (e.g., timed graceful shutdown or a graceful
  * shutdown() that was initiated and then shutdownNow() is later invoked.
  *
- * @since 2.3.4.
+ * @since 2.3.5.
  */
 public interface GracefulShutdownListener {
 
@@ -59,5 +59,12 @@ public interface GracefulShutdownListener {
      *                        request.
      */
     void shutdownRequested(final ShutdownContext shutdownContext);
+
+    /**
+     * Invoked when the transport is being shutdown forcefully.  This means
+     * either shutdownNow() was invoked or the graceful shutdown timed out.
+     * It's important that the implementation of this method not block.
+     */
+    void shutdownForced();
 
 }

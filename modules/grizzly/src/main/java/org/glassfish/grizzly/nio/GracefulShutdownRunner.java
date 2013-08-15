@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.nio;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -77,21 +79,25 @@ class GracefulShutdownRunner implements Runnable {
     // ----------------------------------------------- Methods from Runnable
     @Override
     public void run() {
-        final CountDownLatch shutdownLatch = new CountDownLatch(
-                shutdownListeners.size());
-        
+        final int listenerCount = shutdownListeners.size();
+        final CountDownLatch shutdownLatch = new CountDownLatch(listenerCount);
+
         // If there there is no timeout, invoke the listeners in the
         // same thread otherwise use one additional thread to invoke them.
+        final Map<ShutdownContext,GracefulShutdownListener> contexts =
+                new HashMap<ShutdownContext,GracefulShutdownListener>(listenerCount);
         if (gracePeriod <= 0) {
             for (final GracefulShutdownListener l : shutdownListeners) {
-                l.shutdownRequested(createContext(shutdownLatch));
+                final ShutdownContext ctx = createContext(contexts, l, shutdownLatch);
+                l.shutdownRequested(ctx);
             }
         } else {
             shutdownService.execute(new Runnable() {
                 @Override
                 public void run() {
                     for (final GracefulShutdownListener l : shutdownListeners) {
-                        l.shutdownRequested(createContext(shutdownLatch));
+                        final ShutdownContext ctx = createContext(contexts, l, shutdownLatch);
+                        l.shutdownRequested(ctx);
                     }
                 }
             });
@@ -113,11 +119,21 @@ class GracefulShutdownRunner implements Runnable {
                                 "Shutdown grace period exceeded.  Terminating transport {0}.",
                                 transport.getName() + '[' + Integer.toHexString(hashCode()) + ']');
                     }
+                    if (!contexts.isEmpty()) {
+                        for (GracefulShutdownListener l : contexts.values()) {
+                            l.shutdownForced();
+                        }
+                    }
                 }
             }
         } catch (InterruptedException ie) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.warning("Primary shutdown thread interrupted.  Forcing transport termination.");
+            }
+            if (!contexts.isEmpty()) {
+                for (GracefulShutdownListener l : contexts.values()) {
+                    l.shutdownForced();
+                }
             }
         } finally {
             final Lock lock = transport.getState().getStateLocker().writeLock();
@@ -134,8 +150,10 @@ class GracefulShutdownRunner implements Runnable {
         }
     }
 
-    private ShutdownContext createContext(final CountDownLatch shutdownLatch) {
-        return new ShutdownContext() {
+    private ShutdownContext createContext(final Map<ShutdownContext,GracefulShutdownListener> contexts,
+                                          final GracefulShutdownListener listener,
+                                          final CountDownLatch shutdownLatch) {
+        final ShutdownContext ctx = new ShutdownContext() {
             boolean isNotified;
 
             @Override
@@ -147,10 +165,13 @@ class GracefulShutdownRunner implements Runnable {
             public synchronized void ready() {
                 if (!isNotified) {
                     isNotified = true;
+                    contexts.remove(this);
                     shutdownLatch.countDown();
                 }
             }
         };
+        contexts.put(ctx, listener);
+        return ctx;
     }
 
 } // END GracefulShutdownRunner
