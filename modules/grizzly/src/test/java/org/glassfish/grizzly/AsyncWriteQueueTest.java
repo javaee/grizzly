@@ -46,9 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -253,7 +251,6 @@ public class AsyncWriteQueueTest {
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
         StreamReader reader = null;
-        StreamWriter writer = null;
 
         final int packetNumber = 127;
         final int packetSize = 128000;
@@ -595,11 +592,7 @@ public class AsyncWriteQueueTest {
 
         @Override
         public void onWritePossible() throws Exception {
-            try {
-                transport.pause(); // prevent more writes
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
+            transport.pause(); // prevent more writes
             current.interrupt(); // wake up the test thread
         }
 

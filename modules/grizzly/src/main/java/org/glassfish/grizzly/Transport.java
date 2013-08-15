@@ -476,23 +476,19 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *  it means one of two things: the transport is stopping or is stopped, or
      *  the listener has already been registered.
      *
-     * @since 2.3.4
+     * @since 2.3.5
      */
     boolean addShutdownListener(final GracefulShutdownListener shutdownListener);
     
     /**
      * Pauses the transport
-     * 
-     * @throws IOException
      */
-    void pause() throws IOException;
+    void pause();
     
     /**
      * Resumes the transport after a pause
-     * 
-     * @throws IOException
      */
-    void resume() throws IOException;
+    void resume();
     
     /**
      * Fires specific {@link IOEvent} on the {@link Connection}
