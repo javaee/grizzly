@@ -65,5 +65,6 @@
         <module>http-ajp-samples</module>
         <module>http-jaxws-samples</module>
         <module>spdy-samples</module>
+        <module>connection-pool-samples</module>
     </modules>
 </project>
