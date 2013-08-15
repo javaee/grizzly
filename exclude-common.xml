@@ -102,5 +102,63 @@
         <Bug pattern="SE_NO_SERIALVERSIONID"/>
     </Match>
 
+    <!-- Synchronization has been reviewed and is okay. -->
+    <Match>
+        <Bug pattern="UG_SYNC_SET_UNSYNC_GET"/>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyHolder"/>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
+        </Or>
+    </Match>
+
+    <!-- Synchronization has been reviewed and is okay. -->
+    <Match>
+        <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyHolder"/>
+            <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
+            <Class name="org.glassfish.grizzly.websockets.WebSocketEngine" />
+            <Class name="org.glassfish.grizzly.http.server.NetworkListener" />
+        </Or>
+    </Match>
+
+    <!-- These classes are copied from OpenJDK.  Ignore the issues. -->
+    <Match>
+        <Or>
+            <Class name="org.glassfish.grizzly.utils.LinkedTransferQueue$QNode"/>
+            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8"/>
+            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8$TreeBin"/>
+        </Or>
+    </Match>
+
+    <!-- We're not worried about this. -->
+    <Match>
+        <Or>
+            <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+            <Bug pattern="NM_FIELD_NAMING_CONVENTION"/>
+        </Or>
+    </Match>
+
+    <Match>
+        <Bug pattern="DM_EXIT" />
+        <Or>
+            <Class name="org.glassfish.grizzly.samples.udpmulticast.MulticastChat" />
+        </Or>
+    </Match>
+
+    <Match>
+        <Bug pattern="SE_BAD_FIELD" />
+        <Or>
+            <Class name="org.glassfish.grizzly.samples.websockets.WebSocketsServlet" />
+        </Or>
+    </Match>
+
+    <!-- Not worried about atomicity - only visibility -->
+    <Match>
+        <Bug pattern="VO_VOLATILE_INCREMENT" />
+        <Or>
+            <Class name="org.glassfish.grizzly.nio.SelectorRunner" />
+        </Or>
+    </Match>
 
 </FindBugsFilter>

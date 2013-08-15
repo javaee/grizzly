@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -208,7 +208,7 @@ public class UploaderHttpHandler extends HttpHandler {
      * content (uploading file) in non-blocking mode and saves the content into
      * the specific file.
      */
-    private class UploadReadHandler implements ReadHandler {
+    private static class UploadReadHandler implements ReadHandler {
 
         // the upload number
         private final int uploadNumber;
