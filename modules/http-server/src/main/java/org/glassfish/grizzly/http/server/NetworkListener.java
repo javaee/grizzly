@@ -41,6 +41,7 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -48,9 +49,11 @@ import org.glassfish.grizzly.CompletionHandler;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.GracefulShutdownListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.ShutdownContext;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpCodecFilter;
@@ -185,6 +188,10 @@ public class NetworkListener {
      * Future to control graceful shutdown status
      */
     private FutureImpl<NetworkListener> shutdownFuture;
+    /**
+     * CompletionHandler for filter shutdown notification.
+     */
+    private CompletionHandler<HttpServerFilter> shutdownCompletionHandler;
     /**
      * {@link HttpServerFilter} associated with this listener.
      */
@@ -651,6 +658,35 @@ public class NetworkListener {
         
         port = ((InetSocketAddress) serverConnection.getLocalAddress()).getPort();
 
+        transport.addShutdownListener(new GracefulShutdownListener() {
+            @Override
+            public void shutdownRequested(final ShutdownContext shutdownContext) {
+                final FutureImpl<NetworkListener> shutdownFutureLocal =
+                        shutdownFuture;
+                        shutdownCompletionHandler =
+                        new EmptyCompletionHandler<HttpServerFilter>() {
+                            @Override
+                            public void completed(final HttpServerFilter filter) {
+                                try {
+                                    shutdownContext.ready();
+                                    shutdownFutureLocal.result(NetworkListener.this);
+                                } catch (Throwable e) {
+                                    shutdownFutureLocal.failure(e);
+                                }
+                            }
+                        };
+                getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
+            }
+
+            @Override
+            public void shutdownForced() {
+                serverConnection = null;
+                if (shutdownFuture != null) {
+                    shutdownFuture.result(NetworkListener.this);
+                }
+            }
+        });
+
         transport.start();
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
@@ -658,56 +694,41 @@ public class NetworkListener {
                 host + ':' + port);
         }
 
-
     }
-    
-    /**
-     * <p> Gracefully shuts down the listener. </p>
-     *
-     * @throws IOException if an error occurs when attempting to shut down the listener
-     */
-    public synchronized GrizzlyFuture<NetworkListener> shutdown() {
-        if (state == State.STOPPING ||
-                state == State.STOPPED) {
+
+    public synchronized GrizzlyFuture<NetworkListener> shutdown(final long gracePeriod,
+                                                                final TimeUnit timeUnit) {
+        if (state == State.STOPPING
+                || state == State.STOPPED) {
             return shutdownFuture != null ? shutdownFuture :
                     Futures.createReadyFuture(this);
         } else if (state == State.PAUSED) {
-            try {
-                shutdownNow();
-            } catch (IOException e) {
-                return Futures.createReadyFuture(e);
-            }
-            
-            return Futures.createReadyFuture(this);
+            resume();
         }
-        
+
         state = State.STOPPING;
-        serverConnection.closeSilently();
 
         shutdownFuture = Futures.createSafeFuture();
-        final FutureImpl<NetworkListener> shutdownFutureLocal = shutdownFuture;
-        
+
         final HttpCodecFilter codecFilter = getHttpCodecFilter();
         if (codecFilter != null) {
             codecFilter.prepareForShutdown();
         }
-        
-        final CompletionHandler<HttpServerFilter> shutdownCompletionHandler =
-                new EmptyCompletionHandler<HttpServerFilter>() {
-            @Override
-            public void completed(final HttpServerFilter filter) {
-                try {
-                    shutdownNow();
-                    shutdownFutureLocal.result(NetworkListener.this);
-                } catch (Throwable e) {
-                    shutdownFutureLocal.failure(e);
-                }
-            }
-        };
-        
+
         getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
-        
+
+        transport.shutdown(gracePeriod, timeUnit);
+
         return shutdownFuture;
+    }
+    
+    /**
+     * <p> Gracefully shuts down the listener. </p>   Any exceptions
+     * thrown during the shutdown process will be propagated to the returned
+     * {@link GrizzlyFuture}.
+     */
+    public synchronized GrizzlyFuture<NetworkListener> shutdown() {
+        return shutdown(-1, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -742,7 +763,7 @@ public class NetworkListener {
      *
      * @throws IOException if an error occurs when attempting to pause the listener.
      */
-    public synchronized void pause() throws IOException {
+    public synchronized void pause() {
         if (state != State.RUNNING) {
             return;
         }
@@ -761,7 +782,7 @@ public class NetworkListener {
      *
      * @throws IOException if an error occurs when attempting to resume the listener.
      */
-    public synchronized void resume() throws IOException {
+    public synchronized void resume() {
         if (state != State.PAUSED) {
             return;
         }
