@@ -72,7 +72,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
@@ -194,29 +193,39 @@ public class AsyncWriteQueueTest {
                         };
                         
                         asyncQueueWriter.notifyWritePossible(finalConnection,
-                                new WriteHandler() {
+                                                             new WriteHandler() {
 
-                            @Override
-                            public void onWritePossible() throws Exception {
-                                final int msgNum = acceptedPackets.incrementAndGet();
-                                if (msgNum >= packetsCount) {
-                                    if (msgNum == packetsCount) {
-                                        f.result(Boolean.TRUE);
-                                    }
-                                    return;
-                                }
-                                
-                                finalConnection.write(
-                                        "client(" + id + ")-" + msgNum,
-                                        ch);
-                                asyncQueueWriter.notifyWritePossible(finalConnection, this);
-                            }
+                                                                 @Override
+                                                                 public void onWritePossible()
+                                                                 throws Exception {
+                                                                     final int
+                                                                             msgNum =
+                                                                             acceptedPackets
+                                                                                     .incrementAndGet();
+                                                                     if (msgNum >= packetsCount) {
+                                                                         if (msgNum == packetsCount) {
+                                                                             f.result(
+                                                                                     Boolean.TRUE);
+                                                                         }
+                                                                         return;
+                                                                     }
 
-                            @Override
-                            public void onError(Throwable t) {
-                                f.failure(t);
-                            }
-                        });
+                                                                     finalConnection
+                                                                             .write(
+                                                                                     "client(" + id + ")-" + msgNum,
+                                                                                     ch);
+                                                                     asyncQueueWriter
+                                                                             .notifyWritePossible(
+                                                                                     finalConnection,
+                                                                                     this);
+                                                                 }
+
+                                                                 @Override
+                                                                 public void onError(Throwable t) {
+                                                                     f.failure(
+                                                                             t);
+                                                                 }
+                                                             });
                                                 
                         return f.get(10, TimeUnit.SECONDS);
                     }
@@ -250,7 +259,7 @@ public class AsyncWriteQueueTest {
     @Test
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
+        StreamReader reader;
 
         final int packetNumber = 127;
         final int packetSize = 128000;
@@ -292,7 +301,7 @@ public class AsyncWriteQueueTest {
             final Connection con = connection;
 
             final AtomicInteger counter = new AtomicInteger(packetNumber);
-            final FutureImpl<Boolean> sentFuture = Futures.<Boolean>createSafeFuture();
+            final FutureImpl<Boolean> sentFuture = Futures.createSafeFuture();
             
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler =
                     new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
@@ -398,7 +407,8 @@ public class AsyncWriteQueueTest {
         try {
             final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             asyncQueueWriter.setMaxPendingBytesPerConnection(256000 * 10);
-            System.out.println("Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
+            System.out.println(
+                    "Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
             
             transport.bind(PORT);
             transport.start();
@@ -502,7 +512,7 @@ public class AsyncWriteQueueTest {
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
-            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.<Boolean>create();
+            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
 
             Buffer buffer = Buffers.EMPTY_BUFFER;
 
