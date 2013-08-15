@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.samples.udpmulticast;
 
 import java.net.InetAddress;
@@ -323,7 +324,7 @@ public abstract class ChatCommand {
 
         @Override
         public void run(final UDPNIOConnection connection) throws Exception {
-            // block the peer address (stop receiving multicast messages from the peer)
+            // block the peer address (shutdownNow receiving multicast messages from the peer)
             connection.block(groupAddr, ni, source);
         }
     }

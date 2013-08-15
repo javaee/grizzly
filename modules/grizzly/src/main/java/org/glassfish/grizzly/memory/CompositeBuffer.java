@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -154,7 +154,7 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
         /**
          * Method is responsible to examine/change one single Buffer's byte.
          * @param setter {@link Setter}
-         * @return <tt>true</tt>, if we want bulk processing stop, or <tt>false</tt>
+         * @return <tt>true</tt>, if we want bulk processing shutdownNow, or <tt>false</tt>
          *          to continue processing.
          */
         boolean processByte(byte value, Setter setter);

@@ -168,13 +168,13 @@ public class TestClient {
                 System.out.println(((HttpContent) response).getContent().toStringContent());
             }
             
-//            System.out.println("Press any key to stop ...");
+//            System.out.println("Press any key to shutdownNow ...");
             //noinspection ResultOfMethodCallIgnored
 //            System.in.read();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            transport.stop();
+            transport.shutdownNow();
             threadPool.shutdown();
         }
     }

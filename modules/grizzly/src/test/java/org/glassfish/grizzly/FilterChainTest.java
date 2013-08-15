@@ -220,7 +220,7 @@ public class FilterChainTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -442,7 +442,7 @@ public class FilterChainTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -486,7 +486,7 @@ public class FilterChainTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -533,7 +533,7 @@ public class FilterChainTest extends TestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -640,7 +640,7 @@ public class FilterChainTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -718,7 +718,7 @@ public class FilterChainTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

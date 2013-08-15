@@ -175,7 +175,7 @@ public class WebappContext implements ServletContext {
             new LinkedHashSet<EventListener>(4, 1.0f);  // TODO - wire this in
     private EventListener[] eventListeners = new EventListener[0];
 
-    /* Application start/stop state */
+    /* Application start/shutdownNow state */
     protected boolean deployed;
 
     /* Factory for creating FilterChainImpl instances */

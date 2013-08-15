@@ -92,7 +92,7 @@ public class UploadHttpHandlerSample {
 
         try {
             server.start();
-            LOGGER.info("Press enter to stop the server...");
+            LOGGER.info("Press enter to shutdownNow the server...");
             System.in.read();
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);

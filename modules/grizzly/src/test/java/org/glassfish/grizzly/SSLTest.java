@@ -390,8 +390,8 @@ public class SSLTest {
             if (connection != null) {
                 connection.closeSilently();
             }
-            cTransport.stop();
-            transport.stop();
+            cTransport.shutdownNow();
+            transport.shutdownNow();
         }
 
     }
@@ -470,7 +470,7 @@ public class SSLTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
 
     }
@@ -581,7 +581,7 @@ public class SSLTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -670,7 +670,7 @@ public class SSLTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -753,7 +753,7 @@ public class SSLTest {
             }
 
             try {
-                transport.stop();
+                transport.shutdownNow();
             } catch (Exception e) {}
             
         }

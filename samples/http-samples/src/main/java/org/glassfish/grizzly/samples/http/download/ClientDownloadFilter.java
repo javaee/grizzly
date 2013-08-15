@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -131,7 +131,7 @@ public class ClientDownloadFilter extends BaseFilter {
         // Write the request asynchronously
         ctx.write(httpRequest);
 
-        // Return the stop action, which means we don't expect next filter to process
+        // Return the shutdownNow action, which means we don't expect next filter to process
         // connect event
         return ctx.getStopAction();
     }
@@ -188,7 +188,7 @@ public class ClientDownloadFilter extends BaseFilter {
             close();
         }
 
-        // Return stop action, which means we don't expect next filter to process
+        // Return shutdownNow action, which means we don't expect next filter to process
         // read event
         return ctx.getStopAction();
     }

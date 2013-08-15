@@ -380,7 +380,7 @@ public class HttpServerFilter extends BaseFilter
         
         if (isBroken) {
             // if content is broken - we're not able to distinguish
-            // the end of the message - so stop processing any input data on
+            // the end of the message - so shutdownNow processing any input data on
             // this connection (connection is being closed by
             // {@link org.glassfish.grizzly.http.HttpServerFilter#handleEvent(...)}
             final NextAction suspendNextAction = ctx.getSuspendAction();

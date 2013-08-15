@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -77,7 +77,7 @@ public final class GIOPFilter extends BaseFilter {
 
         // If source buffer doesn't contain header
         if (sourceBufferLength < HEADER_SIZE) {
-            // stop the filterchain processing and store sourceBuffer to be
+            // shutdownNow the filterchain processing and store sourceBuffer to be
             // used next time
             return ctx.getStopAction(sourceBuffer);
         }
@@ -89,7 +89,7 @@ public final class GIOPFilter extends BaseFilter {
         
         // If the source message doesn't contain entire body
         if (sourceBufferLength < completeMessageLength) {
-            // stop the filterchain processing and store sourceBuffer to be
+            // shutdownNow the filterchain processing and store sourceBuffer to be
             // used next time
             return ctx.getStopAction(sourceBuffer);
         }

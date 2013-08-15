@@ -532,10 +532,10 @@ public final class FilterChainContext implements AttributeStorage {
     
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
+     * to shutdownNow executing phase.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
+     * to shutdownNow executing phase.
      */
     public NextAction getStopAction() {
         return STOP_ACTION;
@@ -543,7 +543,7 @@ public final class FilterChainContext implements AttributeStorage {
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase.
+     * shutdownNow executing phase.
      *
      * @param incompleteChunk signals, that there is a data chunk remaining,
      * which doesn't represent complete message. As more data becomes available
@@ -553,7 +553,7 @@ public final class FilterChainContext implements AttributeStorage {
      * to the stored one and pass the result as the FilterChainContext message.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
+     * to shutdownNow executing phase.
      * 
      * @throws IllegalArgumentException if remainder's type is not {@link Buffer} or
      * {@link Appendable}.
@@ -569,7 +569,7 @@ public final class FilterChainContext implements AttributeStorage {
     
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase.
+     * shutdownNow executing phase.
      * 
      * @param incompleteChunk signals, that there is a data chunk remaining,
      * which doesn't represent complete message. As more data becomes available
@@ -582,7 +582,7 @@ public final class FilterChainContext implements AttributeStorage {
      * how to append chunks of type <code>&lt;E&gt;</code>.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase.
+     * to shutdownNow executing phase.
      * 
      * @throws IllegalArgumentException if appender is <code>null</code> and
      * remainder's type is not {@link Buffer} or {@link Appendable}.

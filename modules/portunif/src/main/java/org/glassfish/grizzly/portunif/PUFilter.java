@@ -209,7 +209,7 @@ public class PUFilter extends BaseFilter {
             return ctx.getInvokeAction();
         }
 
-        // one or more protocols need more data, stop processing until
+        // one or more protocols need more data, shutdownNow processing until
         // it becomes available to check again
         return ctx.getStopAction(ctx.getMessage());
     }

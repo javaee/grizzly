@@ -290,7 +290,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequestInProcessAttr.set(context, httpRequest);
         } else if (httpRequest.isContentBroken()) {
             // if payload of the current/last HTTP request associated with the
-            // Connection is broken - stop processing here
+            // Connection is broken - shutdownNow processing here
             return ctx.getStopAction();
         }
 

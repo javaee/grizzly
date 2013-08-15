@@ -52,3 +52,5 @@
 /web-common_3_0.xsd
 /xml.xsd
 /modules/http/src/main/java/org/glassfish/grizzly/http/util/Base64Utils.java
+/bom/pom.xml
+

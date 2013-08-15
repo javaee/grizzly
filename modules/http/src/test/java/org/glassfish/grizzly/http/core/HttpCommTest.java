@@ -149,7 +149,7 @@ public class HttpCommTest extends TestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

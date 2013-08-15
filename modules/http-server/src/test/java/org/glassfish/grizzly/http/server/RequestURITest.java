@@ -73,8 +73,6 @@ import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 /**
  * Checking the request-uri passed to HttpHandler
  * 
@@ -286,7 +284,7 @@ public class RequestURITest extends TestCase {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
     

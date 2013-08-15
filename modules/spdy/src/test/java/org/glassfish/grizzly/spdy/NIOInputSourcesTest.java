@@ -598,7 +598,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -700,7 +700,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -1171,7 +1171,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             }
 
 
-            // Return the stop action, which means we don't expect next filter to process
+            // Return the shutdownNow action, which means we don't expect next filter to process
             // connect event
             return ctx.getStopAction();
         }

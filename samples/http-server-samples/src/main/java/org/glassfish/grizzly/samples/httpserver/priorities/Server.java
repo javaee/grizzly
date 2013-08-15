@@ -132,7 +132,7 @@ public class Server {
         try {
             // Start the server
             server.start();
-            System.out.println("The server is running. Press enter to stop...");
+            System.out.println("The server is running. Press enter to shutdownNow...");
             System.in.read();
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);

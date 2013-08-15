@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -108,12 +108,12 @@ public class SSLEchoClient {
             // perform async. connect to the server
             transport.connect(SSLEchoServer.HOST, SSLEchoServer.PORT);
 
-            System.out.println("Press any key to stop the client...");
+            System.out.println("Press any key to shutdownNow the client...");
             System.in.read();
         } finally {
             System.out.println("Stopping transport...");
-            // stop the transport
-            transport.stop();
+            // shutdownNow the transport
+            transport.shutdownNow();
 
             System.out.println("Stopped transport...");
         }

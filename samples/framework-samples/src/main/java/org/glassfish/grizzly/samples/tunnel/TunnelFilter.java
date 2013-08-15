@@ -94,7 +94,7 @@ public class TunnelFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
         final Connection peerConnection = peerConnectionAttribute.get(connection);
 
-        // if connection is closed - stop the execution
+        // if connection is closed - shutdownNow the execution
         if (!connection.isOpen()) {
             return ctx.getStopAction();
         }

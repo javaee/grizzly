@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -535,7 +534,7 @@ public abstract class AbstractTransport implements Transport {
     }
 
     /**
-     * Notify registered {@link TransportProbe}s about the before-stop event.
+     * Notify registered {@link TransportProbe}s about the before-shutdownNow event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      *
@@ -552,7 +551,7 @@ public abstract class AbstractTransport implements Transport {
     }
 
     /**
-     * Notify registered {@link TransportProbe}s about the stop event.
+     * Notify registered {@link TransportProbe}s about the shutdownNow event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
@@ -629,37 +628,6 @@ public abstract class AbstractTransport implements Transport {
             }
         }
     }
-    /**
-     * Starts the transport
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void start() throws IOException;
-    
-    /**
-     * Stops the transport and closes all the connections
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void stop() throws IOException;
-    
-    /**
-     * Pauses the transport
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void pause() throws IOException;
-    
-    /**
-     * Resumes the transport after a pause
-     * 
-     * @throws IOException
-     */
-    @Override
-    public abstract void resume() throws IOException;
 
     /**
      * Create the Transport JMX management object.

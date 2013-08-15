@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,43 +37,25 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.filterchain;
-
-import org.glassfish.grizzly.Appender;
+package org.glassfish.grizzly;
 
 /**
- * {@link NextAction}, which instructs {@link FilterChain} to shutdownNow executing
- * phase and start post executing filters.
- * 
- * @author Alexey Stashok
+ * This class will be passed to {@link GracefulShutdownListener} instances
+ * registered against a {@link Transport}.
+ *
+ * @since 2.3.4
  */
-final class StopAction extends AbstractNextAction {
-    static final int TYPE = 1;
-    
-    private Appender appender;
-    private Object incompleteChunk;
+public interface ShutdownContext {
 
+    /**
+     * @return the Transport that is being shutdown.
+     */
+    Transport getTransport();
 
-    StopAction() {
-        super(TYPE);
-    }
+    /**
+     * Invoked by called {@link GracefulShutdownListener} to notify the graceful
+     * termination process that it's safe to terminate the transport.
+     */
+    void ready();
 
-    public Object getIncompleteChunk() {
-        return incompleteChunk;
-    }
-
-    public Appender getAppender() {
-        return appender;
-    }
-
-    public <E> void setIncompleteChunk(E incompleteChunk, Appender<E> appender) {
-        this.incompleteChunk = incompleteChunk;
-        this.appender = appender;
-    }
-
-    void reset() {
-        incompleteChunk = null;
-        appender = null;
-    }
 }

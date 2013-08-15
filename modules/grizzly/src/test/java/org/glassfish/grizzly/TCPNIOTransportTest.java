@@ -56,7 +56,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -76,9 +75,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.DataStructures;
@@ -87,8 +83,13 @@ import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
 import org.glassfish.grizzly.utils.StringFilter;
+import org.junit.Before;
+import org.junit.Test;
 
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 
 /**
@@ -97,69 +98,18 @@ import static junit.framework.Assert.assertTrue;
  * @author Alexey Stashok
  */
 @SuppressWarnings("unchecked")
-public class TCPNIOTransportTest extends GrizzlyTestCase {
+public class TCPNIOTransportTest {
 
     public static final int PORT = 7777;
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransportTest.class);
 
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
     }
 
-
-    public void testStartStop() throws IOException {
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-        } finally {
-            transport.stop();
-        }
-    }
-
-    public void testStartStopStart() throws Exception {
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-            Future<Connection> future = transport.connect("localhost", PORT);
-            Connection connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-            connection.closeSilently();
-            
-            transport.stop();
-            assertTrue(transport.isStopped());
-            
-            transport.bind(PORT);
-            transport.start();
-            assertTrue(!transport.isStopped());
-            
-            future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-            connection.closeSilently();
-        } finally {
-            transport.stop();
-        }
-    }
-    
-    public void testReadWriteTimeout() throws Exception {
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
-        assertEquals(30, transport.getBlockingReadTimeout(TimeUnit.SECONDS));
-        transport.setBlockingReadTimeout(45, TimeUnit.MINUTES);
-        assertEquals(TimeUnit.MILLISECONDS.convert(45, TimeUnit.MINUTES), transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
-        transport.setBlockingReadTimeout(-5, TimeUnit.SECONDS);
-        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-        transport.setBlockingReadTimeout(0, TimeUnit.SECONDS);
-        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-    }
-
+    @Test
     public void testConnectorHandlerConnect() throws Exception {
         Connection connection = null;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
@@ -176,10 +126,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testBindUnbind() throws Exception {
         Connection connection = null;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
@@ -213,10 +164,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testMultiBind() throws Exception {
         Connection connection = null;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
@@ -261,82 +213,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
-    public void testPortRangeBind() throws Exception {
-        final int portsTest = 10;
-        final int startPort = PORT + 1234;
-        final PortRange portRange = new PortRange(startPort, startPort + portsTest - 1);
-
-        Connection connection;
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setReuseAddress(false)
-                .build();
-
-        try {
-            for (int i = 0; i < portsTest; i++) {
-                        transport.bind("localhost", portRange, 4096);
-            }
-
-            try {
-                transport.bind("localhost", portRange, 4096);
-                fail("All ports in range had to be occupied");
-            } catch (IOException e) {
-                // must be thrown
-            }
-
-            transport.start();
-
-            for (int i = 0; i < portsTest; i++) {
-                Future<Connection> future = transport.connect("localhost", startPort + i);
-                connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
-                connection.closeSilently();
-            }
-        } finally {
-            transport.stop();
-        }
-    }
-    
-    public void testConnectorHandlerConnectAndWrite() throws Exception {
-        Connection connection = null;
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        
-        transport.setFilterChain(FilterChainBuilder.stateless()
-                .add(new TransportFilter())
-                .build());
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-
-            final Future<Connection> connectFuture = transport.connect(
-                    new InetSocketAddress("localhost", PORT));
-            
-            connection = connectFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
-            connection.configureBlocking(true);
-            final Buffer sendingBuffer = Buffers.wrap(
-                    transport.getMemoryManager(), "Hello");
-            final int bufferSize = sendingBuffer.remaining();
-
-            Future<WriteResult> writeFuture = connection.write(sendingBuffer);
-            
-            WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(writeFuture.isDone());
-            assertEquals(bufferSize, writeResult.getWrittenSize());
-        } finally {
-            if (connection != null) {
-                connection.closeSilently();
-            }
-
-            transport.stop();
-        }
-    }
-
+    @Test
     public void testClose() throws Exception {
         final BlockingQueue<Connection> acceptedQueue = DataStructures.getLTQInstance();
         
@@ -401,10 +282,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connectedConnection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }        
     }
-    
+
+    @Test
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
 
@@ -451,10 +333,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
 
@@ -502,10 +385,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
 
@@ -550,10 +434,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
         int packetsNumber = 20;
         final int packetSize = 17644;
@@ -567,9 +452,10 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx)
-                    throws IOException {
-                
-                serverBytesCounter.addAndGet(((Buffer) ctx.getMessage()).remaining());
+            throws IOException {
+
+                serverBytesCounter.addAndGet(
+                        ((Buffer) ctx.getMessage()).remaining());
                 return super.handleRead(ctx);
             }
         });
@@ -637,10 +523,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
-    
+
+    @Test
     public void testChunkedMessageWithSleep() throws Exception {
         class CheckSizeFilter extends BaseFilter {
             private int size;
@@ -731,10 +618,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testSelectorSwitch() throws Exception {
         Connection connection = null;
 
@@ -799,10 +687,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
-    
+
+    @Test
     public void testConnectFutureCancel() throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
@@ -857,36 +746,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             
             assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
-    public void testWorkerThreadPoolConfiguration() throws Exception {
-        TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
-        config.setCorePoolSize(1);
-        config.setMaxPoolSize(1);
-        config.setPoolName("custom");
-        t.setWorkerThreadPoolConfig(config);
-        t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
-        ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
-        assertEquals(1, underTest.getCorePoolSize());
-        assertEquals(1, underTest.getMaxPoolSize());
-        assertEquals("custom", underTest.getPoolName());
-    }
-
-    public void testWorkerThreadPoolConfiguration2() throws Exception {
-        TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
-        config.setCorePoolSize(1);
-        config.setMaxPoolSize(1);
-        config.setPoolName("custom");
-        t.setWorkerThreadPoolConfig(config);
-        t.setIOStrategy(SameThreadIOStrategy.getInstance());
-        assertNull(t.getWorkerThreadPoolConfig());
-        assertNull(t.getWorkerThreadPool());
-    }
-    
+    @Test
     public void testParallelWritesBlockingMode() throws Exception {
         doTestParallelWrites(100, 100000, true);
     }
@@ -962,7 +826,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             try {
-                transport.stop();
+                transport.shutdownNow();
             } catch (Exception e) {
             }
 

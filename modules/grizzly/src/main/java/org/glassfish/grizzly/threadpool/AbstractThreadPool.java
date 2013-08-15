@@ -73,7 +73,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     // Max number of worker threads in a pool
     public static final int DEFAULT_MAX_THREAD_COUNT;
 
-    // "Never stop the thread by timeout" value
+    // "Never shutdownNow the thread by timeout" value
     private static final Long NEVER_TIMEOUT = Long.MAX_VALUE;
 
     static {

@@ -121,7 +121,7 @@ public class StandaloneTest extends GrizzlyTestCase {
                 connection.close();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
 
     }

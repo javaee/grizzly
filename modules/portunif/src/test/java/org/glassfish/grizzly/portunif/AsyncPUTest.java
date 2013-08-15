@@ -156,7 +156,7 @@ public class AsyncPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -223,7 +223,7 @@ public class AsyncPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

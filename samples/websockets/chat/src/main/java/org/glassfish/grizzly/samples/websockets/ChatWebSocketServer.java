@@ -75,11 +75,11 @@ public class ChatWebSocketServer {
 
         try {
             server.start();
-            System.out.println("Press any key to stop the server...");
+            System.out.println("Press any key to shutdownNow the server...");
             //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } finally {
-            // stop the server
+            // shutdownNow the server
             server.shutdownNow();
         }
     }

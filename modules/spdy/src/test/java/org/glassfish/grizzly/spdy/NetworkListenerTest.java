@@ -64,7 +64,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 
-import static org.glassfish.grizzly.spdy.AbstractSpdyTest.createClientFilterChainAsBuilder;
 import static org.junit.Assert.*;
 /**
  * {@link NetworkListener} tests.
@@ -157,7 +156,7 @@ public class NetworkListenerTest extends AbstractSpdyTest {
                 }
             }            
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }    

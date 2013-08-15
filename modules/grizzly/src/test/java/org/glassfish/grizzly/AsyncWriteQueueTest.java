@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,7 +52,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -88,8 +87,6 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class AsyncWriteQueueTest {
     public static final int PORT = 7781;
-
-    private static final Logger LOGGER = Grizzly.logger(AsyncWriteQueueTest.class);
 
     @Parameters
     public static Collection<Object[]> getOptimizedForMultiplexing() {
@@ -237,7 +234,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -250,7 +247,7 @@ public class AsyncWriteQueueTest {
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
         
-        final FutureImpl<Buffer> responseFuture = Futures.<Buffer>createSafeFuture();
+        final FutureImpl<Buffer> responseFuture = Futures.createSafeFuture();
 
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
@@ -376,7 +373,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -448,7 +445,7 @@ public class AsyncWriteQueueTest {
             if (transport.isPaused()) {
                 transport.resume();
             }
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -558,7 +555,7 @@ public class AsyncWriteQueueTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -584,11 +581,7 @@ public class AsyncWriteQueueTest {
 
         @Override
         public void onWritePossible() throws Exception {
-            try {
-                transport.pause(); // prevent more writes
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
+            transport.pause(); // prevent more writes
             current.interrupt(); // wake up the test thread
         }
 

@@ -197,7 +197,7 @@ public class TestMain {
         
         try {
             server.start();
-            System.out.println("Press any key to stop ...");
+            System.out.println("Press any key to shutdownNow ...");
             //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } catch (Exception e) {

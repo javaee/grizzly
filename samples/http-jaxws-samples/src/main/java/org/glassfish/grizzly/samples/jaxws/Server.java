@@ -72,7 +72,7 @@ public class Server {
         
         try {
             System.out.println("WSDL is available at http://localhost:" + PORT + WEB_SERVICE_CONTEXT_ROOT + "?wsdl");
-            System.out.println("Press enter to stop the server...");
+            System.out.println("Press enter to shutdownNow the server...");
             System.in.read();
         } finally {
             httpServer.shutdownNow();

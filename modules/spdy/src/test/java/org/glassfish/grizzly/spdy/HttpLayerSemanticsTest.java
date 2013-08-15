@@ -68,7 +68,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.glassfish.grizzly.spdy.AbstractSpdyTest.createClientFilterChain;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -206,7 +205,7 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

@@ -242,7 +242,7 @@ public class BackendConfigTest {
                 }
             }
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
         }
     }
 

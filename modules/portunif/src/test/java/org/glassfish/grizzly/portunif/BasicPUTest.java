@@ -133,7 +133,7 @@ public class BasicPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
@@ -180,7 +180,7 @@ public class BasicPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -232,7 +232,7 @@ public class BasicPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
     
@@ -429,7 +429,7 @@ public class BasicPUTest {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 

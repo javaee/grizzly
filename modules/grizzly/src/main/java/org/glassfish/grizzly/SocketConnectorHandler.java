@@ -52,6 +52,9 @@ import java.net.SocketAddress;
  * @author Alexey Stashok
  */
 public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> {
+
+    int DEFAULT_CONNECTION_TIMEOUT = 30000;
+
     /**
      * Creates, initializes socket, binds it to the specific local and remote
      * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.

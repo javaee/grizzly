@@ -103,7 +103,7 @@ public class ServerAuthFilter extends BaseFilter {
             // send authentication response back
             ctx.write(authResponse);
 
-            // stop the packet processing
+            // shutdownNow the packet processing
             return ctx.getStopAction();
         } else {
             // if it's some custom message

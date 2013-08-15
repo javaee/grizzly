@@ -229,7 +229,7 @@ public class HttpServer {
                 } catch (IOException ioe) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
                         LOGGER.log(Level.SEVERE,
-                                   "Failed to stop listener [{0}] : {1}",
+                                   "Failed to shutdownNow listener [{0}] : {1}",
                                     new Object[] { listener.toString(), ioe.toString() });
                         LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
                     }

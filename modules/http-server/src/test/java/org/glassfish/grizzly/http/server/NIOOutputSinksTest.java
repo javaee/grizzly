@@ -113,14 +113,14 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -170,19 +170,11 @@ public class NIOOutputSinksTest extends TestCase {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
-                        try {
-                            clientTransport.pause();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.pause();
 
                         assertTrue(c.canWrite());
 
-                        try {
-                            clientTransport.resume();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.resume();
                         try {
                             byte[] b = new byte[LENGTH];
                             fill(b);
@@ -235,7 +227,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -274,14 +266,14 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -356,7 +348,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -392,14 +384,14 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -458,17 +450,9 @@ public class NIOOutputSinksTest extends TestCase {
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
-                        try {
-                            clientTransport.pause();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.pause();
                         assertTrue(c.canWrite());
-                        try {
-                            clientTransport.resume();
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                        }
+                        clientTransport.resume();
                         try {
                             char[] c = new char[LENGTH];
                             fill(c);
@@ -517,7 +501,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
 
@@ -558,14 +542,14 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -635,7 +619,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -689,7 +673,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
@@ -760,7 +744,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -796,7 +780,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
@@ -804,7 +788,7 @@ public class NIOOutputSinksTest extends TestCase {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
@@ -873,7 +857,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -887,7 +871,7 @@ public class NIOOutputSinksTest extends TestCase {
                                     PORT);
         server.addListener(listener);
         
-        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
+        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
@@ -905,7 +889,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
@@ -915,7 +899,7 @@ public class NIOOutputSinksTest extends TestCase {
                 final HttpPacket message = ctx.getMessage();
                 final HttpHeader header = message.isHeader() ?
                         (HttpHeader) message :
-                        ((HttpContent) message).getHttpHeader();
+                        message.getHttpHeader();
                 
                 parseResult.result(header);
                 
@@ -1013,7 +997,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -1032,7 +1016,7 @@ public class NIOOutputSinksTest extends TestCase {
                                     PORT);
         server.addListener(listener);
         
-        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
@@ -1051,14 +1035,14 @@ public class NIOOutputSinksTest extends TestCase {
                 // Write the request asynchronously
                 ctx.write(httpRequest);
 
-                // Return the stop action, which means we don't expect next filter to process
+                // Return the shutdownNow action, which means we don't expect next filter to process
                 // connect event
                 return ctx.getStopAction();
             }
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -1152,7 +1136,7 @@ public class NIOOutputSinksTest extends TestCase {
             e.printStackTrace();
             fail();
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }
@@ -1178,8 +1162,8 @@ public class NIOOutputSinksTest extends TestCase {
         
         final AtomicReference<Connection> connectionToClose =
                 new AtomicReference<Connection>();
-        final FutureImpl<Boolean> floodReached = Futures.<Boolean>createSafeFuture();
-        final FutureImpl<HttpContent> result = Futures.<HttpContent>createSafeFuture();
+        final FutureImpl<Boolean> floodReached = Futures.createSafeFuture();
+        final FutureImpl<HttpContent> result = Futures.createSafeFuture();
         
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -1290,7 +1274,7 @@ public class NIOOutputSinksTest extends TestCase {
             
             assertEquals(checkPattern, httpContent.getContent().toStringContent());
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }

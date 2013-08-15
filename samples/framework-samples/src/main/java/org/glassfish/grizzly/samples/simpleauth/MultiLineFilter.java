@@ -84,7 +84,7 @@ public class MultiLineFilter extends BaseFilter {
      * we assume {@link MultiLinePacket} completed and pass control to a next
      * {@link org.glassfish.grizzly.filterchain.Filter} in a chain. If it's not a
      * terminating line - we add another string line to a {@link MultiLinePacket}
-     * and stop the request processing until more strings will get available.
+     * and shutdownNow the request processing until more strings will get available.
      *
      * @param ctx Request processing context
      *

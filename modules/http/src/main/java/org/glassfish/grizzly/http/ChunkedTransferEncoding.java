@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -134,7 +134,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 }
 
                 // if not a HEAD request and we don't have enough data to
-                // parse chunk length - stop execution
+                // parse chunk length - shutdownNow execution
                 return ParsingResult.create(null, input);
             }
         } else {
@@ -158,7 +158,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
             // Check if trailer is present
             if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, input)) {
-                // if yes - and there is not enough input data - stop the
+                // if yes - and there is not enough input data - shutdownNow the
                 // filterchain processing
                 return ParsingResult.create(null, input);
             }

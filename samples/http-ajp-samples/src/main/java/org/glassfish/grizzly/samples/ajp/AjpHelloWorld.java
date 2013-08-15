@@ -98,7 +98,7 @@ public class AjpHelloWorld {
             // 8009 : for AJP
             // both ports redirect requests to HelloWorldHandler
 
-            System.out.println("Press enter to stop...");
+            System.out.println("Press enter to shutdownNow...");
             System.in.read();
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);

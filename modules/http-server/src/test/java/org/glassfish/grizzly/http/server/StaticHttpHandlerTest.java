@@ -159,7 +159,7 @@ public class StaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     
@@ -196,7 +196,7 @@ public class StaticHttpHandlerTest {
             
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     
@@ -259,7 +259,7 @@ public class StaticHttpHandlerTest {
             assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
             c.close();
         } finally {
-            client.stop();
+            client.shutdownNow();
         }        
     }
     

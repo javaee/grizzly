@@ -58,13 +58,16 @@ import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.StringFilter;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link UDPNIOTransport}
@@ -72,162 +75,18 @@ import org.glassfish.grizzly.utils.StringFilter;
  * @author Alexey Stashok
  */
 @SuppressWarnings("unchecked")
-public class UDPNIOTransportTest extends GrizzlyTestCase {
+public class UDPNIOTransportTest {
     public static final int PORT = 7777;
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOTransportTest.class);
     
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
     }
 
 
-    public void testStartStop() throws IOException {
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-        } catch (Exception e) {
-            e.printStackTrace(System.out);
-            assertTrue("Exception!!!", false);
-        } finally {
-            transport.stop();
-        }
-    }
-
-    public void testStartStopStart() throws Exception {
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-            Future<Connection> future = transport.connect("localhost", PORT);
-            Connection connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-            connection.closeSilently();
-            
-            transport.stop();
-            assertTrue(transport.isStopped());
-            
-            transport.bind(PORT);
-            transport.start();
-            assertTrue(!transport.isStopped());
-            
-            future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-            connection.closeSilently();
-        } finally {
-            transport.stop();
-        }
-    }
-    
-    public void testReadWriteTimeout() throws Exception {
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
-        assertEquals(30, transport.getBlockingReadTimeout(TimeUnit.SECONDS));
-        transport.setBlockingReadTimeout(45, TimeUnit.MINUTES);
-        assertEquals(TimeUnit.MILLISECONDS.convert(45, TimeUnit.MINUTES), transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-        assertEquals(30, transport.getBlockingWriteTimeout(TimeUnit.SECONDS));
-        transport.setBlockingReadTimeout(-5, TimeUnit.SECONDS);
-        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-        transport.setBlockingReadTimeout(0, TimeUnit.SECONDS);
-        assertEquals(-1, transport.getBlockingReadTimeout(TimeUnit.MILLISECONDS));
-    }
-
-    public void testPortRangeBind() throws Exception {
-        final int portsTest = 10;
-        final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);
-
-        Connection connection;
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance()
-                .setReuseAddress(false)
-                .build();
-        
-        try {
-            for (int i = 0; i < portsTest; i++) {
-                transport.bind("localhost", portRange, 4096);
-            }
-
-            try {
-                transport.bind("localhost", portRange, 4096);
-                fail("All ports in range had to be occupied");
-            } catch (IOException e) {
-                // must be thrown
-            }
-
-            transport.start();
-
-            for (int i = 0; i < portsTest; i++) {
-                Future<Connection> future = transport.connect("localhost", PORT + i);
-                connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue(connection != null);
-                connection.closeSilently();
-            }
-        } finally {
-            transport.stop();
-        }
-    }
-
-    public void testConnectorHandlerConnect() throws Exception {
-        Connection connection = null;
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-        } finally {
-            if (connection != null) {
-                connection.closeSilently();
-            }
-
-            transport.stop();
-        }
-    }
-
-    public void testConnectorHandlerConnectAndWrite() throws Exception {
-        Connection connection = null;
-        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
-        
-        transport.setFilterChain(FilterChainBuilder.stateless()
-                .add(new TransportFilter())
-                .build());
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-
-            final Future<Connection> connectFuture = transport.connect(
-                    new InetSocketAddress("localhost", PORT));
-            
-            connection = connectFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
-            connection.configureBlocking(true);
-            final Buffer sendingBuffer = Buffers.wrap(
-                    transport.getMemoryManager(), "Hello");
-            final int bufferSize = sendingBuffer.remaining();
-
-            Future<WriteResult> writeFuture = connection.write(sendingBuffer);
-            
-            WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(writeFuture.isDone());
-            assertEquals(bufferSize, writeResult.getWrittenSize());
-        } finally {
-            if (connection != null) {
-                connection.closeSilently();
-            }
-
-            transport.stop();
-        }
-    }
-
+    @Test
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
 
@@ -274,10 +133,11 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
 
@@ -325,10 +185,11 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
 
@@ -373,10 +234,11 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
 
+    @Test
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
         int packetsNumber = 100;
         final int packetSize = 32;
@@ -454,35 +316,11 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
                 connection.closeSilently();
             }
 
-            transport.stop();
+            transport.shutdownNow();
         }
     }
-    public void testWorkerThreadPoolConfiguration() throws Exception {
-        UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
-        config.setCorePoolSize(1);
-        config.setMaxPoolSize(1);
-        config.setPoolName("custom");
-        t.setWorkerThreadPoolConfig(config);
-        t.setIOStrategy(WorkerThreadIOStrategy.getInstance());
-        ThreadPoolConfig underTest = t.getWorkerThreadPoolConfig();
-        assertEquals(1, underTest.getCorePoolSize());
-        assertEquals(1, underTest.getMaxPoolSize());
-        assertEquals("custom", underTest.getPoolName());
-    }
 
-    public void testWorkerThreadPoolConfiguration2() throws Exception {
-        UDPNIOTransport t = UDPNIOTransportBuilder.newInstance().build();
-        ThreadPoolConfig config = ThreadPoolConfig.newConfig();
-        config.setCorePoolSize(1);
-        config.setMaxPoolSize(1);
-        config.setPoolName("custom");
-        t.setWorkerThreadPoolConfig(config);
-        t.setIOStrategy(SameThreadIOStrategy.getInstance());
-        assertNull(t.getWorkerThreadPoolConfig());
-        assertNull(t.getWorkerThreadPool());
-    }
-
+    @Test
     public void testConnectFutureCancel() throws Exception {
         UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance().build();
 
@@ -519,15 +357,12 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            int numberOfCancelledConnections = 0;
             final int connectionsNum = 100;
             
             for (int i = 0; i < connectionsNum; i++) {
                 final Future<Connection> connectFuture = connectorHandler.connect(
                         new InetSocketAddress("localhost", PORT));
-                if (connectFuture.cancel(false)) {
-                    numberOfCancelledConnections++;
-                } else {
+                if (!connectFuture.cancel(false)) {
                     assertTrue("Future is not done", connectFuture.isDone());
                     final Connection c = connectFuture.get();
                     assertNotNull("Connection is null?", c);
@@ -540,7 +375,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             
             assertEquals("Number of connected and closed connections doesn't match", connectCounter.get(), closeCounter.get());
         } finally {
-            transport.stop();
+            transport.shutdownNow();
         }
     }    
 }

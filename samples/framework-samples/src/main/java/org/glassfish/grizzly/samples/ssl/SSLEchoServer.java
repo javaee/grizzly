@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,12 +99,12 @@ public class SSLEchoServer {
             // start the transport
             transport.start();
 
-            System.out.println("Press any key to stop the server...");
+            System.out.println("Press any key to shutdownNow the server...");
             System.in.read();
         } finally {
             System.out.println("Stopping transport...");
-            // stop the transport
-            transport.stop();
+            // shutdownNow the transport
+            transport.shutdownNow();
 
             System.out.println("Stopped transport...");
         }

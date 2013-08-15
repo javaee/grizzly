@@ -462,7 +462,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             try {
                 // if header wasn't parsed - parse
                 if (!decodeHttpPacket(ctx, httpPacket, input)) {
-                    // if there is not enough data to parse the HTTP header - stop
+                    // if there is not enough data to parse the HTTP header - shutdownNow
                     // filterchain processing
                     return ctx.getStopAction(input);
                 } else {
@@ -1167,7 +1167,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     ctx.setMessage(remainderBuffer);
                     return ctx.getRerunFilterAction();
                 } else {
-                    // if no remainder - just stop
+                    // if no remainder - just shutdownNow
                     return ctx.getStopAction();
                 }
             }

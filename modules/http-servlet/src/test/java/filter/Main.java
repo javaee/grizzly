@@ -69,7 +69,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         HttpServer httpServer = startServer();
-//        Utils.dumpOut(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
+//        Utils.dumpOut(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to shutdownNow it...",
 //                BASE_URI));
         System.in.read();
         httpServer.shutdownNow();

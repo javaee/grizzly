@@ -1151,7 +1151,7 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
 
         } finally {
             server.shutdownNow();
-            ctransport.stop();
+            ctransport.shutdownNow();
         }
     }
 
@@ -1224,7 +1224,7 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
             // Write the request asynchronously
             ctx.write(httpRequest);
 
-            // Return the stop action, which means we don't expect next filter to process
+            // Return the shutdownNow action, which means we don't expect next filter to process
             // connect event
             return ctx.getStopAction();
         }
