@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 /**
  * Client side connector handler API.
  * <tt>ConnectorHandler</tt> is responsible for creating and initializing
- * {@link Connection}, and optionally connect is to a specific local/remote
+ * {@link Connection}, and optionally connect it to a specific local/remote
  * address.
  *
  * @author Alexey Stashok
@@ -53,43 +53,43 @@ import java.util.concurrent.Future;
 public interface ConnectorHandler<E> {
 
     /**
-     * Creates, initializes and connects socket to the specific
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * Creates, initializes and establishes {@link Connection} to the specific
+     * <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
+     * @param remoteAddress remote address to connect to
      * @return {@link Future} of connect operation, which could be used to get
-     * resulting {@link Connection}.
+     * resulting {@link Connection}
      */
     public Future<Connection> connect(E remoteAddress);
 
     /**
-     * Creates, initializes and connects socket to the specific
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * Creates, initializes and establishes {@link Connection} to the specific
+     * <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
-     * @param completionHandler {@link CompletionHandler}.
+     * @param remoteAddress remote address to connect to
+     * @param completionHandler {@link CompletionHandler}
      */
     public void connect(E remoteAddress,
             CompletionHandler<Connection> completionHandler);
 
     /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * Creates, initializes {@link Connection}, binds it to the specific local
+     * and remote <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
+     * @param remoteAddress remote address to connect to
+     * @param localAddress local address to bind a {@link Connection} to
      * @return {@link Future} of connect operation, which could be used to get
-     * resulting {@link Connection}.
+     * resulting {@link Connection}
      */
     public Future<Connection> connect(E remoteAddress, E localAddress);
 
     /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
+     * Creates, initializes {@link Connection}, binds it to the specific local
+     * and remote <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
-     * @param completionHandler {@link CompletionHandler}.
+     * @param remoteAddress remote address to connect to
+     * @param localAddress local address to bind a {@link Connection} to
+     * @param completionHandler {@link CompletionHandler}
      */
     public void connect(E remoteAddress,
             E localAddress,
