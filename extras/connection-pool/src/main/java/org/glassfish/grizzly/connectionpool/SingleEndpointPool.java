@@ -44,6 +44,7 @@ import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -823,14 +824,27 @@ public class SingleEndpointPool<E> {
                 connectorHandler.connect(endpointAddress, localEndpointAddress,
                         defaultConnectionCompletionHandler);
             } else {
-                final GrizzlyFuture<Connection> future =
+                // In Grizzly 2.x it's not possible to change ConnectorHandler API
+                // to return GrizzlyFuture, so we have to cast Future to a GrizzlyFuture
+                // in order to support connect-timeout
+                final Future<Connection> future =
                         connectorHandler.connect(endpointAddress, localEndpointAddress);
-                final ConnectTimeoutTask connectTimeoutTask =
-                        new ConnectTimeoutTask(future);
                 
-                connectTimeoutQueue.add(connectTimeoutTask,
-                        connectTimeoutMillis, TimeUnit.MILLISECONDS);
-                future.addCompletionHandler(defaultConnectionCompletionHandler);
+                if (future instanceof GrizzlyFuture) {
+                    final GrizzlyFuture<Connection> listenableFuture =
+                            (GrizzlyFuture<Connection>) future;
+                    final ConnectTimeoutTask connectTimeoutTask =
+                            new ConnectTimeoutTask(listenableFuture);
+
+                    connectTimeoutQueue.add(connectTimeoutTask,
+                            connectTimeoutMillis, TimeUnit.MILLISECONDS);
+                    listenableFuture.addCompletionHandler(
+                            defaultConnectionCompletionHandler);
+                } else {
+                    LOGGER.log(Level.FINE, "ConnectorHandler doesn't support"
+                            + " interruption of the connect operation."
+                            + " Connect-timeout setting will be ignored");
+                }
             }
             
             return true;

@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.concurrent.Future;
 
 /**
  * Socket based client side connector.
@@ -62,10 +63,10 @@ public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> 
      * 
      * @param host remote host to connect to.
      * @param port remote port to connect to.
-     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
+     * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}.
      * 
      * @throws java.io.IOException
      */
-    GrizzlyFuture<Connection> connect(String host, int port) throws IOException;
+    Future<Connection> connect(String host, int port) throws IOException;
 }
