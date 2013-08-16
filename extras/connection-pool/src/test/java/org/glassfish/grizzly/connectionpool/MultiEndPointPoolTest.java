@@ -97,7 +97,7 @@ public class MultiEndPointPoolTest {
         }).build();
         
         transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
         
         for (int i = 0; i < NUMBER_OF_PORTS_TO_BIND; i++) {
             transport.bind(PORT + i);

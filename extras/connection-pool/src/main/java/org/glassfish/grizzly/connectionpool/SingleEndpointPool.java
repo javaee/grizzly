@@ -49,6 +49,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
@@ -261,7 +262,7 @@ public class SingleEndpointPool<E> {
         
         if (delayedExecutor == null) {
             // if custom DelayedExecutor is null - create our own
-            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
+            final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig()
                     .setPoolName("connection-pool-delays-thread-pool")
                     .setCorePoolSize(1)
                     .setMaxPoolSize(1);
@@ -966,13 +967,16 @@ public class SingleEndpointPool<E> {
      * either busy or ready has been closed, so the pool can adjust its counters.
      */
     private final class PoolConnectionCloseListener
-            implements CloseListener<Connection, CloseType> {
+            implements CloseListener {
 
         @Override
-        public void onClosed(final Connection connection, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
             synchronized (poolSync) {
-                final ConnectionInfo<E> info = connectionsMap.remove(connection);
+                assert closeable instanceof Connection;
+                
+                final ConnectionInfo<E> info = connectionsMap.remove(
+                        (Connection) closeable);
                 if (info != null) {
                     deregisterConnection(info);
                 }

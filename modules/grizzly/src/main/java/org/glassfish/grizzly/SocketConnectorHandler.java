@@ -56,29 +56,6 @@ public interface SocketConnectorHandler extends ConnectorHandler<SocketAddress> 
     int DEFAULT_CONNECTION_TIMEOUT = 30000;
 
     /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
-     *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
-     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
-     * resulting {@link Connection}.
-     */
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress, SocketAddress localAddress);
-
-    /**
-     * Creates, initializes socket, binds it to the specific local and remote
-     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
-     *
-     * @param remoteAddress remote address to connect to.
-     * @param localAddress local address to bind socket to.
-     * @param completionHandler {@link CompletionHandler}.
-     */
-    public void connect(SocketAddress remoteAddress,
-            SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler);
-
-    /**
      * Creates, initializes and connects socket to the specific remote host
      * and port and returns {@link Connection}, representing socket.
      * 

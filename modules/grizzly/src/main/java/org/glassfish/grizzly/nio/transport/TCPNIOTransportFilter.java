@@ -49,6 +49,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -135,7 +136,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     public NextAction handleEvent(final FilterChainContext ctx,
             final Event event) throws IOException {
         if (event.type() == TransportFilter.FlushEvent.TYPE) {
-            final Connection connection = ctx.getConnection();
+            final Connection<SocketAddress> connection = ctx.getConnection();
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
@@ -143,7 +144,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 throw new IllegalStateException("TransportContext CompletionHandler must be null");
             }
 
-            final CompletionHandler completionHandler =
+            final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler =
                     ((TransportFilter.FlushEvent) event).getCompletionHandler();
 
             transport.getWriter(transportContext.isBlocking()).write(connection,

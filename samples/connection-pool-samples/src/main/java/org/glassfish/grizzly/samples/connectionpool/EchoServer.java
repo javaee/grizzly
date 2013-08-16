@@ -94,7 +94,7 @@ public class EchoServer {
                 .build();
         
         final TCPNIOTransport tcpTransport = TCPNIOTransportBuilder.newInstance()
-                .setProcessor(filterChain)
+                .setFilterChain(filterChain)
                 .build();
 
         transport = tcpTransport;

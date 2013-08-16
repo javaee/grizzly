@@ -223,7 +223,7 @@ public class MultiEndpointPool<E> {
         this.maxReconnectAttempts = maxReconnectAttempts;
         
         if (delayedExecutor == null) {
-            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
+            final ThreadPoolConfig tpc = ThreadPoolConfig.newConfig()
                     .setPoolName("connection-pool-delays-thread-pool")
                     .setCorePoolSize(1)
                     .setMaxPoolSize(1);

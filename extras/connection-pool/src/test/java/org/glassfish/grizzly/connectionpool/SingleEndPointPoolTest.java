@@ -101,7 +101,7 @@ public class SingleEndPointPoolTest {
         }).build();
         
         transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(filterChain);
+        transport.setFilterChain(filterChain);
         
         transport.bind(PORT);
         transport.start();
@@ -325,7 +325,7 @@ public class SingleEndPointPoolTest {
                 .build();
         
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance()
-                .setProcessor(filterChain)
+                .setFilterChain(filterChain)
                 .build();
         
         final Thread t = new Thread() {
@@ -382,7 +382,7 @@ public class SingleEndPointPoolTest {
 
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance()
-                        .setProcessor(filterChain)
+                        .setFilterChain(filterChain)
                         .build();
 
 

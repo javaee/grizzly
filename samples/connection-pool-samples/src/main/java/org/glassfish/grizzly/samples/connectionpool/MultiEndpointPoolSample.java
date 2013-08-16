@@ -282,7 +282,7 @@ public class MultiEndpointPoolSample implements ClientCallback {
                 .build();
         
         connectorHandler = TCPNIOConnectorHandler.builder(tcpTransport)
-                .processor(clientFilterChain)
+                .filterChain(clientFilterChain)
                 .build();
     }
     

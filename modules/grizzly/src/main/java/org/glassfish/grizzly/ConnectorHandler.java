@@ -43,7 +43,7 @@ package org.glassfish.grizzly;
 /**
  * Client side connector handler API.
  * <tt>ConnectorHandler</tt> is responsible for creating and initializing
- * {@link Connection}, and optionally connect it to a specific remote
+ * {@link Connection}, and optionally connect it to a specific local/remote
  * address.
  *
  * @author Alexey Stashok
@@ -54,9 +54,9 @@ public interface ConnectorHandler<E> {
      * Creates, initializes and establishes {@link Connection} to the specific
      * <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
+     * @param remoteAddress remote address to connect to
      * @return {@link GrizzlyFuture} of connect operation, which could be used to get
-     * resulting {@link Connection}.
+     * resulting {@link Connection}
      */
     public GrizzlyFuture<Connection> connect(E remoteAddress);
 
@@ -64,9 +64,32 @@ public interface ConnectorHandler<E> {
      * Creates, initializes and establishes {@link Connection} to the specific
      * <code>remoteAddress</code>.
      *
-     * @param remoteAddress remote address to connect to.
-     * @param completionHandler {@link CompletionHandler}.
+     * @param remoteAddress remote address to connect to
+     * @param completionHandler {@link CompletionHandler}
      */
     public void connect(E remoteAddress,
+            CompletionHandler<Connection> completionHandler);
+    
+    /**
+     * Creates, initializes {@link Connection}, binds it to the specific local
+     * and remote <code>remoteAddress</code>.
+     *
+     * @param remoteAddress remote address to connect to
+     * @param localAddress local address to bind a {@link Connection} to
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
+     * resulting {@link Connection}
+     */
+    public GrizzlyFuture<Connection> connect(E remoteAddress, E localAddress);
+
+    /**
+     * Creates, initializes {@link Connection}, binds it to the specific local
+     * and remote <code>remoteAddress</code>.
+     *
+     * @param remoteAddress remote address to connect to
+     * @param localAddress local address to bind a {@link Connection} to
+     * @param completionHandler {@link CompletionHandler}
+     */
+    public void connect(E remoteAddress,
+            E localAddress,
             CompletionHandler<Connection> completionHandler);
 }
