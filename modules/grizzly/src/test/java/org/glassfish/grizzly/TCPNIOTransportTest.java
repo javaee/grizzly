@@ -807,7 +807,7 @@ public class TCPNIOTransportTest {
                 throw e;
             }
 
-            Boolean isDone = clientFuture.get(1000, TimeUnit.SECONDS);
+            Boolean isDone = clientFuture.get(10, TimeUnit.SECONDS);
             assertEquals(Boolean.TRUE, isDone);
         } catch (Exception e) {
             e.printStackTrace();
