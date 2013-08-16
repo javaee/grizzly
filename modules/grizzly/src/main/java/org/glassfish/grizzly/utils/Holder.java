@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,9 +87,6 @@ public abstract class Holder<E> {
     
     public abstract E get();
     
-    protected void set(final E value) {
-    }
-
     @Override
     public String toString() {
         final E obj = get();
@@ -101,12 +98,6 @@ public abstract class Holder<E> {
         private volatile boolean isSet;
         private E value;
         
-        @Override
-        protected synchronized void set(final E value) {
-            this.value = value;
-            isSet = true;
-        }
-
         @Override
         public final E get() {
             if (isSet) {
@@ -132,26 +123,13 @@ public abstract class Holder<E> {
             return getInt();
         }
 
-        @Override
-        protected final void set(final Integer value) {
-            setInt(value);
-        }
-        
         public abstract int getInt();
-        protected void setInt(int value) {
-        }
     }
     
     public static abstract class LazyIntHolder extends IntHolder {
         private volatile boolean isSet;
         private int value;
         
-        @Override
-        protected synchronized void setInt(final int value) {
-            this.value = value;
-            isSet = true;
-        }
-
         @Override
         public final int getInt() {
             if (isSet) {

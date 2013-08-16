@@ -65,7 +65,6 @@ import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
@@ -915,13 +914,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 storage.volatileFlag++;
                 return state;
             }
-        }
-    }
-    
-    protected static abstract class SettableIntHolder extends Holder.LazyIntHolder {
-        @Override
-        public synchronized void setInt(int value) {
-            super.setInt(value);
         }
     }
 }
