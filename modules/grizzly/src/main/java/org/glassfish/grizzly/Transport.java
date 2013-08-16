@@ -64,13 +64,14 @@ import org.glassfish.grizzly.utils.StateHolder;
 public interface Transport extends MonitoringAware<TransportProbe> {
 
     /**
-     * The default read buffer size.  This value is used to determine
-     * how large of a buffer to allocate when performing a read from
-     * a socket.
-     *
-     * @since 2.2.8
+     * The default read buffer size.
      */
-    static final int DEFAULT_READ_BUFFER_SIZE = 1024 * 64;
+    public static final int DEFAULT_READ_BUFFER_SIZE = -1;
+
+    /**
+     * The default write buffer size.
+     */
+    public static final int DEFAULT_WRITE_BUFFER_SIZE = -1;
 
     /**
      * Default read timeout in seconds.

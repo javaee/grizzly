@@ -39,30 +39,28 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.NIOTransportBuilder;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 /**
  * {@link NIOTransportBuilder} implementation for <code>TCP</code>.
  *
  * @since 2.0
  */
+@SuppressWarnings("ALL")
 public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportBuilder> {
 
-
-    protected TCPNIOTransport tcpTransport;
+    protected boolean keepAlive = TCPNIOTransport.DEFAULT_KEEP_ALIVE;
+    protected int linger = TCPNIOTransport.DEFAULT_LINGER;
+    protected int serverConnectionBackLog = TCPNIOTransport.DEFAULT_SERVER_CONNECTION_BACKLOG;
+    protected int serverSocketSoTimeout = TCPNIOTransport.DEFAULT_SERVER_SOCKET_SO_TIMEOUT;
+    protected boolean tcpNoDelay = TCPNIOTransport.DEFAULT_TCP_NO_DELAY;
+    protected boolean optimizedForMultiplexing = TCPNIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected TCPNIOTransportBuilder(Class<? extends TCPNIOTransport> transportClass,
-                                     IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
-        super(transportClass, strategy);
-        tcpTransport = (TCPNIOTransport) transport;
+    protected TCPNIOTransportBuilder(Class<? extends TCPNIOTransport> transportClass) {
+        super(transportClass);
     }
 
 
@@ -70,54 +68,14 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
 
 
     public static TCPNIOTransportBuilder newInstance() {
-        try {
-            return new TCPNIOTransportBuilder(TCPNIOTransport.class,
-                                              WorkerThreadIOStrategy.getInstance());
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-
-    /**
-     * @see TCPNIOTransport#getClientSocketSoTimeout()
-     */
-    public int getClientSocketSoTimeout() {
-        return tcpTransport.getClientSocketSoTimeout();
-    }
-
-    /**
-     * @see TCPNIOTransport#setClientSocketSoTimeout(int)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setClientSocketSoTimeout(int clientSocketSoTimeout) {
-        tcpTransport.setClientSocketSoTimeout(clientSocketSoTimeout);
-        return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#getConnectionTimeout()
-     */
-    public int getConnectionTimeout() {
-        return tcpTransport.getConnectionTimeout();
-    }
-
-    /**
-     * @see TCPNIOTransport#setConnectionTimeout(int)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setConnectionTimeout(int connectionTimeout) {
-        tcpTransport.setConnectionTimeout(connectionTimeout);
-        return getThis();
+        return new TCPNIOTransportBuilder(TCPNIOTransport.class);
     }
 
     /**
      * @see TCPNIOTransport#isKeepAlive() ()
      */
     public boolean isKeepAlive() {
-        return tcpTransport.isKeepAlive();
+        return keepAlive;
     }
 
     /**
@@ -126,7 +84,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setKeepAlive(boolean keepAlive) {
-        tcpTransport.setKeepAlive(keepAlive);
+        this.keepAlive = keepAlive;
         return getThis();
     }
 
@@ -134,7 +92,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @see TCPNIOTransport#getLinger()
      */
     public int getLinger() {
-        return tcpTransport.getLinger();
+        return linger;
     }
 
     /**
@@ -143,24 +101,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setLinger(int linger) {
-        tcpTransport.setLinger(linger);
-        return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#isReuseAddress()
-     */
-    public boolean isReuseAddress() {
-        return tcpTransport.isReuseAddress();
-    }
-
-    /**
-     * @see TCPNIOTransport#setReuseAddress(boolean)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setReuseAddress(boolean reuseAddress) {
-        tcpTransport.setReuseAddress(reuseAddress);
+        this.linger = linger;
         return getThis();
     }
 
@@ -168,7 +109,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @see TCPNIOTransport#getServerConnectionBackLog() ()
      */
     public int getServerConnectionBackLog() {
-        return tcpTransport.getServerConnectionBackLog();
+        return serverConnectionBackLog;
     }
 
     /**
@@ -177,7 +118,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setServerConnectionBackLog(int serverConnectionBackLog) {
-        tcpTransport.setServerConnectionBackLog(serverConnectionBackLog);
+        this.serverConnectionBackLog = serverConnectionBackLog;
         return getThis();
     }
 
@@ -185,7 +126,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @see TCPNIOTransport#getServerSocketSoTimeout()
      */
     public int getServerSocketSoTimeout() {
-        return tcpTransport.getServerSocketSoTimeout();
+        return serverSocketSoTimeout;
     }
 
     /**
@@ -194,7 +135,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setServerSocketSoTimeout(int serverSocketSoTimeout) {
-        tcpTransport.setServerSocketSoTimeout(serverSocketSoTimeout);
+        this.serverConnectionBackLog = serverSocketSoTimeout;
         return getThis();
     }
 
@@ -202,7 +143,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @see TCPNIOTransport#isTcpNoDelay()
      */
     public boolean isTcpNoDelay() {
-        return tcpTransport.isTcpNoDelay();
+        return tcpNoDelay;
     }
 
     /**
@@ -211,7 +152,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setTcpNoDelay(boolean tcpNoDelay) {
-        tcpTransport.setTcpNoDelay(tcpNoDelay);
+        this.tcpNoDelay = tcpNoDelay;
         return getThis();
     }
 
@@ -219,7 +160,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @see TCPNIOTransport#isOptimizedForMultiplexing()
      */
     public boolean isOptimizedForMultiplexing() {
-        return tcpTransport.isOptimizedForMultiplexing();
+        return optimizedForMultiplexing;
     }
 
     /**
@@ -227,49 +168,23 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setOptimizedForMultiplexing(
-            final boolean isOptimizedForMultiplexing) {
-        tcpTransport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
-        return this;
-    }
-
-    /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
-     * 
-     * Note: the value is per connection, not transport total.
-     */
-    public int getMaxAsyncWriteQueueSizeInBytes() {
-        return tcpTransport.getAsyncQueueIO()
-                .getWriter().getMaxPendingBytesPerConnection();
+    public TCPNIOTransportBuilder setOptimizedForMultiplexing(final boolean optimizedForMultiplexing) {
+        this.optimizedForMultiplexing = optimizedForMultiplexing;
+        return getThis();
     }
     
-    /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
-     * 
-     * Note: the value is per connection, not transport total.
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
-            final int size) {
-        tcpTransport.getAsyncQueueIO()
-                .getWriter().setMaxPendingBytesPerConnection(size);
-        return this;
-    }
-    
-    /**
-     * @see TCPNIOTransport#getTemporarySelectorIO()
-     */
-    public TemporarySelectorIO getTemporarySelectorIO() {
-        return tcpTransport.getTemporarySelectorIO();
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     public TCPNIOTransport build() {
-        return (TCPNIOTransport) super.build();
+        TCPNIOTransport transport = (TCPNIOTransport) super.build();
+        transport.setKeepAlive(keepAlive);
+        transport.setLinger(linger);
+        transport.setServerConnectionBackLog(serverConnectionBackLog);
+        transport.setTcpNoDelay(tcpNoDelay);
+        transport.setOptimizedForMultiplexing(optimizedForMultiplexing);
+        return transport;
     }
 
     // ------------------------------------------------------- Protected Methods

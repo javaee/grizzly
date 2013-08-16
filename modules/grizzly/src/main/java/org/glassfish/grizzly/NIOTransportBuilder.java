@@ -41,12 +41,15 @@
 package org.glassfish.grizzly;
 
 import java.nio.channels.spi.SelectorProvider;
+
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.nio.SelectorHandler;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -60,12 +63,33 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  *
  * @since 2.0
  */
+@SuppressWarnings("UnusedDeclaration")
 public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
-    /**
-     * The {@link NIOTransport} implementation.
-     */
-    protected NIOTransport transport;
+    protected Class<? extends NIOTransport> transportClass;
+    protected ThreadPoolConfig workerConfig;
+    protected ThreadPoolConfig kernelConfig;
+    protected SelectorProvider selectorProvider;
+    protected SelectorHandler selectorHandler =
+            SelectorHandler.DEFAULT_SELECTOR_HANDLER;
+    protected SelectionKeyHandler selectionKeyHandler =
+            SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER;
+    protected MemoryManager memoryManager =
+            MemoryManager.DEFAULT_MEMORY_MANAGER;
+    protected AttributeBuilder attributeBuilder =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
+    protected IOStrategy ioStrategy = WorkerThreadIOStrategy.getInstance();
+    protected int selectorRunnerCount = NIOTransport.DEFAULT_SELECTOR_RUNNER_COUNT;
+    protected NIOChannelDistributor nioChannelDistributor;
+    protected String name;
+    protected Processor processor;
+    protected ProcessorSelector processorSelector;
+    protected int readBufferSize = Transport.DEFAULT_READ_BUFFER_SIZE;
+    protected int writeBufferSize = Transport.DEFAULT_WRITE_BUFFER_SIZE;
+    protected int clientSocketSoTimeout = NIOTransport.DEFAULT_CLIENT_SOCKET_SO_TIMEOUT;
+    protected int connectionTimeout = NIOTransport.DEFAULT_CONNECTION_TIMEOUT;
+    protected boolean reuseAddress = NIOTransport.DEFAULT_REUSE_ADDRESS;
+    protected int maxPendingBytesPerConnection = AsyncQueueWriter.AUTO_SIZE;
 
 
     // ------------------------------------------------------------ Constructors
@@ -87,26 +111,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @param transportClass the class of the {@link NIOTransport}
      *  implementation to be used.
-     * @param strategy the {@link IOStrategy}.
      */
-    protected NIOTransportBuilder(final Class<? extends NIOTransport> transportClass,
-                                  final IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
+    protected NIOTransportBuilder(final Class<? extends NIOTransport> transportClass) {
 
-        transport = transportClass.newInstance();
-        final ThreadPoolConfig workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
-        final ThreadPoolConfig selectorConfig = configSelectorPool((workerConfig != null)
-                                                   ? workerConfig.copy()
-                                                   : ThreadPoolConfig.defaultConfig().copy());
-        transport.setSelectorHandler(SelectorHandler.DEFAULT_SELECTOR_HANDLER);
-        transport.setSelectionKeyHandler(SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER);
-        transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
-        transport.setAttributeBuilder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
-        transport.setIOStrategy(strategy);
-//        transport.setReadBufferSize(Transport.DEFAULT_READ_BUFFER_SIZE);
-        transport.setWorkerThreadPoolConfig(workerConfig);
-        transport.setKernelThreadPoolConfig(selectorConfig);
-        transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
+        this.transportClass = transportClass;
 
     }
 
@@ -120,7 +128,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  used, this may return <code>null</code>.
      */
     public ThreadPoolConfig getWorkerThreadPoolConfig() {
-        return transport.getWorkerThreadPoolConfig();
+        return workerConfig;
     }
 
     /**
@@ -128,8 +136,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
      *  that require worker threads
      */
-    public T setWorkerThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
-        transport.setWorkerThreadPoolConfig(threadPoolConfig);
+    public T setWorkerThreadPoolConfig(final ThreadPoolConfig workerConfig) {
+        this.workerConfig = workerConfig;
         return getThis();
     }
     
@@ -139,7 +147,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
     public ThreadPoolConfig getSelectorThreadPoolConfig() {
-        return transport.getKernelThreadPoolConfig();
+        return kernelConfig;
     }
 
     /**
@@ -147,8 +155,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  {@link java.util.concurrent.ExecutorService} which will run the {@link NIOTransport}'s
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
-    public T setSelectorThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
-        transport.setKernelThreadPoolConfig(threadPoolConfig);
+    public T setSelectorThreadPoolConfig(final ThreadPoolConfig kernelConfig) {
+        this.kernelConfig = kernelConfig;
         return getThis();
     }
 
@@ -156,7 +164,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return the {@link IOStrategy} that will be used by the created {@link NIOTransport}.
      */
     public IOStrategy getIOStrategy() {
-        return transport.getIOStrategy();
+        return ioStrategy;
     }
 
     /**
@@ -164,12 +172,12 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * Changes the {@link IOStrategy} that will be used.  Invoking this method
      * may change the return value of {@link #getWorkerThreadPoolConfig()}
      *
-     * @param strategy the {@link IOStrategy} to use.
+     * @param ioStrategy the {@link IOStrategy} to use.
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setIOStrategy(final IOStrategy strategy) {
-        transport.setIOStrategy(strategy);
+    public T setIOStrategy(final IOStrategy ioStrategy) {
+        this.ioStrategy = ioStrategy;
         return getThis();
     }
 
@@ -178,7 +186,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link MemoryManager#DEFAULT_MEMORY_MANAGER} will be used.
      */
     public MemoryManager getMemoryManager() {
-        return transport.getMemoryManager();
+        return memoryManager;
     }
 
     /**
@@ -189,7 +197,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setMemoryManager(final MemoryManager memoryManager) {
-        transport.setMemoryManager(memoryManager);
+        this.memoryManager = memoryManager;
         return getThis();
     }
 
@@ -198,7 +206,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link SelectorHandler#DEFAULT_SELECTOR_HANDLER} will be used.
      */
     public SelectorHandler getSelectorHandler() {
-        return transport.getSelectorHandler();
+        return selectorHandler;
     }
 
     /**
@@ -209,7 +217,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setSelectorHandler(final SelectorHandler selectorHandler) {
-        transport.setSelectorHandler(selectorHandler);
+        this.selectorHandler = selectorHandler;
         return getThis();
     }
 
@@ -218,7 +226,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link SelectionKeyHandler#DEFAULT_SELECTION_KEY_HANDLER} will be used.
      */
     public SelectionKeyHandler getSelectionKeyHandler() {
-        return transport.getSelectionKeyHandler();
+        return selectionKeyHandler;
     }
 
     /**
@@ -229,7 +237,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setSelectionKeyHandler(final SelectionKeyHandler selectionKeyHandler) {
-        transport.setSelectionKeyHandler(selectionKeyHandler);
+        this.selectionKeyHandler = selectionKeyHandler;
         return getThis();
     }
 
@@ -238,7 +246,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
      */
     public AttributeBuilder getAttributeBuilder() {
-        return transport.getAttributeBuilder();
+        return attributeBuilder;
     }
 
     /**
@@ -249,7 +257,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setAttributeBuilder(AttributeBuilder attributeBuilder) {
-        transport.setAttributeBuilder(attributeBuilder);
+        this.attributeBuilder = attributeBuilder;
         return getThis();
     }
 
@@ -258,7 +266,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
      */
     public NIOChannelDistributor getNIOChannelDistributor() {
-        return transport.getNIOChannelDistributor();
+        return nioChannelDistributor;
     }
 
     /**
@@ -269,7 +277,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setNIOChannelDistributor(NIOChannelDistributor nioChannelDistributor) {
-        transport.setNIOChannelDistributor(nioChannelDistributor);
+        this.nioChannelDistributor = nioChannelDistributor;
         return getThis();
     }
 
@@ -278,7 +286,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  If not explicitly set, then {@link SelectorProvider#provider()} will be used.
      */
     public SelectorProvider getSelectorProvider() {
-        return transport.getSelectorProvider();
+        return selectorProvider;
     }
 
     /**
@@ -289,7 +297,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setSelectorProvider(SelectorProvider selectorProvider) {
-        transport.setSelectorProvider(selectorProvider);
+        this.selectorProvider = selectorProvider;
         return getThis();
     }
 
@@ -298,7 +306,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getName()
      */
     public String getName() {
-        return transport.getName();
+        return name;
     }
 
     /**
@@ -307,7 +315,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setName(String name) {
-        transport.setName(name);
+        this.name = name;
         return getThis();
     }
 
@@ -315,7 +323,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getProcessor()
      */
     public Processor getProcessor() {
-        return transport.getProcessor();
+        return processor;
     }
 
     /**
@@ -324,7 +332,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setProcessor(Processor processor) {
-        transport.setProcessor(processor);
+        this.processor = processor;
         return getThis();
     }
 
@@ -332,7 +340,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getProcessorSelector() ()
      */
     public ProcessorSelector getProcessorSelector() {
-        return transport.getProcessorSelector();
+        return processorSelector;
     }
 
     /**
@@ -341,7 +349,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setProcessorSelector(ProcessorSelector processorSelector) {
-        transport.setProcessorSelector(processorSelector);
+        this.processorSelector = processorSelector;
         return getThis();
     }
 
@@ -349,7 +357,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getReadBufferSize() ()
      */
     public int getReadBufferSize() {
-        return transport.getReadBufferSize();
+        return readBufferSize;
     }
 
     /**
@@ -358,7 +366,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setReadBufferSize(int readBufferSize) {
-        transport.setReadBufferSize(readBufferSize);
+        this.readBufferSize = readBufferSize;
         return getThis();
     }
 
@@ -366,7 +374,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getWriteBufferSize()
      */
     public int getWriteBufferSize() {
-        return transport.getWriteBufferSize();
+        return writeBufferSize;
     }
 
     /**
@@ -375,7 +383,75 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setWriteBufferSize(int writeBufferSize) {
-        transport.setWriteBufferSize(writeBufferSize);
+        this.writeBufferSize = writeBufferSize;
+        return getThis();
+    }
+
+    /**
+     * @see NIOTransport#getClientSocketSoTimeout()
+     */
+    public int getClientSocketSoTimeout() {
+        return clientSocketSoTimeout;
+    }
+
+    /**
+     * @return this <code>NIOTransportBuilder</code>
+     * @see NIOTransport#setClientSocketSoTimeout(int)
+     */
+    public T setClientSocketSoTimeout(int clientSocketSoTimeout) {
+        this.clientSocketSoTimeout = clientSocketSoTimeout;
+        return getThis();
+    }
+
+    /**
+     * @see NIOTransport#getConnectionTimeout()
+     */
+    public int getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
+    /**
+     * @return this <code>NIOTransportBuilder</code>
+     * @see NIOTransport#setConnectionTimeout(int)
+     */
+    public T setConnectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+        return getThis();
+    }
+
+    /**
+     * @see org.glassfish.grizzly.nio.transport.TCPNIOTransport#isReuseAddress()
+     */
+    public boolean isReuseAddress() {
+        return reuseAddress;
+    }
+
+    /**
+     * @return this <code>TCPNIOTransportBuilder</code>
+     * @see org.glassfish.grizzly.nio.transport.TCPNIOTransport#setReuseAddress(boolean)
+     */
+    public T setReuseAddress(boolean reuseAddress) {
+        this.reuseAddress = reuseAddress;
+        return getThis();
+    }
+
+    /**
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#getMaxPendingBytesPerConnection()
+     * <p/>
+     * Note: the value is per connection, not transport total.
+     */
+    public int getMaxAsyncWriteQueueSizeInBytes() {
+        return maxPendingBytesPerConnection;
+    }
+
+    /**
+     * @return this <code>TCPNIOTransportBuilder</code>
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * <p/>
+     * Note: the value is per connection, not transport total.
+     */
+    public T setMaxAsyncWriteQueueSizeInBytes(final int maxAsyncWriteQueueSizeInBytes) {
+        this.maxPendingBytesPerConnection = maxAsyncWriteQueueSizeInBytes;
         return getThis();
     }
 
@@ -383,6 +459,40 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
     public NIOTransport build() {
+        NIOTransport transport;
+        try {
+            transport = transportClass.newInstance();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    String.format("Unable to instantiate NIOTransport class %s", transportClass.getName()), e);
+        }
+        transport.setIOStrategy(ioStrategy);
+        if (workerConfig != null) {
+            transport.setWorkerThreadPoolConfig(workerConfig);
+        }
+        ThreadPoolConfig kernelLocal = kernelConfig;
+        if (kernelLocal != null) {
+            transport.setKernelThreadPoolConfig(kernelLocal);
+        } else {
+            kernelLocal = ThreadPoolConfig.defaultConfig();
+            transport.setKernelThreadPoolConfig(kernelLocal);
+        }
+        transport.setSelectorProvider(selectorProvider);
+        transport.setSelectorHandler(selectorHandler);
+        transport.setSelectionKeyHandler(selectionKeyHandler);
+        transport.setMemoryManager(memoryManager);
+        transport.setAttributeBuilder(attributeBuilder);
+        transport.setSelectorRunnersCount(selectorRunnerCount);
+        transport.setNIOChannelDistributor(nioChannelDistributor);
+        transport.setProcessor(processor);
+        transport.setProcessorSelector(processorSelector);
+        transport.setReadBufferSize(readBufferSize);
+        transport.setWriteBufferSize(writeBufferSize);
+        transport.setReuseAddress(reuseAddress);
+        transport.getAsyncQueueIO()
+                .getWriter()
+                .setMaxPendingBytesPerConnection(
+                        maxPendingBytesPerConnection);
         return transport;
     }
 

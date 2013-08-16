@@ -89,9 +89,12 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
-    private static final int DEFAULT_READ_BUFFER_SIZE = -1;
-    private static final int DEFAULT_WRITE_BUFFER_SIZE = -1;
-    
+    public static final boolean DEFAULT_TCP_NO_DELAY = true;
+    public static final boolean DEFAULT_KEEP_ALIVE = true;
+    public static final int DEFAULT_LINGER = -1;
+    public static final int DEFAULT_SERVER_CONNECTION_BACKLOG = 4096;
+    public static final boolean DEFAULT_OPTIMIZED_FOR_MULTIPLEXING = false;
+
     private static final String DEFAULT_TRANSPORT_NAME = "TCPNIOTransport";
     /**
      * The Server connections.
@@ -105,13 +108,23 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * The socket linger.
      */
-    int linger = -1;
+    int linger = DEFAULT_LINGER;
     /**
      * The default server connection backlog size
      */
-    int serverConnectionBackLog = 4096;
+    int serverConnectionBackLog = DEFAULT_SERVER_CONNECTION_BACKLOG;
+    /**
+     * The socket tcpDelay.
+     *
+     * Default value for tcpNoDelay is disabled (set to true).
+     */
+    boolean tcpNoDelay = DEFAULT_TCP_NO_DELAY;
+    /**
+     * The socket keepAlive mode.
+     */
+    boolean isKeepAlive = DEFAULT_KEEP_ALIVE;
 
-    private boolean isOptimizedForMultiplexing;
+    private boolean isOptimizedForMultiplexing = DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
     
     private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
@@ -463,6 +476,25 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     public void setLinger(final int linger) {
         this.linger = linger;
+        notifyProbesConfigChanged(this);
+    }
+
+    public boolean isKeepAlive() {
+            return isKeepAlive;
+        }
+
+    @SuppressWarnings({"UnusedDeclaration"})
+    public void setKeepAlive(final boolean isKeepAlive) {
+        this.isKeepAlive = isKeepAlive;
+        notifyProbesConfigChanged(this);
+    }
+
+    public boolean isTcpNoDelay() {
+        return tcpNoDelay;
+    }
+
+    public void setTcpNoDelay(final boolean tcpNoDelay) {
+        this.tcpNoDelay = tcpNoDelay;
         notifyProbesConfigChanged(this);
     }
 

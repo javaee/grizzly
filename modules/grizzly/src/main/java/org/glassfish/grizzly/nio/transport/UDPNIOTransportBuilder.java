@@ -39,10 +39,7 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.NIOTransportBuilder;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 
 /**
@@ -52,95 +49,21 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
  */
 public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportBuilder> {
 
-    protected UDPNIOTransport udpTransport;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected UDPNIOTransportBuilder(Class<? extends UDPNIOTransport> transportClass,
-                                     IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
-        super(transportClass, strategy);
-        udpTransport = (UDPNIOTransport) transport;
+    protected UDPNIOTransportBuilder(Class<? extends UDPNIOTransport> transportClass) {
+        super(transportClass);
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
     public static UDPNIOTransportBuilder newInstance() {
-        try {
-            return new UDPNIOTransportBuilder(UDPNIOTransport.class,
-                                              WorkerThreadIOStrategy.getInstance());
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+            return new UDPNIOTransportBuilder(UDPNIOTransport.class);
     }
 
-
-    /**
-     * @see UDPNIOTransport#getConnectionTimeout
-     */
-    public int getConnectionTimeout() {
-        return udpTransport.getConnectionTimeout();
-    }
-
-    /**
-     * @see UDPNIOTransport#setConnectionTimeout(int)
-     *
-     * @return this <code>UDPNIOTransport</code>
-     */
-    public UDPNIOTransportBuilder setConnectionTimeout(int connectionTimeout) {
-        udpTransport.setConnectionTimeout(connectionTimeout);
-        return getThis();
-    }
-
-    /**
-     * @see UDPNIOTransport#isReuseAddress()
-     */
-    public boolean isReuseAddress() {
-        return udpTransport.isReuseAddress();
-    }
-
-    /**
-     * @see UDPNIOTransport#setReuseAddress(boolean)
-     *
-     * @return this <code>UDPNIOTransport</code>
-     */
-    public UDPNIOTransportBuilder setReuseAddress(boolean reuseAddress) {
-        udpTransport.setReuseAddress(reuseAddress);
-        return getThis();
-    }
-
-    /**
-     * @see UDPNIOTransport#getTemporarySelectorIO()
-     */
-    public TemporarySelectorIO getTemporarySelectorIO() {
-        return udpTransport.getTemporarySelectorIO();
-    }
-
-    /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
-     * 
-     * Note: the value is per connection, not transport total.
-     */
-    public int getMaxAsyncWriteQueueSizeInBytes() {
-        return udpTransport.getAsyncQueueIO()
-                .getWriter().getMaxPendingBytesPerConnection();
-    }
-    
-    /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
-     * 
-     * Note: the value is per connection, not transport total.
-     *
-     * @return this <code>UDPNIOTransportBuilder</code>
-     */
-    public UDPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
-            final int size) {
-        udpTransport.getAsyncQueueIO()
-                .getWriter().setMaxPendingBytesPerConnection(size);
-        return this;
-    }
 
     /**
      * {@inheritDoc}

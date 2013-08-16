@@ -82,6 +82,14 @@ public abstract class NIOTransport extends AbstractTransport
         implements SocketBinder, SocketConnectorHandler,
         TemporarySelectorsEnabledTransport, AsyncQueueEnabledTransport {
 
+    public static final int DEFAULT_SERVER_SOCKET_SO_TIMEOUT = 0;
+
+    public static final boolean DEFAULT_REUSE_ADDRESS = true;
+    public static final int DEFAULT_CLIENT_SOCKET_SO_TIMEOUT = -1;
+    public static final int DEFAULT_CONNECTION_TIMEOUT =
+            SocketConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
+    public static final int DEFAULT_SELECTOR_RUNNER_COUNT = -1;
+
     private static final Logger LOGGER = Grizzly.logger(NIOTransport.class);
 
     protected SelectorHandler selectorHandler;
@@ -89,32 +97,21 @@ public abstract class NIOTransport extends AbstractTransport
     /**
      * The server socket time out
      */
-    int serverSocketSoTimeout = 0;
-    /**
-     * The socket tcpDelay.
-     *
-     * Default value for tcpNoDelay is disabled (set to true).
-     */
-    boolean tcpNoDelay = true;
+    int serverSocketSoTimeout = DEFAULT_SERVER_SOCKET_SO_TIMEOUT;
     /**
      * The socket reuseAddress
      */
-    boolean reuseAddress = true;
-    /**
-     * The socket keepAlive mode.
-     */
-    boolean isKeepAlive = false;
+    boolean reuseAddress = DEFAULT_REUSE_ADDRESS;
     /**
      * The socket time out
      */
-    int clientSocketSoTimeout = -1;
+    int clientSocketSoTimeout = DEFAULT_CLIENT_SOCKET_SO_TIMEOUT;
     /**
      * Default channel connection timeout
      */
-    int connectionTimeout =
-            SocketConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
+    int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
-    private int selectorRunnersCount = -1;
+    private int selectorRunnersCount = DEFAULT_SELECTOR_RUNNER_COUNT;
     
     protected SelectorRunner[] selectorRunners;
     
@@ -166,6 +163,10 @@ public abstract class NIOTransport extends AbstractTransport
         }
     }
 
+    public TemporarySelectorIO getTemporarySelectorIO() {
+        return temporarySelectorIO;
+    }
+
     public SelectionKeyHandler getSelectionKeyHandler() {
         return selectionKeyHandler;
     }
@@ -193,10 +194,12 @@ public abstract class NIOTransport extends AbstractTransport
     }
 
     public void setSelectorRunnersCount(final int selectorRunnersCount) {
-        this.selectorRunnersCount = selectorRunnersCount;
-        kernelPoolConfig.setCorePoolSize(selectorRunnersCount);
-        kernelPoolConfig.setMaxPoolSize(selectorRunnersCount);
-        notifyProbesConfigChanged(this);
+        if (selectorRunnersCount > 0) {
+            this.selectorRunnersCount = selectorRunnersCount;
+            kernelPoolConfig.setCorePoolSize(selectorRunnersCount);
+            kernelPoolConfig.setMaxPoolSize(selectorRunnersCount);
+            notifyProbesConfigChanged(this);
+        }
     }
 
     /**
@@ -621,16 +624,6 @@ public abstract class NIOTransport extends AbstractTransport
         }
     }
 
-    public boolean isKeepAlive() {
-        return isKeepAlive;
-    }
-
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void setKeepAlive(final boolean isKeepAlive) {
-        this.isKeepAlive = isKeepAlive;
-        notifyProbesConfigChanged(this);
-    }
-
     public boolean isReuseAddress() {
         return reuseAddress;
     }
@@ -657,15 +650,6 @@ public abstract class NIOTransport extends AbstractTransport
     @SuppressWarnings({"UnusedDeclaration"})
     public void setConnectionTimeout(final int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
-        notifyProbesConfigChanged(this);
-    }
-
-    public boolean isTcpNoDelay() {
-        return tcpNoDelay;
-    }
-
-    public void setTcpNoDelay(final boolean tcpNoDelay) {
-        this.tcpNoDelay = tcpNoDelay;
         notifyProbesConfigChanged(this);
     }
 
