@@ -85,7 +85,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
             final Connection connection,
             final L dstAddress, final WritableMessage message) {
         final FutureImpl<WriteResult<WritableMessage, L>> future =
-                Futures.<WriteResult<WritableMessage, L>>createSafeFuture();
+                Futures.createSafeFuture();
         
         write(connection, dstAddress, message,
                 Futures.toCompletionHandler(future), (MessageCloner) null);
@@ -104,4 +104,5 @@ public abstract class AbstractWriter<L> implements Writer<L> {
             final CompletionHandler<WriteResult<WritableMessage, L>> completionHandler) {
         write(connection, dstAddress, message, completionHandler, (MessageCloner) null);
     }
+
 }

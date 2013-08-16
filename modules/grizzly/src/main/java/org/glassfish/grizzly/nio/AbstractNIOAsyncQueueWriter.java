@@ -147,26 +147,14 @@ public abstract class AbstractNIOAsyncQueueWriter
     }
 
     /**
-     * Returns <tt>true</tt>, if async write queue is allowed to write buffer
-     * directly during write(...) method call, w/o adding buffer to the
-     * queue, or <tt>false</tt> otherwise.
-     * 
-     * @return <tt>true</tt>, if async write queue is allowed to write buffer
-     * directly during write(...) method call, w/o adding buffer to the
-     * queue, or <tt>false</tt> otherwise.
+     * {@inheritDoc}
      */
     public boolean isAllowDirectWrite() {
         return isAllowDirectWrite;
     }
 
     /**
-     * Set <tt>true</tt>, if async write queue is allowed to write buffer
-     * directly during write(...) method call, w/o adding buffer to the
-     * queue, or <tt>false</tt> otherwise.
-     * 
-     * @param isAllowDirectWrite  <tt>true</tt>, if async write queue is allowed
-     * to write buffer directly during write(...) method call, w/o adding buffer
-     * to the queue, or <tt>false</tt> otherwise.
+     * {@inheritDoc}
      */
     public void setAllowDirectWrite(final boolean isAllowDirectWrite) {
         this.isAllowDirectWrite = isAllowDirectWrite;

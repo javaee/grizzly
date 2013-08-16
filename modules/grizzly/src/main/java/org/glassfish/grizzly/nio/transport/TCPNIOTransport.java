@@ -93,7 +93,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     public static final boolean DEFAULT_KEEP_ALIVE = true;
     public static final int DEFAULT_LINGER = -1;
     public static final int DEFAULT_SERVER_CONNECTION_BACKLOG = 4096;
-    public static final boolean DEFAULT_OPTIMIZED_FOR_MULTIPLEXING = false;
 
     private static final String DEFAULT_TRANSPORT_NAME = "TCPNIOTransport";
     /**
@@ -124,8 +123,6 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     boolean isKeepAlive = DEFAULT_KEEP_ALIVE;
 
-    private boolean isOptimizedForMultiplexing = DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
-    
     private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
 
@@ -512,30 +509,6 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     public void setServerConnectionBackLog(final int serverConnectionBackLog) {
         this.serverConnectionBackLog = serverConnectionBackLog;
-    }
-
-    /**
-     * Returns <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
-     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
-     * mode, or <tt>false</tt> otherwise.
-     * 
-     * @return <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
-     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
-     * mode, or <tt>false</tt> otherwise.
-     */
-    public boolean isOptimizedForMultiplexing() {
-        return isOptimizedForMultiplexing;
-    }
-
-    /**
-     * Configures <tt>TCPNIOTransport</tt> to be optimized for specific for the
-     * connection multiplexing usecase, when different threads will try to
-     * write data simultaneously.
-     */
-    public void setOptimizedForMultiplexing(final boolean isOptimizedForMultiplexing) {
-        this.isOptimizedForMultiplexing = isOptimizedForMultiplexing;
-        ((TCPNIOAsyncQueueWriter) asyncQueueIO.getWriter())
-                .setAllowDirectWrite(!isOptimizedForMultiplexing);
     }
 
     @Override

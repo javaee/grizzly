@@ -54,7 +54,6 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     protected int serverConnectionBackLog = TCPNIOTransport.DEFAULT_SERVER_CONNECTION_BACKLOG;
     protected int serverSocketSoTimeout = TCPNIOTransport.DEFAULT_SERVER_SOCKET_SO_TIMEOUT;
     protected boolean tcpNoDelay = TCPNIOTransport.DEFAULT_TCP_NO_DELAY;
-    protected boolean optimizedForMultiplexing = TCPNIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
     // ------------------------------------------------------------ Constructors
 
@@ -157,23 +156,6 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     }
 
     /**
-     * @see TCPNIOTransport#isOptimizedForMultiplexing()
-     */
-    public boolean isOptimizedForMultiplexing() {
-        return optimizedForMultiplexing;
-    }
-
-    /**
-     * @see TCPNIOTransport#setOptimizedForMultiplexing(boolean)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setOptimizedForMultiplexing(final boolean optimizedForMultiplexing) {
-        this.optimizedForMultiplexing = optimizedForMultiplexing;
-        return getThis();
-    }
-    
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -183,7 +165,6 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
         transport.setLinger(linger);
         transport.setServerConnectionBackLog(serverConnectionBackLog);
         transport.setTcpNoDelay(tcpNoDelay);
-        transport.setOptimizedForMultiplexing(optimizedForMultiplexing);
         return transport;
     }
 

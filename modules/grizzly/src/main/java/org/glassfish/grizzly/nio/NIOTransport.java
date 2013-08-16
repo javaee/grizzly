@@ -89,6 +89,7 @@ public abstract class NIOTransport extends AbstractTransport
     public static final int DEFAULT_CONNECTION_TIMEOUT =
             SocketConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
     public static final int DEFAULT_SELECTOR_RUNNER_COUNT = -1;
+    public static final boolean DEFAULT_OPTIMIZED_FOR_MULTIPLEXING = true;
 
     private static final Logger LOGGER = Grizzly.logger(NIOTransport.class);
 
@@ -112,7 +113,9 @@ public abstract class NIOTransport extends AbstractTransport
     int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
     private int selectorRunnersCount = DEFAULT_SELECTOR_RUNNER_COUNT;
-    
+
+    private boolean optimizedForMultiplexing = DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
+
     protected SelectorRunner[] selectorRunners;
     
     protected NIOChannelDistributor nioChannelDistributor;
@@ -220,6 +223,30 @@ public abstract class NIOTransport extends AbstractTransport
         this.selectorProvider = selectorProvider != null
                 ? selectorProvider
                 : SelectorProvider.provider();
+    }
+
+    /**
+     * Returns <tt>true</tt>, if <tt>NIOTransport</tt> is configured to use
+     * {@link org.glassfish.grizzly.asyncqueue.AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if <tt>NIOTransport</tt> is configured to use
+     * {@link org.glassfish.grizzly.asyncqueue.AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public boolean isOptimizedForMultiplexing() {
+        return optimizedForMultiplexing;
+    }
+
+    /**
+     * Configures <tt>NIOTransport</tt> to be optimized for specific for the
+     * connection multiplexing usecase, when different threads will try to
+     * write data simultaneously.
+     */
+    public void setOptimizedForMultiplexing(final boolean optimizedForMultiplexing) {
+        this.optimizedForMultiplexing = optimizedForMultiplexing;
+        getAsyncQueueIO().getWriter().setAllowDirectWrite(optimizedForMultiplexing);
     }
 
     protected synchronized void startSelectorRunners() throws IOException {

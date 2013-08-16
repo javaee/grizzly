@@ -158,5 +158,27 @@ public interface AsyncQueueWriter<L>
      *  times the size of the {@link java.net.Socket} send buffer size.
      */
     int getMaxPendingBytesPerConnection();
+
+    /**
+     * Returns <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     */
+    boolean isAllowDirectWrite();
+
+    /**
+     * Set <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     *
+     * @param isAllowDirectWrite <tt>true</tt>, if async write queue is allowed
+     *                           to write buffer directly during write(...) method call, w/o adding buffer
+     *                           to the queue, or <tt>false</tt> otherwise.
+     */
+    void setAllowDirectWrite(final boolean isAllowDirectWrite);
     
 }

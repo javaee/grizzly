@@ -90,6 +90,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     protected int connectionTimeout = NIOTransport.DEFAULT_CONNECTION_TIMEOUT;
     protected boolean reuseAddress = NIOTransport.DEFAULT_REUSE_ADDRESS;
     protected int maxPendingBytesPerConnection = AsyncQueueWriter.AUTO_SIZE;
+    protected boolean optimizedForMultiplexing = NIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
 
     // ------------------------------------------------------------ Constructors
@@ -456,6 +457,23 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
+     * @see org.glassfish.grizzly.nio.NIOTransport#isOptimizedForMultiplexing()
+     */
+    public boolean isOptimizedForMultiplexing() {
+        return optimizedForMultiplexing;
+    }
+
+    /**
+     * @see org.glassfish.grizzly.nio.NIOTransport#setOptimizedForMultiplexing(boolean)
+     *
+     * @return this <code>TCPNIOTransportBuilder</code>
+     */
+    public T setOptimizedForMultiplexing(final boolean optimizedForMultiplexing) {
+        this.optimizedForMultiplexing = optimizedForMultiplexing;
+        return getThis();
+    }
+
+    /**
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
     public NIOTransport build() {
@@ -489,6 +507,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setReadBufferSize(readBufferSize);
         transport.setWriteBufferSize(writeBufferSize);
         transport.setReuseAddress(reuseAddress);
+        transport.setOptimizedForMultiplexing(isOptimizedForMultiplexing());
         transport.getAsyncQueueIO()
                 .getWriter()
                 .setMaxPendingBytesPerConnection(
