@@ -89,7 +89,7 @@ public abstract class NIOTransport extends AbstractTransport
     public static final int DEFAULT_CONNECTION_TIMEOUT =
             SocketConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
     public static final int DEFAULT_SELECTOR_RUNNER_COUNT = -1;
-    public static final boolean DEFAULT_OPTIMIZED_FOR_MULTIPLEXING = true;
+    public static final boolean DEFAULT_OPTIMIZED_FOR_MULTIPLEXING = false;
 
     private static final Logger LOGGER = Grizzly.logger(NIOTransport.class);
 
@@ -246,7 +246,7 @@ public abstract class NIOTransport extends AbstractTransport
      */
     public void setOptimizedForMultiplexing(final boolean optimizedForMultiplexing) {
         this.optimizedForMultiplexing = optimizedForMultiplexing;
-        getAsyncQueueIO().getWriter().setAllowDirectWrite(optimizedForMultiplexing);
+        getAsyncQueueIO().getWriter().setAllowDirectWrite(!optimizedForMultiplexing);
     }
 
     protected synchronized void startSelectorRunners() throws IOException {
