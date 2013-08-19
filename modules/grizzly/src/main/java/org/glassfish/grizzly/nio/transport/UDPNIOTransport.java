@@ -119,14 +119,23 @@ public final class UDPNIOTransport extends NIOTransport
     }
 
     @Override
-    public TemporarySelectorIO createTemporarySelectorIO() {
+    protected TemporarySelectorIO createTemporarySelectorIO() {
         return new TemporarySelectorIO(new UDPNIOTemporarySelectorReader(this),
                                        new UDPNIOTemporarySelectorWriter(this));
     }
 
     @Override
-    public void listen() {
-        registerServerConnections();
+    protected void listen() {
+        for (UDPNIOServerConnection serverConnection : serverConnections) {
+            try {
+                serverConnection.register();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(
+                                   serverConnection),
+                           e);
+            }
+        }
     }
 
     @Override
@@ -365,18 +374,6 @@ public final class UDPNIOTransport extends NIOTransport
                 writer.onClose(connection);
             }
 
-        }
-    }
-
-    private void registerServerConnections() {
-        for (UDPNIOServerConnection serverConnection : serverConnections) {
-            try {
-                serverConnection.register();
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(serverConnection),
-                        e);
-            }
         }
     }
 

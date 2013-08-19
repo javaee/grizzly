@@ -156,14 +156,22 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public TemporarySelectorIO createTemporarySelectorIO() {
+    protected TemporarySelectorIO createTemporarySelectorIO() {
         return new TemporarySelectorIO(new TCPNIOTemporarySelectorReader(this),
                                        new TCPNIOTemporarySelectorWriter(this));
     }
 
     @Override
-    public void listen() {
-        listenServerConnections();
+    protected void listen() {
+        for (TCPNIOServerConnection serverConnection : serverConnections) {
+            try {
+                listenServerConnection(serverConnection);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING,
+                           "Exception occurred when starting server connection: " +
+                                   serverConnection, e);
+            }
+        }
     }
 
     @Override
@@ -174,18 +182,6 @@ public final class TCPNIOTransport extends NIOTransport implements
         return Runtime.getRuntime().availableProcessors() + 1;
     }
     
-    private void listenServerConnections() {
-        for (TCPNIOServerConnection serverConnection : serverConnections) {
-            try {
-                listenServerConnection(serverConnection);
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING,
-                        "Exception occurred when starting server connection: " +
-                        serverConnection, e);
-            }
-        }
-    }
-
     void listenServerConnection(TCPNIOServerConnection serverConnection)
             throws IOException {
         serverConnection.listen();

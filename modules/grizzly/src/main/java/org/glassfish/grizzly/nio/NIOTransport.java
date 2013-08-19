@@ -141,10 +141,6 @@ public abstract class NIOTransport extends AbstractTransport
         temporarySelectorIO = createTemporarySelectorIO();
     }
 
-    public abstract TemporarySelectorIO createTemporarySelectorIO();
-
-    public abstract void listen();
-
     @Override
     public abstract void unbindAll();
 
@@ -554,6 +550,10 @@ public abstract class NIOTransport extends AbstractTransport
     @Override
     protected abstract void closeConnection(Connection connection)
             throws IOException;
+
+    protected abstract TemporarySelectorIO createTemporarySelectorIO();
+
+    protected abstract void listen();
 
     protected int getDefaultSelectorRunnersCount() {
         return Runtime.getRuntime().availableProcessors();
