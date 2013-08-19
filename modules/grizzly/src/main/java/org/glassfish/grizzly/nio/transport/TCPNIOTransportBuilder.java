@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.nio.NIOTransport;
 
 /**
  * {@link NIOTransportBuilder} implementation for <code>TCP</code>.
@@ -176,4 +177,8 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
         return this;
     }
 
+    @Override
+    protected NIOTransport create() {
+        return new TCPNIOTransport();
+    }
 }

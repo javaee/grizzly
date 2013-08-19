@@ -477,13 +477,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
     public NIOTransport build() {
-        NIOTransport transport;
-        try {
-            transport = transportClass.newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    String.format("Unable to instantiate NIOTransport class %s", transportClass.getName()), e);
-        }
+        NIOTransport transport = create();
         transport.setIOStrategy(ioStrategy);
         if (workerConfig != null) {
             transport.setWorkerThreadPoolConfig(workerConfig);
@@ -536,6 +530,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * See: <a href="http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205">http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205</a>
      */
     protected abstract T getThis();
+
+    protected abstract NIOTransport create();
 
 
     // --------------------------------------------------------- Private Methods

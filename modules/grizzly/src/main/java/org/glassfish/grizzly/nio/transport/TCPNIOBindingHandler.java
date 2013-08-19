@@ -105,7 +105,7 @@ public class TCPNIOBindingHandler extends AbstractBindingHandler {
     }
 
     public static Builder builder(final TCPNIOTransport transport) {
-       return new TCPNIOBindingHandler.Builder(transport);
+       return new TCPNIOBindingHandler.Builder().transport(transport);
     }
 
 
@@ -169,16 +169,24 @@ public class TCPNIOBindingHandler extends AbstractBindingHandler {
 
     public static class Builder extends AbstractBindingHandler.Builder<Builder> {
 
+        private TCPNIOTransport transport;
 
-        // -------------------------------------------------------- Constructors
-
-
-        public Builder(TCPNIOTransport transport) {
-            super(new TCPNIOBindingHandler(transport));
+        public Builder transport(TCPNIOTransport transport) {
+            this.transport = transport;
+            return this;
         }
 
         public TCPNIOBindingHandler build() {
-            return (TCPNIOBindingHandler) bindingHandler;
+            return (TCPNIOBindingHandler) super.build();
+        }
+
+        @Override
+        protected AbstractBindingHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create TCPNIOBindingHandler - transport is null");
+            }
+            return new TCPNIOBindingHandler(transport);
         }
 
     } // END Builder

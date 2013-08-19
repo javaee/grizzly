@@ -308,26 +308,50 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @return the {@link UDPNIOConnectorHandler} builder.
      */
     public static Builder builder(final UDPNIOTransport transport) {
-        return new UDPNIOConnectorHandler.Builder(transport);
+        return new UDPNIOConnectorHandler.Builder().setTransport(transport);
     }
 
     public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
-        protected Builder(final UDPNIOTransport transport) {
-            super(new UDPNIOConnectorHandler(transport));
-        }
+        private UDPNIOTransport transport;
+        private Boolean reuseAddress;
+        private Long timeout;
+        private TimeUnit timeoutTimeunit;
 
         public UDPNIOConnectorHandler build() {
-            return (UDPNIOConnectorHandler) connectorHandler;
+            UDPNIOConnectorHandler handler =
+                    (UDPNIOConnectorHandler) super.build();
+            if (reuseAddress != null) {
+                handler.setReuseAddress(reuseAddress);
+            }
+            if (timeout != null) {
+                handler.setSyncConnectTimeout(timeout, timeoutTimeunit);
+            }
+            return handler;
         }
 
-        public Builder setReuseAddress(final boolean isReuseAddress) {
-            ((UDPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+        public Builder setTransport(final UDPNIOTransport transport) {
+            this.transport = transport;
+            return this;
+        }
+
+        public Builder setReuseAddress(final boolean reuseAddress) {
+            this.reuseAddress = reuseAddress;
             return this;
         }
 
         public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
-            ((UDPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
+            this.timeout = timeout;
+            timeoutTimeunit = timeunit;
             return this;
+        }
+
+        @Override
+        protected AbstractSocketConnectorHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create UDPNIOConnectorHandler - transport is null");
+            }
+            return new UDPNIOConnectorHandler(transport);
         }
     }
 }

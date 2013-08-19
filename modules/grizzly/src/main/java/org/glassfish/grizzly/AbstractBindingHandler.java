@@ -209,21 +209,32 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      */
     @SuppressWarnings("unchecked")
     public abstract static class Builder<E extends Builder> {
-        protected final AbstractBindingHandler bindingHandler;
 
-        public Builder(AbstractBindingHandler bindingHandler) {
-            this.bindingHandler = bindingHandler;
-        }
+        protected Processor processor;
+        protected ProcessorSelector processorSelector;
 
         public E processor(final Processor processor) {
-            bindingHandler.setProcessor(processor);
+            this.processor = processor;
             return (E) this;
         }
 
         public E processorSelector(final ProcessorSelector processorSelector) {
-            bindingHandler.setProcessorSelector(processorSelector);
+            this.processorSelector = processorSelector;
             return (E) this;
         }
+
+        public AbstractBindingHandler build() {
+            AbstractBindingHandler bindingHandler = create();
+            if (processor != null) {
+                bindingHandler.setProcessor(processor);
+            }
+            if (processorSelector != null) {
+                bindingHandler.setProcessorSelector(processorSelector);
+            }
+            return bindingHandler;
+        }
+
+        protected abstract AbstractBindingHandler create();
 
     }
 }

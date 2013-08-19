@@ -105,7 +105,7 @@ public class UDPNIOBindingHandler extends AbstractBindingHandler {
     }
 
     public static Builder builder(final UDPNIOTransport transport) {
-        return new UDPNIOBindingHandler.Builder(transport);
+        return new UDPNIOBindingHandler.Builder().transport(transport);
     }
 
 
@@ -175,16 +175,25 @@ public class UDPNIOBindingHandler extends AbstractBindingHandler {
 
     public static class Builder extends AbstractBindingHandler.Builder<Builder> {
 
+        private UDPNIOTransport transport;
 
-        // -------------------------------------------------------- Constructors
-
-
-        public Builder(UDPNIOTransport transport) {
-            super(new UDPNIOBindingHandler(transport));
-        }
 
         public UDPNIOBindingHandler build() {
-            return (UDPNIOBindingHandler) bindingHandler;
+            return (UDPNIOBindingHandler) super.build();
+        }
+
+        public Builder transport(UDPNIOTransport transport) {
+            this.transport = transport;
+            return this;
+        }
+
+        @Override
+        protected AbstractBindingHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create TCPNIOBindingHandler - transport is null");
+            }
+            return new UDPNIOBindingHandler(transport);
         }
 
     } // END UDPNIOSocketBindingHandlerBuilder

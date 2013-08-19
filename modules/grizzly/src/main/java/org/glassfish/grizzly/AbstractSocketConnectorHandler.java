@@ -217,25 +217,40 @@ public abstract class AbstractSocketConnectorHandler
      */
     @SuppressWarnings("unchecked")
     public abstract static class Builder<E extends Builder> {
-        protected final AbstractSocketConnectorHandler connectorHandler;
 
-        public Builder(AbstractSocketConnectorHandler connectorHandler) {
-            this.connectorHandler = connectorHandler;
-        }
+        protected Processor processor;
+        protected ProcessorSelector processorSelector;
+        protected ConnectionProbe connectionProbe;
 
         public E processor(final Processor processor) {
-            connectorHandler.setProcessor(processor);
+            this.processor = processor;
             return (E) this;
         }
 
         public E processorSelector(final ProcessorSelector processorSelector) {
-            connectorHandler.setProcessorSelector(processorSelector);
+            this.processorSelector = processorSelector;
             return (E) this;
         }
 
         public E probe(ConnectionProbe connectionProbe) {
-            connectorHandler.addMonitoringProbe(connectionProbe);
+            this.connectionProbe = connectionProbe;
             return (E) this;
         }
+
+        public AbstractSocketConnectorHandler build() {
+            AbstractSocketConnectorHandler handler = create();
+            if (processor != null) {
+                handler.setProcessor(processor);
+            }
+            if (processorSelector != null) {
+                handler.setProcessorSelector(processorSelector);
+            }
+            if (connectionProbe != null) {
+                handler.addMonitoringProbe(connectionProbe);
+            }
+            return handler;
+        }
+
+        protected abstract AbstractSocketConnectorHandler create();
     }
 }

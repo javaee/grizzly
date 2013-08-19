@@ -249,7 +249,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         } catch (TimeoutException e) {
             Futures.notifyFailure(future, completionHandler,
                     new IOException("Channel registration on Selector timeout!"));
-        } catch (Exception ingored) {
+        } catch (Exception ignored) {
         }
     }
 
@@ -361,26 +361,50 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @return the {@link TCPNIOConnectorHandler} builder.
      */
     public static Builder builder(final TCPNIOTransport transport) {
-        return new TCPNIOConnectorHandler.Builder(transport);
+        return new TCPNIOConnectorHandler.Builder().setTransport(transport);
     }
 
     public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
-        protected Builder(final TCPNIOTransport transport) {
-            super(new TCPNIOConnectorHandler(transport));
-        }
+
+        private TCPNIOTransport transport;
+        private Boolean reuseAddress;
+        private Long timeout;
+        private TimeUnit timeoutTimeunit;
 
         public TCPNIOConnectorHandler build() {
-            return (TCPNIOConnectorHandler) connectorHandler;
+            TCPNIOConnectorHandler handler = (TCPNIOConnectorHandler) super.build();
+            if (reuseAddress != null) {
+                handler.setReuseAddress(reuseAddress);
+            }
+            if (timeout != null) {
+                handler.setSyncConnectTimeout(timeout, timeoutTimeunit);
+            }
+            return handler;
         }
 
-        public Builder setReuseAddress(final boolean isReuseAddress) {
-            ((TCPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+        public Builder setTransport(final TCPNIOTransport transport) {
+            this.transport = transport;
+            return this;
+        }
+
+        public Builder setReuseAddress(final boolean reuseAddress) {
+            this.reuseAddress = reuseAddress;
             return this;
         }
 
         public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
-            ((TCPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
+            this.timeout = timeout;
+            timeoutTimeunit = timeunit;
             return this;
+        }
+
+        @Override
+        protected AbstractSocketConnectorHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create TCPNIOConnectorHandler - transport is null");
+            }
+            return new TCPNIOConnectorHandler(transport);
         }
     }
 }

@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.nio.NIOTransport;
 
 
 /**
@@ -82,4 +83,8 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
         return this;
     }
 
+    @Override
+    protected NIOTransport create() {
+        return new UDPNIOTransport();
+    }
 }
