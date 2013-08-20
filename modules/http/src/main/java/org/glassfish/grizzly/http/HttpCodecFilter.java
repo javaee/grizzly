@@ -521,8 +521,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     // Transfer-encoding is unknown and there is no content-length header
 
                     // Build HttpContent message on top of existing content chunk and parsed Http message header
-                    final HttpContent.Builder builder = httpHeader.httpContentBuilder();
-                    final HttpContent message = builder.content(input).build();
+                    final HttpContent message = HttpContent.create(httpHeader);
+                    message.setContent(input);
 
                     final HttpContent decodedContent = decodeContent(ctx, message);
                     if (decodedContent != null) {

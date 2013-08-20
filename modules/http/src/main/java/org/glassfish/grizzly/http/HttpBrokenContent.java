@@ -55,8 +55,6 @@ import org.glassfish.grizzly.ThreadCache;
 public class HttpBrokenContent extends HttpContent {
     private static final ThreadCache.CachedTypeIndex<HttpBrokenContent> CACHE_IDX =
             ThreadCache.obtainIndex(HttpBrokenContent.class, 1);
-    private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
-            ThreadCache.obtainIndex(Builder.class, 16);
 
     public static HttpBrokenContent create() {
         return create(null);
@@ -73,14 +71,6 @@ public class HttpBrokenContent extends HttpContent {
         return new HttpBrokenContent(httpHeader);
     }
 
-    private static Builder createBuilder(HttpHeader httpHeader) {
-        final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
-        if (builder != null) {
-            builder.packet = create(httpHeader);
-            return builder;
-        }
-        return new Builder(httpHeader);
-    }
 
     /**
      * Returns {@link HttpTrailer} builder.
@@ -88,7 +78,7 @@ public class HttpBrokenContent extends HttpContent {
      * @return {@link Builder}.
      */
     public static Builder builder(final HttpHeader httpHeader) {
-        return createBuilder(httpHeader);
+        return new Builder().httpHeader(httpHeader);
     }
 
     private Throwable exception;
@@ -147,8 +137,10 @@ public class HttpBrokenContent extends HttpContent {
      * <tt>HttpTrailer</tt> message builder.
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
-        protected Builder(final HttpHeader httpHeader) {
-            packet = HttpBrokenContent.create(httpHeader);
+
+        private Throwable cause;
+
+        protected Builder() {
         }
 
         /**
@@ -156,7 +148,7 @@ public class HttpBrokenContent extends HttpContent {
          * @param cause {@link Throwable}.
          */
         public final Builder error(final Throwable cause) {
-            ((HttpBrokenContent) packet).exception = cause;
+            this.cause = cause;
             return this;
         }
 
@@ -166,17 +158,18 @@ public class HttpBrokenContent extends HttpContent {
          * @return <tt>HttpTrailer</tt>
          */
         @Override
-        public final HttpContent build() {
-            try {
-                HttpBrokenContent brokenPacket = (HttpBrokenContent) packet;
-                if (brokenPacket.exception == null) {
-                    throw new IllegalStateException("No cause specified");
-                }
-                
-                return (HttpBrokenContent) packet;
-            } finally {
-                ThreadCache.putToCache(BUILDER_CACHE_IDX, this);
+        public final HttpBrokenContent build() {
+            HttpBrokenContent httpBrokenContent = (HttpBrokenContent) super.build();
+            if (cause == null) {
+                throw new IllegalStateException("No cause specified");
             }
+            httpBrokenContent.exception = cause;
+            return httpBrokenContent;
+        }
+
+        @Override
+        protected HttpContent create() {
+            return HttpBrokenContent.create();
         }
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,8 +63,6 @@ public class HttpContent extends HttpPacket
     
     private static final ThreadCache.CachedTypeIndex<HttpContent> CACHE_IDX =
             ThreadCache.obtainIndex(HttpContent.class, 16);
-    private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
-            ThreadCache.obtainIndex(Builder.class, 16);
 
     /**
      * Returns <tt>true</tt> if passed {@link HttpPacket} is a <tt>HttpContent</tt>.
@@ -101,15 +99,6 @@ public class HttpContent extends HttpPacket
         return new HttpContent(httpHeader);
     }
 
-    private static Builder createBuilder(final HttpHeader httpHeader) {
-        final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
-        if (builder != null) {
-            builder.packet = create(httpHeader);
-            return builder;
-        }
-        return new Builder(httpHeader);
-    }
-
     /**
      * Returns {@link HttpContent} builder.
      * 
@@ -117,7 +106,7 @@ public class HttpContent extends HttpPacket
      * @return {@link Builder}.
      */
     public static Builder builder(final HttpHeader httpHeader) {
-        return createBuilder(httpHeader);
+        return new Builder().httpHeader(httpHeader);
     }
 
     protected boolean isLast;
@@ -226,24 +215,35 @@ public class HttpContent extends HttpPacket
      */
     public static class Builder<T extends Builder> {
 
-        protected HttpContent packet;
+        protected boolean last;
+        protected Buffer content;
+        protected HttpHeader httpHeader;
 
         protected Builder() {
         }
 
-        protected Builder(HttpHeader httpHeader) {
-            packet = HttpContent.create(httpHeader);
+        /**
+         * Set the {@link HttpHeader} associated with this content.
+         *
+         * @param httpHeader the {@link HttpHeader} associated with this content.
+         *
+         * @return this.
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T httpHeader(final HttpHeader httpHeader) {
+            this.httpHeader = httpHeader;
+            return (T) this;
         }
 
         /**
          * Set whether this <tt>HttpContent</tt> chunk is the last.
          *
-         * @param isLast is this <tt>HttpContent</tt> chunk last.
+         * @param last is this <tt>HttpContent</tt> chunk last.
          * @return <tt>Builder</tt>
          */
         @SuppressWarnings({"unchecked"})
-        public final T last(boolean isLast) {
-            packet.setLast(isLast);
+        public final T last(boolean last) {
+            this.last = last;
             return (T) this;
         }
         
@@ -255,7 +255,7 @@ public class HttpContent extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T content(Buffer content) {
-            packet.setContent(content);
+            this.content = content;
             return (T) this;
         }
 
@@ -265,11 +265,26 @@ public class HttpContent extends HttpPacket
          * @return <tt>HttpContent</tt>
          */
         public HttpContent build() {
-            try {
-                return packet;
-            } finally {
-                ThreadCache.putToCache(BUILDER_CACHE_IDX, this);
+            if (httpHeader == null) {
+                throw new IllegalStateException("No HttpHeader specified to associate with this HttpContent.");
             }
+            HttpContent httpContent = create();
+            httpContent.httpHeader = httpHeader;
+            httpContent.setLast(last);
+            if (content != null) {
+                httpContent.setContent(content);
+            }
+            return httpContent;
+        }
+
+        public void reset() {
+            last = false;
+            content = null;
+            httpHeader = null;
+        }
+
+        protected HttpContent create() {
+            return HttpContent.create();
         }
     }
 }

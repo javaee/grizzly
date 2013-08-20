@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,8 +53,6 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     private static final ThreadCache.CachedTypeIndex<HttpTrailer> CACHE_IDX =
             ThreadCache.obtainIndex(HttpTrailer.class, 16);
-    private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
-            ThreadCache.obtainIndex(Builder.class, 16);
 
     /**
      * Returns <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.
@@ -81,22 +79,13 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         return new HttpTrailer(httpHeader);
     }
 
-    private static Builder createBuilder(HttpHeader httpHeader) {
-        final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
-        if (builder != null) {
-            builder.packet = create(httpHeader);
-            return builder;
-        }
-        return new Builder(httpHeader);
-    }
-
     /**
      * Returns {@link HttpTrailer} builder.
      *
      * @return {@link Builder}.
      */
     public static Builder builder(HttpHeader httpHeader) {
-        return createBuilder(httpHeader);
+        return new Builder().httpHeader(httpHeader);
     }
 
     private MimeHeaders headers;
@@ -230,16 +219,22 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * <tt>HttpTrailer</tt> message builder.
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
-        protected Builder(HttpHeader httpHeader) {
-            packet = HttpTrailer.create(httpHeader);
+
+        private MimeHeaders mimeHeaders;
+
+        protected Builder() {
         }
 
         /**
          * Set the mime headers.
+         *
+         * This method will overwrite any headers provided via
+         * {@link #header(String, String)} before this invocation.
+         *
          * @param mimeHeaders {@link MimeHeaders}.
          */
         public final Builder headers(MimeHeaders mimeHeaders) {
-            ((HttpTrailer) packet).setHeaders(mimeHeaders);
+            this.mimeHeaders = mimeHeaders;
             return this;
         }
 
@@ -250,7 +245,10 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          * @param value the mime header value.
          */
         public final Builder header(String name, String value) {
-            ((HttpTrailer) packet).setHeader(name, value);
+            if (mimeHeaders == null) {
+                mimeHeaders = new MimeHeaders();
+            }
+            mimeHeaders.addValue(name).setString(value);
             return this;
         }
 
@@ -261,11 +259,16 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          */
         @Override
         public final HttpTrailer build() {
-            try {
-                return (HttpTrailer) packet;
-            } finally {
-                ThreadCache.putToCache(BUILDER_CACHE_IDX, this);
+            HttpTrailer trailer = (HttpTrailer) super.build();
+            if (mimeHeaders != null) {
+                trailer.headers = mimeHeaders;
             }
+            return trailer;
+        }
+
+        @Override
+        protected HttpContent create() {
+            return HttpTrailer.create();
         }
     }
 }
