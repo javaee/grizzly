@@ -59,6 +59,16 @@ public class DataStructures {
     private final static Class<?> LTQclass;
 
     static {
+        
+        boolean isUnsafeFound;
+        
+        try {
+            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
+        } catch (Throwable t) {
+            isUnsafeFound = false;
+        }
+        
+        IS_UNSAFE_SUPPORTED = isUnsafeFound;        
         String className = null;
         
         Class<?> c;
@@ -68,7 +78,7 @@ public class DataStructures {
             
             className = (minimumVersion.compareTo(jdkVersion) <= 0)
                     ? "java.util.concurrent.LinkedTransferQueue"
-                    : "maskedclasses.LinkedTransferQueue";
+                    : "org.glassfish.grizzly.utils.LinkedTransferQueue";
             
             c = getAndVerify(className);
             Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);
@@ -81,16 +91,6 @@ public class DataStructures {
         }
         
         LTQclass = c;
-
-        boolean isUnsafeFound;
-        
-        try {
-            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
-        } catch (Throwable t) {
-            isUnsafeFound = false;
-        }
-        
-        IS_UNSAFE_SUPPORTED = isUnsafeFound;
     }
 
     private static Class<?> getAndVerify(String cname) throws Throwable {

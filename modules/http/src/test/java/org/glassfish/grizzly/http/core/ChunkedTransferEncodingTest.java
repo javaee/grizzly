@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -74,9 +75,8 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Pair;
-import org.glassfish.grizzly.utils.TransferQueue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,8 +102,8 @@ public class ChunkedTransferEncodingTest {
     private Connection connection;
     private HTTPRequestCheckFilter httpRequestCheckFilter;
     
-    final TransferQueue<Future<Boolean>> resultQueue =
-            new LinkedTransferQueue<Future<Boolean>>();
+    final BlockingQueue<Future<Boolean>> resultQueue =
+            DataStructures.getLTQInstance();
     
     @Parameters
     public static Collection<Object[]> getMode() {
