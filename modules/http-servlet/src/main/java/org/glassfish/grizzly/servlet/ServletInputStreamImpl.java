@@ -129,6 +129,38 @@ public class ServletInputStreamImpl extends ServletInputStream {
     }
 
     /** 
+     * {@inheritDoc}
+     */
+    @Override
+    public long skip(final long n) throws IOException {
+        return inputStream.skip(n);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void mark(final int readlimit) {
+        inputStream.mark(readlimit);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reset() throws IOException {
+        inputStream.reset();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean markSupported() {
+        return inputStream.markSupported();
+    }
+    
+    /** 
      * Close the stream
      * Since we re-cycle, we can't allow the call to super.close()
      * which would permanently disable us.

@@ -40,13 +40,19 @@
 
 package org.glassfish.grizzly.servlet;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Socket;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.SocketFactory;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -59,6 +65,8 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Futures;
+import org.junit.Test;
+
 
 /**
  * Basic Servlet Test.
@@ -360,6 +368,83 @@ public class BasicServletTest extends HttpServerAbstractTest {
         } finally {
             httpServer.shutdownNow();
         }
+    }
+    
+    /**
+     * Related to the issue
+     * https://java.net/jira/browse/GRIZZLY-1578
+     */
+    @Test
+    public void testInputStreamMarkReset() throws Exception {
+        final String param1Name = "j_username";
+        final String param2Name = "j_password";
+        final String param1Value = "admin";
+        final String param2Value = "admin";
+        
+        newHttpServer(PORT);
+        final WebappContext ctx = new WebappContext("example", "/");
+        final ServletRegistration reg = ctx.addServlet("paramscheck", new HttpServlet() {
+            @Override
+            protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+                    throws ServletException, IOException {
+                
+                try {
+                    final InputStream is = req.getInputStream();
+                    assertTrue(is.markSupported());
+                    is.mark(1);
+                    assertEquals('j', is.read());
+                    is.reset();
+                    assertEquals(param1Value, req.getParameter(param1Name));
+                    assertEquals(param2Value, req.getParameter(param2Name));
+                } catch (Throwable t) {
+                    LOGGER.log(Level.SEVERE, "Error", t);
+                    resp.sendError(500, t.getMessage());
+                }
+                
+            }
+        });
+        reg.addMapping("/");
+        ctx.deploy(httpServer);
+
+        Socket s = null;
+        try {
+            httpServer.start();
+            final String postHeader = "POST / HTTP/1.1\r\n"
+                    + "Host: localhost:" + PORT + "\r\n"
+                    + "User-Agent: Mozilla/5.0 (iPod; CPU iPhone OS 5_1_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B206 Safari/7534.48.3\r\n"
+                    + "Content-Length: 33\r\n"
+                    + "Accept: */*\r\n"
+                    + "Origin: http://192.168.1.165:9998\r\n"
+                    + "X-Requested-With: XMLHttpRequest\r\n"
+                    + "Content-Type: application/x-www-form-urlencoded; charset=UTF-8\r\n"
+                    + "Referer: http://192.168.1.165:9998/\r\n"
+                    + "Accept-Language: en-us\r\n"
+                    + "Accept-Encoding: gzip, deflate\r\n"
+                    + "Cookie: JSESSIONID=716476212401473028\r\n"
+                    + "Connection: keep-alive\r\n\r\n";
+
+            final String postBody = param1Name + "=" + param1Value + "&" +
+                    param2Name + "=" + param2Value;
+        
+            s = SocketFactory.getDefault().createSocket("localhost", PORT);
+            OutputStream out = s.getOutputStream();
+            BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+
+            out.write(postHeader.getBytes());
+            out.flush();
+            Thread.sleep(100);
+            out.write(postBody.getBytes());
+            out.flush();
+
+            assertEquals("HTTP/1.1 200 OK", in.readLine());
+
+        } finally {
+            httpServer.shutdownNow();
+            if (s != null) {
+                s.close();
+            }
+        }
+
     }
     
     private ServletRegistration addServlet(final WebappContext ctx,
