@@ -146,6 +146,8 @@ public class OutputBuffer implements OutputSink {
     protected boolean sendfileEnabled;
     
     private HttpHeader outputHeader;
+
+    private HttpContent.Builder builder;
     
     private boolean isNonBlockingWriteGuaranteed;
     private boolean isLastWriteNonBlocking;
@@ -161,7 +163,11 @@ public class OutputBuffer implements OutputSink {
                            final FilterChainContext ctx) {
 
         this.outputHeader = outputHeader;
-
+        if (builder == null) {
+            this.builder = outputHeader.httpContentBuilder();
+        } else {
+            builder.httpHeader(outputHeader);
+        }
         this.sendfileEnabled = sendfileEnabled;
         this.ctx = ctx;
         httpContext = HttpContext.get(ctx);
@@ -260,6 +266,7 @@ public class OutputBuffer implements OutputSink {
     public void recycle() {
 
         outputHeader = null;
+        builder.reset();
 
         if (compositeBuffer != null) {
             compositeBuffer.dispose();
@@ -931,8 +938,6 @@ public class OutputBuffer implements OutputSink {
             final boolean isLast, final LifeCycleHandler lifeCycleHandler)
             throws IOException {
         
-        final HttpContent.Builder builder = outputHeader.httpContentBuilder();
-
         builder.content(bufferToFlush).last(isLast);
         ctx.write(null,
                   builder.build(),
@@ -1004,8 +1009,7 @@ public class OutputBuffer implements OutputSink {
     private void forceCommitHeaders(final boolean isLast) throws IOException {
         if (isLast) {
             if (outputHeader != null) {
-                final HttpContent.Builder builder = outputHeader.httpContentBuilder();
-                builder.last(true);
+                builder.last(true).content(null);
                 ctx.write(builder.build(), IS_BLOCKING);
             }
         } else {
