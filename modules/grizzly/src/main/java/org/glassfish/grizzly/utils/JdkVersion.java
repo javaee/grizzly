@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,20 @@ package org.glassfish.grizzly.utils;
  * @since 2.2.11
  */
 public class JdkVersion implements Comparable<JdkVersion> {
+    private static final boolean IS_UNSAFE_SUPPORTED;
+    
+    static {
+        
+        boolean isUnsafeFound;
+        
+        try {
+            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
+        } catch (Throwable t) {
+            isUnsafeFound = false;
+        }
+        
+        IS_UNSAFE_SUPPORTED = isUnsafeFound;        
+    }    
 
     private static final JdkVersion UNKNOWN_VERSION = new JdkVersion(-1, -1, -1, -1);
     private static final JdkVersion JDK_VERSION = parseVersion(System.getProperty("java.version"));
@@ -114,6 +128,16 @@ public class JdkVersion implements Comparable<JdkVersion> {
         return update;
     }
 
+    /**
+     * Returns <tt>true</tt> if <code>sun.misc.Unsafe</code> is present in the
+     * current JDK version, or <tt>false</tt> otherwise.
+     * 
+     * @since 2.3.6
+     */
+    public boolean isUnsafeSupported() {
+        return IS_UNSAFE_SUPPORTED;
+    }
+    
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
