@@ -67,7 +67,9 @@ import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.spdy.compression.SpdyDeflaterOutputStream;
 import org.glassfish.grizzly.spdy.compression.SpdyInflaterOutputStream;
@@ -552,27 +554,21 @@ public final class SpdySession {
     }
     
     public final class UnidirectionalBuilder extends HttpHeader.Builder<UnidirectionalBuilder> {
-        private final SpdyRequest request;
-        
+
         private int associatedToStreamId;
         private int priority;
         private int slot;
         private boolean isFin;
+        private String uri;
+        private String query;
         
-        protected UnidirectionalBuilder() {
-            request = SpdyRequest.create();
-            packet = request.getResponse();
-            
-            packet.setSecure(true);
-        }
-
         /**
          * Set the request URI.
          *
          * @param uri the request URI.
          */
         public UnidirectionalBuilder uri(final String uri) {
-            request.setRequestURI(uri);
+            this.uri = uri;
             return this;
         }
 
@@ -584,7 +580,7 @@ public final class SpdySession {
          * @return the current <code>Builder</code>
          */
         public UnidirectionalBuilder query(final String query) {
-            request.setQueryString(query);
+            this.query = query;
             return this;
         }
 
@@ -644,7 +640,7 @@ public final class SpdySession {
         @SuppressWarnings("unchecked")
         public final SpdyStream open() throws SpdyStreamException {
             newClientStreamLock.lock();
-
+            final SpdyRequest request = build();
             try {
                 final SpdyStream spdyStream = openStream(
                         request,
@@ -653,40 +649,63 @@ public final class SpdySession {
                         slot, true, isFin);
                 
                 
-                connection.write(packet);
+                connection.write(request.getResponse());
                 
                 return spdyStream;
             } finally {
                 newClientStreamLock.unlock();
             }
         }
-    }    
+
+        @Override
+        public SpdyRequest build() {
+            SpdyRequest request = (SpdyRequest) super.build();
+            if (uri != null) {
+                request.setRequestURI(uri);
+            }
+            if (query != null) {
+                request.setQueryString(query);
+            }
+            return request;
+        }
+
+        @Override
+        protected HttpHeader create() {
+            SpdyRequest request = SpdyRequest.create();
+            HttpResponsePacket packet = request.getResponse();
+            packet.setSecure(true);
+            return request;
+        }
+    }
     
     public final class BidirectionalBuilder extends HttpHeader.Builder<BidirectionalBuilder> {
         private int priority;
         private int slot;
         private boolean isFin;
+        private Method method;
+        private String methodString;
+        private String uri;
+        private String query;
+        private String host;
         
-        protected BidirectionalBuilder() {
-            packet = SpdyRequest.create();
-            packet.setSecure(true);
-        }
 
         /**
          * Set the HTTP request method.
          * @param method the HTTP request method..
          */
         public BidirectionalBuilder method(final Method method) {
-            ((HttpRequestPacket) packet).setMethod(method);
+            this.method = method;
+            methodString = null;
             return this;
         }
 
         /**
          * Set the HTTP request method.
-         * @param method the HTTP request method. Format is "GET|POST...".
+         * @param methodString the HTTP request method. Format is "GET|POST...".
          */
-        public BidirectionalBuilder method(final String method) {
-            ((HttpRequestPacket) packet).setMethod(method);
+        public BidirectionalBuilder method(final String methodString) {
+            this.methodString = methodString;
+            method = null;
             return this;
         }
 
@@ -696,7 +715,7 @@ public final class SpdySession {
          * @param uri the request URI.
          */
         public BidirectionalBuilder uri(final String uri) {
-            ((HttpRequestPacket) packet).setRequestURI(uri);
+            this.uri = uri;
             return this;
         }
 
@@ -708,7 +727,19 @@ public final class SpdySession {
          * @return the current <code>Builder</code>
          */
         public BidirectionalBuilder query(final String query) {
-            ((HttpRequestPacket) packet).setQueryString(query);
+            this.query = query;
+            return this;
+        }
+
+        /**
+         * Set the value of the Host header.
+         *
+         * @param host the value of the Host header.
+         *
+         * @return this;
+         */
+        public BidirectionalBuilder host(final String host) {
+            this.host = host;
             return this;
         }
 
@@ -756,20 +787,48 @@ public final class SpdySession {
         @SuppressWarnings("unchecked")
         public final SpdyStream open() throws SpdyStreamException {
             newClientStreamLock.lock();
-
+            SpdyRequest request = build();
             try {
                 final SpdyStream spdyStream = openStream(
-                        (HttpRequestPacket) packet,
+                        request,
                         getNextLocalStreamId(),
                         0, priority, slot, false, isFin);
                 
                 
-                connection.write(packet);
+                connection.write(request);
                 
                 return spdyStream;
             } finally {
                 newClientStreamLock.unlock();
             }
+        }
+
+        @Override
+        public SpdyRequest build() {
+            SpdyRequest request = (SpdyRequest) super.build();
+            if (method != null) {
+                request.setMethod(method);
+            }
+            if (methodString != null) {
+                request.setMethod(methodString);
+            }
+            if (uri != null) {
+                request.setRequestURI(uri);
+            }
+            if (query != null) {
+                request.setQueryString(query);
+            }
+            if (host != null) {
+                request.addHeader(Header.Host, host);
+            }
+            return request;
+        }
+
+        @Override
+        protected HttpHeader create() {
+            SpdyRequest request = SpdyRequest.create();
+            request.setSecure(true);
+            return request;
         }
     }
     

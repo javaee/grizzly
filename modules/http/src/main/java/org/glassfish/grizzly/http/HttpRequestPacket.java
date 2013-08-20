@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 
@@ -694,16 +695,20 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * <tt>HttpRequestPacket</tt> message builder.
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
-        protected Builder() {
-            packet = HttpRequestPacketImpl.create();
-        }
+
+        protected Method method;
+        protected String methodString;
+        protected String uri;
+        protected String queryString;
+        protected String host;
 
         /**
          * Set the HTTP request method.
          * @param method the HTTP request method..
          */
         public Builder method(final Method method) {
-            ((HttpRequestPacket) packet).setMethod(method);
+            this.method = method;
+            methodString = null;
             return this;
         }
 
@@ -712,7 +717,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
          * @param method the HTTP request method. Format is "GET|POST...".
          */
         public Builder method(final String method) {
-            ((HttpRequestPacket) packet).setMethod(method);
+            this.methodString = method;
+            this.method = null;
             return this;
         }
 
@@ -722,19 +728,30 @@ public abstract class HttpRequestPacket extends HttpHeader {
          * @param uri the request URI.
          */
         public Builder uri(final String uri) {
-            ((HttpRequestPacket) packet).setRequestURI(uri);
+            this.uri = uri;
+            return this;
+        }
+
+        /**
+         * Set the value for the Host header.
+         * @param host the value for the Host header.
+         *
+         * @return this.
+         */
+        public Builder host(final String host) {
+            this.host = host;
             return this;
         }
 
         /**
          * Set the <code>query</code> portion of the request URI.
          *
-         * @param query the query String
+         * @param queryString the query String
          *
          * @return the current <code>Builder</code>
          */
-        public Builder query(final String query) {
-            ((HttpRequestPacket) packet).setQueryString(query);
+        public Builder query(final String queryString) {
+            this.queryString = queryString;
             return this;
         }
 
@@ -744,7 +761,35 @@ public abstract class HttpRequestPacket extends HttpHeader {
          * @return <tt>HttpRequestPacket</tt>
          */
         public final HttpRequestPacket build() {
-            return (HttpRequestPacket) packet;
+            HttpRequestPacket packet = (HttpRequestPacket) super.build();
+            if (method != null) {
+                packet.setMethod(method);
+            }
+            if (methodString != null) {
+                packet.setMethod(methodString);
+            }
+            if (uri != null) {
+                packet.setRequestURI(uri);
+            }
+            if (queryString != null) {
+                packet.setQueryString(queryString);
+            }
+            if (host != null) {
+                packet.addHeader(Header.Host, host);
+            }
+            return packet;
+        }
+
+        public void reset() {
+            super.reset();
+            method = null;
+            uri = null;
+            queryString = null;
+        }
+
+        @Override
+        protected HttpHeader create() {
+            return HttpRequestPacketImpl.create();
         }
     }
 }

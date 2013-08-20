@@ -349,8 +349,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testRstFrame() throws Exception {
-        final FutureImpl<Boolean> writeHandlerFuture = Futures.<Boolean>createSafeFuture();
-        final FutureImpl<Boolean> readHandlerFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> writeHandlerFuture = Futures.createSafeFuture();
+        final FutureImpl<Boolean> readHandlerFuture = Futures.createSafeFuture();
         
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
@@ -783,7 +783,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                         .method(Method.GET)
                         .uri("/test")
                         .protocol(Protocol.HTTP_1_1)
-                        .header(Header.Host, "localhost:" + PORT)
+                        .host("localhost:" + PORT)
                         .fin(true)
                         .open();
                 
@@ -918,7 +918,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
     @SuppressWarnings("unchecked")
     public void testAssociatedStreamClose() throws Exception {
         final FutureImpl<Boolean> uStreamCloseFuture =
-                Futures.<Boolean>createSafeFuture();
+                Futures.createSafeFuture();
         
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
