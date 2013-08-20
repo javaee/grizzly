@@ -63,6 +63,9 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -75,6 +78,9 @@ import static org.glassfish.grizzly.http.util.Constants.*;
  * from the HTTP messaging system in Grizzly.
  */
 public class InputBuffer {
+    private static final Logger LOGGER = Grizzly.logger(InputBuffer.class);
+    private static final Level LOGGER_LEVEL = Level.FINER;
+    
     /**
      * The {@link org.glassfish.grizzly.http.HttpHeader} associated with this <code>InputBuffer</code>
      */
@@ -213,6 +219,11 @@ public class InputBuffer {
             contentRead = content.isLast();
             content.recycle();
             inputContentBuffer.allowBufferDispose(true);
+            
+            if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+                log("InputBuffer %s initialize with ready content: %s",
+                        this, inputContentBuffer);
+            }
         }
 
     }
@@ -294,6 +305,10 @@ public class InputBuffer {
      * @see java.io.InputStream#read()
      */
     public int readByte() throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s readByte. Ready content: %s",
+                    this, inputContentBuffer);
+        }
 
         if (closed) {
             throw new IOException();
@@ -319,6 +334,10 @@ public class InputBuffer {
      * @see java.io.InputStream#read(byte[], int, int)
      */
     public int read(final byte b[], final int off, final int len) throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s read byte array of len: %s. Ready content: %s",
+                    this, len, inputContentBuffer);
+        }
 
         if (closed) {
             throw new IOException();
@@ -380,6 +399,11 @@ public class InputBuffer {
      * {@link Buffer} used to buffer incoming request data.
      */
     public Buffer getBuffer() {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s getBuffer. Ready content: %s",
+                    this, inputContentBuffer);
+        }
+
         return inputContentBuffer.duplicate();
     }
 
@@ -390,6 +414,11 @@ public class InputBuffer {
      * the {@link Buffer}.
      */
     public Buffer readBuffer() {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s readBuffer. Ready content: %s",
+                    this, inputContentBuffer);
+        }
+        
         return readBuffer(inputContentBuffer.remaining());
     }
     
@@ -402,6 +431,11 @@ public class InputBuffer {
      * {@link Buffer}, so user code becomes responsible for handling its life-cycle.
      */
     public Buffer readBuffer(final int size) {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s readBuffer(size), size: %s. Ready content: %s",
+                    this, size, inputContentBuffer);
+        }
+        
         final int remaining = inputContentBuffer.remaining();
         if (size > remaining) {
             throw new IllegalStateException("Can not read more bytes than available");
@@ -436,6 +470,10 @@ public class InputBuffer {
      * @see java.io.Reader#read(java.nio.CharBuffer)
      */
     public int read(final CharBuffer target) throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s read(CharBuffer). Ready content: %s",
+                    this, inputContentBuffer);
+        }
 
         if (closed) {
             throw new IOException();
@@ -462,6 +500,10 @@ public class InputBuffer {
      * @see java.io.Reader#read()
      */
     public int readChar() throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s readChar. Ready content: %s",
+                    this, inputContentBuffer);
+        }
       
         if (closed) {
             throw new IOException();
@@ -488,6 +530,10 @@ public class InputBuffer {
      */
     public int read(final char cbuf[], final int off, final int len)
     throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s read char array, len: %s. Ready content: %s",
+                    this, len, inputContentBuffer);
+        }
 
         if (closed) {
             throw new IOException();
@@ -514,6 +560,11 @@ public class InputBuffer {
      * @throws IOException
      */
     public void fillFully(final int length) throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s fillFully, len: %s. Ready content: %s",
+                    this, length, inputContentBuffer);
+        }
+        
         if (length == 0) return;
         
         if (length > 0) {
@@ -629,6 +680,10 @@ public class InputBuffer {
      * @see java.io.Reader#skip(long)
      */
     public long skip(final long n) throws IOException {
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s skip %s bytes. Ready content: %s",
+                    this, n, inputContentBuffer);
+        }
 
         if (closed) {
             throw new IOException();
@@ -695,6 +750,10 @@ public class InputBuffer {
     public void replayPayload(final Buffer buffer) {
         if (!isFinished()) {
             throw new IllegalStateException("Can't replay when InputBuffer is not closed");
+        }
+        
+        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+            log("InputBuffer %s replayPayload to %s", this, buffer);
         }
         
         closed = false;
@@ -1198,4 +1257,14 @@ public class InputBuffer {
             }
         }
     }    
+    
+    private static void log(final String message, Object... params) {
+        final String preparedMsg = String.format(message, params);
+
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, preparedMsg, new Exception("Logged at"));
+        } else {
+            LOGGER.log(LOGGER_LEVEL, preparedMsg);
+        }
+    }
 }
