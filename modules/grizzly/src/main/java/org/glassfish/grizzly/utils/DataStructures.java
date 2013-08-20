@@ -54,21 +54,9 @@ import org.glassfish.grizzly.Grizzly;
  * @author gustav trede
  */
 public class DataStructures {
-    private static final boolean IS_UNSAFE_SUPPORTED;
-    
     private final static Class<?> LTQclass;
 
     static {
-        
-        boolean isUnsafeFound;
-        
-        try {
-            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
-        } catch (Throwable t) {
-            isUnsafeFound = false;
-        }
-        
-        IS_UNSAFE_SUPPORTED = isUnsafeFound;        
         String className = null;
         
         Class<?> c;
@@ -122,7 +110,7 @@ public class DataStructures {
      * @since 2.3.5
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap() {
-        return IS_UNSAFE_SUPPORTED ?
+        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
                 new ConcurrentHashMapV8<K, V>() :
                 new ConcurrentHashMap<K, V>();
     }
@@ -136,7 +124,7 @@ public class DataStructures {
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final Map<? extends K, ? extends V> map) {
-        return IS_UNSAFE_SUPPORTED ?
+        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
                 new ConcurrentHashMapV8<K, V>(map) :
                 new ConcurrentHashMap<K, V>(map);
     }
@@ -155,7 +143,7 @@ public class DataStructures {
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final int initialCapacity) {
-        return IS_UNSAFE_SUPPORTED ?
+        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
                 new ConcurrentHashMapV8<K, V>(initialCapacity) :
                 new ConcurrentHashMap<K, V>(initialCapacity);
     }
@@ -183,7 +171,7 @@ public class DataStructures {
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final int initialCapacity, final float loadFactor,
             final int concurrencyLevel) {
-        return IS_UNSAFE_SUPPORTED ?
+        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
                 new ConcurrentHashMapV8<K, V>(initialCapacity, loadFactor, concurrencyLevel) :
                 new ConcurrentHashMap<K, V>(initialCapacity, loadFactor, concurrencyLevel);
     }
