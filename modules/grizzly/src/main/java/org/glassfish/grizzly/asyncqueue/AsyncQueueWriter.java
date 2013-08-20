@@ -41,7 +41,9 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.WritableMessage;
+
 import java.net.SocketAddress;
+
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
@@ -54,33 +56,32 @@ import org.glassfish.grizzly.nio.NIOConnection;
  * @author Alexey Stashok
  * @author Ryan Lubke
  */
-public interface AsyncQueueWriter<L>  extends Writer<L>, AsyncQueue {
-    
+public interface AsyncQueueWriter<L> extends Writer<L>, AsyncQueue {
+
     /**
      * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
      * the async write queue size is unlimited.
      */
     public static final int UNLIMITED_SIZE = -1;
-    
+
     /**
      * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
      * the async write queue size will be configured automatically per
      * {@link NIOConnection} depending on connections write buffer size.
      */
     public static final int AUTO_SIZE = -2;
-    
+
     /**
      * Method writes the {@link Buffer} to the specific address.
      *
-     *
-     * @param connection the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress the destination address the {@link WritableMessage} will be
-     *        sent to
-     * @param message the {@link WritableMessage}, from which the data will be written
+     * @param connection        the {@link org.glassfish.grizzly.Connection} to write to
+     * @param dstAddress        the destination address the {@link WritableMessage} will be
+     *                          sent to
+     * @param message           the {@link WritableMessage}, from which the data will be written
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
-     *        which will get notified, when write will be completed
-     * @param lifeCycleHandler {@link LifeCycleHandler}, which gives developer
-     *        finer control over message write process.
+     *                          which will get notified, when write will be completed
+     * @param lifeCycleHandler  {@link LifeCycleHandler}, which gives developer
+     *                          finer control over message write process.
      */
     public void write(
             Connection<L> connection, SocketAddress dstAddress, WritableMessage message,
@@ -92,15 +93,37 @@ public interface AsyncQueueWriter<L>  extends Writer<L>, AsyncQueue {
      * for a particular {@link Connection}.
      *
      * @param maxQueuedWrites maximum number of bytes that may be pending to be
-     *  written to a particular {@link Connection}.
+     *                        written to a particular {@link Connection}.
      */
     void setMaxPendingBytesPerConnection(final int maxQueuedWrites);
 
 
     /**
      * @return the maximum number of bytes that may be pending to be written
-     *  to a particular {@link Connection}.  By default, this will be four
-     *  times the size of the {@link java.net.Socket} send buffer size.
+     * to a particular {@link Connection}.  By default, this will be four
+     * times the size of the {@link java.net.Socket} send buffer size.
      */
-    int getMaxPendingBytesPerConnection();    
+    int getMaxPendingBytesPerConnection();
+
+    /**
+     * Returns <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     */
+    boolean isAllowDirectWrite();
+
+    /**
+     * Set <tt>true</tt>, if async write queue is allowed to write buffer
+     * directly during write(...) method call, w/o adding buffer to the
+     * queue, or <tt>false</tt> otherwise.
+     *
+     * @param isAllowDirectWrite <tt>true</tt>, if async write queue is allowed
+     *                           to write buffer directly during write(...) method call, w/o adding buffer
+     *                           to the queue, or <tt>false</tt> otherwise.
+     */
+    void setAllowDirectWrite(final boolean isAllowDirectWrite);
 }

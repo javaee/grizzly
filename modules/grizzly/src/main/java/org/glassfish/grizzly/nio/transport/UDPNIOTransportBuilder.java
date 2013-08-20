@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,9 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.NIOTransportBuilder;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
@@ -52,76 +54,18 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
  */
 public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportBuilder> {
 
-    protected UDPNIOTransport udpTransport;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected UDPNIOTransportBuilder(Class<? extends UDPNIOTransport> transportClass,
-                                     IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
-        super(transportClass, strategy);
-        udpTransport = (UDPNIOTransport) transport;
+    protected UDPNIOTransportBuilder() {
     }
 
 
     // ---------------------------------------------------------- Public Methods
 
     public static UDPNIOTransportBuilder newInstance() {
-        try {
-            return new UDPNIOTransportBuilder(UDPNIOTransport.class,
-                                              WorkerThreadIOStrategy.getInstance());
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /**
-     * @see UDPNIOTransport#isReuseAddress()
-     */
-    public boolean isReuseAddress() {
-        return udpTransport.isReuseAddress();
-    }
-
-    /**
-     * @see UDPNIOTransport#setReuseAddress(boolean)
-     *
-     * @return this <code>UDPNIOTransport</code>
-     */
-    public UDPNIOTransportBuilder setReuseAddress(boolean reuseAddress) {
-        udpTransport.setReuseAddress(reuseAddress);
-        return getThis();
-    }
-
-    /**
-     * @see UDPNIOTransport#getTemporarySelectorIO()
-     */
-    public TemporarySelectorIO getTemporarySelectorIO() {
-        return udpTransport.getTemporarySelectorIO();
-    }
-
-    /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
-     * 
-     * Note: the value is per connection, not transport total.
-     */
-    public int getMaxAsyncWriteQueueSizeInBytes() {
-        return udpTransport.getAsyncQueueWriter()
-                .getMaxPendingBytesPerConnection();
-    }
-    
-    /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
-     * 
-     * Note: the value is per connection, not transport total.
-     *
-     * @return this <code>UDPNIOTransportBuilder</code>
-     */
-    public UDPNIOTransportBuilder setMaxAsyncWriteQueueSizeInBytes(
-            final int size) {
-        udpTransport.getAsyncQueueWriter()
-                .setMaxPendingBytesPerConnection(size);
-        return this;
+        return new UDPNIOTransportBuilder();
     }
 
     /**
@@ -139,6 +83,11 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     @Override
     protected UDPNIOTransportBuilder getThis() {
         return this;
+    }
+
+    @Override
+    protected NIOTransport create() {
+        return new UDPNIOTransport();
     }
 
 }

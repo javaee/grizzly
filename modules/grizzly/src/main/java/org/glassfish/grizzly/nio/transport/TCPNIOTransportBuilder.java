@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,12 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.NIOTransportBuilder;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 /**
  * {@link NIOTransportBuilder} implementation for <code>TCP</code>.
@@ -51,17 +50,16 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
  */
 public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportBuilder> {
 
-
-    protected TCPNIOTransport tcpTransport;
+    protected boolean keepAlive = TCPNIOTransport.DEFAULT_KEEP_ALIVE;
+    protected int linger = TCPNIOTransport.DEFAULT_LINGER;
+    protected int serverConnectionBackLog = TCPNIOTransport.DEFAULT_SERVER_CONNECTION_BACKLOG;
+    protected int serverSocketSoTimeout = TCPNIOTransport.DEFAULT_SERVER_SOCKET_SO_TIMEOUT;
+    protected boolean tcpNoDelay = TCPNIOTransport.DEFAULT_TCP_NO_DELAY;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected TCPNIOTransportBuilder(Class<? extends TCPNIOTransport> transportClass,
-                                     IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
-        super(transportClass, strategy);
-        tcpTransport = (TCPNIOTransport) transport;
+    protected TCPNIOTransportBuilder() {
     }
 
 
@@ -69,54 +67,18 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
 
 
     public static TCPNIOTransportBuilder newInstance() {
-        try {
-            return new TCPNIOTransportBuilder(TCPNIOTransport.class,
-                                              WorkerThreadIOStrategy.getInstance());
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+        return new TCPNIOTransportBuilder();
     }
 
-
-    /**
-     * @see TCPNIOTransport#getClientSocketSoTimeout()
-     */
-    public int getClientSocketSoTimeout() {
-        return tcpTransport.getClientSocketSoTimeout();
-    }
-
-    /**
-     * @see TCPNIOTransport#setClientSocketSoTimeout(int)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setClientSocketSoTimeout(int clientSocketSoTimeout) {
-        tcpTransport.setClientSocketSoTimeout(clientSocketSoTimeout);
-        return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#isKeepAlive() ()
-     */
-    public boolean isKeepAlive() {
-        return tcpTransport.isKeepAlive();
-    }
 
     /**
      * @see TCPNIOTransport#setKeepAlive(boolean)
      *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setKeepAlive(boolean keepAlive) {
-        tcpTransport.setKeepAlive(keepAlive);
+    public TCPNIOTransportBuilder keepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
         return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#getLinger()
-     */
-    public int getLinger() {
-        return tcpTransport.getLinger();
     }
 
     /**
@@ -124,33 +86,9 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setLinger(int linger) {
-        tcpTransport.setLinger(linger);
+    public TCPNIOTransportBuilder linger(int linger) {
+        this.linger = linger;
         return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#isReuseAddress()
-     */
-    public boolean isReuseAddress() {
-        return tcpTransport.isReuseAddress();
-    }
-
-    /**
-     * @see TCPNIOTransport#setReuseAddress(boolean)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setReuseAddress(boolean reuseAddress) {
-        tcpTransport.setReuseAddress(reuseAddress);
-        return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#getServerConnectionBackLog() ()
-     */
-    public int getServerConnectionBackLog() {
-        return tcpTransport.getServerConnectionBackLog();
     }
 
     /**
@@ -158,33 +96,17 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setServerConnectionBackLog(int serverConnectionBackLog) {
-        tcpTransport.setServerConnectionBackLog(serverConnectionBackLog);
+    public TCPNIOTransportBuilder serverConnectionBackLog(int serverConnectionBackLog) {
+        this.serverConnectionBackLog = serverConnectionBackLog;
         return getThis();
     }
 
     /**
-     * @see TCPNIOTransport#getServerSocketSoTimeout()
-     */
-    public int getServerSocketSoTimeout() {
-        return tcpTransport.getServerSocketSoTimeout();
-    }
-
-    /**
-     * @see TCPNIOTransport#setServerSocketSoTimeout(int)
-     *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setServerSocketSoTimeout(int serverSocketSoTimeout) {
-        tcpTransport.setServerSocketSoTimeout(serverSocketSoTimeout);
+    public TCPNIOTransportBuilder serverSocketSoTimeout(int serverSocketSoTimeout) {
+        this.serverSocketSoTimeout = serverSocketSoTimeout;
         return getThis();
-    }
-
-    /**
-     * @see TCPNIOTransport#isTcpNoDelay()
-     */
-    public boolean isTcpNoDelay() {
-        return tcpTransport.isTcpNoDelay();
     }
 
     /**
@@ -192,16 +114,9 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      *
      * @return this <code>TCPNIOTransportBuilder</code>
      */
-    public TCPNIOTransportBuilder setTcpNoDelay(boolean tcpNoDelay) {
-        tcpTransport.setTcpNoDelay(tcpNoDelay);
+    public TCPNIOTransportBuilder tcpNoDelay(boolean tcpNoDelay) {
+        this.tcpNoDelay = tcpNoDelay;
         return getThis();
-    }
-    
-    /**
-     * @see TCPNIOTransport#getTemporarySelectorIO()
-     */
-    public TemporarySelectorIO getTemporarySelectorIO() {
-        return tcpTransport.getTemporarySelectorIO();
     }
 
     /**
@@ -209,7 +124,13 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      */
     @Override
     public TCPNIOTransport build() {
-        return (TCPNIOTransport) super.build();
+        TCPNIOTransport transport = (TCPNIOTransport) super.build();
+        transport.setKeepAlive(keepAlive);
+        transport.setLinger(linger);
+        transport.setServerConnectionBackLog(serverConnectionBackLog);
+        transport.setTcpNoDelay(tcpNoDelay);
+        transport.setOptimizedForMultiplexing(optimizedForMultiplexing);
+        return transport;
     }
 
     // ------------------------------------------------------- Protected Methods
@@ -220,4 +141,8 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
         return this;
     }
 
+    @Override
+    protected NIOTransport create() {
+        return new TCPNIOTransport();
+    }
 }

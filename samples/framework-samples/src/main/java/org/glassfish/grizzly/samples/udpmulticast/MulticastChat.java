@@ -140,7 +140,7 @@ public class MulticastChat {
         // Create UDP transport
         final UDPNIOTransport transport =
                 UDPNIOTransportBuilder.newInstance()
-                .setFilterChain(filterChain)
+                .filterChain(filterChain)
                 .build();
         
         UDPNIOConnection connection = null;

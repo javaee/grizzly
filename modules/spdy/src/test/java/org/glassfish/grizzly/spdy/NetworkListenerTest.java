@@ -96,7 +96,7 @@ public class NetworkListenerTest extends AbstractSpdyTest {
         
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance()
-                .setFilterChain(filterChain)
+                .filterChain(filterChain)
                 .build();
 
         final HttpServer server = createServer(null, PORT, SpdyMode.PLAIN, true,

@@ -122,8 +122,8 @@ public class IOStrategyTest {
         filterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
         filterChainBuilder.add(serverEchoFilter);
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setIOStrategy(strategy)
-                .setMaxAsyncWriteQueueSizeInBytes(AsyncQueueWriter.UNLIMITED_SIZE)
+                .ioStrategy(strategy)
+                .maxAsyncWriteQueueSizeInBytes(AsyncQueueWriter.UNLIMITED_SIZE)
                 .build();
         transport.setFilterChain(filterChainBuilder.build());
 

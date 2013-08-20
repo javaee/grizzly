@@ -73,7 +73,7 @@ public class LifeCycleExample {
         // Create TCP transport
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance()
-                .setFilterChain(filterChainBuilder.build())
+                .filterChain(filterChainBuilder.build())
                 .build();
 
         try {

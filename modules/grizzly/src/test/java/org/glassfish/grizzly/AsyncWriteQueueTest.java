@@ -107,7 +107,7 @@ public class AsyncWriteQueueTest {
         
         return TCPNIOTransportBuilder
                 .newInstance()
-                .setOptimizedForMultiplexing(isOptimizedForMultiplexing)
+                .optimizedForMultiplexing(isOptimizedForMultiplexing)
                 .build();
     }
 

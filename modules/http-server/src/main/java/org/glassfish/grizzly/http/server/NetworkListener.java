@@ -61,6 +61,7 @@ import org.glassfish.grizzly.http.KeepAliveConfig;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -141,12 +142,12 @@ public class NetworkListener {
         final int coresCount = Runtime.getRuntime().availableProcessors() * 2;
         
         transport = builder
-                .setIOStrategy(SameThreadIOStrategy.getInstance())
-                .setWorkerThreadPoolConfig(ThreadPoolConfig.newConfig()
-                .setPoolName("Grizzly-worker")
-                .setCorePoolSize(coresCount)
-                .setMaxPoolSize(coresCount)
-                .setMemoryManager(builder.getMemoryManager()))
+                .ioStrategy(SameThreadIOStrategy.getInstance())
+                .workerThreadPoolConfig(ThreadPoolConfig.newConfig()
+                    .setPoolName("Grizzly-worker")
+                    .setCorePoolSize(coresCount)
+                    .setMaxPoolSize(coresCount)
+                    .setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER))
                 .build();
     }
     

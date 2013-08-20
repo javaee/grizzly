@@ -448,7 +448,7 @@ public class FilterChainTest extends TestCase {
 
     public void testWriteCloner() throws Exception {
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setMaxAsyncWriteQueueSizeInBytes(-1)
+                .maxAsyncWriteQueueSizeInBytes(-1)
                 .build();
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();

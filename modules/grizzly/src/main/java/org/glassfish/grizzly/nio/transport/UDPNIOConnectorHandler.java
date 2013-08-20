@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
@@ -59,8 +60,6 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
-
-    private static final Logger LOGGER = Grizzly.logger(UDPNIOConnectorHandler.class);
 
     protected boolean isReuseAddress;
 
@@ -265,21 +264,40 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @return the {@link UDPNIOConnectorHandler} builder.
      */
     public static Builder builder(final UDPNIOTransport transport) {
-        return new UDPNIOConnectorHandler.Builder(transport);
+        return new UDPNIOConnectorHandler.Builder().transport(transport);
     }
 
     public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
-        protected Builder(final UDPNIOTransport transport) {
-            super(new UDPNIOConnectorHandler(transport));
-        }
+
+        private UDPNIOTransport transport;
+        private Boolean reuseAddress;
 
         public UDPNIOConnectorHandler build() {
-            return (UDPNIOConnectorHandler) connectorHandler;
+            UDPNIOConnectorHandler handler =
+                    (UDPNIOConnectorHandler) super.build();
+            if (reuseAddress != null) {
+                handler.setReuseAddress(reuseAddress);
+            }
+            return handler;
         }
 
-        public Builder setReuseAddress(final boolean isReuseAddress) {
-            ((UDPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+        public Builder transport(final UDPNIOTransport transport) {
+            this.transport = transport;
             return this;
+        }
+
+        public Builder reuseAddress(final boolean reuseAddress) {
+            this.reuseAddress = reuseAddress;
+            return this;
+        }
+
+        @Override
+        protected AbstractSocketConnectorHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create UDPNIOConnectorHandler - transport is null");
+            }
+            return new UDPNIOConnectorHandler(transport);
         }
     }
 }

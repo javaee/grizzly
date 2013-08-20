@@ -41,6 +41,7 @@ package org.glassfish.grizzly;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -51,7 +52,7 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
  * Abstract class simplifies the implementation of
  * {@link SocketConnectorHandler}
  * interface by pre-implementing some of its methods.
- * 
+ *
  * @author Alexey Stashok
  */
 public abstract class AbstractSocketConnectorHandler
@@ -63,9 +64,10 @@ public abstract class AbstractSocketConnectorHandler
     /**
      * Connection probes
      */
-    protected final DefaultMonitoringConfig<ConnectionProbe> connectionMonitoringConfig =
+    protected final DefaultMonitoringConfig<ConnectionProbe>
+            connectionMonitoringConfig =
             new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
-    
+
     public AbstractSocketConnectorHandler(final Transport transport) {
         this.transport = transport;
         this.filterChain = transport.getFilterChain();
@@ -83,20 +85,20 @@ public abstract class AbstractSocketConnectorHandler
 
     @Override
     public void connect(SocketAddress remoteAddress,
-            CompletionHandler<Connection> completionHandler) {
+                        CompletionHandler<Connection> completionHandler) {
         connect(remoteAddress, null, completionHandler);
     }
 
     @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) {
+                                             SocketAddress localAddress) {
         return connect0(remoteAddress, localAddress, null, true);
     }
 
     @Override
     public void connect(SocketAddress remoteAddress,
-            SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler) {
+                        SocketAddress localAddress,
+                        CompletionHandler<Connection> completionHandler) {
         connect0(remoteAddress, localAddress, completionHandler, false);
     }
 
@@ -122,7 +124,7 @@ public abstract class AbstractSocketConnectorHandler
      * on connection phase.
      *
      * @param filterChain the default {@link FilterChain} to process
-     * {@link Event}, occurring on connection phase.
+     *                    {@link Event}, occurring on connection phase.
      */
     public final void setFilterChain(final FilterChain filterChain) {
         this.filterChain = filterChain;
@@ -162,12 +164,12 @@ public abstract class AbstractSocketConnectorHandler
     /**
      * Pre-configures {@link Connection} object before actual connecting phase
      * will be started.
-     * 
+     *
      * @param connection {@link Connection} to pre-configure.
      */
     protected void preConfigure(final Connection<?> connection) {
         connection.setFilterChain(getFilterChain());
-        
+
         final MonitoringConfig<ConnectionProbe> monitoringConfig =
                 connection.getMonitoringConfig();
         final ConnectionProbe[] probes = connectionMonitoringConfig.getProbes();
@@ -184,9 +186,9 @@ public abstract class AbstractSocketConnectorHandler
                         get();
                         return;
                     }
-                } catch(Throwable ignored) {
+                } catch (Throwable ignored) {
                 }
-                
+
                 try {
                     connection.closeSilently();
                 } catch (Exception ignored) {
@@ -194,7 +196,7 @@ public abstract class AbstractSocketConnectorHandler
             }
         };
     }
-    
+
     /**
      * Builder
      *
@@ -202,20 +204,31 @@ public abstract class AbstractSocketConnectorHandler
      */
     @SuppressWarnings("unchecked")
     public abstract static class Builder<E extends Builder> {
-        protected final AbstractSocketConnectorHandler connectorHandler;
 
-        public Builder(AbstractSocketConnectorHandler connectorHandler) {
-            this.connectorHandler = connectorHandler;
-        }
+        protected FilterChain filterChain;
+        protected ConnectionProbe connectionProbe;
 
         public E filterChain(final FilterChain filterChain) {
-            connectorHandler.setFilterChain(filterChain);
+            this.filterChain = filterChain;
             return (E) this;
         }
 
         public E probe(ConnectionProbe connectionProbe) {
-            connectorHandler.addMonitoringProbe(connectionProbe);
+            this.connectionProbe = connectionProbe;
             return (E) this;
         }
+
+        public AbstractSocketConnectorHandler build() {
+            AbstractSocketConnectorHandler handler = create();
+            if (filterChain != null) {
+                handler.setFilterChain(filterChain);
+            }
+            if (connectionProbe != null) {
+                handler.addMonitoringProbe(connectionProbe);
+            }
+            return handler;
+        }
+
+        protected abstract AbstractSocketConnectorHandler create();
     }
 }

@@ -46,9 +46,8 @@ import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -64,125 +63,70 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  */
 public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
-    /**
-     * The {@link NIOTransport} implementation.
-     */
-    protected NIOTransport transport;
+    protected ThreadPoolConfig workerConfig;
+    protected ThreadPoolConfig kernelConfig;
+    protected SelectorProvider selectorProvider;
+    protected SelectorHandler selectorHandler =
+            SelectorHandler.DEFAULT_SELECTOR_HANDLER;
+    protected MemoryManager memoryManager =
+            MemoryManager.DEFAULT_MEMORY_MANAGER;
+    protected AttributeBuilder attributeBuilder =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER;
+    protected IOStrategy ioStrategy = WorkerThreadIOStrategy.getInstance();
+    protected int selectorRunnerCount = NIOTransport.DEFAULT_SELECTOR_RUNNER_COUNT;
+    protected NIOChannelDistributor nioChannelDistributor;
+    protected String name;
+    protected FilterChain filterChain = FilterChain.EMPTY;
+    protected int readBufferSize = Transport.DEFAULT_READ_BUFFER_SIZE;
+    protected int writeBufferSize = Transport.DEFAULT_WRITE_BUFFER_SIZE;
+    protected int clientSocketSoTimeout = NIOTransport.DEFAULT_CLIENT_SOCKET_SO_TIMEOUT;
+    protected int connectionTimeout = NIOTransport.DEFAULT_CONNECTION_TIMEOUT;
+    protected boolean reuseAddress = NIOTransport.DEFAULT_REUSE_ADDRESS;
+    protected int maxPendingBytesPerConnection = AsyncQueueWriter.AUTO_SIZE;
+    protected boolean optimizedForMultiplexing = NIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
 
     // ------------------------------------------------------------ Constructors
 
 
-    /**
-     * <p>
-     * Constructs a new <code>NIOTransport</code> using the given
-     * <code>transportClass</code> and {@link IOStrategy}.
-     * </p>
-     *
-     * <p>
-     * The builder's worker thread pool configuration will be based on the return
-     * value of {@link IOStrategy#createDefaultWorkerPoolConfig(Transport)}.
-     * If worker thread configuration is non-null, the initial selector thread pool
-     * configuration will be cloned from it, otherwise a default configuration
-     * will be chosen.
-     * </p>
-     *
-     * @param transportClass the class of the {@link NIOTransport}
-     *  implementation to be used.
-     * @param strategy the {@link IOStrategy}.
-     */
-    protected NIOTransportBuilder(final Class<? extends NIOTransport> transportClass,
-                                  final IOStrategy strategy)
-    throws IllegalAccessException, InstantiationException {
 
-        transport = transportClass.newInstance();
-        final ThreadPoolConfig workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
-        final ThreadPoolConfig selectorConfig = configSelectorPool((workerConfig != null)
-                                                   ? workerConfig.copy()
-                                                   : ThreadPoolConfig.newConfig());
-        transport.setSelectorHandler(SelectorHandler.DEFAULT_SELECTOR_HANDLER);
-        transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
-        transport.setAttributeBuilder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
-        transport.setIOStrategy(strategy);
-//        transport.setReadBufferSize(Transport.DEFAULT_READ_BUFFER_SIZE);
-        transport.setWorkerThreadPoolConfig(workerConfig);
-        transport.setKernelThreadPoolConfig(selectorConfig);
-        transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
-        // this block is for compatibility
-        final FilterChain chain = FilterChainBuilder.stateless().add(new TransportFilter()).build();
-        transport.setFilterChain(chain);
-
+    protected NIOTransportBuilder() {
     }
 
     // ---------------------------------------------------------- Public Methods
 
 
     /**
-     * @return the {@link ThreadPoolConfig} that will be used to construct the
-     *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
-     *  that require worker threads.  Depending on the {@link IOStrategy} being
-     *  used, this may return <code>null</code>.
-     */
-    public ThreadPoolConfig getWorkerThreadPoolConfig() {
-        return transport.getWorkerThreadPoolConfig();
-    }
-
-    /**
      * Sets the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
      *  that require worker threads
      */
-    public T setWorkerThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
-        transport.setWorkerThreadPoolConfig(threadPoolConfig);
+    public T workerThreadPoolConfig(final ThreadPoolConfig workerConfig) {
+        this.workerConfig = workerConfig;
         return getThis();
     }
     
-    /**
-     * @return the {@link ThreadPoolConfig} that will be used to construct the
-     *  {@link java.util.concurrent.ExecutorService} which will run the {@link NIOTransport}'s
-     *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
-     */
-    public ThreadPoolConfig getSelectorThreadPoolConfig() {
-        return transport.getKernelThreadPoolConfig();
-    }
-
     /**
      * Sets the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} which will run the {@link NIOTransport}'s
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
-    public T setSelectorThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
-        transport.setKernelThreadPoolConfig(threadPoolConfig);
+    public T selectorThreadPoolConfig(final ThreadPoolConfig kernelConfig) {
+        this.kernelConfig = kernelConfig;
         return getThis();
-    }
-
-    /**
-     * @return the {@link IOStrategy} that will be used by the created {@link NIOTransport}.
-     */
-    public IOStrategy getIOStrategy() {
-        return transport.getIOStrategy();
     }
 
     /**
      * <p>
-     * Changes the {@link IOStrategy} that will be used.  Invoking this method
-     * may change the return value of {@link #getWorkerThreadPoolConfig()}
+     * Changes the {@link IOStrategy} that will be used.
      *
-     * @param strategy the {@link IOStrategy} to use.
+     * @param ioStrategy the {@link IOStrategy} to use.
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setIOStrategy(final IOStrategy strategy) {
-        transport.setIOStrategy(strategy);
+    public T ioStrategy(final IOStrategy ioStrategy) {
+        this.ioStrategy = ioStrategy;
         return getThis();
-    }
-
-    /**
-     * @return the {@link MemoryManager} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link MemoryManager#DEFAULT_MEMORY_MANAGER} will be used.
-     */
-    public MemoryManager getMemoryManager() {
-        return transport.getMemoryManager();
     }
 
     /**
@@ -192,17 +136,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setMemoryManager(final MemoryManager memoryManager) {
-        transport.setMemoryManager(memoryManager);
+    public T memoryManager(final MemoryManager memoryManager) {
+        this.memoryManager = memoryManager;
         return getThis();
-    }
-
-    /**
-     * @return the {@link SelectorHandler} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link SelectorHandler#DEFAULT_SELECTOR_HANDLER} will be used.
-     */
-    public SelectorHandler getSelectorHandler() {
-        return transport.getSelectorHandler();
     }
 
     /**
@@ -212,17 +148,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setSelectorHandler(final SelectorHandler selectorHandler) {
-        transport.setSelectorHandler(selectorHandler);
+    public T selectorHandler(final SelectorHandler selectorHandler) {
+        this.selectorHandler = selectorHandler;
         return getThis();
-    }
-
-    /**
-     * @return the {@link AttributeBuilder} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
-     */
-    public AttributeBuilder getAttributeBuilder() {
-        return transport.getAttributeBuilder();
     }
 
     /**
@@ -232,17 +160,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setAttributeBuilder(AttributeBuilder attributeBuilder) {
-        transport.setAttributeBuilder(attributeBuilder);
+    public T attributeBuilder(AttributeBuilder attributeBuilder) {
+        this.attributeBuilder = attributeBuilder;
         return getThis();
-    }
-
-    /**
-     * @return the {@link NIOChannelDistributor} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
-     */
-    public NIOChannelDistributor getNIOChannelDistributor() {
-        return transport.getNIOChannelDistributor();
     }
 
     /**
@@ -252,17 +172,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setNIOChannelDistributor(NIOChannelDistributor nioChannelDistributor) {
-        transport.setNIOChannelDistributor(nioChannelDistributor);
+    public T nioChannelDistributor(NIOChannelDistributor nioChannelDistributor) {
+        this.nioChannelDistributor = nioChannelDistributor;
         return getThis();
-    }
-
-    /**
-     * @return the {@link SelectorProvider} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link SelectorProvider#provider()} will be used.
-     */
-    public SelectorProvider getSelectorProvider() {
-        return transport.getSelectorProvider();
     }
 
     /**
@@ -272,17 +184,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setSelectorProvider(SelectorProvider selectorProvider) {
-        transport.setSelectorProvider(selectorProvider);
+    public T selectorProvider(SelectorProvider selectorProvider) {
+        this.selectorProvider = selectorProvider;
         return getThis();
-    }
-
-    
-    /**
-     * @see Transport#getName()
-     */
-    public String getName() {
-        return transport.getName();
     }
 
     /**
@@ -290,16 +194,9 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setName(String name) {
-        transport.setName(name);
+    public T name(String name) {
+        this.name = name;
         return getThis();
-    }
-
-    /**
-     * @see Transport#getFilterChain()
-     */
-    public FilterChain getFilterChain() {
-        return transport.getFilterChain();
     }
 
     /**
@@ -307,51 +204,29 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setFilterChain(FilterChain filterChain) {
-        transport.setFilterChain(filterChain);
+    public T filterChain(FilterChain filterChain) {
+        this.filterChain = filterChain;
         return getThis();
     }
 
     /**
-     * @see Transport#getReadBufferSize() ()
-     */
-    public int getReadBufferSize() {
-        return transport.getReadBufferSize();
-    }
-
-    /**
-     * @see Transport#setReadBufferSize(int)
+     * @see NIOTransport#setReadBufferSize(int)
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setReadBufferSize(int readBufferSize) {
-        transport.setReadBufferSize(readBufferSize);
+    public T readBufferSize(int readBufferSize) {
+        this.readBufferSize = readBufferSize;
         return getThis();
     }
 
     /**
-     * @see Transport#getWriteBufferSize()
-     */
-    public int getWriteBufferSize() {
-        return transport.getWriteBufferSize();
-    }
-
-    /**
-     * @see Transport#setWriteBufferSize(int)
+     * @see NIOTransport#setWriteBufferSize(int)
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setWriteBufferSize(int writeBufferSize) {
-        transport.setWriteBufferSize(writeBufferSize);
+    public T writeBufferSize(int writeBufferSize) {
+        this.writeBufferSize = writeBufferSize;
         return getThis();
-    }
-
-
-    /**
-     * @see NIOTransport#isOptimizedForMultiplexing()
-     */
-    public boolean isOptimizedForMultiplexing() {
-        return transport.isOptimizedForMultiplexing();
     }
 
     /**
@@ -359,40 +234,78 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public T setOptimizedForMultiplexing(
-            final boolean isOptimizedForMultiplexing) {
-        transport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
+    public T optimizedForMultiplexing(final boolean optimizedForMultiplexing) {
+        this.optimizedForMultiplexing = optimizedForMultiplexing;
         return getThis();
     }
-    
 
     /**
-     * @see AsyncQueueWriter#getMaxPendingBytesPerConnection()
-     * 
-     * Note: the value is per connection, not transport total.
-     */
-    public int getMaxAsyncWriteQueueSizeInBytes() {
-        return transport.getAsyncQueueWriter()
-                .getMaxPendingBytesPerConnection();
-    }
-    
-    /**
-     * @see AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
-     * 
-     * Note: the value is per connection, not transport total.
-     *
      * @return this <code>NIOTransportBuilder</code>
+     * @see NIOTransport#setClientSocketSoTimeout(int)
      */
-    public T setMaxAsyncWriteQueueSizeInBytes(
-            final int size) {
-        transport.getAsyncQueueWriter().setMaxPendingBytesPerConnection(size);
+    public T clientSocketSoTimeout(int clientSocketSoTimeout) {
+        this.clientSocketSoTimeout = clientSocketSoTimeout;
         return getThis();
     }
-    
+
+    /**
+     * @return this <code>NIOTransportBuilder</code>
+     * @see NIOTransport#setConnectionTimeout(int)
+     */
+    public T connectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+        return getThis();
+    }
+
+    /**
+     * @return this <code>TCPNIOTransportBuilder</code>
+     * @see org.glassfish.grizzly.nio.transport.TCPNIOTransport#setReuseAddress(boolean)
+     */
+    public T reuseAddress(boolean reuseAddress) {
+        this.reuseAddress = reuseAddress;
+        return getThis();
+    }
+
+    /**
+     * @return this <code>TCPNIOTransportBuilder</code>
+     * @see org.glassfish.grizzly.asyncqueue.AsyncQueueWriter#setMaxPendingBytesPerConnection(int)
+     * <p/>
+     * Note: the value is per connection, not transport total.
+     */
+    public T maxAsyncWriteQueueSizeInBytes(final int maxAsyncWriteQueueSizeInBytes) {
+        this.maxPendingBytesPerConnection = maxAsyncWriteQueueSizeInBytes;
+        return getThis();
+    }
+
     /**
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
     public NIOTransport build() {
+        NIOTransport transport = create();
+        transport.setIOStrategy(ioStrategy);
+        if (workerConfig != null) {
+            transport.setWorkerThreadPoolConfig(workerConfig);
+        }
+        ThreadPoolConfig kernelLocal = kernelConfig;
+        if (kernelLocal != null) {
+            transport.setKernelThreadPoolConfig(kernelLocal);
+        } else {
+            kernelLocal = ThreadPoolConfig.newConfig();
+            transport.setKernelThreadPoolConfig(kernelLocal);
+        }
+        transport.setSelectorProvider(selectorProvider);
+        transport.setSelectorHandler(selectorHandler);
+        transport.setMemoryManager(memoryManager);
+        transport.setAttributeBuilder(attributeBuilder);
+        transport.setSelectorRunnersCount(selectorRunnerCount);
+        transport.setNIOChannelDistributor(nioChannelDistributor);
+        transport.setFilterChain(filterChain);
+        transport.setReadBufferSize(readBufferSize);
+        transport.setWriteBufferSize(writeBufferSize);
+        transport.setReuseAddress(reuseAddress);
+        transport.setOptimizedForMultiplexing(optimizedForMultiplexing);
+        transport.getAsyncQueueWriter()
+                    .setMaxPendingBytesPerConnection(maxPendingBytesPerConnection);
         return transport;
     }
 
@@ -417,6 +330,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * See: <a href="http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205">http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205</a>
      */
     protected abstract T getThis();
+
+    protected abstract NIOTransport create();
 
 
     // --------------------------------------------------------- Private Methods

@@ -461,7 +461,7 @@ public class TCPNIOTransportTest {
         });
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setMaxAsyncWriteQueueSizeInBytes(-1)
+                .maxAsyncWriteQueueSizeInBytes(-1)
                 .build();
         transport.setFilterChain(filterChainBuilder.build());
 

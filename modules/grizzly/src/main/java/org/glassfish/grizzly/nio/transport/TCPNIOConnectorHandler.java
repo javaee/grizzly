@@ -44,6 +44,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
@@ -315,21 +316,40 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @return the {@link TCPNIOConnectorHandler} builder.
      */
     public static Builder builder(final TCPNIOTransport transport) {
-        return new TCPNIOConnectorHandler.Builder(transport);
+        return new TCPNIOConnectorHandler.Builder().transport(transport);
     }
 
     public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
-        protected Builder(final TCPNIOTransport transport) {
-            super(new TCPNIOConnectorHandler(transport));
-        }
+
+        private TCPNIOTransport transport;
+        private Boolean reuseAddress;
 
         public TCPNIOConnectorHandler build() {
-            return (TCPNIOConnectorHandler) connectorHandler;
+            TCPNIOConnectorHandler handler =
+                    (TCPNIOConnectorHandler) super.build();
+            if (reuseAddress != null) {
+                handler.setReuseAddress(reuseAddress);
+            }
+            return handler;
         }
 
-        public Builder setReuseAddress(final boolean isReuseAddress) {
-            ((TCPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+        public Builder transport(final TCPNIOTransport transport) {
+            this.transport = transport;
             return this;
+        }
+
+        public Builder reuseAddress(final boolean reuseAddress) {
+            this.reuseAddress = reuseAddress;
+            return this;
+        }
+
+        @Override
+        protected AbstractSocketConnectorHandler create() {
+            if (transport == null) {
+                throw new IllegalStateException(
+                        "Unable to create TCPNIOConnectorHandler - transport is null");
+            }
+            return new TCPNIOConnectorHandler(transport);
         }
     }
 }

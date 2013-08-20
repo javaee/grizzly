@@ -106,7 +106,7 @@ public class TestClient {
                 .build();
         
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
-                .setFilterChain(filterChain)
+                .filterChain(filterChain)
                 .build();
         try {
             transport.start();
