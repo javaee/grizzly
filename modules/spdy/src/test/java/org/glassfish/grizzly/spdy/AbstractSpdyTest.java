@@ -272,8 +272,8 @@ public abstract class AbstractSpdyTest {
             request.setContentType("text/plain");
             
             cb.content(contentBuffer);
-            HttpContent c = cb.build();
-            return c;
+            cb.last(true);
+            return cb.build();
 
         }
 

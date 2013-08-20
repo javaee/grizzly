@@ -103,7 +103,7 @@ public class DataChunk implements Chunk {
                 final ByteChunk anotherByteChunk = value.byteChunk;
                 setBytesInternal(anotherByteChunk.getBytes(),
                         anotherByteChunk.getStart(),
-                        anotherByteChunk.getLimit());
+                        anotherByteChunk.getEnd());
                 break;
             }
             case Buffer: {

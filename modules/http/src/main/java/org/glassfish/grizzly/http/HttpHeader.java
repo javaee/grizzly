@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -1053,7 +1054,13 @@ public abstract class HttpHeader extends HttpPacket
      */
     public static abstract class Builder<T extends Builder> {
 
-        protected HttpHeader packet;
+        protected Protocol protocol;
+        protected String protocolString;
+        protected Boolean chunked;
+        protected Long contentLength;
+        protected String contentType;
+        protected String upgrade;
+        protected MimeHeaders mimeHeaders;
 
         /**
          * Set the HTTP message protocol version.
@@ -1061,17 +1068,19 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T protocol(Protocol protocol) {
-            packet.setProtocol(protocol);
+            this.protocol = protocol;
+            protocolString = null;
             return (T) this;
         }
 
         /**
          * Set the HTTP message protocol version.
-         * @param protocol protocol version in format "HTTP/1.x".
+         * @param protocolString protocol version in format "HTTP/1.x".
          */
         @SuppressWarnings({"unchecked"})
-        public final T protocol(String protocol) {
-            packet.getProtocolDC().setString(protocol);
+        public final T protocol(String protocolString) {
+            this.protocolString = protocolString;
+            protocol = null;
             return (T) this;
         }
 
@@ -1079,13 +1088,14 @@ public abstract class HttpHeader extends HttpPacket
          * Set <tt>true</tt>, if this {@link HttpPacket} content will be transferred
          * in chunking mode, or <tt>false</tt> if case of fixed-length message.
          *
-         * @param isChunked  <tt>true</tt>, if this {@link HttpPacket} content
+         * @param chunked  <tt>true</tt>, if this {@link HttpPacket} content
          * will be transferred in chunking mode, or <tt>false</tt> if case
          * of fixed-length message.
          */
         @SuppressWarnings({"unchecked"})
-        public final T chunked(boolean isChunked) {
-            packet.setChunked(isChunked);
+        public final T chunked(boolean chunked) {
+            this.chunked = chunked;
+            contentLength = null;
             return (T) this;
         }
 
@@ -1098,7 +1108,8 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T contentLength(long contentLength) {
-            packet.setContentLengthLong(contentLength);
+            this.contentLength = contentLength;
+            chunked = null;
             return (T) this;
         }
 
@@ -1109,7 +1120,7 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T contentType(String contentType) {
-            packet.setContentType(contentType);
+            this.contentType = contentType;
             return (T) this;
         }
 
@@ -1120,7 +1131,7 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T upgrade(String upgrade) {
-            packet.setUpgrade(upgrade);
+            this.upgrade = upgrade;
             return (T) this;
         }
 
@@ -1132,7 +1143,27 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T header(String name, String value) {
-            packet.addHeader(name, value);
+            if (mimeHeaders == null) {
+                mimeHeaders = new MimeHeaders();
+            }
+            mimeHeaders.addValue(name).setString(value);
+            handleSpecialHeaderAdd(name, value);
+            return (T) this;
+        }
+
+        /**
+         * Remove the specified header from this builder.  This method is only
+         * useful if using the same builder to create multiple objects.
+         *
+         * @param header the mime header.
+         * @return this
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T removeHeader(String header) {
+            if (mimeHeaders != null) {
+                mimeHeaders.removeHeader(header);
+                handleSpecialHeaderRemove(header);
+            }
             return (T) this;
         }
 
@@ -1144,7 +1175,28 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T header(Header header, String value) {
-            packet.addHeader(header, value);
+            if (mimeHeaders == null) {
+                mimeHeaders = new MimeHeaders();
+            }
+            mimeHeaders.addValue(header).setString(value);
+            handleSpecialHeaderAdd(header.toString(), value);
+
+            return (T) this;
+        }
+
+        /**
+         * Remove the specified header from this builder.  This method is only
+         * useful if using the same builder to create multiple objects.
+         *
+         * @param header the mime {@link Header}.
+         * @return this
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T removeHeader(Header header) {
+            if (mimeHeaders != null) {
+                mimeHeaders.removeHeader(header);
+                handleSpecialHeaderRemove(header.toString());
+            }
             return (T) this;
         }
         
@@ -1152,9 +1204,78 @@ public abstract class HttpHeader extends HttpPacket
          * Sets the maximum number of headers allowed.
          */
         @SuppressWarnings({"unchecked"})
-        public final T maxNumHeaders(int num) {
-            packet.getHeaders().setMaxNumHeaders(num);
+        public final T maxNumHeaders(int maxHeaders) {
+            if (mimeHeaders == null) {
+                mimeHeaders = new MimeHeaders();
+            }
+            mimeHeaders.setMaxNumHeaders(maxHeaders);
             return (T) this;
+        }
+
+        public HttpHeader build() {
+            HttpHeader httpHeader = create();
+            if (protocol != null) {
+                httpHeader.setProtocol(protocol);
+            }
+            if (protocolString != null) {
+                httpHeader.protocolC.setString(protocolString);
+            }
+            if (chunked != null) {
+                httpHeader.setChunked(chunked);
+            }
+            if (contentLength != null) {
+                httpHeader.setContentLengthLong(contentLength);
+            }
+            if (contentType != null) {
+                httpHeader.setContentType(contentType);
+            }
+            if (upgrade != null) {
+                httpHeader.setUpgrade(upgrade);
+            }
+            if (mimeHeaders != null && mimeHeaders.size() > 0) {
+                httpHeader.getHeaders().copyFrom(mimeHeaders);
+            }
+
+            return httpHeader;
+        }
+
+        public void reset() {
+            protocol = null;
+            protocolString = null;
+            chunked = null;
+            contentLength = null;
+            contentType = null;
+            upgrade = null;
+            mimeHeaders.recycle();
+        }
+
+        protected abstract HttpHeader create();
+
+        private void handleSpecialHeaderAdd(final String name,
+                                            final String value) {
+            final char c = name.charAt(0);
+            boolean isC = (c == 'c' || c == 'C');
+            if (isC && Header.ContentLength.toString().equals(name)) {
+                contentLength = Long.parseLong(value);
+                return;
+            }
+            boolean isU = (c == 'u' || c == 'U');
+            if (isU && Header.Upgrade.toString().equals(name)) {
+                upgrade = value;
+            }
+        }
+
+        private void handleSpecialHeaderRemove(final String name) {
+            final char c = name.charAt(0);
+            boolean isC = (c == 'c' || c == 'C');
+            if (isC && Header.ContentLength.toString().equals(name)) {
+                contentLength = null;
+                return;
+            }
+            boolean isU = (c == 'u' || c == 'U');
+            if (isU && Header.Upgrade.toString().equals(name)) {
+                upgrade = null;
+            }
         }
         
     }

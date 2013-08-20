@@ -40,10 +40,13 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpProbe;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
 import org.glassfish.grizzly.http.EncodingFilter;
@@ -170,27 +173,18 @@ public class FileCacheTest {
             }
         });
 
-        final HttpRequestPacket request1 = HttpRequestPacket.builder()
-                .method("GET")
+        HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+        builder.method(Method.GET)
                 .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .build();
+                .protocol(Protocol.HTTP_1_1)
+                .host("localhost:" + PORT);
 
-        final HttpRequestPacket request2 = HttpRequestPacket.builder()
-                .method("GET")
-                .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .build();
+        final HttpPacket request1 = builder.build();
 
-        final HttpRequestPacket request3 = HttpRequestPacket.builder()
-                .method("POST")
-                .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .contentLength(0)
-                .build();
+        final HttpPacket request2 = builder.build();
+
+        final HttpPacket request3 = builder.method(Method.POST)
+                .contentLength(0).build();
 
         boolean isOk = false;
         try {
@@ -1084,7 +1078,7 @@ public class FileCacheTest {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent content = (HttpContent) ctx.getMessage();
+            final HttpContent content = ctx.getMessage();
             try {
                 if (!content.isLast()) {
                     return ctx.getStopAction(content);

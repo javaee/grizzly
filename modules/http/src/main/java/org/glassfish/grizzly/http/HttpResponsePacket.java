@@ -108,7 +108,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @return {@link Builder}.
      */
     public static Builder builder(final HttpRequestPacket request) {
-        return new Builder(request);
+        return new Builder().requestPacket(request);
     }
 
     // ----------------------------------------------------------- Constructors
@@ -419,22 +419,18 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * <tt>HttpResponsePacket</tt> message builder.
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
-        protected Builder(HttpRequestPacket request) {
-            packet = request.getResponse();
-            if (packet == null) {
-                packet = HttpResponsePacketImpl.create();
-                ((HttpResponsePacket) packet).setRequest(request);
-                packet.setSecure(request.isSecure());
-            }
-        }
+
+        protected Integer status;
+        protected String reasonPhrase;
+        protected HttpRequestPacket requestPacket;
 
         /**
          * Sets the status code for this response.
          *
          * @param status the status code for this response.
          */
-        public Builder status(int status) {
-            ((HttpResponsePacket) packet).setStatus(status);
+        public Builder status(final int status) {
+            this.status = status;
             return this;
         }
 
@@ -443,8 +439,13 @@ public abstract class HttpResponsePacket extends HttpHeader {
          *
          * @param reasonPhrase the status reason phrase for this response.
          */
-        public Builder reasonPhrase(String reasonPhrase) {
-            ((HttpResponsePacket) packet).setReasonPhrase(reasonPhrase);
+        public Builder reasonPhrase(final String reasonPhrase) {
+            this.reasonPhrase = reasonPhrase;
+            return this;
+        }
+
+        public Builder requestPacket(final HttpRequestPacket requestPacket) {
+            this.requestPacket = requestPacket;
             return this;
         }
 
@@ -454,7 +455,36 @@ public abstract class HttpResponsePacket extends HttpHeader {
          * @return <tt>HttpResponsePacket</tt>
          */
         public final HttpResponsePacket build() {
-            return (HttpResponsePacket) packet;
+            HttpResponsePacket responsePacket = (HttpResponsePacket) super.build();
+            if (status != null) {
+                responsePacket.setStatus(status);
+            }
+            if (reasonPhrase != null) {
+                responsePacket.setReasonPhrase(reasonPhrase);
+            }
+            return responsePacket;
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            status = null;
+            reasonPhrase = null;
+        }
+
+        @Override
+        protected HttpHeader create() {
+            if (requestPacket == null) {
+                throw new IllegalStateException(
+                        "Unable to create new HttpResponsePacket.  No HttpRequestPacket available.");
+            }
+            HttpResponsePacket responsePacket = requestPacket.getResponse();
+            if (responsePacket == null) {
+                responsePacket = HttpResponsePacketImpl.create();
+                responsePacket.setRequest(requestPacket);
+                responsePacket.setSecure(requestPacket.isSecure());
+            }
+            return responsePacket;
         }
     }
 }

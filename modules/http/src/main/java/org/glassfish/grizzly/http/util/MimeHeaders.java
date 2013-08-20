@@ -198,6 +198,32 @@ public class MimeHeaders {
         return sw.toString();
     }
 
+    public void copyFrom(final MimeHeaders source) {
+        if (source.size() == 0) {
+            return;
+        }
+        this.maxNumHeaders = source.maxNumHeaders;
+        this.count = source.count;
+        if (headers.length < count) {
+
+            MimeHeaderField tmp[] = new MimeHeaderField[count * 2];
+            System.arraycopy(headers, 0, tmp, 0, headers.length);
+            headers = tmp;
+        }
+
+        for (int i = 0, len = source.count; i < len; i++) {
+            MimeHeaderField sourceField = source.headers[i];
+            MimeHeaderField f = headers[i];
+            if (f == null) {
+                f = new MimeHeaderField();
+                headers[i] = f;
+            }
+            f.nameB.set(sourceField.nameB);
+            f.valueB.set(sourceField.valueB);
+        }
+
+    }
+
     // -------------------- Idx access to headers ----------
     /**
      * Returns the current number of header fields.
@@ -567,7 +593,8 @@ public class MimeHeaders {
      */
     public void removeHeaderMatches(final Header header, final String regex) {
         for (int i = 0; i < count; i++) {
-            if (headers[i].getName().equalsIgnoreCaseLowerCase(header.getLowerCaseBytes())
+            if (headers[i].getName().equalsIgnoreCaseLowerCase(
+                    header.getLowerCaseBytes())
                     && getValue(i) != null
                     && getValue(i).toString() != null
                     && getValue(i).toString().matches(regex)) {

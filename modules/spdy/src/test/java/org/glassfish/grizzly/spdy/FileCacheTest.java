@@ -43,6 +43,8 @@ import org.glassfish.grizzly.http.HttpProbe;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
 import org.glassfish.grizzly.Connection;
@@ -91,7 +93,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static org.glassfish.grizzly.spdy.AbstractSpdyTest.createClientFilterChainAsBuilder;
 import static org.junit.Assert.*;
 
 /**
@@ -160,8 +161,8 @@ public class FileCacheTest extends AbstractSpdyTest {
 
                     final NIOWriter writer = res.getWriter();
                     writer.write(error == null
-                            ? "Hello not cached data"
-                            : "Error happened: " + error);
+                                         ? "Hello not cached data"
+                                         : "Error happened: " + error);
                     writer.close();
 
                 } catch (Exception ex) {
@@ -170,30 +171,20 @@ public class FileCacheTest extends AbstractSpdyTest {
             }
         });
 
-        final HttpPacket request1 = lastHttpPacket(
-                HttpRequestPacket.builder()
-                .method("GET")
+        HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+        builder.method(Method.GET)
                 .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .build());
+                .protocol(Protocol.HTTP_1_1)
+                .host("localhost:" + PORT);
+
+        final HttpPacket request1 = lastHttpPacket(
+                builder.build());
 
         final HttpPacket request2 = lastHttpPacket(
-                HttpRequestPacket.builder()
-                .method("GET")
-                .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .build());
+                builder.build());
 
         final HttpPacket request3 = lastHttpPacket(
-                HttpRequestPacket.builder()
-                .method("POST")
-                .uri("/somedata")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .contentLength(0)
-                .build());
+                builder.method(Method.POST).contentLength(0).build());
 
         boolean isOk = false;
         try {
@@ -491,7 +482,7 @@ public class FileCacheTest extends AbstractSpdyTest {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent content = (HttpContent) ctx.getMessage();
+            final HttpContent content = ctx.getMessage();
 //            try {
                 if (!content.isLast()) {
                     return ctx.getStopAction(content);

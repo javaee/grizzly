@@ -89,11 +89,17 @@ public class WebSocketEngine {
     private final HashMap<String, List<WebSocketApplication>> contextApplications =
             new HashMap<String, List<WebSocketApplication>>();
 
+    private HttpResponsePacket.Builder unsupportedVersionsResponseBuilder;
+
     private Mapper mapper = new Mapper();
 
 
     private WebSocketEngine() {
         mapper.setDefaultHostName("localhost");
+        unsupportedVersionsResponseBuilder = new HttpResponsePacket.Builder();
+        unsupportedVersionsResponseBuilder.status(HttpStatus.BAD_REQUEST_400.getStatusCode());
+        unsupportedVersionsResponseBuilder.header(Constants.SEC_WS_VERSION,
+                               Version.getSupportedWireProtocolVersions());
     }
 
     public static WebSocketEngine getEngine() {
@@ -284,13 +290,11 @@ public class WebSocketEngine {
         mapper.setDefaultHostName("localhost");
     }
 
-    private static void handleUnsupportedVersion(final FilterChainContext ctx,
+    private void handleUnsupportedVersion(final FilterChainContext ctx,
                                                  final HttpRequestPacket request)
     throws IOException {
-        HttpResponsePacket response = HttpResponsePacket.builder(request).build();
-        response.setStatus(HttpStatus.BAD_REQUEST_400);
-        response.addHeader(Constants.SEC_WS_VERSION, Version.getSupportedWireProtocolVersions());
-        ctx.write(response);
+        unsupportedVersionsResponseBuilder.requestPacket(request);
+        ctx.write(unsupportedVersionsResponseBuilder.build());
     }
 
 

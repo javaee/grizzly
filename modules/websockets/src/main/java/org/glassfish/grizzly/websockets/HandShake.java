@@ -51,8 +51,10 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
@@ -60,6 +62,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  * @author Justin Lee
  */
 public abstract class HandShake {
+    private HttpRequestPacket.Builder builder;
     private boolean secure;
     private String origin;
     private String serverHostName;
@@ -71,6 +74,12 @@ public abstract class HandShake {
     private List<Extension> extensions = new ArrayList<Extension>(); // client extensions
 
     public HandShake(URI url) {
+        builder = HttpRequestPacket.builder()
+                .protocol(Protocol.HTTP_1_1)
+                .method(Method.GET)
+                .header(Header.Connection, "Upgrade")
+                .upgrade("WebSocket");
+
         resourcePath = url.getPath();
         if ("".equals(resourcePath)) {
             resourcePath = "/";
@@ -266,18 +275,18 @@ public abstract class HandShake {
         if (port != -1 && port != 80 && port != 443) {
             host += ":" + getPort();
         }
-        final HttpRequestPacket.Builder builder = HttpRequestPacket.builder()
-            .method("GET")
-            .uri(getResourcePath())
-            .protocol(Protocol.HTTP_1_1)
-            .header("Host", host)
-            .header("Connection", "Upgrade")
-            .upgrade("WebSocket");
+        builder.uri(getResourcePath())
+                .header(Header.Host, host);
+        if (!getSubProtocol().isEmpty()) {
+            builder.header(Constants.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
+        } else {
+            builder.removeHeader(Constants.SEC_WS_EXTENSIONS_HEADER);
+        }
+
         if (!getSubProtocol().isEmpty()) {
             builder.header(Constants.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
         }
-        return HttpContent.builder(builder.build())
-            .build();
+        return HttpContent.builder(builder.build()).build();
     }
 
     public void validateServerResponse(HttpResponsePacket headers) {
