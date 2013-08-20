@@ -40,11 +40,8 @@
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.io.NIOOutputStream;
-import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.HttpHeader;
 import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
 import java.io.InputStream;
 import java.util.List;
 import org.glassfish.grizzly.Grizzly;
@@ -53,7 +50,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.junit.After;
 import org.junit.Before;
-import org.glassfish.grizzly.utils.TransferQueue;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.junit.runners.Parameterized;
 import org.junit.runner.RunWith;
@@ -66,6 +62,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
@@ -76,7 +73,6 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.HttpContent;
@@ -94,7 +90,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Pair;
 
 import org.junit.Test;
@@ -210,7 +206,7 @@ public class ChunkedTransferEncodingTest {
             int expectedResponseCode)
             throws Exception {
         
-        final TransferQueue<HttpContent> queue = new LinkedTransferQueue<HttpContent>();
+        final BlockingQueue<HttpContent> queue = DataStructures.getLTQInstance();
                 
         final NetworkListener networkListener = httpServer.getListener("grizzly");
         final TCPNIOTransport transport = networkListener.getTransport();
@@ -328,10 +324,10 @@ public class ChunkedTransferEncodingTest {
     }
     
     public class HTTPResponseFilter extends BaseFilter {
-        private final TransferQueue<HttpContent> queue;
+        private final BlockingQueue<HttpContent> queue;
 
         public HTTPResponseFilter(
-                final TransferQueue<HttpContent> queue) {
+                final BlockingQueue<HttpContent> queue) {
             this.queue = queue;
         }
 
@@ -378,8 +374,8 @@ public class ChunkedTransferEncodingTest {
     }
     
     private class EchoHandler extends HttpHandler {
-        private final TransferQueue<Throwable> errors = 
-                new LinkedTransferQueue<Throwable>();
+        private final BlockingQueue<Throwable> errors =
+                DataStructures.getLTQInstance(Throwable.class);
         
         @Override
         public void service(Request request, Response response) throws Exception {
