@@ -41,7 +41,7 @@ package com.sun.grizzly.util;
 
 /**
  *
- * @since 2.2.11
+ * @since 1.9.59
  */
 public class JdkVersion implements Comparable<JdkVersion> {
     private static final boolean IS_UNSAFE_SUPPORTED;
