@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,35 +50,33 @@ import java.util.logging.Level;
  * @author gustav trede
  */
 public class DataStructures {
-
-    private final static Class<?> LTQclass, CLQclass;
+    private final static Class<?> LTQclass;
 
     static {
-        Class<?> LTQ = LinkedBlockingQueue.class,
-                CLQ = LinkedBlockingQueue.class;
-        int jver = 0;
+        String className = null;
+        
+        Class<?> c;
         try {
-            jver = Integer.valueOf(System.getProperty("java.version").
-                    substring(0, 3).replace(".", ""));
-            if (jver > 16) {
-                CLQ = ConcurrentLinkedQueue.class;
-                LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
-            } else if (jver == 16) {
-                LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
-                CLQ = getAndVerify("maskedclasses.ConcurrentLinkedQueue");
-            }
+            JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+            JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
+            
+            className = (minimumVersion.compareTo(jdkVersion) <= 0)
+                    ? "java.util.concurrent.LinkedTransferQueue"
+                    : "com.sun.grizzly.util.LinkedTransferQueue";
+            
+            c = getAndVerify(className);
+            LoggerUtils.getLogger().log(Level.FINE, "USING LTQ class:{0}", c);
         } catch (Throwable t) {
             LoggerUtils.getLogger().log(Level.FINE,
-                    "failed loading grizzly version of datastructure classes,"
-                    + " dont worry we load other classes instead.", t);
+                    "failed loading datastructure class:" + className +
+                    " fallback to embedded one", t);
+            
+            c = LinkedBlockingQueue.class; // fallback to LinkedBlockingQueue
         }
-        LTQclass = LTQ;
-        CLQclass = CLQ;
-        LoggerUtils.getLogger().log(Level.FINE, "JVM version {0} detected,"
-                + " grizzly loaded datastructure classes: " + "{1} {2}",
-                new Object[]{jver, LTQclass, CLQclass});
+        
+        LTQclass = c;
     }
-
+    
     private static Class<?> getAndVerify(String cname) throws Throwable {
         Class<?> cl = DataStructures.class.getClassLoader().loadClass(cname);
         return cl.newInstance().getClass();
@@ -101,20 +99,13 @@ public class DataStructures {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static Queue<?> getCLQinstance() {
-        try {
-            return (Queue<?>) CLQclass.newInstance();
-        } catch (Exception ea) {
-            throw new RuntimeException(ea);
-        }
+        return new ConcurrentLinkedQueue();
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Queue<T> getCLQinstance(Class<T> t) {
-        try {
-            return (Queue<T>) CLQclass.newInstance();
-        } catch (Exception ea) {
-            throw new RuntimeException(ea);
-        }
+        return new ConcurrentLinkedQueue<T>();
     }
 }
