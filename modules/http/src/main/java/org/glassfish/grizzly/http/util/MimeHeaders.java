@@ -218,10 +218,33 @@ public class MimeHeaders {
                 f = new MimeHeaderField();
                 headers[i] = f;
             }
-            f.nameB.set(sourceField.nameB);
-            f.valueB.set(sourceField.valueB);
+            if (sourceField.nameB.type == DataChunk.Type.Buffer) {
+                copyBufferChunk(sourceField.nameB, f.nameB);
+            } else {
+                f.nameB.set(sourceField.nameB);
+            }
+            if (sourceField.valueB.type == DataChunk.Type.Buffer) {
+                copyBufferChunk(sourceField.valueB, f.valueB);
+            } else {
+                f.valueB.set(sourceField.valueB);
+            }
         }
 
+    }
+
+    private static void copyBufferChunk(DataChunk source, DataChunk dest) {
+        final BufferChunk bc = source.getBufferChunk();
+        int l = bc.getLength();
+        byte[] bytes = new byte[l];
+        final Buffer b = bc.getBuffer();
+        int oldPos = b.position();
+        try {
+            b.position(bc.getStart());
+            bc.getBuffer().get(bytes, 0, l);
+            dest.setBytes(bytes);
+        } finally {
+            b.position(oldPos);
+        }
     }
 
     // -------------------- Idx access to headers ----------
