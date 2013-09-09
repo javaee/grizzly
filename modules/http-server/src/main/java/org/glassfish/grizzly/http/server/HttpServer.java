@@ -134,9 +134,6 @@ public class HttpServer {
 
     protected volatile Object managementObject;
 
-//    private volatile JmxObject serviceManagementObject;
-
-
     // ---------------------------------------------------------- Public Methods
 
 
@@ -229,7 +226,7 @@ public class HttpServer {
                 } catch (IOException ioe) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
                         LOGGER.log(Level.SEVERE,
-                                   "Failed to shutdownNow listener [{0}] : {1}",
+                                   "Failed to shutdown listener [{0}] : {1}",
                                     new Object[] { listener.toString(), ioe.toString() });
                         LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
                     }
@@ -465,7 +462,7 @@ public class HttpServer {
     /**
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:{@link NetworkListener#DEFAULT_NETWORK_PORT},
-     * using the directory in which the server was launched the server's document root.
+     * using the directory in which the server was launched the server's document root
      */
     public static HttpServer createSimpleServer() {
 
@@ -475,11 +472,12 @@ public class HttpServer {
 
 
     /**
-     * @param docRoot the document root.
-     *
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * 
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:{@link NetworkListener#DEFAULT_NETWORK_PORT},
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot) {
 
@@ -489,12 +487,13 @@ public class HttpServer {
 
 
     /**
-     * @param docRoot the document root.
-     * @param port the network port to which this listener will bind.
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * @param port the network port to which this listener will bind
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>,
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot,
                                                 final int port) {
@@ -505,12 +504,13 @@ public class HttpServer {
 
 
     /**
-     * @param docRoot the document root.
-     * @param range port range to attempt to bind to.
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * @param range port range to attempt to bind to
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>[port-range]</code>,
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot,
                                                 final PortRange range) {
@@ -522,12 +522,13 @@ public class HttpServer {
     }
 
     /**
-     * @param docRoot the document root.
-     * @param socketAddress the endpoint address to which this listener will bind.
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * @param socketAddress the endpoint address to which this listener will bind
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on <code>socketAddress</code>,
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot,
                                                 final SocketAddress socketAddress) {
@@ -537,13 +538,14 @@ public class HttpServer {
     }
 
     /**
-     * @param docRoot the document root.
-     * @param host the network port to which this listener will bind.
-     * @param port the network port to which this listener will bind.
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * @param host the network port to which this listener will bind
+     * @param port the network port to which this listener will bind
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on <code>host</code>:<code>port</code>,
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot,
                                                 final String host,
@@ -554,13 +556,14 @@ public class HttpServer {
     }
     
     /**
-     * @param docRoot the document root.
-     * @param host the network port to which this listener will bind.
-     * @param range port range to attempt to bind to.
+     * @param docRoot the document root,
+     *   can be <code>null</code> when no static pages are needed
+     * @param host the network port to which this listener will bind
+     * @param range port range to attempt to bind to
      *
      * @return a <code>HttpServer</code> configured to listen to requests
      * on <code>host</code>:<code>[port-range]</code>,
-     * using the specified <code>path</code> as the server's document root.
+     * using the specified <code>docRoot</code> as the server's document root
      */
     public static HttpServer createSimpleServer(final String docRoot,
                                                 final String host,
