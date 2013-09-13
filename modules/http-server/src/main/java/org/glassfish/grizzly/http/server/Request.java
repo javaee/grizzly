@@ -486,11 +486,9 @@ public class Request {
 
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(/*final Response response,*/
-                           final HttpRequestPacket request,
+    public void initialize(final HttpRequestPacket request,
                            final FilterChainContext ctx,
                            final HttpServerFilter httpServerFilter) {
-//        this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
@@ -601,7 +599,6 @@ public class Request {
 
         request.recycle();
         request = null;
-//        response = null;
         ctx = null;
         httpServerFilter = null;
 

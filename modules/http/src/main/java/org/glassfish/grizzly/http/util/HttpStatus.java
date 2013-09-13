@@ -128,11 +128,13 @@ public class HttpStatus {
     // ------------------------------------------------------------ Constructors
 
     private final int status;
+    private final String reasonPhrase;
     private final byte[] reasonPhraseBytes;
     private final byte[] statusBytes;
 
     private HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
+        this.reasonPhrase = reasonPhrase;
         reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
         statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
     }
@@ -158,6 +160,13 @@ public class HttpStatus {
         return statusBytes;
     }
 
+    /**
+     * @return the {@link String} representation of the reason phrase.
+     */
+    public String getReasonPhrase() {
+        return reasonPhrase;
+    }
+    
     /**
      * @return the bytes containing the reason phrase as
      *  defined by <code>RFC 2616</code>.

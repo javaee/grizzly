@@ -46,7 +46,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -59,7 +58,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -133,12 +131,9 @@ public class DefaultServlet extends HttpServlet {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "File not found  {0}", resource);
             }
+            
             resp.reset();
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            final ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
-                            "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
-                            req.getServletContext().getServerInfo());
-            resp.getOutputStream().write(bb.array(), bb.arrayOffset(), bb.remaining());
+            resp.sendError(404);
             return;
         }
 

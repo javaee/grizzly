@@ -140,6 +140,11 @@ public class NetworkListener {
      */
     private TCPNIOServerConnection serverConnection;    
     
+    /**
+     * The default error page generator
+     */
+    private ErrorPageGenerator defaultErrorPageGenerator;    
+    
     {
         final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
         final int coresCount = Runtime.getRuntime().availableProcessors() * 2;
@@ -1080,6 +1085,23 @@ public class NetworkListener {
         this.sendFileEnabled = sendFileEnabled;
     }
 
+    /**
+     * Returns the <tt>NetworkListener</tt> default {@link ErrorPageGenerator}.
+     */
+    public ErrorPageGenerator getDefaultErrorPageGenerator() {
+        return defaultErrorPageGenerator;
+    }
+
+    /**
+     * Sets the <tt>NetworkListener</tt> default {@link ErrorPageGenerator}.
+     * 
+     * @param defaultErrorPageGenerator 
+     */
+    public void setDefaultErrorPageGenerator(
+            final ErrorPageGenerator defaultErrorPageGenerator) {
+        this.defaultErrorPageGenerator = defaultErrorPageGenerator;
+    }
+    
     boolean isSendFileExplicitlyConfigured() {
         return (sendFileEnabled != null);
     }

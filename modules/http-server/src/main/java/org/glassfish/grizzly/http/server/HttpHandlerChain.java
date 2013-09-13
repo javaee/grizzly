@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
@@ -173,6 +174,8 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     @Override
     boolean doHandle(final Request request, final Response response)
             throws Exception {
+        response.setErrorPageGenerator(getErrorPageGenerator(request));
+        
         try {
             final HttpHandler rootHttpHandlerLocal = rootHttpHandler;
             
@@ -206,8 +209,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
                 return httpHandler.doHandle(request, response);
             } else {
-                response.setStatus(HttpStatus.NOT_FOUND_404);
-                customizedErrorPage(request, response);
+                response.sendError(404);
             }
         } catch (Exception t) {
             try {
@@ -281,11 +283,9 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                             final HttpHandler a = new HttpHandler() {
 
                                 @Override
-                                public void service(Request request, Response response) {
-                                    try {
-                                        customizedErrorPage(request, response);
-                                    } catch (Exception ignored) {
-                                    }
+                                public void service(Request request,
+                                        Response response) throws IOException {
+                                    response.sendError(404);
                                 }
                             };
                             mapper.addContext(LOCAL_HOST, ctx, a,
@@ -296,12 +296,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                         }
                     }
                     mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
-
-
-    //                String ctx = getContextPath(mapping);
-    //                mapper.addContext(LOCAL_HOST, ctx, httpHandler,
-    //                        new String[]{"index.html", "index.htm"}, null);
-    //                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpHandler);
                 }
                 
                 // Check if the only one HttpHandler is registered
@@ -442,7 +436,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     }
 
     private String getContextPath(String mapping) {
-        String ctx = "";
+        String ctx;
         int slash = mapping.indexOf("/", 1);
         if (slash != -1) {
             ctx = mapping.substring(0, slash);

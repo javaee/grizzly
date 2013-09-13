@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
@@ -56,11 +55,9 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -70,7 +67,6 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 
 import org.glassfish.grizzly.http.util.Header;
 
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -187,12 +183,6 @@ public class HttpServerFilter extends BaseFilter
                 
                 activeRequestsCounter.incrementAndGet();
                 
-                if (isShuttingDown) { // if we're in the shutting down phase - serve shutdown page and exit
-                    onRequestCompleteAndResponseFlushed();
-                    serveShutDownPage(ctx, request, response);
-                    return ctx.getStopAction();
-                }
-                
                 handlerRequest = Request.create();
                 handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
                 httpRequestInProgress.set(context, handlerRequest);
@@ -212,15 +202,24 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    if (!config.isPassTraceRequest()
-                            && request.getMethod() == Method.TRACE) {
-                        onTraceRequest(handlerRequest, handlerResponse);
-                    } else {
-                        final HttpHandler httpHandlerLocal = httpHandler;
-                        if (httpHandlerLocal != null) {
-                            wasSuspended = !httpHandlerLocal.doHandle(
-                                    handlerRequest, handlerResponse);
+                    if (!isShuttingDown) {
+                        if (!config.isPassTraceRequest()
+                                && request.getMethod() == Method.TRACE) {
+                            onTraceRequest(handlerRequest, handlerResponse);
+                        } else {
+                            final HttpHandler httpHandlerLocal = httpHandler;
+                            if (httpHandlerLocal != null) {
+                                wasSuspended = !httpHandlerLocal.doHandle(
+                                        handlerRequest, handlerResponse);
+                            }
                         }
+                    } else { // if we're in the shutting down phase - serve shutdown page and exit
+                        handlerResponse.getResponse().getProcessingState().setError(true);
+                        HtmlHelper.setErrorAndSendErrorPage(
+                                handlerRequest, handlerResponse,
+                                config.getDefaultErrorPageGenerator(),
+                                503, HttpStatus.SERVICE_UNAVAILABLE_503.getReasonPhrase(),
+                                "The server is being shutting down...", null);
                     }
                 } catch (Exception t) {
                     LOGGER.log(Level.WARNING, "Exception during HttpHandler invokation", t);
@@ -228,7 +227,12 @@ public class HttpServerFilter extends BaseFilter
                     request.getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
-                        serveInternalServerErrorPage(ctx, handlerResponse, t);
+                            HtmlHelper.setErrorAndSendErrorPage(
+                                    handlerRequest, handlerResponse,
+                                    config.getDefaultErrorPageGenerator(),
+                                    500, HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),
+                                    HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),
+                                    t);
                     }
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Unexpected error", t);
@@ -352,16 +356,6 @@ public class HttpServerFilter extends BaseFilter
 
         final HttpContext context = HttpContext.get(ctx);
         httpRequestInProgress.remove(context);
-        if (!response.isCommitted()
-                && response.getStatus() >= 400
-                && response.getOutputBuffer().getBufferedDataSize() == 0) {
-            final String name = getFullServerName();
-            final ByteBuffer bb = HtmlHelper.getErrorPage(response.getStatus() + ' ' + response.getMessage(),
-                                                          response.getMessage(),
-                                                          name);
-            response.getOutputBuffer().writeByteBuffer(bb);
-            response.flush();
-        }
         response.finish();
         request.onAfterService();
         
@@ -389,48 +383,6 @@ public class HttpServerFilter extends BaseFilter
         }
         
         return ctx.getStopAction();
-    }
-
-    /**
-     * Serve the shutdown page.
-     */
-    private void serveShutDownPage(final FilterChainContext ctx,
-            final HttpRequestPacket request,
-            final HttpResponsePacket response) throws IOException {
-        request.getProcessingState().setError(true);
-
-        final ByteBuffer b = HtmlHelper.getErrorPage(
-                "The server is being shutting down...",
-                "The server is being shutting down...",
-                getFullServerName());
-        
-        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE_503);
-        response.setContentType("text/html");
-        response.setCharacterEncoding("UTF-8");
-        
-        final MemoryManager mm = ctx.getMemoryManager();
-        final Buffer buf = Buffers.wrap(mm, b);
-        final HttpContent httpContent = HttpContent.builder(response)
-                .last(true)
-                .content(buf)
-                .build();
-        
-        ctx.write(httpContent);
-    }
-
-    private static void serveInternalServerErrorPage(
-            final FilterChainContext ctx, final Response response,
-            final Exception error) throws IOException {
-        
-        final ByteBuffer b = HtmlHelper.getExceptionErrorPage(
-                "Internal Server Error", "Grizzly/2.0", error);
-        response.reset();
-        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-        response.setContentType("text/html");
-        response.setCharacterEncoding("UTF-8");
-        final MemoryManager mm = ctx.getMemoryManager();
-        final Buffer buf = Buffers.wrap(mm, b);
-        response.getOutputBuffer().writeBuffer(buf);
     }
 
     /**

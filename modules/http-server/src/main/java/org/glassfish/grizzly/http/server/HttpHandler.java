@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.CharConversionException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -52,7 +51,6 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.server.util.MappingData;
@@ -139,6 +137,7 @@ public abstract class HttpHandler {
      *  from the invocation of {@link #service(Request, Response)}
      */
     boolean doHandle(final Request request, final Response response) throws Exception {
+        response.setErrorPageGenerator(getErrorPageGenerator(request));
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
@@ -170,8 +169,10 @@ public abstract class HttpHandler {
             return runService(request, response);
         } catch (Exception t) {
             LOGGER.log(Level.WARNING, "service exception", t);
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            response.setDetailMessage("Internal Error");
+            HtmlHelper.setErrorAndSendErrorPage(request, response,
+                    response.getErrorPageGenerator(),
+                    500, HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),
+                    HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(), t);
         }
         
         return true;
@@ -214,22 +215,14 @@ public abstract class HttpHandler {
                         LOGGER.log(Level.FINE, "service exception", e);
                         if (!response.isCommitted()) {
                             response.reset();
-                            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                            final ServerFilterConfiguration config =
-                                    httpServerFilter.getConfiguration();
-                            final String name = config.getHttpServerName() + ' '
-                                    + config.getHttpServerVersion();
-                            response.setDetailMessage("Internal Error");
                             try {
-                                ByteBuffer bb =
-                                        HtmlHelper.getExceptionErrorPage(
-                                                "Internal Error",
-                                                name,
-                                                e);
-                                response.getOutputBuffer().writeByteBuffer(bb);
-                                response.flush();
+                                HtmlHelper.setErrorAndSendErrorPage(
+                                        request, response,
+                                        response.getErrorPageGenerator(),
+                                        500, HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),
+                                        HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),
+                                        e);
                             } catch (IOException ignored) {
-
                             }
                         }
                         wasSuspended = false;
@@ -342,33 +335,18 @@ public abstract class HttpHandler {
     }
 
     /**
-     * Customize the error page.
-     * @param req The {@link Request} object
-     * @param res The {@link Response} object
-     * @throws Exception
+     * Returns the {@link ErrorPageGenerator}, that might be used
+     * (if an error occurs) during {@link Request} processing.
+     * 
+     * @param request {@link Request}
+     * 
+     * @return Returns the {@link ErrorPageGenerator}, that might be used
+     * (if an error occurs) during {@link Request} processing
      */
-    protected void customizedErrorPage(final Request req,
-                                       final Response res)
-            throws Exception {
-
-        /**
-         * With Grizzly, we just return a 404 with a simple error message.
-         */
-        res.setStatus(HttpStatus.NOT_FOUND_404);
-        final String serverName = req.getServerFilter().getFullServerName();
-        
-        final ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
-                "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
-                serverName);
-        res.setContentLength(bb.limit());
-        res.setContentType("text/html");
-        OutputBuffer out = res.getOutputBuffer();
-        out.prepareCharacterEncoder();
-        out.write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
-        out.close();
+    protected ErrorPageGenerator getErrorPageGenerator(final Request request) {
+        return request.getHttpFilter().getConfiguration().getDefaultErrorPageGenerator();
     }
-
-
+    
     /**
      * The default implementation will acknowledge an <code>Expect: 100-Continue</code>
      * with a response line with the status 100 followed by the final response
