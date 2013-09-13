@@ -77,6 +77,11 @@ public class ServerFilterConfiguration {
      * Default query string encoding (query part of request URI).
      */
     private Charset defaultQueryEncoding;
+    
+    /**
+     * The default error page generator
+     */
+    private ErrorPageGenerator defaultErrorPageGenerator;
 
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
@@ -86,9 +91,11 @@ public class ServerFilterConfiguration {
         this.httpServerName = serverName;
         this.httpServerVersion = serverVersion;
         configureSendFileSupport();
+        
+        defaultErrorPageGenerator = new DefaultErrorPageGenerator();
     }
 
-    public ServerFilterConfiguration(ServerFilterConfiguration configuration) {
+    public ServerFilterConfiguration(final ServerFilterConfiguration configuration) {
         this.httpServerName = configuration.httpServerName;
         this.httpServerVersion = configuration.httpServerVersion;
         this.sendFileEnabled = configuration.sendFileEnabled;
@@ -100,6 +107,7 @@ public class ServerFilterConfiguration {
         this.maxFormPostSize = configuration.maxFormPostSize;
         this.maxBufferedPostSize = configuration.maxBufferedPostSize;
         this.defaultQueryEncoding = configuration.defaultQueryEncoding;
+        this.defaultErrorPageGenerator = configuration.defaultErrorPageGenerator;
     }
     
     /**
@@ -360,6 +368,23 @@ public class ServerFilterConfiguration {
      */
     public void setDefaultQueryEncoding(final Charset defaultQueryEncoding) {
         this.defaultQueryEncoding = defaultQueryEncoding;
+    }
+
+    /**
+     * Returns the default {@link ErrorPageGenerator}.
+     */
+    public ErrorPageGenerator getDefaultErrorPageGenerator() {
+        return defaultErrorPageGenerator;
+    }
+
+    /**
+     * Sets the default {@link ErrorPageGenerator}.
+     * 
+     * @param defaultErrorPageGenerator 
+     */
+    public void setDefaultErrorPageGenerator(
+            final ErrorPageGenerator defaultErrorPageGenerator) {
+        this.defaultErrorPageGenerator = defaultErrorPageGenerator;
     }
     
     // --------------------------------------------------------- Private Methods

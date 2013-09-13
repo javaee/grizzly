@@ -42,10 +42,7 @@ package org.glassfish.grizzly.http.server.util;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
+import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.util.HttpStatus;
@@ -69,47 +66,77 @@ public class HtmlHelper{
             "HR {color : #999966;}";
 
     /**
-     * <code>CharBuffer</code> used to store the HTML response, containing
-     * the headers and the body of the response.
+     * Generate and send an error page for the given HTTP response status.
+     * Unlike {@link #setErrorAndSendErrorPage(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response, org.glassfish.grizzly.http.server.ErrorPageGenerator, int, java.lang.String, java.lang.String, java.lang.Throwable)},
+     * this method doesn't change the {@link Response} status code and reason phrase.
+     * 
+     * @param request
+     * @param response
+     * @param generator
+     * @param status
+     * @param reasonPhrase
+     * @param description
+     * @param exception
+     * 
+     * @throws IOException 
      */
-    private static CharBuffer reponseBuffer = CharBuffer.allocate(4096);
-
-
-    /**
-     * Encoder used to encode the HTML response
-     */
-    private static CharsetEncoder encoder =
-                                          Charset.forName("UTF-8").newEncoder();
-
-
-    /**
-     *
-     * @return A {@link ByteBuffer} containing the HTTP response.
-     */
-    public synchronized static ByteBuffer getErrorPage(String headerMessage,
-                                                       String message,
-                                                       String serverName)
-    throws IOException {
-
-        String body = prepareBody(headerMessage, message, serverName);
-        reponseBuffer.clear();
-        reponseBuffer.put(body);
-        reponseBuffer.flip();
-        return encoder.encode(reponseBuffer);
-
+    public static void sendErrorPage(
+            final Request request, final Response response,
+            final ErrorPageGenerator generator,
+            final int status, final String reasonPhrase,
+            final String description, final Throwable exception) throws IOException {
+        
+        if (generator != null && !response.isCommitted() &&
+                response.getOutputBuffer().getBufferedDataSize() == 0) {
+            final String errorPage = generator.generate(request, status,
+                    reasonPhrase, description, exception);
+            
+            final Writer writer = response.getWriter();
+            
+            if (errorPage != null) {
+                response.setContentType("text/html");
+                writer.write(errorPage);
+            }
+            writer.close();
+        }
     }
-
-
-    public synchronized static ByteBuffer getExceptionErrorPage(String message,
-                                                                String serverName,
-                                                                Throwable t)
-    throws IOException {
-        String body = prepareExceptionBody(message, serverName, t);
-        reponseBuffer.clear();
-        reponseBuffer.put(body);
-        reponseBuffer.flip();
-        return encoder.encode(reponseBuffer);
-
+    
+    /**
+     * Generate and send an error page for the given HTTP response status.
+     * Unlike {@link #setErrorAndSendErrorPage(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response, org.glassfish.grizzly.http.server.ErrorPageGenerator, int, java.lang.String, java.lang.String, java.lang.Throwable)},
+     * this method does change the {@link Response} status code and reason phrase.
+     * 
+     * @param request
+     * @param response
+     * @param generator
+     * @param status
+     * @param reasonPhrase
+     * @param description
+     * @param exception
+     * 
+     * @throws IOException 
+     */
+    public static void setErrorAndSendErrorPage(
+            final Request request, final Response response,
+            final ErrorPageGenerator generator,
+            final int status, final String reasonPhrase,
+            final String description, final Throwable exception) throws IOException {
+        
+        response.setStatus(status, reasonPhrase);
+        
+        if (generator != null && !response.isCommitted() &&
+                response.getOutputBuffer().getBufferedDataSize() == 0) {
+            final String errorPage = generator.generate(request, status,
+                    reasonPhrase, description, exception);
+            
+            final Writer writer = response.getWriter();
+            
+            if (errorPage != null) {
+                response.setContentType("text/html");
+                writer.write(errorPage);
+            }
+            writer.close();
+        }
     }
 
     public static void writeTraceMessage(final Request request,
@@ -128,11 +155,27 @@ public class HtmlHelper{
             }
         }
     }
-    
+
+    /**
+     *
+     * @return A {@link String} containing the HTTP response.
+     */
+    public static String getErrorPage(String headerMessage,
+            String message, String serverName) {
+        return prepareBody(headerMessage, message, serverName);
+    }
+
+
+    public static String getExceptionErrorPage(String headerMessage,
+            String message, String serverName, Throwable t) {
+        return prepareExceptionBody(headerMessage, message, serverName, t);
+    }
+
     /**
      * Prepare the HTTP body containing the error messages.
      */
-    private static String prepareBody(String headerMessage, String message, String serverName){
+    private static String prepareBody(String headerMessage, String message,
+            String serverName) {
         final StringBuilder sb = new StringBuilder();
 
         sb.append("<html><head><title>");
@@ -155,13 +198,13 @@ public class HtmlHelper{
 
 
     @SuppressWarnings({"ThrowableResultOfMethodCallIgnored"})
-    private static String prepareExceptionBody(String message,
-                                               String serverName,
-                                               Throwable t) {
+    private static String prepareExceptionBody(String headerMessage,
+            String message, String serverName, Throwable t) {
 
         if (t == null) {
-            throw new IllegalArgumentException();
+            return prepareBody(headerMessage, message, serverName);
         }
+        
         Throwable rootCause = getRootCause(t);
 
         StackTraceElement[] elements = t.getStackTrace();
@@ -175,10 +218,10 @@ public class HtmlHelper{
         if (rootCause != null) {
             formatStackElements(rootCauseElements, rootBuilder);
         }
-        String exMessage = t.getMessage();
-        if (exMessage == null) {
-            exMessage = t.toString();
-        }
+        
+        final String exMessage = t.getMessage() != null ?
+                t.getMessage() : t.toString();
+        
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head><title>");
         sb.append(serverName);
@@ -188,7 +231,7 @@ public class HtmlHelper{
         sb.append("--></style> ");
         sb.append("</head><body>");
         sb.append("<div class=\"header\">");
-        sb.append(message);
+        sb.append(headerMessage);
         sb.append("</div>");
         sb.append("<div class=\"body\">");
         sb.append("<b>").append(exMessage).append("</b>");

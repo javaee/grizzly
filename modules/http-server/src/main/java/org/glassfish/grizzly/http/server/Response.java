@@ -91,6 +91,7 @@ import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.io.ServerOutputBuffer;
+import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
@@ -215,12 +216,6 @@ public class Response {
 
 
     /**
-     * The set of Cookies associated with this Response.
-     */
-//    protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
-
-
-    /**
      * Using output stream flag.
      */
     protected boolean usingOutputStream = false;
@@ -252,6 +247,8 @@ public class Response {
 
     private SuspendStatus suspendStatus;
     private boolean sendFileEnabled;
+    
+    private ErrorPageGenerator errorPageGenerator;
     
     // --------------------------------------------------------- Public Methods
 
@@ -297,7 +294,6 @@ public class Response {
      */
     protected void recycle() {
         delayQueue = null;
-//        suspendedContext.reset();
         outputBuffer.recycle();
         outputStream.recycle();
         writer.recycle();
@@ -305,6 +301,7 @@ public class Response {
         usingWriter = false;
         appCommitted = false;
         error = false;
+        errorPageGenerator = null;
         request = null;
         response.recycle();
         sendFileEnabled = false;
@@ -313,8 +310,6 @@ public class Response {
         suspendState = SuspendState.NONE;
 
         cacheEnabled = false;
-//
-//        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -465,6 +460,23 @@ public class Response {
         return error;
     }
 
+    /**
+     * Returns the {@link ErrorPageGenerator} to be used by
+     * {@link #sendError(int)} or {@link #sendError(int, java.lang.String)}.
+     */
+    public ErrorPageGenerator getErrorPageGenerator() {
+        return errorPageGenerator;
+    }
+
+    /**
+     * Sets the {@link ErrorPageGenerator} to be used by
+     * {@link #sendError(int)} or {@link #sendError(int, java.lang.String)}.
+     * 
+     * @param errorPageGenerator 
+     */
+    public void setErrorPageGenerator(ErrorPageGenerator errorPageGenerator) {
+        this.errorPageGenerator = errorPageGenerator;
+    }
 
     // BEGIN S1AS 4878272
     /**
@@ -756,7 +768,7 @@ public class Response {
 
         outputBuffer.reset();
 
-        if(resetWriterStreamFlags) {
+        if (resetWriterStreamFlags) {
             usingOutputStream = false;
             usingWriter = false;
         }
@@ -1223,24 +1235,41 @@ public class Response {
      *  already been committed
      * @exception java.io.IOException if an input/output error occurs
      */
-    public void sendError(int status, String message) throws IOException {
+    public void sendError(final int status, final String message)
+            throws IOException {
         checkResponse();
         if (isCommitted())
             throw new IllegalStateException("Illegal attempt to call sendError() after the response has been committed.");
 
         setError();
 
-        response.setStatus(status);
-        response.setReasonPhrase(message);
-        //response.setMessage(message);
-
-        // Clear any data content that has been buffered
-        resetBuffer();
-
+        response.getHeaders().removeHeader(Header.TransferEncoding);
+        response.setContentLanguage(null);
+        response.setContentLengthLong(-1L);
+        response.setChunked(false);
+        response.setCharacterEncoding(null);
+        response.setContentType(null);
+        response.setLocale(null);
+        outputBuffer.reset();
+        usingWriter = false;
+        usingOutputStream = false;
+        
+        setStatus(status, message);
+        
+        String nonNullMsg = message;
+        if (nonNullMsg == null) {
+            final HttpStatus httpStatus = HttpStatus.getHttpStatus(status);
+            if (httpStatus != null && httpStatus.getReasonPhrase() != null) {
+                nonNullMsg = httpStatus.getReasonPhrase();
+            } else {
+                nonNullMsg = "Unknown Error";
+            }
+        }
+        
+        HtmlHelper.sendErrorPage(request, this, getErrorPageGenerator(),
+                status, nonNullMsg, nonNullMsg, null);
+        
         finish();
-        // Cause the response to be finished (from the application perspective)
-//        setSuspended(true);
-
     }
 
 
@@ -1300,13 +1329,10 @@ public class Response {
                 }
             }
         } catch (IllegalArgumentException e) {
-            setStatus(HttpStatus.NOT_FOUND_404);
+            sendError(404);
         }
 
         finish();
-        // Cause the response to be finished (from the application perspective)
-//        setSuspended(true);
-
     }
 
 

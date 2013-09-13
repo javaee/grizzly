@@ -670,10 +670,6 @@ public class HttpServer {
 
             final ServerFilterConfiguration config = new ServerFilterConfiguration(serverConfig);
 
-            final HttpServerFilter httpServerFilter = new HttpServerFilter(
-                    config,
-                    delayedExecutor);
-            
             if (listener.isSendFileExplicitlyConfigured()) {
                 config.setSendFileEnabled(listener.isSendFileEnabled());
                 fileCache.setFileSendEnabled(listener.isSendFileEnabled());
@@ -683,11 +679,18 @@ public class HttpServer {
                 config.setBackendConfiguration(listener.getBackendConfig());
             }
             
+            if (listener.getDefaultErrorPageGenerator() != null) {
+                config.setDefaultErrorPageGenerator(listener.getDefaultErrorPageGenerator());
+            }
+            
             config.setTraceEnabled(config.isTraceEnabled() || listener.isTraceEnabled());
             
             config.setMaxFormPostSize(listener.getMaxFormPostSize());
             config.setMaxBufferedPostSize(listener.getMaxBufferedPostSize());
             
+            final HttpServerFilter httpServerFilter = new HttpServerFilter(
+                    config,
+                    delayedExecutor);
             httpServerFilter.setHttpHandler(httpHandlerChain);
             
             httpServerFilter.getMonitoringConfig().addProbes(

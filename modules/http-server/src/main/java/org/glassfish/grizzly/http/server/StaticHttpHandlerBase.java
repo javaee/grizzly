@@ -270,8 +270,7 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
      */
     protected void onMissingResource(final Request request, final Response response)
             throws Exception {
-        response.setStatus(HttpStatus.NOT_FOUND_404);
-        customizedErrorPage(request, response);
+        response.sendError(404);
     }
 
     /**

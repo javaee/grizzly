@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -305,22 +304,10 @@ public class ServletHandler extends HttpHandler {
                                    final int errorCode,
                                    final Throwable t) {
         if (!response.isCommitted()) {
-            response.reset();
-            response.setStatus(errorCode, message);
-            response.setContentType("text/html");
             try {
-                final ByteBuffer buffer;
-                if (t != null) {
-                    buffer = HtmlHelper.getExceptionErrorPage(message,
-                                                              getServletCtx().getServerInfo(),
-                                                              t);
-                } else {
-                    buffer = HtmlHelper.getErrorPage(response.getStatus() + ' ' + message,
-                                                     message,
-                                                     getServletCtx().getServerInfo());
-                }
-                response.getOutputBuffer().writeByteBuffer(buffer);
-                response.getWriter().flush();
+                HtmlHelper.setErrorAndSendErrorPage(response.getRequest(), response,
+                        response.getErrorPageGenerator(), errorCode, message,
+                        message, t);
             } catch (IOException ex) {
                 // We are in a very bad shape. Ignore.
             }

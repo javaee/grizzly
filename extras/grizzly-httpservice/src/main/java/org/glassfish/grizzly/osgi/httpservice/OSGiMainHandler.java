@@ -141,9 +141,8 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             }
         }
         if (!invoked) {
-            response.setStatus(HttpStatus.NOT_FOUND_404);
             try {
-                customizedErrorPage(request, response);
+                response.sendError(404);
             } catch (Exception e) {
                 logger.warn("Failed to commit 404 status.", e);
             }
