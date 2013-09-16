@@ -43,6 +43,7 @@ package org.glassfish.grizzly.utils;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Map;
 
 /**
  * Exceptions utilities.
@@ -79,5 +80,27 @@ public class Exceptions {
         }
 
         return new IOException(t);
+    }
+    
+    /**
+     * @return {@link String} representation of all the JVM threads
+     * 
+     * @see Thread#getAllStackTraces()
+     */
+    public static String getAllStackTracesAsString() {
+        final StringBuilder sb = new StringBuilder(256);
+        
+        final Map<Thread, StackTraceElement[]> all = Thread.getAllStackTraces();
+        
+        for (Map.Entry<Thread, StackTraceElement[]> entry : all.entrySet()) {
+            sb.append(entry.getKey()).append('\n');
+            
+            for (StackTraceElement traceElement : entry.getValue()) {
+                sb.append("\tat ").append(traceElement).append('\n');                
+            }
+            
+        }
+        
+        return sb.toString();
     }
 }

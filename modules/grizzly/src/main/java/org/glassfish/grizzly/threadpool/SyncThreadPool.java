@@ -127,9 +127,11 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     @Override
     protected void startWorker(Worker worker) {
-        super.startWorker(worker);
-        activeThreadsCount++;
-        currentPoolSize++;
+        synchronized (stateLock) {
+            super.startWorker(worker);
+            activeThreadsCount++;
+            currentPoolSize++;
+        }
     }
 
     @Override
