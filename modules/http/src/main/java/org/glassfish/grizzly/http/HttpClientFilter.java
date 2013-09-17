@@ -108,26 +108,22 @@ public class HttpClientFilter extends HttpCodecFilter {
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
 
         final Connection c = ctx.getConnection();
-        final Queue<HttpRequestPacket> requestQueue = getRequestQueue(c);
         final Object message = ctx.getMessage();
-        //noinspection SuspiciousMethodCalls
-        if (requestQueue.isEmpty() || !requestQueue.contains(message)) {
-            if (HttpHeader.isHttp(message)) {
-                HttpHeader header;
-                if (message instanceof HttpHeader) {
-                    header = (HttpHeader) message;
-                } else {
-                    header = ((HttpContent) message).getHttpHeader();
-                }
-                if (header.isRequest()) {
-                    requestQueue.offer((HttpRequestPacket) header);
-                }
+  
+        if (HttpPacket.isHttp(message)) {
+            assert message instanceof HttpPacket;
+            
+            final HttpHeader header = ((HttpPacket) message).getHttpHeader();
+            
+            if (!header.isCommitted() && header.isRequest()) {
+                assert header instanceof HttpRequestPacket;
+                getRequestQueue(c).offer((HttpRequestPacket) header);
             }
         }
+
         return super.handleWrite(ctx);
-
     }
-
+    
     /**
      * The method is called, once we have received a {@link Buffer},
      * which has to be transformed into HTTP response packet part.
