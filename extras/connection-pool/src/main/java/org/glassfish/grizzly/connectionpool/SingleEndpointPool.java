@@ -44,6 +44,7 @@ import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,11 +138,14 @@ public class SingleEndpointPool<E> {
     private boolean isClosed;
     
     /**
+     * The thread-pool used by theownDelayedExecutor
+     */
+    private final ExecutorService ownDelayedExecutorThreadPool;
+    /**
      * Own/internal {@link DelayedExecutor} to be used for keep-alive and reconnect
      * mechanisms, if one (DelayedExecutor} was not specified by user
      */
     private final DelayedExecutor ownDelayedExecutor;
-    
     /**
      * DelayQueue for connect timeout mechanism
      */
@@ -266,13 +270,16 @@ public class SingleEndpointPool<E> {
                     .setPoolName("connection-pool-delays-thread-pool")
                     .setCorePoolSize(1)
                     .setMaxPoolSize(1);
-
+            
+            ownDelayedExecutorThreadPool =
+                    GrizzlyExecutorService.createInstance(tpc);
             ownDelayedExecutor = new DelayedExecutor(
-                    GrizzlyExecutorService.createInstance(tpc));
+                    ownDelayedExecutorThreadPool);
             ownDelayedExecutor.start();
             
             delayedExecutor = ownDelayedExecutor;
         } else {
+            ownDelayedExecutorThreadPool = null;
             ownDelayedExecutor = null;
         }
         
@@ -345,6 +352,7 @@ public class SingleEndpointPool<E> {
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
         this.maxReconnectAttempts = maxReconnectAttempts;
         ownDelayedExecutor = null;
+        ownDelayedExecutorThreadPool = null;
         
         this.connectTimeoutQueue = connectTimeoutQueue;
         this.reconnectQueue = reconnectQueue;
@@ -696,6 +704,10 @@ public class SingleEndpointPool<E> {
 
                 if (ownDelayedExecutor != null) {
                     ownDelayedExecutor.destroy();
+                }
+                
+                if (ownDelayedExecutorThreadPool != null) {
+                    ownDelayedExecutorThreadPool.shutdownNow();
                 }
                 
                 final int size = readyConnections.size();

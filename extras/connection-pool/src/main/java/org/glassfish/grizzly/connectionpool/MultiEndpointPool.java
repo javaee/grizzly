@@ -41,6 +41,7 @@ package org.glassfish.grizzly.connectionpool;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -130,6 +131,10 @@ public class MultiEndpointPool<E> {
     private final Chain<EndpointPoolImpl> maxPoolSizeHitsChain =
             new Chain<EndpointPoolImpl>();
     
+    /**
+     * The thread-pool used by theownDelayedExecutor
+     */
+    private final ExecutorService ownDelayedExecutorThreadPool;
     /**
      * Own/internal {@link DelayedExecutor} to be used for keep-alive and reconnect
      * mechanisms, if one (DelayedExecutor} was not specified by user
@@ -228,11 +233,15 @@ public class MultiEndpointPool<E> {
                     .setCorePoolSize(1)
                     .setMaxPoolSize(1);
 
+            ownDelayedExecutorThreadPool =
+                    GrizzlyExecutorService.createInstance(tpc);
             ownDelayedExecutor = new DelayedExecutor(
-                    GrizzlyExecutorService.createInstance(tpc));
+                    ownDelayedExecutorThreadPool);
             ownDelayedExecutor.start();
+            
             delayedExecutor = ownDelayedExecutor;
         } else {
+            ownDelayedExecutorThreadPool = null;
             ownDelayedExecutor = null;
         }
         
@@ -539,6 +548,10 @@ public class MultiEndpointPool<E> {
             if (ownDelayedExecutor != null) {
                 ownDelayedExecutor.destroy();
             }
+            
+            if (ownDelayedExecutorThreadPool != null) {
+                ownDelayedExecutorThreadPool.shutdownNow();
+            }            
         }
     }
 
