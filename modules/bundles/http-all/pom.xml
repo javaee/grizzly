@@ -45,13 +45,13 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3.6-SNAPSHOT</version>
+        <version>2.3.6</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>grizzly-http-all</artifactId>
     <packaging>jar</packaging>
-    <version>2.3.6-SNAPSHOT</version>
+    <version>2.3.6</version>
     <name>grizzly-all</name>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -135,7 +135,7 @@
                         <phase>install</phase>
                         <configuration>
                             <target>
-                                <delete dir="src" includeemptydirs="true"/>
+                                <delete dir="src" includeemptydirs="true" />
                             </target>
                         </configuration>
                         <goals>
