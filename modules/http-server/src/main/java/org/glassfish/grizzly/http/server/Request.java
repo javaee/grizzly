@@ -812,14 +812,6 @@ public class Request {
      *          failed.
      */
     public String getHttpHandlerPath() {
-        if (httpHandlerPath == null) {
-            try {
-                httpHandlerPath = getRequest().getRequestURIRef().getDecodedURI();
-            } catch (CharConversionException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-        
         return httpHandlerPath;
     }
 

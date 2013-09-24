@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -86,18 +85,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             DataStructures.<HttpHandler, String[]>getConcurrentMap();
     private final ConcurrentMap<HttpHandler, Object> monitors =
             DataStructures.<HttpHandler, Object>getConcurrentMap();
-    
-    /**
-     * Number of registered HttpHandlers
-     */
-    private int handlersCount;
-    
-    /**
-     * The root {@link HttpHandler}, used in cases when HttpHandlerChain has
-     * only one {@link HttpHandler} registered and this {@link HttpHandler} is
-     * registered as root resource.
-     */
-    private volatile HttpHandler rootHttpHandler;
     
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
@@ -177,13 +164,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         response.setErrorPageGenerator(getErrorPageGenerator(request));
         
         try {
-            final HttpHandler rootHttpHandlerLocal = rootHttpHandler;
-            
-            if (rootHttpHandlerLocal != null) {
-                // use default path values (don't call updatePaths)
-                return rootHttpHandlerLocal.doHandle(request, response);
-            }
-            
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             uriRef.setDefaultURIEncoding(getRequestURIEncoding());
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(
@@ -259,9 +239,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     }
                 }
 
-                if (handlers.put(httpHandler, mappings) == null) {
-                    handlersCount++;
-                }
+                handlers.put(httpHandler, mappings);
 
                 final String name = httpHandler.getName();
                 if (name != null) {
@@ -297,15 +275,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     }
                     mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
                 }
-                
-                // Check if the only one HttpHandler is registered
-                // and if it's a root HttpHandler - apply optimization
-                if (handlersCount == 1 && mappings.length == 1 &&
-                        ("".equals(mappings[0]) ||  "/".equals(mappings[0]))) {
-                    rootHttpHandler = httpHandler;
-                } else {
-                    rootHttpHandler = null;
-                }
             }
         } finally {
             mapperUpdateLock.writeLock().unlock();
@@ -338,24 +307,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
                 deregisterJmxForHandler(httpHandler);
                 httpHandler.destroy();
-                
-                // Check if the only one HttpHandler left
-                // and if it's a root HttpHandler - apply optimization
-                handlersCount--;
-                if (handlersCount == 1) {
-                    final Map.Entry<HttpHandler, String[]> entry =
-                            handlers.entrySet().iterator().next();
-                    final String[] lastHttpHandlerMappings = entry.getValue();
-                    if (lastHttpHandlerMappings.length == 1
-                            && ("".equals(lastHttpHandlerMappings[0]) ||
-                            "/".equals(lastHttpHandlerMappings[0]))) {
-                        rootHttpHandler = httpHandler;
-                    } else {
-                        rootHttpHandler = null;
-                    }
-                } else {
-                    rootHttpHandler = null;
-                }
             }
             
             return (mappings != null);
