@@ -240,6 +240,9 @@ public class RequestURITest extends TestCase {
             // associate handlers with random context-roots
             server.getServerConfiguration().addHttpHandler(httpHandlers[i], "/" + i + "/*");
         }
+        
+        server.getHttpHandler().setAllowEncodedSlash(true);
+        
         return server;
 
     }
