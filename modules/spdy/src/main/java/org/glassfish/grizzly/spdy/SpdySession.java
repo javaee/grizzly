@@ -213,7 +213,7 @@ public final class SpdySession {
     }
 
     
-    int getNextLocalStreamId() {
+    public int getNextLocalStreamId() {
         lastLocalStreamId += 2;
         return lastLocalStreamId;
     }
@@ -303,7 +303,7 @@ public final class SpdySession {
         return deflaterDataOutputStream;
     }
 
-    ReentrantLock getNewClientStreamLock() {
+    public ReentrantLock getNewClientStreamLock() {
         return newClientStreamLock;
     }
 
@@ -342,7 +342,7 @@ public final class SpdySession {
      * The caller code is responsible for obtaining and releasing the mentioned
      * {@link #getNewClientStreamLock()} lock.
      */
-    SpdyStream openStream(final HttpRequestPacket spdyRequest,
+    public SpdyStream openStream(final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId, 
             final int priority, final int slot, final boolean isUnidirectional,
             final boolean fin)
@@ -495,6 +495,7 @@ public final class SpdySession {
                                             final HttpContent httpContent) {
         final FilterChainContext upstreamContext =
                         upstreamChain.obtainFilterChainContext(connection);
+        HttpContext.newInstance(upstreamContext, spdyStream, spdyStream, spdyStream);
         handlerFilter.onHttpContentParsed(httpContent, upstreamContext);
         final HttpHeader header = httpContent.getHttpHeader();
         if (httpContent.isLast()) {

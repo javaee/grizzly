@@ -456,7 +456,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             processControlFrame(spdySession, context, frame);
         } else {
             final SpdyStream spdyStream = spdySession.getStream(frame.getHeader().getStreamId());
-            
+
             if (spdyStream == null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Data frame received for non-existent stream: connection={0}, frame={1}, stream={2}",
@@ -746,7 +746,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
 
         final SpdyStream spdyStream = spdySession.getStream(streamId);
-        
+        HttpContext.newInstance(context, spdyStream, spdyStream, spdyStream);
         if (spdyStream == null) { // Stream doesn't exist
             frame.getHeader().getUnderlying().dispose();
             frame.recycle();
