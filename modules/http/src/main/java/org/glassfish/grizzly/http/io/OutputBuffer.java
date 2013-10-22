@@ -205,6 +205,7 @@ public class OutputBuffer {
      * @since 2.1.2
      * @deprecated <tt>OutputBuffer</tt> always supports async mode
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void setAsyncEnabled(boolean asyncEnabled) {
     }
 
@@ -776,6 +777,7 @@ public class OutputBuffer {
 
     // -------------------------------------------------- General Public Methods
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public boolean canWriteChar(final int length) {
         return canWrite();
@@ -785,6 +787,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #canWrite()}.
      */
+    @SuppressWarnings("UnusedParameters")
     public boolean canWrite(final int length) {
         return canWrite();
     }
@@ -808,6 +811,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #notifyCanWrite(org.glassfish.grizzly.WriteHandler)}.
      */
+    @SuppressWarnings("UnusedParameters")
     public void notifyCanWrite(final WriteHandler handler, final int length) {
         notifyCanWrite(handler);
     }
@@ -924,7 +928,7 @@ public class OutputBuffer {
         
         try {
             final long writeTimeout =
-                    ctx.getConnection().getReadTimeout(TimeUnit.MILLISECONDS);
+                    ctx.getConnection().getWriteTimeout(TimeUnit.MILLISECONDS);
             if (writeTimeout >= 0) {
                 future.get(writeTimeout, TimeUnit.MILLISECONDS);
             } else {
@@ -1068,7 +1072,8 @@ public class OutputBuffer {
 
     private void checkCompositeBuffer() {
         if (compositeBuffer == null) {
-            final CompositeBuffer buffer = CompositeBuffer.newBuffer(memoryManager);
+            final CompositeBuffer buffer = CompositeBuffer.newBuffer(
+                    memoryManager);
             buffer.allowBufferDispose(true);
             buffer.allowInternalBuffersDispose(true);
             compositeBuffer = buffer;
