@@ -558,9 +558,10 @@ public final class Parameters {
                                    e);
                     }
                 }
+            } finally {
+                tmpName.recycle();
+                tmpValue.recycle();
             }
-            tmpName.recycle();
-            tmpValue.recycle();
 
         }
 
@@ -660,9 +661,10 @@ public final class Parameters {
             } catch (IllegalStateException e) {
                 throw new IllegalStateException("Error parsing parameters: "
                         + new String(chars, start, len), e);
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
 
         } while (pos < end);
     }
@@ -787,9 +789,10 @@ public final class Parameters {
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
 
         } while (pos < end);
     }
@@ -855,9 +858,10 @@ public final class Parameters {
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
+            } finally {
+                tmpNameC.recycle();
+                tmpValueC.recycle();
             }
-            tmpNameC.recycle();
-            tmpValueC.recycle();
 
         } while (pos < end);
     }

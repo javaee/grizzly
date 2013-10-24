@@ -929,7 +929,7 @@ public class OutputBuffer {
         
         try {
             final long writeTimeout =
-                    ctx.getConnection().getReadTimeout(TimeUnit.MILLISECONDS);
+                    ctx.getConnection().getWriteTimeout(TimeUnit.MILLISECONDS);
             if (writeTimeout >= 0) {
                 future.get(writeTimeout, TimeUnit.MILLISECONDS);
             } else {
