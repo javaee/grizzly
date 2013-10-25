@@ -44,21 +44,16 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -69,12 +64,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.CharBuffer;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayFilter;
+import org.glassfish.grizzly.utils.Futures;
+
+import static junit.framework.Assert.assertEquals;
+import org.glassfish.grizzly.http.HttpHeader;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
@@ -739,7 +741,7 @@ public class HttpInputStreamsTest extends TestCase {
 
     }
 
-
+    
     public void testCharacter002() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -987,7 +989,50 @@ public class HttpInputStreamsTest extends TestCase {
 
     }
 
+    public void testCharacter011() throws Throwable {
 
+        final String expected = "abcdefghijklmnopqrstuvwxyz";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(26);
+                Reader in = request.getReader();
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+                assertEquals(-1, in.read());
+                in.close();
+                assertEquals(expected.length(), sb.length());
+                assertEquals(expected, sb.toString());
+                return true;
+            }
+        };
+
+        final BlockingQueue<Future<Boolean>> testResultQueue =
+                DataStructures.getLTQInstance();
+        
+        HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        server.getListener("grizzly").getKeepAliveConfig().setMaxRequestsCount(-1);
+        server.getListener("grizzly").getTransport().getWorkerThreadPoolConfig().setCorePoolSize(4).setMaxPoolSize(4);
+        server.getListener("grizzly").getTransport().setIOStrategy(WorkerThreadIOStrategy.getInstance());
+        
+        ServerConfiguration sconfig = server.getServerConfiguration();
+        sconfig.addHttpHandler(
+                new SimpleResponseHttpHandler(reader, testResultQueue), "/*");
+
+        try {
+            server.start();
+            runClient(new RequestBuilder() {
+                @Override
+                public HttpPacket build() {
+                    return createRequest("POST", expected);
+                }
+            }, testResultQueue, 1024, 32);
+        } finally {
+            server.shutdownNow();
+        }
+    }
+    
     public void testMultiByteCharacter01() throws Throwable {
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
         ReadStrategy reader = new ReadStrategy() {
@@ -1197,9 +1242,9 @@ public class HttpInputStreamsTest extends TestCase {
                                      final String encoding) {
         Buffer contentBuffer;
         try {
-        contentBuffer = content != null ?
-            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content.getBytes(encoding)) :
-            null;
+            contentBuffer = content != null
+                    ? Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content.getBytes(encoding))
+                    : null;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1211,6 +1256,7 @@ public class HttpInputStreamsTest extends TestCase {
                 .chunked(content == null)
                 .header("Host", "localhost");
         if (content != null) {
+            assert contentBuffer != null;
             b.contentLength(contentBuffer.remaining());
         }
 
@@ -1227,52 +1273,69 @@ public class HttpInputStreamsTest extends TestCase {
         return request;
     }
 
-    private void doTest(HttpPacket request,
-                        ReadStrategy strategy,
-                        int chunkSize) throws Throwable{
+    private void doTest(final HttpPacket request,
+                        final ReadStrategy strategy,
+                        final int chunkSize) throws Throwable {
+        doTest(new RequestBuilder() {
 
-        final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
-        doTest(new ClientFilter(request, testResult), strategy, testResult, chunkSize);
-
+            @Override
+            public HttpPacket build() {
+                return request;
+            }
+        }, strategy, chunkSize, 1);
     }
 
-
-    private void doTest(Filter clientFilter,
+    private void doTest(RequestBuilder requestBuilder,
                         ReadStrategy strategy,
-                        FutureImpl<Boolean> testResult,
-                        int chunkSize)
-    throws Throwable {
+                        int chunkSize,
+                        int count) throws Throwable {
 
+        final BlockingQueue<Future<Boolean>> testResultQueue =
+                DataStructures.getLTQInstance();
+        
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
+        sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResultQueue), "/*");
 
-        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new DelayFilter(0, 150));
-            clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
-            clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(clientFilter);
+            runClient(requestBuilder, testResultQueue, chunkSize, count);
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    private void runClient(RequestBuilder requestBuilder,
+            final BlockingQueue<Future<Boolean>> testResultQueue,
+            int chunkSize, int count) throws Exception {
+        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
+        Connection connection = null;
+
+        try {
+            FilterChainBuilder clientFilterChainBuilder =
+                    FilterChainBuilder.stateless()
+                    .add(new TransportFilter())
+                    .add(new DelayFilter(0, 150))
+                    .add(new ChunkingFilter(chunkSize))
+                    .add(new HttpClientFilter())
+                    .add(new ClientFilter(testResultQueue));
+
             ctransport.setFilterChain(clientFilterChainBuilder.build());
 
             ctransport.start();
 
             Future<Connection> connectFuture = ctransport.connect("localhost", PORT);
-            Connection connection = null;
-            try {
-                connection = connectFuture.get(30, TimeUnit.SECONDS);
-                testResult.get(30, TimeUnit.SECONDS);
-            } finally {
-                // Close the client connection
-                if (connection != null) {
-                    connection.closeSilently();
-                }
+            connection = connectFuture.get(30, TimeUnit.SECONDS);
+            for (int i = 0; i < count; i++) {
+                connection.write(requestBuilder.build());
+                testResultQueue.poll(30, TimeUnit.SECONDS).get();
             }
         } finally {
-            server.shutdownNow();
+            // Close the client connection
+            if (connection != null) {
+                connection.closeSilently();
+            }
+            
             ctransport.shutdownNow();
         }
     }
@@ -1289,16 +1352,17 @@ public class HttpInputStreamsTest extends TestCase {
 
 
     private static final class SimpleResponseHttpHandler extends HttpHandler {
-        private final FutureImpl<Boolean> testResult;
+        private final BlockingQueue<Future<Boolean>> testResultQueue;
         private final ReadStrategy strategy;
 
 
         // -------------------------------------------------------- Constructors
 
 
-        public SimpleResponseHttpHandler(ReadStrategy strategy, FutureImpl<Boolean> testResult) {
+        public SimpleResponseHttpHandler(ReadStrategy strategy,
+                BlockingQueue<Future<Boolean>> testResultQueue) {
             this.strategy = strategy;
-            this.testResult = testResult;
+            this.testResultQueue = testResultQueue;
         }
 
 
@@ -1319,9 +1383,10 @@ public class HttpInputStreamsTest extends TestCase {
             } catch (Throwable e) {
                 t = e;
             }
-
+            
+            final Throwable error = t != null ? t : new IllegalStateException("Strategy returned false");
             //noinspection ThrowableInstanceNeverThrown
-            testResult.failure(t != null ? t : new IllegalStateException("Strategy returned false"));
+            testResultQueue.add(Futures.<Boolean>createReadyFuture(error));
             res.addHeader("Status", "Failed");
         }
 
@@ -1332,34 +1397,19 @@ public class HttpInputStreamsTest extends TestCase {
     private static class ClientFilter extends BaseFilter {
         private static final Logger LOGGER = Grizzly.logger(ClientFilter.class);
 
-        protected final HttpPacket request;
-        protected final FutureImpl<Boolean> testResult;
+        protected final BlockingQueue<Future<Boolean>> testResultQueue;
 
         // -------------------------------------------------------- Constructors
 
 
-        public ClientFilter(HttpPacket request, FutureImpl<Boolean> testResult) {
+        public ClientFilter(BlockingQueue<Future<Boolean>> testResultQueue) {
 
-            this.request = request;
-            this.testResult = testResult;
+            this.testResultQueue = testResultQueue;
 
         }
 
 
         // ------------------------------------------------ Methods from Filters
-
-
-        @Override
-        public NextAction handleConnect(FilterChainContext ctx)
-              throws IOException {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Connected... Sending the request: {0}", request);
-            }
-
-            ctx.write(request);
-
-            return ctx.getStopAction();
-        }
 
 
         @Override
@@ -1382,58 +1432,17 @@ public class HttpInputStreamsTest extends TestCase {
                                  "OK",
                                  httpHeader.getHeader("Status"));
                 } catch (Throwable t) {
-                    testResult.failure(t);
+                    testResultQueue.add(Futures.<Boolean>createReadyFuture(t));
                 } finally {
-                    testResult.result(Boolean.TRUE);
+                    testResultQueue.add(Futures.createReadyFuture(Boolean.TRUE));
                 }
             }
 
             return ctx.getStopAction();
         }
-
-        @Override
-        public NextAction handleClose(FilterChainContext ctx)
-              throws IOException {
-            return ctx.getStopAction();
-        }
-
     }
-
-
-    private final class CharsetClientFilter extends ClientFilter {
-
-        String encoding;
-        private String requestData;
-
-        public CharsetClientFilter(HttpPacket request,
-                                   String requestData,
-                                   FutureImpl<Boolean> testResult,
-                                   String encoding) {
-            super(request, testResult);
-            this.requestData = requestData;
-            this.encoding = encoding;
-        }
-
-
-        // -------------------------------------------------------- Constructors
-
-        @SuppressWarnings({"unchecked"})
-        @Override
-        public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-            ((HttpHeader) request).addHeader("Content-Type", "plain/text;charset=" + encoding);
-            ctx.write(request);
-            byte[] bytes = requestData.getBytes(encoding);
-            MemoryManager mm = ctx.getMemoryManager();
-            Buffer b = Buffers.wrap(mm, bytes);
-            HttpContent.Builder builder = ((HttpHeader) request).httpContentBuilder();
-            builder.content(b);
-            ctx.write(builder.build());
-            if (((HttpHeader) request).isChunked()) {
-                HttpTrailer.Builder trailer = ((HttpHeader) request).httpTrailerBuilder();
-                ctx.write(trailer.build());
-            }
-            return ctx.getStopAction();
-        }
-    } // END CharsetClientFilter;
-
+    
+    private static interface RequestBuilder {
+        HttpPacket build();
+    }
 }
