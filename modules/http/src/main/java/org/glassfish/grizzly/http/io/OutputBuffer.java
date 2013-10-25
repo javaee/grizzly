@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,6 +78,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
@@ -199,6 +201,7 @@ public class OutputBuffer {
      * @since 2.1.2
      * @deprecated <tt>OutputBuffer</tt> always supports async mode
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void setAsyncEnabled(boolean asyncEnabled) {
     }
 
@@ -452,7 +455,7 @@ public class OutputBuffer {
         
         if (charsArray.length - charsArrayLength >= len) {
             str.getChars(off, off + len,
-                    charsArray, charsArrayLength);
+                         charsArray, charsArrayLength);
             charsArrayLength += len;
             
             return;
@@ -769,6 +772,7 @@ public class OutputBuffer {
 
     // -------------------------------------------------- General Public Methods
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deprecated
     public boolean canWriteChar(final int length) {
         return canWrite();
@@ -778,7 +782,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #canWrite()}.
      */
-    public boolean canWrite(final int length) {
+    public boolean canWrite(@SuppressWarnings("UnusedParameters") final int length) {
         return canWrite();
     }
     
@@ -801,7 +805,8 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #notifyCanWrite(org.glassfish.grizzly.WriteHandler)}.
      */
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
+    public void notifyCanWrite(final WriteHandler handler,
+                               @SuppressWarnings("UnusedParameters") final int length) {
         notifyCanWrite(handler);
     }
 
@@ -815,18 +820,6 @@ public class OutputBuffer {
             handler.onError(Exceptions.makeIOException(asyncException));
             return;
         }
-
-//        final int maxBytes = getMaxAsyncWriteQueueSize();
-//        if (maxBytes > 0 && length > maxBytes) {
-//            throw new IllegalArgumentException("Illegal request to write "
-//                                                  + length
-//                                                  + " bytes.  Max allowable write is "
-//                                                  + maxBytes + '.');
-//        }
-        
-        final Connection c = ctx.getConnection();
-        
-//        final int totalLength = length + getBufferedDataSize();
         
         asyncStateHolder.writeHandler = handler;
 
@@ -1321,14 +1314,69 @@ public class OutputBuffer {
         private final OutputBuffer outputBuffer;
         private final AsyncStateHolder asyncStateHolder;
 
-        public InternalWriteHandler(final OutputBuffer outputBuffer,
-                final AsyncStateHolder asyncStateHolder) {
+
+        // -------------------------------------------------------- Constructors
+
+
+        private InternalWriteHandler(final OutputBuffer outputBuffer,
+                                     final AsyncStateHolder asyncStateHolder) {
             this.outputBuffer = outputBuffer;
             this.asyncStateHolder = asyncStateHolder;
         }
 
+
+        // ------------------------------------------- Methods from WriteHandler
+
+
         @Override
         public void onWritePossible() throws Exception {
+            if (Threads.isService()) {
+                executeOnWorkerThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            onWritePossible0();
+                        } catch (Exception ignored) {
+                            // exceptions ignored by implementation - safe to
+                            // ignore here as well.
+                        }
+                    }
+                });
+            } else {
+                onWritePossible0();
+            }
+        }
+
+        @Override
+        public void onError(final Throwable t) {
+            if (Threads.isService()) {
+                executeOnWorkerThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onError0(t);
+                    }
+                });
+            } else {
+                onError0(t);
+            }
+        }
+
+
+        // ----------------------------------------------------- Private Methods
+
+
+        private void executeOnWorkerThread(final Runnable r) {
+            final ExecutorService es =
+                    asyncStateHolder.connection.getTransport().getWorkerThreadPool();
+            if (es != null) {
+                es.execute(r);
+            } else {
+                r.run();
+            }
+        }
+
+
+        private void onWritePossible0() throws Exception {
             try {
                 final Reentrant reentrant = Reentrant.getWriteReentrant();
                 if (!reentrant.isMaxReentrantsReached()) {
@@ -1340,8 +1388,7 @@ public class OutputBuffer {
             }
         }
 
-        @Override
-        public void onError(final Throwable t) {
+        private void onError0(final Throwable t) {
             asyncStateHolder.setError(t);
 
             final WriteHandler writeHandler =
@@ -1354,5 +1401,6 @@ public class OutputBuffer {
                 }
             }
         }
-    }
+
+    } // END InternalWriteHandler
 }

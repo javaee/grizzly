@@ -56,10 +56,10 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 public abstract class AbstractIOStrategy implements IOStrategy {
 
     private final static EnumSet<IOEvent> READ_WRITE_EVENT_SET =
-            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE);
+            EnumSet.of(IOEvent.READ, IOEvent.WRITE);
 
     private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
-            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE, IOEvent.CLOSED);
+            EnumSet.of(IOEvent.READ, IOEvent.CLOSED);
     
     protected final static IOEventProcessingHandler ENABLE_INTEREST_PROCESSING_HANDLER =
             new EnableInterestProcessingHandler();
