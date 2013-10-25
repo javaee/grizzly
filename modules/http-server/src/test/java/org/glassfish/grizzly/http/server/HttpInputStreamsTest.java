@@ -1335,7 +1335,7 @@ public class HttpInputStreamsTest extends TestCase {
             connection = connectFuture.get(30, TimeUnit.SECONDS);
             for (int i = 0; i < count; i++) {
                 connection.write(requestBuilder.build());
-                testResultQueue.poll(3000, TimeUnit.SECONDS).get();
+                testResultQueue.poll(30, TimeUnit.SECONDS).get();
             }
         } finally {
             // Close the client connection
