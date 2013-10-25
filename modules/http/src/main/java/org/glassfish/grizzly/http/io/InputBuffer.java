@@ -470,11 +470,12 @@ public class InputBuffer {
         singleCharBuf.position(0);
         int read = read(singleCharBuf);
         if (read == -1) {
+            singleCharBuf.limit(1); // singleCharBuf.clear();
             return -1;
         }
         final char c = singleCharBuf.get(0);
 
-        singleCharBuf.position(0);
+        singleCharBuf.position(0); // singleCharBuf.clear();
         return c;
 
     }
