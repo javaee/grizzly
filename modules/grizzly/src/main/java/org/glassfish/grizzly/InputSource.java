@@ -57,8 +57,8 @@ public interface InputSource {
 
     /**
      * <p>
-     * Notify the specified {@link ReadHandler} when any number of bytes
-     * can be read without blocking.
+     * Notify the specified {@link ReadHandler} when any number of bytes or
+     * characters can be read without blocking.
      * </p>
      *
      * <p>
@@ -111,7 +111,7 @@ public interface InputSource {
     /**
      * @return the number of bytes (or characters) that may be obtained
      *  without blocking.  Note when dealing with characters, this method
-     *  will return an estimate on the number of characters available. 
+     *  may return an estimate on the number of characters available. 
      */
     int readyData();
 

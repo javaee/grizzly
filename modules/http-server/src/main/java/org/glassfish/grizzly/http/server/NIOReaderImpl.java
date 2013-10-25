@@ -93,7 +93,7 @@ final class NIOReaderImpl extends NIOReader implements Cacheable {
      * {@inheritDoc}
      */
     @Override public boolean ready() throws IOException {
-        return inputBuffer.ready();
+        return isReady();
     }
 
     /**
@@ -175,7 +175,7 @@ final class NIOReaderImpl extends NIOReader implements Cacheable {
      */
     @Override
     public boolean isReady() {
-        return (inputBuffer.availableChar() > 0);
+        return readyData() > 0;
     }
 
 
