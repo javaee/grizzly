@@ -51,6 +51,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
 import java.io.IOException;
@@ -62,7 +63,10 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -234,6 +238,7 @@ public class InputBuffer {
      * {@link org.glassfish.grizzly.http.HttpRequestPacket} and character decoding
      * wasn't started yet.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public void setDefaultEncoding(final String encoding) {
         this.encoding = encoding;
     }
@@ -737,12 +742,19 @@ public class InputBuffer {
             final ReadHandler localHandler = handler;
             if (localHandler != null) {
                 handler = null;
-                try {
-                    localHandler.onAllDataRead();
-                } catch (Throwable t) {
-                    localHandler.onError(t);
-                    throw Exceptions.makeIOException(t);
-                }
+                executeReadHandler(new Callable<Throwable>() {
+                    @Override
+                    public Throwable call() throws Exception {
+                        try {
+                            localHandler.onAllDataRead();
+                            return null;
+                        } catch (Throwable t) {
+                            localHandler.onError(t);
+                            return t;
+                        }
+                    }
+                });
+
             }
         }
     }
@@ -896,12 +908,18 @@ public class InputBuffer {
                         askForMoreDataInThisThread = false;
                         
                         handler = null;
-                        try {
-                            localHandler.onDataAvailable();
-                        } catch (Throwable t) {
-                            localHandler.onError(t);
-                            throw Exceptions.makeIOException(t);
-                        }
+                        executeReadHandler(new Callable<Throwable>() {
+                            @Override
+                            public Throwable call() throws Exception {
+                                try {
+                                    localHandler.onDataAvailable();
+                                    return null;
+                                } catch (Throwable t) {
+                                    localHandler.onError(t);
+                                    return t;
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -928,7 +946,13 @@ public class InputBuffer {
             final ReadHandler localHandler = handler;
             handler = null;
             if (!closed && localHandler != null) {
-                localHandler.onError(((HttpBrokenContent) httpContent).getError());
+                executeReadHandler(new Runnable() {
+                    @Override
+                    public void run() {
+                        localHandler.onError(((HttpBrokenContent) httpContent).getError());
+                    }
+                });
+
             }
             
             return false;
@@ -970,6 +994,50 @@ public class InputBuffer {
     }
     
     // --------------------------------------------------------- Private Methods
+
+
+    private void executeReadHandler(final Callable<Throwable> callable) throws IOException {
+        final ExecutorService es =
+                connection.getTransport().getWorkerThreadPool();
+        Throwable result = null;
+        if (Threads.isService() && es != null) {
+            // Invoke ReadHandler callback on worker thread if available...
+            final Future<Throwable> f = es.submit(callable);
+            try {
+                // We have to wait for the result in order to
+                // finish processing of the current append
+                // call...
+                result = f.get();
+            } catch (Exception e) {
+                throw Exceptions.makeIOException(e);
+            }
+        } else {
+            try {
+                result = callable.call();
+            } catch (Exception ignored) {
+                // won't happen;
+            }
+        }
+        if (result != null) {
+            throw Exceptions.makeIOException(result);
+        }
+    }
+
+    private void executeReadHandler(final Runnable runnable)
+    throws IOException {
+        final ExecutorService es =
+                connection.getTransport().getWorkerThreadPool();
+
+        if (Threads.isService() && es != null) {
+            try {
+                es.submit(runnable).get();
+            } catch (Exception e) {
+                throw Exceptions.makeIOException(e);
+            }
+        } else {
+            runnable.run();
+        }
+    }
 
 
     /**

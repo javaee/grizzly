@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,6 +81,7 @@ import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
@@ -1315,41 +1317,96 @@ public class OutputBuffer implements OutputSink {
     }    
     
     private static final class InternalWriteHandler implements WriteHandler {
-        private final OutputBuffer outputBuffer;
-        private final AsyncStateHolder asyncStateHolder;
+            private final OutputBuffer outputBuffer;
+            private final AsyncStateHolder asyncStateHolder;
 
-        public InternalWriteHandler(final OutputBuffer outputBuffer,
-                final AsyncStateHolder asyncStateHolder) {
-            this.outputBuffer = outputBuffer;
-            this.asyncStateHolder = asyncStateHolder;
-        }
 
-        @Override
-        public void onWritePossible() throws Exception {
-            try {
-                final Reentrant reentrant = Reentrant.getWriteReentrant();
-                if (!reentrant.isMaxReentrantsReached()) {
-                    outputBuffer.notifyWritePossible(asyncStateHolder);
-                } else {
-                    outputBuffer.notifyWritePossibleAsync(asyncStateHolder);
-                }
-            } catch (Exception ignored) {
+            // -------------------------------------------------------- Constructors
+
+
+            private InternalWriteHandler(final OutputBuffer outputBuffer,
+                                         final AsyncStateHolder asyncStateHolder) {
+                this.outputBuffer = outputBuffer;
+                this.asyncStateHolder = asyncStateHolder;
             }
-        }
 
-        @Override
-        public void onError(final Throwable t) {
-            asyncStateHolder.setError(t);
 
-            final WriteHandler writeHandler =
-                    asyncStateHolder.getAndResetWriteHandler();
+            // ------------------------------------------- Methods from WriteHandler
 
-            if (writeHandler != null) {
+
+            @Override
+            public void onWritePossible() throws Exception {
+                if (Threads.isService()) {
+                    executeOnWorkerThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                onWritePossible0();
+                            } catch (Exception ignored) {
+                                // exceptions ignored by implementation - safe to
+                                // ignore here as well.
+                            }
+                        }
+                    });
+                } else {
+                    onWritePossible0();
+                }
+            }
+
+            @Override
+            public void onError(final Throwable t) {
+                if (Threads.isService()) {
+                    executeOnWorkerThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            onError0(t);
+                        }
+                    });
+                } else {
+                    onError0(t);
+                }
+            }
+
+
+            // ----------------------------------------------------- Private Methods
+
+
+            private void executeOnWorkerThread(final Runnable r) {
+                final ExecutorService es =
+                        asyncStateHolder.connection.getTransport().getWorkerThreadPool();
+                if (es != null) {
+                    es.execute(r);
+                } else {
+                    r.run();
+                }
+            }
+
+
+            private void onWritePossible0() throws Exception {
                 try {
-                    writeHandler.onError(t);
+                    final Reentrant reentrant = Reentrant.getWriteReentrant();
+                    if (!reentrant.isMaxReentrantsReached()) {
+                        outputBuffer.notifyWritePossible(asyncStateHolder);
+                    } else {
+                        outputBuffer.notifyWritePossibleAsync(asyncStateHolder);
+                    }
                 } catch (Exception ignored) {
                 }
             }
-        }
-    }
+
+            private void onError0(final Throwable t) {
+                asyncStateHolder.setError(t);
+
+                final WriteHandler writeHandler =
+                        asyncStateHolder.getAndResetWriteHandler();
+
+                if (writeHandler != null) {
+                    try {
+                        writeHandler.onError(t);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+
+        } // END InternalWriteHandler
 }
