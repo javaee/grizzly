@@ -63,10 +63,8 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -567,7 +565,7 @@ public class InputBuffer {
     public void fillFully(final int length) throws IOException {
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
             log("InputBuffer %s fillFully, len: %s. Ready content: %s",
-                    this, length, inputContentBuffer);
+                this, length, inputContentBuffer);
         }
         
         if (length == 0) return;
@@ -677,7 +675,7 @@ public class InputBuffer {
 
     }
 
-
+    
     /**
      * Skips the specified number of bytes/characters.
      *
@@ -736,29 +734,48 @@ public class InputBuffer {
      *
      * This method shouldn't be invoked by developers directly.
      */
-    public void finished() throws IOException {
+    public void finished() {
         if (!contentRead) {
             contentRead = true;
             final ReadHandler localHandler = handler;
             if (localHandler != null) {
                 handler = null;
-                executeReadHandler(new Callable<Throwable>() {
-                    @Override
-                    public Throwable call() throws Exception {
-                        try {
-                            localHandler.onAllDataRead();
-                            return null;
-                        } catch (Throwable t) {
-                            localHandler.onError(t);
-                            return t;
-                        }
-                    }
-                });
-
+                invokeHandlerAllRead(localHandler, getThreadPool());
+            }
+        }
+    }
+    
+    private void finishedInTheCurrentThread(final ReadHandler readHandler) {
+        if (!contentRead) {
+            contentRead = true;
+            if (readHandler != null) {
+                invokeHandlerAllRead(readHandler, null);
             }
         }
     }
 
+    private void invokeHandlerAllRead(final ReadHandler readHandler,
+            final ExecutorService es) {
+        if (es != null) {
+            es.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        readHandler.onAllDataRead();
+                    } catch (Throwable t) {
+                        readHandler.onError(t);
+                    }
+                }
+            });
+        } else {
+            try {
+                readHandler.onAllDataRead();
+            } catch (Throwable t) {
+                readHandler.onError(t);
+            }
+        }
+    }
+    
     public void replayPayload(final Buffer buffer) {
         if (!isFinished()) {
             throw new IllegalStateException("Can't replay when InputBuffer is not closed");
@@ -870,13 +887,16 @@ public class InputBuffer {
      * {@link Buffer}.
      *
      * @param httpContent the {@link HttpContent} to append
+     * @param asyncContext The FilterChainContext that initiated the
+     *                     append call.
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
      *
      * @throws IOException if an error occurs appending the {@link Buffer}
      */
-    public boolean append(final HttpContent httpContent) throws IOException {
+    public boolean append(final HttpContent httpContent,
+                          final FilterChainContext asyncContext) throws IOException {
         
         // Stop waiting for data asynchronously and enable it again
         // only if we have a handler registered, which requirement
@@ -894,69 +914,48 @@ public class InputBuffer {
             
             final ReadHandler localHandler = handler;
             
+            final boolean isLast = httpContent.isLast();
+            
             // if we have a handler registered - switch the flag to true
-            boolean askForMoreDataInThisThread = localHandler != null;
-        
+            boolean askForMoreDataInThisThread = !isLast && localHandler != null;
+            boolean invokeDataAvailable = false;
+
             if (buffer.hasRemaining()) {
                 updateInputContentBuffer(buffer);
-                if (!httpContent.isLast() && localHandler != null) {
-                    // it's not the last chunk
+                if (localHandler != null) {
                     final int available = readyData();
                     if (available >= requestedSize) {
-                        // handler is going to be notified,
-                        // switch flags to false
+                        invokeDataAvailable = true;
                         askForMoreDataInThisThread = false;
-                        
-                        handler = null;
-                        executeReadHandler(new Callable<Throwable>() {
-                            @Override
-                            public Throwable call() throws Exception {
-                                try {
-                                    localHandler.onDataAvailable();
-                                    return null;
-                                } catch (Throwable t) {
-                                    localHandler.onError(t);
-                                    return t;
-                                }
-                            }
-                        });
                     }
                 }
             }
-
-            if (httpContent.isLast()) {
-                // handler is going to be notified,
-                // switch flags to false
-                askForMoreDataInThisThread = false;
-                checkHttpTrailer(httpContent);
-                finished();
-            }
             
             if (askForMoreDataInThisThread) {
-                // Note: it can't be changed to:
-                // isWaitingDataAsynchronously = askForMoreDataInThisThread;
-                // because if askForMoreDataInThisThread == false - some other
-                // thread might have gained control over
-                // isWaitingDataAsynchronously field
+                // There is a ReadHandler registered, but it requested more
+                // data to be available before we can notify it - so wait for
+                // more data to come
                 isWaitingDataAsynchronously = true;
+                return true;
             }
             
-            return askForMoreDataInThisThread;
+            handler = null;
+            
+            if (isLast) {
+                checkHttpTrailer(httpContent);
+            }
+            
+            invokeHandlerOnProperThread(localHandler,
+                    invokeDataAvailable, isLast, asyncContext);
+            
         } else { // broken content
             final ReadHandler localHandler = handler;
             handler = null;
-            if (!closed && localHandler != null) {
-                executeReadHandler(new Runnable() {
-                    @Override
-                    public void run() {
-                        localHandler.onError(((HttpBrokenContent) httpContent).getError());
-                    }
-                });
-
-            }
-            
-            return false;
+            invokeErrorHandlerOnProperThread(localHandler,
+                                             ((HttpBrokenContent) httpContent).getException());
         }
+        
+        return false;
     }
 
 
@@ -975,9 +974,11 @@ public class InputBuffer {
         if (localHandler != null) {
             handler = null;
             if (connection.isOpen()) {
-                localHandler.onError(new CancellationException());
+                invokeErrorHandlerOnProperThread(localHandler,
+                                                 new CancellationException());
             } else {
-                localHandler.onError(new EOFException());
+                invokeErrorHandlerOnProperThread(localHandler,
+                                                 new EOFException());
             }
         }
     }
@@ -995,47 +996,72 @@ public class InputBuffer {
     
     // --------------------------------------------------------- Private Methods
 
-
-    private void executeReadHandler(final Callable<Throwable> callable) throws IOException {
-        final ExecutorService es =
-                connection.getTransport().getWorkerThreadPool();
-        Throwable result = null;
-        if (Threads.isService() && es != null) {
-            // Invoke ReadHandler callback on worker thread if available...
-            final Future<Throwable> f = es.submit(callable);
-            try {
-                // We have to wait for the result in order to
-                // finish processing of the current append
-                // call...
-                result = f.get();
-            } catch (Exception e) {
-                throw Exceptions.makeIOException(e);
-            }
-        } else {
-            try {
-                result = callable.call();
-            } catch (Exception ignored) {
-                // won't happen;
-            }
+    private ExecutorService getThreadPool() {
+        if (!Threads.isService()) {
+            return null;
         }
-        if (result != null) {
-            throw Exceptions.makeIOException(result);
+        final ExecutorService es = connection.getTransport().getWorkerThreadPool();
+        if (es != null && !es.isShutdown()) {
+            return es;
+        } else {
+            return null;
         }
     }
 
-    private void executeReadHandler(final Runnable runnable)
-    throws IOException {
-        final ExecutorService es =
-                connection.getTransport().getWorkerThreadPool();
-
-        if (Threads.isService() && es != null) {
-            try {
-                es.submit(runnable).get();
-            } catch (Exception e) {
-                throw Exceptions.makeIOException(e);
+    private void invokeErrorHandlerOnProperThread(final ReadHandler localHandler,
+                                                  final Throwable error) {
+        if (!closed && localHandler != null) {
+            final ExecutorService es = getThreadPool();
+            if (es != null) {
+                es.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        localHandler.onError(error);
+                    }
+                });
+            } else {
+                localHandler.onError(error);
             }
+        }
+    }
+
+    private void invokeHandlerOnProperThread(final ReadHandler localHandler,
+                                             final boolean invokeDataAvailable,
+                                             final boolean isLast,
+                                             final FilterChainContext asyncContext)
+    throws IOException {
+        final ExecutorService es = getThreadPool();
+
+        if (es != null) {
+            if (invokeDataAvailable) {
+                asyncContext.getInternalContext().setManualIOEventControl();
+            }
+            es.submit(new Runnable() {
+
+                @Override
+                public void run() {
+                    invokeHandler(localHandler, invokeDataAvailable, isLast);
+                }
+            });
         } else {
-            runnable.run();
+            invokeHandler(localHandler, invokeDataAvailable,
+                          isLast);
+        }
+    }
+
+    private void invokeHandler(final ReadHandler localHandler,
+                               final boolean invokeDataAvailable,
+                               final boolean isLast) {
+        try {
+            if (invokeDataAvailable) {
+                localHandler.onDataAvailable();
+            }
+
+            if (isLast) {
+                finishedInTheCurrentThread(localHandler);
+            }
+        } catch (Throwable t) {
+            localHandler.onError(t);
         }
     }
 

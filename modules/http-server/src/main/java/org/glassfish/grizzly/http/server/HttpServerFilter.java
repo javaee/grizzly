@@ -221,7 +221,7 @@ public class HttpServerFilter extends BaseFilter
                                 "The server is being shutting down...", null);
                     }
                 } catch (Exception t) {
-                    LOGGER.log(Level.WARNING, "Exception during HttpHandler invokation", t);
+                    LOGGER.log(Level.WARNING, "Exception during HttpHandler invocation", t);
                     
                     request.getProcessingState().setError(true);
                     
@@ -247,7 +247,7 @@ public class HttpServerFilter extends BaseFilter
             } else {
                 // We're working with suspended HTTP request
                 try {
-                    if (!handlerRequest.getInputBuffer().append(httpContent)) {
+                    if (!handlerRequest.getInputBuffer().append(httpContent, ctx)) {
                         // we don't want this thread/context to reset
                         // OP_READ on Connection
 
