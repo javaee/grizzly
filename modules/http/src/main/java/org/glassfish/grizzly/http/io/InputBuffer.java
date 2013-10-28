@@ -63,11 +63,8 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -176,8 +173,7 @@ public class InputBuffer {
     /**
      * {@link CharBuffer} for converting a single character at a time.
      */
-    private final CharBuffer singleCharBuf =
-            (CharBuffer) CharBuffer.allocate(1).position(1); // create CharBuffer w/ 0 chars remaining
+    private final CharBuffer singleCharBuf = CharBuffer.allocate(1);
 
     /**
      * Used to estimate how many characters can be produced from a variable
@@ -235,8 +231,9 @@ public class InputBuffer {
 
     /**
      * Set the default character encoding for this <tt>InputBuffer</tt>, which
-     * would be applied if no encoding was explicitly set on HTTP request
-     * and character decoding wasn't started yet.
+     * would be applied if no encoding was explicitly set on HTTP
+     * {@link org.glassfish.grizzly.http.HttpRequestPacket} and character decoding
+     * wasn't started yet.
      */
     @SuppressWarnings("UnusedDeclaration")
     public void setDefaultEncoding(final String encoding) {
@@ -253,8 +250,6 @@ public class InputBuffer {
         inputContentBuffer.tryDispose();
         inputContentBuffer = null;
 
-        singleCharBuf.position(singleCharBuf.limit());
-        
         connection = null;
         decoder = null;
         ctx = null;
@@ -517,15 +512,16 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
 
-        if (!singleCharBuf.hasRemaining()) {
-            singleCharBuf.clear();
-            int read = read(singleCharBuf);
-            if (read == -1) {
-                return -1;
-            }
+        singleCharBuf.position(0);
+        int read = read(singleCharBuf);
+        if (read == -1) {
+            singleCharBuf.limit(1); // singleCharBuf.clear();
+            return -1;
         }
+        final char c = singleCharBuf.get(0);
 
-        return singleCharBuf.get();
+        singleCharBuf.position(0); // singleCharBuf.clear();
+        return c;
 
     }
 
@@ -557,6 +553,24 @@ public class InputBuffer {
     }
 
     /**
+     * @see java.io.Reader#ready()
+     */
+    public boolean ready() {
+
+        if (closed) {
+            return false;
+        }
+        if (!processingChars) {
+            throw new IllegalStateException();
+        }
+        return (inputContentBuffer.hasRemaining()
+                   || httpHeader.isExpectContent());
+
+    }
+    
+    /**
+
+    /**
      * Fill the buffer (blocking) up to the requested length.
      * 
      * @param length how much content should attempt to buffer,
@@ -567,7 +581,7 @@ public class InputBuffer {
     public void fillFully(final int length) throws IOException {
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
             log("InputBuffer %s fillFully, len: %s. Ready content: %s",
-                    this, length, inputContentBuffer);
+                this, length, inputContentBuffer);
         }
         
         if (length == 0) return;
@@ -585,19 +599,7 @@ public class InputBuffer {
 
     public int availableChar() {
 
-        if (!singleCharBuf.hasRemaining()) {
-            // fill the singleCharBuf to make sure we have at least one char
-            singleCharBuf.clear();
-            if (fillAvailableChars(1, singleCharBuf) == 0) {
-                singleCharBuf.position(singleCharBuf.limit());
-                return 0;
-            }
-            
-            singleCharBuf.flip();
-        }
-        
-        // we have 1 char pre-decoded + estimation for the rest byte[]->char[] count.
-        return 1 + ((int) (inputContentBuffer.remaining() * averageCharsPerByte));
+        return ((int) (inputContentBuffer.remaining() * averageCharsPerByte));
 
     }
 
@@ -677,7 +679,7 @@ public class InputBuffer {
 
     }
 
-
+    
     /**
      * Skips the specified number of bytes/characters.
      *
@@ -748,28 +750,48 @@ public class InputBuffer {
      *
      * This method shouldn't be invoked by developers directly.
      */
-    public void finished() throws IOException {
+    public void finished() {
         if (!contentRead) {
             contentRead = true;
             final ReadHandler localHandler = handler;
             if (localHandler != null) {
                 handler = null;
-                executeReadHandler(new Callable<Throwable>() {
-                    @Override
-                    public Throwable call() throws Exception {
-                        try {
-                            localHandler.onAllDataRead();
-                            return null;
-                        } catch (Throwable t) {
-                            localHandler.onError(t);
-                            return t;
-                        }
-                    }
-                });
-
+                invokeHandlerAllRead(localHandler, getThreadPool());
             }
         }
     }
+    
+    private void finishedInTheCurrentThread(final ReadHandler readHandler) {
+        if (!contentRead) {
+            contentRead = true;
+            if (readHandler != null) {
+                invokeHandlerAllRead(readHandler, null);
+            }
+        }
+    }
+
+    private void invokeHandlerAllRead(final ReadHandler readHandler,
+            final ExecutorService es) {
+        if (es != null) {
+            es.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        readHandler.onAllDataRead();
+                    } catch (Throwable t) {
+                        readHandler.onError(t);
+                    }
+                }
+            });
+        } else {
+            try {
+                readHandler.onAllDataRead();
+            } catch (Throwable t) {
+                readHandler.onError(t);
+            }
+        }
+    }
+    
 
     public void replayPayload(final Buffer buffer) {
         if (!isFinished()) {
@@ -882,13 +904,16 @@ public class InputBuffer {
      * {@link Buffer}.
      *
      * @param httpContent the {@link HttpContent} to append
+     * @param asyncContext The FilterChainContext that initiated the
+     *                     append call.
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
      *
      * @throws IOException if an error occurs appending the {@link Buffer}
      */
-    public boolean append(final HttpContent httpContent) throws IOException {
+    public boolean append(final HttpContent httpContent,
+                          final FilterChainContext asyncContext) throws IOException {
         
         // Stop waiting for data asynchronously and enable it again
         // only if we have a handler registered, which requirement
@@ -906,68 +931,48 @@ public class InputBuffer {
             
             final ReadHandler localHandler = handler;
             
+            final boolean isLast = httpContent.isLast();
+            
             // if we have a handler registered - switch the flag to true
-            boolean askForMoreDataInThisThread = localHandler != null;
-        
+            boolean askForMoreDataInThisThread = !isLast && localHandler != null;
+            boolean invokeDataAvailable = false;
+
             if (buffer.hasRemaining()) {
                 updateInputContentBuffer(buffer);
-                if (!httpContent.isLast() && localHandler != null) {
-                    // it's not the last chunk
+                if (localHandler != null) {
                     final int available = readyData();
                     if (available >= requestedSize) {
-                        // handler is going to be notified,
-                        // switch flags to false
+                        invokeDataAvailable = true;
                         askForMoreDataInThisThread = false;
-                        
-                        handler = null;
-                        executeReadHandler(new Callable<Throwable>() {
-                            @Override
-                            public Throwable call() throws Exception {
-                                try {
-                                    localHandler.onDataAvailable();
-                                    return null;
-                                } catch (Throwable t) {
-                                    localHandler.onError(t);
-                                    return t;
-                                }
-                            }
-                        });
                     }
                 }
             }
-
-            if (httpContent.isLast()) {
-                // handler is going to be notified,
-                // switch flags to false
-                askForMoreDataInThisThread = false;
-                checkHttpTrailer(httpContent);
-                finished();
-            }
             
             if (askForMoreDataInThisThread) {
-                // Note: it can't be changed to:
-                // isWaitingDataAsynchronously = askForMoreDataInThisThread;
-                // because if askForMoreDataInThisThread == false - some other
-                // thread might have gained control over
-                // isWaitingDataAsynchronously field
+                // There is a ReadHandler registered, but it requested more
+                // data to be available before we can notify it - so wait for
+                // more data to come
                 isWaitingDataAsynchronously = true;
+                return true;
             }
             
-            return askForMoreDataInThisThread;
+            handler = null;
+            
+            if (isLast) {
+                checkHttpTrailer(httpContent);
+            }
+            
+            invokeHandlerOnProperThread(localHandler,
+                    invokeDataAvailable, isLast, asyncContext);
+            
         } else { // broken content
             final ReadHandler localHandler = handler;
             handler = null;
-            if (!closed && localHandler != null) {
-                executeReadHandler(new Runnable() {
-                    @Override
-                    public void run() {
-                        localHandler.onError(((HttpBrokenContent) httpContent).getException());
-                    }
-                });
-            }
-            
-            return false;
+            invokeErrorHandlerOnProperThread(localHandler,
+                                             ((HttpBrokenContent) httpContent).getException());
         }
+        
+        return false;
     }
 
 
@@ -1009,9 +1014,11 @@ public class InputBuffer {
         if (localHandler != null) {
             handler = null;
             if (connection.isOpen()) {
-                localHandler.onError(new CancellationException());
+                invokeErrorHandlerOnProperThread(localHandler,
+                                                 new CancellationException());
             } else {
-                localHandler.onError(new EOFException());
+                invokeErrorHandlerOnProperThread(localHandler,
+                                                 new EOFException());
             }
         }
     }
@@ -1029,47 +1036,72 @@ public class InputBuffer {
     
     // --------------------------------------------------------- Private Methods
 
-
-    private void executeReadHandler(final Callable<Throwable> callable) throws IOException {
-        final ExecutorService es =
-                connection.getTransport().getWorkerThreadPool();
-        Throwable result = null;
-        if (Threads.isService() && es != null) {
-            // Invoke ReadHandler callback on worker thread if available...
-            final Future<Throwable> f = es.submit(callable);
-            try {
-                // We have to wait for the result in order to
-                // finish processing of the current append
-                // call...
-                result = f.get();
-            } catch (Exception e) {
-                throw Exceptions.makeIOException(e);
-            }
-        } else {
-            try {
-                result = callable.call();
-            } catch (Exception ignored) {
-                // won't happen;
-            }
+    private ExecutorService getThreadPool() {
+        if (!Threads.isService()) {
+            return null;
         }
-        if (result != null) {
-            throw Exceptions.makeIOException(result);
+        final ExecutorService es = connection.getTransport().getWorkerThreadPool();
+        if (es != null && !es.isShutdown()) {
+            return es;
+        } else {
+            return null;
         }
     }
 
-    private void executeReadHandler(final Runnable runnable)
-    throws IOException {
-        final ExecutorService es =
-                connection.getTransport().getWorkerThreadPool();
-
-        if (Threads.isService() && es != null) {
-            try {
-                es.submit(runnable).get();
-            } catch (Exception e) {
-                throw Exceptions.makeIOException(e);
+    private void invokeErrorHandlerOnProperThread(final ReadHandler localHandler,
+                                                  final Throwable error) {
+        if (!closed && localHandler != null) {
+            final ExecutorService es = getThreadPool();
+            if (es != null) {
+                es.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        localHandler.onError(error);
+                    }
+                });
+            } else {
+                localHandler.onError(error);
             }
+        }
+    }
+
+    private void invokeHandlerOnProperThread(final ReadHandler localHandler,
+                                             final boolean invokeDataAvailable,
+                                             final boolean isLast,
+                                             final FilterChainContext asyncContext)
+    throws IOException {
+        final ExecutorService es = getThreadPool();
+
+        if (es != null) {
+            if (invokeDataAvailable) {
+                asyncContext.getInternalContext().setManualIOEventControl();
+            }
+            es.submit(new Runnable() {
+
+                @Override
+                public void run() {
+                    invokeHandler(localHandler, invokeDataAvailable, isLast);
+                }
+            });
         } else {
-            runnable.run();
+            invokeHandler(localHandler, invokeDataAvailable,
+                          isLast);
+        }
+    }
+
+    private void invokeHandler(final ReadHandler localHandler,
+                               final boolean invokeDataAvailable,
+                               final boolean isLast) {
+        try {
+            if (invokeDataAvailable) {
+                localHandler.onDataAvailable();
+            }
+
+            if (isLast) {
+                finishedInTheCurrentThread(localHandler);
+            }
+        } catch (Throwable t) {
+            localHandler.onError(t);
         }
     }
 
@@ -1094,7 +1126,7 @@ public class InputBuffer {
             
             final ReadResult rr = ctx.read();
             final HttpContent c = (HttpContent) rr.getMessage();
-
+            
             final boolean isLast = c.isLast();
             // Check if HttpContent is chunked message trailer w/ headers
             checkHttpTrailer(c);
@@ -1111,7 +1143,7 @@ public class InputBuffer {
             updateInputContentBuffer(b);
             rr.recycle();
             c.recycle();
-
+            
             if (isLast) {
                 finished();
                 break;
@@ -1143,15 +1175,8 @@ public class InputBuffer {
 
         int read = 0;
         
-        // 1) Check pre-decoded singleCharBuf
-        if (dst != singleCharBuf && singleCharBuf.hasRemaining()) {
-            dst.put(singleCharBuf.get());
-            read = 1;
-        }
-        
-        // 2) Decode available byte[] -> char[]
         if (inputContentBuffer.hasRemaining()) {
-            read += fillAvailableChars(requestedLen - read, dst);
+            read = fillAvailableChars(requestedLen, dst);
         }
         
         if (read >= requestedLen) {
@@ -1165,7 +1190,6 @@ public class InputBuffer {
             return read > 0 ? read : -1;
         }
         
-        // 4) Try to read more data (we may block)
         CharsetDecoder decoderLocal = getDecoder();
 
         boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char
