@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,8 +41,12 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  *
@@ -240,7 +244,9 @@ public class URLDecoder {
                 byte b2 = srcBuffer[j + 2];
                 
                 if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
-                    throw new IllegalStateException("isHexDigit");
+                    throw new IllegalArgumentException(
+                         "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                                + (char) b1 + "" + (char) b2);
                 }
 
                 j += 2;
@@ -285,7 +291,9 @@ public class URLDecoder {
                 byte b2 = srcBuffer.get(j + 2);
                 
                 if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
-                    throw new IllegalStateException("isHexDigit");
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                    + (char) b1 + "" + (char) b2);
                 }
 
                 j += 2;
@@ -330,7 +338,9 @@ public class URLDecoder {
                 byte b2 = srcBuffer[j + 2];
                 
                 if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
-                    throw new IllegalStateException("isHexDigit");
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                    + (char) b1 + "" + (char) b2);
                 }
 
                 j += 2;
@@ -383,7 +393,9 @@ public class URLDecoder {
                 byte b2 = srcBuffer.get(j + 2);
                 
                 if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
-                    throw new IllegalStateException("isHexDigit");
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                    + (char) b1 + "" + (char) b2);
                 }
 
                 j += 2;
@@ -467,7 +479,9 @@ public class URLDecoder {
                         final char c2 = srcBuffer[j + 2];
 
                         if (!HexUtils.isHexDigit(c1) || !HexUtils.isHexDigit(c2)) {
-                            throw new IllegalStateException("isHexDigit");
+                            throw new IllegalArgumentException(
+                                    "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                            + c1 + "" + c2);
                         }
                         
                         int v = x2c(c1, c2);
@@ -538,7 +552,9 @@ public class URLDecoder {
                 final char c2 = srcBuffer[j + 2];
 
                 if (!HexUtils.isHexDigit(c1) || !HexUtils.isHexDigit(c2)) {
-                    throw new IllegalStateException("isHexDigit");
+                    throw new IllegalArgumentException(
+                            "URLDecoder: Illegal hex characters in escape (%) pattern - %"
+                                    + c1 + "" + c2);
                 }
 
                 j += 2;
