@@ -219,15 +219,20 @@ public class HttpServerFilter extends BaseFilter
             } else {
                 // We're working with suspended HTTP request
                 try {
-                    if (!handlerRequest.getInputBuffer().append(httpContent, ctx)) {
+                    ctx.suspend();
+                    final NextAction action = ctx.getSuspendAction();
+                    
+                    if (!handlerRequest.getInputBuffer().append(httpContent)) {
                         // we don't want this thread/context to reset
                         // OP_READ on Connection
 
                         // we have enough data? - terminate filter chain execution
-                        final NextAction action = ctx.getSuspendAction();
                         ctx.completeAndRecycle();
-                        return action;
+                    } else {
+                        ctx.resume(ctx.getStopAction());
                     }
+                    
+                    return action;
                 } finally {
                     httpContent.recycle();
                 }
@@ -245,8 +250,6 @@ public class HttpServerFilter extends BaseFilter
                         request, response);
             }
         }
-
-        return ctx.getStopAction();
     }
 
 
