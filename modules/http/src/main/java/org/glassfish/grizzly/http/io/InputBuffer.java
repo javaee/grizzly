@@ -64,6 +64,7 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -784,9 +785,9 @@ public class InputBuffer {
     }
 
     private void invokeHandlerAllRead(final ReadHandler readHandler,
-            final ExecutorService es) {
-        if (es != null) {
-            es.submit(new Runnable() {
+            final Executor executor) {
+        if (executor != null) {
+            executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -1046,24 +1047,24 @@ public class InputBuffer {
     
     // --------------------------------------------------------- Private Methods
 
-    private ExecutorService getThreadPool() {
+    /**
+     * @return {@link Executor}, which will be used for notifying user
+     * registered {@link ReadHandler}.
+     */
+    protected Executor getThreadPool() {
         if (!Threads.isService()) {
             return null;
         }
         final ExecutorService es = connection.getTransport().getWorkerThreadPool();
-        if (es != null && !es.isShutdown()) {
-            return es;
-        } else {
-            return null;
-        }
+        return es != null && !es.isShutdown() ? es : null;
     }
 
     private void invokeErrorHandlerOnProperThread(final ReadHandler localHandler,
                                                   final Throwable error) {
         if (!closed && localHandler != null) {
-            final ExecutorService es = getThreadPool();
-            if (es != null) {
-                es.execute(new Runnable() {
+            final Executor executor = getThreadPool();
+            if (executor != null) {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         localHandler.onError(error);
@@ -1079,10 +1080,10 @@ public class InputBuffer {
                                              final boolean invokeDataAvailable,
                                              final boolean isLast)
     throws IOException {
-        final ExecutorService es = getThreadPool();
+        final Executor executor = getThreadPool();
 
-        if (es != null) {
-            es.submit(new Runnable() {
+        if (executor != null) {
+            executor.execute(new Runnable() {
 
                 @Override
                 public void run() {

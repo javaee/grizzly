@@ -44,12 +44,14 @@ import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.io.OutputBuffer;
@@ -59,7 +61,6 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
-import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -77,6 +78,9 @@ import org.glassfish.grizzly.utils.Charsets;
 public abstract class HttpHandler {
     
     private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
+    
+    private final static RequestExecutorProvider DEFAULT_REQUEST_EXECUTOR_PROVIDER =
+            new RequestExecutorProvider.WorkerThreadProvider();
     
     /**
      * Allow request that uses encoded slash.
@@ -102,7 +106,7 @@ public abstract class HttpHandler {
      * HttpHandler name
      */
     private final String name;
-
+    
     /**
      * Create <tt>HttpHandler</tt>.
      */
@@ -137,6 +141,7 @@ public abstract class HttpHandler {
      *  from the invocation of {@link #service(Request, Response)}
      */
     boolean doHandle(final Request request, final Response response) throws Exception {
+        request.setRequestExecutorProvider(getRequestExecutorProvider());
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
@@ -178,7 +183,7 @@ public abstract class HttpHandler {
     private boolean runService(final Request request, final Response response)
             throws Exception {
         
-        final ExecutorService threadPool = getThreadPool(request);
+        final Executor threadPool = getRequestExecutorProvider().getExecutor(request);
         final HttpServerFilter httpServerFilter = request.getServerFilter();
         final Connection connection = request.getContext().getConnection();
         
@@ -322,6 +327,15 @@ public abstract class HttpHandler {
     }
 
     /**
+     * @return the {@link RequestExecutorProvider} responsible for executing
+     * user's code in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
+     * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the user.
+     */
+    public RequestExecutorProvider getRequestExecutorProvider() {
+        return DEFAULT_REQUEST_EXECUTOR_PROVIDER;
+    }
+    
+    /**
      * Customize the error page.
      * @param req The {@link Request} object
      * @param res The {@link Response} object
@@ -401,28 +415,5 @@ public abstract class HttpHandler {
     }
 
     protected void setDispatcherHelper(final DispatcherHelper dispatcherHelper) {
-    }
-    
-    /**
-     * Returns the <tt>HttpHandler</tt> preferred {@link ExecutorService} to process
-     * passed {@link Request}. The <tt>null</tt> return value means process in 
-     * current thread.
-     * 
-     * The default implementation returns <tt>null</tt> if current thread is not
-     * {@link Transport} service thread ({@link Threads#isService()}). Otherwise
-     * returns worker thread pool of the {@link Transport} this {@link Request}
-     * belongs to ({@link org.glassfish.grizzly.Transport#getWorkerThreadPool()}).
-     * 
-     * @param request the {@link Request} to be processed.
-     * @return the <tt>HttpHandler</tt> preferred {@link ExecutorService} to process
-     * passed {@link Request}. The <tt>null</tt> return value means process in 
-     * current thread.
-     */
-    protected ExecutorService getThreadPool(final Request request) {
-        if (!Threads.isService()) {
-            return null; // Execute in the current thread
-        }
-        
-        return request.getContext().getConnection().getTransport().getWorkerThreadPool();
     }
 }

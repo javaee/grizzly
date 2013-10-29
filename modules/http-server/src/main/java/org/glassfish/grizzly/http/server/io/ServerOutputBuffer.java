@@ -46,19 +46,22 @@ import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.Response;
 
 import java.io.File;
+import java.util.concurrent.Executor;
 import java.util.logging.Level;
 
 public class ServerOutputBuffer extends OutputBuffer {
 
     private Response serverResponse;
 
-    public void initialize(Response response, FilterChainContext ctx) {
+    public void initialize(final Response response,
+            final FilterChainContext ctx) {
         super.initialize(response.getResponse(), response.isSendFileEnabled(), ctx);
         this.serverResponse = response;
     }
 
     @Override
-    public void sendfile(File file, long offset, long length, CompletionHandler<WriteResult> handler) {
+    public void sendfile(final File file, final long offset, final long length,
+            final CompletionHandler<WriteResult> handler) {
 
         if (!sendfileEnabled) {
                    throw new IllegalStateException("sendfile support isn't available.");
@@ -88,6 +91,11 @@ public class ServerOutputBuffer extends OutputBuffer {
         super.recycle();
     }
 
+    @Override
+    protected Executor getThreadPool() {
+        return serverResponse.getRequest().getRequestExecutor();
+    }
+    
     private CompletionHandler<WriteResult> createInternalCompletionHandler(
                 final File file, final boolean suspendedAtStart) {
 
@@ -132,7 +140,8 @@ public class ServerOutputBuffer extends OutputBuffer {
 
         }
 
-        private CompletionHandler<WriteResult> suspendAndCreateHandler(final CompletionHandler<WriteResult> handler) {
+        private CompletionHandler<WriteResult> suspendAndCreateHandler(
+                final CompletionHandler<WriteResult> handler) {
             serverResponse.suspend();
             return new CompletionHandler<WriteResult>() {
 
