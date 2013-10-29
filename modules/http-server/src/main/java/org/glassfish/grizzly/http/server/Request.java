@@ -72,6 +72,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -92,6 +93,7 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.io.NIOReader;
+import org.glassfish.grizzly.http.server.io.ServerInputBuffer;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
@@ -234,11 +236,13 @@ public class Request {
     /**
      * Scheduled Thread that clean the cache every XX seconds.
      */
-    private final static ScheduledThreadPoolExecutor sessionExpirer =
+    private final static ScheduledThreadPoolExecutor SESSION_EXPIRER =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
-            return new SchedulerThread(r, "Grizzly-HttpSession-Expirer");
+            final Thread t = new Thread(r, "Grizzly-HttpSession-Expirer");
+            t.setDaemon(true);
+            return t;
         }
     });
 
@@ -246,7 +250,7 @@ public class Request {
      * That code is far from optimal and needs to be rewrite appropriately.
      */
     static {
-        sessionExpirer.scheduleAtFixedRate(new Runnable() {
+        SESSION_EXPIRER.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
@@ -276,17 +280,6 @@ public class Request {
         }
 
         return cachedMappingData;
-    }
-
-    /**
-     * Simple daemon thread.
-     */
-    private static class SchedulerThread extends Thread {
-
-        public SchedulerThread(Runnable r, String name) {
-            super(r, name);
-            setDaemon(true);
-        }
     }
 
 
@@ -348,7 +341,7 @@ public class Request {
     /**
      * The associated input buffer.
      */
-    protected final InputBuffer inputBuffer = new InputBuffer();
+    protected final ServerInputBuffer inputBuffer = new ServerInputBuffer();
 
 
     /**
@@ -452,7 +445,7 @@ public class Request {
     /**
      * The string parser we will use for parsing request lines.
      */
-    private StringParser parser = new StringParser();
+    private StringParser parser;
 
     // START S1AS 4703023
     /**
@@ -471,6 +464,13 @@ public class Request {
     private String jrouteId;
     // END SJSAS 6346226
 
+    /**
+     * The {@link RequestExecutorProvider} responsible for executing user's code
+     * in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
+     * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the user
+     */
+     private RequestExecutorProvider requestExecutorProvider;
+    
     /**
      * The response with which this request is associated.
      */
@@ -491,8 +491,8 @@ public class Request {
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        inputBuffer.initialize(request, ctx);
-
+        inputBuffer.initialize(this, ctx);
+        
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
         parameters.setQueryStringEncoding(httpServerFilter.getConfiguration().getDefaultQueryEncoding());
@@ -534,17 +534,37 @@ public class Request {
     }
 
     /**
-     * Get the Coyote request.
+     * @return the Coyote request.
      */
     public HttpRequestPacket getRequest() {
         return this.request;
     }
 
     /**
-     * Return the Response with which this Request is associated.
+     * @return the Response with which this Request is associated.
      */
     public Response getResponse() {
         return response;
+    }
+
+    /**
+     * @return the {@link Executor} responsible for notifying {@link ReadHandler},
+     * {@link WriteHandler} associated with this <tt>Request</tt> processing.
+     */    
+    public Executor getRequestExecutor() {
+        return requestExecutorProvider.getExecutor(this);
+    }
+
+    /**
+     * Sets @return the {@link RequestExecutorProvider} responsible for executing
+     * user's code in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
+     * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the user.
+     * 
+     * @param requestExecutorProvider {@link RequestExecutorProvider}
+     */
+    protected void setRequestExecutorProvider(
+            final RequestExecutorProvider requestExecutorProvider) {
+        this.requestExecutorProvider = requestExecutorProvider;
     }
 
     /**
@@ -625,6 +645,8 @@ public class Request {
         parameterMap.clear();
         parameters.recycle();
 
+        requestExecutorProvider = null;
+        
         afterServicesList.clear();
 
         // Notes holder shouldn't be recycled.
@@ -633,18 +655,8 @@ public class Request {
         if (cachedMappingData != null) {
             cachedMappingData.recycle();
         }
-//        if (System.getSecurityManager() != null) {
-//            if (inputStream != null) {
-//                inputStream.clear();
-//                inputStream = null;
-//            }
-//            if (reader != null) {
-//                reader.clear();
-//                reader = null;
-//            }
-//        }
-        ThreadCache.putToCache(CACHE_IDX, this);
 
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
 
@@ -2053,8 +2065,8 @@ public class Request {
         if (white < 0)
             white = value.indexOf('\t');
         if (white >= 0) {
-            StringBuilder sb = new StringBuilder();
             int len = value.length();
+            StringBuilder sb = new StringBuilder(len - 1);
             for (int i = 0; i < len; i++) {
                 char ch = value.charAt(i);
                 if ((ch != ' ') && (ch != '\t'))
@@ -2063,6 +2075,10 @@ public class Request {
             value = sb.toString();
         }
 
+        if (parser == null) {
+            parser = new StringParser();
+        }
+        
         // Process each comma-delimited language specification
         parser.setString(value);        // ASSERT: parser is available to us
         int length = parser.getLength();
