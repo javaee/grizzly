@@ -887,16 +887,13 @@ public class InputBuffer {
      * {@link Buffer}.
      *
      * @param httpContent the {@link HttpContent} to append
-     * @param asyncContext The FilterChainContext that initiated the
-     *                     append call.
      *
      * @return <code>true</code> if {@link ReadHandler}
      *  callback was invoked, otherwise returns <code>false</code>.
      *
      * @throws IOException if an error occurs appending the {@link Buffer}
      */
-    public boolean append(final HttpContent httpContent,
-                          final FilterChainContext asyncContext) throws IOException {
+    public boolean append(final HttpContent httpContent) throws IOException {
         
         // Stop waiting for data asynchronously and enable it again
         // only if we have a handler registered, which requirement
@@ -946,13 +943,13 @@ public class InputBuffer {
             }
             
             invokeHandlerOnProperThread(localHandler,
-                    invokeDataAvailable, isLast, asyncContext);
+                    invokeDataAvailable, isLast);
             
         } else { // broken content
             final ReadHandler localHandler = handler;
             handler = null;
             invokeErrorHandlerOnProperThread(localHandler,
-                                             ((HttpBrokenContent) httpContent).getException());
+                                             ((HttpBrokenContent) httpContent).getError());
         }
         
         return false;
@@ -1027,15 +1024,11 @@ public class InputBuffer {
 
     private void invokeHandlerOnProperThread(final ReadHandler localHandler,
                                              final boolean invokeDataAvailable,
-                                             final boolean isLast,
-                                             final FilterChainContext asyncContext)
+                                             final boolean isLast)
     throws IOException {
         final ExecutorService es = getThreadPool();
 
         if (es != null) {
-            if (invokeDataAvailable) {
-                asyncContext.getInternalContext().setManualIOEventControl();
-            }
             es.submit(new Runnable() {
 
                 @Override
@@ -1044,8 +1037,7 @@ public class InputBuffer {
                 }
             });
         } else {
-            invokeHandler(localHandler, invokeDataAvailable,
-                          isLast);
+            invokeHandler(localHandler, invokeDataAvailable, isLast);
         }
     }
 
