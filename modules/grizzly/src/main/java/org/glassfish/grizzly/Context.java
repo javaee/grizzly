@@ -120,7 +120,6 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be suspended in the current thread.
      */
     public void suspend() {
-        wasSuspended = true;
         final EventProcessingHandler processingHandlerLocal = this.eventProcessingHandler;
         if (processingHandlerLocal != null) {
             try {
@@ -129,6 +128,8 @@ public class Context implements AttributeStorage, Cacheable {
                 throw new IllegalStateException(e);
             }
         }
+        
+        wasSuspended = true;
     }
     
     /**

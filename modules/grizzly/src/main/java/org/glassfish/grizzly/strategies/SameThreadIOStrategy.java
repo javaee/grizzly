@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -124,77 +124,4 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
         return null;
     }
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-//    private static final class InterestProcessingHandlerWhenIoEnabled
-//            extends EventProcessingHandler.Adapter {
-//
-//        @Override
-//        public void onReregister(final Context context) throws IOException {
-//            onComplete(context, null);
-//        }
-//
-//        @Override
-//        public void onComplete(final Context context, final Object data) throws IOException {
-//            if (context.wasSuspended() || context.isIOOptimizationsFlushed()) {
-//                final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-//                final Connection connection = context.getConnection();
-//                
-//                if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
-//                    connection.simulateServiceEvent(serviceEvent);
-//                } else {
-//                    connection.enableServiceEventInterest(serviceEvent);
-//                }
-//            }
-//        }
-//
-//        @Override
-//        public void onSuspend(final Context context) throws IOException {
-//            // check manual io event control, to not disable service event twice
-//            if (!context.isIOOptimizationsFlushed()) {
-//                disableServiceEvent(context);
-//            }
-//        }
-//
-//        @Override
-//        public void onFlushIOOptimizations(final Context context)
-//                throws IOException {
-//            // check suspended mode, to not disable service event interest twice
-//            if (!context.wasSuspended()) {
-//                disableServiceEvent(context);
-//            }
-//        }
-//
-//        private static void disableServiceEvent(final Context context)
-//                throws IOException {
-//            final Connection connection = context.getConnection();
-//            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-//            connection.disableServiceEventInterest(serviceEvent);
-//        }
-//
-//    }
-//    
-//    private static final class InterestProcessingHandlerWhenIoDisabled
-//            extends EventProcessingHandler.Adapter {
-//
-//        @Override
-//        public void onReregister(final Context context) throws IOException {
-//            onComplete(context, null);
-//        }
-//
-//        @Override
-//        public void onComplete(final Context context, final Object data)
-//                throws IOException {
-//            
-//            final ServiceEvent serviceEvent = (ServiceEvent) context.getEvent();
-//            final Connection connection = context.getConnection();
-//            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
-//                connection.simulateServiceEvent(serviceEvent);
-//            } else {
-//                connection.enableServiceEventInterest(serviceEvent);
-//            }
-//        }
-//    }
 }

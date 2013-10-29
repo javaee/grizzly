@@ -776,8 +776,10 @@ public abstract class NIOTransport extends AbstractTransport
 
         @Override
         public void onSuspend(final Context context) throws IOException {
-            ((NIOConnection) context.getConnection()).deregisterKeyInterest(
-                    SelectionKey.OP_READ);
+            if (!context.wasSuspended()) {
+                ((NIOConnection) context.getConnection()).deregisterKeyInterest(
+                        SelectionKey.OP_READ);
+            }
         }
     }
     
