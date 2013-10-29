@@ -39,9 +39,11 @@
  */
 package org.glassfish.grizzly.samples.httpserver.priorities;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.RequestExecutorProvider;
 import org.glassfish.grizzly.http.server.Response;
 
 /**
@@ -51,24 +53,30 @@ import org.glassfish.grizzly.http.server.Response;
  */
 public class HighPriorityHandler extends HttpHandler {
 
-    private final ExecutorService threadPool;
+    private final RequestExecutorProvider executorProvider;
     
     public HighPriorityHandler(final ExecutorService threadPool) {
-        this.threadPool = threadPool;
-    }
+        this.executorProvider = new RequestExecutorProvider() {
 
+            @Override
+            public Executor getExecutor(Request request) {
+                return threadPool;
+            }
+        };
+    }
+    
     /**
-     * Returns the {@link ExecutorService} to be used to 
+     * @return the {@link RequestExecutorProvider} to be used to 
      * call {@link HighPriorityHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
      */
     @Override
-    protected ExecutorService getThreadPool(final Request request) {
-        return threadPool;
+    public RequestExecutorProvider getRequestExecutorProvider() {
+        return executorProvider;
     }
 
     @Override
     public void service(final Request request, final Response response)
             throws Exception {
-        response.getWriter().write("Server is up");
+        response.getWriter().write(Thread.currentThread().getName() + ": executing high priority task");
     }    
 }

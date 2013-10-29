@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -534,7 +535,6 @@ public class OutputBuffer {
      * @param handler {@link CompletionHandler} that will be notified
      *                of the transfer progress/completion or failure.
      *
-     * @throws IOException if an error occurs during the transfer
      * @throws IllegalArgumentException if <code>file</code> is null
      *
      * @see #sendfile(java.io.File, long, long, org.glassfish.grizzly.CompletionHandler)
@@ -570,8 +570,6 @@ public class OutputBuffer {
      * @param handler {@link CompletionHandler} that will be notified
      *                of the transfer progress/completion or failure.
      *
-     * @throws IOException              if an error occurs during the transfer
-     * @throws IOException              if an I/O error occurs
      * @throws IllegalArgumentException if the response has already been committed
      *                                  at the time this method was invoked.
      * @throws IllegalStateException    if a file transfer request has already
@@ -854,6 +852,19 @@ public class OutputBuffer {
         }
     }
 
+    /**
+     * @return {@link Executor}, which will be used for notifying user
+     * registered {@link WriteHandler}.
+     */
+    protected Executor getThreadPool() {
+        if (!Threads.isService()) {
+            return null;
+        }
+        
+        final ExecutorService es = asyncStateHolder.connection.getTransport().getWorkerThreadPool();
+        return es != null && !es.isShutdown() ? es : null;
+    }    
+    
     /**
      * Notify WriteHandler asynchronously
      */
@@ -1341,8 +1352,10 @@ public class OutputBuffer {
 
         @Override
         public void onWritePossible() throws Exception {
-            if (Threads.isService()) {
-                executeOnWorkerThread(new Runnable() {
+            final Executor executor = outputBuffer.getThreadPool();
+
+            if (executor != null) {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -1360,8 +1373,10 @@ public class OutputBuffer {
 
         @Override
         public void onError(final Throwable t) {
-            if (Threads.isService()) {
-                executeOnWorkerThread(new Runnable() {
+            final Executor executor = outputBuffer.getThreadPool();
+
+            if (executor != null) {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         onError0(t);
@@ -1374,17 +1389,6 @@ public class OutputBuffer {
 
 
         // ----------------------------------------------------- Private Methods
-
-
-        private void executeOnWorkerThread(final Runnable r) {
-            final ExecutorService es =
-                    asyncStateHolder.connection.getTransport().getWorkerThreadPool();
-            if (es != null) {
-                es.execute(r);
-            } else {
-                r.run();
-            }
-        }
 
 
         private void onWritePossible0() throws Exception {

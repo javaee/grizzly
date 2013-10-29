@@ -462,7 +462,7 @@ public class Response {
     }
 
     /**
-     * Returns the {@link ErrorPageGenerator} to be used by
+     * @return the {@link ErrorPageGenerator} to be used by
      * {@link #sendError(int)} or {@link #sendError(int, java.lang.String)}.
      */
     public ErrorPageGenerator getErrorPageGenerator() {
