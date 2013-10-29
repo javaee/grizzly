@@ -116,8 +116,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     /**
      * @return the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
-     *  that require worker threads.  Depending on the {@link IOStrategy} being
-     *  used, this may return <code>null</code>.
+     *  that require worker threads.  This method will return <code>null</code>
+     *  if a {@link ThreadPoolConfig} had not been previously set.
      */
     public ThreadPoolConfig getWorkerThreadPoolConfig() {
         return transport.getWorkerThreadPoolConfig();
