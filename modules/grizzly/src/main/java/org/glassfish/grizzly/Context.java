@@ -122,7 +122,6 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be suspended in the current thread.
      */
     public void suspend() {
-        wasSuspended = true;
         final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
         if (processingHandlerLocal != null) {
             try {
@@ -131,6 +130,8 @@ public class Context implements AttributeStorage, Cacheable {
                 throw new IllegalStateException(e);
             }
         }
+        
+        wasSuspended = true;
     }
     
     /**
@@ -166,7 +167,6 @@ public class Context implements AttributeStorage, Cacheable {
      * explicitly called.
      */
     public void setManualIOEventControl() {
-        isManualIOEventControl = true;
         final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
         if (processingHandlerLocal != null) {
             try {
@@ -175,6 +175,8 @@ public class Context implements AttributeStorage, Cacheable {
                 throw new IllegalStateException(e);
             }
         }
+        
+        isManualIOEventControl = true;
     }
 
     /**

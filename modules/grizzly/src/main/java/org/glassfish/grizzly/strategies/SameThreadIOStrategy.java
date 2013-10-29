@@ -144,7 +144,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         @Override
         public void onContextSuspend(final Context context) throws IOException {
             // check manual io event control, to not disable ioevent twice
-            if (!context.isManualIOEventControl()) {
+            if (!context.wasSuspended() && !context.isManualIOEventControl()) {
                 disableIOEvent(context);
             }
         }
@@ -153,7 +153,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         public void onContextManualIOEventControl(final Context context)
                 throws IOException {
             // check suspended mode, to not disable ioevent twice
-            if (!context.wasSuspended()) {
+            if (!context.wasSuspended() && !context.isManualIOEventControl()) {
                 disableIOEvent(context);
             }
         }
