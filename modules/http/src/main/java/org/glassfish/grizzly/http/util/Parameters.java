@@ -80,16 +80,10 @@ public final class Parameters {
      * Default Logger.
      */
     private final static Logger LOGGER = Grizzly.logger(Parameters.class);
-    // Transition: we'll use the same Hashtable( String->String[] )
-    // for the beginning. When we are sure all accesses happen through
-    // this class - we can switch to MultiMap
-    /* START PWC 6057385
-    private Hashtable paramHashStringArray=new Hashtable();
-    */
-    // START PWC 6057385
+
     private final LinkedHashMap<String, ArrayList<String>> paramHashValues =
         new LinkedHashMap<String, ArrayList<String>>();
-    // END PWC 6057385
+
     private boolean didQueryParameters = false;
     private boolean didMerge = false;
     MimeHeaders headers;
@@ -101,8 +95,8 @@ public final class Parameters {
     // Garbage-less parameter merging.
     // In a sub-request with parameters, the new parameters
     // will be stored in child. When a getParameter happens,
-    // the 2 are merged togheter. The child will be altered
-    // to contain the merged values - the parent is allways the
+    // the 2 are merged together. The child will be altered
+    // to contain the merged values - the parent is always the
     // original request.
     private Parameters child = null;
     private Parameters parent = null;
@@ -139,7 +133,8 @@ public final class Parameters {
     public void setQueryStringEncoding(final Charset queryStringEncoding) {
         this.queryStringEncoding = queryStringEncoding;
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "Set query string encoding to {0}", queryStringEncoding);
+            LOGGER.log(Level.FINEST, "Set query string encoding to {0}",
+                       queryStringEncoding);
         }
     }
 
@@ -273,7 +268,8 @@ public final class Parameters {
     private void merge() {
         // recursive
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "Before merging {0} {1} {2}", new Object[]{this, parent, didMerge});
+            LOGGER.log(Level.FINEST, "Before merging {0} {1} {2}",
+                       new Object[]{this, parent, didMerge});
             LOGGER.log(Level.FINEST, paramsAsString());
         }
 
@@ -329,7 +325,7 @@ public final class Parameters {
         }
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "Decoding query {0} {1}",
-                    new Object[]{queryDC, queryStringEncoding});
+                       new Object[]{queryDC, queryStringEncoding});
         }
         
         decodedQuery.duplicate(queryDC);
@@ -425,8 +421,14 @@ public final class Parameters {
         final Charset enc) {
 
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "process parameters. Buffer: {0} start={1} len={2} content={3}",
-                    new Object[]{buffer, start, len, buffer.toStringContent(enc, start, start + len)});
+            LOGGER.log(Level.FINEST,
+                       "Process parameters. Buffer: {0} start={1} len={2} content={3}",
+                       new Object[]{
+                               buffer,
+                               start,
+                               len,
+                               buffer.toStringContent(enc, start, start + len)
+                       });
         }
         
         int decodeFailCount = 0;
@@ -497,10 +499,12 @@ public final class Parameters {
             }
 
             if (LOGGER.isLoggable(Level.FINEST) && valueStart == -1) {
-                LOGGER.log(Level.FINEST, LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_NOEQUAL(
-                        nameStart,
-                        nameEnd,
-                        buffer.toStringContent(DEFAULT_CHARSET, nameStart, nameEnd)));
+                LOGGER.log(Level.FINEST,
+                           LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_NOEQUAL(
+                                   nameStart,
+                                   nameEnd,
+                                   buffer.toStringContent(DEFAULT_CHARSET,
+                                                          nameStart, nameEnd)));
             }
 
             if (nameEnd <= nameStart) {
@@ -548,21 +552,28 @@ public final class Parameters {
                 }
                 
                 addParameter(name, value);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 decodeFailCount++;
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST,
+                   LOGGER.log(Level.FINEST,
                             LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_DEBUG(
                             origName.toString(), origValue.toString()));
                 } else if (LOGGER.isLoggable(Level.INFO) && decodeFailCount == 1) {
+                    final String name = ((tmpName.getLength() > 0)
+                                            ? tmpName.toString()
+                                            : "unavailable");
+                    final String value = ((tmpValue.getLength() > 0)
+                                            ? tmpValue.toString()
+                                            : "unavailable");
                     LOGGER.log(Level.INFO,
-                            LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_INFO(
-                            tmpName.toString(), tmpValue.toString()),
-                            e);
+                               LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_INFO(
+                                       e.getMessage(), name, value));
+                    LOGGER.log(Level.FINE, "Decoding stacktrace.", e);
                 }
+            } finally {
+                tmpName.recycle();
+                tmpValue.recycle();
             }
-            tmpName.recycle();
-            tmpValue.recycle();
 
         }
 
@@ -605,27 +616,47 @@ public final class Parameters {
     public void processParameters(char chars[], int start, int len) {
         int end = start + len;
         int pos = start;
-        
+        int decodeFailCount = 0;
+
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "Chars: {0}", new String(chars, start, len));
+            LOGGER.log(Level.FINEST,
+                       "Process parameters. chars: {0} start={1} len={2} content={3}",
+                       new Object[]{
+                               chars,
+                               start,
+                               len,
+                               new String(chars, start, len)
+                       });
         }
-        
+
         do {
+            if (limit > -1 && parameterCount >= limit) {
+                LOGGER.warning(
+                        LogMessages.WARNING_GRIZZLY_HTTP_SEVERE_GRIZZLY_HTTP_PARAMETERS_MAX_COUNT_FAIL(
+                                limit));
+                break;
+            }
             boolean noEq = false;
             int nameStart = pos;
             int valStart = -1;
             int valEnd = -1;
             int nameEnd = CharChunk.indexOf(chars, nameStart, end, '=');
             int nameEnd2 = CharChunk.indexOf(chars, nameStart, end, '&');
-            if ((nameEnd2 != -1) &&
-                (nameEnd == -1 || nameEnd > nameEnd2)) {
+            if ((nameEnd2 != -1)
+                    && (nameEnd == -1 || nameEnd > nameEnd2)) {
                 nameEnd = nameEnd2;
                 noEq = true;
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "no equal {0} {1} {2}",
-                            new Object[]{nameStart, nameEnd, new String(chars, nameStart, nameEnd - nameStart)});
+                               new Object[]{
+                                       nameStart,
+                                       nameEnd,
+                                       new String(chars,
+                                                  nameStart,
+                                                  nameEnd - nameStart)
+                               });
                 }
             }
             if (nameEnd == -1) {
@@ -648,17 +679,37 @@ public final class Parameters {
                 tmpNameC.append(chars, nameStart, nameEnd - nameStart);
                 tmpValueC.append(chars, valStart, valEnd - valStart);
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "{0}= {1}", new Object[]{tmpNameC, tmpValueC});
+                    LOGGER.log(Level.FINEST, "{0}= {1}",
+                               new Object[]{tmpNameC, tmpValueC});
                 }
-                URLDecoder.decode(tmpNameC, tmpNameC, true, queryStringEncoding.name());
-                URLDecoder.decode(tmpValueC, tmpValueC, true, queryStringEncoding.name());
+                URLDecoder.decode(tmpNameC, tmpNameC, true,
+                                  queryStringEncoding.name());
+                URLDecoder.decode(tmpValueC, tmpValueC, true,
+                                  queryStringEncoding.name());
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "{0}= {1}", new Object[]{tmpNameC, tmpValueC});
+                    LOGGER.log(Level.FINEST, "{0}= {1}",
+                               new Object[]{tmpNameC, tmpValueC});
                 }
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
-            } catch (Exception ex) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ex.toString(), ex);
+            } catch (Exception e) {
+                decodeFailCount++;
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST,
+                               LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_DEBUG(
+                                       origName.toString(),
+                                       origValue.toString()));
+                } else if (LOGGER.isLoggable(
+                        Level.INFO) && decodeFailCount == 1) {
+                    final String name = ((tmpNameC.getLength() > 0)
+                            ? tmpNameC.toString()
+                            : "unavailable");
+                    final String value = ((tmpValueC.getLength() > 0)
+                            ? tmpValueC.toString()
+                            : "unavailable");
+                    LOGGER.log(Level.INFO,
+                               LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_INFO(
+                                       e.getMessage(), name, value));
+                    LOGGER.log(Level.FINE, "Decoding stacktrace.", e);
                 }
             } finally {
                 tmpNameC.recycle();
@@ -666,6 +717,12 @@ public final class Parameters {
             }
 
         } while (pos < end);
+
+        if (!LOGGER.isLoggable(Level.FINEST) && decodeFailCount > 1) {
+            LOGGER.info(
+                    LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_MULTIPLE_DECODING_FAIL(
+                            decodeFailCount));
+        }
     }
 
     public void processParameters(final DataChunk data) {
@@ -715,89 +772,24 @@ public final class Parameters {
 
     // -------------------- Old code, needs rewrite --------------------
 
-    /**
-     * Used by RequestDispatcher
-     */
-    public void processSingleParameters(final String str) {
-        int end = str.length();
-        int pos = 0;
-        if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "String: {0}", str);
-        }
-        do {
-            boolean noEq = false;
-            int valStart = -1;
-            int valEnd = -1;
-            int nameStart = pos;
-            int nameEnd = str.indexOf('=', nameStart);
-            int nameEnd2 = str.indexOf('&', nameStart);
-            if (nameEnd2 == -1) {
-                nameEnd2 = end;
-            }
-            if ((nameEnd2 != -1) &&
-                (nameEnd == -1 || nameEnd > nameEnd2)) {
-                nameEnd = nameEnd2;
-                noEq = true;
-                valStart = nameEnd;
-                valEnd = nameEnd;
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "no equal {0} {1} {2}",
-                            new Object[]{nameStart, nameEnd, str.substring(nameStart, nameEnd)});
-                }
-            }
-            if (nameEnd == -1) {
-                nameEnd = end;
-            }
-            if (!noEq) {
-                valStart = nameEnd + 1;
-                valEnd = str.indexOf('&', valStart);
-                if (valEnd == -1) {
-                    valEnd = (valStart < end) ? end : valStart;
-                }
-            }
-            pos = valEnd + 1;
-            if (nameEnd <= nameStart) {
-                continue;
-            }
-            if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, "XXX {0} {1} {2} {3}",
-                        new Object[]{nameStart, nameEnd, valStart, valEnd});
-            }
-            try {
-                tmpNameC.append(str, nameStart, nameEnd - nameStart);
-                tmpValueC.append(str, valStart, valEnd - valStart);
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "{0}= {1}",
-                            new Object[]{tmpNameC, tmpValueC});
-                }
-                URLDecoder.decode(tmpNameC, true);
-                URLDecoder.decode(tmpValueC, true);
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "{0}= {1}",
-                            new Object[]{tmpNameC, tmpValueC});
-                }
-                if (str.compareTo(tmpNameC.toString()) == 0) {
-                    addParameter(tmpNameC.toString(), tmpValueC.toString());
-                }
-            } catch (Exception ex) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ex.toString(), ex);
-                }
-            } finally {
-                tmpNameC.recycle();
-                tmpValueC.recycle();
-            }
-
-        } while (pos < end);
-    }
 
     public void processParameters(String str) {
         int end = str.length();
         int pos = 0;
+        int decodeFailCount = 0;
+
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "String: {0}", str);
+            LOGGER.log(Level.FINEST,
+                       "Process parameters. String: {0}",
+                       str);
         }
         do {
+            if (limit > -1 && parameterCount >= limit) {
+                LOGGER.warning(
+                        LogMessages.WARNING_GRIZZLY_HTTP_SEVERE_GRIZZLY_HTTP_PARAMETERS_MAX_COUNT_FAIL(
+                                limit));
+                break;
+            }
             boolean noEq = false;
             int valStart = -1;
             int valEnd = -1;
@@ -815,7 +807,11 @@ public final class Parameters {
                 valEnd = nameEnd;
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "no equal {0} {1} {2}",
-                            new Object[]{nameStart, nameEnd, str.substring(nameStart, nameEnd)});
+                               new Object[]{
+                                       nameStart,
+                                       nameEnd,
+                                       str.substring(nameStart, nameEnd)
+                               });
                 }
             }
             if (nameEnd == -1) {
@@ -834,31 +830,53 @@ public final class Parameters {
             }
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINEST, "XXX {0} {1} {2} {3}",
-                        new Object[]{nameStart, nameEnd, valStart, valEnd});
+                           new Object[]{nameStart, nameEnd, valStart, valEnd});
             }
             try {
                 tmpNameC.append(str, nameStart, nameEnd - nameStart);
                 tmpValueC.append(str, valStart, valEnd - valStart);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "{0}= {1}",
-                            new Object[]{tmpNameC, tmpValueC});
+                               new Object[]{tmpNameC, tmpValueC});
                 }
                 URLDecoder.decode(tmpNameC, true);
                 URLDecoder.decode(tmpValueC, true);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "{0}= {1}",
-                            new Object[]{tmpNameC, tmpValueC});
+                               new Object[]{tmpNameC, tmpValueC});
                 }
                 addParameter(tmpNameC.toString(), tmpValueC.toString());
-            } catch (Exception ex) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ex.toString(), ex);
+            } catch (Exception e) {
+                decodeFailCount++;
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST,
+                               LogMessages.FINE_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_DEBUG(
+                                       origName.toString(),
+                                       origValue.toString()));
+                } else if (LOGGER.isLoggable(
+                        Level.INFO) && decodeFailCount == 1) {
+                    final String name = ((tmpNameC.getLength() > 0)
+                            ? tmpNameC.toString()
+                            : "unavailable");
+                    final String value = ((tmpValueC.getLength() > 0)
+                            ? tmpValueC.toString()
+                            : "unavailable");
+                    LOGGER.log(Level.INFO,
+                               LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_DECODE_FAIL_INFO(
+                                       e.getMessage(), name, value));
+                    LOGGER.log(Level.FINE, "Decoding stacktrace.", e);
                 }
             } finally {
                 tmpNameC.recycle();
                 tmpValueC.recycle();
             }
         } while (pos < end);
+
+        if (!LOGGER.isLoggable(Level.FINEST) && decodeFailCount > 1) {
+            LOGGER.info(
+                    LogMessages.INFO_GRIZZLY_HTTP_PARAMETERS_MULTIPLE_DECODING_FAIL(
+                            decodeFailCount));
+        }
     }
 
 }
