@@ -633,8 +633,8 @@ public final class SpdySession {
          */
         @SuppressWarnings("unchecked")
         public final SpdyStream open() throws SpdyStreamException {
-            newClientStreamLock.lock();
             final SpdyRequest request = build();
+            newClientStreamLock.lock();
             try {
                 final SpdyStream spdyStream = openStream(
                         request,
@@ -780,8 +780,8 @@ public final class SpdySession {
          */
         @SuppressWarnings("unchecked")
         public final SpdyStream open() throws SpdyStreamException {
-            newClientStreamLock.lock();
             SpdyRequest request = build();
+            newClientStreamLock.lock();
             try {
                 final SpdyStream spdyStream = openStream(
                         request,

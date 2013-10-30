@@ -975,6 +975,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             
             return ctx.getStopAction();
         } else if (type == TransportFilter.FlushEvent.TYPE) {
+            assert event instanceof TransportFilter.FlushEvent;
+            
             final HttpContext httpContext = HttpContext.get(ctx);
             final SpdyStream spdyStream = (SpdyStream) httpContext.getContextStorage();
             

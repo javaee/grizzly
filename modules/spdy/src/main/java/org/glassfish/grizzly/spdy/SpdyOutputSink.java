@@ -955,7 +955,7 @@ final class SpdyOutputSink {
         public void notifyFailure(final Throwable e) {
             final CompletionHandler chLocal = aggrCompletionHandler;
             aggrCompletionHandler = null;
-                try {
+            try {
                 if (chLocal != null) {
                     chLocal.failed(e);
                 }
@@ -1052,6 +1052,8 @@ final class SpdyOutputSink {
             if (isDone) {
                 return false;
             }
+            
+            isDone = true;
             
             synchronized (flushHandlersSync) { // synchronize with flush()
                 unflushedWritesCounter.decrementAndGet();
