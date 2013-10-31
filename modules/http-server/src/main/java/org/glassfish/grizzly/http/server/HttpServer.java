@@ -49,7 +49,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -838,45 +837,4 @@ public class HttpServer {
         }
     }
 
-
-    public static void main(String[] args) {
-        final HttpServer server = HttpServer.createSimpleServer();
-        server.getServerConfiguration().addHttpHandler(new HttpHandler() {
-            @Override
-            public void service(Request request, Response response)
-            throws Exception {
-                response.getWriter().write("OK");
-            }
-        }, "/test");
-        GrizzlyFuture<HttpServer> waitFuture;
-        try {
-            Thread t = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        System.out.println("ATTEMPTING SHUTDOWN");
-                        server.shutdown().get();
-                        System.out.println("SHUTDOWN COMPLETE");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            t.setDaemon(true);
-            t.start();
-            waitFuture = server.shutdownFuture();
-            server.start();
-            waitFuture.get();
-            System.out.println("EXIT");
-        } catch (Exception ioe) {
-            ioe.printStackTrace();
-        }
-    }
 }
