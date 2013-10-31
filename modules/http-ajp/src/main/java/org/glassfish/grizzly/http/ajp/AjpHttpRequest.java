@@ -172,6 +172,15 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     }
 
     /**
+     * @return the current remote host value. Unlike {@link #remoteHost()}, this
+     *         method doesn't try to resolve the host name based on the current
+     *         {@link #remoteAddr()} value
+     */
+    public DataChunk remoteHostRaw() {
+        return remoteHostC;
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override
