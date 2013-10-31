@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -113,7 +114,7 @@ public class HttpServer {
      * Future to control graceful shutdown status
      */
     private FutureImpl<HttpServer> shutdownFuture;
-    
+
     /**
      * HttpHandler, which processes HTTP requests
      */
@@ -238,6 +239,19 @@ public class HttpServer {
     }
 
     /**
+     * @return a {@link GrizzlyFuture} that will be considered complete
+     *  once the {@link HttpServer} has been shutdown.
+     *
+     * @since 2.3.8
+     */
+    public synchronized GrizzlyFuture<HttpServer> shutdownFuture() {
+        if (shutdownFuture == null) {
+            shutdownFuture = Futures.createSafeFuture();
+        }
+        return shutdownFuture;
+    }
+
+    /**
      * <p>
      * Starts the <code>HttpServer</code>.
      * </p>
@@ -254,9 +268,7 @@ public class HttpServer {
                     + " shutdown state. You have to either wait for shutdown to"
                     + " complete or force it by calling shutdownNow()");
         }
-        state = State.RUNNING;
-        shutdownFuture = null;
-        
+
         configureAuxThreadPool();
 
         delayedExecutor = new DelayedExecutor(auxExecutorService);
@@ -292,6 +304,8 @@ public class HttpServer {
                 l.jmxEnabled();
             }
         }
+
+        state = State.RUNNING;
 
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO, "[{0}] Started.", getServerConfiguration().getName());
@@ -365,7 +379,9 @@ public class HttpServer {
                     Futures.createReadyFuture(this);
         }
 
-        shutdownFuture = Futures.createSafeFuture();
+        if (shutdownFuture == null) {
+            shutdownFuture = Futures.createSafeFuture();
+        }
         state = State.STOPPING;
 
         final int listenersCount = listeners.size();
@@ -393,7 +409,6 @@ public class HttpServer {
             listener.shutdown(gracePeriod, timeUnit).addCompletionHandler(shutdownCompletionHandler);
         }
 
-
         return shutdownFuture;
     }
 
@@ -416,8 +431,6 @@ public class HttpServer {
         if (state == State.STOPPED) {
             return;
         }
-        state = State.STOPPED;
-
         try {
 
             if (serverConfig.isJmxEnabled()) {
@@ -451,10 +464,14 @@ public class HttpServer {
                         listener.getTransport().getFilterChain();
                 filterChain.clear();
             }
-            
+
+            state = State.STOPPED;
+
             if (shutdownFuture != null) {
                 shutdownFuture.result(this);
+                shutdownFuture = null;
             }
+
         }
 
     }
@@ -818,6 +835,48 @@ public class HttpServer {
     synchronized void onRemoveHttpHandler(HttpHandler httpHandler) {
         if (isStarted()) {
             httpHandlerChain.removeHttpHandler(httpHandler);
+        }
+    }
+
+
+    public static void main(String[] args) {
+        final HttpServer server = HttpServer.createSimpleServer();
+        server.getServerConfiguration().addHttpHandler(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response)
+            throws Exception {
+                response.getWriter().write("OK");
+            }
+        }, "/test");
+        GrizzlyFuture<HttpServer> waitFuture;
+        try {
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        System.out.println("ATTEMPTING SHUTDOWN");
+                        server.shutdown().get();
+                        System.out.println("SHUTDOWN COMPLETE");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            t.setDaemon(true);
+            t.start();
+            waitFuture = server.shutdownFuture();
+            server.start();
+            waitFuture.get();
+            System.out.println("EXIT");
+        } catch (Exception ioe) {
+            ioe.printStackTrace();
         }
     }
 }

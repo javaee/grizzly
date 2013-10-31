@@ -647,7 +647,6 @@ public class NetworkListener {
             return;
         }
         
-        state = State.RUNNING;
         shutdownFuture = null;
         if (filterChain == null) {
             throw new IllegalStateException("No FilterChain available."); // i18n
@@ -694,6 +693,9 @@ public class NetworkListener {
         });
 
         transport.start();
+
+        state = State.RUNNING;
+
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Started listener bound to [{0}]",
@@ -748,8 +750,6 @@ public class NetworkListener {
         }
         
         try {
-            state = State.STOPPED;
-            
             serverConnection = null;
             transport.shutdownNow();
             if (LOGGER.isLoggable(Level.INFO)) {
@@ -758,6 +758,7 @@ public class NetworkListener {
                     host + ':' + port);
             }
         } finally {
+            state = State.STOPPED;
             if (shutdownFuture != null) {
                 shutdownFuture.result(this);
             }
@@ -773,8 +774,8 @@ public class NetworkListener {
         if (state != State.RUNNING) {
             return;
         }
-        state = State.PAUSED;
         transport.pause();
+        state = State.PAUSED;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Paused listener bound to [{0}]",
@@ -792,8 +793,8 @@ public class NetworkListener {
         if (state != State.PAUSED) {
             return;
         }
-        state = State.RUNNING;
         transport.resume();
+        state = State.RUNNING;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Resumed listener bound to [{0}]",
