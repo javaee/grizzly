@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.server.util;
 
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.Constants;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -76,6 +77,8 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MessageBytes;
+
+import static org.glassfish.grizzly.http.util.DataChunk.Type.*;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived
@@ -801,6 +804,46 @@ public class Mapper {
      * may have a semicolon with extra data followed, which shouldn't be a part
      * of mapping process.
      *
+     * @param requestPacket the request packet containing the host information
+     *                      to be used by the mapping process.
+     * @param decodedURI   decoded URI
+     * @param mappingData  {@link MappingData} based on the URI.
+     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position
+     *                     wasn't resolved yet (so it will be resolved in the method),
+     *                     or <tt>-1</tt> if there is no semicolon in the URI.
+     * @throws Exception if an error occurs mapping the request
+     */
+    public void mapUriWithSemicolon(final HttpRequestPacket requestPacket,
+                                    final DataChunk decodedURI,
+                                    final MappingData mappingData,
+                                    int semicolonPos) throws Exception {
+        final CharChunk charChunk = decodedURI.getCharChunk();
+        final int oldEnd = charChunk.getEnd();
+
+        if (semicolonPos == 0) {
+            semicolonPos = decodedURI.indexOf(';', 0);
+        }
+
+        DataChunk localDecodedURI = decodedURI;
+        if (semicolonPos >= 0) {
+            charChunk.setEnd(semicolonPos);
+            // duplicate the URI path, because Mapper may corrupt the attributes,
+            // which follow the path
+            localDecodedURI = mappingData.tmpMapperDC;
+            localDecodedURI.duplicate(decodedURI);
+        }
+
+
+        map(requestPacket, localDecodedURI, mappingData);
+        charChunk.setEnd(oldEnd);
+    }
+
+
+    /**
+     * Maps the decodedURI to the corresponding HttpHandler, considering that URI
+     * may have a semicolon with extra data followed, which shouldn't be a part
+     * of mapping process.
+     *
      * @param serverName the server name as described by the Host header.
      * @param decodedURI decoded URI
      * @param mappingData {@link MappingData} based on the URI.
@@ -851,10 +894,33 @@ public class Mapper {
         if (host.isNull()) {
             host.getCharChunk().append(defaultHostName);
         }
-        
-        host.toChars(Constants.DEFAULT_HTTP_CHARSET);
+        if (host.getType() == Bytes || host.getType() == Buffer) {
+            host.toChars(Constants.DEFAULT_HTTP_CHARSET);
+        }
         uri.toChars(null);
         internalMap(host.getCharChunk(), uri.getCharChunk(), mappingData);
+
+    }
+
+
+    /**
+     * Map the specified host name and URI, mutating the given mapping data.
+     *
+     * @param requestPacket the http request containing host name information
+     *                      used by the mapping process.
+     * @param uri         URI
+     * @param mappingData This structure will contain the result of the mapping
+     *                    operation
+     */
+    public void map(final HttpRequestPacket requestPacket, final DataChunk uri,
+                    final MappingData mappingData) throws Exception {
+
+        uri.toChars(null);
+        internalMap(((hosts.length > 1)
+                        ? requestPacket.serverName().getCharChunk()
+                        : null),
+                    uri.getCharChunk(),
+                    mappingData);
 
     }
 
@@ -899,7 +965,10 @@ public class Mapper {
         // Virtual host mapping
         if (mappingData.host == null) {
             Host[] newHosts = hosts;
-            int pos = findIgnoreCase(newHosts, host);
+            int pos = -1;
+            if (host != null && host.isNull()) {
+                pos = findIgnoreCase(newHosts, host);
+            }
             if (pos != -1 && host.equalsIgnoreCase(newHosts[pos].name)) {
                 mappingData.host = newHosts[pos].object;
                 hostPos = pos;

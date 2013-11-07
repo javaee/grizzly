@@ -71,7 +71,6 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HttpCodecUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.npn.ClientSideNegotiator;
@@ -1070,16 +1069,10 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final DataChunk hostDC = headers.getValue(Header.Host);
 
         // Check host header
-        if (hostDC == null) {
-            state.setError(true);
-            return;
-        }
-
-        HttpCodecUtils.parseHost(hostDC, request, response, state);
-
-        if (request.serverName().getLength() == 0) {
+        if (hostDC == null || hostDC.getLength() == 0) {
             state.setError(true);
         }
+
     }
     
     private void prepareOutgoingRequest(final HttpRequestPacket request) {

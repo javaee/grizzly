@@ -46,6 +46,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
 import org.glassfish.grizzly.http.server.jmxbase.Monitorable;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
@@ -171,10 +172,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             
             final MappingData mappingData = request.obtainMappingData();
 
-            mapper.mapUriWithSemicolon(request.getRequest().serverName(),
-                    decodedURI,
-                    mappingData,
-                    0);
+            mapper.mapUriWithSemicolon(request.getRequest(),
+                                       decodedURI,
+                                       mappingData,
+                                       0);
 
 
             HttpHandler httpHandler;
@@ -345,7 +346,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     @Override
     public synchronized void destroy() {
-        mapperUpdateLock.readLock().lock();
+        mapperUpdateLock.writeLock().lock();
         
         try {
             for (Entry<HttpHandler, String[]> handler : handlers.entrySet()) {
@@ -353,7 +354,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 a.destroy();
             }
         } finally {
-            mapperUpdateLock.readLock().unlock();
+            mapperUpdateLock.writeLock().unlock();
         }
         started = false;
     }
@@ -419,10 +420,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     private final class DispatchHelperImpl implements DispatcherHelper {
 
         @Override
-        public void mapPath(final DataChunk host, final DataChunk path,
+        public void mapPath(final HttpRequestPacket requestPacket, final DataChunk path,
                 final MappingData mappingData) throws Exception {
             
-            mapper.map(host, path, mappingData);
+            mapper.map(requestPacket, path, mappingData);
         }
 
         @Override

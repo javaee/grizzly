@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.util;
 
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
@@ -48,7 +49,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public interface DispatcherHelper {
-    public void mapPath(DataChunk host, DataChunk path, MappingData mappingData)
+    public void mapPath(HttpRequestPacket requestPacket, DataChunk path, MappingData mappingData)
             throws Exception;
 
     public void mapName(DataChunk name, MappingData mappingData) throws Exception;

@@ -113,7 +113,7 @@ public class HttpServer {
      * Future to control graceful shutdown status
      */
     private FutureImpl<HttpServer> shutdownFuture;
-
+    
     /**
      * HttpHandler, which processes HTTP requests
      */
@@ -238,19 +238,6 @@ public class HttpServer {
     }
 
     /**
-     * @return a {@link GrizzlyFuture} that will be considered complete
-     *  once the {@link HttpServer} has been shutdown.
-     *
-     * @since 2.3.8
-     */
-    public synchronized GrizzlyFuture<HttpServer> shutdownFuture() {
-        if (shutdownFuture == null) {
-            shutdownFuture = Futures.createSafeFuture();
-        }
-        return shutdownFuture;
-    }
-
-    /**
      * <p>
      * Starts the <code>HttpServer</code>.
      * </p>
@@ -267,7 +254,9 @@ public class HttpServer {
                     + " shutdown state. You have to either wait for shutdown to"
                     + " complete or force it by calling shutdownNow()");
         }
-
+        state = State.RUNNING;
+        shutdownFuture = null;
+        
         configureAuxThreadPool();
 
         delayedExecutor = new DelayedExecutor(auxExecutorService);
@@ -303,8 +292,6 @@ public class HttpServer {
                 l.jmxEnabled();
             }
         }
-
-        state = State.RUNNING;
 
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO, "[{0}] Started.", getServerConfiguration().getName());
@@ -378,9 +365,7 @@ public class HttpServer {
                     Futures.createReadyFuture(this);
         }
 
-        if (shutdownFuture == null) {
-            shutdownFuture = Futures.createSafeFuture();
-        }
+        shutdownFuture = Futures.createSafeFuture();
         state = State.STOPPING;
 
         final int listenersCount = listeners.size();
@@ -408,6 +393,7 @@ public class HttpServer {
             listener.shutdown(gracePeriod, timeUnit).addCompletionHandler(shutdownCompletionHandler);
         }
 
+
         return shutdownFuture;
     }
 
@@ -430,6 +416,8 @@ public class HttpServer {
         if (state == State.STOPPED) {
             return;
         }
+        state = State.STOPPED;
+
         try {
 
             if (serverConfig.isJmxEnabled()) {
@@ -463,14 +451,10 @@ public class HttpServer {
                         listener.getTransport().getFilterChain();
                 filterChain.clear();
             }
-
-            state = State.STOPPED;
-
+            
             if (shutdownFuture != null) {
                 shutdownFuture.result(this);
-                shutdownFuture = null;
             }
-
         }
 
     }

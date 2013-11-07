@@ -47,8 +47,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.ProcessingState;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -60,9 +58,8 @@ public class HttpCodecUtils {
     private static final int[] DEC = HexUtils.getDecBytes();
     
     public static void parseHost(final DataChunk hostDC,
-                                  final HttpRequestPacket request,
-                                  final HttpResponsePacket response,
-                                  final ProcessingState state) {
+                                 final DataChunk serverNameDC,
+                                 final HttpRequestPacket request) {
 
         if (hostDC == null) {
             // HTTP/1.0
@@ -107,20 +104,19 @@ public class HttpCodecUtils {
                     // 443 - Default HTTPS port
                     request.setServerPort(443);
                 }
-                request.serverName().setBytes(valueB, valueS, valueS + valueL);
+
+                serverNameDC.setBytes(valueB, valueS, valueS + valueL);
             } else {
-                request.serverName().setBytes(valueB, valueS, valueS + colonPos);
+                serverNameDC.setBytes(valueB, valueS, valueS + colonPos);
 
                 int port = 0;
                 int mult = 1;
                 for (int i = valueL - 1; i > colonPos; i--) {
                     int charValue = DEC[(int) valueB[i + valueS]];
                     if (charValue == -1) {
-                        // Invalid character
-                        state.setError(true);
-                        // 400 - Bad request
-                        HttpStatus.BAD_REQUEST_400.setValues(response);
-                        return;
+                        throw new IllegalStateException(
+                                String.format("Host header %s contained a non-decimal value in the port definition.",
+                                              hostDC.toString()));
                     }
                     port = port + (charValue * mult);
                     mult = 10 * mult;
@@ -157,9 +153,9 @@ public class HttpCodecUtils {
                     // 443 - Default HTTPS port
                     request.setServerPort(443);
                 }
-                request.serverName().setBuffer(valueB, valueS, valueS + valueL);
+                serverNameDC.setBuffer(valueB, valueS, valueS + valueL);
             } else {
-                request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
+                serverNameDC.setBuffer(valueB, valueS, valueS + colonPos);
 
                 int port = 0;
                 int mult = 1;
@@ -167,10 +163,9 @@ public class HttpCodecUtils {
                     int charValue = DEC[(int) valueB.get(i + valueS)];
                     if (charValue == -1) {
                         // Invalid character
-                        state.setError(true);
-                        // 400 - Bad request
-                        HttpStatus.BAD_REQUEST_400.setValues(response);
-                        return;
+                        throw new IllegalStateException(
+                                String.format("Host header %s contained a non-decimal value in the port definition.",
+                                              hostDC.toString()));
                     }
                     port = port + (charValue * mult);
                     mult = 10 * mult;

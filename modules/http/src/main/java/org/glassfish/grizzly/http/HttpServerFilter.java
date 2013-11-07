@@ -229,7 +229,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.maxRequestHeaders = maxRequestHeaders;
         this.maxResponseHeaders = maxResponseHeaders;
     }
-
+    
     // ----------------------------------------------------------- Parsing
     
     /**
@@ -249,7 +249,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      */
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        final Buffer input = (Buffer) ctx.getMessage();
+        final Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
         HttpContext context = HttpContext.get(ctx);
         if (context == null) {
@@ -648,7 +648,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                     uriBC.setStart(uriBCStart + slashPos);
                     uriBC.setEnd(uriBC.getEnd());
                 }
-                hostDC = headers.setValue("host");
+                hostDC = headers.setValue(Header.Host);
                 hostDC.set(uriBC, uriBCStart + pos + 3, uriBCStart + slashPos);
             }
 
@@ -663,14 +663,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
         
         // Check host header
-        if (hostDC == null && isHttp11) {
-            state.error = true;
-            return;
-        }
-
-        parseHost(hostDC, request, response, state);
-
-        if (isHttp11 && request.serverName().getLength() == 0) {
+        if (isHttp11 && (hostDC == null || hostDC.getLength() == 0)) {
             state.error = true;
             return;
         }
