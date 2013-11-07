@@ -115,7 +115,7 @@ public class WebSocketEngine {
             // try the Mapper first...
             MappingData data = new MappingData();
             try {
-                mapper.mapUriWithSemicolon(request.serverName(),
+                mapper.mapUriWithSemicolon(request,
                         request.getRequestURIRef().getDecodedRequestURIBC(),
                                     data,
                                     0);

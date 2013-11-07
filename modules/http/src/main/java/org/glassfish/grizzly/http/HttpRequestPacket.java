@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpCodecUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 
@@ -99,6 +100,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private final DataChunk remoteUserC = DataChunk.newInstance();
 
     private boolean requiresAcknowledgement;
+
+    private boolean hostHeaderParsed;
 
     /**
      * Internal notes associated with this request by Catalina components
@@ -266,8 +269,11 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * Host: header.
      */
     public DataChunk serverName() {
+        parseHostHeader();
         return serverNameC;
     }
+
+
 
 
     /**
@@ -275,6 +281,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      *  specified in the <code>Host</code> request header.
      */
     public int getServerPort() {
+        parseHostHeader();
         return serverPort;
     }
 
@@ -680,11 +687,24 @@ public abstract class HttpRequestPacket extends HttpHeader {
     }
 
 
-    // ------------------------------------------------- Package Private Methods
+    // ------------------------------------------------------- Protected Methods
 
 
     protected void setResponse(HttpResponsePacket response) {
         this.response = response;
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private void parseHostHeader() {
+        if (!hostHeaderParsed) {
+            HttpCodecUtils.parseHost(getHeaders().getValue(Header.Host),
+                                     serverNameC,
+                                     this);
+            hostHeaderParsed = true;
+        }
     }
 
     

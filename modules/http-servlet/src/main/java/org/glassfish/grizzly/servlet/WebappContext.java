@@ -987,7 +987,7 @@ public class WebappContext implements ServletContext {
 
         try {
             uriDC.setString(uri);
-            dispatcherHelper.mapPath(dd.hostDC, uriDC, mappingData);
+            dispatcherHelper.mapPath(null, uriDC, mappingData);
             if (mappingData.context == null) {
                 return null;
             }
@@ -1187,7 +1187,7 @@ public class WebappContext implements ServletContext {
             } else {
                 uriDC.setString(contextPath + path);
             }
-            dispatcherHelper.mapPath(dd.hostDC, uriDC, mappingData);
+            dispatcherHelper.mapPath(null, uriDC, mappingData);
             if (mappingData.wrapper == null) {
                 return null;
             }
@@ -2193,20 +2193,17 @@ public class WebappContext implements ServletContext {
      */
     private static final class DispatchData {
 
-        public final DataChunk hostDC;
         public final DataChunk uriDC;
         public final DataChunk servletNameDC;
         public final MappingData mappingData;
 
         public DispatchData() {
-            hostDC = DataChunk.newInstance();
             uriDC = DataChunk.newInstance();
             servletNameDC = DataChunk.newInstance();
             mappingData = new MappingData();
         }
 
         public void recycle() {
-            hostDC.recycle();
             uriDC.recycle();
             servletNameDC.recycle();
             mappingData.recycle();

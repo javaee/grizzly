@@ -254,7 +254,7 @@ public class DefaultWebSocket extends SimpleWebSocket {
 
                 final MappingData mappingData = request.obtainMappingData();
 
-                mapper.mapUriWithSemicolon(request.getRequest().serverName(),
+                mapper.mapUriWithSemicolon(request.getRequest(),
                         decodedURI,
                         mappingData,
                         0);
