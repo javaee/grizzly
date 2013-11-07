@@ -1697,7 +1697,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                                    final HttpContent httpContent,
                                    final TransferEncoding encoding) {
         if (encoding != null) {
-            HttpProbeNotifier.notifyTransferEncodingParse(this, ctx.getConnection(),
+            HttpProbeNotifier.notifyTransferEncodingSerialize(this, ctx.getConnection(),
                     httpContent.getHttpHeader(), httpContent.getContent(),
                     encoding);
             
