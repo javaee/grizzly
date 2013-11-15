@@ -60,6 +60,7 @@ package org.glassfish.grizzly.http.util;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
@@ -1020,7 +1021,7 @@ public class CookieParserUtils {
                                 Charsets.ASCII_CHARSET);
 
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
-                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
+                        cookie.setMaxAge(getMaxAgeDelta(date.getTime(), System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
                     }
 
@@ -1290,7 +1291,7 @@ public class CookieParserUtils {
                                                        valueStart,
                                                        valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
-                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
+                        cookie.setMaxAge(getMaxAgeDelta(date.getTime(), System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
                     }
 
@@ -1541,7 +1542,7 @@ public class CookieParserUtils {
                         final String expiresDate =
                                 cookiesStr.substring(valueStart, valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
-                        cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()) / 1000);
+                        cookie.setMaxAge(getMaxAgeDelta(date.getTime(), System.currentTimeMillis()) / 1000);
                     } catch (ParseException ignore) {
                     }
 
@@ -1760,6 +1761,19 @@ public class CookieParserUtils {
         }
 
         return sb.toString();
+    }
+
+
+    private static int getMaxAgeDelta(long date1, long date2) {
+        long result = date1 - date2;
+        if (result > Integer.MAX_VALUE) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Integer overflow when calculating max age delta.  Date: " + date1 + ", current date: " + date2 + ".  Using Integer.MAX_VALUE for further calculation.");
+            }
+            return Integer.MAX_VALUE;
+        } else {
+            return (int) result;
+        }
     }
 
 }
