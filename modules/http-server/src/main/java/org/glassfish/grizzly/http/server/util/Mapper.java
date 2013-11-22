@@ -893,11 +893,13 @@ public class Mapper {
 
         if (host.isNull()) {
             host.getCharChunk().append(defaultHostName);
+        } else if (host.getLength() == 0) {
+            throw new Exception("Host is not set");
         }
-        if (host.getType() == Bytes || host.getType() == Buffer) {
-            host.toChars(Constants.DEFAULT_HTTP_CHARSET);
-        }
+        
+        host.toChars(Constants.DEFAULT_HTTP_CHARSET);
         uri.toChars(null);
+        
         internalMap(host.getCharChunk(), uri.getCharChunk(), mappingData);
 
     }
@@ -915,10 +917,24 @@ public class Mapper {
     public void map(final HttpRequestPacket requestPacket, final DataChunk uri,
                     final MappingData mappingData) throws Exception {
 
+        final CharChunk hostCC;
+        if (hosts.length > 1) {
+            final DataChunk host = requestPacket.serverName();
+            if (host.isNull()) {
+                host.getCharChunk().append(defaultHostName);
+            } else if (host.getLength() == 0) {
+                throw new Exception("Host is not set");
+            } else {
+                host.toChars(Constants.DEFAULT_HTTP_CHARSET);
+            }
+            
+            hostCC = host.getCharChunk();
+        } else {
+            hostCC = null;
+        }
+        
         uri.toChars(null);
-        internalMap(((hosts.length > 1)
-                        ? requestPacket.serverName().getCharChunk()
-                        : null),
+        internalMap(hostCC,
                     uri.getCharChunk(),
                     mappingData);
 

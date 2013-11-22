@@ -247,6 +247,15 @@ public final class AjpHttpRequest extends HttpRequestPacket {
         super.setExpectContent(isExpectContent);
     }
 
+    void setUnparsedHostHeader(final DataChunk hostValue) {
+        unparsedHostC = hostValue;
+    }
+
+    @Override
+    protected void doParseHostHeader() {
+        AjpMessageUtils.parseHost(unparsedHostC, serverNameRaw(), this);
+    }
+    
     @Override
     protected void reset() {
         processingState.recycle();
@@ -269,5 +278,5 @@ public final class AjpHttpRequest extends HttpRequestPacket {
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
-
+    
 }
